@@ -29,6 +29,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart dan hosted jobs PASS | `6c1218d` | closed; continue ID-01/02 |
 | WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 25 API tests termasuk PostgreSQL integration; Flutter 3 scenarios; Dart, drift dan pipeline PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `97f3901` | hosted evidence pending; production blocked |
+| WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | working tree | commit/push dan hosted `typescript`, `flutter`, `secrets` pending |
 
 ## Independent Review Record
 
@@ -42,11 +43,15 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-ID-QA-002 | AI QA | synthetic invitation/MFA/recovery/session consumers dan migrations | LOCAL PASS | pipeline, PostgreSQL integration, Web/Flutter/Dart dan E2E hijau; hosted pending |
 | REV-BG2-ID-SEC-002 | AI Security | concurrency, challenge replay, hashed counters, audit/cookie/token leakage | LOCAL PASS | single-use claims, family revocation dan raw credential/PII audit scan hijau; production fail-closed |
 | REV-BG2-ID-PEER-002 | AI Peer Reviewer | synthetic-only decision boundary dan evidence honesty | LOCAL PASS | executable acceptance lokal lengkap; story belum PASS sebelum hosted jobs hijau |
+| REV-BG2-MST02-QA-001 | AI QA | interval boundary, optimistic conflict, API/Web executable evidence | LOCAL PASS | PostgreSQL concurrency, drift, Web E2E, Flutter/Dart dan pipeline hijau; hosted pending |
+| REV-BG2-MST02-SEC-001 | AI Security | branch hiding, MFA, self-escalation, bootstrap dan audit masking | LOCAL PASS | real constraint/concurrency dan fail-closed bootstrap hijau; hosted Gitleaks pending |
+| REV-BG2-MST02-PEER-001 | AI Peer Reviewer | projection consistency dan evidence honesty | LOCAL PASS | assignment/UserRole satu transaksi; story belum dipromosikan sebelum hosted evidence |
 
 ## Gate Disposition
 
 `BG-1 = PASS`. `BG2-FOUNDATION = PASS` pada commit `6c1218d` dengan private hosted jobs
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
-NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = NEXT`;
+NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
+NON-PRODUCTION LOCAL_PASS` pada working tree;
 `BG-3 = PENDING` dan `PG-1 = BLOCKED`. DEC/CFG, Figma, provider/account, migration/UAT dan
 production approvals tetap.

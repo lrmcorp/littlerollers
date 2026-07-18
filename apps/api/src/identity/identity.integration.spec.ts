@@ -19,6 +19,7 @@ databaseDescribe('identity PostgreSQL integration', () => {
   const inviterId = randomUUID();
   const targetId = randomUUID();
   const otpUserId = randomUUID();
+  const assignmentUserId = randomUUID();
   let service: IdentityService;
 
   beforeAll(async () => {
@@ -38,8 +39,9 @@ databaseDescribe('identity PostgreSQL integration', () => {
     });
     await db.user.create({ data: { id: inviterId, displayName: 'Integration inviter' } });
     await db.userRole.create({
-      data: { userId: inviterId, branchId, role: 'OWNER', activeFrom: new Date() },
+      data: { userId: inviterId, branchId: null, role: 'SUPER_OWNER', activeFrom: new Date() },
     });
+    await db.user.create({ data: { id: assignmentUserId, displayName: 'Assignment target' } });
     await db.user.create({ data: { id: otpUserId, displayName: 'Integration OTP user' } });
     await db.identity.create({
       data: {
@@ -65,7 +67,9 @@ databaseDescribe('identity PostgreSQL integration', () => {
       where: { roles: { some: { branchId } } },
       select: { id: true },
     });
-    const userIds = [...new Set([inviterId, targetId, otpUserId, ...users.map(({ id }) => id)])];
+    const userIds = [
+      ...new Set([inviterId, targetId, otpUserId, assignmentUserId, ...users.map(({ id }) => id)]),
+    ];
     await db.auditLog.deleteMany({
       where: { OR: [{ actorId: { in: userIds } }, { objectId: { in: userIds } }] },
     });
@@ -74,6 +78,7 @@ databaseDescribe('identity PostgreSQL integration', () => {
     await db.identity.deleteMany({ where: { userId: { in: userIds } } });
     await db.userInvitation.deleteMany({ where: { invitedById: inviterId } });
     await db.userRole.deleteMany({ where: { userId: { in: userIds } } });
+    await db.assignment.deleteMany({ where: { userId: { in: userIds } } });
     await db.user.deleteMany({ where: { id: { in: userIds } } });
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.rateLimitCounter.deleteMany({
@@ -88,8 +93,8 @@ databaseDescribe('identity PostgreSQL integration', () => {
     sessionId: 'pending',
     userId: inviterId,
     assurance: 'MFA' as const,
-    roles: [{ role: 'OWNER' as const, branchId }],
-    capabilities: ['user:read', 'user:admin'],
+    roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+    capabilities: ['user:read', 'user:admin', 'branch:all', 'assignment:read', 'assignment:manage'],
     branchIds: [branchId],
   };
 
@@ -263,5 +268,158 @@ databaseDescribe('identity PostgreSQL integration', () => {
       'recovery-proof',
     ])
       expect(auditText).not.toContain(raw);
+  });
+
+  it('creates one assignment and linked role projection with a masked audit', async () => {
+    const created = await service.createAssignment(
+      principal,
+      {
+        userId: assignmentUserId,
+        branchId,
+        assignmentType: 'INSTRUCTOR',
+        activeFrom: '2026-08-01',
+        activeUntil: null,
+        reason: 'raw operational reason',
+      },
+      `${namespace}-assignment-create`,
+    );
+    const assignment = await db.assignment.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { projectedRole: true },
+    });
+    expect(assignment.projectedRole?.activeFrom.toISOString()).toBe('2026-07-31T17:00:00.000Z');
+    expect(assignment.projectedRole?.activeUntil).toBeNull();
+    expect(
+      await db.auditLog.count({ where: { correlationId: `${namespace}-assignment-create` } }),
+    ).toBe(1);
+    expect(
+      JSON.stringify(
+        await db.auditLog.findFirstOrThrow({
+          where: { correlationId: `${namespace}-assignment-create` },
+        }),
+      ),
+    ).not.toContain('raw operational reason');
+    expect((await service.listAssignments(principal, branchId)).items).toHaveLength(1);
+  });
+
+  it('rejects overlap and permits only one concurrent create without partial projection', async () => {
+    await expect(
+      service.createAssignment(
+        principal,
+        {
+          userId: assignmentUserId,
+          branchId,
+          assignmentType: 'INSTRUCTOR',
+          activeFrom: '2026-08-05',
+          activeUntil: '2026-08-12',
+          reason: 'overlap',
+        },
+        `${namespace}-overlap`,
+      ),
+    ).rejects.toMatchObject({ code: 'EFFECTIVE_PERIOD_OVERLAP' });
+
+    const concurrent = await Promise.allSettled([
+      service.createAssignment(
+        principal,
+        {
+          userId: assignmentUserId,
+          branchId,
+          assignmentType: 'OWNER',
+          activeFrom: '2026-09-01',
+          activeUntil: null,
+          reason: 'first',
+        },
+        `${namespace}-concurrent-1`,
+      ),
+      service.createAssignment(
+        principal,
+        {
+          userId: assignmentUserId,
+          branchId,
+          assignmentType: 'OWNER',
+          activeFrom: '2026-09-01',
+          activeUntil: null,
+          reason: 'second',
+        },
+        `${namespace}-concurrent-2`,
+      ),
+    ]);
+    expect(concurrent.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(
+      await db.assignment.count({
+        where: { userId: assignmentUserId, branchId, type: 'OWNER' },
+      }),
+    ).toBe(1);
+    expect(
+      await db.userRole.count({
+        where: {
+          userId: assignmentUserId,
+          branchId,
+          role: 'OWNER',
+          sourceAssignmentId: { not: null },
+        },
+      }),
+    ).toBe(1);
+  });
+
+  it('ends once with branch-local boundary and keeps /me projection consistent', async () => {
+    const assignment = await db.assignment.findFirstOrThrow({
+      where: { userId: assignmentUserId, branchId, type: 'INSTRUCTOR' },
+    });
+    const ended = await service.endAssignment(
+      principal,
+      assignment.id,
+      { effectiveAt: '2026-08-08T18:00:00.000Z', reason: 'end', expectedVersion: 0 },
+      `${namespace}-assignment-end`,
+    );
+    expect(ended.version).toBe(1);
+    expect(
+      (await service.me(assignmentUserId, new Date('2026-08-08T16:59:59.999Z'))).roles,
+    ).toContain('INSTRUCTOR');
+    expect(
+      (await service.me(assignmentUserId, new Date('2026-08-08T17:00:00.000Z'))).roles,
+    ).not.toContain('INSTRUCTOR');
+    await expect(
+      service.endAssignment(
+        principal,
+        assignment.id,
+        { effectiveAt: '2026-08-10T00:00:00.000Z', reason: 'again', expectedVersion: 0 },
+        `${namespace}-assignment-end-again`,
+      ),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+    expect(
+      await db.auditLog.count({
+        where: { action: 'master.assignment_ended', objectId: assignment.id },
+      }),
+    ).toBe(1);
+  });
+
+  it('requires MFA and rejects self-escalation without mutation', async () => {
+    await expect(
+      service.createAssignment(
+        { ...principal, assurance: 'BASE' },
+        {
+          userId: assignmentUserId,
+          branchId,
+          assignmentType: 'OWNER',
+          activeFrom: '2027-01-01',
+          reason: 'base',
+        },
+        `${namespace}-base`,
+      ),
+    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
+    await expect(
+      service.createAssignment(
+        principal,
+        {
+          userId: inviterId,
+          branchId,
+          assignmentType: 'OWNER',
+          activeFrom: '2027-01-01',
+          reason: 'self',
+        },
+        `${namespace}-self-assignment`,
+      ),
+    ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
   });
 });

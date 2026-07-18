@@ -1,5 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { type ApplicationRole, Prisma, type SessionChannel } from '@prisma/client';
+import {
+  type ApplicationRole,
+  type AssignmentType,
+  Prisma,
+  type SessionChannel,
+} from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import {
   ConfigGatedGoogleProvider,
@@ -7,6 +12,7 @@ import {
   ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
+import { assertIsoDate, dateInTimeZone, startOfLocalDateUtc } from './assignment-boundary';
 import { PolicyService } from './policy.service';
 import {
   ApiProblem,
@@ -46,6 +52,7 @@ export class IdentityService {
       objectId: string;
       correlationId: string;
       branchId?: string;
+      before?: Prisma.InputJsonValue;
       after?: Prisma.InputJsonValue;
     },
   ) {
@@ -58,6 +65,7 @@ export class IdentityService {
         action: input.action,
         objectType: input.objectType,
         objectId: input.objectId,
+        beforeMasked: input.before,
         afterMasked: input.after,
         correlationId: input.correlationId,
       },
@@ -68,10 +76,10 @@ export class IdentityService {
     return { activeFrom: { lte: now }, OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] };
   }
 
-  async me(userId: string) {
+  async me(userId: string, at = new Date()) {
     const user = await this.db.user.findUnique({
       where: { id: userId },
-      include: { roles: { where: this.activeRoleWhere() } },
+      include: { roles: { where: this.activeRoleWhere(at) } },
     });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
@@ -704,5 +712,232 @@ export class IdentityService {
       });
       return { id: user.id, status: user.status };
     });
+  }
+
+  async listAssignments(principal: SessionPrincipal, branchId?: string) {
+    this.policy.requireCapability(principal.capabilities, 'assignment:read');
+    if (
+      branchId &&
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(branchId)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const assignments = await this.db.assignment.findMany({
+      where: branchId
+        ? { branchId }
+        : principal.capabilities.includes('branch:all')
+          ? undefined
+          : { branchId: { in: principal.branchIds } },
+      orderBy: [{ activeFrom: 'desc' }, { id: 'asc' }],
+      take: 50,
+    });
+    return {
+      items: assignments.map((assignment) => this.assignmentView(assignment)),
+      page: { nextCursor: null, hasMore: false },
+    };
+  }
+
+  async createAssignment(
+    principal: SessionPrincipal,
+    input: {
+      userId: string;
+      branchId: string;
+      assignmentType: AssignmentType;
+      activeFrom: string;
+      activeUntil?: string | null;
+      reason: string;
+    },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'assignment:manage');
+    this.policy.requireMfa(principal.assurance);
+    if (
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(input.branchId)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!['OWNER', 'INSTRUCTOR'].includes(input.assignmentType))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (input.userId === principal.userId)
+      throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    const activeFrom = assertIsoDate(input.activeFrom);
+    const activeUntil = input.activeUntil ? assertIsoDate(input.activeUntil) : null;
+    if (activeUntil && activeUntil <= activeFrom)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    try {
+      return await this.db.$transaction(
+        async (tx) => {
+          const [user, branch] = await Promise.all([
+            tx.user.findUnique({ where: { id: input.userId } }),
+            tx.branch.findUnique({ where: { id: input.branchId } }),
+          ]);
+          if (!user || user.status !== 'ACTIVE' || !branch || !branch.active)
+            throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+          const overlap = await tx.assignment.findFirst({
+            where: {
+              userId: input.userId,
+              branchId: input.branchId,
+              type: input.assignmentType,
+              activeFrom: activeUntil ? { lt: new Date(`${activeUntil}T00:00:00Z`) } : undefined,
+              OR: [
+                { activeUntil: null },
+                { activeUntil: { gt: new Date(`${activeFrom}T00:00:00Z`) } },
+              ],
+            },
+          });
+          if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
+          const id = newId();
+          const assignment = await tx.assignment.create({
+            data: {
+              id,
+              userId: input.userId,
+              branchId: input.branchId,
+              type: input.assignmentType,
+              activeFrom: new Date(`${activeFrom}T00:00:00Z`),
+              activeUntil: activeUntil ? new Date(`${activeUntil}T00:00:00Z`) : null,
+            },
+          });
+          await tx.userRole.create({
+            data: {
+              userId: input.userId,
+              role: input.assignmentType,
+              branchId: input.branchId,
+              activeFrom: startOfLocalDateUtc(activeFrom, branch.timezone),
+              activeUntil: activeUntil ? startOfLocalDateUtc(activeUntil, branch.timezone) : null,
+              sourceAssignmentId: id,
+            },
+          });
+          await this.audit(tx, {
+            actorId: principal.userId,
+            action: 'master.assignment_created',
+            objectType: 'Assignment',
+            objectId: id,
+            branchId: input.branchId,
+            correlationId,
+            after: {
+              assignmentType: input.assignmentType,
+              activeFrom,
+              activeUntil,
+              reasonPresent: Boolean(input.reason),
+              version: 0,
+            },
+          });
+          return { id: assignment.id, status: 'ACTIVE', version: assignment.version };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (this.isAssignmentConflict(error))
+        throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
+      throw error;
+    }
+  }
+
+  async endAssignment(
+    principal: SessionPrincipal,
+    assignmentId: string,
+    input: { effectiveAt: string; reason: string; expectedVersion: number },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'assignment:manage');
+    this.policy.requireMfa(principal.assurance);
+    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const effectiveInstant = new Date(input.effectiveAt);
+    if (Number.isNaN(effectiveInstant.getTime()))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    try {
+      return await this.db.$transaction(
+        async (tx) => {
+          const assignment = await tx.assignment.findUnique({
+            where: { id: assignmentId },
+            include: { branch: true, projectedRole: true },
+          });
+          if (!assignment) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+          if (
+            !principal.capabilities.includes('branch:all') &&
+            !principal.branchIds.includes(assignment.branchId)
+          )
+            throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+          const effectiveDate = dateInTimeZone(effectiveInstant, assignment.branch.timezone);
+          const from = assignment.activeFrom.toISOString().slice(0, 10);
+          if (effectiveDate <= from)
+            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+          if (assignment.activeUntil || assignment.version !== input.expectedVersion)
+            throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+          const updated = await tx.assignment.updateMany({
+            where: { id: assignment.id, version: input.expectedVersion, activeUntil: null },
+            data: {
+              activeUntil: new Date(`${effectiveDate}T00:00:00Z`),
+              version: { increment: 1 },
+            },
+          });
+          if (updated.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+          if (!assignment.projectedRole)
+            throw new ApiProblem('ASSIGNMENT_PROJECTION_MISSING', HttpStatus.CONFLICT);
+          await tx.userRole.update({
+            where: { sourceAssignmentId: assignment.id },
+            data: { activeUntil: startOfLocalDateUtc(effectiveDate, assignment.branch.timezone) },
+          });
+          await this.audit(tx, {
+            actorId: principal.userId,
+            action: 'master.assignment_ended',
+            objectType: 'Assignment',
+            objectId: assignment.id,
+            branchId: assignment.branchId,
+            correlationId,
+            before: { activeUntil: null, version: assignment.version },
+            after: {
+              activeUntil: effectiveDate,
+              version: assignment.version + 1,
+              reasonPresent: Boolean(input.reason),
+            },
+          });
+          return { id: assignment.id, status: 'ENDED', version: assignment.version + 1 };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (this.isSerializationConflict(error))
+        throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      throw error;
+    }
+  }
+
+  private assignmentView(assignment: {
+    id: string;
+    userId: string;
+    branchId: string;
+    type: AssignmentType;
+    activeFrom: Date;
+    activeUntil: Date | null;
+    version: number;
+  }) {
+    return {
+      id: assignment.id,
+      userId: assignment.userId,
+      branchId: assignment.branchId,
+      assignmentType: assignment.type,
+      activeFrom: assignment.activeFrom.toISOString().slice(0, 10),
+      activeUntil: assignment.activeUntil?.toISOString().slice(0, 10) ?? null,
+      version: assignment.version,
+    };
+  }
+
+  private isAssignmentConflict(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('Assignment_no_overlap') ||
+      message.includes('23P01') ||
+      this.isSerializationConflict(error)
+    );
+  }
+
+  private isSerializationConflict(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === 'P2034' || error.code === 'P2002')
+    );
   }
 }

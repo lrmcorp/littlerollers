@@ -8,7 +8,7 @@ import 'package:built_value/serializer.dart';
 
 part 'end_assignment_command.g.dart';
 
-/// EndAssignmentCommand
+/// effectiveAt is converted to a calendar date using the assignment branch timezone; access stops at the start of that local date.
 ///
 /// Properties:
 /// * [effectiveAt] 
@@ -23,7 +23,7 @@ abstract class EndAssignmentCommand implements Built<EndAssignmentCommand, EndAs
   String get reason;
 
   @BuiltValueField(wireName: r'expectedVersion')
-  int? get expectedVersion;
+  int get expectedVersion;
 
   EndAssignmentCommand._();
 
@@ -58,13 +58,11 @@ class _$EndAssignmentCommandSerializer implements PrimitiveSerializer<EndAssignm
       object.reason,
       specifiedType: const FullType(String),
     );
-    if (object.expectedVersion != null) {
-      yield r'expectedVersion';
-      yield serializers.serialize(
-        object.expectedVersion,
-        specifiedType: const FullType(int),
-      );
-    }
+    yield r'expectedVersion';
+    yield serializers.serialize(
+      object.expectedVersion,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override

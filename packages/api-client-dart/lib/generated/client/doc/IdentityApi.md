@@ -23,6 +23,8 @@ Method | HTTP request | Description
 
 
 
+Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage and MFA.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -106,6 +108,8 @@ Name | Type | Description  | Notes
 > Resource endAssignment(id, idempotencyKey, endAssignmentCommand)
 
 
+
+Ends the half-open assignment at the start of the branch-local calendar date containing effectiveAt. Requires MFA and expectedVersion.
 
 ### Example
 ```dart
@@ -226,9 +230,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listAssignments**
-> Page listAssignments(branchId, cursor)
+> AssignmentPage listAssignments(branchId, cursor)
 
 
+
+Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
 
 ### Example
 ```dart
@@ -255,7 +261,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**AssignmentPage**](AssignmentPage.md)
 
 ### Authorization
 
@@ -264,7 +270,7 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

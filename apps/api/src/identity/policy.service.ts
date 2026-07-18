@@ -8,7 +8,13 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ADMIN: ['branch:operate', 'user:read'],
   MANAGER: ['branch:manage', 'user:read'],
   OWNER: ['branch:own', 'user:read'],
-  SUPER_OWNER: ['user:admin', 'branch:all', 'session:revoke'],
+  SUPER_OWNER: [
+    'user:admin',
+    'branch:all',
+    'session:revoke',
+    'assignment:read',
+    'assignment:manage',
+  ],
   FINANCE: ['finance:read', 'finance:manage'],
   OPS: ['operations:read', 'operations:recover'],
 };

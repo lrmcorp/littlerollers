@@ -7,7 +7,9 @@ doc/AdjustmentCommand.md
 doc/AdjustmentDecisionResult.md
 doc/ApprovalResult.md
 doc/AssignInstructorCommand.md
+doc/Assignment.md
 doc/AssignmentCommand.md
+doc/AssignmentPage.md
 doc/AttendanceApi.md
 doc/AuditApi.md
 doc/AuditExport.md
@@ -146,7 +148,9 @@ lib/src/model/adjustment_command.dart
 lib/src/model/adjustment_decision_result.dart
 lib/src/model/approval_result.dart
 lib/src/model/assign_instructor_command.dart
+lib/src/model/assignment.dart
 lib/src/model/assignment_command.dart
+lib/src/model/assignment_page.dart
 lib/src/model/audit_export.dart
 lib/src/model/audit_export_command.dart
 lib/src/model/audit_log.dart
@@ -247,4 +251,5 @@ lib/src/model/time_range_command.dart
 lib/src/model/token_check_in_command.dart
 lib/src/serializers.dart
 pubspec.yaml
-test/challenge_accepted_test.dart
+test/assignment_page_test.dart
+test/assignment_test.dart

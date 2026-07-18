@@ -29,7 +29,7 @@ Thus a fully documented story with an unresolved decision scores `78%`; one with
 
 ## 2. Story Readiness Snapshot
 
-Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Contract references use OpenAPI `0.5.0-draft` checksum `d7127a9f61dad718b147dfa6e1a846f0395817f6ae32e06788b0415acb20381b`.
+Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `0.6.0-draft` checksum `f9d5d0d1c78cc9acaeb4904be163ac5b1eef3f7d5e613a4ce0deb17190751796`.
 
 | Story | Requirement | UX text / Figma | Contract | Test/UAT | Migration/release | Blocking DEC | Assignee/env | Gates | % | READY / blocker owner / closure evidence |
 |---|---|---|---|---|---|---|---|---|---:|---|

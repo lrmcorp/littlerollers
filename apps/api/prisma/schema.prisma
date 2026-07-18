@@ -120,6 +120,7 @@ model Assignment {
   version Int @default(0)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  projectedRole UserRole? @relation("AssignmentRoleProjection")
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, type, activeFrom, activeUntil])
 }
@@ -131,9 +132,11 @@ model UserRole {
   branchId String? @db.Uuid
   activeFrom DateTime
   activeUntil DateTime?
+  sourceAssignmentId String? @unique @db.Uuid
   createdAt DateTime @default(now())
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceAssignment Assignment? @relation("AssignmentRoleProjection", fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, role, activeFrom, activeUntil])
 }

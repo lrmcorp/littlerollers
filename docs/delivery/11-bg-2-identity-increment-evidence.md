@@ -43,7 +43,7 @@ evidence commit increment ini masih terbuka.
   evidence hijau; hosted confirmation masih pending.
 - `US-ID-02 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`: invitation/MFA/link/deactivation,
   concurrency, audit masking, Web component/a11y/E2E hijau; hosted confirmation masih pending.
-- `US-MST-02 = NEXT`; tidak diimplementasikan dalam increment ini.
+- `US-MST-02 = IN_PROGRESS` pada increment terpisah; disposition identity di dokumen ini tidak berubah.
 - `BG-3 = PENDING`; `PG-1 = BLOCKED`.
 
 Tidak ada provider produksi, credential, TTL, MFA method, recovery policy atau privilege sintetis

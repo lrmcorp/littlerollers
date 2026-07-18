@@ -16,8 +16,11 @@ Serializers _$serializers =
           ..add(AdjustmentDecisionResult.serializer)
           ..add(ApprovalResult.serializer)
           ..add(AssignInstructorCommand.serializer)
+          ..add(Assignment.serializer)
+          ..add(AssignmentAssignmentTypeEnum.serializer)
           ..add(AssignmentCommand.serializer)
           ..add(AssignmentCommandAssignmentTypeEnum.serializer)
+          ..add(AssignmentPage.serializer)
           ..add(AuditExport.serializer)
           ..add(AuditExportCommand.serializer)
           ..add(AuditExportCommandFormatEnum.serializer)
@@ -159,6 +162,10 @@ Serializers _$serializers =
           ..add(SubmitPurchaseRequest.serializer)
           ..add(TimeRangeCommand.serializer)
           ..add(TokenCheckInCommand.serializer)
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Assignment)]),
+            () => ListBuilder<Assignment>(),
+          )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(AuditLog)]),
             () => ListBuilder<AuditLog>(),

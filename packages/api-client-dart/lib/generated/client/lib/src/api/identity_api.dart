@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/assignment_command.dart';
+import 'package:openapi/src/model/assignment_page.dart';
 import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
@@ -27,7 +28,7 @@ class IdentityApi {
   const IdentityApi(this._dio, this._serializers);
 
   /// createAssignment
-  /// 
+  /// Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage and MFA.
   ///
   /// Parameters:
   /// * [assignmentCommand] 
@@ -231,7 +232,7 @@ class IdentityApi {
   }
 
   /// endAssignment
-  /// 
+  /// Ends the half-open assignment at the start of the branch-local calendar date containing effectiveAt. Requires MFA and expectedVersion.
   ///
   /// Parameters:
   /// * [id] 
@@ -517,7 +518,7 @@ class IdentityApi {
   }
 
   /// listAssignments
-  /// 
+  /// Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
@@ -529,9 +530,9 @@ class IdentityApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Page] as data
+  /// Returns a [Future] containing a [Response] with a [AssignmentPage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Page>> listAssignments({ 
+  Future<Response<AssignmentPage>> listAssignments({ 
     String? branchId,
     String? cursor,
     CancelToken? cancelToken,
@@ -574,14 +575,14 @@ class IdentityApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Page? _responseData;
+    AssignmentPage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Page),
-      ) as Page;
+        specifiedType: const FullType(AssignmentPage),
+      ) as AssignmentPage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -593,7 +594,7 @@ class IdentityApi {
       );
     }
 
-    return Response<Page>(
+    return Response<AssignmentPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

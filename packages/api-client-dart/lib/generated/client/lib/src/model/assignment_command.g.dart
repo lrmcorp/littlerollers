@@ -85,7 +85,7 @@ class _$AssignmentCommand extends AssignmentCommand {
   @override
   final Date? activeUntil;
   @override
-  final String? reason;
+  final String reason;
 
   factory _$AssignmentCommand([
     void Function(AssignmentCommandBuilder)? updates,
@@ -97,7 +97,7 @@ class _$AssignmentCommand extends AssignmentCommand {
     required this.assignmentType,
     required this.activeFrom,
     this.activeUntil,
-    this.reason,
+    required this.reason,
   }) : super._();
   @override
   AssignmentCommand rebuild(void Function(AssignmentCommandBuilder) updates) =>
@@ -231,7 +231,11 @@ class AssignmentCommandBuilder
             'activeFrom',
           ),
           activeUntil: activeUntil,
-          reason: reason,
+          reason: BuiltValueNullFieldError.checkNotNull(
+            reason,
+            r'AssignmentCommand',
+            'reason',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Param,
   Post,
@@ -222,6 +223,49 @@ export class IdentityController {
       request.principal,
       id,
       body.reason,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('assignments')
+  listAssignments(@Req() request: AuthenticatedRequest, @Query('branchId') branchId?: string) {
+    return this.identities.listAssignments(request.principal, branchId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('assignments')
+  createAssignment(
+    @Req() request: AuthenticatedRequest,
+    @Body()
+    body: {
+      userId: string;
+      branchId: string;
+      assignmentType: import('@prisma/client').AssignmentType;
+      activeFrom: string;
+      activeUntil?: string | null;
+      reason: string;
+    },
+  ) {
+    return this.identities.createAssignment(
+      request.principal,
+      body,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('assignments/:id/end')
+  endAssignment(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') _idempotencyKey: string,
+    @Body() body: { effectiveAt: string; reason: string; expectedVersion: number },
+  ) {
+    return this.identities.endAssignment(
+      request.principal,
+      id,
+      body,
       request.correlationId ?? 'unknown',
     );
   }

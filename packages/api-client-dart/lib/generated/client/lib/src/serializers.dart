@@ -20,7 +20,9 @@ import 'package:openapi/src/model/adjustment_command.dart';
 import 'package:openapi/src/model/adjustment_decision_result.dart';
 import 'package:openapi/src/model/approval_result.dart';
 import 'package:openapi/src/model/assign_instructor_command.dart';
+import 'package:openapi/src/model/assignment.dart';
 import 'package:openapi/src/model/assignment_command.dart';
+import 'package:openapi/src/model/assignment_page.dart';
 import 'package:openapi/src/model/audit_export.dart';
 import 'package:openapi/src/model/audit_export_command.dart';
 import 'package:openapi/src/model/audit_log.dart';
@@ -128,7 +130,9 @@ part 'serializers.g.dart';
   AdjustmentDecisionResult,
   ApprovalResult,
   AssignInstructorCommand,
+  Assignment,
   AssignmentCommand,
+  AssignmentPage,
   AuditExport,
   AuditExportCommand,
   AuditLog,

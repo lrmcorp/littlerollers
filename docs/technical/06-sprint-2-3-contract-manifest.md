@@ -1,9 +1,9 @@
 # MVP Proposed Contract Manifest
 
 **Status:** PROPOSED / REVIEW REQUIRED  
-**OpenAPI version:** `0.4.0-draft`  
-**SHA-256:** `d7127a9f61dad718b147dfa6e1a846f0395817f6ae32e06788b0415acb20381b`  
-**Generated clients:** TypeScript Web and Dart Flutter — generation not yet executed  
+**OpenAPI version:** `0.6.0-draft`
+**SHA-256:** `f9d5d0d1c78cc9acaeb4904be163ac5b1eef3f7d5e613a4ce0deb17190751796`
+**Generated clients:** TypeScript Web dan Dart Flutter — local regeneration/drift `0.6.0-draft` PASS; hosted pending
 **Gate 4:** BLOCKED
 
 The checksum is evidence for this exact draft only. Any OpenAPI change invalidates it and requires manifest/checksum regeneration and review.
@@ -15,7 +15,7 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 | Customer auth/session | authenticateGoogle, requestOtp, verifyOtp, refreshSession, logout, revokeAllSessions | Session, Me, RevokeSessionsCommand | Dart Customer; shared TS auth support | DEC-012/014, TL/QA/security review |
 | MFA/recovery/linking | createMfaChallenge, verifyMfaChallenge, requestAccountRecovery, verifyAccountRecovery, linkVerifiedIdentity | MfaChallenge, recovery/link commands | TS Web and Dart where flow applies | DEC-012/014, provider/support policy |
 | Internal identity | listUsers, inviteUser, deactivateUser | Resource/Me/roles | TS Web | DEC-012, role/capability review |
-| Assignment | listAssignments, createAssignment, endAssignment | AssignmentCommand, EndAssignmentCommand | TS Web | Boundary/error/schema review |
+| Assignment | listAssignments, createAssignment, endAssignment | Assignment, AssignmentPage, AssignmentCommand, EndAssignmentCommand | TS Web | Synthetic executable closure and generated-client review |
 | Effective settings | list/create InstructorFee, ProjectionRate, QuotaCapacity | Discriminated kind-specific commands, EffectivePeriod | TS Web | DEC-005/006, Finance/PO/TL review |
 | Purchase/proof | list/create Package, submit/list Purchase, proof create/finalize/status/download/replace | Package, Purchase, PaymentProof, DownloadAuthorization | Dart Customer + TS Web | DEC-004/006, storage/scan provider, security review |
 | Approval | approvePurchase, rejectPurchase | ApprovalResult, snapshots, LedgerEntry | TS Web | DEC-004/006, idempotency/event review |
@@ -33,7 +33,7 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 
 ## 3. Compatibility Notes
 
-- Draft `0.4.0` is pre-baseline; generated clients from earlier drafts must not be treated as stable.
+- Draft `0.6.0` adds typed assignment responses and the approved synthetic half-open branch-local boundary; generated clients from earlier drafts must not be treated as current.
 - Compatibility history: `0.2.0-draft` checksum `84b39e42d67fd702559c7a35a74b1d35189c15c9f93ae32ee4f6c521543f54ec` covered the Sprint 2–3 proposed surface before CTG-013–019 were drafted.
 - Compatibility history: `0.3.0-draft` checksum `69b3495f37ff1ff482e803c87f18ab52e34cb084e7c979e26931a0c29fbe33c3` introduced CTG-013–019 before contract normalization.
 - CTG-019 MVP domains (availability, class, booking, reschedule, check-in, notification, finance, audit and operations) use explicit schemas/results/pages. Generic `Resource/Page` is retained only as a documented compatibility exception for pre-existing identity/master/package/ledger endpoints governed by CTG-001–012; new consumers must use their explicit contracts after reviewer disposition.
@@ -49,7 +49,7 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 | CTG-001 | Session channel/token fields, revoke-all, challenge/verification operations | DEC-012, TTL/provider, TL/client/QA review | REMEDIATION DRAFTED — BLOCKED |
 | CTG-002 | Recovery request/verify/account-link operations and security boundary | DEC-014 proof/SLA/support policy | REMEDIATION DRAFTED — BLOCKED |
 | CTG-003 | MFA challenge/verify proposed contract | DEC-012 method/enrollment/recovery decision | REMEDIATION DRAFTED — BLOCKED |
-| CTG-004 | Assignment end action/command and conflict UX/test mapping | Effective boundary and TL/QA review | REMEDIATION DRAFTED — PARTIAL |
+| CTG-004 | Typed assignment/page, half-open branch-local boundary, optimistic end and conflict UX/test mapping | Generated-client drift, PostgreSQL integration and hosted review | IMPLEMENTED LOCALLY — CLOSURE PENDING |
 | CTG-005 | Kind-specific fee/rate/quota paths and schemas | DEC-005/006 values/approval, generated-client review | REMEDIATION DRAFTED — BLOCKED |
 | CTG-006 | Upload finalize/status/download/replacement lifecycle | Provider, limits/scan callback implementation decision | REMEDIATION DRAFTED — BLOCKED |
 | CTG-007 | Package/Purchase/ApprovalResult explicit schemas | TL/Finance/client/QA review | REMEDIATION DRAFTED — PARTIAL |

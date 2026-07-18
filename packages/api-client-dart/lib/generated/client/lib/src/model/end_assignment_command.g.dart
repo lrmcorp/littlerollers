@@ -12,7 +12,7 @@ class _$EndAssignmentCommand extends EndAssignmentCommand {
   @override
   final String reason;
   @override
-  final int? expectedVersion;
+  final int expectedVersion;
 
   factory _$EndAssignmentCommand([
     void Function(EndAssignmentCommandBuilder)? updates,
@@ -21,7 +21,7 @@ class _$EndAssignmentCommand extends EndAssignmentCommand {
   _$EndAssignmentCommand._({
     required this.effectiveAt,
     required this.reason,
-    this.expectedVersion,
+    required this.expectedVersion,
   }) : super._();
   @override
   EndAssignmentCommand rebuild(
@@ -120,7 +120,11 @@ class EndAssignmentCommandBuilder
             r'EndAssignmentCommand',
             'reason',
           ),
-          expectedVersion: expectedVersion,
+          expectedVersion: BuiltValueNullFieldError.checkNotNull(
+            expectedVersion,
+            r'EndAssignmentCommand',
+            'expectedVersion',
+          ),
         );
     replace(_$result);
     return _$result;

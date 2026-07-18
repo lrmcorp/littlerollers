@@ -19,7 +19,9 @@ models/AdjustmentCommand.ts
 models/AdjustmentDecisionResult.ts
 models/ApprovalResult.ts
 models/AssignInstructorCommand.ts
+models/Assignment.ts
 models/AssignmentCommand.ts
+models/AssignmentPage.ts
 models/AuditExport.ts
 models/AuditExportCommand.ts
 models/AuditLog.ts

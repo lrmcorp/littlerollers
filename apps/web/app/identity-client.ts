@@ -9,7 +9,7 @@ export type UiFailure =
   | 'SESSION_REVOKED';
 
 export interface IdentityClient {
-  signIn(): Promise<void>;
+  signIn(syntheticEmail?: string): Promise<void>;
   stepUp(): Promise<void>;
   invite(email: string, role: string): Promise<'CREATED' | 'EXISTS'>;
   deactivate(id: string): Promise<void>;
@@ -20,15 +20,17 @@ const auth = new AuthApi(configuration);
 const identity = new IdentityApi(configuration);
 
 export const browserIdentityClient: IdentityClient = {
-  async signIn() {
+  async signIn(syntheticEmail) {
     if (
       process.env.NODE_ENV === 'production' ||
       process.env.NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED !== 'true'
     )
       throw { response: { status: 503 } };
+    const identity = syntheticEmail?.trim().toLowerCase();
+    if (!identity) throw { response: { status: 503 } };
     await auth.authenticateGoogle({
       googleAuthRequest: {
-        idToken: 'synthetic-e2e-provider',
+        idToken: identity,
         nonce: crypto.randomUUID(),
         channel: 'WEB',
       },

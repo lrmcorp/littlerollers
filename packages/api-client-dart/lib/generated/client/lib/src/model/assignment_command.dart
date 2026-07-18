@@ -10,7 +10,7 @@ import 'package:built_value/serializer.dart';
 
 part 'assignment_command.g.dart';
 
-/// AssignmentCommand
+/// The effective period is half-open [activeFrom, activeUntil) in the branch timezone. EFFECTIVE_PERIOD_OVERLAP is returned for intersecting periods.
 ///
 /// Properties:
 /// * [userId] 
@@ -38,7 +38,7 @@ abstract class AssignmentCommand implements Built<AssignmentCommand, AssignmentC
   Date? get activeUntil;
 
   @BuiltValueField(wireName: r'reason')
-  String? get reason;
+  String get reason;
 
   AssignmentCommand._();
 
@@ -90,13 +90,11 @@ class _$AssignmentCommandSerializer implements PrimitiveSerializer<AssignmentCom
         specifiedType: const FullType.nullable(Date),
       );
     }
-    if (object.reason != null) {
-      yield r'reason';
-      yield serializers.serialize(
-        object.reason,
-        specifiedType: const FullType(String),
-      );
-    }
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
+      specifiedType: const FullType(String),
+    );
   }
 
   @override
