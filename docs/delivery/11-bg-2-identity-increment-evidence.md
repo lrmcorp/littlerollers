@@ -1,8 +1,8 @@
 # BG-2 Identity Increment Evidence
 
 **Date:** 2026-07-19  
-**Status:** `IN PROGRESS` — foundation dan bagian configuration-safe `US-ID-01/02` telah dibangun;
-tidak ada story yang dipromosikan ke PASS sebelum seluruh executable evidence tersedia.
+**Status:** `FOUNDATION PASS` — foundation telah lulus local dan hosted evidence; bagian
+configuration-safe `US-ID-01/02` tetap `IN PROGRESS`.
 **Source commit:** `8024521`
 
 ## Implemented
@@ -29,12 +29,12 @@ tidak ada story yang dipromosikan ke PASS sebelum seluruh executable evidence te
 | Dart consumer test | PASS — representative generated contract compiles |
 | Empty-database migration/double seed | PASS — tiga migration; hasil akhir 1 Branch, 1 User, 1 Assignment |
 | Identity persistence constraints | PASS — FK UserRole→User/Branch serta hashed session/challenge tervalidasi pada database sintetis |
-| Hosted CI | PENDING — private run untuk source commit `8024521` telah dipicu; hasil belum dapat dibaca tanpa sesi GitHub terautentikasi |
+| Hosted CI | PASS — private run commit `6c1218d`; `typescript`, `flutter`, dan `secrets` hijau, dikonfirmasi Product Owner pada 2026-07-19 |
 
 ## Story Disposition
 
-- `BG2-FOUNDATION = LOCAL_PASS`: source, migration, generated clients dan Flutter/Dart evidence
-  hijau; hosted evidence terbuka.
+- `BG2-FOUNDATION = PASS`: source, migration, generated clients, Flutter/Dart dan hosted evidence
+  hijau pada commit final `6c1218d`.
 - `US-ID-01 = IN_PROGRESS`: Google/OTP/session safe subset tersedia; recovery/provider policy dan
   end-to-end evidence masih terbuka.
 - `US-ID-02 = IN_PROGRESS`: role/capability/branch/deactivation subset tersedia; invite/MFA dan
