@@ -1,8 +1,8 @@
 # BG-2 Identity Increment Evidence
 
 **Date:** 2026-07-19  
-**Status:** `FOUNDATION PASS`; `US-ID-01/02 LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — production
-activation dan hosted evidence commit increment ini masih terbuka.
+**Status:** `FOUNDATION PASS`; `US-ID-01/02 IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION` — hosted,
+Web executable tests dan integration/concurrency acceptance masih terbuka.
 **Source commit:** `170ed0a`
 
 ## Implemented
@@ -31,16 +31,19 @@ activation dan hosted evidence commit increment ini masih terbuka.
 | Dart consumer test | PASS — representative generated contract compiles |
 | Empty-database migration/double seed | PASS — empat migration pada `dailydose_identity_verify_20260719`; kedua seed menghasilkan tetap 1 Branch, 1 User, 1 Assignment |
 | Identity persistence constraints | PASS — FK role/branch, unique hashed session/identity, pending invitation dan rate-limit index tervalidasi pada database sintetis |
+| Web component/E2E/a11y | INCOMPLETE — build hijau, tetapi Vitest melaporkan `No test files found` |
 | Hosted CI increment ini | PENDING — wajib hijau pada source/evidence commit sebelum promosi story |
 
 ## Story Disposition
 
 - `BG2-FOUNDATION = PASS`: source, migration, generated clients, Flutter/Dart dan hosted evidence
   hijau pada commit final `6c1218d`.
-- `US-ID-01 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`: login hanya untuk identity/invitation
-  eligible, OTP single-use, recovery synthetic dan web/mobile session boundary lulus evidence lokal.
-- `US-ID-02 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`: invite scoped/idempotent, MFA step-up,
-  linking terverifikasi dan transactional deactivation tersedia; hosted confirmation masih pending.
+- `US-ID-01 = IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION`: login hanya untuk identity/invitation
+  eligible, OTP single-use, recovery synthetic dan web/mobile session boundary tersedia; full
+  integration/concurrency evidence belum lengkap.
+- `US-ID-02 = IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION`: invite scoped/idempotent, MFA step-up,
+  linking terverifikasi dan transactional deactivation tersedia; Web tests dan hosted confirmation
+  masih pending.
 - `US-MST-02 = NEXT`; tidak diimplementasikan dalam increment ini.
 - `BG-3 = PENDING`; `PG-1 = BLOCKED`.
 
