@@ -34,6 +34,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [Sprint 2–3 Readiness Audit](delivery/07-sprint-2-3-readiness-audit.md) | PM/BA | PO + TL + QA sesuai area |
 | Delivery | [Pre-coding Readiness & Consolidated Blocker Ledger](delivery/08-pre-coding-readiness-and-blocker-ledger.md) | PM/BA | PO + TL + QA sesuai gate |
 | Delivery | [Current Work & Role Execution Register](delivery/10-current-work-register.md) | AI Product/BA | AI TL + QA + Peer Reviewer |
+| Delivery | [BG-2 Identity Increment Evidence](delivery/11-bg-2-identity-increment-evidence.md) | AI Backend/TL | AI QA/Security/Peer Reviewer |
 | Product | [PRD & Business Rules](product/01-prd-and-business-rules.md) | PM/BA | Product Owner |
 | Product | [Backlog, Acceptance & Traceability](product/02-backlog-and-traceability.md) | PM/BA | Product Owner |
 | Product | [MVP Implementation Backlog](product/03-mvp-implementation-backlog.md) | PM/BA | Product Owner |

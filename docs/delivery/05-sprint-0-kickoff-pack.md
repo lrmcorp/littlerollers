@@ -4,9 +4,9 @@
 **Sprint length:** 2 minggu / 10 hari kerja  
 **Facilitator:** PM/BA  
 **Accountable:** Product Owner  
-**Start date:** 2026-07-18 — AI delivery kickoff; BG-1 is next
+**Start date:** 2026-07-18 — AI delivery kickoff; BG-1 PASS, BG-2 identity increment IN PROGRESS
 
-Task-level continuation through Sprint 3 is maintained in [Sprint 0–3 Detailed Execution Backlog](06-sprint-0-3-detailed-execution-backlog.md). Sprint 2–3 coding remains blocked according to the current [Readiness Audit](07-sprint-2-3-readiness-audit.md).
+Task-level continuation through Sprint 3 is maintained in [Sprint 0–3 Detailed Execution Backlog](06-sprint-0-3-detailed-execution-backlog.md). Configuration-safe BG-2 coding is authorized by the AI delivery model; production activation remains blocked according to the current [Readiness Audit](07-sprint-2-3-readiness-audit.md).
 
 ## 1. Sprint 0 Goal
 

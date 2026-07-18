@@ -4,7 +4,8 @@ import 'theme.dart';
 
 final _router = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const RoleHome()),
+    GoRoute(path: '/', builder: (context, state) => const CustomerSignIn()),
+    GoRoute(path: '/roles', builder: (context, state) => const RoleHome()),
     GoRoute(
       path: '/customer',
       builder: (context, state) => const RoleShell(
@@ -21,6 +22,39 @@ final _router = GoRouter(
     ),
   ],
 );
+
+class CustomerSignIn extends StatefulWidget {
+  const CustomerSignIn({super.key});
+  @override
+  State<CustomerSignIn> createState() => _CustomerSignInState();
+}
+
+class _CustomerSignInState extends State<CustomerSignIn> {
+  bool useOtp = false;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Daily Dose')),
+    body: ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text('Masuk untuk melanjutkan', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 12),
+        const Text('Gunakan identitas yang sudah terverifikasi.'),
+        const SizedBox(height: 24),
+        FilledButton(onPressed: () {}, child: const Text('Lanjutkan dengan Google')),
+        const SizedBox(height: 12),
+        OutlinedButton(onPressed: () => setState(() => useOtp = true), child: const Text('Gunakan OTP WhatsApp')),
+        if (useOtp) ...[
+          const SizedBox(height: 20),
+          const TextField(key: Key('phone-input'), keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Nomor WhatsApp')),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: null, child: const Text('Kirim kode')),
+          const Text('Provider OTP belum dikonfigurasi.', key: Key('configuration-message')),
+        ],
+      ],
+    ),
+  );
+}
 
 class DailyDoseApp extends StatelessWidget {
   const DailyDoseApp({super.key});

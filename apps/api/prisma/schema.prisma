@@ -22,6 +22,40 @@ enum AssignmentType {
   INSTRUCTOR
 }
 
+enum ApplicationRole {
+  CUSTOMER
+  INSTRUCTOR
+  ADMIN
+  MANAGER
+  OWNER
+  SUPER_OWNER
+  FINANCE
+  OPS
+}
+
+enum SessionChannel {
+  WEB
+  MOBILE
+}
+
+enum AssuranceLevel {
+  BASE
+  MFA
+}
+
+enum ChallengeKind {
+  OTP
+  MFA
+  RECOVERY
+}
+
+enum ChallengeStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  LOCKED
+}
+
 enum OutboxStatus {
   PENDING
   PUBLISHED
@@ -42,6 +76,9 @@ model User {
   updatedAt DateTime @updatedAt
   identities Identity[]
   assignments Assignment[]
+  roles UserRole[]
+  sessions UserSession[]
+  challenges AuthChallenge[]
 }
 model Identity {
   id String @id @db.Uuid
@@ -62,6 +99,7 @@ model Branch {
   active Boolean @default(true)
   createdAt DateTime @default(now())
   assignments Assignment[]
+  userRoles UserRole[]
   configurations EffectiveConfiguration[]
 }
 model Assignment {
@@ -76,6 +114,57 @@ model Assignment {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, type, activeFrom, activeUntil])
+}
+
+model UserRole {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  role ApplicationRole
+  branchId String? @db.Uuid
+  activeFrom DateTime
+  activeUntil DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  @@index([userId, activeFrom, activeUntil])
+  @@index([branchId, role, activeFrom, activeUntil])
+}
+
+model UserSession {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  channel SessionChannel
+  tokenFamilyHash String
+  accessTokenHash String @unique
+  refreshTokenHash String? @unique
+  assurance AssuranceLevel @default(BASE)
+  expiresAt DateTime
+  refreshExpiresAt DateTime?
+  revokedAt DateTime?
+  revocationReason String?
+  createdAt DateTime @default(now())
+  rotatedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@index([userId, expiresAt, revokedAt])
+  @@index([tokenFamilyHash, revokedAt])
+}
+
+model AuthChallenge {
+  id String @id @default(uuid()) @db.Uuid
+  userId String? @db.Uuid
+  kind ChallengeKind
+  purpose String
+  subjectHash String
+  proofHash String
+  status ChallengeStatus @default(PENDING)
+  attempts Int @default(0)
+  maxAttempts Int
+  expiresAt DateTime
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@index([kind, subjectHash, createdAt])
+  @@index([status, expiresAt])
 }
 model AuditLog {
   id String @id @db.Uuid
