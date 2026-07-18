@@ -29,7 +29,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart dan hosted jobs PASS | `6c1218d` | closed; continue ID-01/02 |
 | WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 25 API tests termasuk PostgreSQL integration; Flutter 3 scenarios; Dart, drift dan pipeline PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `97f3901` | hosted evidence pending; production blocked |
-| WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | working tree | commit/push dan hosted `typescript`, `flutter`, `secrets` pending |
+| WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | `4edacf4` | push dan hosted `typescript`, `flutter`, `secrets` pending |
 
 ## Independent Review Record
 
@@ -52,6 +52,6 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 `BG-1 = PASS`. `BG2-FOUNDATION = PASS` pada commit `6c1218d` dengan private hosted jobs
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
 NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
-NON-PRODUCTION LOCAL_PASS` pada working tree;
+NON-PRODUCTION LOCAL_PASS` pada source commit `4edacf4`;
 `BG-3 = PENDING` dan `PG-1 = BLOCKED`. DEC/CFG, Figma, provider/account, migration/UAT dan
 production approvals tetap.
