@@ -3,7 +3,7 @@
 **Date:** 2026-07-19  
 **Status:** `FOUNDATION PASS`; `US-ID-01/02 LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — hosted
 evidence commit increment ini masih terbuka.
-**Source commit:** `working tree` (diganti SHA setelah commit)
+**Source commit:** `d20bd45`
 
 ## Implemented
 

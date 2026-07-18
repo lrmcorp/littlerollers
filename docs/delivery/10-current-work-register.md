@@ -27,8 +27,8 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG1-007 | role/document reconciliation | AI Product/BA | AI TL/Peer Reviewer | Product Owner for business acceptance | PASS | eight application roles separated from delivery/approval roles | `8cd2ce3` | production acceptance remains PG-1 evidence |
 | WRK-BG1-008 | hosted CI and secret scan | AI Operations | AI QA/Peer Reviewer | AI TL | PASS | private hosted `typescript`, `flutter`, `secrets`; full-history Gitleaks PASS | `8cd2ce3` | closed |
 | WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart dan hosted jobs PASS | `6c1218d` | closed; continue ID-01/02 |
-| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 25 API tests termasuk PostgreSQL integration; Flutter 3 scenarios; Dart, drift dan pipeline PASS | `working tree` | hosted evidence pending; production blocked |
-| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `working tree` | hosted evidence pending; production blocked |
+| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 25 API tests termasuk PostgreSQL integration; Flutter 3 scenarios; Dart, drift dan pipeline PASS | `d20bd45` | hosted evidence pending; production blocked |
+| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `d20bd45` | hosted evidence pending; production blocked |
 
 ## Independent Review Record
 
@@ -47,6 +47,6 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 
 `BG-1 = PASS`. `BG2-FOUNDATION = PASS` pada commit `6c1218d` dengan private hosted jobs
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
-NON-PRODUCTION` pada working tree; `US-MST-02 = NEXT`;
+NON-PRODUCTION` pada source commit `d20bd45`; `US-MST-02 = NEXT`;
 `BG-3 = PENDING` dan `PG-1 = BLOCKED`. DEC/CFG, Figma, provider/account, migration/UAT dan
 production approvals tetap.
