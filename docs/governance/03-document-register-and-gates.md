@@ -84,7 +84,7 @@ Gate `G1–G5` below are retained as formal completeness/production-readiness ch
 | Gate | Exit criteria | Evidence | Status |
 |---|---|---|---|
 | BG-0 Documentation | Requirement, UX text, API/schema, tests and delivery plan sufficiently detailed for safe scaffold | 24 stories, 96 AC, OpenAPI 0.4 validation, 52 screen handoffs, QA/migration/release documents | PASS — coding authorized |
-| BG-1 Scaffold | Monorepo/local dependencies/generated clients/CI build successfully | [BG-1 implementation evidence](../delivery/09-bg-1-implementation-evidence.md) dan [Current Work Register](../delivery/10-current-work-register.md) | IN PROGRESS — seluruh evidence lokal PASS; hosted GitHub Actions run belum tersedia |
+| BG-1 Scaffold | Monorepo/local dependencies/generated clients/CI build successfully | [BG-1 implementation evidence](../delivery/09-bg-1-implementation-evidence.md) dan [Current Work Register](../delivery/10-current-work-register.md) | PASS — local evidence dan hosted GitHub Actions pada commit `8cd2ce3` hijau |
 | BG-2 Story implementation | Applicable AC and automated tests pass; unresolved production input remains config-blocked | code/test/review evidence per story | PENDING |
 | BG-3 Integrated demo | Synthetic E2E and non-functional evidence pass | demo, E2E, accessibility/security/finance checks | PENDING |
 | PG-1 Production | Real DEC/CFG/provider/account/migration/UAT/release evidence complete | G1–G5/G6 applicable sign-offs | BLOCKED |
@@ -98,7 +98,7 @@ Gate hanya berubah menjadi `PASS` setelah seluruh evidence tertaut. `CONDITIONAL
 | APR-001 | Gate 1 baseline | Baseline commit `6aa4646`; DEC-001–003 approved; AI operating model active | Local AI QA/peer review recorded; production baseline review remains open | Reyner / 2026-07-18; production-baseline sign-off pending | [Gate 1 Signed Review Record](../templates/gate-1-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
 | APR-002 | Gate 2 requirements | Baseline commit `6aa4646` | AI Product/TL/QA production review evidence pending | Reyner / final business evidence TBD-BLOCKING | [G2-REV-001](../templates/gate-2-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
 | APR-003 | Gate 3 design | Repository UI evidence/Figma version TBD-BLOCKING | AI Designer/Web/Flutter/QA review evidence pending | Reyner visual acceptance TBD-BLOCKING | [G3-REV-001](../templates/gate-3-signed-review-record.md) — DRAFT | OPEN — production visual acceptance; not BG-1 blocker |
-| APR-004 | Gate 4 technical | OpenAPI `0.4.0-draft` checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`; baseline commit `6aa4646` | Local client/QA/peer review recorded; production technical review remains pending | AI TL disposition pending hosted evidence | [G4-REV-001](../templates/gate-4-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
+| APR-004 | Gate 4 technical | OpenAPI `0.4.0-draft` checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`; BG-1 commit `8cd2ce3` | Local dan hosted client/QA/peer evidence recorded; production technical review remains pending | AI TL BG-1 disposition PASS; production disposition pending | [G4-REV-001](../templates/gate-4-signed-review-record.md) — DRAFT | OPEN — production gate; BG-1 PASS |
 | APR-005 | Gate 5 readiness | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | OPEN |
 
 ## 5. Readiness Rules

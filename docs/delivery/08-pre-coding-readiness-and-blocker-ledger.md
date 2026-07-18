@@ -6,8 +6,8 @@
 
 > **Snapshot note:** tabel story pada §2 membekukan kondisi pre-BG-1 pada awal 2026-07-18.
 > Status eksekusi terkini berada pada [BG-1 Implementation Evidence](09-bg-1-implementation-evidence.md)
-> dan [Current Work Register](10-current-work-register.md): seluruh evidence lokal telah PASS,
-> sedangkan BG-1 penuh tetap `IN PROGRESS` sampai hosted GitHub Actions run tersedia.
+> dan [Current Work Register](10-current-work-register.md): seluruh evidence lokal dan hosted CI
+> telah PASS pada commit `8cd2ce3`; BG-1 penuh berstatus `PASS`.
 
 This report measures documentation maturity. The [AI Delivery Operating Model](../governance/10-ai-delivery-and-coding-authorization.md) supersedes human-staffing assumptions: BG-0 has passed and scaffold/local implementation is authorized. Production readiness still requires applicable business decisions, real environment and acceptance evidence.
 
@@ -69,7 +69,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | BLK-ENV-001 | Provider/environment/account | Provider decisions, accounts, secrets ownership, dev/staging/UAT/production evidence absent | G4/G5, build/release | TL+Operations | before scaffold/deployment | approved DEC-011, access review, environment smoke evidence | TBD-BLOCKING |
 | BLK-APR-001 | Approval evidence | APR-001–005 and exact-version signed review records remain open | G1–5, all stories | PO/TL/QA by gate | after comments/blockers close | immutable signed records linked to commit/checksum/Figma version | OPEN |
 
-No autonomous documentation or staffing gap prevents coding. Remaining BG-1 blocker is hosted CI execution evidence; BG-2 must not start before its disposition.
+No autonomous documentation or staffing gap prevents coding. BG-1 telah PASS; BG-2 dapat dimulai sesuai urutan story dan configuration/production boundary.
 
 ## 4. Next Action by Role
 
@@ -78,7 +78,7 @@ No autonomous documentation or staffing gap prevents coding. Remaining BG-1 bloc
 | Product Owner | Supply genuine business values/policies when requested; accept visible behavior and production release | DEC/CFG and acceptance evidence |
 | AI Product/BA | Maintain 24-story traceability and controlled business questions during implementation | updated AC/decision impact and review evidence |
 | AI Designer | Implement/iterate UI from 52 screen specifications; prepare visual evidence for PO acceptance | responsive/accessibility screenshots and interaction tests |
-| AI Technical Lead | Publish baseline repository dan capture hosted CI run | commit/run links dan final BG-1 disposition |
+| AI Technical Lead | Mulai BG-2 identity/authorization foundation dan pertahankan CI hijau | story-level code/test/review evidence |
 | AI Web/Flutter | Implement generated-client consumers and UI states | build/component/widget/E2E evidence |
 | AI QA/Security | Independently derive and run tests/reviews | reproducible results and closed critical findings |
 | Finance | Approve package/rate/fee/formula/close/correction configuration and controls | signed CFG/DEC source evidence and reconciliation expectations |
@@ -90,8 +90,8 @@ No autonomous documentation or staffing gap prevents coding. Remaining BG-1 bloc
 ## 5. Authorization Boundary
 
 - Percentage is diagnostic only; it never overrides a gate.
-- BG-0 is `PASS`; BG-1 scaffold and local/synthetic coding are authorized.
+- BG-0 dan BG-1 adalah `PASS`; BG-2 dimulai per story dengan executable evidence.
 - Legacy Gate 1–5 and APR-001–005 remain open as production/completeness evidence, not HR or coding blockers.
 - All 24 stories may enter implementation in planned order; affected production activation remains configuration-gated.
 - No production value, TTL, provider, policy, person, environment or approval has been fabricated.
-- The next valid work is hosted CI evidence and final BG-1 validation.
+- The next valid work is BG-2 identity/authorization foundation in planned story order.

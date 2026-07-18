@@ -1,8 +1,10 @@
 # BG-1 Implementation Evidence
 
 **Date:** 2026-07-18  
-**Status:** `IN PROGRESS` — seluruh evidence lokal PASS; hosted GitHub Actions execution evidence masih terbuka. Status ini bukan production authorization.
+**Status:** `PASS` — seluruh evidence lokal dan hosted GitHub Actions lulus. Status ini bukan production authorization.
 **Baseline commit:** `6aa4646`
+**Hosted evidence commit:** `8cd2ce3`
+**Hosted result:** `typescript`, `flutter`, dan `secrets` PASS; dikonfirmasi Product Owner pada 2026-07-18. Repository tetap private.
 
 ## Implemented
 
@@ -34,13 +36,9 @@
 | Empty database migration | PASS — dua migration diterapkan pada database sintetis terpisah |
 | Synthetic seed run twice | PASS — hasil akhir 1 Branch, 1 User, 1 Assignment; tidak ada duplikasi |
 
-## Remaining before `BG-1 PASS`
+## Gate Closure
 
-1. Publish/push baseline repository dan record hosted GitHub Actions run, including migration check,
-   generated drift, Flutter/Dart checks and secret scan. Workflow definitions alone are not execution
-   evidence.
-
-Local closure items for complete generated clients, byte-for-byte drift, dependency-aware health,
-transactional idempotency/outbox foundation and degradation tests are closed. `BG-1` remains
-`IN PROGRESS` only because hosted CI execution evidence is unavailable; `BG-2` business-story
-implementation must not start. Production gates and `DEC-004–014` remain unchanged.
+Complete generated clients, byte-for-byte drift, dependency-aware health, transactional
+idempotency/outbox foundation, degradation tests, empty-database migration, Flutter/Dart checks dan
+full-history secret scan telah lulus secara lokal dan/atau hosted sesuai matriks evidence. `BG-1` adalah
+`PASS`; BG-2 dapat dimulai per story. Production gates dan `DEC-004–014` tetap tidak berubah.

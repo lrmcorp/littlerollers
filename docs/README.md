@@ -83,8 +83,8 @@ Status gate dan evidence approval otoritatif dicatat pada [Document Register, Ba
 
 ## Urutan Pemakaian
 
-1. Gunakan evidence BG-1 dan Current Work Register untuk menutup hosted CI run; verifikasi lokal BG-1 telah lulus.
-2. Setelah BG-1 penuh `PASS`, implementasikan foundation dan story Sprint 2–3 dengan configuration-required behavior untuk keputusan produksi yang belum tersedia.
+1. BG-1 telah PASS; gunakan Current Work Register untuk mempertahankan executable evidence dan CI hijau.
+2. Implementasikan foundation dan story Sprint 2–3 dengan configuration-required behavior untuk keputusan produksi yang belum tersedia.
 3. Gunakan AI author/reviewer modes dan executable evidence untuk menutup BG-2 per story.
 4. Lanjutkan Sprint 4–12 serta integrated synthetic demo BG-3.
 5. Sebelum production, lengkapi keputusan bisnis, provider/account, migration/UAT, visual acceptance, restore/security review dan PG-1/Gate 6 sign-off.

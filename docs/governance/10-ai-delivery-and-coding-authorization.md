@@ -49,7 +49,7 @@ The following remain blocked until real input exists:
 | Gate | Purpose | Current result | Evidence/condition |
 |---|---|---|---|
 | BG-0 Documentation | Enough specification to scaffold safely | PASS | 24 stories, 96 AC, UX text handoff, OpenAPI 0.4, QA/migration/release plans validated |
-| BG-1 Scaffold | Repository, local environment, clients and CI compile | IN PROGRESS | seluruh evidence lokal PASS; hosted GitHub Actions run masih wajib sebelum gate penuh PASS |
+| BG-1 Scaffold | Repository, local environment, clients and CI compile | PASS | local evidence dan hosted jobs `typescript`, `flutter`, `secrets` hijau pada commit `8cd2ce3` |
 | BG-2 Story build | Story implemented behind required config/flags | PER STORY | AC tests pass; unresolved production decision cannot be bypassed |
 | BG-3 Integrated demo | Local/staging synthetic flows demonstrated | PENDING | E2E, accessibility, security and deterministic finance evidence |
 | PG-1 Production readiness | Real configuration, provider, accounts, migration/UAT and PO acceptance | BLOCKED | DEC/CFG evidence, environment, restore/security/UAT and release sign-off |
@@ -66,10 +66,10 @@ Legacy Gate 1–5 templates remain useful review checklists, but human staffing,
 
 ## 5. Immediate Coding Sequence
 
-1. Tutup BG-1 dengan hosted GitHub Actions run pada baseline repository; local scaffold evidence telah PASS.
-2. Setelah BG-1 PASS, lanjutkan foundation story: auth/session interfaces, RBAC/branch context, audit, idempotency, outbox dan configuration registry.
+1. BG-1 telah PASS; pertahankan CI hijau dan generated drift sebagai merge boundary.
+2. Lanjutkan foundation story BG-2: auth/session interfaces, RBAC/branch context, audit, idempotency, outbox dan configuration registry.
 3. Sprint 2 vertical slice: `US-ID-01`, `US-ID-02`, `US-MST-02` using provider adapters and controlled policy placeholders.
 4. Sprint 3 vertical slice: master/package/purchase/ledger, with production business values configuration-blocked.
 5. Continue Sprint 4–12 according to the implementation plan; close each story through tests and AI review evidence.
 
-The next repository action is hosted CI evidence and BG-1 disposition—not candidate selection, HR administration, or BG-2 story implementation.
+The next repository action is BG-2 story refinement/implementation in planned order—not candidate selection or HR administration.
