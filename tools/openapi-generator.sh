@@ -22,10 +22,10 @@ case "$MODE" in
 esac
 
 COMMON="--additional-properties=hideGenerationTimestamp=true"
-docker run --rm -v "$(pwd):/local" "$IMAGE" generate \
+docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/local" "$IMAGE" generate \
   -i /local/docs/technical/openapi-v1.yaml -g typescript-fetch \
   -o "$TS_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
-docker run --rm -v "$(pwd):/local" "$IMAGE" generate \
+docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/local" "$IMAGE" generate \
   -i /local/docs/technical/openapi-v1.yaml -g dart-dio \
   -o "$DART_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
 
