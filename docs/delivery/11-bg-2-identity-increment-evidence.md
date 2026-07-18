@@ -1,9 +1,9 @@
 # BG-2 Identity Increment Evidence
 
 **Date:** 2026-07-19  
-**Status:** `FOUNDATION PASS`; `US-ID-01/02 IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION` — hosted,
-Web executable tests dan integration/concurrency acceptance masih terbuka.
-**Source commit:** `170ed0a`
+**Status:** `FOUNDATION PASS`; `US-ID-01/02 LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — hosted
+evidence commit increment ini masih terbuka.
+**Source commit:** `working tree` (diganti SHA setelah commit)
 
 ## Implemented
 
@@ -23,27 +23,26 @@ Web executable tests dan integration/concurrency acceptance masih terbuka.
 
 | Evidence | Result |
 |---|---|
-| `pnpm check` | PASS 2026-07-19 — format, OpenAPI checksum, lint, typecheck, 20 API tests dan builds |
+| `pnpm check` | PASS 2026-07-19 — format, OpenAPI checksum, lint, typecheck, Web tests dan builds |
 | OpenAPI | BG-2 completion draft `0.5.0-draft` / `d7127a9f...381b`; challenge response contract added |
-| AI Security review | PASS WITH ACTION — branch list filtering dan audit correlation diperbaiki; integration suite pending |
+| API integration/security | PASS — 25 tests dengan 5 real-PostgreSQL scenarios: concurrency, OTP/MFA/recovery, refresh reuse, linking, scope, deactivation dan audit masking |
 | `pnpm openapi:drift` | PASS — 121 TypeScript dan 128 Dart generated files cocok byte-for-byte |
-| Flutter analyze/widget test | PASS — analyze tanpa issue dan widget state test lulus |
+| Flutter analyze/widget test | PASS — analyze tanpa issue; 3 widget scenarios mencakup Google, OTP, recovery, offline/rate-limit/expired/locked/session-expired |
 | Dart consumer test | PASS — representative generated contract compiles |
 | Empty-database migration/double seed | PASS — empat migration pada `dailydose_identity_verify_20260719`; kedua seed menghasilkan tetap 1 Branch, 1 User, 1 Assignment |
 | Identity persistence constraints | PASS — FK role/branch, unique hashed session/identity, pending invitation dan rate-limit index tervalidasi pada database sintetis |
-| Web component/E2E/a11y | INCOMPLETE — build hijau, tetapi Vitest melaporkan `No test files found` |
+| Web component/a11y | PASS — Vitest 2 tests; runner tidak lagi menerima kondisi tanpa test |
+| Web E2E | PASS — Playwright Chromium 5 scenarios untuk login, MFA, invite/deactivate, duplicate/forbidden, expired dan self-deactivation |
 | Hosted CI increment ini | PENDING — wajib hijau pada source/evidence commit sebelum promosi story |
 
 ## Story Disposition
 
 - `BG2-FOUNDATION = PASS`: source, migration, generated clients, Flutter/Dart dan hosted evidence
   hijau pada commit final `6c1218d`.
-- `US-ID-01 = IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION`: login hanya untuk identity/invitation
-  eligible, OTP single-use, recovery synthetic dan web/mobile session boundary tersedia; full
-  integration/concurrency evidence belum lengkap.
-- `US-ID-02 = IN_PROGRESS FOR SYNTHETIC NON-PRODUCTION`: invite scoped/idempotent, MFA step-up,
-  linking terverifikasi dan transactional deactivation tersedia; Web tests dan hosted confirmation
-  masih pending.
+- `US-ID-01 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`: executable API, Web, Flutter dan consumer
+  evidence hijau; hosted confirmation masih pending.
+- `US-ID-02 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`: invitation/MFA/link/deactivation,
+  concurrency, audit masking, Web component/a11y/E2E hijau; hosted confirmation masih pending.
 - `US-MST-02 = NEXT`; tidak diimplementasikan dalam increment ini.
 - `BG-3 = PENDING`; `PG-1 = BLOCKED`.
 

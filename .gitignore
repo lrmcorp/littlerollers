@@ -4,6 +4,8 @@ node_modules/
 dist/
 .next/
 coverage/
+apps/web/test-results/
+apps/web/playwright-report/
 .generated/
 packages/api-client-ts/generated/**/*.d.ts
 packages/api-client-ts/generated/**/*.js

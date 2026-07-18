@@ -150,7 +150,10 @@ export class IdentityService {
     return session;
   }
 
-  async requestOtp(phoneE164: string): Promise<{ requestId: string; expiresAt: string }> {
+  async requestOtp(
+    phoneE164: string,
+    correlationId = 'unknown',
+  ): Promise<{ requestId: string; expiresAt: string }> {
     const subjectHash = digest(phoneE164);
     await this.rateLimit.consume('OTP_REQUEST', subjectHash);
     const { proofHash } = await this.otp.send(phoneE164);
@@ -167,10 +170,22 @@ export class IdentityService {
         expiresAt,
       },
     });
+    await this.audit(this.db, {
+      action: 'security.otp_requested',
+      objectType: 'AuthChallenge',
+      objectId: challenge.id,
+      correlationId,
+      after: { kind: 'OTP' },
+    });
     return { requestId: challenge.id, expiresAt: expiresAt.toISOString() };
   }
 
-  async verifyOtp(requestId: string, code: string, channel: SessionChannel = 'MOBILE') {
+  async verifyOtp(
+    requestId: string,
+    code: string,
+    channel: SessionChannel = 'MOBILE',
+    correlationId = 'unknown',
+  ) {
     const challenge = await this.db.authChallenge.findUnique({ where: { id: requestId } });
     if (!challenge || challenge.kind !== 'OTP' || challenge.status !== 'PENDING')
       throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
@@ -197,7 +212,16 @@ export class IdentityService {
       data: { status: 'VERIFIED', verifiedAt: new Date(), userId: identity.userId },
     });
     if (claimed.count !== 1) throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
-    return this.issueSession(identity.userId, channel, 'BASE');
+    const session = await this.issueSession(identity.userId, channel, 'BASE');
+    await this.audit(this.db, {
+      actorId: identity.userId,
+      action: 'security.otp_verified',
+      objectType: 'AuthChallenge',
+      objectId: requestId,
+      correlationId,
+      after: { channel },
+    });
+    return session;
   }
 
   async issueSession(
@@ -237,7 +261,7 @@ export class IdentityService {
     };
   }
 
-  async refresh(rawRefreshToken: string) {
+  async refresh(rawRefreshToken: string, correlationId = 'unknown') {
     const session = await this.db.userSession.findUnique({
       where: { refreshTokenHash: digest(rawRefreshToken) },
       include: { user: true },
@@ -248,6 +272,14 @@ export class IdentityService {
       await this.db.userSession.updateMany({
         where: { tokenFamilyHash: session.tokenFamilyHash, revokedAt: null },
         data: { revokedAt: new Date(), revocationReason: 'REFRESH_REUSE_DETECTED' },
+      });
+      await this.audit(this.db, {
+        actorId: session.userId,
+        action: 'security.refresh_reuse_detected',
+        objectType: 'UserSession',
+        objectId: session.id,
+        correlationId,
+        after: { familyRevoked: true },
       });
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
     }
@@ -287,14 +319,25 @@ export class IdentityService {
     };
   }
 
-  async logout(sessionId: string): Promise<void> {
+  async logout(sessionId: string, correlationId = 'unknown'): Promise<void> {
     await this.db.userSession.updateMany({
       where: { id: sessionId, revokedAt: null },
       data: { revokedAt: new Date(), revocationReason: 'LOGOUT' },
     });
+    await this.audit(this.db, {
+      action: 'security.logout',
+      objectType: 'UserSession',
+      objectId: sessionId,
+      correlationId,
+    });
   }
 
-  async revokeAll(userId: string, reason: string, exceptSessionId?: string): Promise<void> {
+  async revokeAll(
+    userId: string,
+    reason: string,
+    exceptSessionId?: string,
+    correlationId = 'unknown',
+  ): Promise<void> {
     await this.db.userSession.updateMany({
       where: {
         userId,
@@ -302,6 +345,14 @@ export class IdentityService {
         ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
       },
       data: { revokedAt: new Date(), revocationReason: reason.slice(0, 300) },
+    });
+    await this.audit(this.db, {
+      actorId: userId,
+      action: 'security.sessions_revoked',
+      objectType: 'User',
+      objectId: userId,
+      correlationId,
+      after: { reasonPresent: Boolean(reason), exceptCurrent: Boolean(exceptSessionId) },
     });
   }
 
@@ -405,7 +456,7 @@ export class IdentityService {
     }
   }
 
-  async createMfa(principal: SessionPrincipal, purpose: string) {
+  async createMfa(principal: SessionPrincipal, purpose: string, correlationId = 'unknown') {
     await this.rateLimit.consume('MFA_CHALLENGE', digest(principal.userId));
     const ttl = syntheticConfigSeconds('AUTH_MFA_TTL_SECONDS', 300);
     const maxAttempts = syntheticConfigSeconds('AUTH_MFA_MAX_ATTEMPTS', 5);
@@ -422,6 +473,14 @@ export class IdentityService {
         expiresAt,
       },
     });
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.mfa_requested',
+      objectType: 'AuthChallenge',
+      objectId: challenge.id,
+      correlationId,
+      after: { purpose },
+    });
     return {
       id: challenge.id,
       purpose,
@@ -430,7 +489,12 @@ export class IdentityService {
     };
   }
 
-  async verifyMfa(principal: SessionPrincipal, challengeId: string, proof: string) {
+  async verifyMfa(
+    principal: SessionPrincipal,
+    challengeId: string,
+    proof: string,
+    correlationId = 'unknown',
+  ) {
     const challenge = await this.db.authChallenge.findUnique({ where: { id: challengeId } });
     if (
       !challenge ||
@@ -460,11 +524,23 @@ export class IdentityService {
         where: { id: current.id },
         data: { revokedAt: new Date(), revocationReason: 'MFA_ROTATED' },
       });
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.mfa_verified',
+        objectType: 'AuthChallenge',
+        objectId: challenge.id,
+        correlationId,
+        after: { assurance: 'MFA' },
+      });
     });
     return this.issueSession(principal.userId, current.channel, 'MFA', current.tokenFamilyHash);
   }
 
-  async requestRecovery(identifier: string, requestedChannel: 'WHATSAPP' | 'GOOGLE' | 'SUPPORT') {
+  async requestRecovery(
+    identifier: string,
+    requestedChannel: 'WHATSAPP' | 'GOOGLE' | 'SUPPORT',
+    correlationId = 'unknown',
+  ) {
     const normalized = identifier.trim().toLowerCase();
     const subjectHash =
       requestedChannel === 'GOOGLE' ? digest(`google:${normalized}`) : digest(normalized);
@@ -484,10 +560,17 @@ export class IdentityService {
         expiresAt,
       },
     });
+    await this.audit(this.db, {
+      action: 'security.recovery_requested',
+      objectType: 'AuthChallenge',
+      objectId: challenge.id,
+      correlationId,
+      after: { requestedChannel },
+    });
     return { requestId: challenge.id, expiresAt: expiresAt.toISOString() };
   }
 
-  async verifyRecovery(id: string, proof: string) {
+  async verifyRecovery(id: string, proof: string, correlationId = 'unknown') {
     const challenge = await this.db.authChallenge.findUnique({ where: { id } });
     if (
       !challenge ||
@@ -513,6 +596,14 @@ export class IdentityService {
       await tx.userSession.updateMany({
         where: { userId: challenge.userId!, revokedAt: null },
         data: { revokedAt: new Date(), revocationReason: 'ACCOUNT_RECOVERY' },
+      });
+      await this.audit(tx, {
+        actorId: challenge.userId!,
+        action: 'security.recovery_verified',
+        objectType: 'AuthChallenge',
+        objectId: id,
+        correlationId,
+        after: { sessionsRevoked: true },
       });
     });
     return this.issueSession(challenge.userId, 'MOBILE', 'MFA');

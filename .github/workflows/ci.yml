@@ -37,7 +37,10 @@ jobs:
       - run: pnpm db:migrate
       - run: pnpm db:seed
       - run: pnpm db:seed
+      - run: pnpm --filter @dailydose/api test
       - run: pnpm check
+      - run: pnpm --filter @dailydose/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @dailydose/web test:e2e
   flutter:
     runs-on: ubuntu-latest
     steps:

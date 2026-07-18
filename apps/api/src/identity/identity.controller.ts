@@ -49,18 +49,24 @@ export class IdentityController {
 
   @Post('auth/otp/requests')
   @HttpCode(202)
-  requestOtp(@Body() body: { phoneE164: string }) {
-    return this.identities.requestOtp(body.phoneE164);
+  requestOtp(@Req() request: AuthenticatedRequest, @Body() body: { phoneE164: string }) {
+    return this.identities.requestOtp(body.phoneE164, request.correlationId ?? 'unknown');
   }
 
   @Post('auth/otp/verifications')
   async verifyOtp(
+    @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
     @Body() body: { requestId: string; code: string },
   ) {
     return this.deliverSession(
       response,
-      await this.identities.verifyOtp(body.requestId, body.code),
+      await this.identities.verifyOtp(
+        body.requestId,
+        body.code,
+        'MOBILE',
+        request.correlationId ?? 'unknown',
+      ),
     );
   }
 
@@ -72,27 +78,39 @@ export class IdentityController {
     const authorization = request.header('authorization') ?? '';
     const match = /^Bearer ([A-Za-z0-9_-]+)$/.exec(authorization);
     if (!match) return configurationRequired();
-    return this.deliverSession(response, await this.identities.refresh(match[1]!));
+    return this.deliverSession(
+      response,
+      await this.identities.refresh(match[1]!, request.correlationId ?? 'unknown'),
+    );
   }
 
   @Post('auth/recovery-requests')
   requestRecovery(
+    @Req() request: AuthenticatedRequest,
     @Body()
     body: {
       identifier: string;
       requestedChannel: 'WHATSAPP' | 'GOOGLE' | 'SUPPORT';
     },
   ) {
-    return this.identities.requestRecovery(body.identifier, body.requestedChannel);
+    return this.identities.requestRecovery(
+      body.identifier,
+      body.requestedChannel,
+      request.correlationId ?? 'unknown',
+    );
   }
 
   @Post('auth/recoveries/:id/verify')
   async verifyRecovery(
+    @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
     @Res({ passthrough: true }) response: Response,
     @Body() body: { proof: string },
   ) {
-    return this.deliverSession(response, await this.identities.verifyRecovery(id, body.proof));
+    return this.deliverSession(
+      response,
+      await this.identities.verifyRecovery(id, body.proof, request.correlationId ?? 'unknown'),
+    );
   }
 
   @Post('auth/account-links')
@@ -126,7 +144,7 @@ export class IdentityController {
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
-    await this.identities.logout(request.principal.sessionId);
+    await this.identities.logout(request.principal.sessionId, request.correlationId ?? 'unknown');
     response.clearCookie('dd_session', { path: '/' });
   }
 
@@ -141,13 +159,18 @@ export class IdentityController {
       request.principal.userId,
       body.reason,
       body.exceptCurrent ? request.principal.sessionId : undefined,
+      request.correlationId ?? 'unknown',
     );
   }
 
   @UseGuards(AuthGuard)
   @Post('auth/mfa/challenges')
   createMfa(@Req() request: AuthenticatedRequest, @Body() body: { purpose: string }) {
-    return this.identities.createMfa(request.principal, body.purpose);
+    return this.identities.createMfa(
+      request.principal,
+      body.purpose,
+      request.correlationId ?? 'unknown',
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -159,7 +182,12 @@ export class IdentityController {
   ) {
     return this.deliverSession(
       response,
-      await this.identities.verifyMfa(request.principal, body.challengeId, body.proof),
+      await this.identities.verifyMfa(
+        request.principal,
+        body.challengeId,
+        body.proof,
+        request.correlationId ?? 'unknown',
+      ),
     );
   }
 

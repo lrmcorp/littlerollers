@@ -104,6 +104,7 @@ describe('identity security foundation', () => {
       user: { id: 'user-1', status: 'ACTIVE' },
     };
     const db = {
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
       userSession: {
         findUnique: jest.fn().mockResolvedValue(activeSession),
         update: jest.fn().mockResolvedValue({}),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
+import 'auth_repository.dart';
 
 final _router = GoRouter(
   routes: [
@@ -24,7 +25,8 @@ final _router = GoRouter(
 );
 
 class CustomerSignIn extends StatefulWidget {
-  const CustomerSignIn({super.key});
+  const CustomerSignIn({this.repository, super.key});
+  final AuthRepository? repository;
   @override
   State<CustomerSignIn> createState() => _CustomerSignInState();
 }
@@ -32,6 +34,41 @@ class CustomerSignIn extends StatefulWidget {
 class _CustomerSignInState extends State<CustomerSignIn> {
   bool useOtp = false;
   bool recovery = false;
+  bool loading = false;
+  String? message;
+  String? requestId;
+  final phone = TextEditingController();
+  final code = TextEditingController();
+  final recoveryIdentifier = TextEditingController();
+
+  AuthRepository get repository =>
+      widget.repository ?? const ConfigurationRequiredRepository();
+
+  Future<void> run(Future<void> Function() action) async {
+    setState(() {
+      loading = true;
+      message = null;
+    });
+    try {
+      await action();
+      setState(() => message = 'Berhasil.');
+    } on AuthException catch (error) {
+      setState(() => message = error.failure.name);
+    } catch (_) {
+      setState(() => message = AuthFailure.offline.name);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    phone.dispose();
+    code.dispose();
+    recoveryIdentifier.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Daily Dose')),
@@ -46,8 +83,8 @@ class _CustomerSignInState extends State<CustomerSignIn> {
         const Text('Gunakan identitas yang sudah terverifikasi.'),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: () {},
-          child: const Text('Lanjutkan dengan Google'),
+          onPressed: loading ? null : () => run(repository.signInGoogle),
+          child: Text(loading ? 'Memproses…' : 'Lanjutkan dengan Google'),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
@@ -56,17 +93,34 @@ class _CustomerSignInState extends State<CustomerSignIn> {
         ),
         if (useOtp) ...[
           const SizedBox(height: 20),
-          const TextField(
-            key: Key('phone-input'),
+          TextField(
+            key: const Key('phone-input'),
+            controller: phone,
             keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: 'Nomor WhatsApp'),
+            decoration: const InputDecoration(labelText: 'Nomor WhatsApp'),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: null, child: const Text('Kirim kode')),
-          const Text(
-            'Provider OTP belum dikonfigurasi.',
-            key: Key('configuration-message'),
+          FilledButton(
+            onPressed: loading
+                ? null
+                : () => run(() async {
+                    requestId = await repository.requestOtp(phone.text);
+                    setState(() {});
+                  }),
+            child: const Text('Kirim kode'),
           ),
+          if (requestId != null) ...[
+            TextField(
+              key: const Key('otp-code'),
+              controller: code,
+              decoration: const InputDecoration(labelText: 'Kode OTP'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  run(() => repository.verifyOtp(requestId!, code.text)),
+              child: const Text('Verifikasi OTP'),
+            ),
+          ],
         ],
         TextButton(
           onPressed: () => setState(() => recovery = true),
@@ -77,21 +131,45 @@ class _CustomerSignInState extends State<CustomerSignIn> {
           const Text(
             'Pemulihan tidak pernah menautkan identitas yang belum diverifikasi.',
           ),
-          const TextField(
-            key: Key('recovery-identifier'),
-            decoration: InputDecoration(
+          TextField(
+            key: const Key('recovery-identifier'),
+            controller: recoveryIdentifier,
+            decoration: const InputDecoration(
               labelText: 'Email atau nomor terverifikasi',
             ),
           ),
           const SizedBox(height: 12),
           FilledButton(
-            onPressed: null,
+            onPressed: loading
+                ? null
+                : () => run(() async {
+                    await repository.requestRecovery(recoveryIdentifier.text);
+                  }),
             child: const Text('Minta verifikasi synthetic'),
           ),
         ],
+        if (message != null)
+          Text(
+            message!,
+            key: const Key('auth-message'),
+            semanticsLabel: 'status autentikasi',
+          ),
       ],
     ),
   );
+}
+
+class ConfigurationRequiredRepository implements AuthRepository {
+  const ConfigurationRequiredRepository();
+  Never _fail() => throw const AuthException(AuthFailure.configuration);
+  @override
+  Future<void> signInGoogle() async => _fail();
+  @override
+  Future<String> requestOtp(String phone) async => _fail();
+  @override
+  Future<void> verifyOtp(String requestId, String code) async => _fail();
+  @override
+  Future<String> requestRecovery(String identifier) async => _fail();
 }
 
 class DailyDoseApp extends StatelessWidget {
