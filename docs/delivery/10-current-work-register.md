@@ -26,9 +26,9 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG1-006 | Flutter shell | AI Flutter | AI QA | AI TL | PASS | hosted Flutter analyze/widget dan Dart consumer tests PASS | `8cd2ce3` | closed |
 | WRK-BG1-007 | role/document reconciliation | AI Product/BA | AI TL/Peer Reviewer | Product Owner for business acceptance | PASS | eight application roles separated from delivery/approval roles | `8cd2ce3` | production acceptance remains PG-1 evidence |
 | WRK-BG1-008 | hosted CI and secret scan | AI Operations | AI QA/Peer Reviewer | AI TL | PASS | private hosted `typescript`, `flutter`, `secrets`; full-history Gitleaks PASS | `8cd2ce3` | closed |
-| WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | LOCAL_PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart PASS | working tree | hosted evidence pending |
-| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | IN_PROGRESS | fail-closed adapters, OTP state, refresh reuse tests dan mobile states implemented | working tree | real provider/DEC-012/014 blocked; executable integration incomplete |
-| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | IN_PROGRESS | eight-role policy, branch filtering, revoke/deactivate audit dan web states implemented | working tree | invite/MFA remain configuration-required; integration/Figma pending |
+| WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | LOCAL_PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart PASS | `8024521` | hosted evidence pending |
+| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | IN_PROGRESS | fail-closed adapters, OTP state, refresh reuse tests dan mobile states implemented | `8024521` | real provider/DEC-012/014 blocked; executable integration incomplete |
+| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | IN_PROGRESS | eight-role policy, branch filtering, revoke/deactivate audit dan web states implemented | `8024521` | invite/MFA remain configuration-required; integration/Figma pending |
 
 ## Independent Review Record
 

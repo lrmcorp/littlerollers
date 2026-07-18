@@ -3,6 +3,7 @@
 **Date:** 2026-07-19  
 **Status:** `IN PROGRESS` — foundation dan bagian configuration-safe `US-ID-01/02` telah dibangun;
 tidak ada story yang dipromosikan ke PASS sebelum seluruh executable evidence tersedia.
+**Source commit:** `8024521`
 
 ## Implemented
 
@@ -28,7 +29,7 @@ tidak ada story yang dipromosikan ke PASS sebelum seluruh executable evidence te
 | Dart consumer test | PASS — representative generated contract compiles |
 | Empty-database migration/double seed | PASS — tiga migration; hasil akhir 1 Branch, 1 User, 1 Assignment |
 | Identity persistence constraints | PASS — FK UserRole→User/Branch serta hashed session/challenge tervalidasi pada database sintetis |
-| Hosted CI | PENDING — dijalankan setelah commit/push increment |
+| Hosted CI | PENDING — private run untuk source commit `8024521` telah dipicu; hasil belum dapat dibaca tanpa sesi GitHub terautentikasi |
 
 ## Story Disposition
 
