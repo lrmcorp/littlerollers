@@ -3,7 +3,7 @@
 **Date:** 2026-07-19  
 **Status:** `FOUNDATION PASS`; `US-ID-01/02 LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — production
 activation dan hosted evidence commit increment ini masih terbuka.
-**Source commit:** `working tree` (diganti SHA setelah commit)
+**Source commit:** `170ed0a`
 
 ## Implemented
 
