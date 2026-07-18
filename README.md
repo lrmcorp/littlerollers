@@ -29,3 +29,4 @@ Prerequisites: Node 24, pnpm 11.7, Docker, Flutter 3.38.5/Dart 3.10.4.
 - If Flutter cannot update its cache, ensure the pinned SDK is writable or use FVM with `.fvmrc`.
 - If Prisma cannot connect, wait for `docker compose ... ps` to report PostgreSQL healthy.
 - If generated drift fails, validate the OpenAPI checksum first. Contract changes require manifest/checksum synchronization before regeneration.
+# dailydose_v2
