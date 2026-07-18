@@ -22,11 +22,14 @@ jobs:
     env:
       DATABASE_URL: postgresql://dailydose:dailydose_ci@localhost:5432/dailydose_ci?schema=public
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm }
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with: { version: 11.7.0 }
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm openapi:validate
       - run: pnpm openapi:drift
@@ -38,7 +41,7 @@ jobs:
   flutter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with: { flutter-version: 3.38.5, channel: stable, cache: true }
       - run: flutter pub get
@@ -54,6 +57,11 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Scan full Git history with Gitleaks
+        run: >-
+          docker run --rm
+          -v "$PWD:/repo"
+          zricethezav/gitleaks:v8.24.3
+          git --redact --verbose --log-opts="--all" /repo
