@@ -1,0 +1,32 @@
+{
+  "name": "dailydose-v2",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "bootstrap": "pnpm install && pnpm openapi:validate && pnpm openapi:generate && pnpm build",
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "pnpm format:check && pnpm openapi:validate && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "openapi:validate": "node tools/validate-openapi.mjs",
+    "openapi:generate": "sh tools/openapi-generator.sh sync",
+    "openapi:drift": "node tools/check-generated-drift.mjs",
+    "db:generate": "pnpm --filter @dailydose/api prisma:generate",
+    "db:migrate": "pnpm --filter @dailydose/api prisma:migrate",
+    "db:seed": "pnpm --filter @dailydose/api prisma:seed",
+    "local:up": "docker compose -f infra/local/docker-compose.yml up -d",
+    "local:down": "docker compose -f infra/local/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6",
+    "yaml": "^2.8.1"
+  }
+}

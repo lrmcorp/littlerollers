@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum IdentityProvider {
+  GOOGLE
+  WHATSAPP_PHONE
+}
+
+enum AssignmentType {
+  OWNER
+  INSTRUCTOR
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id String @id @db.Uuid
+  displayName String
+  status UserStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  identities Identity[]
+  assignments Assignment[]
+}
+model Identity {
+  id String @id @db.Uuid
+  userId String @db.Uuid
+  provider IdentityProvider
+  subjectHash String
+  verifiedAt DateTime
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([provider, subjectHash])
+  @@index([userId])
+}
+model Branch {
+  id String @id @db.Uuid
+  code String @unique
+  name String
+  timezone String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  assignments Assignment[]
+  configurations EffectiveConfiguration[]
+}
+model Assignment {
+  id String @id @db.Uuid
+  userId String @db.Uuid
+  branchId String @db.Uuid
+  type AssignmentType
+  activeFrom DateTime @db.Date
+  activeUntil DateTime? @db.Date
+  version Int @default(0)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  @@index([userId, activeFrom, activeUntil])
+  @@index([branchId, type, activeFrom, activeUntil])
+}
+model AuditLog {
+  id String @id @db.Uuid
+  occurredAt DateTime @default(now())
+  actorType String
+  actorId String? @db.Uuid
+  branchId String? @db.Uuid
+  action String
+  objectType String
+  objectId String
+  beforeMasked Json?
+  afterMasked Json?
+  correlationId String
+  @@index([branchId, occurredAt])
+  @@index([objectType, objectId, occurredAt])
+}
+model IdempotencyRecord {
+  id String @id @db.Uuid
+  scope String
+  keyHash String
+  requestHash String
+  status IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?
+  responseBody Json?
+  responseHeaders Json?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  leaseExpiresAt DateTime
+  expiresAt DateTime
+  @@unique([scope, keyHash])
+  @@index([expiresAt])
+  @@index([status, leaseExpiresAt])
+}
+model OutboxEvent {
+  id String @id @db.Uuid
+  eventType String
+  aggregateType String
+  aggregateId String
+  payload Json
+  correlationId String
+  status OutboxStatus @default(PENDING)
+  occurredAt DateTime @default(now())
+  publishedAt DateTime?
+  attempts Int @default(0)
+  @@index([status, occurredAt])
+  @@index([aggregateType, aggregateId])
+}
+model EffectiveConfiguration {
+  id String @id @db.Uuid
+  kind String
+  businessKey String
+  branchId String? @db.Uuid
+  value Json
+  effectiveFrom DateTime
+  effectiveUntil DateTime?
+  approvedEvidence String?
+  createdAt DateTime @default(now())
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  @@index([kind, businessKey, effectiveFrom, effectiveUntil])
+  @@index([branchId, kind, effectiveFrom])
+}

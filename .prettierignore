@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+coverage
+apps/mobile
+packages/api-client-dart
+packages/api-client-ts/generated
+docs/technical/openapi-v1.yaml
+docs
+apps/api/prisma
+pnpm-lock.yaml

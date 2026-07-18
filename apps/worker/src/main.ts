@@ -1,0 +1,42 @@
+import 'reflect-metadata';
+import { loadRuntimeConfig } from '@dailydose/config';
+import { Injectable, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import Redis from 'ioredis';
+
+@Injectable()
+class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
+  private readonly config = loadRuntimeConfig(process.env);
+  private readonly redis = new Redis(this.config.redisUrl);
+  private timer?: NodeJS.Timeout;
+
+  async onModuleInit(): Promise<void> {
+    await this.beat();
+    this.timer = setInterval(() => void this.beat(), this.config.workerHeartbeatIntervalMs);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.timer) clearInterval(this.timer);
+    await this.redis.quit();
+  }
+
+  private async beat(): Promise<void> {
+    await this.redis.set(
+      'dailydose:worker:heartbeat',
+      new Date().toISOString(),
+      'EX',
+      this.config.workerHeartbeatTtlSeconds,
+    );
+  }
+}
+
+@Module({ providers: [WorkerHeartbeat] })
+class WorkerModule {}
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.createApplicationContext(WorkerModule, {
+    logger: ['log', 'error', 'warn'],
+  });
+  app.enableShutdownHooks();
+}
+void bootstrap();

@@ -1,0 +1,377 @@
+# openapi.api.ClassesApi
+
+## Load the API package
+```dart
+import 'package:openapi/api.dart';
+```
+
+All URIs are relative to */api/v1*
+
+Method | HTTP request | Description
+------------- | ------------- | -------------
+[**assignClassSlotInstructor**](ClassesApi.md#assignclassslotinstructor) | **POST** /class-slots/{id}/assign-instructor | 
+[**cancelClassSlot**](ClassesApi.md#cancelclassslot) | **POST** /class-slots/{id}/cancel | 
+[**createAvailability**](ClassesApi.md#createavailability) | **POST** /instructor-availabilities | 
+[**createClassSlot**](ClassesApi.md#createclassslot) | **POST** /class-slots | 
+[**listAvailabilities**](ClassesApi.md#listavailabilities) | **GET** /instructor-availabilities | 
+[**listClassSlots**](ClassesApi.md#listclassslots) | **GET** /class-slots | 
+[**publishClassSlot**](ClassesApi.md#publishclassslot) | **POST** /class-slots/{id}/publish | 
+[**transitionClassSlot**](ClassesApi.md#transitionclassslot) | **POST** /class-slots/{id}/{action} | 
+
+
+# **assignClassSlotInstructor**
+> ClassSlot assignClassSlotInstructor(id, idempotencyKey, assignInstructorCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final AssignInstructorCommand assignInstructorCommand = ; // AssignInstructorCommand | 
+
+try {
+    final response = api.assignClassSlotInstructor(id, idempotencyKey, assignInstructorCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->assignClassSlotInstructor: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **assignInstructorCommand** | [**AssignInstructorCommand**](AssignInstructorCommand.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **cancelClassSlot**
+> ClassSlot cancelClassSlot(id, idempotencyKey, deactivateUserRequest)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+
+try {
+    final response = api.cancelClassSlot(id, idempotencyKey, deactivateUserRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->cancelClassSlot: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createAvailability**
+> Availability createAvailability(idempotencyKey, timeRangeCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
+final TimeRangeCommand timeRangeCommand = ; // TimeRangeCommand | 
+
+try {
+    final response = api.createAvailability(idempotencyKey, timeRangeCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->createAvailability: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
+ **timeRangeCommand** | [**TimeRangeCommand**](TimeRangeCommand.md)|  | 
+
+### Return type
+
+[**Availability**](Availability.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createClassSlot**
+> ClassSlot createClassSlot(idempotencyKey, classSlotCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ClassSlotCommand classSlotCommand = ; // ClassSlotCommand | 
+
+try {
+    final response = api.createClassSlot(idempotencyKey, classSlotCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->createClassSlot: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
+ **classSlotCommand** | [**ClassSlotCommand**](ClassSlotCommand.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listAvailabilities**
+> AvailabilityPage listAvailabilities(branchId, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listAvailabilities(branchId, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->listAvailabilities: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**AvailabilityPage**](AvailabilityPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listClassSlots**
+> ClassSlotPage listClassSlots(branchId, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listClassSlots(branchId, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->listClassSlots: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**ClassSlotPage**](ClassSlotPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **publishClassSlot**
+> ClassSlot publishClassSlot(id, idempotencyKey, deactivateUserRequest)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+
+try {
+    final response = api.publishClassSlot(id, idempotencyKey, deactivateUserRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->publishClassSlot: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **transitionClassSlot**
+> ClassSlot transitionClassSlot(id, action, idempotencyKey, actionCommand)
+
+
+
+Compatibility-only draft; use explicit assign-instructor, publish, cancel, or complete operations.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String action = action_example; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ActionCommand actionCommand = ; // ActionCommand | 
+
+try {
+    final response = api.transitionClassSlot(id, action, idempotencyKey, actionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->transitionClassSlot: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **action** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **actionCommand** | [**ActionCommand**](ActionCommand.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+

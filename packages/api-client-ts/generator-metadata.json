@@ -1,0 +1,9 @@
+{
+  "contractVersion": "0.4.0-draft",
+  "contractChecksum": "920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414",
+  "generator": "openapitools/openapi-generator-cli:v7.15.0",
+  "imageDigest": "sha256:509f01c3c7eee9d1ad286506a7b6aa4624a95b410be9a238a306d209e900621f",
+  "typescriptGenerator": "typescript-fetch",
+  "dartGenerator": "dart-dio",
+  "options": ["hideGenerationTimestamp=true"]
+}
