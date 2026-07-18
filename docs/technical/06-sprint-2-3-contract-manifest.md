@@ -2,7 +2,7 @@
 
 **Status:** PROPOSED / REVIEW REQUIRED  
 **OpenAPI version:** `0.4.0-draft`  
-**SHA-256:** `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`  
+**SHA-256:** `d7127a9f61dad718b147dfa6e1a846f0395817f6ae32e06788b0415acb20381b`  
 **Generated clients:** TypeScript Web and Dart Flutter — generation not yet executed  
 **Gate 4:** BLOCKED
 
@@ -38,7 +38,7 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 - Compatibility history: `0.3.0-draft` checksum `69b3495f37ff1ff482e803c87f18ab52e34cb084e7c979e26931a0c29fbe33c3` introduced CTG-013–019 before contract normalization.
 - CTG-019 MVP domains (availability, class, booking, reschedule, check-in, notification, finance, audit and operations) use explicit schemas/results/pages. Generic `Resource/Page` is retained only as a documented compatibility exception for pre-existing identity/master/package/ledger endpoints governed by CTG-001–012; new consumers must use their explicit contracts after reviewer disposition.
 - Generic class and migration action paths are deprecated compatibility drafts; explicit class assign/publish/cancel and migration validate/apply/reconcile/rollback operations are authoritative proposed surfaces.
-- Proposed account recovery/MFA operations are blocked and may change after DEC-012/014; no implementation/client generation for those operations is authorized before review.
+- Account recovery/MFA operations are authorized only for deterministic synthetic/test adapters under DEC-012/014 non-production approval; production activation remains blocked and may require contract review.
 - Kind-specific effective-setting paths supersede the generic `/master-settings/{kind}` for new Sprint 2–3 consumers. Generic path remains draft compatibility surface until TL chooses deprecation through ADR; clients must not use both.
 - Event payload changes are additive within `.v1`; semantic change requires a new version and consumer compatibility plan.
 

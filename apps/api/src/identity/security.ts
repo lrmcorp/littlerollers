@@ -32,3 +32,10 @@ export const positiveConfigSeconds = (key: string): number => {
   if (!Number.isInteger(value) || value < 1) configurationRequired();
   return value;
 };
+
+export const syntheticConfigSeconds = (key: string, fallback: number): number => {
+  if (process.env[key]?.trim()) return positiveConfigSeconds(key);
+  if (process.env.NODE_ENV !== 'production' && process.env.AUTH_SYNTHETIC_ENABLED === 'true')
+    return fallback;
+  return configurationRequired();
+};

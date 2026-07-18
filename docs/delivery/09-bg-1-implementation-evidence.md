@@ -13,7 +13,7 @@
 - PostgreSQL/Prisma foundation schema and baseline migration for identity, branch assignment, audit, idempotency, outbox, and effective configuration.
 - Redis, PostgreSQL, MinIO private-object-storage adapter target, and Mailpit local services through Docker Compose.
 - Provider/configuration boundaries with no production price, fee, quota, TTL, or provider default.
-- OpenAPI `0.4.0-draft` standard-generator compatibility and checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`.
+- BG-1 baseline OpenAPI `0.4.0-draft` checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`; superseded for BG-2 by `0.5.0-draft`.
 - Pinned OpenAPI Generator Docker image `openapitools/openapi-generator-cli:v7.15.0`; full TypeScript and Dart generation succeeds in `.generated`.
 - GitHub Actions definitions for TypeScript, Prisma, Flutter/Dart, OpenAPI, generated metadata drift, and gitleaks checks.
 

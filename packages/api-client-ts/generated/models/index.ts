@@ -20,6 +20,7 @@ export * from './BookingPage';
 export * from './BranchCommand';
 export * from './BranchPeriod';
 export * from './BranchPeriodPage';
+export * from './ChallengeAccepted';
 export * from './CheckInResult';
 export * from './CheckInToken';
 export * from './CheckInTokenStatus';

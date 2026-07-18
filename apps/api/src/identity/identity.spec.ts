@@ -1,8 +1,13 @@
 import { HttpStatus } from '@nestjs/common';
 import { PolicyService } from './policy.service';
-import { ConfigGatedGoogleProvider, ConfigGatedOtpProvider } from './provider-adapters';
+import {
+  ConfigGatedGoogleProvider,
+  ConfigGatedOtpProvider,
+  ConfigGatedProofProvider,
+} from './provider-adapters';
 import { ApiProblem, digest, safeEqual } from './security';
 import { IdentityService } from './identity.service';
+import { RateLimitService } from './rate-limit.service';
 
 describe('identity security foundation', () => {
   const original = process.env;
@@ -69,12 +74,17 @@ describe('identity security foundation', () => {
       NODE_ENV: 'test',
       AUTH_SYNTHETIC_ENABLED: 'true',
       AUTH_SYNTHETIC_OTP_CODE: '123456',
+      AUTH_SYNTHETIC_MFA_PROOF: 'mfa-proof',
+      AUTH_SYNTHETIC_RECOVERY_PROOF: 'recovery-proof',
     };
     await expect(
       new ConfigGatedGoogleProvider().verify('opaque-test-token', 'nonce'),
     ).resolves.toMatchObject({ provider: 'GOOGLE' });
     const otp = await new ConfigGatedOtpProvider().send('+628123456789');
     expect(otp.proofHash).toBe(digest(`${digest('+628123456789')}:123456`));
+    const proofs = new ConfigGatedProofProvider();
+    expect(proofs.verify('MFA', digest('user-1'), 'mfa-proof')).toBe(true);
+    expect(proofs.verify('RECOVERY', digest('user-1'), 'wrong')).toBe(false);
   });
 
   it('rotates refresh tokens within one family and revokes reused families', async () => {
@@ -111,6 +121,8 @@ describe('identity security foundation', () => {
       new PolicyService(),
       new ConfigGatedGoogleProvider(),
       new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
     );
     await service.refresh('refresh-token');
     expect(db.userSession.create).toHaveBeenCalledWith(
@@ -127,5 +139,41 @@ describe('identity security foundation', () => {
         data: expect.objectContaining({ revocationReason: 'REFRESH_REUSE_DETECTED' }),
       }),
     );
+  });
+
+  it('rejects arbitrary Google identity without an existing identity or invitation', async () => {
+    process.env = {
+      ...original,
+      NODE_ENV: 'test',
+      AUTH_SYNTHETIC_ENABLED: 'true',
+    };
+    const tx = {
+      identity: { findUnique: jest.fn().mockResolvedValue(null) },
+      userInvitation: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = new IdentityService(
+      { $transaction: (callback: (client: typeof tx) => unknown) => callback(tx) } as never,
+      new PolicyService(),
+      new ConfigGatedGoogleProvider(),
+      new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
+    );
+    await expect(
+      service.authenticateGoogle(
+        { idToken: 'not-invited@example.test', nonce: 'nonce', channel: 'MOBILE' },
+        'correlation',
+      ),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
+    expect(tx.userInvitation.findFirst).toHaveBeenCalled();
+  });
+
+  it('rate limits only on hashed subject counters', async () => {
+    const upsert = jest.fn().mockResolvedValue({ attempts: 6 });
+    const limiter = new RateLimitService({ rateLimitCounter: { upsert } } as never);
+    await expect(limiter.consume('OTP_REQUEST', digest('+62800000000'))).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+    });
+    expect(JSON.stringify(upsert.mock.calls)).not.toContain('+62800000000');
   });
 });

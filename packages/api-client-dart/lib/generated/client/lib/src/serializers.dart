@@ -34,6 +34,7 @@ import 'package:openapi/src/model/booking_page.dart';
 import 'package:openapi/src/model/branch_command.dart';
 import 'package:openapi/src/model/branch_period.dart';
 import 'package:openapi/src/model/branch_period_page.dart';
+import 'package:openapi/src/model/challenge_accepted.dart';
 import 'package:openapi/src/model/check_in_result.dart';
 import 'package:openapi/src/model/check_in_token.dart';
 import 'package:openapi/src/model/check_in_token_status.dart';
@@ -141,6 +142,7 @@ part 'serializers.g.dart';
   BranchCommand,
   BranchPeriod,
   BranchPeriodPage,
+  ChallengeAccepted,
   CheckInResult,
   CheckInToken,
   CheckInTokenStatus,

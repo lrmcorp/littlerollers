@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Daily Dose API
-  version: 0.4.0-draft
+  version: 0.5.0-draft
   description: Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
 servers:
   - url: /api/v1
@@ -39,7 +39,7 @@ paths:
       security: []
       operationId: requestOtp
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OtpRequest' } } } }
-      responses: { '202': { description: Request accepted regardless of account existence, headers: { X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' } } }, '429': { $ref: '#/components/responses/Error' } }
+      responses: { '202': { description: Request accepted regardless of account existence, headers: { X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/ChallengeAccepted' } } } }, '429': { $ref: '#/components/responses/RateLimited' }, '503': { $ref: '#/components/responses/Error' } }
   /auth/otp/verifications:
     post:
       tags: [Auth]
@@ -51,6 +51,7 @@ paths:
     post:
       tags: [Auth]
       operationId: refreshSession
+      description: Mobile sends the rotating refresh token as Bearer credential; web uses its secure HttpOnly session cookie.
       responses: { '200': { $ref: '#/components/responses/SessionResponse' }, '401': { $ref: '#/components/responses/Error' } }
   /auth/logout:
     post:
@@ -85,7 +86,7 @@ paths:
       operationId: requestAccountRecovery
       x-blocked-by: DEC-014
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryRequestCommand' } } } }
-      responses: { '202': { description: Generic acceptance without account enumeration, headers: { X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' } } }, '422': { $ref: '#/components/responses/ValidationError' }, '429': { $ref: '#/components/responses/RateLimited' } }
+      responses: { '202': { description: Generic acceptance without account enumeration, headers: { X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/ChallengeAccepted' } } } }, '422': { $ref: '#/components/responses/ValidationError' }, '429': { $ref: '#/components/responses/RateLimited' }, '503': { $ref: '#/components/responses/Error' } }
   /auth/recoveries/{id}/verify:
     post:
       tags: [Auth]
@@ -345,6 +346,7 @@ components:
     GoogleAuthRequest: { type: object, required: [idToken, nonce, channel], properties: { idToken: { type: string }, nonce: { type: string }, channel: { enum: [WEB, MOBILE] } } }
     OtpRequest: { type: object, required: [phoneE164], properties: { phoneE164: { type: string, pattern: '^\\+[1-9]\\d{7,14}$' } } }
     OtpVerifyRequest: { type: object, required: [requestId, code], properties: { requestId: { $ref: '#/components/schemas/Uuid' }, code: { type: string, minLength: 4, maxLength: 8 } } }
+    ChallengeAccepted: { type: object, required: [requestId, expiresAt], properties: { requestId: { $ref: '#/components/schemas/Uuid' }, expiresAt: { type: string, format: date-time } } }
     RevokeSessionsCommand: { type: object, required: [reason], properties: { exceptCurrent: { type: boolean, default: false }, reason: { type: string, minLength: 3, maxLength: 300 } } }
     MfaChallengeCommand: { type: object, required: [purpose], properties: { purpose: { enum: [SIGN_IN, STEP_UP, ENROLLMENT, RECOVERY] }, method: { type: string, description: DEC-012 provider/method discriminator } } }
     MfaChallenge: { type: object, required: [id, purpose, expiresAt], properties: { id: { $ref: '#/components/schemas/Uuid' }, purpose: { type: string }, methodHint: { type: string }, expiresAt: { type: string, format: date-time } } }

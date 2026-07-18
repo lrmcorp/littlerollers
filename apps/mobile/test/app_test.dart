@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('shows customer login and safe configuration state', (tester) async {
+  testWidgets('shows customer login and safe configuration state', (
+    tester,
+  ) async {
     await tester.pumpWidget(const DailyDoseApp());
     expect(find.text('Masuk untuk melanjutkan'), findsOneWidget);
     expect(find.text('Lanjutkan dengan Google'), findsOneWidget);
@@ -11,5 +13,9 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('phone-input')), findsOneWidget);
     expect(find.byKey(const Key('configuration-message')), findsOneWidget);
+    await tester.tap(find.text('Pulihkan akun'));
+    await tester.pump();
+    expect(find.byKey(const Key('recovery-identifier')), findsOneWidget);
+    expect(find.textContaining('belum diverifikasi'), findsOneWidget);
   });
 }

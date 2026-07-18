@@ -44,6 +44,7 @@ export 'package:openapi/src/model/booking_page.dart';
 export 'package:openapi/src/model/branch_command.dart';
 export 'package:openapi/src/model/branch_period.dart';
 export 'package:openapi/src/model/branch_period_page.dart';
+export 'package:openapi/src/model/challenge_accepted.dart';
 export 'package:openapi/src/model/check_in_result.dart';
 export 'package:openapi/src/model/check_in_token.dart';
 export 'package:openapi/src/model/check_in_token_status.dart';

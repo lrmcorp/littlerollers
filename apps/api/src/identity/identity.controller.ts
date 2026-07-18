@@ -7,9 +7,11 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import type { SessionChannel } from '@prisma/client';
+import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { IdentityService } from './identity.service';
 import { configurationRequired } from './security';
@@ -18,43 +20,97 @@ import { configurationRequired } from './security';
 export class IdentityController {
   constructor(private readonly identities: IdentityService) {}
 
+  private deliverSession(
+    response: Response,
+    session: Awaited<ReturnType<IdentityService['issueSession']>>,
+  ) {
+    if (session.webCookieToken)
+      response.cookie('dd_session', session.webCookieToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'lax',
+        path: '/',
+      });
+    const { webCookieToken: _private, ...body } = session;
+    return body;
+  }
+
   @Post('auth/google')
-  authenticateGoogle(@Body() body: { idToken: string; nonce: string; channel: SessionChannel }) {
-    return this.identities.authenticateGoogle(body);
+  async authenticateGoogle(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+    @Body() body: { idToken: string; nonce: string; channel: SessionChannel },
+  ) {
+    return this.deliverSession(
+      response,
+      await this.identities.authenticateGoogle(body, request.correlationId ?? 'unknown'),
+    );
   }
 
   @Post('auth/otp/requests')
   @HttpCode(202)
-  async requestOtp(@Body() body: { phoneE164: string }): Promise<void> {
-    await this.identities.requestOtp(body.phoneE164);
+  requestOtp(@Body() body: { phoneE164: string }) {
+    return this.identities.requestOtp(body.phoneE164);
   }
 
   @Post('auth/otp/verifications')
-  verifyOtp(@Body() body: { requestId: string; code: string }) {
-    return this.identities.verifyOtp(body.requestId, body.code);
+  async verifyOtp(
+    @Res({ passthrough: true }) response: Response,
+    @Body() body: { requestId: string; code: string },
+  ) {
+    return this.deliverSession(
+      response,
+      await this.identities.verifyOtp(body.requestId, body.code),
+    );
   }
 
   @Post('auth/refresh')
-  refresh(@Req() request: AuthenticatedRequest) {
+  async refresh(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const authorization = request.header('authorization') ?? '';
     const match = /^Bearer ([A-Za-z0-9_-]+)$/.exec(authorization);
     if (!match) return configurationRequired();
-    return this.identities.refresh(match[1]!);
+    return this.deliverSession(response, await this.identities.refresh(match[1]!));
   }
 
   @Post('auth/recovery-requests')
-  requestRecovery(): never {
-    return configurationRequired();
+  requestRecovery(
+    @Body()
+    body: {
+      identifier: string;
+      requestedChannel: 'WHATSAPP' | 'GOOGLE' | 'SUPPORT';
+    },
+  ) {
+    return this.identities.requestRecovery(body.identifier, body.requestedChannel);
   }
 
   @Post('auth/recoveries/:id/verify')
-  verifyRecovery(): never {
-    return configurationRequired();
+  async verifyRecovery(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+    @Body() body: { proof: string },
+  ) {
+    return this.deliverSession(response, await this.identities.verifyRecovery(id, body.proof));
   }
 
   @Post('auth/account-links')
-  linkIdentity(): never {
-    return configurationRequired();
+  @UseGuards(AuthGuard)
+  linkIdentity(
+    @Req() request: AuthenticatedRequest,
+    @Body()
+    body: {
+      provider: 'GOOGLE' | 'WHATSAPP_PHONE';
+      verifiedProviderToken: string;
+      expectedUserId?: string;
+    },
+  ) {
+    return this.identities.linkIdentity(
+      request.principal,
+      body,
+      request.correlationId ?? 'unknown',
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -66,8 +122,12 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Post('auth/logout')
   @HttpCode(204)
-  async logout(@Req() request: AuthenticatedRequest): Promise<void> {
+  async logout(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
     await this.identities.logout(request.principal.sessionId);
+    response.clearCookie('dd_session', { path: '/' });
   }
 
   @UseGuards(AuthGuard)
@@ -86,14 +146,21 @@ export class IdentityController {
 
   @UseGuards(AuthGuard)
   @Post('auth/mfa/challenges')
-  createMfa(): never {
-    return configurationRequired();
+  createMfa(@Req() request: AuthenticatedRequest, @Body() body: { purpose: string }) {
+    return this.identities.createMfa(request.principal, body.purpose);
   }
 
   @UseGuards(AuthGuard)
   @Post('auth/mfa/verifications')
-  verifyMfa(): never {
-    return configurationRequired();
+  async verifyMfa(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+    @Body() body: { challengeId: string; proof: string },
+  ) {
+    return this.deliverSession(
+      response,
+      await this.identities.verifyMfa(request.principal, body.challengeId, body.proof),
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -104,8 +171,16 @@ export class IdentityController {
 
   @UseGuards(AuthGuard)
   @Post('users')
-  inviteUser(): never {
-    return configurationRequired();
+  inviteUser(
+    @Req() request: AuthenticatedRequest,
+    @Body()
+    body: {
+      email: string;
+      roles: import('@prisma/client').ApplicationRole[];
+      branchIds?: string[];
+    },
+  ) {
+    return this.identities.inviteUser(request.principal, body, request.correlationId ?? 'unknown');
   }
 
   @UseGuards(AuthGuard)

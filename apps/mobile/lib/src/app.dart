@@ -31,25 +31,63 @@ class CustomerSignIn extends StatefulWidget {
 
 class _CustomerSignInState extends State<CustomerSignIn> {
   bool useOtp = false;
+  bool recovery = false;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Daily Dose')),
     body: ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text('Masuk untuk melanjutkan', style: Theme.of(context).textTheme.headlineMedium),
+        Text(
+          'Masuk untuk melanjutkan',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
         const SizedBox(height: 12),
         const Text('Gunakan identitas yang sudah terverifikasi.'),
         const SizedBox(height: 24),
-        FilledButton(onPressed: () {}, child: const Text('Lanjutkan dengan Google')),
+        FilledButton(
+          onPressed: () {},
+          child: const Text('Lanjutkan dengan Google'),
+        ),
         const SizedBox(height: 12),
-        OutlinedButton(onPressed: () => setState(() => useOtp = true), child: const Text('Gunakan OTP WhatsApp')),
+        OutlinedButton(
+          onPressed: () => setState(() => useOtp = true),
+          child: const Text('Gunakan OTP WhatsApp'),
+        ),
         if (useOtp) ...[
           const SizedBox(height: 20),
-          const TextField(key: Key('phone-input'), keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Nomor WhatsApp')),
+          const TextField(
+            key: Key('phone-input'),
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(labelText: 'Nomor WhatsApp'),
+          ),
           const SizedBox(height: 12),
           FilledButton(onPressed: null, child: const Text('Kirim kode')),
-          const Text('Provider OTP belum dikonfigurasi.', key: Key('configuration-message')),
+          const Text(
+            'Provider OTP belum dikonfigurasi.',
+            key: Key('configuration-message'),
+          ),
+        ],
+        TextButton(
+          onPressed: () => setState(() => recovery = true),
+          child: const Text('Pulihkan akun'),
+        ),
+        if (recovery) ...[
+          const SizedBox(height: 20),
+          const Text(
+            'Pemulihan tidak pernah menautkan identitas yang belum diverifikasi.',
+          ),
+          const TextField(
+            key: Key('recovery-identifier'),
+            decoration: InputDecoration(
+              labelText: 'Email atau nomor terverifikasi',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: null,
+            child: const Text('Minta verifikasi synthetic'),
+          ),
         ],
       ],
     ),

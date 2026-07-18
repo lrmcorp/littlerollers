@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/AttendanceApi.ts
 apis/AuditApi.ts
 apis/AuthApi.ts
@@ -34,6 +33,7 @@ models/BookingPage.ts
 models/BranchCommand.ts
 models/BranchPeriod.ts
 models/BranchPeriodPage.ts
+models/ChallengeAccepted.ts
 models/CheckInResult.ts
 models/CheckInToken.ts
 models/CheckInTokenStatus.ts

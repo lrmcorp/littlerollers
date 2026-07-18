@@ -38,6 +38,7 @@ Serializers _$serializers =
           ..add(BranchPeriod.serializer)
           ..add(BranchPeriodPage.serializer)
           ..add(BranchPeriodStatusEnum.serializer)
+          ..add(ChallengeAccepted.serializer)
           ..add(CheckInResult.serializer)
           ..add(CheckInResultPurposeEnum.serializer)
           ..add(CheckInToken.serializer)

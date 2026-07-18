@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/account_link_command.dart';
+import 'package:openapi/src/model/challenge_accepted.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/google_auth_request.dart';
 import 'package:openapi/src/model/mfa_challenge.dart';
@@ -383,7 +384,7 @@ class AuthApi {
   }
 
   /// refreshSession
-  /// 
+  /// Mobile sends the rotating refresh token as Bearer credential; web uses its secure HttpOnly session cookie.
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -473,9 +474,9 @@ class AuthApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future]
+  /// Returns a [Future] containing a [Response] with a [ChallengeAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> requestAccountRecovery({ 
+  Future<Response<ChallengeAccepted>> requestAccountRecovery({ 
     required RecoveryRequestCommand recoveryRequestCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -525,7 +526,35 @@ class AuthApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    return _response;
+    ChallengeAccepted? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(ChallengeAccepted),
+      ) as ChallengeAccepted;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ChallengeAccepted>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
   }
 
   /// requestOtp
@@ -540,9 +569,9 @@ class AuthApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future]
+  /// Returns a [Future] containing a [Response] with a [ChallengeAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> requestOtp({ 
+  Future<Response<ChallengeAccepted>> requestOtp({ 
     required OtpRequest otpRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -592,7 +621,35 @@ class AuthApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    return _response;
+    ChallengeAccepted? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(ChallengeAccepted),
+      ) as ChallengeAccepted;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ChallengeAccepted>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
   }
 
   /// revokeAllSessions

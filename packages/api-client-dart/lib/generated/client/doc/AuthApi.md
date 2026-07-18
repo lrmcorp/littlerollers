@@ -188,6 +188,8 @@ void (empty response body)
 
 
 
+Mobile sends the rotating refresh token as Bearer credential; web uses its secure HttpOnly session cookie.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -221,7 +223,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **requestAccountRecovery**
-> requestAccountRecovery(recoveryRequestCommand)
+> ChallengeAccepted requestAccountRecovery(recoveryRequestCommand)
 
 
 
@@ -233,7 +235,8 @@ final api = Openapi().getAuthApi();
 final RecoveryRequestCommand recoveryRequestCommand = ; // RecoveryRequestCommand | 
 
 try {
-    api.requestAccountRecovery(recoveryRequestCommand);
+    final response = api.requestAccountRecovery(recoveryRequestCommand);
+    print(response);
 } catch on DioException (e) {
     print('Exception when calling AuthApi->requestAccountRecovery: $e\n');
 }
@@ -247,7 +250,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+[**ChallengeAccepted**](ChallengeAccepted.md)
 
 ### Authorization
 
@@ -256,12 +259,12 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/problem+json, application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **requestOtp**
-> requestOtp(otpRequest)
+> ChallengeAccepted requestOtp(otpRequest)
 
 
 
@@ -273,7 +276,8 @@ final api = Openapi().getAuthApi();
 final OtpRequest otpRequest = ; // OtpRequest | 
 
 try {
-    api.requestOtp(otpRequest);
+    final response = api.requestOtp(otpRequest);
+    print(response);
 } catch on DioException (e) {
     print('Exception when calling AuthApi->requestOtp: $e\n');
 }
@@ -287,7 +291,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+[**ChallengeAccepted**](ChallengeAccepted.md)
 
 ### Authorization
 
@@ -296,7 +300,7 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/problem+json, application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

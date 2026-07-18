@@ -27,8 +27,8 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG1-007 | role/document reconciliation | AI Product/BA | AI TL/Peer Reviewer | Product Owner for business acceptance | PASS | eight application roles separated from delivery/approval roles | `8cd2ce3` | production acceptance remains PG-1 evidence |
 | WRK-BG1-008 | hosted CI and secret scan | AI Operations | AI QA/Peer Reviewer | AI TL | PASS | private hosted `typescript`, `flutter`, `secrets`; full-history Gitleaks PASS | `8cd2ce3` | closed |
 | WRK-BG2-FND-001 | identity persistence, role/capability policy, session/challenge foundation | AI Backend/TL | AI QA/Security | AI TL | PASS | `pnpm check`; API 18 tests; drift; migration/double seed; Flutter/Dart dan hosted jobs PASS | `6c1218d` | closed; continue ID-01/02 |
-| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | IN_PROGRESS | fail-closed adapters, OTP state, refresh reuse tests dan mobile states implemented | `8024521` | real provider/DEC-012/014 blocked; executable integration incomplete |
-| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | IN_PROGRESS | eight-role policy, branch filtering, revoke/deactivate audit dan web states implemented | `8024521` | invite/MFA remain configuration-required; integration/Figma pending |
+| WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 20 API tests; OTP/recovery synthetic; web cookie/mobile rotation; Flutter/Dart; migration/double seed PASS | `working tree` | hosted increment pending; production provider/DEC/Figma/UAT blocked |
+| WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | scoped idempotent invite, single-use MFA/linking, deactivate/revoke, Web build dan local pipeline PASS | `working tree` | hosted increment pending; production provider/DEC/Figma/UAT blocked |
 
 ## Independent Review Record
 
@@ -39,10 +39,14 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-QA-001 | AI QA | compilation, policy mapping, fail-closed providers, refresh rotation | PASS | 18 API tests, monorepo, database, drift, Flutter/Dart dan hosted checks PASS |
 | REV-BG2-SEC-001 | AI Security | branch leakage, token/OTP handling, audit correlation, production defaults | PASS WITH ACTION | branch-filter leak corrected; token/proof stored hashed; synthetic provider rejected in production; full integration security suite remains open |
 | REV-BG2-PEER-001 | AI Peer Reviewer | story evidence honesty and unresolved decision boundary | PASS WITH ACTION | foundation implemented without production values; ID-01/02 are not promoted while config-gated operations and external evidence remain open |
+| REV-BG2-ID-QA-002 | AI QA | synthetic invitation/MFA/recovery/session consumers dan migrations | LOCAL PASS | pipeline, 20 API tests, Flutter/Dart, four migrations dan double seed hijau; hosted pending |
+| REV-BG2-ID-SEC-002 | AI Security | invitation concurrency, challenge replay, hashed counters, cookie/token leakage | PASS WITH ACTION | atomic challenge claim dan partial invitation uniqueness diterapkan; production configuration tetap fail-closed |
+| REV-BG2-ID-PEER-002 | AI Peer Reviewer | synthetic-only decision boundary dan evidence honesty | LOCAL PASS | story hanya LOCAL_PASS sampai hosted jobs hijau; production tetap blocked |
 
 ## Gate Disposition
 
 `BG-1 = PASS`. `BG2-FOUNDATION = PASS` pada commit `6c1218d` dengan private hosted jobs
-`typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = IN_PROGRESS`; `US-MST-02 = NEXT`;
+`typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
+NON-PRODUCTION` pada working tree; `US-MST-02 = NEXT`;
 `BG-3 = PENDING` dan `PG-1 = BLOCKED`. DEC/CFG, Figma, provider/account, migration/UAT dan
 production approvals tetap.

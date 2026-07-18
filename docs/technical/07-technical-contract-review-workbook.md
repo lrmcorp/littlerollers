@@ -2,7 +2,7 @@
 
 **Status:** DRAFT / REVIEW NOT STARTED  
 **OpenAPI baseline:** `0.4.0-draft`  
-**SHA-256:** `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`
+**SHA-256:** `d7127a9f61dad718b147dfa6e1a846f0395817f6ae32e06788b0415acb20381b`
 
 ## 1. CTG Review Register
 

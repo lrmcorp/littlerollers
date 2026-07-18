@@ -130,12 +130,12 @@ Decision records selected services, region, networking, backup, object lifecycle
 |---|---|---|
 | Web session | Secure HttpOnly cookie session; CSRF/SameSite policy explicit | TBD-BLOCKING |
 | Mobile session | Rotating refresh-token family; access token in secure storage | TBD-BLOCKING |
-| Access/session/refresh TTL | TBD-BLOCKING | No implementation default |
+| Access/session/refresh TTL | Synthetic/test only: 15m access/web session, 30d mobile refresh; production TBD-BLOCKING | No production default |
 | Refresh reuse | Revoke token family and alert/security audit | TL approval required |
 | MFA-required roles | Manager, Owner, Super Owner, Finance; Admin policy explicit | Business baseline; implementation/provider TBD |
 | Step-up actions | Master/assignment, approval, close/correction, sensitive export/admin | TBD-BLOCKING exact list |
 | Session revocation | Inactive/deactivated/compromise/password or identity recovery events | Required; timing TBD |
-| MFA provider/method and recovery | TBD-BLOCKING | Threat/support review required |
+| MFA provider/method and recovery | Synthetic proof adapter, 5m challenge, 5 attempts; production provider/method TBD-BLOCKING | Non-production approval only |
 | Owner/approval/evidence | TL / TBD-BLOCKING | ADR/OpenAPI/test references |
 
 ## 9. DEC-013 — Notification Fallback Policy
@@ -161,7 +161,7 @@ Decision records selected services, region, networking, backup, object lifecycle
 | Phone change | Re-authentication; notify old verified channel when available |
 | Lost Google/phone access | Support escalation with approved identity evidence; exact proof TBD-BLOCKING |
 | Conflicting identities | Freeze automatic link; authorized support review and audit |
-| Recovery SLA/roles | TBD-BLOCKING |
+| Recovery SLA/roles | Synthetic challenge 15m/5 attempts; production support role/SLA TBD-BLOCKING |
 | Session action after recovery | Revoke relevant sessions/token family; notify user |
 | PII handling/retention | Minimal evidence; DEC-009 linkage required before production |
 | Approval/evidence | PO+TL / TBD-BLOCKING; TC-AUTH references |
@@ -171,6 +171,6 @@ Decision records selected services, region, networking, backup, object lifecycle
 | Config/policy ID | Approved version/date | Environment | Applied by/build/time | Verification | Rollback/replacement | Status |
 |---|---|---|---|---|---|---|
 | CFG/POL/ADR-* | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | NOT APPROVED |
+| ADR-AUTH-SYN-001 / POL-RECOVERY-SYN-001 | 2026-07-19 | synthetic/test only | BG-2 build | automated auth/security evidence | replace with approved production DEC | APPROVED NON-PRODUCTION |
 
 Approval of a form does not prove it was applied. Application and verification evidence are separate and required before environment/release readiness.
-

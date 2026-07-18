@@ -41,9 +41,9 @@ Input, validation, approval, application dan verification fields untuk DEC-004..
 | DEC-009 | Data retention schedule | PO + Legal/Privacy | Sebelum production | Klasifikasi per data type; legal review | Audit/finance minimum sesuai kewajiban | Storage/privacy | G5/G6 | TBD-BLOCKING |
 | DEC-010 | Pilot branch | PO | Sebelum migration rehearsal | Pilih skor tertinggi ≥75 tanpa blocker | Assessment seluruh kandidat | Migration/UAT | G5/G6 | TBD-BLOCKING |
 | DEC-011 | Cloud/region/managed services | TL + PO | Sebelum environment build | Region dekat Indonesia, managed DB/cache/storage, IaC | Provider evaluation | ADR/deployment/RPO | G4/G5 | TBD-BLOCKING |
-| DEC-012 | Session/token model dan MFA provider | TL | Sebelum auth build | Web HttpOnly session; mobile rotating token; step-up MFA sensitive action | Detail melalui ADR-005 | Clients/security | G4 | TBD-BLOCKING |
+| DEC-012 | Session/token model dan MFA provider | TL | Sebelum auth build | APPROVED FOR SYNTHETIC NON-PRODUCTION — web HttpOnly session; mobile rotating family; 15m access, 30d refresh, 5m/5-attempt MFA; production values/provider TBD-BLOCKING | Detail melalui ADR-005 | Clients/security | G4 | SYNTHETIC APPROVED / PROD BLOCKED |
 | DEC-013 | Notification fallback | PO + TL | Sebelum notification build | In-app persisted fallback; no silent success | Push/email optional post-pilot | UX/support | G2/G4 | TBD-BLOCKING |
-| DEC-014 | Recovery/account-linking policy | PO + TL | Sebelum US-001 READY | Verified identity + support escalation; never auto-link unverified phone/email | Manual recovery SLA final | Account takeover risk | G2/G4 | TBD-BLOCKING |
+| DEC-014 | Recovery/account-linking policy | PO + TL | Sebelum US-001 READY | APPROVED FOR SYNTHETIC NON-PRODUCTION — verified proof, 15m/5-attempt challenge, revoke sessions, never auto-link unverified identity; production proof/SLA TBD-BLOCKING | Manual recovery SLA final | Account takeover risk | G2/G4 | SYNTHETIC APPROVED / PROD BLOCKED |
 
 ## 3. Minimum Policies Pending Approval
 

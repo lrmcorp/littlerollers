@@ -56,6 +56,13 @@ enum ChallengeStatus {
   LOCKED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum OutboxStatus {
   PENDING
   PUBLISHED
@@ -79,6 +86,7 @@ model User {
   roles UserRole[]
   sessions UserSession[]
   challenges AuthChallenge[]
+  createdInvitations UserInvitation[]
 }
 model Identity {
   id String @id @db.Uuid
@@ -165,6 +173,33 @@ model AuthChallenge {
   user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
   @@index([kind, subjectHash, createdAt])
   @@index([status, expiresAt])
+}
+
+model UserInvitation {
+  id String @id @default(uuid()) @db.Uuid
+  invitedById String @db.Uuid
+  identityProvider IdentityProvider @default(GOOGLE)
+  subjectHash String
+  roles Json
+  branchIds Json
+  status InvitationStatus @default(PENDING)
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime @default(now())
+  invitedBy User @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  @@index([identityProvider, subjectHash, status, expiresAt])
+  @@index([invitedById, createdAt])
+}
+
+model RateLimitCounter {
+  id String @id @default(uuid()) @db.Uuid
+  scope String
+  subjectHash String
+  windowStart DateTime
+  attempts Int @default(1)
+  expiresAt DateTime
+  @@unique([scope, subjectHash, windowStart])
+  @@index([expiresAt])
 }
 model AuditLog {
   id String @id @db.Uuid
