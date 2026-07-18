@@ -95,10 +95,10 @@ Gate hanya berubah menjadi `PASS` setelah seluruh evidence tertaut. `CONDITIONAL
 
 | Evidence ID | Artefak/gate | Version/commit | Reviewer result | Approver/date | Link | Status |
 |---|---|---|---|---|---|---|
-| APR-001 | Gate 1 baseline | Draft decision record 2026-07-18; DEC-001–003 approved; AI operating model active | AI review pass pending exact commit evidence | Reyner / 2026-07-18; production-baseline sign-off pending | [Gate 1 Signed Review Record](../templates/gate-1-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
-| APR-002 | Gate 2 requirements | Exact repository version TBD-BLOCKING | AI Product/TL/QA review evidence pending | Reyner / final business evidence TBD-BLOCKING | [G2-REV-001](../templates/gate-2-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
+| APR-001 | Gate 1 baseline | Baseline commit `6aa4646`; DEC-001–003 approved; AI operating model active | Local AI QA/peer review recorded; production baseline review remains open | Reyner / 2026-07-18; production-baseline sign-off pending | [Gate 1 Signed Review Record](../templates/gate-1-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
+| APR-002 | Gate 2 requirements | Baseline commit `6aa4646` | AI Product/TL/QA production review evidence pending | Reyner / final business evidence TBD-BLOCKING | [G2-REV-001](../templates/gate-2-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
 | APR-003 | Gate 3 design | Repository UI evidence/Figma version TBD-BLOCKING | AI Designer/Web/Flutter/QA review evidence pending | Reyner visual acceptance TBD-BLOCKING | [G3-REV-001](../templates/gate-3-signed-review-record.md) — DRAFT | OPEN — production visual acceptance; not BG-1 blocker |
-| APR-004 | Gate 4 technical | OpenAPI `0.4.0-draft` checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`; exact repository version TBD-BLOCKING | AI TL/client/QA/Finance/Ops/Data/peer review evidence pending | AI TL disposition pending implementation evidence | [G4-REV-001](../templates/gate-4-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
+| APR-004 | Gate 4 technical | OpenAPI `0.4.0-draft` checksum `920ad746d2b3acbd45540dae61193a853833b3749f21c466fa02ce7e232e6414`; baseline commit `6aa4646` | Local client/QA/peer review recorded; production technical review remains pending | AI TL disposition pending hosted evidence | [G4-REV-001](../templates/gate-4-signed-review-record.md) — DRAFT | OPEN — does not block BG-1 |
 | APR-005 | Gate 5 readiness | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | TBD-BLOCKING | OPEN |
 
 ## 5. Readiness Rules

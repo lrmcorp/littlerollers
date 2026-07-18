@@ -2,6 +2,7 @@
 
 **Date:** 2026-07-18  
 **Status:** `IN PROGRESS` — seluruh evidence lokal PASS; hosted GitHub Actions execution evidence masih terbuka. Status ini bukan production authorization.
+**Baseline commit:** `6aa4646`
 
 ## Implemented
 
