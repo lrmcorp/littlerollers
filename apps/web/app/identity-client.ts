@@ -21,15 +21,25 @@ const identity = new IdentityApi(configuration);
 
 export const browserIdentityClient: IdentityClient = {
   async signIn() {
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED !== 'true'
+    )
+      throw { response: { status: 503 } };
     await auth.authenticateGoogle({
       googleAuthRequest: {
-        idToken: 'browser-provider-token',
+        idToken: 'synthetic-e2e-provider',
         nonce: crypto.randomUUID(),
         channel: 'WEB',
       },
     });
   },
   async stepUp() {
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED !== 'true'
+    )
+      throw { response: { status: 503 } };
     const challenge = await auth.createMfaChallenge({
       mfaChallengeCommand: { purpose: 'STEP_UP', method: 'configured-provider' },
     });

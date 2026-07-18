@@ -27,19 +27,27 @@ abstract interface class AuthRepository {
 }
 
 class GeneratedAuthRepository implements AuthRepository {
-  GeneratedAuthRepository({required String baseUrl, required this.storage})
-    : _api = Openapi(basePathOverride: '$baseUrl/api/v1').getAuthApi();
+  GeneratedAuthRepository({
+    required String baseUrl,
+    required this.storage,
+    required this.googleCredential,
+  }) : _api = Openapi(basePathOverride: '$baseUrl/api/v1').getAuthApi();
 
   final AuthApi _api;
   final TokenStorage storage;
+  final Future<({String idToken, String nonce})> Function()? googleCredential;
 
   @override
   Future<void> signInGoogle() async {
+    if (googleCredential == null) {
+      throw const AuthException(AuthFailure.configuration);
+    }
+    final credential = await googleCredential!();
     await _api.authenticateGoogle(
       googleAuthRequest: GoogleAuthRequest(
         (b) => b
-          ..idToken = 'configured-provider-token'
-          ..nonce = DateTime.now().microsecondsSinceEpoch.toString()
+          ..idToken = credential.idToken
+          ..nonce = credential.nonce
           ..channel = GoogleAuthRequestChannelEnum.MOBILE,
       ),
     );
