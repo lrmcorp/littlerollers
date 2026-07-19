@@ -30,7 +30,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-ID01-001 | Google/OTP/session/recovery customer identity slice | AI Backend/Flutter | AI QA/Security | AI TL | LOCAL_PASS | 25 API tests termasuk PostgreSQL integration; Flutter 3 scenarios; Dart, drift dan pipeline PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | `4edacf4` | hosted evidence untuk source/evidence commit belum dicatat |
-| WRK-BG2-MST01-001 | Branch, Class Type, effective fee/rate/quota-capacity synthetic | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | LOCAL_PASS | `pnpm check`; empty DB 6 migrations; double seed; 38 PostgreSQL API tests; Web 11 component/a11y + 8 E2E; drift 131 TS/138 Dart; Flutter/Dart PASS | `e78c879` | private source push selesai; hosted evidence pending |
+| WRK-BG2-MST01-001 | Branch, Class Type, effective fee/rate/quota-capacity synthetic | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; empty DB 6 migrations; double seed; 38 PostgreSQL API tests; Web 11 component/a11y + 8 E2E; drift 131 TS/138 Dart; Flutter/Dart PASS; hosted `typescript`, `flutter`, `secrets` hijau (user-confirmed) | `cb3d15f` | run ID/URL tidak tersedia di workspace; production remains blocked |
 
 ## Independent Review Record
 
@@ -47,9 +47,9 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-MST02-QA-001 | AI QA | interval boundary, optimistic conflict, API/Web executable evidence | LOCAL PASS | PostgreSQL concurrency, drift, Web E2E, Flutter/Dart dan pipeline hijau; hosted pending |
 | REV-BG2-MST02-SEC-001 | AI Security | branch hiding, MFA, self-escalation, bootstrap dan audit masking | LOCAL PASS | real constraint/concurrency dan fail-closed bootstrap hijau; hosted Gitleaks pending |
 | REV-BG2-MST02-PEER-001 | AI Peer Reviewer | projection consistency dan evidence honesty | LOCAL PASS | assignment/UserRole satu transaksi; story belum dipromosikan sebelum hosted evidence |
-| REV-BG2-MST01-QA-001 | AI QA | value validation, half-open period, DB concurrency, API/Web contract | LOCAL PASS | pipeline, empty migration/double seed, 38 API, 11 Web component, 8 E2E, Flutter/Dart dan drift hijau |
-| REV-BG2-MST01-SEC-001 | AI Security | MFA, Finance capability, hidden scope, audit masking, production defaults | LOCAL PASS WITH ACTION | no runtime numeric default; raw reason masked; production DEC-005/006 tetap blocked; hosted Gitleaks pending |
-| REV-BG2-MST01-PEER-001 | AI Peer Reviewer | typed contract, lifecycle dependency dan evidence honesty | LOCAL PASS WITH ACTION | executable local evidence lengkap; source/hosted evidence tetap diperlukan sebelum promotion |
+| REV-BG2-MST01-QA-001 | AI QA | value validation, half-open period, DB concurrency, API/Web contract | PASS | local pipeline, migration/double seed, 38 API, 11 Web component, 8 E2E, Flutter/Dart, drift dan hosted jobs hijau |
+| REV-BG2-MST01-SEC-001 | AI Security | MFA, Finance capability, hidden scope, audit masking, production defaults | PASS FOR SYNTHETIC NON-PRODUCTION | no runtime numeric default; raw reason masked; hosted Gitleaks hijau; production DEC-005/006 tetap blocked |
+| REV-BG2-MST01-PEER-001 | AI Peer Reviewer | typed contract, lifecycle dependency dan evidence honesty | PASS FOR SYNTHETIC NON-PRODUCTION | executable local + hosted evidence tersedia; run ID/URL perlu dilengkapi dari GitHub bila diperlukan |
 
 ## Gate Disposition
 

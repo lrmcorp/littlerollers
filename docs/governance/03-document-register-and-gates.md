@@ -85,7 +85,7 @@ Gate `G1–G5` below are retained as formal completeness/production-readiness ch
 |---|---|---|---|
 | BG-0 Documentation | Requirement, UX text, API/schema, tests and delivery plan sufficiently detailed for safe scaffold | 24 stories, 96 AC, OpenAPI 0.4 validation, 52 screen handoffs, QA/migration/release documents | PASS — coding authorized |
 | BG-1 Scaffold | Monorepo/local dependencies/generated clients/CI build successfully | [BG-1 implementation evidence](../delivery/09-bg-1-implementation-evidence.md) dan [Current Work Register](../delivery/10-current-work-register.md) | PASS — local evidence dan hosted GitHub Actions pada commit `8cd2ce3` hijau |
-| BG-2 Story implementation | Applicable AC and automated tests pass; unresolved production input remains config-blocked | foundation PASS; ID-01/02 dan MST-02 LOCAL_PASS; MST-01 IN_PROGRESS | IN_PROGRESS |
+| BG-2 Story implementation | Applicable AC and automated tests pass; unresolved production input remains config-blocked | foundation PASS; ID-01/02 dan MST-02 LOCAL_PASS; MST-01 PASS synthetic non-production | IN_PROGRESS |
 | BG-3 Integrated demo | Synthetic E2E and non-functional evidence pass | demo, E2E, accessibility/security/finance checks | PENDING |
 | PG-1 Production | Real DEC/CFG/provider/account/migration/UAT/release evidence complete | G1–G5/G6 applicable sign-offs | BLOCKED |
 

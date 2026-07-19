@@ -1,8 +1,10 @@
 # BG-2 `US-MST-01` Synthetic Effective Master Evidence
 
 **Date:** 2026-07-19  
-**Status:** `LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — hosted evidence pending  
-**Source commit:** `e78c8790b28eef30c4d6ab72606e09569b6d2e40`; hosted run belum tersedia
+**Status:** `PASS FOR SYNTHETIC NON-PRODUCTION`  
+**Source/evidence commit:** `cb3d15f64f43b42ffefb4e81a36370a602fc5dbc`  
+**Hosted result:** `typescript`, `flutter`, `secrets` hijau — dikonfirmasi pengguna; run ID/URL belum
+tersedia di workspace ini
 
 ## Implemented
 
@@ -30,7 +32,7 @@
 | Generated clients | PASS — 131 TypeScript dan 138 Dart generated source cocok byte-for-byte |
 | Web Playwright | PASS — 8 Chromium scenarios, termasuk create quota dan overlap-safe state |
 | Flutter/Dart consumers | PASS — Flutter analyze + 3 widget tests; Dart representative consumer test |
-| Hosted `typescript`, `flutter`, `secrets` | PENDING source/evidence commit |
+| Hosted `typescript`, `flutter`, `secrets` | PASS — dikonfirmasi pengguna untuk commit `cb3d15f`; run ID/URL belum tersedia |
 
 Hosted run untuk evidence commit `c7294f7` menemukan clean-runner ordering failure sebelum
 `health.spec.ts`: deklarasi workspace `@dailydose/config` belum dibangun saat API Jest dijalankan
@@ -46,6 +48,7 @@ tidak ada assertion atau diagnostics yang dinonaktifkan.
 - **AI Peer Reviewer:** `LOCAL PASS WITH ACTION`; typed contract dan DB constraint sesuai story, tetapi passing
   local tests bukan hosted self-approval.
 
-`DEC-005/006 = APPROVED FOR SYNTHETIC MECHANISM ONLY`; actual production values, source mapping,
+`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`. `DEC-005/006 = APPROVED FOR SYNTHETIC MECHANISM ONLY`;
+actual production values, source mapping,
 Figma acceptance, UAT dan PO/Finance approval tetap `TBD-BLOCKING`. Story hanya dapat dipromosikan
 setelah full local pipeline, hosted jobs, evidence commit dan clean working tree terbukti.
