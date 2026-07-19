@@ -32,6 +32,11 @@
 | Flutter/Dart consumers | PASS — Flutter analyze + 3 widget tests; Dart representative consumer test |
 | Hosted `typescript`, `flutter`, `secrets` | PENDING source/evidence commit |
 
+Hosted run untuk evidence commit `c7294f7` menemukan clean-runner ordering failure sebelum
+`health.spec.ts`: deklarasi workspace `@dailydose/config` belum dibangun saat API Jest dijalankan
+langsung. Disposition: build config ditambahkan sebagai API `pretest` dan langkah eksplisit CI;
+tidak ada assertion atau diagnostics yang dinonaktifkan.
+
 ## Review Disposition
 
 - **AI QA:** `LOCAL PASS`; pipeline, migration, database concurrency, validation, Web E2E,

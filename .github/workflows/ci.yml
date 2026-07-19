@@ -37,6 +37,9 @@ jobs:
       - run: pnpm db:migrate
       - run: pnpm db:seed
       - run: pnpm db:seed
+      # API Jest imports the workspace config package directly. Build its ESM
+      # declarations first so a clean runner does not depend on stale artifacts.
+      - run: pnpm --filter @dailydose/config build
       - run: pnpm --filter @dailydose/api test
       - run: pnpm check
       - run: pnpm --filter @dailydose/web exec playwright install --with-deps chromium
