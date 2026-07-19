@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-19  
 **Status:** `LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION` — hosted evidence pending  
-**Source commit:** working tree; hosted run belum tersedia
+**Source commit:** `e78c8790b28eef30c4d6ab72606e09569b6d2e40`; hosted run belum tersedia
 
 ## Implemented
 
