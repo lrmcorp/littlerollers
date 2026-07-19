@@ -1,8 +1,8 @@
 # Technical Contract Review Workbook — MVP
 
 **Status:** DRAFT / REVIEW NOT STARTED  
-**OpenAPI baseline:** `0.6.0-draft`
-**SHA-256:** `f9d5d0d1c78cc9acaeb4904be163ac5b1eef3f7d5e613a4ce0deb17190751796`
+**OpenAPI baseline:** `0.7.0-draft`
+**SHA-256:** `9fc4e444120499589918244d6522a3f9f3853418df21291e4b38db8735c238f2`
 
 ## 1. CTG Review Register
 
@@ -12,7 +12,7 @@
 | CTG-002 | TL, PM/BA, QA/security, peer | Is recovery enumeration-safe and linking limited to verified identity? | DEC-014, threat/UX/API/test mapping | Signed DEC-014 and support/security review | REMEDIATION DRAFTED — BLOCKED |
 | CTG-003 | TL, Web, Flutter, QA | Are MFA challenge lifecycle, enrollment and step-up actions complete? | Provider/method decision and contract tests | DEC-012 plus client/QA acceptance | REMEDIATION DRAFTED — BLOCKED |
 | CTG-004 | TL, Web, QA | Does assignment end apply exact effective boundary and scope refresh? | API/data constraint/UX/TC-MST evidence | Boundary and compatibility comments closed | REMEDIATION DRAFTED — PARTIAL |
-| CTG-005 | TL, Web, QA, Finance | Are discriminators, keys, units, effective periods and overlaps exact? | DEC-005/006, generated TS shape, boundary tests | Approved config decisions and review | REMEDIATION DRAFTED — BLOCKED |
+| CTG-005 | TL, Web, QA, Finance | Are discriminators, keys, units, effective periods and overlaps exact? | `0.7.0-draft`, PostgreSQL constraint/concurrency, typed clients and boundary tests | Synthetic executable evidence plus production DEC-005/006 approval | SYNTHETIC IMPLEMENTED — PRODUCTION BLOCKED |
 | CTG-006 | TL, Web, Flutter, QA, peer | Is proof lifecycle private, scan-gated, replaceable and provider-agnostic? | Upload threat model, provider limits/callback, UX/tests | Provider/security/client review closed | REMEDIATION DRAFTED — BLOCKED |
 | CTG-007 | TL, Web, Flutter, QA, Finance | Are package/purchase/approval snapshots and money semantics explicit? | Schema/client/transaction/test evidence | Finance/TL/client/QA acceptance | REMEDIATION DRAFTED — PARTIAL |
 | CTG-008 | TL, QA, consumers, peer | Are event v1 payloads sufficient, immutable and idempotent? | Producer/consumer/outbox/audit compatibility review | Consumer ownership and comments closed | REMEDIATION DRAFTED — PARTIAL |

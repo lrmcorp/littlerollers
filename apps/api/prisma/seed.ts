@@ -8,6 +8,8 @@ async function main() {
   const userId = '00000000-0000-4000-8000-000000000002';
   const assignmentId = '00000000-0000-4000-8000-000000000003';
   const superOwnerRoleId = '00000000-0000-4000-8000-000000000004';
+  const financeRoleId = '00000000-0000-4000-8000-000000000005';
+  const classTypeId = '00000000-0000-4000-8000-000000000006';
   await prisma.branch.upsert({
     where: { code: 'SYNTHETIC' },
     update: {},
@@ -22,6 +24,11 @@ async function main() {
     where: { id: userId },
     update: {},
     create: { id: userId, displayName: 'Synthetic Owner' },
+  });
+  await prisma.classType.upsert({
+    where: { branchId_code: { branchId, code: 'PILATES' } },
+    update: {},
+    create: { id: classTypeId, branchId, code: 'PILATES', name: 'Synthetic Pilates' },
   });
   await prisma.$transaction(async (tx) => {
     const existing = await tx.assignment.findUnique({ where: { id: assignmentId } });
@@ -69,6 +76,17 @@ async function main() {
           id: superOwnerRoleId,
           userId,
           role: 'SUPER_OWNER',
+          branchId: null,
+          activeFrom: new Date('2026-01-01T00:00:00Z'),
+        },
+      });
+      await tx.userRole.upsert({
+        where: { id: financeRoleId },
+        update: { role: 'FINANCE', branchId: null, activeUntil: null },
+        create: {
+          id: financeRoleId,
+          userId,
+          role: 'FINANCE',
           branchId: null,
           activeFrom: new Date('2026-01-01T00:00:00Z'),
         },

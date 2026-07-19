@@ -7,8 +7,17 @@ void main() {
   final instance = Openapi().getMasterApi();
 
   group(MasterApi, () {
-    //Future<Resource> createBranch(BranchCommand branchCommand) async
+    // Creates an active branch. Requires master:manage and MFA.
+    //
+    //Future<Branch> createBranch(BranchCommand branchCommand) async
     test('test createBranch', () async {
+      // TODO
+    });
+
+    // Creates an active class type in one visible branch. Requires master:manage and MFA.
+    //
+    //Future<ClassType> createClassType(ClassTypeCommand classTypeCommand) async
+    test('test createClassType', () async {
       // TODO
     });
 
@@ -32,12 +41,22 @@ void main() {
       // TODO
     });
 
-    //Future<Page> listBranches() async
+    //Future<Branch> deactivateBranch(String id, VersionCommand versionCommand) async
+    test('test deactivateBranch', () async {
+      // TODO
+    });
+
+    //Future<ClassType> deactivateClassType(String id, VersionCommand versionCommand) async
+    test('test deactivateClassType', () async {
+      // TODO
+    });
+
+    //Future<BranchPage> listBranches() async
     test('test listBranches', () async {
       // TODO
     });
 
-    //Future<Page> listClassTypes() async
+    //Future<ClassTypePage> listClassTypes({ String branchId }) async
     test('test listClassTypes', () async {
       // TODO
     });
@@ -47,17 +66,17 @@ void main() {
       // TODO
     });
 
-    //Future<Page> listInstructorFees({ String branchId, String cursor }) async
+    //Future<EffectiveSettingPage> listInstructorFees({ String branchId, String cursor }) async
     test('test listInstructorFees', () async {
       // TODO
     });
 
-    //Future<Page> listProjectionRates({ String branchId, String cursor }) async
+    //Future<EffectiveSettingPage> listProjectionRates({ String branchId, String cursor }) async
     test('test listProjectionRates', () async {
       // TODO
     });
 
-    //Future<Page> listQuotaCapacitySettings({ String branchId, String cursor }) async
+    //Future<EffectiveSettingPage> listQuotaCapacitySettings({ String branchId, String cursor }) async
     test('test listQuotaCapacitySettings', () async {
       // TODO
     });

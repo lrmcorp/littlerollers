@@ -1,9 +1,9 @@
 # MVP Proposed Contract Manifest
 
 **Status:** PROPOSED / REVIEW REQUIRED  
-**OpenAPI version:** `0.6.0-draft`
-**SHA-256:** `f9d5d0d1c78cc9acaeb4904be163ac5b1eef3f7d5e613a4ce0deb17190751796`
-**Generated clients:** TypeScript Web dan Dart Flutter — local regeneration/drift `0.6.0-draft` PASS; hosted pending
+**OpenAPI version:** `0.7.0-draft`
+**SHA-256:** `9fc4e444120499589918244d6522a3f9f3853418df21291e4b38db8735c238f2`
+**Generated clients:** TypeScript Web dan Dart Flutter — regeneration `0.7.0-draft` selesai; final local drift/hosted pending
 **Gate 4:** BLOCKED
 
 The checksum is evidence for this exact draft only. Any OpenAPI change invalidates it and requires manifest/checksum regeneration and review.
@@ -49,8 +49,8 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 | CTG-001 | Session channel/token fields, revoke-all, challenge/verification operations | DEC-012, TTL/provider, TL/client/QA review | REMEDIATION DRAFTED — BLOCKED |
 | CTG-002 | Recovery request/verify/account-link operations and security boundary | DEC-014 proof/SLA/support policy | REMEDIATION DRAFTED — BLOCKED |
 | CTG-003 | MFA challenge/verify proposed contract | DEC-012 method/enrollment/recovery decision | REMEDIATION DRAFTED — BLOCKED |
-| CTG-004 | Typed assignment/page, half-open branch-local boundary, optimistic end and conflict UX/test mapping | Generated-client drift, PostgreSQL integration and hosted review | IMPLEMENTED LOCALLY — CLOSURE PENDING |
-| CTG-005 | Kind-specific fee/rate/quota paths and schemas | DEC-005/006 values/approval, generated-client review | REMEDIATION DRAFTED — BLOCKED |
+| CTG-004 | Typed assignment/page, half-open branch-local boundary, optimistic end and conflict UX/test mapping | Hosted review | IMPLEMENTED LOCALLY — HOSTED CLOSURE PENDING |
+| CTG-005 | Typed branch/class/effective-setting pages, half-open fee/rate/quota periods, DB overlap constraint and Finance capability | DEC-005/006 production values/approval, final drift and hosted review | IMPLEMENTED LOCALLY — SYNTHETIC CLOSURE IN PROGRESS |
 | CTG-006 | Upload finalize/status/download/replacement lifecycle | Provider, limits/scan callback implementation decision | REMEDIATION DRAFTED — BLOCKED |
 | CTG-007 | Package/Purchase/ApprovalResult explicit schemas | TL/Finance/client/QA review | REMEDIATION DRAFTED — PARTIAL |
 | CTG-008 | Purchase and adjustment event payload table | TL consumer/idempotency review | REMEDIATION DRAFTED — PARTIAL |

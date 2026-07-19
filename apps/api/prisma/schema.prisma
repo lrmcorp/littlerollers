@@ -105,10 +105,28 @@ model Branch {
   name String
   timezone String
   active Boolean @default(true)
+  version Int @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   assignments Assignment[]
   userRoles UserRole[]
   configurations EffectiveConfiguration[]
+  classTypes ClassType[]
+}
+
+model ClassType {
+  id String @id @db.Uuid
+  branchId String @db.Uuid
+  code String
+  name String
+  active Boolean @default(true)
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  configurations EffectiveConfiguration[]
+  @@unique([branchId, code])
+  @@index([branchId, active])
 }
 model Assignment {
   id String @id @db.Uuid
@@ -255,12 +273,15 @@ model EffectiveConfiguration {
   kind String
   businessKey String
   branchId String? @db.Uuid
+  classTypeId String? @db.Uuid
   value Json
-  effectiveFrom DateTime
-  effectiveUntil DateTime?
+  effectiveFrom DateTime @db.Date
+  effectiveUntil DateTime? @db.Date
+  version Int @default(0)
   approvedEvidence String?
   createdAt DateTime @default(now())
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   @@index([kind, businessKey, effectiveFrom, effectiveUntil])
   @@index([branchId, kind, effectiveFrom])
 }

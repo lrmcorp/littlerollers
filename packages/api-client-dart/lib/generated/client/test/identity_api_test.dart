@@ -7,6 +7,8 @@ void main() {
   final instance = Openapi().getIdentityApi();
 
   group(IdentityApi, () {
+    // Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage and MFA.
+    //
     //Future<Resource> createAssignment(AssignmentCommand assignmentCommand) async
     test('test createAssignment', () async {
       // TODO
@@ -17,6 +19,8 @@ void main() {
       // TODO
     });
 
+    // Ends the half-open assignment at the start of the branch-local calendar date containing effectiveAt. Requires MFA and expectedVersion.
+    //
     //Future<Resource> endAssignment(String id, String idempotencyKey, EndAssignmentCommand endAssignmentCommand) async
     test('test endAssignment', () async {
       // TODO
@@ -32,7 +36,9 @@ void main() {
       // TODO
     });
 
-    //Future<Page> listAssignments({ String branchId, String cursor }) async
+    // Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
+    //
+    //Future<AssignmentPage> listAssignments({ String branchId, String cursor }) async
     test('test listAssignments', () async {
       // TODO
     });

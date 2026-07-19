@@ -27,17 +27,19 @@ void main() {
       // TODO
     });
 
+    // Mobile sends the rotating refresh token as Bearer credential; web uses its secure HttpOnly session cookie.
+    //
     //Future<Session> refreshSession() async
     test('test refreshSession', () async {
       // TODO
     });
 
-    //Future requestAccountRecovery(RecoveryRequestCommand recoveryRequestCommand) async
+    //Future<ChallengeAccepted> requestAccountRecovery(RecoveryRequestCommand recoveryRequestCommand) async
     test('test requestAccountRecovery', () async {
       // TODO
     });
 
-    //Future requestOtp(OtpRequest otpRequest) async
+    //Future<ChallengeAccepted> requestOtp(OtpRequest otpRequest) async
     test('test requestOtp', () async {
       // TODO
     });

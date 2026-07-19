@@ -246,6 +246,76 @@ test('assignment create and end use one branch and expected version', async ({ p
   expect(endedBody?.expectedVersion).toBe(0);
 });
 
+test('master creates quota without a production default and exposes overlap safely', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/branches', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'branch-1',
+            code: 'JKT',
+            name: 'Jakarta',
+            timezone: 'Asia/Jakarta',
+            active: true,
+            version: 0,
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/class-types**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'class-1',
+            branchId: 'branch-1',
+            code: 'REFORMER',
+            name: 'Reformer',
+            active: true,
+            version: 0,
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  let calls = 0;
+  await page.route('**/api/v1/quota-capacity-settings', (route) => {
+    calls += 1;
+    return route.fulfill({
+      status: calls === 1 ? 201 : 409,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        calls === 1
+          ? { id: 'setting-1', status: 'ACTIVE' }
+          : { error: { code: 'EFFECTIVE_PERIOD_OVERLAP' } },
+      ),
+    });
+  });
+  await page.goto('/master');
+  await expect(page.getByLabel('Nilai Rupiah atau minimum quota')).toHaveValue('');
+  await page.getByLabel('ID cabang aktif').fill('branch-1');
+  await page.getByLabel('ID class type').fill('class-1');
+  await page.getByLabel('Nilai Rupiah atau minimum quota').fill('4');
+  await page.getByLabel('Capacity (khusus quota)').fill('8');
+  await page.getByLabel('Efektif mulai').fill('2026-08-01');
+  await page.getByLabel('Alasan').fill('synthetic E2E');
+  await page.getByRole('button', { name: 'Buat setting' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('berhasil dibuat');
+  await page.getByRole('button', { name: 'Buat setting' }).press('Enter');
+  await expect(
+    page.getByText('EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION', { exact: true }),
+  ).toBeVisible();
+});
+
 test('assignment overlap and hidden branch failures do not show optimistic success', async ({
   page,
 }) => {

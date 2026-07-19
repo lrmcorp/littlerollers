@@ -5,6 +5,11 @@
 **Approver:** Product Owner  
 **Visual source of truth:** Daily Dose-owned Figma file (`TBD-BLOCKING`)
 
+Repository synthetic UI memakai primary color `#396552` dan logo resmi
+`https://dailydosepilates.com/assets/images/logo.png`. Implementasi ini adalah interim executable
+handoff dan tidak menggantikan Figma version/node, Design QA, accessibility review, atau PO visual
+acceptance untuk production.
+
 Screen-level proposed handoff for UX-01/02/03/09/11 is defined in [Priority Flow Screen-Level Handoff](03-priority-flow-screen-handoff.md). It remains non-authoritative until actual Figma nodes and approvals exist.
 
 ## 1. Navigation and Screen Inventory

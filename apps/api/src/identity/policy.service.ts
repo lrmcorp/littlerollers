@@ -14,6 +14,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'session:revoke',
     'assignment:read',
     'assignment:manage',
+    'master:read',
+    'master:manage',
   ],
   FINANCE: ['finance:read', 'finance:manage'],
   OPS: ['operations:read', 'operations:recover'],

@@ -7,6 +7,8 @@ import { UsersView } from './users/users-view';
 import type { IdentityClient } from './identity-client';
 import { AssignmentsView } from './assignments/assignments-view';
 import type { AssignmentClient } from './assignment-client';
+import { MasterView } from './master/master-view';
+import type { MasterClient } from './master-client';
 
 const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   signIn: vi.fn().mockResolvedValue(undefined),
@@ -117,5 +119,41 @@ describe('assignment UI', () => {
     await userEvent.type(screen.getByLabelText('Alasan'), 'test failure');
     await userEvent.click(screen.getByRole('button', { name: 'Buat assignment' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(code);
+  });
+});
+
+const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
+  listBranches: vi.fn().mockResolvedValue([]),
+  listClassTypes: vi.fn().mockResolvedValue([]),
+  createBranch: vi.fn().mockResolvedValue(undefined),
+  createClassType: vi.fn().mockResolvedValue(undefined),
+  createSetting: vi.fn().mockResolvedValue(undefined),
+  ...overrides,
+});
+
+describe('effective master UI', () => {
+  it('is accessible and has no production numeric defaults', async () => {
+    const view = render(<MasterView client={masterClient()} />);
+    expect((await axe(view.container)).violations).toHaveLength(0);
+    expect(screen.getByLabelText('Nilai Rupiah atau minimum quota')).toHaveValue(null);
+    expect(screen.getByLabelText('Capacity (khusus quota)')).toHaveValue(null);
+    await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('berhasil dimuat');
+  });
+
+  it('submits a half-open quota setting and displays safe conflicts', async () => {
+    const fake = masterClient();
+    render(<MasterView client={fake} />);
+    await userEvent.type(screen.getByLabelText('ID cabang aktif'), 'branch-1');
+    await userEvent.type(screen.getByLabelText('ID class type'), 'class-1');
+    await userEvent.type(screen.getByLabelText('Nilai Rupiah atau minimum quota'), '4');
+    await userEvent.type(screen.getByLabelText('Capacity (khusus quota)'), '8');
+    await userEvent.type(screen.getByLabelText('Efektif mulai'), '2026-08-01');
+    await userEvent.type(screen.getByLabelText('Alasan'), 'synthetic fixture');
+    await userEvent.click(screen.getByRole('button', { name: 'Buat setting' }));
+    expect(fake.createSetting).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 4, capacity: 8 }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('berhasil dibuat');
   });
 });

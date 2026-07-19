@@ -33,7 +33,9 @@ import 'package:openapi/src/model/backfill_customer_check_in_request.dart';
 import 'package:openapi/src/model/booking.dart';
 import 'package:openapi/src/model/booking_command.dart';
 import 'package:openapi/src/model/booking_page.dart';
+import 'package:openapi/src/model/branch.dart';
 import 'package:openapi/src/model/branch_command.dart';
+import 'package:openapi/src/model/branch_page.dart';
 import 'package:openapi/src/model/branch_period.dart';
 import 'package:openapi/src/model/branch_period_page.dart';
 import 'package:openapi/src/model/challenge_accepted.dart';
@@ -43,6 +45,9 @@ import 'package:openapi/src/model/check_in_token_status.dart';
 import 'package:openapi/src/model/class_slot.dart';
 import 'package:openapi/src/model/class_slot_command.dart';
 import 'package:openapi/src/model/class_slot_page.dart';
+import 'package:openapi/src/model/class_type.dart';
+import 'package:openapi/src/model/class_type_command.dart';
+import 'package:openapi/src/model/class_type_page.dart';
 import 'package:openapi/src/model/close_month_request.dart';
 import 'package:openapi/src/model/close_result.dart';
 import 'package:openapi/src/model/complete_class_command.dart';
@@ -57,7 +62,9 @@ import 'package:openapi/src/model/customer_package_balance_page.dart';
 import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/effective_period.dart';
+import 'package:openapi/src/model/effective_setting.dart';
 import 'package:openapi/src/model/effective_setting_command.dart';
+import 'package:openapi/src/model/effective_setting_page.dart';
 import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/error_envelope_error.dart';
@@ -120,6 +127,7 @@ import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
+import 'package:openapi/src/model/version_command.dart';
 
 part 'serializers.g.dart';
 
@@ -143,7 +151,9 @@ part 'serializers.g.dart';
   Booking,
   BookingCommand,
   BookingPage,
+  Branch,
   BranchCommand,
+  BranchPage,
   BranchPeriod,
   BranchPeriodPage,
   ChallengeAccepted,
@@ -153,6 +163,9 @@ part 'serializers.g.dart';
   ClassSlot,
   ClassSlotCommand,
   ClassSlotPage,
+  ClassType,
+  ClassTypeCommand,
+  ClassTypePage,
   CloseMonthRequest,
   CloseResult,
   CompleteClassCommand,
@@ -167,7 +180,9 @@ part 'serializers.g.dart';
   DeactivateUserRequest,
   DownloadAuthorization,
   EffectivePeriod,$EffectivePeriod,
+  EffectiveSetting,
   EffectiveSettingCommand,
+  EffectiveSettingPage,
   EndAssignmentCommand,
   ErrorEnvelope,
   ErrorEnvelopeError,
@@ -230,6 +245,7 @@ part 'serializers.g.dart';
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,
+  VersionCommand,
 ])
 Serializers serializers = (_$serializers.toBuilder()
       ..add(EffectivePeriod.serializer)

@@ -10,10 +10,13 @@ All URIs are relative to */api/v1*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**createBranch**](MasterApi.md#createbranch) | **POST** /branches | 
+[**createClassType**](MasterApi.md#createclasstype) | **POST** /class-types | 
 [**createEffectiveSetting**](MasterApi.md#createeffectivesetting) | **POST** /master-settings/{kind} | 
 [**createInstructorFee**](MasterApi.md#createinstructorfee) | **POST** /instructor-fees | 
 [**createProjectionRate**](MasterApi.md#createprojectionrate) | **POST** /projection-rates | 
 [**createQuotaCapacitySetting**](MasterApi.md#createquotacapacitysetting) | **POST** /quota-capacity-settings | 
+[**deactivateBranch**](MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
+[**deactivateClassType**](MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
 [**listBranches**](MasterApi.md#listbranches) | **GET** /branches | 
 [**listClassTypes**](MasterApi.md#listclasstypes) | **GET** /class-types | 
 [**listEffectiveSettings**](MasterApi.md#listeffectivesettings) | **GET** /master-settings/{kind} | 
@@ -23,9 +26,11 @@ Method | HTTP request | Description
 
 
 # **createBranch**
-> Resource createBranch(branchCommand)
+> Branch createBranch(branchCommand)
 
 
+
+Creates an active branch. Requires master:manage and MFA.
 
 ### Example
 ```dart
@@ -50,7 +55,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Resource**](Resource.md)
+[**Branch**](Branch.md)
 
 ### Authorization
 
@@ -59,7 +64,50 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createClassType**
+> ClassType createClassType(classTypeCommand)
+
+
+
+Creates an active class type in one visible branch. Requires master:manage and MFA.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final ClassTypeCommand classTypeCommand = ; // ClassTypeCommand | 
+
+try {
+    final response = api.createClassType(classTypeCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->createClassType: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **classTypeCommand** | [**ClassTypeCommand**](ClassTypeCommand.md)|  | 
+
+### Return type
+
+[**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -229,8 +277,94 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **deactivateBranch**
+> Branch deactivateBranch(id, versionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final VersionCommand versionCommand = ; // VersionCommand | 
+
+try {
+    final response = api.deactivateBranch(id, versionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->deactivateBranch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **versionCommand** | [**VersionCommand**](VersionCommand.md)|  | 
+
+### Return type
+
+[**Branch**](Branch.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deactivateClassType**
+> ClassType deactivateClassType(id, versionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final VersionCommand versionCommand = ; // VersionCommand | 
+
+try {
+    final response = api.deactivateClassType(id, versionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->deactivateClassType: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **versionCommand** | [**VersionCommand**](VersionCommand.md)|  | 
+
+### Return type
+
+[**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listBranches**
-> Page listBranches()
+> BranchPage listBranches()
 
 
 
@@ -253,7 +387,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**Page**](Page.md)
+[**BranchPage**](BranchPage.md)
 
 ### Authorization
 
@@ -262,12 +396,12 @@ This endpoint does not need any parameter.
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listClassTypes**
-> Page listClassTypes()
+> ClassTypePage listClassTypes(branchId)
 
 
 
@@ -276,9 +410,10 @@ This endpoint does not need any parameter.
 import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 
 try {
-    final response = api.listClassTypes();
+    final response = api.listClassTypes(branchId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->listClassTypes: $e\n');
@@ -286,11 +421,14 @@ try {
 ```
 
 ### Parameters
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
 
 ### Return type
 
-[**Page**](Page.md)
+[**ClassTypePage**](ClassTypePage.md)
 
 ### Authorization
 
@@ -299,7 +437,7 @@ This endpoint does not need any parameter.
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -347,7 +485,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listInstructorFees**
-> Page listInstructorFees(branchId, cursor)
+> EffectiveSettingPage listInstructorFees(branchId, cursor)
 
 
 
@@ -376,7 +514,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**EffectiveSettingPage**](EffectiveSettingPage.md)
 
 ### Authorization
 
@@ -390,7 +528,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listProjectionRates**
-> Page listProjectionRates(branchId, cursor)
+> EffectiveSettingPage listProjectionRates(branchId, cursor)
 
 
 
@@ -419,7 +557,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**EffectiveSettingPage**](EffectiveSettingPage.md)
 
 ### Authorization
 
@@ -433,7 +571,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listQuotaCapacitySettings**
-> Page listQuotaCapacitySettings(branchId, cursor)
+> EffectiveSettingPage listQuotaCapacitySettings(branchId, cursor)
 
 
 
@@ -462,7 +600,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**EffectiveSettingPage**](EffectiveSettingPage.md)
 
 ### Authorization
 

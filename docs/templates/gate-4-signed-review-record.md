@@ -11,7 +11,7 @@
 | Repository commit | TBD-BLOCKING |
 | ADR baseline | TBD-BLOCKING |
 | ERD/data dictionary | TBD-BLOCKING |
-| OpenAPI version/checksum | `0.6.0-draft` / `f9d5d0d1c78cc9acaeb4904be163ac5b1eef3f7d5e613a4ce0deb17190751796` |
+| OpenAPI version/checksum | `0.7.0-draft` / `9fc4e444120499589918244d6522a3f9f3853418df21291e4b38db8735c238f2` |
 | Event/error/security contract | TBD-BLOCKING |
 | Contract manifest/review workbook | TBD-BLOCKING |
 

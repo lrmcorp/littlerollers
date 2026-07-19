@@ -8,7 +8,8 @@ export default function Home() {
         diaktifkan.
       </p>
       <p>
-        <a href="/sign-in">Masuk internal</a> · <a href="/users">Administrasi pengguna</a>
+        <a href="/sign-in">Masuk internal</a> · <a href="/users">Administrasi pengguna</a> ·{' '}
+        <a href="/assignments">Assignments</a> · <a href="/master">Master data</a>
       </p>
     </section>
   );

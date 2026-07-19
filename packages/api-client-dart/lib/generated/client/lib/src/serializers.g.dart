@@ -37,7 +37,9 @@ Serializers _$serializers =
           ..add(BookingCommandSource_Enum.serializer)
           ..add(BookingPage.serializer)
           ..add(BookingStatusEnum.serializer)
+          ..add(Branch.serializer)
           ..add(BranchCommand.serializer)
+          ..add(BranchPage.serializer)
           ..add(BranchPeriod.serializer)
           ..add(BranchPeriodPage.serializer)
           ..add(BranchPeriodStatusEnum.serializer)
@@ -57,6 +59,9 @@ Serializers _$serializers =
           ..add(ClassSlotCommand.serializer)
           ..add(ClassSlotPage.serializer)
           ..add(ClassSlotStatusEnum.serializer)
+          ..add(ClassType.serializer)
+          ..add(ClassTypeCommand.serializer)
+          ..add(ClassTypePage.serializer)
           ..add(CloseMonthRequest.serializer)
           ..add(CloseResult.serializer)
           ..add(CompleteClassCommand.serializer)
@@ -72,7 +77,10 @@ Serializers _$serializers =
           ..add(CustomerPackageBalanceStatusEnum.serializer)
           ..add(DeactivateUserRequest.serializer)
           ..add(DownloadAuthorization.serializer)
+          ..add(EffectiveSetting.serializer)
           ..add(EffectiveSettingCommand.serializer)
+          ..add(EffectiveSettingKindEnum.serializer)
+          ..add(EffectiveSettingPage.serializer)
           ..add(EndAssignmentCommand.serializer)
           ..add(ErrorEnvelope.serializer)
           ..add(ErrorEnvelopeError.serializer)
@@ -162,6 +170,7 @@ Serializers _$serializers =
           ..add(SubmitPurchaseRequest.serializer)
           ..add(TimeRangeCommand.serializer)
           ..add(TokenCheckInCommand.serializer)
+          ..add(VersionCommand.serializer)
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Assignment)]),
             () => ListBuilder<Assignment>(),
@@ -179,6 +188,10 @@ Serializers _$serializers =
             () => ListBuilder<Booking>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Branch)]),
+            () => ListBuilder<Branch>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(BranchPeriod)]),
             () => ListBuilder<BranchPeriod>(),
           )
@@ -187,10 +200,18 @@ Serializers _$serializers =
             () => ListBuilder<ClassSlot>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(ClassType)]),
+            () => ListBuilder<ClassType>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [
               const FullType(CustomerPackageBalance),
             ]),
             () => ListBuilder<CustomerPackageBalance>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(EffectiveSetting)]),
+            () => ListBuilder<EffectiveSetting>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
