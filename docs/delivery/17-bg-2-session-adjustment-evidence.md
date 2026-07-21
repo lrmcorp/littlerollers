@@ -1,8 +1,8 @@
 # BG-2 Synthetic US-LED-02 Evidence
 
-Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS / HOSTED PENDING**.
+Tanggal eksekusi: 2026-07-22. Status: **PASS FOR SYNTHETIC NON-PRODUCTION**.
 
-Source commit: `b18dde8`. Evidence commit: commit dokumentasi berikutnya; hosted run ID/URL pending.
+Source commit: `b18dde8`. Evidence commit: `817e384`; hosted `typescript`, `flutter`, dan `secrets` PASS berdasarkan konfirmasi pengguna. Run ID/URL tidak tersedia dan tidak difabrikasi.
 
 ## Scope dan keputusan
 
@@ -16,15 +16,16 @@ Source commit: `b18dde8`. Evidence commit: commit dokumentasi berikutnya; hosted
 | Area | Command/evidence | Hasil |
 |---|---|---|
 | Contract | `pnpm openapi:validate` | PASS — `1.1.0-draft`, checksum `af6be1ce33e27c06a0346741e0622f03562d334b2bdb4b5407fb0eaf3bdfc98f`, 97 operations |
-| API static/unit | `pnpm --filter @dailydose/api typecheck`; lint; test | PASS lokal; PostgreSQL adjustment suite tersedia dan berjalan saat `DATABASE_URL` tersedia |
+| API static/unit/integration | `pnpm check`; hosted `typescript` | PASS — PostgreSQL migration/integration, API, Web dan E2E hijau pada evidence commit `817e384` (user-confirmed) |
 | Web | `pnpm --filter @dailydose/web typecheck`; test | PASS — controlled request/review dan a11y termasuk dalam component suite |
-| Clients | OpenAPI Generator `7.15.0`; Dart `build_runner` | PASS generation; Docker drift/hosted pending |
-| Database | migration `20260722000300_session_adjustment` | Schema/Prisma generate PASS; empty migration/double seed hosted pending |
+| Clients | OpenAPI Generator `7.15.0`; Dart `build_runner`; hosted `flutter` | PASS — generated drift, Flutter dan Dart consumer hijau |
+| Database | migration `20260722000300_session_adjustment` | PASS — empty migration, double seed dan PostgreSQL integration melalui hosted `typescript` |
+| Secrets | hosted full-history Gitleaks | PASS — `secrets` hijau (user-confirmed) |
 
 ## Review disposition
 
-- **AI QA:** LOCAL PASS — typed lifecycle, replay, balance reflection, and Web states implemented; real PostgreSQL/hosted execution pending.
-- **AI Security:** LOCAL PASS — MFA, branch hiding, SoD, controlled codes, masked audit/event payload; Gitleaks hosted pending.
-- **AI Peer Reviewer:** LOCAL PASS — request and decision transaction boundaries preserve append-only ledger; `US-BKG-01` remains not started.
+- **AI QA:** PASS — typed lifecycle, replay, balance reflection, PostgreSQL integration, Web E2E dan consumer evidence hijau.
+- **AI Security:** PASS FOR SYNTHETIC NON-PRODUCTION — MFA, branch hiding, SoD, controlled codes, masked audit/event payload dan full-history Gitleaks hijau.
+- **AI Peer Reviewer:** PASS FOR SYNTHETIC NON-PRODUCTION — request and decision transaction boundaries preserve append-only ledger; `US-BKG-01` remains not started.
 
-`US-LED-02` tidak dipromosikan menjadi PASS sebelum source/evidence commit terakhir hijau pada hosted CI dan working tree bersih. `BG-3 = PENDING`, `PG-1 = BLOCKED`.
+`US-LED-02 = PASS FOR SYNTHETIC NON-PRODUCTION`. `US-BKG-01 = NOT STARTED`; prioritas berikutnya dipilih antara `US-CLS-01` dan `US-BKG-01`. `BG-3 = PENDING`, `PG-1 = BLOCKED`.

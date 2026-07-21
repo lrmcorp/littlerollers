@@ -34,7 +34,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-PKG01-001 | Package selection, private proof scan, idempotent PENDING purchase | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | empty DB 7 migrations; double seed; 42 PostgreSQL API tests; Web 15 component/a11y + 10 E2E; Flutter 5 widgets; OpenAPI `0.8.0-draft`; final hosted tiga job hijau (user-confirmed) | source `8830235`; fix `62fd16b`; evidence `8a5fe34` | closed synthetic; run ID/URL unavailable; production blockers remain |
 | WRK-BG2-PKG02-001 | MFA-gated purchase approval/rejection, immutable customer-package snapshot dan PURCHASE ledger mutation | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; OpenAPI `0.9.0-draft`; 17 Web component/a11y; hosted migration/integration/E2E, Flutter/Dart dan Gitleaks hijau (user-confirmed) | source `a97f3d3`; Dart closure `6664850` | closed synthetic; run ID/URL unavailable; `US-LED-01` next; production blockers remain |
 | WRK-BG2-LED01-001 | Authoritative customer-package balance, append-only history dan reservation read foundation | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; OpenAPI `1.0.0-draft`; 19 Web component/a11y; Flutter 7 widgets; hosted migration/integration/E2E, Docker drift dan Gitleaks hijau (user-confirmed) | source `906e781`; evidence `c18c562` | closed synthetic; run ID/URL unavailable; `US-LED-02` next; US-BKG-01 not started |
-| WRK-BG2-LED02-001 | Branch-scoped session adjustment request/decision dengan SoD dan append-only posting | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO production | LOCAL PASS / HOSTED PENDING | OpenAPI `1.1.0-draft`; Prisma/typecheck/unit/Web component+a11y; PostgreSQL suite conditional | source `b18dde8` | hosted migration/E2E/drift/Flutter/Gitleaks pending; US-BKG-01 not started |
+| WRK-BG2-LED02-001 | Branch-scoped session adjustment request/decision dengan SoD dan append-only posting | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO production | PASS FOR SYNTHETIC NON-PRODUCTION | OpenAPI `1.1.0-draft`; `pnpm check`; hosted PostgreSQL migration/integration, 13 Web E2E, Flutter/Dart dan Gitleaks hijau (user-confirmed) | source `b18dde8`; evidence `817e384` | closed synthetic; run ID/URL unavailable; choose next between US-CLS-01 and US-BKG-01 |
 
 ## Independent Review Record
 
@@ -63,9 +63,9 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-LED01-QA-001 | AI QA | balance arithmetic, expiry, invariant, pagination dan consumers | PASS | monorepo, PostgreSQL integration, Web E2E, Flutter/Dart dan hosted evidence hijau |
 | REV-BG2-LED01-SEC-001 | AI Security | customer/branch hiding, cursor validation, no read leakage | PASS FOR SYNTHETIC NON-PRODUCTION | ledger:read scope, hidden boundary, integration dan hosted Gitleaks hijau |
 | REV-BG2-LED01-PEER-001 | AI Peer Reviewer | append-only/read-only scope dan future booking boundary | PASS FOR SYNTHETIC NON-PRODUCTION | reservation persistence fixture-only; no booking/adjustment mutation |
-| REV-BG2-LED02-QA-001 | AI QA | request/decision lifecycle, invariant, idempotency dan consumer | LOCAL PASS | executable local suite hijau; hosted PostgreSQL/E2E pending |
-| REV-BG2-LED02-SEC-001 | AI Security | MFA, SoD, hidden branch, controlled reason dan leakage | LOCAL PASS | no free text/raw evidence/PII fields; hosted Gitleaks pending |
-| REV-BG2-LED02-PEER-001 | AI Peer Reviewer | atomic ledger post dan scope discipline | LOCAL PASS | request has no ledger mutation; approval has unique linked entry; booking remains out of scope |
+| REV-BG2-LED02-QA-001 | AI QA | request/decision lifecycle, invariant, idempotency dan consumer | PASS | local dan hosted PostgreSQL/E2E/consumer evidence hijau |
+| REV-BG2-LED02-SEC-001 | AI Security | MFA, SoD, hidden branch, controlled reason dan leakage | PASS FOR SYNTHETIC NON-PRODUCTION | no free text/raw evidence/PII fields; hosted Gitleaks hijau |
+| REV-BG2-LED02-PEER-001 | AI Peer Reviewer | atomic ledger post dan scope discipline | PASS FOR SYNTHETIC NON-PRODUCTION | request has no ledger mutation; approval has unique linked entry; booking remains out of scope |
 
 ## Gate Disposition
 
@@ -73,5 +73,5 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
 NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
 NON-PRODUCTION LOCAL_PASS` pada source commit `4edacf4`;
-`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-01/02` dan `US-LED-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-LED-02 = LOCAL PASS / HOSTED PENDING`; `US-BKG-01 = NOT STARTED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
+`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-01/02` dan `US-LED-01/02 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-BKG-01 = NOT STARTED`; berikutnya dipilih antara `US-CLS-01` dan `US-BKG-01`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
 DEC/CFG production values, Figma, provider/account, migration/UAT dan production approvals tetap.
