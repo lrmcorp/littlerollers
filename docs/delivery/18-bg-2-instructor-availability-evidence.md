@@ -1,8 +1,8 @@
 # BG-2 Synthetic US-CLS-01 Evidence
 
-Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS / HOSTED PENDING**.
+Tanggal eksekusi: 2026-07-22. Status: **PASS FOR SYNTHETIC NON-PRODUCTION**.
 
-Source commits: `77cab22` plus concurrency acceptance `e72c809`. Evidence commit: commit dokumentasi berikutnya; hosted run ID/URL pending.
+Source commits: `77cab22` plus concurrency acceptance `e72c809`. Evidence commit: `5577637`; hosted `typescript`, `flutter`, dan `secrets` PASS berdasarkan konfirmasi pengguna. Run ID/URL tidak tersedia dan tidak difabrikasi.
 
 ## Scope dan boundary
 
@@ -17,15 +17,16 @@ Source commits: `77cab22` plus concurrency acceptance `e72c809`. Evidence commit
 | Area | Evidence | Hasil |
 |---|---|---|
 | Contract | OpenAPI validation | PASS — `1.2.0-draft`, checksum `13ae9f84cef473ac60285cf538e404dd8a14177827d1f1f476889a7ae20a4e98f`, 97 operations |
-| API | Jest/typecheck | PASS lokal; PostgreSQL availability integration/concurrency suite tersedia saat `DATABASE_URL` tersedia |
-| Flutter | analyze/widget | PASS lokal — list/create, empty, invalid, overlap, assignment dan offline states |
-| Clients | generator `7.15.0` + Dart `build_runner` | PASS generation; hosted Docker drift pending |
-| Database | migration `20260722000400_instructor_availability` | Prisma schema valid; empty migration/double seed hosted pending |
+| API | Jest/typecheck + hosted `typescript` | PASS — PostgreSQL availability integration/concurrency dan API pipeline hijau |
+| Flutter | analyze/widget + hosted `flutter` | PASS — list/create, empty, invalid, overlap, assignment, offline dan Dart consumer hijau |
+| Clients | generator `7.15.0` + Dart `build_runner` | PASS — hosted Docker byte-for-byte drift hijau |
+| Database | migration `20260722000400_instructor_availability` | PASS — empty migration dan double seed melalui hosted `typescript` |
+| Secrets | hosted full-history Gitleaks | PASS — `secrets` hijau (user-confirmed) |
 
 ## Review disposition
 
-- **AI QA:** LOCAL PASS — range, pagination, replay, adjacent/overlap dan Flutter states tersedia; hosted PostgreSQL pending.
-- **AI Security:** LOCAL PASS — self-only capability, assignment/branch hiding, masked audit dan no outbox/PII; Gitleaks pending.
-- **AI Peer Reviewer:** LOCAL PASS — availability terisolasi dari class-slot/booking policy; no production defaults.
+- **AI QA:** PASS — range, pagination, replay, adjacent/overlap, PostgreSQL concurrency dan Flutter evidence hijau.
+- **AI Security:** PASS FOR SYNTHETIC NON-PRODUCTION — self-only capability, assignment/branch hiding, masked audit, no outbox/PII dan Gitleaks hijau.
+- **AI Peer Reviewer:** PASS FOR SYNTHETIC NON-PRODUCTION — availability terisolasi dari class-slot/booking policy; no production defaults.
 
-`US-CLS-01` belum dipromosikan sebelum source/evidence commit terakhir hosted-green. Setelah closure, `US-CLS-02 = NEXT`; `US-BKG-01` menunggu published class slot; `BG-3 = PENDING`, `PG-1 = BLOCKED`.
+`US-CLS-01 = PASS FOR SYNTHETIC NON-PRODUCTION`. `US-CLS-02 = NEXT`; `US-BKG-01` menunggu published class slot; `BG-3 = PENDING`, `PG-1 = BLOCKED`.
