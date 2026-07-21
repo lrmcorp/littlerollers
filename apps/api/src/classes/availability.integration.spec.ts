@@ -131,6 +131,41 @@ databaseDescribe('synthetic instructor availability PostgreSQL integration', () 
     ).rejects.toMatchObject({ code: 'EFFECTIVE_PERIOD_OVERLAP' });
   });
 
+  it('allows only one concurrent overlap and rejects changed idempotency payload', async () => {
+    const overlapping = [
+      service.create(
+        principal,
+        { branchId, startAt: '2026-08-03T09:00:00+07:00', endAt: '2026-08-03T11:00:00+07:00' },
+        `${namespace}-concurrent-a`,
+        namespace,
+      ),
+      service.create(
+        principal,
+        { branchId, startAt: '2026-08-03T10:00:00+07:00', endAt: '2026-08-03T12:00:00+07:00' },
+        `${namespace}-concurrent-b`,
+        namespace,
+      ),
+    ];
+    const results = await Promise.allSettled(overlapping);
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(({ status }) => status === 'rejected')).toHaveLength(1);
+    const key = `${namespace}-changed-key`;
+    await service.create(
+      principal,
+      { branchId, startAt: '2026-08-04T09:00:00+07:00', endAt: '2026-08-04T10:00:00+07:00' },
+      key,
+      namespace,
+    );
+    await expect(
+      service.create(
+        principal,
+        { branchId, startAt: '2026-08-04T10:00:00+07:00', endAt: '2026-08-04T11:00:00+07:00' },
+        key,
+        namespace,
+      ),
+    ).rejects.toThrow('IDEMPOTENCY_KEY_REUSED');
+  });
+
   it('rejects offset-less, reversed and hidden branch inputs', async () => {
     await expect(
       service.create(
