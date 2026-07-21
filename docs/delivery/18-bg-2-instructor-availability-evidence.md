@@ -2,6 +2,8 @@
 
 Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS / HOSTED PENDING**.
 
+Source commit: `77cab22`. Evidence commit: commit dokumentasi berikutnya; hosted run ID/URL pending.
+
 ## Scope dan boundary
 
 - Availability adalah interval eksplisit half-open `[startAt,endAt)`, bukan recurrence.
