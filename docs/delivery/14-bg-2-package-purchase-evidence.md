@@ -2,6 +2,7 @@
 
 **Execution date:** 2026-07-21  
 **Disposition:** `LOCAL_PASS / HOSTED_PENDING FOR SYNTHETIC NON-PRODUCTION`  
+**Source commit:** `8830235`  
 **Production:** `BLOCKED` — DEC-004, storage/scan provider, source mapping, Figma, UAT dan approval production belum tersedia.
 
 ## Scope yang Diimplementasikan
