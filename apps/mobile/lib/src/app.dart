@@ -4,6 +4,8 @@ import 'theme.dart';
 import 'auth_repository.dart';
 import 'purchase_repository.dart';
 import 'purchase_view.dart';
+import 'ledger_repository.dart';
+import 'ledger_view.dart';
 
 final _router = GoRouter(
   routes: [
@@ -20,6 +22,12 @@ final _router = GoRouter(
       path: '/customer/purchases',
       builder: (context, state) => const CustomerPurchaseView(
         repository: ConfigurationRequiredPurchaseRepository(),
+      ),
+    ),
+    GoRoute(
+      path: '/customer/ledger',
+      builder: (context, state) => const CustomerLedgerView(
+        repository: ConfigurationRequiredLedgerRepository(),
       ),
     ),
     GoRoute(

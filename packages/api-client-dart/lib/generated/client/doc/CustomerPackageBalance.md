@@ -13,13 +13,17 @@ Name | Type | Description | Notes
 **customerUserId** | **String** |  | 
 **packageId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**status** | **String** |  | 
 **activationDate** | [**Date**](Date.md) |  | 
 **expiryAt** | [**DateTime**](DateTime.md) |  | 
+**ledgerBalance** | **int** |  | 
+**reserved** | **int** |  | 
+**available** | **int** |  | 
 **salePriceRp** | **int** |  | 
 **sessionCountSnapshot** | **int** |  | 
 **durationDaysSnapshot** | **int** |  | 
 **projectionRateRp** | **int** |  | 
-**version** | **int** |  | [optional] 
+**version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

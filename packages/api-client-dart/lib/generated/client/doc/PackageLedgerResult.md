@@ -9,6 +9,7 @@ import 'package:openapi/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **balance** | [**CustomerPackageBalance**](CustomerPackageBalance.md) |  | 
+**reservations** | [**ReservationSummary**](ReservationSummary.md) |  | 
 **entries** | [**BuiltList&lt;LedgerEntry&gt;**](LedgerEntry.md) |  | 
 **page** | [**CursorPageMeta**](CursorPageMeta.md) |  | 
 

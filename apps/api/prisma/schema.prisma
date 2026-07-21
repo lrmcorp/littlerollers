@@ -99,6 +99,19 @@ enum PurchaseStatus {
 }
 enum LedgerEntryType {
   PURCHASE
+  MIGRATION_OPENING
+  ATTEND
+  REVERSAL
+  ADJUST_MANUAL
+}
+enum CustomerPackageStatus {
+  ACTIVE
+  INACTIVE
+}
+enum SessionReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
 }
 
 model User {
@@ -396,6 +409,7 @@ model CustomerPackage {
   sessionCountSnapshot Int
   durationDaysSnapshot Int
   projectionRateRp Int
+  status CustomerPackageStatus @default(ACTIVE)
   version Int @default(0)
   createdAt DateTime @default(now())
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
@@ -404,7 +418,22 @@ model CustomerPackage {
   package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
   classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   ledgerEntries LedgerEntry[]
+  reservations SessionReservation[]
   @@index([customerUserId, branchId, expiryAt])
+}
+
+model SessionReservation {
+  id String @id @db.Uuid
+  customerPackageId String @db.Uuid
+  referenceHash String
+  quantity Int @default(1)
+  status SessionReservationStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  releasedAt DateTime?
+  consumedAt DateTime?
+  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  @@unique([customerPackageId, referenceHash])
+  @@index([customerPackageId, status, createdAt])
 }
 
 model LedgerEntry {

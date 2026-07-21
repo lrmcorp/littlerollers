@@ -135,7 +135,7 @@ class LedgerApi {
   }
 
   /// getPackageLedger
-  /// 
+  /// Append-only entries ordered by occurredAt and id descending with opaque keyset cursor and active reservation summary.
   ///
   /// Parameters:
   /// * [id] 
@@ -223,7 +223,7 @@ class LedgerApi {
   }
 
   /// listCustomerPackages
-  /// 
+  /// Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Invalid cursor is rejected; invariant mismatch is never silently clamped.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority

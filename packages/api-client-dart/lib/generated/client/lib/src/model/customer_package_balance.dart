@@ -3,13 +3,14 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'customer_package_balance.g.dart';
 
-/// US-PKG-02 approval snapshot; ledger browsing and derived balances remain US-LED-01.
+/// Authoritative synthetic balance. Expired/inactive available is zero; inconsistent negative/over-reserved state returns LEDGER_INVARIANT_VIOLATION instead of a clamped result.
 ///
 /// Properties:
 /// * [id] 
@@ -17,8 +18,12 @@ part 'customer_package_balance.g.dart';
 /// * [customerUserId] 
 /// * [packageId] 
 /// * [classTypeId] 
+/// * [status] 
 /// * [activationDate] 
 /// * [expiryAt] 
+/// * [ledgerBalance] 
+/// * [reserved] 
+/// * [available] 
 /// * [salePriceRp] 
 /// * [sessionCountSnapshot] 
 /// * [durationDaysSnapshot] 
@@ -41,11 +46,24 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
 
+  @BuiltValueField(wireName: r'status')
+  CustomerPackageBalanceStatusEnum get status;
+  // enum statusEnum {  ACTIVE,  EXPIRED,  INACTIVE,  };
+
   @BuiltValueField(wireName: r'activationDate')
   Date get activationDate;
 
   @BuiltValueField(wireName: r'expiryAt')
   DateTime get expiryAt;
+
+  @BuiltValueField(wireName: r'ledgerBalance')
+  int get ledgerBalance;
+
+  @BuiltValueField(wireName: r'reserved')
+  int get reserved;
+
+  @BuiltValueField(wireName: r'available')
+  int get available;
 
   @BuiltValueField(wireName: r'salePriceRp')
   int get salePriceRp;
@@ -60,7 +78,7 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
   int get projectionRateRp;
 
   @BuiltValueField(wireName: r'version')
-  int? get version;
+  int get version;
 
   CustomerPackageBalance._();
 
@@ -110,6 +128,11 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    yield r'status';
+    yield serializers.serialize(
+      object.status,
+      specifiedType: const FullType(CustomerPackageBalanceStatusEnum),
+    );
     yield r'activationDate';
     yield serializers.serialize(
       object.activationDate,
@@ -119,6 +142,21 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
     yield serializers.serialize(
       object.expiryAt,
       specifiedType: const FullType(DateTime),
+    );
+    yield r'ledgerBalance';
+    yield serializers.serialize(
+      object.ledgerBalance,
+      specifiedType: const FullType(int),
+    );
+    yield r'reserved';
+    yield serializers.serialize(
+      object.reserved,
+      specifiedType: const FullType(int),
+    );
+    yield r'available';
+    yield serializers.serialize(
+      object.available,
+      specifiedType: const FullType(int),
     );
     yield r'salePriceRp';
     yield serializers.serialize(
@@ -140,13 +178,11 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.projectionRateRp,
       specifiedType: const FullType(int),
     );
-    if (object.version != null) {
-      yield r'version';
-      yield serializers.serialize(
-        object.version,
-        specifiedType: const FullType(int),
-      );
-    }
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override
@@ -205,6 +241,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
           ) as String;
           result.classTypeId = valueDes;
           break;
+        case r'status':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CustomerPackageBalanceStatusEnum),
+          ) as CustomerPackageBalanceStatusEnum;
+          result.status = valueDes;
+          break;
         case r'activationDate':
           final valueDes = serializers.deserialize(
             value,
@@ -218,6 +261,27 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(DateTime),
           ) as DateTime;
           result.expiryAt = valueDes;
+          break;
+        case r'ledgerBalance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.ledgerBalance = valueDes;
+          break;
+        case r'reserved':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.reserved = valueDes;
+          break;
+        case r'available':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.available = valueDes;
           break;
         case r'salePriceRp':
           final valueDes = serializers.deserialize(
@@ -281,5 +345,22 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
     );
     return result.build();
   }
+}
+
+class CustomerPackageBalanceStatusEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'ACTIVE')
+  static const CustomerPackageBalanceStatusEnum ACTIVE = _$customerPackageBalanceStatusEnum_ACTIVE;
+  @BuiltValueEnumConst(wireName: r'EXPIRED')
+  static const CustomerPackageBalanceStatusEnum EXPIRED = _$customerPackageBalanceStatusEnum_EXPIRED;
+  @BuiltValueEnumConst(wireName: r'INACTIVE')
+  static const CustomerPackageBalanceStatusEnum INACTIVE = _$customerPackageBalanceStatusEnum_INACTIVE;
+
+  static Serializer<CustomerPackageBalanceStatusEnum> get serializer => _$customerPackageBalanceStatusEnumSerializer;
+
+  const CustomerPackageBalanceStatusEnum._(String name): super(name);
+
+  static BuiltSet<CustomerPackageBalanceStatusEnum> get values => _$customerPackageBalanceStatusEnumValues;
+  static CustomerPackageBalanceStatusEnum valueOf(String name) => _$customerPackageBalanceStatusEnumValueOf(name);
 }
 

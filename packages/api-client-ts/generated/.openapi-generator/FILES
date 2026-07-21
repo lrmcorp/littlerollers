@@ -122,6 +122,7 @@ models/ReplacePaymentProofCommand.ts
 models/Reschedule.ts
 models/RescheduleCommand.ts
 models/RescheduleDecisionResult.ts
+models/ReservationSummary.ts
 models/Resource.ts
 models/RevokeSessionsCommand.ts
 models/Role.ts

@@ -109,6 +109,7 @@ export * from './ReplacePaymentProofCommand';
 export * from './Reschedule';
 export * from './RescheduleCommand';
 export * from './RescheduleDecisionResult';
+export * from './ReservationSummary';
 export * from './Resource';
 export * from './RevokeSessionsCommand';
 export * from './Role';

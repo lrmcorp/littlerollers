@@ -494,6 +494,61 @@ test('MFA purchase review approves once and exposes only an opaque proof authori
   await expect(page.getByRole('status')).toContainText('APPROVED');
 });
 
+test('ledger balance and history are keyboard accessible and branch scoped', async ({ page }) => {
+  const balance = {
+    id: 'cp-1',
+    branchId: 'branch-1',
+    customerUserId: 'customer-1',
+    packageId: 'package-1',
+    classTypeId: 'class-1',
+    status: 'ACTIVE',
+    activationDate: '2026-01-01',
+    expiryAt: '2099-01-01T00:00:00Z',
+    ledgerBalance: 10,
+    reserved: 2,
+    available: 8,
+    salePriceRp: 2000000,
+    sessionCountSnapshot: 10,
+    durationDaysSnapshot: 30,
+    projectionRateRp: 100000,
+    version: 0,
+  };
+  await page.route('**/api/v1/customer-packages?branchId=branch-1', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [balance], page: { nextCursor: null, hasMore: false } }),
+    }),
+  );
+  await page.route('**/api/v1/customer-packages/cp-1/ledger', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        balance,
+        reservations: { activeQuantity: 2 },
+        entries: [
+          {
+            id: 'entry-1',
+            customerPackageId: 'cp-1',
+            type: 'PURCHASE',
+            quantity: 10,
+            referenceType: 'PURCHASE',
+            referenceId: 'purchase-1',
+            occurredAt: '2026-01-01T00:00:00Z',
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  await page.goto('/ledger');
+  await page.getByLabel('Cabang ledger').fill('branch-1');
+  await page.getByRole('button', { name: 'Muat saldo' }).press('Enter');
+  await page.getByRole('button', { name: /total 10.*reserved 2.*tersedia 8/ }).press('Enter');
+  await expect(page.getByText('PURCHASE 10')).toBeVisible();
+});
+
 test('assignment overlap and hidden branch failures do not show optimistic success', async ({
   page,
 }) => {

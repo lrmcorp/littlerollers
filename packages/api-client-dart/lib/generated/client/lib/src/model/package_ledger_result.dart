@@ -6,6 +6,7 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/customer_package_balance.dart';
 import 'package:openapi/src/model/ledger_entry.dart';
+import 'package:openapi/src/model/reservation_summary.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -16,12 +17,16 @@ part 'package_ledger_result.g.dart';
 ///
 /// Properties:
 /// * [balance] 
+/// * [reservations] 
 /// * [entries] 
 /// * [page] 
 @BuiltValue()
 abstract class PackageLedgerResult implements Built<PackageLedgerResult, PackageLedgerResultBuilder> {
   @BuiltValueField(wireName: r'balance')
   CustomerPackageBalance get balance;
+
+  @BuiltValueField(wireName: r'reservations')
+  ReservationSummary get reservations;
 
   @BuiltValueField(wireName: r'entries')
   BuiltList<LedgerEntry> get entries;
@@ -56,6 +61,11 @@ class _$PackageLedgerResultSerializer implements PrimitiveSerializer<PackageLedg
     yield serializers.serialize(
       object.balance,
       specifiedType: const FullType(CustomerPackageBalance),
+    );
+    yield r'reservations';
+    yield serializers.serialize(
+      object.reservations,
+      specifiedType: const FullType(ReservationSummary),
     );
     yield r'entries';
     yield serializers.serialize(
@@ -96,6 +106,13 @@ class _$PackageLedgerResultSerializer implements PrimitiveSerializer<PackageLedg
             specifiedType: const FullType(CustomerPackageBalance),
           ) as CustomerPackageBalance;
           result.balance.replace(valueDes);
+          break;
+        case r'reservations':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(ReservationSummary),
+          ) as ReservationSummary;
+          result.reservations.replace(valueDes);
           break;
         case r'entries':
           final valueDes = serializers.deserialize(

@@ -39,7 +39,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-MST-01 | D | D / B | P | D | D | DEC-005,006 | AI / in progress | BG-2 IN_PROGRESS; PG-1 B | 86 | SYNTHETIC implementation/evidence in progress; PROD NO / approved effective configuration plus gates |
 | US-PKG-01 | D | D / B | P | D | D | DEC-004,011 | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 88 | SYNTHETIC evidence `8a5fe34` hosted PASS (user-confirmed); PROD NO / package config, storage/scan decision and signatures |
 | US-PKG-02 | D | D / B | P | D | D | DEC-004,006,011,012 | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 88 | Source `a97f3d3`, Dart closure `6664850`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
-| US-LED-01 | D | D / B | P | D | D | — | AI / local pending | BG-1 NEXT; PG-1 B | 83 | BUILD YES; PROD NO / TL+QA / generated clients, Figma, environment and gates |
+| US-LED-01 | D | D / B | P | D | D | — | AI / implementation | BG-2 IN PROGRESS; PG-1 B | 86 | OpenAPI `1.0.0-draft`, API/Web/Flutter source and local pipeline PASS; hosted database/drift/E2E pending; PROD NO |
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / MFA/SoD review and signed evidence |
 | US-CLS-01 | D | D / B | P | D | D | — | AI / local pending | BG-1 NEXT; PG-1 B | 83 | BUILD YES; PROD NO / TL+Designer / Figma, client review, environment, gates |
 | US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+Finance+TL / configuration/cancel policy and approvals |

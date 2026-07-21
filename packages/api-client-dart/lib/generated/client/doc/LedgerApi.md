@@ -68,6 +68,8 @@ Name | Type | Description  | Notes
 
 
 
+Append-only entries ordered by occurredAt and id descending with opaque keyset cursor and active reservation summary.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -110,6 +112,8 @@ Name | Type | Description  | Notes
 > CustomerPackageBalancePage listCustomerPackages(branchId, cursor)
 
 
+
+Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Invalid cursor is rejected; invariant mismatch is never silently clamped.
 
 ### Example
 ```dart

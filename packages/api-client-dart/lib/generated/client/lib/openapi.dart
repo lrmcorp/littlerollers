@@ -133,6 +133,7 @@ export 'package:openapi/src/model/replace_payment_proof_command.dart';
 export 'package:openapi/src/model/reschedule.dart';
 export 'package:openapi/src/model/reschedule_command.dart';
 export 'package:openapi/src/model/reschedule_decision_result.dart';
+export 'package:openapi/src/model/reservation_summary.dart';
 export 'package:openapi/src/model/resource.dart';
 export 'package:openapi/src/model/revoke_sessions_command.dart';
 export 'package:openapi/src/model/role.dart';

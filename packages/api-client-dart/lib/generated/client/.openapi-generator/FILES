@@ -123,6 +123,7 @@ doc/ReplacePaymentProofCommand.md
 doc/Reschedule.md
 doc/RescheduleCommand.md
 doc/RescheduleDecisionResult.md
+doc/ReservationSummary.md
 doc/Resource.md
 doc/RevokeSessionsCommand.md
 doc/Role.md
@@ -264,6 +265,7 @@ lib/src/model/replace_payment_proof_command.dart
 lib/src/model/reschedule.dart
 lib/src/model/reschedule_command.dart
 lib/src/model/reschedule_decision_result.dart
+lib/src/model/reservation_summary.dart
 lib/src/model/resource.dart
 lib/src/model/revoke_sessions_command.dart
 lib/src/model/role.dart
@@ -275,4 +277,4 @@ lib/src/model/token_check_in_command.dart
 lib/src/model/version_command.dart
 lib/src/serializers.dart
 pubspec.yaml
-test/approve_purchase_request_test.dart
+test/reservation_summary_test.dart
