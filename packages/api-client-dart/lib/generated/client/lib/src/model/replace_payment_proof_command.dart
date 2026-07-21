@@ -12,11 +12,15 @@ part 'replace_payment_proof_command.g.dart';
 ///
 /// Properties:
 /// * [newPaymentProofUploadId] 
+/// * [expectedVersion] 
 /// * [reason] 
 @BuiltValue()
 abstract class ReplacePaymentProofCommand implements Built<ReplacePaymentProofCommand, ReplacePaymentProofCommandBuilder> {
   @BuiltValueField(wireName: r'newPaymentProofUploadId')
   String get newPaymentProofUploadId;
+
+  @BuiltValueField(wireName: r'expectedVersion')
+  int get expectedVersion;
 
   @BuiltValueField(wireName: r'reason')
   String get reason;
@@ -48,6 +52,11 @@ class _$ReplacePaymentProofCommandSerializer implements PrimitiveSerializer<Repl
     yield serializers.serialize(
       object.newPaymentProofUploadId,
       specifiedType: const FullType(String),
+    );
+    yield r'expectedVersion';
+    yield serializers.serialize(
+      object.expectedVersion,
+      specifiedType: const FullType(int),
     );
     yield r'reason';
     yield serializers.serialize(
@@ -83,6 +92,13 @@ class _$ReplacePaymentProofCommandSerializer implements PrimitiveSerializer<Repl
             specifiedType: const FullType(String),
           ) as String;
           result.newPaymentProofUploadId = valueDes;
+          break;
+        case r'expectedVersion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.expectedVersion = valueDes;
           break;
         case r'reason':
           final valueDes = serializers.deserialize(

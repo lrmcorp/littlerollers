@@ -316,6 +316,109 @@ test('master creates quota without a production default and exposes overlap safe
   ).toBeVisible();
 });
 
+test('purchase proof clean flow submits one pending intent with keyboard controls', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/packages**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'package-1',
+            branchId: 'branch-1',
+            classTypeId: 'class-1',
+            businessKey: 'PKG-10',
+            name: 'Ten Sessions',
+            sessionCount: 10,
+            durationDays: 30,
+            priceRp: 2000000,
+            status: 'ACTIVE',
+            effectiveFrom: '2026-01-01',
+            effectiveUntil: null,
+            version: 0,
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/uploads/payment-proofs', (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'proof-1',
+        status: 'ISSUED',
+        scanStatus: 'PENDING',
+        uploadReference: 'opaque',
+      }),
+    }),
+  );
+  await page.route('**/api/v1/uploads/payment-proofs/proof-1/finalize', (route) =>
+    route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'proof-1',
+        uploadStatus: 'FINALIZED',
+        scanStatus: 'CLEAN',
+        fileName: 'proof.png',
+        mimeType: 'image/png',
+        sizeBytes: 1024,
+        version: 0,
+      }),
+    }),
+  );
+  await page.route('**/api/v1/purchases', (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'purchase-1',
+        userId: 'user-1',
+        branchId: 'branch-1',
+        packageId: 'package-1',
+        paymentProofId: 'proof-1',
+        packageNameSnapshot: 'Ten Sessions',
+        priceRpSnapshot: 2000000,
+        sessionCountSnapshot: 10,
+        durationDaysSnapshot: 30,
+        status: 'PENDING',
+        submittedAt: new Date().toISOString(),
+        version: 0,
+      }),
+    }),
+  );
+  await page.goto('/purchases');
+  await page.getByLabel('ID cabang').fill('branch-1');
+  await page.getByRole('button', { name: 'Muat paket' }).press('Enter');
+  await page.getByLabel('Paket').selectOption('package-1');
+  await page.getByLabel('Nama file').fill('proof.png');
+  await page.getByLabel('Ukuran byte').fill('1024');
+  await page.getByLabel('SHA-256').fill('a'.repeat(64));
+  await page.getByRole('button', { name: 'Upload dan scan' }).press('Enter');
+  await expect(page.getByText('Status scan:')).toContainText('CLEAN');
+  await page.getByRole('button', { name: 'Kirim purchase' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('PENDING');
+});
+
+test('unsafe scan and provider failure never enable purchase submission', async ({ page }) => {
+  await page.route('**/api/v1/packages**', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'CONFIGURATION_REQUIRED' } }),
+    }),
+  );
+  await page.goto('/purchases');
+  await page.getByLabel('ID cabang').fill('branch-1');
+  await page.getByRole('button', { name: 'Muat paket' }).click();
+  await expect(page.getByRole('alert')).toContainText('CONFIGURATION_REQUIRED');
+  await expect(page.getByRole('button', { name: 'Kirim purchase' })).toBeDisabled();
+});
+
 test('assignment overlap and hidden branch failures do not show optimistic success', async ({
   page,
 }) => {

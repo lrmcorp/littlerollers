@@ -9,16 +9,18 @@ import 'package:built_value/serializer.dart';
 
 part 'package_command.g.dart';
 
-/// PackageCommand
+/// Synthetic fixtures must supply every commercial value explicitly; no production defaults are implied.
 ///
 /// Properties:
 /// * [branchId] 
 /// * [classTypeId] 
+/// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [effectiveFrom] 
+/// * [effectiveUntil] 
 @BuiltValue()
 abstract class PackageCommand implements Built<PackageCommand, PackageCommandBuilder> {
   @BuiltValueField(wireName: r'branchId')
@@ -26,6 +28,9 @@ abstract class PackageCommand implements Built<PackageCommand, PackageCommandBui
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'businessKey')
+  String get businessKey;
 
   @BuiltValueField(wireName: r'name')
   String get name;
@@ -41,6 +46,9 @@ abstract class PackageCommand implements Built<PackageCommand, PackageCommandBui
 
   @BuiltValueField(wireName: r'effectiveFrom')
   Date get effectiveFrom;
+
+  @BuiltValueField(wireName: r'effectiveUntil')
+  Date? get effectiveUntil;
 
   PackageCommand._();
 
@@ -75,6 +83,11 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    yield r'businessKey';
+    yield serializers.serialize(
+      object.businessKey,
+      specifiedType: const FullType(String),
+    );
     yield r'name';
     yield serializers.serialize(
       object.name,
@@ -100,6 +113,13 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
       object.effectiveFrom,
       specifiedType: const FullType(Date),
     );
+    if (object.effectiveUntil != null) {
+      yield r'effectiveUntil';
+      yield serializers.serialize(
+        object.effectiveUntil,
+        specifiedType: const FullType.nullable(Date),
+      );
+    }
   }
 
   @override
@@ -137,6 +157,13 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
           ) as String;
           result.classTypeId = valueDes;
           break;
+        case r'businessKey':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.businessKey = valueDes;
+          break;
         case r'name':
           final valueDes = serializers.deserialize(
             value,
@@ -171,6 +198,14 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
             specifiedType: const FullType(Date),
           ) as Date;
           result.effectiveFrom = valueDes;
+          break;
+        case r'effectiveUntil':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(Date),
+          ) as Date?;
+          if (valueDes == null) continue;
+          result.effectiveUntil = valueDes;
           break;
         default:
           unhandled.add(key);

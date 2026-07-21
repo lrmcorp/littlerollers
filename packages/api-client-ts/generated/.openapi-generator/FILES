@@ -103,11 +103,14 @@ models/OtpVerifyRequest.ts
 models/Package.ts
 models/PackageCommand.ts
 models/PackageLedgerResult.ts
+models/PackagePage.ts
 models/Page.ts
 models/PagePage.ts
 models/PaymentProof.ts
+models/PaymentProofUploadInstruction.ts
 models/ProjectionRateCommand.ts
 models/Purchase.ts
+models/PurchasePage.ts
 models/QuotaCapacityCommand.ts
 models/QuotaEvaluationCommand.ts
 models/QuotaEvaluationResult.ts

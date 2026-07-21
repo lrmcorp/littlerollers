@@ -10,11 +10,13 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **branchId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**businessKey** | **String** |  | 
 **name** | **String** |  | 
 **sessionCount** | **int** |  | 
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
 **effectiveFrom** | [**Date**](Date.md) |  | 
+**effectiveUntil** | [**Date**](Date.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

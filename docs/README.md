@@ -37,6 +37,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [BG-2 Identity Increment Evidence](delivery/11-bg-2-identity-increment-evidence.md) | AI Backend/TL | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Assignment Evidence](delivery/12-bg-2-assignment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Effective Master Evidence](delivery/13-bg-2-effective-master-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
+| Delivery | [BG-2 Package Purchase Evidence](delivery/14-bg-2-package-purchase-evidence.md) | AI Backend/Web/Flutter/Data | AI QA/Security/Peer Reviewer |
 | Product | [PRD & Business Rules](product/01-prd-and-business-rules.md) | PM/BA | Product Owner |
 | Product | [Backlog, Acceptance & Traceability](product/02-backlog-and-traceability.md) | PM/BA | Product Owner |
 | Product | [MVP Implementation Backlog](product/03-mvp-implementation-backlog.md) | PM/BA | Product Owner |

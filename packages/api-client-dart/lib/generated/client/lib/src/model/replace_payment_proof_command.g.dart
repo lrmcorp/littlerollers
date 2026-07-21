@@ -10,6 +10,8 @@ class _$ReplacePaymentProofCommand extends ReplacePaymentProofCommand {
   @override
   final String newPaymentProofUploadId;
   @override
+  final int expectedVersion;
+  @override
   final String reason;
 
   factory _$ReplacePaymentProofCommand([
@@ -18,6 +20,7 @@ class _$ReplacePaymentProofCommand extends ReplacePaymentProofCommand {
 
   _$ReplacePaymentProofCommand._({
     required this.newPaymentProofUploadId,
+    required this.expectedVersion,
     required this.reason,
   }) : super._();
   @override
@@ -34,6 +37,7 @@ class _$ReplacePaymentProofCommand extends ReplacePaymentProofCommand {
     if (identical(other, this)) return true;
     return other is ReplacePaymentProofCommand &&
         newPaymentProofUploadId == other.newPaymentProofUploadId &&
+        expectedVersion == other.expectedVersion &&
         reason == other.reason;
   }
 
@@ -41,6 +45,7 @@ class _$ReplacePaymentProofCommand extends ReplacePaymentProofCommand {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, newPaymentProofUploadId.hashCode);
+    _$hash = $jc(_$hash, expectedVersion.hashCode);
     _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -50,6 +55,7 @@ class _$ReplacePaymentProofCommand extends ReplacePaymentProofCommand {
   String toString() {
     return (newBuiltValueToStringHelper(r'ReplacePaymentProofCommand')
           ..add('newPaymentProofUploadId', newPaymentProofUploadId)
+          ..add('expectedVersion', expectedVersion)
           ..add('reason', reason))
         .toString();
   }
@@ -65,6 +71,11 @@ class ReplacePaymentProofCommandBuilder
   set newPaymentProofUploadId(String? newPaymentProofUploadId) =>
       _$this._newPaymentProofUploadId = newPaymentProofUploadId;
 
+  int? _expectedVersion;
+  int? get expectedVersion => _$this._expectedVersion;
+  set expectedVersion(int? expectedVersion) =>
+      _$this._expectedVersion = expectedVersion;
+
   String? _reason;
   String? get reason => _$this._reason;
   set reason(String? reason) => _$this._reason = reason;
@@ -77,6 +88,7 @@ class ReplacePaymentProofCommandBuilder
     final $v = _$v;
     if ($v != null) {
       _newPaymentProofUploadId = $v.newPaymentProofUploadId;
+      _expectedVersion = $v.expectedVersion;
       _reason = $v.reason;
       _$v = null;
     }
@@ -104,6 +116,11 @@ class ReplacePaymentProofCommandBuilder
             newPaymentProofUploadId,
             r'ReplacePaymentProofCommand',
             'newPaymentProofUploadId',
+          ),
+          expectedVersion: BuiltValueNullFieldError.checkNotNull(
+            expectedVersion,
+            r'ReplacePaymentProofCommand',
+            'expectedVersion',
           ),
           reason: BuiltValueNullFieldError.checkNotNull(
             reason,

@@ -3,7 +3,7 @@ import type { ApplicationRole, AssuranceLevel } from '@prisma/client';
 import { ApiProblem } from './security';
 
 const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
-  CUSTOMER: ['customer:self'],
+  CUSTOMER: ['customer:self', 'package:read'],
   INSTRUCTOR: ['class:assigned:read', 'attendance:self'],
   ADMIN: ['branch:operate', 'user:read'],
   MANAGER: ['branch:manage', 'user:read'],
@@ -16,6 +16,7 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'assignment:manage',
     'master:read',
     'master:manage',
+    'package:read',
   ],
   FINANCE: ['finance:read', 'finance:manage'],
   OPS: ['operations:read', 'operations:recover'],

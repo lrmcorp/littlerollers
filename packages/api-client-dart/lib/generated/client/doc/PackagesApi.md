@@ -150,9 +150,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createPaymentProofUpload**
-> Resource createPaymentProofUpload(createPaymentProofUploadRequest)
+> PaymentProofUploadInstruction createPaymentProofUpload(createPaymentProofUploadRequest)
 
 
+
+Issues an opaque private upload reference after metadata validation. Production remains CONFIGURATION_REQUIRED until storage and scan providers are approved.
 
 ### Example
 ```dart
@@ -177,7 +179,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Resource**](Resource.md)
+[**PaymentProofUploadInstruction**](PaymentProofUploadInstruction.md)
 
 ### Authorization
 
@@ -277,9 +279,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listPackages**
-> Page listPackages(branchId, cursor)
+> PackagePage listPackages(branchId, cursor)
 
 
+
+Returns ACTIVE packages effective for the requested scoped branch. Commercial periods are half-open [effectiveFrom,effectiveUntil).
 
 ### Example
 ```dart
@@ -306,7 +310,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**PackagePage**](PackagePage.md)
 
 ### Authorization
 
@@ -315,12 +319,12 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listPurchases**
-> Page listPurchases(branchId, cursor, status)
+> PurchasePage listPurchases(branchId, cursor, status)
 
 
 
@@ -351,7 +355,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Page**](Page.md)
+[**PurchasePage**](PurchasePage.md)
 
 ### Authorization
 

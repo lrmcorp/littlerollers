@@ -174,9 +174,9 @@ class _$PaymentProof extends PaymentProof {
   @override
   final int sizeBytes;
   @override
-  final String sha256;
-  @override
   final String? replacedById;
+  @override
+  final int version;
 
   factory _$PaymentProof([void Function(PaymentProofBuilder)? updates]) =>
       (PaymentProofBuilder()..update(updates))._build();
@@ -188,8 +188,8 @@ class _$PaymentProof extends PaymentProof {
     required this.fileName,
     required this.mimeType,
     required this.sizeBytes,
-    required this.sha256,
     this.replacedById,
+    required this.version,
   }) : super._();
   @override
   PaymentProof rebuild(void Function(PaymentProofBuilder) updates) =>
@@ -208,8 +208,8 @@ class _$PaymentProof extends PaymentProof {
         fileName == other.fileName &&
         mimeType == other.mimeType &&
         sizeBytes == other.sizeBytes &&
-        sha256 == other.sha256 &&
-        replacedById == other.replacedById;
+        replacedById == other.replacedById &&
+        version == other.version;
   }
 
   @override
@@ -221,8 +221,8 @@ class _$PaymentProof extends PaymentProof {
     _$hash = $jc(_$hash, fileName.hashCode);
     _$hash = $jc(_$hash, mimeType.hashCode);
     _$hash = $jc(_$hash, sizeBytes.hashCode);
-    _$hash = $jc(_$hash, sha256.hashCode);
     _$hash = $jc(_$hash, replacedById.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -236,8 +236,8 @@ class _$PaymentProof extends PaymentProof {
           ..add('fileName', fileName)
           ..add('mimeType', mimeType)
           ..add('sizeBytes', sizeBytes)
-          ..add('sha256', sha256)
-          ..add('replacedById', replacedById))
+          ..add('replacedById', replacedById)
+          ..add('version', version))
         .toString();
   }
 }
@@ -272,13 +272,13 @@ class PaymentProofBuilder
   int? get sizeBytes => _$this._sizeBytes;
   set sizeBytes(int? sizeBytes) => _$this._sizeBytes = sizeBytes;
 
-  String? _sha256;
-  String? get sha256 => _$this._sha256;
-  set sha256(String? sha256) => _$this._sha256 = sha256;
-
   String? _replacedById;
   String? get replacedById => _$this._replacedById;
   set replacedById(String? replacedById) => _$this._replacedById = replacedById;
+
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
 
   PaymentProofBuilder() {
     PaymentProof._defaults(this);
@@ -293,8 +293,8 @@ class PaymentProofBuilder
       _fileName = $v.fileName;
       _mimeType = $v.mimeType;
       _sizeBytes = $v.sizeBytes;
-      _sha256 = $v.sha256;
       _replacedById = $v.replacedById;
+      _version = $v.version;
       _$v = null;
     }
     return this;
@@ -343,12 +343,12 @@ class PaymentProofBuilder
             r'PaymentProof',
             'sizeBytes',
           ),
-          sha256: BuiltValueNullFieldError.checkNotNull(
-            sha256,
-            r'PaymentProof',
-            'sha256',
-          ),
           replacedById: replacedById,
+          version: BuiltValueNullFieldError.checkNotNull(
+            version,
+            r'PaymentProof',
+            'version',
+          ),
         );
     replace(_$result);
     return _$result;

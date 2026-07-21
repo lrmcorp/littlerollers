@@ -3,24 +3,27 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'purchase.g.dart';
 
-/// Purchase
+/// US-PKG-01 creates PENDING only; approval and ledger mutation are US-PKG-02.
 ///
 /// Properties:
 /// * [id] 
 /// * [branchId] 
-/// * [customerUserId] 
+/// * [userId] 
 /// * [packageId] 
 /// * [paymentProofId] 
+/// * [packageNameSnapshot] 
+/// * [priceRpSnapshot] 
+/// * [sessionCountSnapshot] 
+/// * [durationDaysSnapshot] 
 /// * [status] 
 /// * [submittedAt] 
-/// * [decidedAt] 
-/// * [reason] 
+/// * [version] 
 @BuiltValue()
 abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -29,27 +32,35 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   @BuiltValueField(wireName: r'branchId')
   String get branchId;
 
-  @BuiltValueField(wireName: r'customerUserId')
-  String get customerUserId;
+  @BuiltValueField(wireName: r'userId')
+  String get userId;
 
   @BuiltValueField(wireName: r'packageId')
   String get packageId;
 
   @BuiltValueField(wireName: r'paymentProofId')
-  String? get paymentProofId;
+  String get paymentProofId;
+
+  @BuiltValueField(wireName: r'packageNameSnapshot')
+  String get packageNameSnapshot;
+
+  @BuiltValueField(wireName: r'priceRpSnapshot')
+  int get priceRpSnapshot;
+
+  @BuiltValueField(wireName: r'sessionCountSnapshot')
+  int get sessionCountSnapshot;
+
+  @BuiltValueField(wireName: r'durationDaysSnapshot')
+  int get durationDaysSnapshot;
 
   @BuiltValueField(wireName: r'status')
-  PurchaseStatusEnum get status;
-  // enum statusEnum {  PENDING,  APPROVED,  REJECTED,  };
+  JsonObject? get status;
 
   @BuiltValueField(wireName: r'submittedAt')
   DateTime get submittedAt;
 
-  @BuiltValueField(wireName: r'decidedAt')
-  DateTime? get decidedAt;
-
-  @BuiltValueField(wireName: r'reason')
-  String? get reason;
+  @BuiltValueField(wireName: r'version')
+  int get version;
 
   Purchase._();
 
@@ -84,9 +95,9 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.branchId,
       specifiedType: const FullType(String),
     );
-    yield r'customerUserId';
+    yield r'userId';
     yield serializers.serialize(
-      object.customerUserId,
+      object.userId,
       specifiedType: const FullType(String),
     );
     yield r'packageId';
@@ -94,37 +105,46 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.packageId,
       specifiedType: const FullType(String),
     );
-    if (object.paymentProofId != null) {
-      yield r'paymentProofId';
-      yield serializers.serialize(
-        object.paymentProofId,
-        specifiedType: const FullType(String),
-      );
-    }
-    yield r'status';
+    yield r'paymentProofId';
     yield serializers.serialize(
+      object.paymentProofId,
+      specifiedType: const FullType(String),
+    );
+    yield r'packageNameSnapshot';
+    yield serializers.serialize(
+      object.packageNameSnapshot,
+      specifiedType: const FullType(String),
+    );
+    yield r'priceRpSnapshot';
+    yield serializers.serialize(
+      object.priceRpSnapshot,
+      specifiedType: const FullType(int),
+    );
+    yield r'sessionCountSnapshot';
+    yield serializers.serialize(
+      object.sessionCountSnapshot,
+      specifiedType: const FullType(int),
+    );
+    yield r'durationDaysSnapshot';
+    yield serializers.serialize(
+      object.durationDaysSnapshot,
+      specifiedType: const FullType(int),
+    );
+    yield r'status';
+    yield object.status == null ? null : serializers.serialize(
       object.status,
-      specifiedType: const FullType(PurchaseStatusEnum),
+      specifiedType: const FullType.nullable(JsonObject),
     );
     yield r'submittedAt';
     yield serializers.serialize(
       object.submittedAt,
       specifiedType: const FullType(DateTime),
     );
-    if (object.decidedAt != null) {
-      yield r'decidedAt';
-      yield serializers.serialize(
-        object.decidedAt,
-        specifiedType: const FullType.nullable(DateTime),
-      );
-    }
-    if (object.reason != null) {
-      yield r'reason';
-      yield serializers.serialize(
-        object.reason,
-        specifiedType: const FullType.nullable(String),
-      );
-    }
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override
@@ -162,12 +182,12 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
           ) as String;
           result.branchId = valueDes;
           break;
-        case r'customerUserId':
+        case r'userId':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
-          result.customerUserId = valueDes;
+          result.userId = valueDes;
           break;
         case r'packageId':
           final valueDes = serializers.deserialize(
@@ -183,11 +203,40 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
           ) as String;
           result.paymentProofId = valueDes;
           break;
+        case r'packageNameSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.packageNameSnapshot = valueDes;
+          break;
+        case r'priceRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.priceRpSnapshot = valueDes;
+          break;
+        case r'sessionCountSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.sessionCountSnapshot = valueDes;
+          break;
+        case r'durationDaysSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.durationDaysSnapshot = valueDes;
+          break;
         case r'status':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(PurchaseStatusEnum),
-          ) as PurchaseStatusEnum;
+            specifiedType: const FullType.nullable(JsonObject),
+          ) as JsonObject?;
+          if (valueDes == null) continue;
           result.status = valueDes;
           break;
         case r'submittedAt':
@@ -197,21 +246,12 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
           ) as DateTime;
           result.submittedAt = valueDes;
           break;
-        case r'decidedAt':
+        case r'version':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
-          result.decidedAt = valueDes;
-          break;
-        case r'reason':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType.nullable(String),
-          ) as String?;
-          if (valueDes == null) continue;
-          result.reason = valueDes;
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -240,22 +280,5 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
     );
     return result.build();
   }
-}
-
-class PurchaseStatusEnum extends EnumClass {
-
-  @BuiltValueEnumConst(wireName: r'PENDING')
-  static const PurchaseStatusEnum PENDING = _$purchaseStatusEnum_PENDING;
-  @BuiltValueEnumConst(wireName: r'APPROVED')
-  static const PurchaseStatusEnum APPROVED = _$purchaseStatusEnum_APPROVED;
-  @BuiltValueEnumConst(wireName: r'REJECTED')
-  static const PurchaseStatusEnum REJECTED = _$purchaseStatusEnum_REJECTED;
-
-  static Serializer<PurchaseStatusEnum> get serializer => _$purchaseStatusEnumSerializer;
-
-  const PurchaseStatusEnum._(String name): super(name);
-
-  static BuiltSet<PurchaseStatusEnum> get values => _$purchaseStatusEnumValues;
-  static PurchaseStatusEnum valueOf(String name) => _$purchaseStatusEnumValueOf(name);
 }
 

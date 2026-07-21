@@ -8,6 +8,8 @@ import 'package:openapi/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**branchId** | **String** |  | 
+**packageId** | **String** |  | [optional] 
 **fileName** | **String** |  | 
 **mimeType** | **String** |  | 
 **sizeBytes** | **int** |  | 

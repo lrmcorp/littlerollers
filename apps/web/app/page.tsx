@@ -9,7 +9,8 @@ export default function Home() {
       </p>
       <p>
         <a href="/sign-in">Masuk internal</a> · <a href="/users">Administrasi pengguna</a> ·{' '}
-        <a href="/assignments">Assignments</a> · <a href="/master">Master data</a>
+        <a href="/assignments">Assignments</a> · <a href="/master">Master data</a> ·{' '}
+        <a href="/purchases">Purchase package</a>
       </p>
     </section>
   );

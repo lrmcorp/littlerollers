@@ -29,7 +29,7 @@ Thus a fully documented story with an unresolved decision scores `78%`; one with
 
 ## 2. Story Readiness Snapshot
 
-Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `0.7.0-draft` checksum `9fc4e444120499589918244d6522a3f9f3853418df21291e4b38db8735c238f2`.
+Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `0.8.0-draft` checksum `885ddd6ede30b19fa0f4b5c96986e78e0e82076a30c05420d89c9caaf8406c5e`.
 
 | Story | Requirement | UX text / Figma | Contract | Test/UAT | Migration/release | Blocking DEC | Assignee/env | Gates | % | READY / blocker owner / closure evidence |
 |---|---|---|---|---|---|---|---|---|---:|---|
@@ -37,7 +37,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-ID-02 | D | D / B | P | D | D | DEC-012 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | SYNTHETIC BUILD PASS LOCAL; PROD NO / hosted evidence plus signed session/MFA decision |
 | US-MST-02 | D | D / B | P | D | D | — | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 90 | SYNTHETIC BUILD PASS LOCAL; PROD NO / hosted evidence, Figma, UAT |
 | US-MST-01 | D | D / B | P | D | D | DEC-005,006 | AI / in progress | BG-2 IN_PROGRESS; PG-1 B | 86 | SYNTHETIC implementation/evidence in progress; PROD NO / approved effective configuration plus gates |
-| US-PKG-01 | D | D / B | P | D | D | DEC-004,011 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / package config, storage/scan decision and signatures |
+| US-PKG-01 | D | D / B | P | D | D | DEC-004,011 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | SYNTHETIC BUILD PASS LOCAL; hosted evidence pending; PROD NO / package config, storage/scan decision and signatures |
 | US-PKG-02 | D | D / B | P | D | D | DEC-004,006,011,012 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+Finance+TL / decisions, Figma and signed contract review |
 | US-LED-01 | D | D / B | P | D | D | — | AI / local pending | BG-1 NEXT; PG-1 B | 83 | BUILD YES; PROD NO / TL+QA / generated clients, Figma, environment and gates |
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / MFA/SoD review and signed evidence |

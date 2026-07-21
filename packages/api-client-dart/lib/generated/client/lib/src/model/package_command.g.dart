@@ -12,6 +12,8 @@ class _$PackageCommand extends PackageCommand {
   @override
   final String classTypeId;
   @override
+  final String businessKey;
+  @override
   final String name;
   @override
   final int sessionCount;
@@ -21,6 +23,8 @@ class _$PackageCommand extends PackageCommand {
   final int priceRp;
   @override
   final Date effectiveFrom;
+  @override
+  final Date? effectiveUntil;
 
   factory _$PackageCommand([void Function(PackageCommandBuilder)? updates]) =>
       (PackageCommandBuilder()..update(updates))._build();
@@ -28,11 +32,13 @@ class _$PackageCommand extends PackageCommand {
   _$PackageCommand._({
     required this.branchId,
     required this.classTypeId,
+    required this.businessKey,
     required this.name,
     required this.sessionCount,
     required this.durationDays,
     required this.priceRp,
     required this.effectiveFrom,
+    this.effectiveUntil,
   }) : super._();
   @override
   PackageCommand rebuild(void Function(PackageCommandBuilder) updates) =>
@@ -47,11 +53,13 @@ class _$PackageCommand extends PackageCommand {
     return other is PackageCommand &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
+        businessKey == other.businessKey &&
         name == other.name &&
         sessionCount == other.sessionCount &&
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
-        effectiveFrom == other.effectiveFrom;
+        effectiveFrom == other.effectiveFrom &&
+        effectiveUntil == other.effectiveUntil;
   }
 
   @override
@@ -59,11 +67,13 @@ class _$PackageCommand extends PackageCommand {
     var _$hash = 0;
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, businessKey.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
     _$hash = $jc(_$hash, effectiveFrom.hashCode);
+    _$hash = $jc(_$hash, effectiveUntil.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -73,11 +83,13 @@ class _$PackageCommand extends PackageCommand {
     return (newBuiltValueToStringHelper(r'PackageCommand')
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
+          ..add('businessKey', businessKey)
           ..add('name', name)
           ..add('sessionCount', sessionCount)
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
-          ..add('effectiveFrom', effectiveFrom))
+          ..add('effectiveFrom', effectiveFrom)
+          ..add('effectiveUntil', effectiveUntil))
         .toString();
   }
 }
@@ -93,6 +105,10 @@ class PackageCommandBuilder
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+
+  String? _businessKey;
+  String? get businessKey => _$this._businessKey;
+  set businessKey(String? businessKey) => _$this._businessKey = businessKey;
 
   String? _name;
   String? get name => _$this._name;
@@ -115,6 +131,11 @@ class PackageCommandBuilder
   set effectiveFrom(Date? effectiveFrom) =>
       _$this._effectiveFrom = effectiveFrom;
 
+  Date? _effectiveUntil;
+  Date? get effectiveUntil => _$this._effectiveUntil;
+  set effectiveUntil(Date? effectiveUntil) =>
+      _$this._effectiveUntil = effectiveUntil;
+
   PackageCommandBuilder() {
     PackageCommand._defaults(this);
   }
@@ -124,11 +145,13 @@ class PackageCommandBuilder
     if ($v != null) {
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
+      _businessKey = $v.businessKey;
       _name = $v.name;
       _sessionCount = $v.sessionCount;
       _durationDays = $v.durationDays;
       _priceRp = $v.priceRp;
       _effectiveFrom = $v.effectiveFrom;
+      _effectiveUntil = $v.effectiveUntil;
       _$v = null;
     }
     return this;
@@ -161,6 +184,11 @@ class PackageCommandBuilder
             r'PackageCommand',
             'classTypeId',
           ),
+          businessKey: BuiltValueNullFieldError.checkNotNull(
+            businessKey,
+            r'PackageCommand',
+            'businessKey',
+          ),
           name: BuiltValueNullFieldError.checkNotNull(
             name,
             r'PackageCommand',
@@ -186,6 +214,7 @@ class PackageCommandBuilder
             r'PackageCommand',
             'effectiveFrom',
           ),
+          effectiveUntil: effectiveUntil,
         );
     replace(_$result);
     return _$result;

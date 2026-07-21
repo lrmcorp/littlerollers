@@ -137,15 +137,17 @@ Serializers _$serializers =
           ..add(Package.serializer)
           ..add(PackageCommand.serializer)
           ..add(PackageLedgerResult.serializer)
+          ..add(PackagePage.serializer)
           ..add(PackageStatusEnum.serializer)
           ..add(Page.serializer)
           ..add(PagePage.serializer)
           ..add(PaymentProof.serializer)
           ..add(PaymentProofScanStatusEnum.serializer)
+          ..add(PaymentProofUploadInstruction.serializer)
           ..add(PaymentProofUploadStatusEnum.serializer)
           ..add(ProjectionRateCommand.serializer)
           ..add(Purchase.serializer)
-          ..add(PurchaseStatusEnum.serializer)
+          ..add(PurchasePage.serializer)
           ..add(QuotaCapacityCommand.serializer)
           ..add(QuotaEvaluationCommand.serializer)
           ..add(QuotaEvaluationResult.serializer)
@@ -258,6 +260,14 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(OtherCost)]),
             () => ListBuilder<OtherCost>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Package)]),
+            () => ListBuilder<Package>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Purchase)]),
+            () => ListBuilder<Purchase>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Resource)]),

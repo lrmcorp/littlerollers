@@ -11,12 +11,20 @@ part 'create_payment_proof_upload_request.g.dart';
 /// CreatePaymentProofUploadRequest
 ///
 /// Properties:
+/// * [branchId] 
+/// * [packageId] 
 /// * [fileName] 
 /// * [mimeType] 
 /// * [sizeBytes] 
 /// * [sha256] 
 @BuiltValue()
 abstract class CreatePaymentProofUploadRequest implements Built<CreatePaymentProofUploadRequest, CreatePaymentProofUploadRequestBuilder> {
+  @BuiltValueField(wireName: r'branchId')
+  String get branchId;
+
+  @BuiltValueField(wireName: r'packageId')
+  String? get packageId;
+
   @BuiltValueField(wireName: r'fileName')
   String get fileName;
 
@@ -52,6 +60,18 @@ class _$CreatePaymentProofUploadRequestSerializer implements PrimitiveSerializer
     CreatePaymentProofUploadRequest object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
+    yield r'branchId';
+    yield serializers.serialize(
+      object.branchId,
+      specifiedType: const FullType(String),
+    );
+    if (object.packageId != null) {
+      yield r'packageId';
+      yield serializers.serialize(
+        object.packageId,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'fileName';
     yield serializers.serialize(
       object.fileName,
@@ -95,6 +115,20 @@ class _$CreatePaymentProofUploadRequestSerializer implements PrimitiveSerializer
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
+        case r'branchId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.branchId = valueDes;
+          break;
+        case r'packageId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.packageId = valueDes;
+          break;
         case r'fileName':
           final valueDes = serializers.deserialize(
             value,

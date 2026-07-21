@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **branchId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**businessKey** | **String** |  | 
 **name** | **String** |  | 
 **sessionCount** | **int** |  | 
 **durationDays** | **int** |  | 
@@ -18,6 +19,7 @@ Name | Type | Description | Notes
 **status** | **String** |  | 
 **effectiveFrom** | [**Date**](Date.md) |  | 
 **effectiveUntil** | [**Date**](Date.md) |  | [optional] 
+**version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

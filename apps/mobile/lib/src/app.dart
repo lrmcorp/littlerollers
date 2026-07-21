@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
 import 'auth_repository.dart';
+import 'purchase_repository.dart';
+import 'purchase_view.dart';
 
 final _router = GoRouter(
   routes: [
@@ -12,6 +14,12 @@ final _router = GoRouter(
       builder: (context, state) => const RoleShell(
         title: 'Customer',
         items: ['Beranda', 'Jadwal', 'Booking', 'Paket'],
+      ),
+    ),
+    GoRoute(
+      path: '/customer/purchases',
+      builder: (context, state) => const CustomerPurchaseView(
+        repository: ConfigurationRequiredPurchaseRepository(),
       ),
     ),
     GoRoute(

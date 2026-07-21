@@ -31,6 +31,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | `4edacf4` | hosted evidence untuk source/evidence commit belum dicatat |
 | WRK-BG2-MST01-001 | Branch, Class Type, effective fee/rate/quota-capacity synthetic | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; empty DB 6 migrations; double seed; 38 PostgreSQL API tests; Web 11 component/a11y + 8 E2E; drift 131 TS/138 Dart; Flutter/Dart PASS; hosted `typescript`, `flutter`, `secrets` hijau (user-confirmed) | `cb3d15f` | run ID/URL tidak tersedia di workspace; production remains blocked |
+| WRK-BG2-PKG01-001 | Package selection, private proof scan, idempotent PENDING purchase | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; PO+Finance production | LOCAL_PASS | empty DB 7 migrations; double seed; 42 PostgreSQL API tests; Web 15 component/a11y + 10 E2E; Flutter 5 widgets; OpenAPI `0.8.0-draft` drift 134 TS/141 Dart | working tree | hosted `typescript`, `flutter`, `secrets` pending; DEC-004/provider/Figma/UAT/production blocked |
 
 ## Independent Review Record
 
@@ -50,6 +51,9 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-MST01-QA-001 | AI QA | value validation, half-open period, DB concurrency, API/Web contract | PASS | local pipeline, migration/double seed, 38 API, 11 Web component, 8 E2E, Flutter/Dart, drift dan hosted jobs hijau |
 | REV-BG2-MST01-SEC-001 | AI Security | MFA, Finance capability, hidden scope, audit masking, production defaults | PASS FOR SYNTHETIC NON-PRODUCTION | no runtime numeric default; raw reason masked; hosted Gitleaks hijau; production DEC-005/006 tetap blocked |
 | REV-BG2-MST01-PEER-001 | AI Peer Reviewer | typed contract, lifecycle dependency dan evidence honesty | PASS FOR SYNTHETIC NON-PRODUCTION | executable local + hosted evidence tersedia; run ID/URL perlu dilengkapi dari GitHub bila diperlukan |
+| REV-BG2-PKG01-QA-001 | AI QA | migration, proof lifecycle, replay, consumers | LOCAL PASS | 42 API, 15 Web component/a11y, 10 E2E dan 5 Flutter tests hijau; hosted pending |
+| REV-BG2-PKG01-SEC-001 | AI Security | private key/checksum, scan gate, scope, audit leakage | LOCAL PASS | no raw provider URL/token/checksum/PII in audit; production fail-closed |
+| REV-BG2-PKG01-PEER-001 | AI Peer Reviewer | scope boundary dan evidence honesty | LOCAL PASS | purchase tetap PENDING; approval/ledger/payment gateway tidak diimplementasikan |
 
 ## Gate Disposition
 
@@ -57,5 +61,5 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
 NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
 NON-PRODUCTION LOCAL_PASS` pada source commit `4edacf4`;
-`US-MST-01 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
+`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-01 = LOCAL_PASS / HOSTED_PENDING FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-02 = NEXT/BLOCKED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
 DEC/CFG production values, Figma, provider/account, migration/UAT dan production approvals tetap.

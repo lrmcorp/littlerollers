@@ -10,12 +10,13 @@ import 'package:built_value/serializer.dart';
 
 part 'package.g.dart';
 
-/// Package
+/// Immutable commercial key and effective half-open interval [effectiveFrom,effectiveUntil).
 ///
 /// Properties:
 /// * [id] 
 /// * [branchId] 
 /// * [classTypeId] 
+/// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
 /// * [durationDays] 
@@ -23,6 +24,7 @@ part 'package.g.dart';
 /// * [status] 
 /// * [effectiveFrom] 
 /// * [effectiveUntil] 
+/// * [version] 
 @BuiltValue()
 abstract class Package implements Built<Package, PackageBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -33,6 +35,9 @@ abstract class Package implements Built<Package, PackageBuilder> {
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'businessKey')
+  String get businessKey;
 
   @BuiltValueField(wireName: r'name')
   String get name;
@@ -55,6 +60,9 @@ abstract class Package implements Built<Package, PackageBuilder> {
 
   @BuiltValueField(wireName: r'effectiveUntil')
   Date? get effectiveUntil;
+
+  @BuiltValueField(wireName: r'version')
+  int get version;
 
   Package._();
 
@@ -94,6 +102,11 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    yield r'businessKey';
+    yield serializers.serialize(
+      object.businessKey,
+      specifiedType: const FullType(String),
+    );
     yield r'name';
     yield serializers.serialize(
       object.name,
@@ -131,6 +144,11 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
         specifiedType: const FullType.nullable(Date),
       );
     }
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override
@@ -174,6 +192,13 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
             specifiedType: const FullType(String),
           ) as String;
           result.classTypeId = valueDes;
+          break;
+        case r'businessKey':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.businessKey = valueDes;
           break;
         case r'name':
           final valueDes = serializers.deserialize(
@@ -224,6 +249,13 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
           ) as Date?;
           if (valueDes == null) continue;
           result.effectiveUntil = valueDes;
+          break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
           break;
         default:
           unhandled.add(key);

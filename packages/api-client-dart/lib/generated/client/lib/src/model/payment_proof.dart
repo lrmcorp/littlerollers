@@ -9,7 +9,7 @@ import 'package:built_value/serializer.dart';
 
 part 'payment_proof.g.dart';
 
-/// PaymentProof
+/// Private proof metadata. Object key, checksum, provider token/reference and signed URLs are never exposed.
 ///
 /// Properties:
 /// * [id] 
@@ -18,8 +18,8 @@ part 'payment_proof.g.dart';
 /// * [fileName] 
 /// * [mimeType] 
 /// * [sizeBytes] 
-/// * [sha256] 
 /// * [replacedById] 
+/// * [version] 
 @BuiltValue()
 abstract class PaymentProof implements Built<PaymentProof, PaymentProofBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -42,11 +42,11 @@ abstract class PaymentProof implements Built<PaymentProof, PaymentProofBuilder> 
   @BuiltValueField(wireName: r'sizeBytes')
   int get sizeBytes;
 
-  @BuiltValueField(wireName: r'sha256')
-  String get sha256;
-
   @BuiltValueField(wireName: r'replacedById')
   String? get replacedById;
+
+  @BuiltValueField(wireName: r'version')
+  int get version;
 
   PaymentProof._();
 
@@ -101,11 +101,6 @@ class _$PaymentProofSerializer implements PrimitiveSerializer<PaymentProof> {
       object.sizeBytes,
       specifiedType: const FullType(int),
     );
-    yield r'sha256';
-    yield serializers.serialize(
-      object.sha256,
-      specifiedType: const FullType(String),
-    );
     if (object.replacedById != null) {
       yield r'replacedById';
       yield serializers.serialize(
@@ -113,6 +108,11 @@ class _$PaymentProofSerializer implements PrimitiveSerializer<PaymentProof> {
         specifiedType: const FullType.nullable(String),
       );
     }
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override
@@ -178,13 +178,6 @@ class _$PaymentProofSerializer implements PrimitiveSerializer<PaymentProof> {
           ) as int;
           result.sizeBytes = valueDes;
           break;
-        case r'sha256':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.sha256 = valueDes;
-          break;
         case r'replacedById':
           final valueDes = serializers.deserialize(
             value,
@@ -192,6 +185,13 @@ class _$PaymentProofSerializer implements PrimitiveSerializer<PaymentProof> {
           ) as String?;
           if (valueDes == null) continue;
           result.replacedById = valueDes;
+          break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
           break;
         default:
           unhandled.add(key);

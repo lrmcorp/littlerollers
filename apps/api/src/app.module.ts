@@ -5,6 +5,7 @@ import { FoundationModule } from './foundation/foundation.module';
 import { DatabaseModule } from './database/database.module';
 import { IdentityModule } from './identity/identity.module';
 import { MasterModule } from './master/master.module';
+import { PackagesModule } from './packages/packages.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { MasterModule } from './master/master.module';
     HealthModule,
     IdentityModule,
     MasterModule,
+    PackagesModule,
   ],
 })
 export class AppModule {}

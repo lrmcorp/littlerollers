@@ -16,9 +16,11 @@ import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
 import 'package:openapi/src/model/package_command.dart';
-import 'package:openapi/src/model/page.dart';
+import 'package:openapi/src/model/package_page.dart';
 import 'package:openapi/src/model/payment_proof.dart';
+import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
 import 'package:openapi/src/model/purchase.dart';
+import 'package:openapi/src/model/purchase_page.dart';
 import 'package:openapi/src/model/replace_payment_proof_command.dart';
 import 'package:openapi/src/model/resource.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
@@ -320,7 +322,7 @@ class PackagesApi {
   }
 
   /// createPaymentProofUpload
-  /// 
+  /// Issues an opaque private upload reference after metadata validation. Production remains CONFIGURATION_REQUIRED until storage and scan providers are approved.
   ///
   /// Parameters:
   /// * [createPaymentProofUploadRequest] 
@@ -331,9 +333,9 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Resource] as data
+  /// Returns a [Future] containing a [Response] with a [PaymentProofUploadInstruction] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Resource>> createPaymentProofUpload({ 
+  Future<Response<PaymentProofUploadInstruction>> createPaymentProofUpload({ 
     required CreatePaymentProofUploadRequest createPaymentProofUploadRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -389,14 +391,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Resource? _responseData;
+    PaymentProofUploadInstruction? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Resource),
-      ) as Resource;
+        specifiedType: const FullType(PaymentProofUploadInstruction),
+      ) as PaymentProofUploadInstruction;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -408,7 +410,7 @@ class PackagesApi {
       );
     }
 
-    return Response<Resource>(
+    return Response<PaymentProofUploadInstruction>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -608,7 +610,7 @@ class PackagesApi {
   }
 
   /// listPackages
-  /// 
+  /// Returns ACTIVE packages effective for the requested scoped branch. Commercial periods are half-open [effectiveFrom,effectiveUntil).
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
@@ -620,9 +622,9 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Page] as data
+  /// Returns a [Future] containing a [Response] with a [PackagePage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Page>> listPackages({ 
+  Future<Response<PackagePage>> listPackages({ 
     String? branchId,
     String? cursor,
     CancelToken? cancelToken,
@@ -665,14 +667,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Page? _responseData;
+    PackagePage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Page),
-      ) as Page;
+        specifiedType: const FullType(PackagePage),
+      ) as PackagePage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -684,7 +686,7 @@ class PackagesApi {
       );
     }
 
-    return Response<Page>(
+    return Response<PackagePage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -710,9 +712,9 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Page] as data
+  /// Returns a [Future] containing a [Response] with a [PurchasePage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Page>> listPurchases({ 
+  Future<Response<PurchasePage>> listPurchases({ 
     String? branchId,
     String? cursor,
     String? status,
@@ -757,14 +759,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Page? _responseData;
+    PurchasePage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Page),
-      ) as Page;
+        specifiedType: const FullType(PurchasePage),
+      ) as PurchasePage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -776,7 +778,7 @@ class PackagesApi {
       );
     }
 
-    return Response<Page>(
+    return Response<PurchasePage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

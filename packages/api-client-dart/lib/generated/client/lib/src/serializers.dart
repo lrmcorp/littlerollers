@@ -104,11 +104,14 @@ import 'package:openapi/src/model/otp_verify_request.dart';
 import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
+import 'package:openapi/src/model/package_page.dart';
 import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/page_page.dart';
 import 'package:openapi/src/model/payment_proof.dart';
+import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
 import 'package:openapi/src/model/projection_rate_command.dart';
 import 'package:openapi/src/model/purchase.dart';
+import 'package:openapi/src/model/purchase_page.dart';
 import 'package:openapi/src/model/quota_capacity_command.dart';
 import 'package:openapi/src/model/quota_evaluation_command.dart';
 import 'package:openapi/src/model/quota_evaluation_result.dart';
@@ -222,11 +225,14 @@ part 'serializers.g.dart';
   Package,
   PackageCommand,
   PackageLedgerResult,
+  PackagePage,
   Page,
   PagePage,
   PaymentProof,
+  PaymentProofUploadInstruction,
   ProjectionRateCommand,
   Purchase,
+  PurchasePage,
   QuotaCapacityCommand,
   QuotaEvaluationCommand,
   QuotaEvaluationResult,

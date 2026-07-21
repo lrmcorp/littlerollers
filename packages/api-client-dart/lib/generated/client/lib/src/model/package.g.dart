@@ -73,6 +73,8 @@ class _$Package extends Package {
   @override
   final String classTypeId;
   @override
+  final String businessKey;
+  @override
   final String name;
   @override
   final int sessionCount;
@@ -86,6 +88,8 @@ class _$Package extends Package {
   final Date effectiveFrom;
   @override
   final Date? effectiveUntil;
+  @override
+  final int version;
 
   factory _$Package([void Function(PackageBuilder)? updates]) =>
       (PackageBuilder()..update(updates))._build();
@@ -94,6 +98,7 @@ class _$Package extends Package {
     required this.id,
     required this.branchId,
     required this.classTypeId,
+    required this.businessKey,
     required this.name,
     required this.sessionCount,
     required this.durationDays,
@@ -101,6 +106,7 @@ class _$Package extends Package {
     required this.status,
     required this.effectiveFrom,
     this.effectiveUntil,
+    required this.version,
   }) : super._();
   @override
   Package rebuild(void Function(PackageBuilder) updates) =>
@@ -116,13 +122,15 @@ class _$Package extends Package {
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
+        businessKey == other.businessKey &&
         name == other.name &&
         sessionCount == other.sessionCount &&
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
         status == other.status &&
         effectiveFrom == other.effectiveFrom &&
-        effectiveUntil == other.effectiveUntil;
+        effectiveUntil == other.effectiveUntil &&
+        version == other.version;
   }
 
   @override
@@ -131,6 +139,7 @@ class _$Package extends Package {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, businessKey.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
     _$hash = $jc(_$hash, durationDays.hashCode);
@@ -138,6 +147,7 @@ class _$Package extends Package {
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, effectiveFrom.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -148,13 +158,15 @@ class _$Package extends Package {
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
+          ..add('businessKey', businessKey)
           ..add('name', name)
           ..add('sessionCount', sessionCount)
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
           ..add('status', status)
           ..add('effectiveFrom', effectiveFrom)
-          ..add('effectiveUntil', effectiveUntil))
+          ..add('effectiveUntil', effectiveUntil)
+          ..add('version', version))
         .toString();
   }
 }
@@ -173,6 +185,10 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+
+  String? _businessKey;
+  String? get businessKey => _$this._businessKey;
+  set businessKey(String? businessKey) => _$this._businessKey = businessKey;
 
   String? _name;
   String? get name => _$this._name;
@@ -204,6 +220,10 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
   set effectiveUntil(Date? effectiveUntil) =>
       _$this._effectiveUntil = effectiveUntil;
 
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
+
   PackageBuilder() {
     Package._defaults(this);
   }
@@ -214,6 +234,7 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
       _id = $v.id;
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
+      _businessKey = $v.businessKey;
       _name = $v.name;
       _sessionCount = $v.sessionCount;
       _durationDays = $v.durationDays;
@@ -221,6 +242,7 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
       _status = $v.status;
       _effectiveFrom = $v.effectiveFrom;
       _effectiveUntil = $v.effectiveUntil;
+      _version = $v.version;
       _$v = null;
     }
     return this;
@@ -254,6 +276,11 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
             r'Package',
             'classTypeId',
           ),
+          businessKey: BuiltValueNullFieldError.checkNotNull(
+            businessKey,
+            r'Package',
+            'businessKey',
+          ),
           name: BuiltValueNullFieldError.checkNotNull(name, r'Package', 'name'),
           sessionCount: BuiltValueNullFieldError.checkNotNull(
             sessionCount,
@@ -281,6 +308,11 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
             'effectiveFrom',
           ),
           effectiveUntil: effectiveUntil,
+          version: BuiltValueNullFieldError.checkNotNull(
+            version,
+            r'Package',
+            'version',
+          ),
         );
     replace(_$result);
     return _$result;

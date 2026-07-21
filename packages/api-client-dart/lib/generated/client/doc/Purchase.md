@@ -10,13 +10,16 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
 **branchId** | **String** |  | 
-**customerUserId** | **String** |  | 
+**userId** | **String** |  | 
 **packageId** | **String** |  | 
-**paymentProofId** | **String** |  | [optional] 
-**status** | **String** |  | 
+**paymentProofId** | **String** |  | 
+**packageNameSnapshot** | **String** |  | 
+**priceRpSnapshot** | **int** |  | 
+**sessionCountSnapshot** | **int** |  | 
+**durationDaysSnapshot** | **int** |  | 
+**status** | [**JsonObject**](.md) |  | 
 **submittedAt** | [**DateTime**](DateTime.md) |  | 
-**decidedAt** | [**DateTime**](DateTime.md) |  | [optional] 
-**reason** | **String** |  | [optional] 
+**version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
