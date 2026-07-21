@@ -6,13 +6,95 @@ part of 'adjustment_command.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const AdjustmentCommandReasonCodeEnum
+_$adjustmentCommandReasonCodeEnum_MIGRATION_CORRECTION =
+    const AdjustmentCommandReasonCodeEnum._('MIGRATION_CORRECTION');
+const AdjustmentCommandReasonCodeEnum
+_$adjustmentCommandReasonCodeEnum_ATTENDANCE_CORRECTION =
+    const AdjustmentCommandReasonCodeEnum._('ATTENDANCE_CORRECTION');
+const AdjustmentCommandReasonCodeEnum
+_$adjustmentCommandReasonCodeEnum_PACKAGE_COMPENSATION =
+    const AdjustmentCommandReasonCodeEnum._('PACKAGE_COMPENSATION');
+const AdjustmentCommandReasonCodeEnum
+_$adjustmentCommandReasonCodeEnum_SUPPORT_RECONCILIATION =
+    const AdjustmentCommandReasonCodeEnum._('SUPPORT_RECONCILIATION');
+
+AdjustmentCommandReasonCodeEnum _$adjustmentCommandReasonCodeEnumValueOf(
+  String name,
+) {
+  switch (name) {
+    case 'MIGRATION_CORRECTION':
+      return _$adjustmentCommandReasonCodeEnum_MIGRATION_CORRECTION;
+    case 'ATTENDANCE_CORRECTION':
+      return _$adjustmentCommandReasonCodeEnum_ATTENDANCE_CORRECTION;
+    case 'PACKAGE_COMPENSATION':
+      return _$adjustmentCommandReasonCodeEnum_PACKAGE_COMPENSATION;
+    case 'SUPPORT_RECONCILIATION':
+      return _$adjustmentCommandReasonCodeEnum_SUPPORT_RECONCILIATION;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<AdjustmentCommandReasonCodeEnum>
+_$adjustmentCommandReasonCodeEnumValues =
+    BuiltSet<AdjustmentCommandReasonCodeEnum>(
+      const <AdjustmentCommandReasonCodeEnum>[
+        _$adjustmentCommandReasonCodeEnum_MIGRATION_CORRECTION,
+        _$adjustmentCommandReasonCodeEnum_ATTENDANCE_CORRECTION,
+        _$adjustmentCommandReasonCodeEnum_PACKAGE_COMPENSATION,
+        _$adjustmentCommandReasonCodeEnum_SUPPORT_RECONCILIATION,
+      ],
+    );
+
+Serializer<AdjustmentCommandReasonCodeEnum>
+_$adjustmentCommandReasonCodeEnumSerializer =
+    _$AdjustmentCommandReasonCodeEnumSerializer();
+
+class _$AdjustmentCommandReasonCodeEnumSerializer
+    implements PrimitiveSerializer<AdjustmentCommandReasonCodeEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'MIGRATION_CORRECTION': 'MIGRATION_CORRECTION',
+    'ATTENDANCE_CORRECTION': 'ATTENDANCE_CORRECTION',
+    'PACKAGE_COMPENSATION': 'PACKAGE_COMPENSATION',
+    'SUPPORT_RECONCILIATION': 'SUPPORT_RECONCILIATION',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'MIGRATION_CORRECTION': 'MIGRATION_CORRECTION',
+    'ATTENDANCE_CORRECTION': 'ATTENDANCE_CORRECTION',
+    'PACKAGE_COMPENSATION': 'PACKAGE_COMPENSATION',
+    'SUPPORT_RECONCILIATION': 'SUPPORT_RECONCILIATION',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[AdjustmentCommandReasonCodeEnum];
+  @override
+  final String wireName = 'AdjustmentCommandReasonCodeEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    AdjustmentCommandReasonCodeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  AdjustmentCommandReasonCodeEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => AdjustmentCommandReasonCodeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$AdjustmentCommand extends AdjustmentCommand {
   @override
   final String customerPackageId;
   @override
   final int quantity;
   @override
-  final String reason;
+  final AdjustmentCommandReasonCodeEnum reasonCode;
 
   factory _$AdjustmentCommand([
     void Function(AdjustmentCommandBuilder)? updates,
@@ -21,7 +103,7 @@ class _$AdjustmentCommand extends AdjustmentCommand {
   _$AdjustmentCommand._({
     required this.customerPackageId,
     required this.quantity,
-    required this.reason,
+    required this.reasonCode,
   }) : super._();
   @override
   AdjustmentCommand rebuild(void Function(AdjustmentCommandBuilder) updates) =>
@@ -37,7 +119,7 @@ class _$AdjustmentCommand extends AdjustmentCommand {
     return other is AdjustmentCommand &&
         customerPackageId == other.customerPackageId &&
         quantity == other.quantity &&
-        reason == other.reason;
+        reasonCode == other.reasonCode;
   }
 
   @override
@@ -45,7 +127,7 @@ class _$AdjustmentCommand extends AdjustmentCommand {
     var _$hash = 0;
     _$hash = $jc(_$hash, customerPackageId.hashCode);
     _$hash = $jc(_$hash, quantity.hashCode);
-    _$hash = $jc(_$hash, reason.hashCode);
+    _$hash = $jc(_$hash, reasonCode.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -55,7 +137,7 @@ class _$AdjustmentCommand extends AdjustmentCommand {
     return (newBuiltValueToStringHelper(r'AdjustmentCommand')
           ..add('customerPackageId', customerPackageId)
           ..add('quantity', quantity)
-          ..add('reason', reason))
+          ..add('reasonCode', reasonCode))
         .toString();
   }
 }
@@ -73,9 +155,10 @@ class AdjustmentCommandBuilder
   int? get quantity => _$this._quantity;
   set quantity(int? quantity) => _$this._quantity = quantity;
 
-  String? _reason;
-  String? get reason => _$this._reason;
-  set reason(String? reason) => _$this._reason = reason;
+  AdjustmentCommandReasonCodeEnum? _reasonCode;
+  AdjustmentCommandReasonCodeEnum? get reasonCode => _$this._reasonCode;
+  set reasonCode(AdjustmentCommandReasonCodeEnum? reasonCode) =>
+      _$this._reasonCode = reasonCode;
 
   AdjustmentCommandBuilder() {
     AdjustmentCommand._defaults(this);
@@ -86,7 +169,7 @@ class AdjustmentCommandBuilder
     if ($v != null) {
       _customerPackageId = $v.customerPackageId;
       _quantity = $v.quantity;
-      _reason = $v.reason;
+      _reasonCode = $v.reasonCode;
       _$v = null;
     }
     return this;
@@ -119,10 +202,10 @@ class AdjustmentCommandBuilder
             r'AdjustmentCommand',
             'quantity',
           ),
-          reason: BuiltValueNullFieldError.checkNotNull(
-            reason,
+          reasonCode: BuiltValueNullFieldError.checkNotNull(
+            reasonCode,
             r'AdjustmentCommand',
-            'reason',
+            'reasonCode',
           ),
         );
     replace(_$result);

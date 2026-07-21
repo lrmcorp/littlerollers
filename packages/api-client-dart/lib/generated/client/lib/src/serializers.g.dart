@@ -13,6 +13,7 @@ Serializers _$serializers =
           ..add(AccountLinkCommandProviderEnum.serializer)
           ..add(ActionCommand.serializer)
           ..add(AdjustmentCommand.serializer)
+          ..add(AdjustmentCommandReasonCodeEnum.serializer)
           ..add(AdjustmentDecisionResult.serializer)
           ..add(ApprovalResult.serializer)
           ..add(ApprovePurchaseRequest.serializer)
@@ -170,6 +171,11 @@ Serializers _$serializers =
           ..add(Role.serializer)
           ..add(Session.serializer)
           ..add(SessionAdjustment.serializer)
+          ..add(SessionAdjustmentDecisionCodeEnum.serializer)
+          ..add(SessionAdjustmentDecisionCommand.serializer)
+          ..add(SessionAdjustmentDecisionCommandReasonCodeEnum.serializer)
+          ..add(SessionAdjustmentPage.serializer)
+          ..add(SessionAdjustmentReasonCodeEnum.serializer)
           ..add(SessionAdjustmentStatusEnum.serializer)
           ..add(SessionAssuranceEnum.serializer)
           ..add(SessionChannelEnum.serializer)
@@ -296,6 +302,12 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(String)]),
             () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(SessionAdjustment),
+            ]),
+            () => ListBuilder<SessionAdjustment>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(String)]),

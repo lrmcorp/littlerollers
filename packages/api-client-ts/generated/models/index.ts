@@ -115,6 +115,8 @@ export * from './RevokeSessionsCommand';
 export * from './Role';
 export * from './Session';
 export * from './SessionAdjustment';
+export * from './SessionAdjustmentDecisionCommand';
+export * from './SessionAdjustmentPage';
 export * from './SubmitPurchaseRequest';
 export * from './TimeRangeCommand';
 export * from './TokenCheckInCommand';

@@ -128,6 +128,8 @@ models/RevokeSessionsCommand.ts
 models/Role.ts
 models/Session.ts
 models/SessionAdjustment.ts
+models/SessionAdjustmentDecisionCommand.ts
+models/SessionAdjustmentPage.ts
 models/SubmitPurchaseRequest.ts
 models/TimeRangeCommand.ts
 models/TokenCheckInCommand.ts

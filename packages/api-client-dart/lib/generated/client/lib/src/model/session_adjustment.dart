@@ -4,7 +4,6 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
-import 'package:openapi/src/model/ledger_entry.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -16,11 +15,13 @@ part 'session_adjustment.g.dart';
 /// * [id] 
 /// * [customerPackageId] 
 /// * [quantity] 
-/// * [reason] 
-/// * [requestedBy] 
-/// * [approvedBy] 
+/// * [reasonCode] 
+/// * [requestedById] 
+/// * [decidedById] 
+/// * [decisionCode] 
 /// * [status] 
-/// * [ledgerEntry] 
+/// * [version] 
+/// * [createdAt] 
 @BuiltValue()
 abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdjustmentBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -32,21 +33,29 @@ abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdju
   @BuiltValueField(wireName: r'quantity')
   int get quantity;
 
-  @BuiltValueField(wireName: r'reason')
-  String get reason;
+  @BuiltValueField(wireName: r'reasonCode')
+  SessionAdjustmentReasonCodeEnum get reasonCode;
+  // enum reasonCodeEnum {  MIGRATION_CORRECTION,  ATTENDANCE_CORRECTION,  PACKAGE_COMPENSATION,  SUPPORT_RECONCILIATION,  };
 
-  @BuiltValueField(wireName: r'requestedBy')
-  String get requestedBy;
+  @BuiltValueField(wireName: r'requestedById')
+  String get requestedById;
 
-  @BuiltValueField(wireName: r'approvedBy')
-  String? get approvedBy;
+  @BuiltValueField(wireName: r'decidedById')
+  String? get decidedById;
+
+  @BuiltValueField(wireName: r'decisionCode')
+  SessionAdjustmentDecisionCodeEnum? get decisionCode;
+  // enum decisionCodeEnum {  CORRECTION_VERIFIED,  INVALID_EVIDENCE,  DUPLICATE_REQUEST,  OUT_OF_SCOPE,  ,  };
 
   @BuiltValueField(wireName: r'status')
   SessionAdjustmentStatusEnum get status;
-  // enum statusEnum {  PENDING,  APPROVED,  POSTED,  REJECTED,  };
+  // enum statusEnum {  PENDING,  POSTED,  REJECTED,  };
 
-  @BuiltValueField(wireName: r'ledgerEntry')
-  LedgerEntry? get ledgerEntry;
+  @BuiltValueField(wireName: r'version')
+  int get version;
+
+  @BuiltValueField(wireName: r'createdAt')
+  DateTime get createdAt;
 
   SessionAdjustment._();
 
@@ -86,21 +95,28 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       object.quantity,
       specifiedType: const FullType(int),
     );
-    yield r'reason';
+    yield r'reasonCode';
     yield serializers.serialize(
-      object.reason,
+      object.reasonCode,
+      specifiedType: const FullType(SessionAdjustmentReasonCodeEnum),
+    );
+    yield r'requestedById';
+    yield serializers.serialize(
+      object.requestedById,
       specifiedType: const FullType(String),
     );
-    yield r'requestedBy';
-    yield serializers.serialize(
-      object.requestedBy,
-      specifiedType: const FullType(String),
-    );
-    if (object.approvedBy != null) {
-      yield r'approvedBy';
+    if (object.decidedById != null) {
+      yield r'decidedById';
       yield serializers.serialize(
-        object.approvedBy,
+        object.decidedById,
         specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.decisionCode != null) {
+      yield r'decisionCode';
+      yield serializers.serialize(
+        object.decisionCode,
+        specifiedType: const FullType.nullable(SessionAdjustmentDecisionCodeEnum),
       );
     }
     yield r'status';
@@ -108,13 +124,16 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       object.status,
       specifiedType: const FullType(SessionAdjustmentStatusEnum),
     );
-    if (object.ledgerEntry != null) {
-      yield r'ledgerEntry';
-      yield serializers.serialize(
-        object.ledgerEntry,
-        specifiedType: const FullType.nullable(LedgerEntry),
-      );
-    }
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
+    yield r'createdAt';
+    yield serializers.serialize(
+      object.createdAt,
+      specifiedType: const FullType(DateTime),
+    );
   }
 
   @override
@@ -159,27 +178,35 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as int;
           result.quantity = valueDes;
           break;
-        case r'reason':
+        case r'reasonCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionAdjustmentReasonCodeEnum),
+          ) as SessionAdjustmentReasonCodeEnum;
+          result.reasonCode = valueDes;
+          break;
+        case r'requestedById':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
-          result.reason = valueDes;
+          result.requestedById = valueDes;
           break;
-        case r'requestedBy':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.requestedBy = valueDes;
-          break;
-        case r'approvedBy':
+        case r'decidedById':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType.nullable(String),
           ) as String?;
           if (valueDes == null) continue;
-          result.approvedBy = valueDes;
+          result.decidedById = valueDes;
+          break;
+        case r'decisionCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(SessionAdjustmentDecisionCodeEnum),
+          ) as SessionAdjustmentDecisionCodeEnum?;
+          if (valueDes == null) continue;
+          result.decisionCode = valueDes;
           break;
         case r'status':
           final valueDes = serializers.deserialize(
@@ -188,13 +215,19 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as SessionAdjustmentStatusEnum;
           result.status = valueDes;
           break;
-        case r'ledgerEntry':
+        case r'version':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(LedgerEntry),
-          ) as LedgerEntry?;
-          if (valueDes == null) continue;
-          result.ledgerEntry.replace(valueDes);
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
+          break;
+        case r'createdAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.createdAt = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -225,12 +258,48 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
   }
 }
 
+class SessionAdjustmentReasonCodeEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'MIGRATION_CORRECTION')
+  static const SessionAdjustmentReasonCodeEnum MIGRATION_CORRECTION = _$sessionAdjustmentReasonCodeEnum_MIGRATION_CORRECTION;
+  @BuiltValueEnumConst(wireName: r'ATTENDANCE_CORRECTION')
+  static const SessionAdjustmentReasonCodeEnum ATTENDANCE_CORRECTION = _$sessionAdjustmentReasonCodeEnum_ATTENDANCE_CORRECTION;
+  @BuiltValueEnumConst(wireName: r'PACKAGE_COMPENSATION')
+  static const SessionAdjustmentReasonCodeEnum PACKAGE_COMPENSATION = _$sessionAdjustmentReasonCodeEnum_PACKAGE_COMPENSATION;
+  @BuiltValueEnumConst(wireName: r'SUPPORT_RECONCILIATION')
+  static const SessionAdjustmentReasonCodeEnum SUPPORT_RECONCILIATION = _$sessionAdjustmentReasonCodeEnum_SUPPORT_RECONCILIATION;
+
+  static Serializer<SessionAdjustmentReasonCodeEnum> get serializer => _$sessionAdjustmentReasonCodeEnumSerializer;
+
+  const SessionAdjustmentReasonCodeEnum._(String name): super(name);
+
+  static BuiltSet<SessionAdjustmentReasonCodeEnum> get values => _$sessionAdjustmentReasonCodeEnumValues;
+  static SessionAdjustmentReasonCodeEnum valueOf(String name) => _$sessionAdjustmentReasonCodeEnumValueOf(name);
+}
+
+class SessionAdjustmentDecisionCodeEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'CORRECTION_VERIFIED')
+  static const SessionAdjustmentDecisionCodeEnum CORRECTION_VERIFIED = _$sessionAdjustmentDecisionCodeEnum_CORRECTION_VERIFIED;
+  @BuiltValueEnumConst(wireName: r'INVALID_EVIDENCE')
+  static const SessionAdjustmentDecisionCodeEnum INVALID_EVIDENCE = _$sessionAdjustmentDecisionCodeEnum_INVALID_EVIDENCE;
+  @BuiltValueEnumConst(wireName: r'DUPLICATE_REQUEST')
+  static const SessionAdjustmentDecisionCodeEnum DUPLICATE_REQUEST = _$sessionAdjustmentDecisionCodeEnum_DUPLICATE_REQUEST;
+  @BuiltValueEnumConst(wireName: r'OUT_OF_SCOPE')
+  static const SessionAdjustmentDecisionCodeEnum OUT_OF_SCOPE = _$sessionAdjustmentDecisionCodeEnum_OUT_OF_SCOPE;
+
+  static Serializer<SessionAdjustmentDecisionCodeEnum> get serializer => _$sessionAdjustmentDecisionCodeEnumSerializer;
+
+  const SessionAdjustmentDecisionCodeEnum._(String name): super(name);
+
+  static BuiltSet<SessionAdjustmentDecisionCodeEnum> get values => _$sessionAdjustmentDecisionCodeEnumValues;
+  static SessionAdjustmentDecisionCodeEnum valueOf(String name) => _$sessionAdjustmentDecisionCodeEnumValueOf(name);
+}
+
 class SessionAdjustmentStatusEnum extends EnumClass {
 
   @BuiltValueEnumConst(wireName: r'PENDING')
   static const SessionAdjustmentStatusEnum PENDING = _$sessionAdjustmentStatusEnum_PENDING;
-  @BuiltValueEnumConst(wireName: r'APPROVED')
-  static const SessionAdjustmentStatusEnum APPROVED = _$sessionAdjustmentStatusEnum_APPROVED;
   @BuiltValueEnumConst(wireName: r'POSTED')
   static const SessionAdjustmentStatusEnum POSTED = _$sessionAdjustmentStatusEnum_POSTED;
   @BuiltValueEnumConst(wireName: r'REJECTED')

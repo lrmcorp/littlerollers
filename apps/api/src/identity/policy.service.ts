@@ -5,8 +5,22 @@ import { ApiProblem } from './security';
 const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   CUSTOMER: ['customer:self', 'package:read', 'ledger:read'],
   INSTRUCTOR: ['class:assigned:read', 'attendance:self'],
-  ADMIN: ['branch:operate', 'user:read', 'ledger:read'],
-  MANAGER: ['branch:manage', 'user:read', 'purchase:review', 'purchase:decide', 'ledger:read'],
+  ADMIN: [
+    'branch:operate',
+    'user:read',
+    'ledger:read',
+    'ledger:adjust:read',
+    'ledger:adjust:request',
+  ],
+  MANAGER: [
+    'branch:manage',
+    'user:read',
+    'purchase:review',
+    'purchase:decide',
+    'ledger:read',
+    'ledger:adjust:read',
+    'ledger:adjust:decide',
+  ],
   OWNER: ['branch:own', 'user:read', 'ledger:read'],
   SUPER_OWNER: [
     'user:admin',
@@ -20,6 +34,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'purchase:review',
     'purchase:decide',
     'ledger:read',
+    'ledger:adjust:read',
+    'ledger:adjust:decide',
   ],
   FINANCE: ['finance:read', 'finance:manage', 'ledger:read'],
   OPS: ['operations:read', 'operations:recover'],

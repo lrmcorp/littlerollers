@@ -17,9 +17,11 @@ Method | HTTP request | Description
 
 
 # **decideSessionAdjustment**
-> AdjustmentDecisionResult decideSessionAdjustment(id, decision, idempotencyKey, deactivateUserRequest)
+> AdjustmentDecisionResult decideSessionAdjustment(id, decision, idempotencyKey, sessionAdjustmentDecisionCommand)
 
 
+
+MFA-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
 
 ### Example
 ```dart
@@ -29,10 +31,10 @@ final api = Openapi().getLedgerApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String decision = decision_example; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final SessionAdjustmentDecisionCommand sessionAdjustmentDecisionCommand = ; // SessionAdjustmentDecisionCommand | 
 
 try {
-    final response = api.decideSessionAdjustment(id, decision, idempotencyKey, deactivateUserRequest);
+    final response = api.decideSessionAdjustment(id, decision, idempotencyKey, sessionAdjustmentDecisionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling LedgerApi->decideSessionAdjustment: $e\n');
@@ -46,7 +48,7 @@ Name | Type | Description  | Notes
  **id** | **String**|  | 
  **decision** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **sessionAdjustmentDecisionCommand** | [**SessionAdjustmentDecisionCommand**](SessionAdjustmentDecisionCommand.md)|  | 
 
 ### Return type
 
@@ -154,9 +156,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listSessionAdjustments**
-> Page listSessionAdjustments(branchId, status)
+> SessionAdjustmentPage listSessionAdjustments(branchId, status, cursor)
 
 
+
+Branch-scoped adjustment queue ordered by createdAt and id descending.
 
 ### Example
 ```dart
@@ -165,9 +169,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getLedgerApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
 
 try {
-    final response = api.listSessionAdjustments(branchId, status);
+    final response = api.listSessionAdjustments(branchId, status, cursor);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling LedgerApi->listSessionAdjustments: $e\n');
@@ -180,10 +185,11 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
 
 ### Return type
 
-[**Page**](Page.md)
+[**SessionAdjustmentPage**](SessionAdjustmentPage.md)
 
 ### Authorization
 
@@ -192,7 +198,7 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

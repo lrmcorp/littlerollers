@@ -22,6 +22,9 @@ const fake = (overrides: Partial<LedgerClient> = {}): LedgerClient => ({
     entries: [{ id: 'entry-1', type: 'PURCHASE', quantity: 10, occurredAt: new Date() }],
     nextCursor: null,
   }),
+  listAdjustments: vi.fn().mockResolvedValue([]),
+  requestAdjustment: vi.fn(),
+  decideAdjustment: vi.fn(),
   ...overrides,
 });
 
@@ -49,5 +52,52 @@ describe('synthetic ledger UI', () => {
     const buttons = screen.getAllByRole('button', { name: 'Muat saldo' });
     await userEvent.click(buttons.at(-1)!);
     expect(await screen.findByRole('button', { name: /EXPIRED.*tersedia 0/ })).toBeVisible();
+  });
+  it('creates a controlled pending request without free text', async () => {
+    const requestAdjustment = vi.fn().mockResolvedValue({ id: 'adj-1' });
+    const view = render(<LedgerView client={fake({ requestAdjustment })} />);
+    await userEvent.type(screen.getByLabelText('Paket customer'), 'cp-1');
+    await userEvent.type(screen.getByLabelText('Delta sesi'), '-2');
+    await userEvent.selectOptions(
+      screen.getByLabelText('Alasan terkontrol'),
+      'ATTENDANCE_CORRECTION',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Buat request adjustment' }));
+    expect(requestAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerPackageId: 'cp-1',
+        quantity: -2,
+        reasonCode: 'ATTENDANCE_CORRECTION',
+      }),
+      expect.any(String),
+    );
+    expect(await screen.findByText(/PENDING dibuat tanpa mutasi saldo/)).toBeVisible();
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('reviews pending adjustment with explicit controlled decisions', async () => {
+    const decideAdjustment = vi.fn().mockResolvedValue({});
+    const listAdjustments = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'adj-1',
+          customerPackageId: 'cp-1',
+          quantity: 2,
+          reasonCode: 'PACKAGE_COMPENSATION',
+          status: 'PENDING',
+          version: 0,
+        },
+      ])
+      .mockResolvedValue([]);
+    render(<LedgerView client={fake({ listAdjustments, decideAdjustment })} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Muat antrean adjustment' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Setujui' }));
+    expect(decideAdjustment).toHaveBeenCalledWith(
+      'adj-1',
+      'approve',
+      { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
+      expect.any(String),
+    );
   });
 });

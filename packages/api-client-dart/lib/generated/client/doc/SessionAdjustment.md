@@ -11,11 +11,13 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **customerPackageId** | **String** |  | 
 **quantity** | **int** |  | 
-**reason** | **String** |  | 
-**requestedBy** | **String** |  | 
-**approvedBy** | **String** |  | [optional] 
+**reasonCode** | **String** |  | 
+**requestedById** | **String** |  | 
+**decidedById** | **String** |  | [optional] 
+**decisionCode** | **String** |  | [optional] 
 **status** | **String** |  | 
-**ledgerEntry** | [**LedgerEntry**](LedgerEntry.md) |  | [optional] 
+**version** | **int** |  | 
+**createdAt** | [**DateTime**](DateTime.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

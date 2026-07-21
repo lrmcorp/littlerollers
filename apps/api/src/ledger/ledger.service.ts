@@ -4,6 +4,8 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { IdempotencyService } from '../foundation/idempotency.service';
+import { randomUUID } from 'node:crypto';
 
 type Cursor = { at: string; id: string };
 const PAGE_SIZE = 20;
@@ -33,6 +35,7 @@ export class LedgerService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private authorize(principal: SessionPrincipal) {
@@ -116,6 +119,278 @@ export class LedgerService {
       projectionRateRp: customerPackage.projectionRateRp,
       version: customerPackage.version,
     };
+  }
+
+  private adjustmentScope(principal: SessionPrincipal, branchId: string) {
+    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  async listAdjustments(
+    principal: SessionPrincipal,
+    branchId?: string,
+    status?: 'PENDING' | 'POSTED' | 'REJECTED',
+    cursorValue?: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:read');
+    if (status && !['PENDING', 'POSTED', 'REJECTED'].includes(status))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (branchId) this.adjustmentScope(principal, branchId);
+    const cursor = decodeCursor(cursorValue);
+    const items = await this.db.sessionAdjustment.findMany({
+      where: {
+        ...(status ? { status } : {}),
+        customerPackage: {
+          ...(branchId
+            ? { branchId }
+            : principal.capabilities.includes('branch:all')
+              ? {}
+              : { branchId: { in: principal.branchIds } }),
+        },
+        ...(cursor
+          ? {
+              OR: [
+                { createdAt: { lt: new Date(cursor.at) } },
+                { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+    });
+    const hasMore = items.length > PAGE_SIZE;
+    const pageItems = items.slice(0, PAGE_SIZE);
+    const last = pageItems.at(-1);
+    return {
+      items: pageItems,
+      page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null },
+    };
+  }
+
+  async requestAdjustment(
+    principal: SessionPrincipal,
+    input: { customerPackageId: string; quantity: number; reasonCode: string },
+    key: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:request');
+    const reasons = [
+      'MIGRATION_CORRECTION',
+      'ATTENDANCE_CORRECTION',
+      'PACKAGE_COMPENSATION',
+      'SUPPORT_RECONCILIATION',
+    ] as const;
+    if (
+      !key ||
+      !Number.isSafeInteger(input.quantity) ||
+      input.quantity === 0 ||
+      !reasons.includes(input.reasonCode as never)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.idempotency
+      .execute(
+        {
+          scope: `session-adjustment-request:${principal.userId}`,
+          key,
+          payload: input,
+          ttlMs: 86400000,
+          leaseMs: 30000,
+        },
+        async (tx) => {
+          const customerPackage = await tx.customerPackage.findUnique({
+            where: { id: input.customerPackageId },
+          });
+          if (!customerPackage) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          this.adjustmentScope(principal, customerPackage.branchId);
+          if (customerPackage.status !== 'ACTIVE' || customerPackage.expiryAt <= new Date())
+            throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+          const existing = await tx.sessionAdjustment.findFirst({
+            where: { customerPackageId: customerPackage.id, status: 'PENDING' },
+          });
+          if (existing) throw new ApiProblem('PENDING_ADJUSTMENT_EXISTS', HttpStatus.CONFLICT);
+          const adjustment = await tx.sessionAdjustment.create({
+            data: {
+              id: randomUUID(),
+              customerPackageId: customerPackage.id,
+              quantity: input.quantity,
+              reasonCode: input.reasonCode as (typeof reasons)[number],
+              requestedById: principal.userId,
+            },
+          });
+          await Promise.all([
+            tx.auditLog.create({
+              data: {
+                id: randomUUID(),
+                actorType: 'USER',
+                actorId: principal.userId,
+                action: 'session.adjustment.requested',
+                objectType: 'SessionAdjustment',
+                objectId: adjustment.id,
+                branchId: customerPackage.branchId,
+                correlationId,
+                afterMasked: {
+                  status: 'PENDING',
+                  quantity: input.quantity,
+                  reasonCode: input.reasonCode,
+                },
+              },
+            }),
+            tx.outboxEvent.create({
+              data: {
+                id: randomUUID(),
+                eventType: 'session.adjustment_requested.v1',
+                aggregateType: 'SessionAdjustment',
+                aggregateId: adjustment.id,
+                payload: { adjustmentId: adjustment.id, branchId: customerPackage.branchId },
+                correlationId,
+              },
+            }),
+          ]);
+          return {
+            status: HttpStatus.CREATED,
+            body: adjustment as unknown as Prisma.InputJsonValue,
+          };
+        },
+      )
+      .catch((error: unknown) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+          throw new ApiProblem('PENDING_ADJUSTMENT_EXISTS', HttpStatus.CONFLICT);
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034')
+          throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+        throw error;
+      });
+  }
+
+  async decideAdjustment(
+    principal: SessionPrincipal,
+    id: string,
+    decision: 'approve' | 'reject',
+    input: { reasonCode: string; expectedVersion: number },
+    key: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
+    this.policy.requireMfa(principal.assurance);
+    const valid =
+      decision === 'approve'
+        ? ['CORRECTION_VERIFIED']
+        : ['INVALID_EVIDENCE', 'DUPLICATE_REQUEST', 'OUT_OF_SCOPE'];
+    if (
+      !key ||
+      !valid.includes(input.reasonCode) ||
+      !Number.isSafeInteger(input.expectedVersion) ||
+      input.expectedVersion < 0
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.idempotency
+      .execute(
+        {
+          scope: `session-adjustment-decision:${id}`,
+          key,
+          payload: { decision, ...input },
+          ttlMs: 86400000,
+          leaseMs: 30000,
+        },
+        async (tx) => {
+          const adjustment = await tx.sessionAdjustment.findUnique({
+            where: { id },
+            include: { customerPackage: true },
+          });
+          if (!adjustment) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          this.adjustmentScope(principal, adjustment.customerPackage.branchId);
+          if (adjustment.requestedById === principal.userId)
+            throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+          if (adjustment.status !== 'PENDING')
+            throw new ApiProblem('ADJUSTMENT_ALREADY_DECIDED', HttpStatus.CONFLICT);
+          if (adjustment.version !== input.expectedVersion)
+            throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+          if (
+            adjustment.customerPackage.status !== 'ACTIVE' ||
+            adjustment.customerPackage.expiryAt <= new Date()
+          )
+            throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+          let ledgerEntry = null;
+          if (decision === 'approve') {
+            const current = await this.balance(tx, adjustment.customerPackage);
+            const resulting = current.ledgerBalance + adjustment.quantity;
+            if (resulting < 0 || resulting < current.reserved)
+              throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+            ledgerEntry = await tx.ledgerEntry.create({
+              data: {
+                id: randomUUID(),
+                customerPackageId: adjustment.customerPackageId,
+                type: 'ADJUST_MANUAL',
+                quantity: adjustment.quantity,
+                referenceType: 'SESSION_ADJUSTMENT',
+                referenceId: adjustment.id,
+                sessionAdjustmentId: adjustment.id,
+              },
+            });
+          }
+          const status = decision === 'approve' ? 'POSTED' : 'REJECTED';
+          const updated = await tx.sessionAdjustment.update({
+            where: { id, version: input.expectedVersion },
+            data: {
+              status,
+              decisionCode: input.reasonCode as never,
+              decidedById: principal.userId,
+              decidedAt: new Date(),
+              version: { increment: 1 },
+            },
+          });
+          const events =
+            decision === 'approve'
+              ? ['session.adjustment_approved.v1', 'session.adjustment_posted.v1']
+              : ['session.adjustment_rejected.v1'];
+          await Promise.all([
+            tx.auditLog.create({
+              data: {
+                id: randomUUID(),
+                actorType: 'USER',
+                actorId: principal.userId,
+                action: `session.adjustment.${status.toLowerCase()}`,
+                objectType: 'SessionAdjustment',
+                objectId: id,
+                branchId: adjustment.customerPackage.branchId,
+                correlationId,
+                beforeMasked: { status: 'PENDING', version: adjustment.version },
+                afterMasked: { status, version: updated.version, decisionCode: input.reasonCode },
+              },
+            }),
+            ...events.map((eventType) =>
+              tx.outboxEvent.create({
+                data: {
+                  id: randomUUID(),
+                  eventType,
+                  aggregateType: 'SessionAdjustment',
+                  aggregateId: id,
+                  payload: { adjustmentId: id, branchId: adjustment.customerPackage.branchId },
+                  correlationId,
+                },
+              }),
+            ),
+          ]);
+          return {
+            status: HttpStatus.OK,
+            body: {
+              adjustment: updated,
+              ledgerEntry,
+              resultingBalance: ledgerEntry
+                ? (await this.balance(tx, adjustment.customerPackage)).ledgerBalance
+                : null,
+            } as unknown as Prisma.InputJsonValue,
+          };
+        },
+      )
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2002' || error.code === 'P2034')
+        )
+          throw new ApiProblem('ADJUSTMENT_ALREADY_DECIDED', HttpStatus.CONFLICT);
+        throw error;
+      });
   }
 
   async list(principal: SessionPrincipal, branchId?: string, cursorValue?: string) {

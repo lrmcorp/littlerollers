@@ -6,10 +6,90 @@ part of 'session_adjustment.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const SessionAdjustmentReasonCodeEnum
+_$sessionAdjustmentReasonCodeEnum_MIGRATION_CORRECTION =
+    const SessionAdjustmentReasonCodeEnum._('MIGRATION_CORRECTION');
+const SessionAdjustmentReasonCodeEnum
+_$sessionAdjustmentReasonCodeEnum_ATTENDANCE_CORRECTION =
+    const SessionAdjustmentReasonCodeEnum._('ATTENDANCE_CORRECTION');
+const SessionAdjustmentReasonCodeEnum
+_$sessionAdjustmentReasonCodeEnum_PACKAGE_COMPENSATION =
+    const SessionAdjustmentReasonCodeEnum._('PACKAGE_COMPENSATION');
+const SessionAdjustmentReasonCodeEnum
+_$sessionAdjustmentReasonCodeEnum_SUPPORT_RECONCILIATION =
+    const SessionAdjustmentReasonCodeEnum._('SUPPORT_RECONCILIATION');
+
+SessionAdjustmentReasonCodeEnum _$sessionAdjustmentReasonCodeEnumValueOf(
+  String name,
+) {
+  switch (name) {
+    case 'MIGRATION_CORRECTION':
+      return _$sessionAdjustmentReasonCodeEnum_MIGRATION_CORRECTION;
+    case 'ATTENDANCE_CORRECTION':
+      return _$sessionAdjustmentReasonCodeEnum_ATTENDANCE_CORRECTION;
+    case 'PACKAGE_COMPENSATION':
+      return _$sessionAdjustmentReasonCodeEnum_PACKAGE_COMPENSATION;
+    case 'SUPPORT_RECONCILIATION':
+      return _$sessionAdjustmentReasonCodeEnum_SUPPORT_RECONCILIATION;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<SessionAdjustmentReasonCodeEnum>
+_$sessionAdjustmentReasonCodeEnumValues =
+    BuiltSet<SessionAdjustmentReasonCodeEnum>(
+      const <SessionAdjustmentReasonCodeEnum>[
+        _$sessionAdjustmentReasonCodeEnum_MIGRATION_CORRECTION,
+        _$sessionAdjustmentReasonCodeEnum_ATTENDANCE_CORRECTION,
+        _$sessionAdjustmentReasonCodeEnum_PACKAGE_COMPENSATION,
+        _$sessionAdjustmentReasonCodeEnum_SUPPORT_RECONCILIATION,
+      ],
+    );
+
+const SessionAdjustmentDecisionCodeEnum
+_$sessionAdjustmentDecisionCodeEnum_CORRECTION_VERIFIED =
+    const SessionAdjustmentDecisionCodeEnum._('CORRECTION_VERIFIED');
+const SessionAdjustmentDecisionCodeEnum
+_$sessionAdjustmentDecisionCodeEnum_INVALID_EVIDENCE =
+    const SessionAdjustmentDecisionCodeEnum._('INVALID_EVIDENCE');
+const SessionAdjustmentDecisionCodeEnum
+_$sessionAdjustmentDecisionCodeEnum_DUPLICATE_REQUEST =
+    const SessionAdjustmentDecisionCodeEnum._('DUPLICATE_REQUEST');
+const SessionAdjustmentDecisionCodeEnum
+_$sessionAdjustmentDecisionCodeEnum_OUT_OF_SCOPE =
+    const SessionAdjustmentDecisionCodeEnum._('OUT_OF_SCOPE');
+
+SessionAdjustmentDecisionCodeEnum _$sessionAdjustmentDecisionCodeEnumValueOf(
+  String name,
+) {
+  switch (name) {
+    case 'CORRECTION_VERIFIED':
+      return _$sessionAdjustmentDecisionCodeEnum_CORRECTION_VERIFIED;
+    case 'INVALID_EVIDENCE':
+      return _$sessionAdjustmentDecisionCodeEnum_INVALID_EVIDENCE;
+    case 'DUPLICATE_REQUEST':
+      return _$sessionAdjustmentDecisionCodeEnum_DUPLICATE_REQUEST;
+    case 'OUT_OF_SCOPE':
+      return _$sessionAdjustmentDecisionCodeEnum_OUT_OF_SCOPE;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<SessionAdjustmentDecisionCodeEnum>
+_$sessionAdjustmentDecisionCodeEnumValues =
+    BuiltSet<SessionAdjustmentDecisionCodeEnum>(
+      const <SessionAdjustmentDecisionCodeEnum>[
+        _$sessionAdjustmentDecisionCodeEnum_CORRECTION_VERIFIED,
+        _$sessionAdjustmentDecisionCodeEnum_INVALID_EVIDENCE,
+        _$sessionAdjustmentDecisionCodeEnum_DUPLICATE_REQUEST,
+        _$sessionAdjustmentDecisionCodeEnum_OUT_OF_SCOPE,
+      ],
+    );
+
 const SessionAdjustmentStatusEnum _$sessionAdjustmentStatusEnum_PENDING =
     const SessionAdjustmentStatusEnum._('PENDING');
-const SessionAdjustmentStatusEnum _$sessionAdjustmentStatusEnum_APPROVED =
-    const SessionAdjustmentStatusEnum._('APPROVED');
 const SessionAdjustmentStatusEnum _$sessionAdjustmentStatusEnum_POSTED =
     const SessionAdjustmentStatusEnum._('POSTED');
 const SessionAdjustmentStatusEnum _$sessionAdjustmentStatusEnum_REJECTED =
@@ -19,8 +99,6 @@ SessionAdjustmentStatusEnum _$sessionAdjustmentStatusEnumValueOf(String name) {
   switch (name) {
     case 'PENDING':
       return _$sessionAdjustmentStatusEnum_PENDING;
-    case 'APPROVED':
-      return _$sessionAdjustmentStatusEnum_APPROVED;
     case 'POSTED':
       return _$sessionAdjustmentStatusEnum_POSTED;
     case 'REJECTED':
@@ -34,26 +112,103 @@ final BuiltSet<SessionAdjustmentStatusEnum>
 _$sessionAdjustmentStatusEnumValues =
     BuiltSet<SessionAdjustmentStatusEnum>(const <SessionAdjustmentStatusEnum>[
       _$sessionAdjustmentStatusEnum_PENDING,
-      _$sessionAdjustmentStatusEnum_APPROVED,
       _$sessionAdjustmentStatusEnum_POSTED,
       _$sessionAdjustmentStatusEnum_REJECTED,
     ]);
 
+Serializer<SessionAdjustmentReasonCodeEnum>
+_$sessionAdjustmentReasonCodeEnumSerializer =
+    _$SessionAdjustmentReasonCodeEnumSerializer();
+Serializer<SessionAdjustmentDecisionCodeEnum>
+_$sessionAdjustmentDecisionCodeEnumSerializer =
+    _$SessionAdjustmentDecisionCodeEnumSerializer();
 Serializer<SessionAdjustmentStatusEnum>
 _$sessionAdjustmentStatusEnumSerializer =
     _$SessionAdjustmentStatusEnumSerializer();
+
+class _$SessionAdjustmentReasonCodeEnumSerializer
+    implements PrimitiveSerializer<SessionAdjustmentReasonCodeEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'MIGRATION_CORRECTION': 'MIGRATION_CORRECTION',
+    'ATTENDANCE_CORRECTION': 'ATTENDANCE_CORRECTION',
+    'PACKAGE_COMPENSATION': 'PACKAGE_COMPENSATION',
+    'SUPPORT_RECONCILIATION': 'SUPPORT_RECONCILIATION',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'MIGRATION_CORRECTION': 'MIGRATION_CORRECTION',
+    'ATTENDANCE_CORRECTION': 'ATTENDANCE_CORRECTION',
+    'PACKAGE_COMPENSATION': 'PACKAGE_COMPENSATION',
+    'SUPPORT_RECONCILIATION': 'SUPPORT_RECONCILIATION',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[SessionAdjustmentReasonCodeEnum];
+  @override
+  final String wireName = 'SessionAdjustmentReasonCodeEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    SessionAdjustmentReasonCodeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  SessionAdjustmentReasonCodeEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => SessionAdjustmentReasonCodeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
+class _$SessionAdjustmentDecisionCodeEnumSerializer
+    implements PrimitiveSerializer<SessionAdjustmentDecisionCodeEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'CORRECTION_VERIFIED': 'CORRECTION_VERIFIED',
+    'INVALID_EVIDENCE': 'INVALID_EVIDENCE',
+    'DUPLICATE_REQUEST': 'DUPLICATE_REQUEST',
+    'OUT_OF_SCOPE': 'OUT_OF_SCOPE',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'CORRECTION_VERIFIED': 'CORRECTION_VERIFIED',
+    'INVALID_EVIDENCE': 'INVALID_EVIDENCE',
+    'DUPLICATE_REQUEST': 'DUPLICATE_REQUEST',
+    'OUT_OF_SCOPE': 'OUT_OF_SCOPE',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[SessionAdjustmentDecisionCodeEnum];
+  @override
+  final String wireName = 'SessionAdjustmentDecisionCodeEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    SessionAdjustmentDecisionCodeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  SessionAdjustmentDecisionCodeEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => SessionAdjustmentDecisionCodeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
 
 class _$SessionAdjustmentStatusEnumSerializer
     implements PrimitiveSerializer<SessionAdjustmentStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
     'PENDING': 'PENDING',
-    'APPROVED': 'APPROVED',
     'POSTED': 'POSTED',
     'REJECTED': 'REJECTED',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
     'PENDING': 'PENDING',
-    'APPROVED': 'APPROVED',
     'POSTED': 'POSTED',
     'REJECTED': 'REJECTED',
   };
@@ -88,15 +243,19 @@ class _$SessionAdjustment extends SessionAdjustment {
   @override
   final int quantity;
   @override
-  final String reason;
+  final SessionAdjustmentReasonCodeEnum reasonCode;
   @override
-  final String requestedBy;
+  final String requestedById;
   @override
-  final String? approvedBy;
+  final String? decidedById;
+  @override
+  final SessionAdjustmentDecisionCodeEnum? decisionCode;
   @override
   final SessionAdjustmentStatusEnum status;
   @override
-  final LedgerEntry? ledgerEntry;
+  final int version;
+  @override
+  final DateTime createdAt;
 
   factory _$SessionAdjustment([
     void Function(SessionAdjustmentBuilder)? updates,
@@ -106,11 +265,13 @@ class _$SessionAdjustment extends SessionAdjustment {
     required this.id,
     required this.customerPackageId,
     required this.quantity,
-    required this.reason,
-    required this.requestedBy,
-    this.approvedBy,
+    required this.reasonCode,
+    required this.requestedById,
+    this.decidedById,
+    this.decisionCode,
     required this.status,
-    this.ledgerEntry,
+    required this.version,
+    required this.createdAt,
   }) : super._();
   @override
   SessionAdjustment rebuild(void Function(SessionAdjustmentBuilder) updates) =>
@@ -127,11 +288,13 @@ class _$SessionAdjustment extends SessionAdjustment {
         id == other.id &&
         customerPackageId == other.customerPackageId &&
         quantity == other.quantity &&
-        reason == other.reason &&
-        requestedBy == other.requestedBy &&
-        approvedBy == other.approvedBy &&
+        reasonCode == other.reasonCode &&
+        requestedById == other.requestedById &&
+        decidedById == other.decidedById &&
+        decisionCode == other.decisionCode &&
         status == other.status &&
-        ledgerEntry == other.ledgerEntry;
+        version == other.version &&
+        createdAt == other.createdAt;
   }
 
   @override
@@ -140,11 +303,13 @@ class _$SessionAdjustment extends SessionAdjustment {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, customerPackageId.hashCode);
     _$hash = $jc(_$hash, quantity.hashCode);
-    _$hash = $jc(_$hash, reason.hashCode);
-    _$hash = $jc(_$hash, requestedBy.hashCode);
-    _$hash = $jc(_$hash, approvedBy.hashCode);
+    _$hash = $jc(_$hash, reasonCode.hashCode);
+    _$hash = $jc(_$hash, requestedById.hashCode);
+    _$hash = $jc(_$hash, decidedById.hashCode);
+    _$hash = $jc(_$hash, decisionCode.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
-    _$hash = $jc(_$hash, ledgerEntry.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
+    _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -155,11 +320,13 @@ class _$SessionAdjustment extends SessionAdjustment {
           ..add('id', id)
           ..add('customerPackageId', customerPackageId)
           ..add('quantity', quantity)
-          ..add('reason', reason)
-          ..add('requestedBy', requestedBy)
-          ..add('approvedBy', approvedBy)
+          ..add('reasonCode', reasonCode)
+          ..add('requestedById', requestedById)
+          ..add('decidedById', decidedById)
+          ..add('decisionCode', decisionCode)
           ..add('status', status)
-          ..add('ledgerEntry', ledgerEntry))
+          ..add('version', version)
+          ..add('createdAt', createdAt))
         .toString();
   }
 }
@@ -181,27 +348,36 @@ class SessionAdjustmentBuilder
   int? get quantity => _$this._quantity;
   set quantity(int? quantity) => _$this._quantity = quantity;
 
-  String? _reason;
-  String? get reason => _$this._reason;
-  set reason(String? reason) => _$this._reason = reason;
+  SessionAdjustmentReasonCodeEnum? _reasonCode;
+  SessionAdjustmentReasonCodeEnum? get reasonCode => _$this._reasonCode;
+  set reasonCode(SessionAdjustmentReasonCodeEnum? reasonCode) =>
+      _$this._reasonCode = reasonCode;
 
-  String? _requestedBy;
-  String? get requestedBy => _$this._requestedBy;
-  set requestedBy(String? requestedBy) => _$this._requestedBy = requestedBy;
+  String? _requestedById;
+  String? get requestedById => _$this._requestedById;
+  set requestedById(String? requestedById) =>
+      _$this._requestedById = requestedById;
 
-  String? _approvedBy;
-  String? get approvedBy => _$this._approvedBy;
-  set approvedBy(String? approvedBy) => _$this._approvedBy = approvedBy;
+  String? _decidedById;
+  String? get decidedById => _$this._decidedById;
+  set decidedById(String? decidedById) => _$this._decidedById = decidedById;
+
+  SessionAdjustmentDecisionCodeEnum? _decisionCode;
+  SessionAdjustmentDecisionCodeEnum? get decisionCode => _$this._decisionCode;
+  set decisionCode(SessionAdjustmentDecisionCodeEnum? decisionCode) =>
+      _$this._decisionCode = decisionCode;
 
   SessionAdjustmentStatusEnum? _status;
   SessionAdjustmentStatusEnum? get status => _$this._status;
   set status(SessionAdjustmentStatusEnum? status) => _$this._status = status;
 
-  LedgerEntryBuilder? _ledgerEntry;
-  LedgerEntryBuilder get ledgerEntry =>
-      _$this._ledgerEntry ??= LedgerEntryBuilder();
-  set ledgerEntry(LedgerEntryBuilder? ledgerEntry) =>
-      _$this._ledgerEntry = ledgerEntry;
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
+
+  DateTime? _createdAt;
+  DateTime? get createdAt => _$this._createdAt;
+  set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
 
   SessionAdjustmentBuilder() {
     SessionAdjustment._defaults(this);
@@ -213,11 +389,13 @@ class SessionAdjustmentBuilder
       _id = $v.id;
       _customerPackageId = $v.customerPackageId;
       _quantity = $v.quantity;
-      _reason = $v.reason;
-      _requestedBy = $v.requestedBy;
-      _approvedBy = $v.approvedBy;
+      _reasonCode = $v.reasonCode;
+      _requestedById = $v.requestedById;
+      _decidedById = $v.decidedById;
+      _decisionCode = $v.decisionCode;
       _status = $v.status;
-      _ledgerEntry = $v.ledgerEntry?.toBuilder();
+      _version = $v.version;
+      _createdAt = $v.createdAt;
       _$v = null;
     }
     return this;
@@ -237,58 +415,52 @@ class SessionAdjustmentBuilder
   SessionAdjustment build() => _build();
 
   _$SessionAdjustment _build() {
-    _$SessionAdjustment _$result;
-    try {
-      _$result =
-          _$v ??
-          _$SessionAdjustment._(
-            id: BuiltValueNullFieldError.checkNotNull(
-              id,
-              r'SessionAdjustment',
-              'id',
-            ),
-            customerPackageId: BuiltValueNullFieldError.checkNotNull(
-              customerPackageId,
-              r'SessionAdjustment',
-              'customerPackageId',
-            ),
-            quantity: BuiltValueNullFieldError.checkNotNull(
-              quantity,
-              r'SessionAdjustment',
-              'quantity',
-            ),
-            reason: BuiltValueNullFieldError.checkNotNull(
-              reason,
-              r'SessionAdjustment',
-              'reason',
-            ),
-            requestedBy: BuiltValueNullFieldError.checkNotNull(
-              requestedBy,
-              r'SessionAdjustment',
-              'requestedBy',
-            ),
-            approvedBy: approvedBy,
-            status: BuiltValueNullFieldError.checkNotNull(
-              status,
-              r'SessionAdjustment',
-              'status',
-            ),
-            ledgerEntry: _ledgerEntry?.build(),
-          );
-    } catch (_) {
-      late String _$failedField;
-      try {
-        _$failedField = 'ledgerEntry';
-        _ledgerEntry?.build();
-      } catch (e) {
-        throw BuiltValueNestedFieldError(
-          r'SessionAdjustment',
-          _$failedField,
-          e.toString(),
+    final _$result =
+        _$v ??
+        _$SessionAdjustment._(
+          id: BuiltValueNullFieldError.checkNotNull(
+            id,
+            r'SessionAdjustment',
+            'id',
+          ),
+          customerPackageId: BuiltValueNullFieldError.checkNotNull(
+            customerPackageId,
+            r'SessionAdjustment',
+            'customerPackageId',
+          ),
+          quantity: BuiltValueNullFieldError.checkNotNull(
+            quantity,
+            r'SessionAdjustment',
+            'quantity',
+          ),
+          reasonCode: BuiltValueNullFieldError.checkNotNull(
+            reasonCode,
+            r'SessionAdjustment',
+            'reasonCode',
+          ),
+          requestedById: BuiltValueNullFieldError.checkNotNull(
+            requestedById,
+            r'SessionAdjustment',
+            'requestedById',
+          ),
+          decidedById: decidedById,
+          decisionCode: decisionCode,
+          status: BuiltValueNullFieldError.checkNotNull(
+            status,
+            r'SessionAdjustment',
+            'status',
+          ),
+          version: BuiltValueNullFieldError.checkNotNull(
+            version,
+            r'SessionAdjustment',
+            'version',
+          ),
+          createdAt: BuiltValueNullFieldError.checkNotNull(
+            createdAt,
+            r'SessionAdjustment',
+            'createdAt',
+          ),
         );
-      }
-      rethrow;
-    }
     replace(_$result);
     return _$result;
   }

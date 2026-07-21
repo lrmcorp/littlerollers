@@ -12,11 +12,11 @@ import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/adjustment_command.dart';
 import 'package:openapi/src/model/adjustment_decision_result.dart';
 import 'package:openapi/src/model/customer_package_balance_page.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
-import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
+import 'package:openapi/src/model/session_adjustment_decision_command.dart';
+import 'package:openapi/src/model/session_adjustment_page.dart';
 
 class LedgerApi {
 
@@ -27,13 +27,13 @@ class LedgerApi {
   const LedgerApi(this._dio, this._serializers);
 
   /// decideSessionAdjustment
-  /// 
+  /// MFA-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
   ///
   /// Parameters:
   /// * [id] 
   /// * [decision] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [sessionAdjustmentDecisionCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -47,7 +47,7 @@ class LedgerApi {
     required String id,
     required String decision,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required SessionAdjustmentDecisionCommand sessionAdjustmentDecisionCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -79,8 +79,8 @@ class LedgerApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(SessionAdjustmentDecisionCommand);
+      _bodyData = _serializers.serialize(sessionAdjustmentDecisionCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -312,11 +312,12 @@ class LedgerApi {
   }
 
   /// listSessionAdjustments
-  /// 
+  /// Branch-scoped adjustment queue ordered by createdAt and id descending.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
   /// * [status] 
+  /// * [cursor] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -324,11 +325,12 @@ class LedgerApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Page] as data
+  /// Returns a [Future] containing a [Response] with a [SessionAdjustmentPage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Page>> listSessionAdjustments({ 
+  Future<Response<SessionAdjustmentPage>> listSessionAdjustments({ 
     String? branchId,
     String? status,
+    String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -358,6 +360,7 @@ class LedgerApi {
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
     };
 
     final _response = await _dio.request<Object>(
@@ -369,14 +372,14 @@ class LedgerApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Page? _responseData;
+    SessionAdjustmentPage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Page),
-      ) as Page;
+        specifiedType: const FullType(SessionAdjustmentPage),
+      ) as SessionAdjustmentPage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -388,7 +391,7 @@ class LedgerApi {
       );
     }
 
-    return Response<Page>(
+    return Response<SessionAdjustmentPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

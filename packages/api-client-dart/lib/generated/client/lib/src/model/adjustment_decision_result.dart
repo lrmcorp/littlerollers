@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/session_adjustment.dart';
+import 'package:openapi/src/model/ledger_entry.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -13,11 +14,19 @@ part 'adjustment_decision_result.g.dart';
 ///
 /// Properties:
 /// * [adjustment] 
+/// * [ledgerEntry] 
+/// * [resultingBalance] 
 /// * [idempotentReplay] 
 @BuiltValue()
 abstract class AdjustmentDecisionResult implements Built<AdjustmentDecisionResult, AdjustmentDecisionResultBuilder> {
   @BuiltValueField(wireName: r'adjustment')
   SessionAdjustment get adjustment;
+
+  @BuiltValueField(wireName: r'ledgerEntry')
+  LedgerEntry? get ledgerEntry;
+
+  @BuiltValueField(wireName: r'resultingBalance')
+  int? get resultingBalance;
 
   @BuiltValueField(wireName: r'idempotentReplay')
   bool get idempotentReplay;
@@ -50,6 +59,20 @@ class _$AdjustmentDecisionResultSerializer implements PrimitiveSerializer<Adjust
       object.adjustment,
       specifiedType: const FullType(SessionAdjustment),
     );
+    if (object.ledgerEntry != null) {
+      yield r'ledgerEntry';
+      yield serializers.serialize(
+        object.ledgerEntry,
+        specifiedType: const FullType.nullable(LedgerEntry),
+      );
+    }
+    if (object.resultingBalance != null) {
+      yield r'resultingBalance';
+      yield serializers.serialize(
+        object.resultingBalance,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     yield r'idempotentReplay';
     yield serializers.serialize(
       object.idempotentReplay,
@@ -84,6 +107,22 @@ class _$AdjustmentDecisionResultSerializer implements PrimitiveSerializer<Adjust
             specifiedType: const FullType(SessionAdjustment),
           ) as SessionAdjustment;
           result.adjustment.replace(valueDes);
+          break;
+        case r'ledgerEntry':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(LedgerEntry),
+          ) as LedgerEntry?;
+          if (valueDes == null) continue;
+          result.ledgerEntry.replace(valueDes);
+          break;
+        case r'resultingBalance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.resultingBalance = valueDes;
           break;
         case r'idempotentReplay':
           final valueDes = serializers.deserialize(

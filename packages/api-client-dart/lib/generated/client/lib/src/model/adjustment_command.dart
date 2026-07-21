@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -13,7 +14,7 @@ part 'adjustment_command.g.dart';
 /// Properties:
 /// * [customerPackageId] 
 /// * [quantity] 
-/// * [reason] 
+/// * [reasonCode] 
 @BuiltValue()
 abstract class AdjustmentCommand implements Built<AdjustmentCommand, AdjustmentCommandBuilder> {
   @BuiltValueField(wireName: r'customerPackageId')
@@ -22,8 +23,9 @@ abstract class AdjustmentCommand implements Built<AdjustmentCommand, AdjustmentC
   @BuiltValueField(wireName: r'quantity')
   int get quantity;
 
-  @BuiltValueField(wireName: r'reason')
-  String get reason;
+  @BuiltValueField(wireName: r'reasonCode')
+  AdjustmentCommandReasonCodeEnum get reasonCode;
+  // enum reasonCodeEnum {  MIGRATION_CORRECTION,  ATTENDANCE_CORRECTION,  PACKAGE_COMPENSATION,  SUPPORT_RECONCILIATION,  };
 
   AdjustmentCommand._();
 
@@ -58,10 +60,10 @@ class _$AdjustmentCommandSerializer implements PrimitiveSerializer<AdjustmentCom
       object.quantity,
       specifiedType: const FullType(int),
     );
-    yield r'reason';
+    yield r'reasonCode';
     yield serializers.serialize(
-      object.reason,
-      specifiedType: const FullType(String),
+      object.reasonCode,
+      specifiedType: const FullType(AdjustmentCommandReasonCodeEnum),
     );
   }
 
@@ -100,12 +102,12 @@ class _$AdjustmentCommandSerializer implements PrimitiveSerializer<AdjustmentCom
           ) as int;
           result.quantity = valueDes;
           break;
-        case r'reason':
+        case r'reasonCode':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.reason = valueDes;
+            specifiedType: const FullType(AdjustmentCommandReasonCodeEnum),
+          ) as AdjustmentCommandReasonCodeEnum;
+          result.reasonCode = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -134,5 +136,24 @@ class _$AdjustmentCommandSerializer implements PrimitiveSerializer<AdjustmentCom
     );
     return result.build();
   }
+}
+
+class AdjustmentCommandReasonCodeEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'MIGRATION_CORRECTION')
+  static const AdjustmentCommandReasonCodeEnum MIGRATION_CORRECTION = _$adjustmentCommandReasonCodeEnum_MIGRATION_CORRECTION;
+  @BuiltValueEnumConst(wireName: r'ATTENDANCE_CORRECTION')
+  static const AdjustmentCommandReasonCodeEnum ATTENDANCE_CORRECTION = _$adjustmentCommandReasonCodeEnum_ATTENDANCE_CORRECTION;
+  @BuiltValueEnumConst(wireName: r'PACKAGE_COMPENSATION')
+  static const AdjustmentCommandReasonCodeEnum PACKAGE_COMPENSATION = _$adjustmentCommandReasonCodeEnum_PACKAGE_COMPENSATION;
+  @BuiltValueEnumConst(wireName: r'SUPPORT_RECONCILIATION')
+  static const AdjustmentCommandReasonCodeEnum SUPPORT_RECONCILIATION = _$adjustmentCommandReasonCodeEnum_SUPPORT_RECONCILIATION;
+
+  static Serializer<AdjustmentCommandReasonCodeEnum> get serializer => _$adjustmentCommandReasonCodeEnumSerializer;
+
+  const AdjustmentCommandReasonCodeEnum._(String name): super(name);
+
+  static BuiltSet<AdjustmentCommandReasonCodeEnum> get values => _$adjustmentCommandReasonCodeEnumValues;
+  static AdjustmentCommandReasonCodeEnum valueOf(String name) => _$adjustmentCommandReasonCodeEnumValueOf(name);
 }
 

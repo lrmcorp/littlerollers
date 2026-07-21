@@ -10,6 +10,10 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
   @override
   final SessionAdjustment adjustment;
   @override
+  final LedgerEntry? ledgerEntry;
+  @override
+  final int? resultingBalance;
+  @override
   final bool idempotentReplay;
 
   factory _$AdjustmentDecisionResult([
@@ -18,6 +22,8 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
 
   _$AdjustmentDecisionResult._({
     required this.adjustment,
+    this.ledgerEntry,
+    this.resultingBalance,
     required this.idempotentReplay,
   }) : super._();
   @override
@@ -34,6 +40,8 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
     if (identical(other, this)) return true;
     return other is AdjustmentDecisionResult &&
         adjustment == other.adjustment &&
+        ledgerEntry == other.ledgerEntry &&
+        resultingBalance == other.resultingBalance &&
         idempotentReplay == other.idempotentReplay;
   }
 
@@ -41,6 +49,8 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, adjustment.hashCode);
+    _$hash = $jc(_$hash, ledgerEntry.hashCode);
+    _$hash = $jc(_$hash, resultingBalance.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -50,6 +60,8 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
   String toString() {
     return (newBuiltValueToStringHelper(r'AdjustmentDecisionResult')
           ..add('adjustment', adjustment)
+          ..add('ledgerEntry', ledgerEntry)
+          ..add('resultingBalance', resultingBalance)
           ..add('idempotentReplay', idempotentReplay))
         .toString();
   }
@@ -66,6 +78,17 @@ class AdjustmentDecisionResultBuilder
   set adjustment(SessionAdjustmentBuilder? adjustment) =>
       _$this._adjustment = adjustment;
 
+  LedgerEntryBuilder? _ledgerEntry;
+  LedgerEntryBuilder get ledgerEntry =>
+      _$this._ledgerEntry ??= LedgerEntryBuilder();
+  set ledgerEntry(LedgerEntryBuilder? ledgerEntry) =>
+      _$this._ledgerEntry = ledgerEntry;
+
+  int? _resultingBalance;
+  int? get resultingBalance => _$this._resultingBalance;
+  set resultingBalance(int? resultingBalance) =>
+      _$this._resultingBalance = resultingBalance;
+
   bool? _idempotentReplay;
   bool? get idempotentReplay => _$this._idempotentReplay;
   set idempotentReplay(bool? idempotentReplay) =>
@@ -79,6 +102,8 @@ class AdjustmentDecisionResultBuilder
     final $v = _$v;
     if ($v != null) {
       _adjustment = $v.adjustment.toBuilder();
+      _ledgerEntry = $v.ledgerEntry?.toBuilder();
+      _resultingBalance = $v.resultingBalance;
       _idempotentReplay = $v.idempotentReplay;
       _$v = null;
     }
@@ -105,6 +130,8 @@ class AdjustmentDecisionResultBuilder
           _$v ??
           _$AdjustmentDecisionResult._(
             adjustment: adjustment.build(),
+            ledgerEntry: _ledgerEntry?.build(),
+            resultingBalance: resultingBalance,
             idempotentReplay: BuiltValueNullFieldError.checkNotNull(
               idempotentReplay,
               r'AdjustmentDecisionResult',
@@ -116,6 +143,8 @@ class AdjustmentDecisionResultBuilder
       try {
         _$failedField = 'adjustment';
         adjustment.build();
+        _$failedField = 'ledgerEntry';
+        _ledgerEntry?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'AdjustmentDecisionResult',

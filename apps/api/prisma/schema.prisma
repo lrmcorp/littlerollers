@@ -113,6 +113,23 @@ enum SessionReservationStatus {
   RELEASED
   CONSUMED
 }
+enum SessionAdjustmentStatus {
+  PENDING
+  POSTED
+  REJECTED
+}
+enum SessionAdjustmentReasonCode {
+  MIGRATION_CORRECTION
+  ATTENDANCE_CORRECTION
+  PACKAGE_COMPENSATION
+  SUPPORT_RECONCILIATION
+}
+enum SessionAdjustmentDecisionCode {
+  CORRECTION_VERIFIED
+  INVALID_EVIDENCE
+  DUPLICATE_REQUEST
+  OUT_OF_SCOPE
+}
 
 model User {
   id String @id @db.Uuid
@@ -130,6 +147,8 @@ model User {
   purchases Purchase[]
   decidedPurchases Purchase[] @relation("PurchaseDecisionActor")
   customerPackages CustomerPackage[]
+  requestedAdjustments SessionAdjustment[] @relation("AdjustmentRequester")
+  decidedAdjustments SessionAdjustment[] @relation("AdjustmentDecider")
 }
 model Identity {
   id String @id @db.Uuid
@@ -419,6 +438,7 @@ model CustomerPackage {
   classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   ledgerEntries LedgerEntry[]
   reservations SessionReservation[]
+  adjustments SessionAdjustment[]
   @@index([customerUserId, branchId, expiryAt])
 }
 
@@ -444,9 +464,32 @@ model LedgerEntry {
   referenceType String
   referenceId String
   occurredAt DateTime @default(now())
+  sessionAdjustmentId String? @unique @db.Uuid
   customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  sessionAdjustment SessionAdjustment? @relation(fields: [sessionAdjustmentId], references: [id], onDelete: Restrict)
   @@unique([type, referenceType, referenceId])
   @@index([customerPackageId, occurredAt])
+}
+
+model SessionAdjustment {
+  id String @id @db.Uuid
+  customerPackageId String @db.Uuid
+  quantity Int
+  reasonCode SessionAdjustmentReasonCode
+  requestedById String @db.Uuid
+  decidedById String? @db.Uuid
+  decisionCode SessionAdjustmentDecisionCode?
+  status SessionAdjustmentStatus @default(PENDING)
+  decidedAt DateTime?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  requestedBy User @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy User? @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  ledgerEntry LedgerEntry?
+  @@index([customerPackageId, createdAt])
+  @@index([status, createdAt])
 }
 
 model EffectiveConfiguration {

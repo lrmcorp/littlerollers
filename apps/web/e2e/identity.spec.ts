@@ -549,6 +549,60 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
   await expect(page.getByText('PURCHASE 10')).toBeVisible();
 });
 
+test('session adjustment request and MFA review use controlled codes with keyboard flow', async ({
+  page,
+}) => {
+  const pending = {
+    id: 'adj-1',
+    customerPackageId: 'cp-1',
+    quantity: -2,
+    reasonCode: 'ATTENDANCE_CORRECTION',
+    requestedById: 'admin-1',
+    status: 'PENDING',
+    version: 0,
+    createdAt: '2026-07-22T00:00:00Z',
+  };
+  let listed = true;
+  await page.route('**/api/v1/session-adjustments**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'GET')
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: listed ? [pending] : [],
+          page: { hasMore: false, nextCursor: null },
+        }),
+      });
+    if (request.url().includes('/adj-1/approve')) {
+      listed = false;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          adjustment: { ...pending, status: 'POSTED', version: 1 },
+          resultingBalance: 8,
+          idempotentReplay: false,
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ ...pending, idempotentReplay: false }),
+    });
+  });
+  await page.goto('/ledger');
+  await page.getByLabel('Paket customer').fill('cp-1');
+  await page.getByLabel('Delta sesi').fill('-2');
+  await page.getByLabel('Alasan terkontrol').selectOption('ATTENDANCE_CORRECTION');
+  await page.getByRole('button', { name: 'Buat request adjustment' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('tanpa mutasi saldo');
+  await page.getByRole('button', { name: 'Muat antrean adjustment' }).press('Enter');
+  await page.getByRole('button', { name: 'Setujui' }).press('Enter');
+  await expect(page.getByRole('button', { name: 'Setujui' })).toHaveCount(0);
+});
+
 test('assignment overlap and hidden branch failures do not show optimistic success', async ({
   page,
 }) => {
