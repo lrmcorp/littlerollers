@@ -1,8 +1,11 @@
 # BG-2 Synthetic US-PKG-02 Evidence
 
-**Execution date:** 2026-07-21  
-**Disposition:** `IN PROGRESS FOR SYNTHETIC NON-PRODUCTION`  
-**Source commit:** working tree; replaced with exact SHA after commit  
+**Execution date:** 2026-07-21
+
+**Disposition:** `PASS FOR SYNTHETIC NON-PRODUCTION`
+
+**Source commit:** `a97f3d3`; Dart generated-model closure `6664850`
+
 **Production:** `BLOCKED` — DEC-004/006/011/012, providers, Figma, UAT dan signed approval remain unresolved.
 
 ## Implemented Boundary
@@ -19,16 +22,17 @@
 |---|---|
 | `pnpm check` | PASS — format, OpenAPI validation, lint, typecheck, 26 non-DB API + 17 Web tests, consumers and builds |
 | OpenAPI | PASS validation — `0.9.0-draft`, checksum `30c18e7ab7e3bb8b3a3dca048916b9c79daf470c918ae522e0c87de5e61e3c15`, 97 operations, 908 refs |
-| Generated clients | Regenerated with pinned Docker generator; final byte drift check must complete locally or hosted |
-| Empty migration/integration | Migration was split after PostgreSQL correctly rejected enum use in the same transaction; final clean hosted execution pending because local Docker daemon became unresponsive |
+| Generated clients | PASS hosted — pinned byte-for-byte drift dan regenerated Dart built-value models pada `6664850` |
+| Empty migration/integration | PASS hosted — 9 migration pada PostgreSQL kosong, double seed, dan API integration suite; enum extension dipisahkan dari decision records untuk PostgreSQL transaction safety |
 | Web component/a11y | PASS — queue, approval, typed rejection and configuration failure included |
-| Web E2E | Test added; local execution blocked by pre-existing dev servers/file descriptor exhaustion; hosted run required |
-| Hosted `typescript`, `flutter`, `secrets` | PENDING for source/evidence commit |
+| Web E2E | PASS hosted — approval flow, private proof authorization dan keyboard controls |
+| Flutter/Dart | PASS hosted pada `6664850` — analyze, 5 widget tests dan Dart consumer test; generated `.g.dart` sinkron |
+| Hosted `typescript`, `flutter`, `secrets` | PASS 2026-07-21 untuk `6664850` — dikonfirmasi pengguna; run ID/URL tidak tersedia dan tidak difabrikasi |
 
 ## Review Disposition
 
-- **AI QA:** local pipeline pass; database/concurrency and E2E closure remains hosted action.
-- **AI Security:** MFA/capability/scope/separation-of-duties, CLEAN proof gate, typed reasons, masked audit and production fail-closed implemented.
-- **AI Peer Reviewer:** transaction and idempotency boundaries are explicit; no notification, payment gateway, or `US-LED-01` behavior was added.
+- **AI QA:** PASS — local pipeline serta hosted migration, integration, E2E, Flutter dan Dart evidence hijau.
+- **AI Security:** PASS FOR SYNTHETIC NON-PRODUCTION — MFA/capability/scope/separation-of-duties, CLEAN proof gate, typed reasons, masked audit, Gitleaks dan production fail-closed tervalidasi.
+- **AI Peer Reviewer:** PASS FOR SYNTHETIC NON-PRODUCTION — transaction dan idempotency boundaries eksplisit; tidak ada notification, payment gateway, atau `US-LED-01` behavior yang ditambahkan.
 
-`US-PKG-02` must remain `IN PROGRESS` until the final evidence commit is hosted-green and the working tree is clean.
+`US-PKG-02 = PASS FOR SYNTHETIC NON-PRODUCTION`. Production tetap blocked. `US-LED-01 = NEXT/NOT STARTED`, `BG-3 = PENDING`, dan `PG-1 = BLOCKED`.
