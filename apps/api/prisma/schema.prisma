@@ -94,6 +94,11 @@ enum PaymentProofScanStatus {
 }
 enum PurchaseStatus {
   PENDING
+  APPROVED
+  REJECTED
+}
+enum LedgerEntryType {
+  PURCHASE
 }
 
 model User {
@@ -110,6 +115,8 @@ model User {
   createdInvitations UserInvitation[]
   paymentProofs PaymentProof[]
   purchases Purchase[]
+  decidedPurchases Purchase[] @relation("PurchaseDecisionActor")
+  customerPackages CustomerPackage[]
 }
 model Identity {
   id String @id @db.Uuid
@@ -136,6 +143,7 @@ model Branch {
   configurations EffectiveConfiguration[]
   classTypes ClassType[]
   packages Package[]
+  customerPackages CustomerPackage[]
   paymentProofs PaymentProof[]
   purchases Purchase[]
 }
@@ -152,6 +160,7 @@ model ClassType {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
   configurations EffectiveConfiguration[]
   packages Package[]
+  customerPackages CustomerPackage[]
   @@unique([branchId, code])
   @@index([branchId, active])
 }
@@ -314,6 +323,7 @@ model Package {
   classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   proofs PaymentProof[]
   purchases Purchase[]
+  customerPackages CustomerPackage[]
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
 }
@@ -358,14 +368,56 @@ model Purchase {
   status PurchaseStatus @default(PENDING)
   idempotencyKeyHash String
   submittedAt DateTime @default(now())
+  decidedAt DateTime?
+  decidedById String? @db.Uuid
+  decisionReasonCode String?
   version Int @default(0)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
   package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
   paymentProof PaymentProof @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
+  decidedBy User? @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
+  customerPackage CustomerPackage?
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
+}
+
+model CustomerPackage {
+  id String @id @db.Uuid
+  purchaseId String @unique @db.Uuid
+  customerUserId String @db.Uuid
+  branchId String @db.Uuid
+  packageId String @db.Uuid
+  classTypeId String @db.Uuid
+  activationDate DateTime @db.Date
+  expiryAt DateTime
+  salePriceRp Int
+  sessionCountSnapshot Int
+  durationDaysSnapshot Int
+  projectionRateRp Int
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  customer User @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  ledgerEntries LedgerEntry[]
+  @@index([customerUserId, branchId, expiryAt])
+}
+
+model LedgerEntry {
+  id String @id @db.Uuid
+  customerPackageId String @db.Uuid
+  type LedgerEntryType
+  quantity Int
+  referenceType String
+  referenceId String
+  occurredAt DateTime @default(now())
+  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  @@unique([type, referenceType, referenceId])
+  @@index([customerPackageId, occurredAt])
 }
 
 model EffectiveConfiguration {

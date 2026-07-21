@@ -3,30 +3,27 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'customer_package_balance.g.dart';
 
-/// CustomerPackageBalance
+/// US-PKG-02 approval snapshot; ledger browsing and derived balances remain US-LED-01.
 ///
 /// Properties:
 /// * [id] 
 /// * [branchId] 
 /// * [customerUserId] 
 /// * [packageId] 
-/// * [status] 
+/// * [classTypeId] 
 /// * [activationDate] 
 /// * [expiryAt] 
-/// * [ledgerBalance] 
-/// * [reserved] 
-/// * [available] 
 /// * [salePriceRp] 
 /// * [sessionCountSnapshot] 
 /// * [durationDaysSnapshot] 
 /// * [projectionRateRp] 
+/// * [version] 
 @BuiltValue()
 abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, CustomerPackageBalanceBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -41,9 +38,8 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
   @BuiltValueField(wireName: r'packageId')
   String get packageId;
 
-  @BuiltValueField(wireName: r'status')
-  CustomerPackageBalanceStatusEnum get status;
-  // enum statusEnum {  ACTIVE,  EXPIRED,  INACTIVE,  };
+  @BuiltValueField(wireName: r'classTypeId')
+  String get classTypeId;
 
   @BuiltValueField(wireName: r'activationDate')
   Date get activationDate;
@@ -51,26 +47,20 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
   @BuiltValueField(wireName: r'expiryAt')
   DateTime get expiryAt;
 
-  @BuiltValueField(wireName: r'ledgerBalance')
-  int get ledgerBalance;
-
-  @BuiltValueField(wireName: r'reserved')
-  int get reserved;
-
-  @BuiltValueField(wireName: r'available')
-  int get available;
-
   @BuiltValueField(wireName: r'salePriceRp')
-  int? get salePriceRp;
+  int get salePriceRp;
 
   @BuiltValueField(wireName: r'sessionCountSnapshot')
-  int? get sessionCountSnapshot;
+  int get sessionCountSnapshot;
 
   @BuiltValueField(wireName: r'durationDaysSnapshot')
-  int? get durationDaysSnapshot;
+  int get durationDaysSnapshot;
 
   @BuiltValueField(wireName: r'projectionRateRp')
-  int? get projectionRateRp;
+  int get projectionRateRp;
+
+  @BuiltValueField(wireName: r'version')
+  int? get version;
 
   CustomerPackageBalance._();
 
@@ -115,10 +105,10 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.packageId,
       specifiedType: const FullType(String),
     );
-    yield r'status';
+    yield r'classTypeId';
     yield serializers.serialize(
-      object.status,
-      specifiedType: const FullType(CustomerPackageBalanceStatusEnum),
+      object.classTypeId,
+      specifiedType: const FullType(String),
     );
     yield r'activationDate';
     yield serializers.serialize(
@@ -130,46 +120,30 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.expiryAt,
       specifiedType: const FullType(DateTime),
     );
-    yield r'ledgerBalance';
+    yield r'salePriceRp';
     yield serializers.serialize(
-      object.ledgerBalance,
+      object.salePriceRp,
       specifiedType: const FullType(int),
     );
-    yield r'reserved';
+    yield r'sessionCountSnapshot';
     yield serializers.serialize(
-      object.reserved,
+      object.sessionCountSnapshot,
       specifiedType: const FullType(int),
     );
-    yield r'available';
+    yield r'durationDaysSnapshot';
     yield serializers.serialize(
-      object.available,
+      object.durationDaysSnapshot,
       specifiedType: const FullType(int),
     );
-    if (object.salePriceRp != null) {
-      yield r'salePriceRp';
+    yield r'projectionRateRp';
+    yield serializers.serialize(
+      object.projectionRateRp,
+      specifiedType: const FullType(int),
+    );
+    if (object.version != null) {
+      yield r'version';
       yield serializers.serialize(
-        object.salePriceRp,
-        specifiedType: const FullType(int),
-      );
-    }
-    if (object.sessionCountSnapshot != null) {
-      yield r'sessionCountSnapshot';
-      yield serializers.serialize(
-        object.sessionCountSnapshot,
-        specifiedType: const FullType(int),
-      );
-    }
-    if (object.durationDaysSnapshot != null) {
-      yield r'durationDaysSnapshot';
-      yield serializers.serialize(
-        object.durationDaysSnapshot,
-        specifiedType: const FullType(int),
-      );
-    }
-    if (object.projectionRateRp != null) {
-      yield r'projectionRateRp';
-      yield serializers.serialize(
-        object.projectionRateRp,
+        object.version,
         specifiedType: const FullType(int),
       );
     }
@@ -224,12 +198,12 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
           ) as String;
           result.packageId = valueDes;
           break;
-        case r'status':
+        case r'classTypeId':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(CustomerPackageBalanceStatusEnum),
-          ) as CustomerPackageBalanceStatusEnum;
-          result.status = valueDes;
+            specifiedType: const FullType(String),
+          ) as String;
+          result.classTypeId = valueDes;
           break;
         case r'activationDate':
           final valueDes = serializers.deserialize(
@@ -244,27 +218,6 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(DateTime),
           ) as DateTime;
           result.expiryAt = valueDes;
-          break;
-        case r'ledgerBalance':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
-          result.ledgerBalance = valueDes;
-          break;
-        case r'reserved':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
-          result.reserved = valueDes;
-          break;
-        case r'available':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
-          result.available = valueDes;
           break;
         case r'salePriceRp':
           final valueDes = serializers.deserialize(
@@ -294,6 +247,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
           ) as int;
           result.projectionRateRp = valueDes;
           break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
+          break;
         default:
           unhandled.add(key);
           unhandled.add(value);
@@ -321,22 +281,5 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
     );
     return result.build();
   }
-}
-
-class CustomerPackageBalanceStatusEnum extends EnumClass {
-
-  @BuiltValueEnumConst(wireName: r'ACTIVE')
-  static const CustomerPackageBalanceStatusEnum ACTIVE = _$customerPackageBalanceStatusEnum_ACTIVE;
-  @BuiltValueEnumConst(wireName: r'EXPIRED')
-  static const CustomerPackageBalanceStatusEnum EXPIRED = _$customerPackageBalanceStatusEnum_EXPIRED;
-  @BuiltValueEnumConst(wireName: r'INACTIVE')
-  static const CustomerPackageBalanceStatusEnum INACTIVE = _$customerPackageBalanceStatusEnum_INACTIVE;
-
-  static Serializer<CustomerPackageBalanceStatusEnum> get serializer => _$customerPackageBalanceStatusEnumSerializer;
-
-  const CustomerPackageBalanceStatusEnum._(String name): super(name);
-
-  static BuiltSet<CustomerPackageBalanceStatusEnum> get values => _$customerPackageBalanceStatusEnumValues;
-  static CustomerPackageBalanceStatusEnum valueOf(String name) => _$customerPackageBalanceStatusEnumValueOf(name);
 }
 

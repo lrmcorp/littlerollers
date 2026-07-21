@@ -12,16 +12,14 @@ Name | Type | Description | Notes
 **branchId** | **String** |  | 
 **customerUserId** | **String** |  | 
 **packageId** | **String** |  | 
-**status** | **String** |  | 
+**classTypeId** | **String** |  | 
 **activationDate** | [**Date**](Date.md) |  | 
 **expiryAt** | [**DateTime**](DateTime.md) |  | 
-**ledgerBalance** | **int** |  | 
-**reserved** | **int** |  | 
-**available** | **int** |  | 
-**salePriceRp** | **int** |  | [optional] 
-**sessionCountSnapshot** | **int** |  | [optional] 
-**durationDaysSnapshot** | **int** |  | [optional] 
-**projectionRateRp** | **int** |  | [optional] 
+**salePriceRp** | **int** |  | 
+**sessionCountSnapshot** | **int** |  | 
+**durationDaysSnapshot** | **int** |  | 
+**projectionRateRp** | **int** |  | 
+**version** | **int** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

@@ -31,7 +31,8 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-ID02-001 | internal RBAC/MFA/user administration slice | AI Backend/Web | AI QA/Security/Peer | AI TL | LOCAL_PASS | concurrency/audit/scope integration; Web component/a11y 2 dan Playwright E2E 5 PASS | `97f3901` | hosted evidence pending; production blocked |
 | WRK-BG2-MST02-001 | Owner/Instructor assignment half-open branch-local dan synthetic Super Owner bootstrap | AI Backend/Web/Data | AI QA/Security/Peer | AI TL | LOCAL_PASS | `pnpm check`; 35 PostgreSQL API tests; Web 9 component/a11y + 7 E2E; drift 123 TS/130 Dart; Flutter/Dart PASS | `4edacf4` | hosted evidence untuk source/evidence commit belum dicatat |
 | WRK-BG2-MST01-001 | Branch, Class Type, effective fee/rate/quota-capacity synthetic | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; empty DB 6 migrations; double seed; 38 PostgreSQL API tests; Web 11 component/a11y + 8 E2E; drift 131 TS/138 Dart; Flutter/Dart PASS; hosted `typescript`, `flutter`, `secrets` hijau (user-confirmed) | `cb3d15f` | run ID/URL tidak tersedia di workspace; production remains blocked |
-| WRK-BG2-PKG01-001 | Package selection, private proof scan, idempotent PENDING purchase | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; PO+Finance production | HOSTED SOURCE PASS / EVIDENCE RUN PENDING | empty DB 7 migrations; double seed; 42 PostgreSQL API tests; Web 15 component/a11y + 10 E2E; Flutter 5 widgets; OpenAPI `0.8.0-draft` drift 134 TS/141 Dart; hosted tiga job hijau (user-confirmed) | `8830235`; fix `62fd16b` | final evidence-commit CI pending; run ID/URL unavailable; production blockers remain |
+| WRK-BG2-PKG01-001 | Package selection, private proof scan, idempotent PENDING purchase | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; PO+Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | empty DB 7 migrations; double seed; 42 PostgreSQL API tests; Web 15 component/a11y + 10 E2E; Flutter 5 widgets; OpenAPI `0.8.0-draft`; final hosted tiga job hijau (user-confirmed) | source `8830235`; fix `62fd16b`; evidence `8a5fe34` | closed synthetic; run ID/URL unavailable; production blockers remain |
+| WRK-BG2-PKG02-001 | MFA-gated purchase approval/rejection, immutable customer-package snapshot dan PURCHASE ledger mutation | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO+Finance production | IN PROGRESS | `pnpm check` PASS; OpenAPI `0.9.0-draft`; 17 Web component/a11y tests; migration split for PostgreSQL enum safety; generated TS/Dart clients updated | working tree 2026-07-21 | local Docker/drift dan E2E blocked oleh hung daemon/EMFILE; hosted evidence required; `US-LED-01` not started |
 
 ## Independent Review Record
 
@@ -51,9 +52,12 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-MST01-QA-001 | AI QA | value validation, half-open period, DB concurrency, API/Web contract | PASS | local pipeline, migration/double seed, 38 API, 11 Web component, 8 E2E, Flutter/Dart, drift dan hosted jobs hijau |
 | REV-BG2-MST01-SEC-001 | AI Security | MFA, Finance capability, hidden scope, audit masking, production defaults | PASS FOR SYNTHETIC NON-PRODUCTION | no runtime numeric default; raw reason masked; hosted Gitleaks hijau; production DEC-005/006 tetap blocked |
 | REV-BG2-MST01-PEER-001 | AI Peer Reviewer | typed contract, lifecycle dependency dan evidence honesty | PASS FOR SYNTHETIC NON-PRODUCTION | executable local + hosted evidence tersedia; run ID/URL perlu dilengkapi dari GitHub bila diperlukan |
-| REV-BG2-PKG01-QA-001 | AI QA | migration, proof lifecycle, replay, consumers | HOSTED SOURCE PASS | 42 API, 15 Web component/a11y, 10 E2E, 5 Flutter dan hosted tiga job hijau; evidence run pending |
-| REV-BG2-PKG01-SEC-001 | AI Security | private key/checksum, scan gate, scope, audit leakage | HOSTED SOURCE PASS | no raw provider URL/token/checksum/PII in audit; hosted Gitleaks hijau; production fail-closed |
-| REV-BG2-PKG01-PEER-001 | AI Peer Reviewer | scope boundary dan evidence honesty | PASS WITH FINAL ACTION | purchase tetap PENDING; approval/ledger/payment gateway tidak diimplementasikan; final evidence run wajib hijau |
+| REV-BG2-PKG01-QA-001 | AI QA | migration, proof lifecycle, replay, consumers | PASS | 42 API, 15 Web component/a11y, 10 E2E, 5 Flutter dan final hosted tiga job hijau |
+| REV-BG2-PKG01-SEC-001 | AI Security | private key/checksum, scan gate, scope, audit leakage | PASS FOR SYNTHETIC NON-PRODUCTION | no raw provider URL/token/checksum/PII in audit; hosted Gitleaks hijau; production fail-closed |
+| REV-BG2-PKG01-PEER-001 | AI Peer Reviewer | scope boundary dan evidence honesty | PASS FOR SYNTHETIC NON-PRODUCTION | source dan final evidence run hijau; production boundaries remain explicit |
+| REV-BG2-PKG02-QA-001 | AI QA | atomic decision, snapshots, projection config, consumer states | LOCAL PASS WITH HOSTED ACTION | `pnpm check` dan 17 Web tests hijau; database integration dan E2E wajib dibuktikan hosted |
+| REV-BG2-PKG02-SEC-001 | AI Security | MFA, branch hiding, separation of duties, proof authorization, audit leakage | LOCAL PASS WITH HOSTED ACTION | typed reason code, CLEAN gate, fail-closed provider dan masked audit tersedia; hosted Gitleaks/integration pending |
+| REV-BG2-PKG02-PEER-001 | AI Peer Reviewer | idempotency, transaction boundary dan US-LED-01 scope | PASS WITH ACTION | approval membuat hanya PURCHASE opening entry; ledger reads/adjustment/expiry tetap tidak diimplementasikan |
 
 ## Gate Disposition
 
@@ -61,5 +65,5 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
 NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
 NON-PRODUCTION LOCAL_PASS` pada source commit `4edacf4`;
-`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-01 = HOSTED SOURCE PASS / FINAL EVIDENCE RUN PENDING FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-02 = NEXT/BLOCKED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
+`US-MST-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-PKG-02 = IN PROGRESS FOR SYNTHETIC NON-PRODUCTION`; `US-LED-01 = NEXT/NOT STARTED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
 DEC/CFG production values, Figma, provider/account, migration/UAT dan production approvals tetap.

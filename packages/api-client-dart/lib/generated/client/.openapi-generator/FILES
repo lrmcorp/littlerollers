@@ -6,6 +6,7 @@ doc/ActionCommand.md
 doc/AdjustmentCommand.md
 doc/AdjustmentDecisionResult.md
 doc/ApprovalResult.md
+doc/ApprovePurchaseRequest.md
 doc/AssignInstructorCommand.md
 doc/Assignment.md
 doc/AssignmentCommand.md
@@ -158,6 +159,7 @@ lib/src/model/action_command.dart
 lib/src/model/adjustment_command.dart
 lib/src/model/adjustment_decision_result.dart
 lib/src/model/approval_result.dart
+lib/src/model/approve_purchase_request.dart
 lib/src/model/assign_instructor_command.dart
 lib/src/model/assignment.dart
 lib/src/model/assignment_command.dart
@@ -273,3 +275,4 @@ lib/src/model/token_check_in_command.dart
 lib/src/model/version_command.dart
 lib/src/serializers.dart
 pubspec.yaml
+test/approve_purchase_request_test.dart

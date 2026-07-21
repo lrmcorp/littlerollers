@@ -23,9 +23,11 @@ Method | HTTP request | Description
 
 
 # **approvePurchase**
-> ApprovalResult approvePurchase(id, idempotencyKey, deactivateUserRequest)
+> ApprovalResult approvePurchase(id, idempotencyKey, approvePurchaseRequest)
 
 
+
+MFA-gated atomic decision. Activation is the approval date in branch timezone; expiry is exclusive at the start of activationDate + durationDays.
 
 ### Example
 ```dart
@@ -34,10 +36,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getPackagesApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ApprovePurchaseRequest approvePurchaseRequest = ; // ApprovePurchaseRequest | 
 
 try {
-    final response = api.approvePurchase(id, idempotencyKey, deactivateUserRequest);
+    final response = api.approvePurchase(id, idempotencyKey, approvePurchaseRequest);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->approvePurchase: $e\n');
@@ -50,7 +52,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **approvePurchaseRequest** | [**ApprovePurchaseRequest**](ApprovePurchaseRequest.md)|  | 
 
 ### Return type
 
@@ -369,9 +371,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **rejectPurchase**
-> Purchase rejectPurchase(id, idempotencyKey, deactivateUserRequest)
+> Purchase rejectPurchase(id, idempotencyKey, approvePurchaseRequest)
 
 
+
+MFA-gated rejection. Creates no customer package or ledger entry.
 
 ### Example
 ```dart
@@ -380,10 +384,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getPackagesApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ApprovePurchaseRequest approvePurchaseRequest = ; // ApprovePurchaseRequest | 
 
 try {
-    final response = api.rejectPurchase(id, idempotencyKey, deactivateUserRequest);
+    final response = api.rejectPurchase(id, idempotencyKey, approvePurchaseRequest);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->rejectPurchase: $e\n');
@@ -396,7 +400,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **approvePurchaseRequest** | [**ApprovePurchaseRequest**](ApprovePurchaseRequest.md)|  | 
 
 ### Return type
 

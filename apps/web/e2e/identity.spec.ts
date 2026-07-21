@@ -419,6 +419,81 @@ test('unsafe scan and provider failure never enable purchase submission', async 
   await expect(page.getByRole('button', { name: 'Kirim purchase' })).toBeDisabled();
 });
 
+test('MFA purchase review approves once and exposes only an opaque proof authorization', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/purchases?branchId=branch-1', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'purchase-review-1',
+            branchId: 'branch-1',
+            userId: 'customer-1',
+            packageId: 'package-1',
+            paymentProofId: 'proof-review-1',
+            packageNameSnapshot: 'Ten Sessions',
+            priceRpSnapshot: 2000000,
+            sessionCountSnapshot: 10,
+            durationDaysSnapshot: 30,
+            status: 'PENDING',
+            submittedAt: new Date().toISOString(),
+            version: 0,
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  await page.route(
+    '**/api/v1/uploads/payment-proofs/proof-review-1/download-authorizations',
+    (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          url: '/synthetic-private-proof/opaque',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      }),
+  );
+  await page.route('**/api/v1/purchases/purchase-review-1/approve', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        purchase: {
+          id: 'purchase-review-1',
+          branchId: 'branch-1',
+          userId: 'customer-1',
+          packageId: 'package-1',
+          paymentProofId: 'proof-review-1',
+          packageNameSnapshot: 'Ten Sessions',
+          priceRpSnapshot: 2000000,
+          sessionCountSnapshot: 10,
+          durationDaysSnapshot: 30,
+          status: 'APPROVED',
+          submittedAt: new Date().toISOString(),
+          version: 1,
+        },
+        customerPackage: { id: 'cp-1' },
+        ledgerEntry: { id: 'ledger-1' },
+        idempotentReplay: false,
+      }),
+    }),
+  );
+  await page.goto('/purchases');
+  await page.getByLabel('Cabang review').fill('branch-1');
+  await page.getByRole('button', { name: 'Muat queue' }).press('Enter');
+  await page.getByRole('button', { name: /Ten Sessions.*PENDING/ }).press('Enter');
+  await page.getByRole('button', { name: 'Buka proof privat' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('Proof tersedia');
+  await page.getByRole('button', { name: 'Setujui purchase' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('APPROVED');
+});
+
 test('assignment overlap and hidden branch failures do not show optimistic success', async ({
   page,
 }) => {

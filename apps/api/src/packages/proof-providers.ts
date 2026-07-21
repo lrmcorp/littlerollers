@@ -12,6 +12,7 @@ function requireSyntheticProofProvider() {
 
 export interface ObjectStorageProvider {
   issuePrivateUpload(): { objectKey: string; uploadReference: string };
+  authorizePrivateDownload(objectKey: string): { url: string; expiresAt: string };
 }
 export interface MalwareScanProvider {
   scanPrivateObject(objectKey: string): 'CLEAN' | 'REJECTED';
@@ -24,6 +25,14 @@ export class ConfigGatedObjectStorageProvider implements ObjectStorageProvider {
     syntheticConfigSeconds('PAYMENT_PROOF_TTL_SECONDS', 900);
     const objectKey = opaqueToken();
     return { objectKey, uploadReference: digest(objectKey) };
+  }
+  authorizePrivateDownload(objectKey: string) {
+    requireSyntheticProofProvider();
+    const ttl = syntheticConfigSeconds('PAYMENT_PROOF_TTL_SECONDS', 900);
+    return {
+      url: `/synthetic-private-proof/${digest(`${objectKey}:${opaqueToken()}`)}`,
+      expiresAt: new Date(Date.now() + ttl * 1000).toISOString(),
+    };
   }
 }
 

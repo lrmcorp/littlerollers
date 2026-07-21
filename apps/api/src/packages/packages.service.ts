@@ -5,6 +5,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/security';
+import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import {
   ConfigGatedMalwareScanProvider,
   ConfigGatedObjectStorageProvider,
@@ -21,6 +22,10 @@ export class PackagesService {
   ) {}
   private auth(p: SessionPrincipal, mutation = false) {
     this.policy.requireCapability(p.capabilities, mutation ? 'master:manage' : 'package:read');
+    if (mutation) this.policy.requireMfa(p.assurance);
+  }
+  private reviewAuth(p: SessionPrincipal, mutation = false) {
+    this.policy.requireCapability(p.capabilities, mutation ? 'purchase:decide' : 'purchase:review');
     if (mutation) this.policy.requireMfa(p.assurance);
   }
   private scope(p: SessionPrincipal, branchId: string) {
@@ -346,12 +351,180 @@ export class PackagesService {
     );
   }
   async listPurchases(p: SessionPrincipal, branchId?: string) {
-    this.auth(p);
+    const reviewer = p.capabilities.includes('purchase:review');
+    if (reviewer) this.reviewAuth(p);
+    else this.auth(p);
     if (branchId) this.scope(p, branchId);
     const items = await this.db.purchase.findMany({
-      where: { userId: p.userId, ...(branchId ? { branchId } : {}) },
+      where: {
+        ...(!reviewer ? { userId: p.userId } : {}),
+        ...(branchId
+          ? { branchId }
+          : reviewer && !p.capabilities.includes('branch:all')
+            ? { branchId: { in: p.branchIds } }
+            : {}),
+      },
       orderBy: { submittedAt: 'desc' },
     });
     return { items, page: { nextCursor: null, hasMore: false } };
+  }
+
+  async authorizeProofDownload(p: SessionPrincipal, id: string) {
+    this.reviewAuth(p, true);
+    const proof = await this.db.paymentProof.findUnique({ where: { id } });
+    if (!proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.scope(p, proof.branchId);
+    if (proof.uploadStatus !== 'FINALIZED' || proof.scanStatus !== 'CLEAN')
+      throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
+    return this.storage.authorizePrivateDownload(proof.objectKey);
+  }
+
+  async decidePurchase(
+    p: SessionPrincipal,
+    id: string,
+    decision: 'APPROVED' | 'REJECTED',
+    input: { reasonCode?: string; expectedVersion?: number },
+    key: string,
+    correlationId: string,
+  ) {
+    this.reviewAuth(p, true);
+    if (!key || !Number.isInteger(input?.expectedVersion))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const approvalReasons = ['PAYMENT_VERIFIED'];
+    const rejectionReasons = [
+      'PROOF_INVALID',
+      'AMOUNT_MISMATCH',
+      'DUPLICATE_PURCHASE',
+      'OTHER_REVIEW_REQUIRED',
+    ];
+    if (!(decision === 'APPROVED' ? approvalReasons : rejectionReasons).includes(input.reasonCode!))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    syntheticConfigSeconds('PURCHASE_DECISION_IDEMPOTENCY_TTL_SECONDS', 86400);
+    try {
+      return await this.idem.execute(
+        {
+          scope: `purchase-decision:${id}`,
+          key,
+          payload: {
+            decision,
+            reasonCode: input.reasonCode,
+            expectedVersion: input.expectedVersion,
+          },
+          ttlMs: 86400000,
+          leaseMs: 30000,
+        },
+        async (tx) => {
+          const purchase = await tx.purchase.findUnique({
+            where: { id },
+            include: { paymentProof: true, package: true, branch: true },
+          });
+          if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          this.scope(p, purchase.branchId);
+          if (purchase.userId === p.userId)
+            throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+          if (purchase.status !== 'PENDING')
+            throw new ApiProblem('PURCHASE_ALREADY_DECIDED', HttpStatus.CONFLICT);
+          if (purchase.version !== input.expectedVersion)
+            throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+          if (
+            purchase.paymentProof.uploadStatus !== 'FINALIZED' ||
+            purchase.paymentProof.scanStatus !== 'CLEAN'
+          )
+            throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
+
+          const decidedAt = new Date();
+          const updated = await tx.purchase.update({
+            where: { id, status: 'PENDING', version: input.expectedVersion },
+            data: {
+              status: decision,
+              decidedAt,
+              decidedById: p.userId,
+              decisionReasonCode: input.reasonCode!,
+              version: { increment: 1 },
+            },
+          });
+          let customerPackage = null;
+          let ledgerEntry = null;
+          if (decision === 'APPROVED') {
+            const activationDate = dateInTimeZone(decidedAt, purchase.branch.timezone);
+            const [year, month, day] = activationDate.split('-').map(Number);
+            const expiryDate = new Date(
+              Date.UTC(year!, month! - 1, day! + purchase.durationDaysSnapshot),
+            )
+              .toISOString()
+              .slice(0, 10);
+            const effectiveDate = new Date(`${activationDate}T00:00:00Z`);
+            const projection = await tx.effectiveConfiguration.findFirst({
+              where: {
+                kind: 'PROJECTION_RATE',
+                branchId: purchase.branchId,
+                classTypeId: purchase.package.classTypeId,
+                effectiveFrom: { lte: effectiveDate },
+                OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
+              },
+              orderBy: { effectiveFrom: 'desc' },
+            });
+            const rate = (projection?.value as { rateRp?: unknown } | undefined)?.rateRp;
+            if (!Number.isSafeInteger(rate) || Number(rate) < 0)
+              throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+            customerPackage = await tx.customerPackage.create({
+              data: {
+                id: newId(),
+                purchaseId: purchase.id,
+                customerUserId: purchase.userId,
+                branchId: purchase.branchId,
+                packageId: purchase.packageId,
+                classTypeId: purchase.package.classTypeId,
+                activationDate: effectiveDate,
+                expiryAt: startOfLocalDateUtc(expiryDate, purchase.branch.timezone),
+                salePriceRp: purchase.priceRpSnapshot,
+                sessionCountSnapshot: purchase.sessionCountSnapshot,
+                durationDaysSnapshot: purchase.durationDaysSnapshot,
+                projectionRateRp: Number(rate),
+              },
+            });
+            ledgerEntry = await tx.ledgerEntry.create({
+              data: {
+                id: newId(),
+                customerPackageId: customerPackage.id,
+                type: 'PURCHASE',
+                quantity: purchase.sessionCountSnapshot,
+                referenceType: 'PURCHASE',
+                referenceId: purchase.id,
+              },
+            });
+          }
+          await tx.outboxEvent.create({
+            data: {
+              id: newId(),
+              eventType: decision === 'APPROVED' ? 'purchase.approved.v1' : 'purchase.rejected.v1',
+              aggregateType: 'Purchase',
+              aggregateId: purchase.id,
+              payload: { purchaseId: purchase.id, status: decision, reasonCode: input.reasonCode! },
+              correlationId,
+            },
+          });
+          await this.audit(
+            tx,
+            p,
+            decision === 'APPROVED' ? 'PURCHASE_APPROVED' : 'PURCHASE_REJECTED',
+            'Purchase',
+            purchase.id,
+            purchase.branchId,
+            correlationId,
+          );
+          return {
+            status: 200,
+            body: (decision === 'APPROVED'
+              ? { purchase: updated, customerPackage, ledgerEntry, idempotentReplay: false }
+              : updated) as unknown as Prisma.InputJsonValue,
+          };
+        },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034')
+        throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+      throw error;
+    }
   }
 }

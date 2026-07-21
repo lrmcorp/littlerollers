@@ -17,8 +17,11 @@ Name | Type | Description | Notes
 **priceRpSnapshot** | **int** |  | 
 **sessionCountSnapshot** | **int** |  | 
 **durationDaysSnapshot** | **int** |  | 
-**status** | [**JsonObject**](.md) |  | 
+**status** | **String** |  | 
 **submittedAt** | [**DateTime**](DateTime.md) |  | 
+**decidedAt** | [**DateTime**](DateTime.md) |  | [optional] 
+**decidedById** | **String** |  | [optional] 
+**decisionReasonCode** | **String** |  | [optional] 
 **version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

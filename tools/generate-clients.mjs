@@ -3,5 +3,5 @@ execFileSync(process.execPath, [new URL('./validate-openapi.mjs', import.meta.ur
   stdio: 'inherit',
 });
 console.log(
-  'Committed generated clients are synchronized with OpenAPI 0.4.0-draft. Full model regeneration uses the pinned Docker generator in tools/openapi-generator.sh.',
+  'Committed generated clients are synchronized with OpenAPI 0.9.0-draft. Full model regeneration uses the pinned Docker generator in tools/openapi-generator.sh.',
 );

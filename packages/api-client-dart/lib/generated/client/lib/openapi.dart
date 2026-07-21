@@ -29,6 +29,7 @@ export 'package:openapi/src/model/action_command.dart';
 export 'package:openapi/src/model/adjustment_command.dart';
 export 'package:openapi/src/model/adjustment_decision_result.dart';
 export 'package:openapi/src/model/approval_result.dart';
+export 'package:openapi/src/model/approve_purchase_request.dart';
 export 'package:openapi/src/model/assign_instructor_command.dart';
 export 'package:openapi/src/model/assignment.dart';
 export 'package:openapi/src/model/assignment_command.dart';

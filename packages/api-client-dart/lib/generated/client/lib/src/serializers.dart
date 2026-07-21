@@ -19,6 +19,7 @@ import 'package:openapi/src/model/action_command.dart';
 import 'package:openapi/src/model/adjustment_command.dart';
 import 'package:openapi/src/model/adjustment_decision_result.dart';
 import 'package:openapi/src/model/approval_result.dart';
+import 'package:openapi/src/model/approve_purchase_request.dart';
 import 'package:openapi/src/model/assign_instructor_command.dart';
 import 'package:openapi/src/model/assignment.dart';
 import 'package:openapi/src/model/assignment_command.dart';
@@ -140,6 +141,7 @@ part 'serializers.g.dart';
   AdjustmentCommand,
   AdjustmentDecisionResult,
   ApprovalResult,
+  ApprovePurchaseRequest,
   AssignInstructorCommand,
   Assignment,
   AssignmentCommand,

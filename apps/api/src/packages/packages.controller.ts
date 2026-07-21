@@ -64,4 +64,46 @@ export class PackagesController {
   ) {
     return this.packages.replaceProof(r.principal, id, b, r.correlationId ?? 'unknown');
   }
+  @Post('uploads/payment-proofs/:id/download-authorizations') authorizeDownload(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.packages.authorizeProofDownload(r.principal, id);
+  }
+  @Post('purchases/:id/approve') async approve(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: { reasonCode?: string; expectedVersion?: number },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.packages.decidePurchase(
+      r.principal,
+      id,
+      'APPROVED',
+      body,
+      key,
+      r.correlationId ?? 'unknown',
+    );
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return { ...(result.body as object), idempotentReplay: result.replay };
+  }
+  @Post('purchases/:id/reject') async reject(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: { reasonCode?: string; expectedVersion?: number },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.packages.decidePurchase(
+      r.principal,
+      id,
+      'REJECTED',
+      body,
+      key,
+      r.correlationId ?? 'unknown',
+    );
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return result.body;
+  }
 }

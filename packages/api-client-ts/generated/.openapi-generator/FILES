@@ -18,6 +18,7 @@ models/ActionCommand.ts
 models/AdjustmentCommand.ts
 models/AdjustmentDecisionResult.ts
 models/ApprovalResult.ts
+models/ApprovePurchaseRequest.ts
 models/AssignInstructorCommand.ts
 models/Assignment.ts
 models/AssignmentCommand.ts

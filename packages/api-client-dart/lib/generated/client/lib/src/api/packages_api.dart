@@ -10,8 +10,8 @@ import 'package:dio/dio.dart';
 
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/approval_result.dart';
+import 'package:openapi/src/model/approve_purchase_request.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
@@ -34,12 +34,12 @@ class PackagesApi {
   const PackagesApi(this._dio, this._serializers);
 
   /// approvePurchase
-  /// 
+  /// MFA-gated atomic decision. Activation is the approval date in branch timezone; expiry is exclusive at the start of activationDate + durationDays.
   ///
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [approvePurchaseRequest] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -52,7 +52,7 @@ class PackagesApi {
   Future<Response<ApprovalResult>> approvePurchase({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required ApprovePurchaseRequest approvePurchaseRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -84,8 +84,8 @@ class PackagesApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(ApprovePurchaseRequest);
+      _bodyData = _serializers.serialize(approvePurchaseRequest, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -791,12 +791,12 @@ class PackagesApi {
   }
 
   /// rejectPurchase
-  /// 
+  /// MFA-gated rejection. Creates no customer package or ledger entry.
   ///
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [approvePurchaseRequest] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -809,7 +809,7 @@ class PackagesApi {
   Future<Response<Purchase>> rejectPurchase({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required ApprovePurchaseRequest approvePurchaseRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -841,8 +841,8 @@ class PackagesApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(ApprovePurchaseRequest);
+      _bodyData = _serializers.serialize(approvePurchaseRequest, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

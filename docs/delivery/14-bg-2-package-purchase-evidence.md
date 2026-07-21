@@ -2,9 +2,9 @@
 
 **Execution date:** 2026-07-21
 
-**Disposition:** `HOSTED SOURCE PASS / FINAL EVIDENCE RUN PENDING FOR SYNTHETIC NON-PRODUCTION`
+**Disposition:** `PASS FOR SYNTHETIC NON-PRODUCTION`
 
-**Source commit:** `8830235`; E2E locator closure `62fd16b`
+**Source commit:** `8830235`; E2E locator closure `62fd16b`; final evidence `8a5fe34`
 
 **Production:** `BLOCKED` — DEC-004, storage/scan provider, source mapping, Figma, UAT dan approval production belum tersedia.
 
@@ -26,7 +26,7 @@
 | OpenAPI validation/drift | PASS — `0.8.0-draft`, checksum `885ddd6ede30b19fa0f4b5c96986e78e0e82076a30c05420d89c9caaf8406c5e`; 134 TS dan 141 Dart files byte-for-byte |
 | Web component/a11y | PASS — 15 tests termasuk clean submit, configuration, conflict, hidden resource |
 | Flutter | PASS — analyze tanpa issue; 5 widget tests termasuk clean/pending dan offline/configuration-safe state |
-| Hosted `typescript`, `flutter`, `secrets` | PASS 2026-07-21 untuk `62fd16b` — dikonfirmasi pengguna; run ID/URL tidak tersedia dan tidak difabrikasi. Run commit evidence ini masih wajib hijau sebelum promosi final |
+| Hosted `typescript`, `flutter`, `secrets` | PASS 2026-07-21 untuk final evidence `8a5fe34` — dikonfirmasi pengguna; run ID/URL tidak tersedia dan tidak difabrikasi |
 
 ## Review Disposition
 
@@ -36,4 +36,4 @@
 
 ## Remaining Boundary
 
-`US-PKG-02 = NEXT/BLOCKED`, `US-LED-01 = NOT STARTED`, `BG-3 = PENDING`, dan `PG-1 = BLOCKED`. Story ini baru boleh menjadi `PASS FOR SYNTHETIC NON-PRODUCTION` setelah hosted CI commit evidence terakhir hijau dan working tree bersih.
+`US-PKG-01 = PASS FOR SYNTHETIC NON-PRODUCTION`. `US-PKG-02 = IN PROGRESS`, `US-LED-01 = NOT STARTED`, `BG-3 = PENDING`, dan `PG-1 = BLOCKED`.

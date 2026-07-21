@@ -5,6 +5,7 @@ export * from './ActionCommand';
 export * from './AdjustmentCommand';
 export * from './AdjustmentDecisionResult';
 export * from './ApprovalResult';
+export * from './ApprovePurchaseRequest';
 export * from './AssignInstructorCommand';
 export * from './Assignment';
 export * from './AssignmentCommand';

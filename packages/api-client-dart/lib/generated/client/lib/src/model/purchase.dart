@@ -3,13 +3,13 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:built_value/json_object.dart';
+import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'purchase.g.dart';
 
-/// US-PKG-01 creates PENDING only; approval and ledger mutation are US-PKG-02.
+/// Immutable commercial snapshots. Decision metadata is populated only for APPROVED or REJECTED.
 ///
 /// Properties:
 /// * [id] 
@@ -23,6 +23,9 @@ part 'purchase.g.dart';
 /// * [durationDaysSnapshot] 
 /// * [status] 
 /// * [submittedAt] 
+/// * [decidedAt] 
+/// * [decidedById] 
+/// * [decisionReasonCode] 
 /// * [version] 
 @BuiltValue()
 abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
@@ -54,10 +57,20 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   int get durationDaysSnapshot;
 
   @BuiltValueField(wireName: r'status')
-  JsonObject? get status;
+  PurchaseStatusEnum get status;
+  // enum statusEnum {  PENDING,  APPROVED,  REJECTED,  };
 
   @BuiltValueField(wireName: r'submittedAt')
   DateTime get submittedAt;
+
+  @BuiltValueField(wireName: r'decidedAt')
+  DateTime? get decidedAt;
+
+  @BuiltValueField(wireName: r'decidedById')
+  String? get decidedById;
+
+  @BuiltValueField(wireName: r'decisionReasonCode')
+  String? get decisionReasonCode;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -131,15 +144,36 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       specifiedType: const FullType(int),
     );
     yield r'status';
-    yield object.status == null ? null : serializers.serialize(
+    yield serializers.serialize(
       object.status,
-      specifiedType: const FullType.nullable(JsonObject),
+      specifiedType: const FullType(PurchaseStatusEnum),
     );
     yield r'submittedAt';
     yield serializers.serialize(
       object.submittedAt,
       specifiedType: const FullType(DateTime),
     );
+    if (object.decidedAt != null) {
+      yield r'decidedAt';
+      yield serializers.serialize(
+        object.decidedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
+    if (object.decidedById != null) {
+      yield r'decidedById';
+      yield serializers.serialize(
+        object.decidedById,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.decisionReasonCode != null) {
+      yield r'decisionReasonCode';
+      yield serializers.serialize(
+        object.decisionReasonCode,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     yield r'version';
     yield serializers.serialize(
       object.version,
@@ -234,9 +268,8 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
         case r'status':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(JsonObject),
-          ) as JsonObject?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(PurchaseStatusEnum),
+          ) as PurchaseStatusEnum;
           result.status = valueDes;
           break;
         case r'submittedAt':
@@ -245,6 +278,30 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
             specifiedType: const FullType(DateTime),
           ) as DateTime;
           result.submittedAt = valueDes;
+          break;
+        case r'decidedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.decidedAt = valueDes;
+          break;
+        case r'decidedById':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.decidedById = valueDes;
+          break;
+        case r'decisionReasonCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.decisionReasonCode = valueDes;
           break;
         case r'version':
           final valueDes = serializers.deserialize(
@@ -280,5 +337,22 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
     );
     return result.build();
   }
+}
+
+class PurchaseStatusEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'PENDING')
+  static const PurchaseStatusEnum PENDING = _$purchaseStatusEnum_PENDING;
+  @BuiltValueEnumConst(wireName: r'APPROVED')
+  static const PurchaseStatusEnum APPROVED = _$purchaseStatusEnum_APPROVED;
+  @BuiltValueEnumConst(wireName: r'REJECTED')
+  static const PurchaseStatusEnum REJECTED = _$purchaseStatusEnum_REJECTED;
+
+  static Serializer<PurchaseStatusEnum> get serializer => _$purchaseStatusEnumSerializer;
+
+  const PurchaseStatusEnum._(String name): super(name);
+
+  static BuiltSet<PurchaseStatusEnum> get values => _$purchaseStatusEnumValues;
+  static PurchaseStatusEnum valueOf(String name) => _$purchaseStatusEnumValueOf(name);
 }
 
