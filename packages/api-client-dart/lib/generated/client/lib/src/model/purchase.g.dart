@@ -6,6 +6,71 @@ part of 'purchase.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const PurchaseStatusEnum _$purchaseStatusEnum_PENDING =
+    const PurchaseStatusEnum._('PENDING');
+const PurchaseStatusEnum _$purchaseStatusEnum_APPROVED =
+    const PurchaseStatusEnum._('APPROVED');
+const PurchaseStatusEnum _$purchaseStatusEnum_REJECTED =
+    const PurchaseStatusEnum._('REJECTED');
+
+PurchaseStatusEnum _$purchaseStatusEnumValueOf(String name) {
+  switch (name) {
+    case 'PENDING':
+      return _$purchaseStatusEnum_PENDING;
+    case 'APPROVED':
+      return _$purchaseStatusEnum_APPROVED;
+    case 'REJECTED':
+      return _$purchaseStatusEnum_REJECTED;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PurchaseStatusEnum> _$purchaseStatusEnumValues =
+    BuiltSet<PurchaseStatusEnum>(const <PurchaseStatusEnum>[
+      _$purchaseStatusEnum_PENDING,
+      _$purchaseStatusEnum_APPROVED,
+      _$purchaseStatusEnum_REJECTED,
+    ]);
+
+Serializer<PurchaseStatusEnum> _$purchaseStatusEnumSerializer =
+    _$PurchaseStatusEnumSerializer();
+
+class _$PurchaseStatusEnumSerializer
+    implements PrimitiveSerializer<PurchaseStatusEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PENDING': 'PENDING',
+    'APPROVED': 'APPROVED',
+    'REJECTED': 'REJECTED',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PENDING': 'PENDING',
+    'APPROVED': 'APPROVED',
+    'REJECTED': 'REJECTED',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[PurchaseStatusEnum];
+  @override
+  final String wireName = 'PurchaseStatusEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PurchaseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PurchaseStatusEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PurchaseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$Purchase extends Purchase {
   @override
   final String id;
@@ -26,9 +91,15 @@ class _$Purchase extends Purchase {
   @override
   final int durationDaysSnapshot;
   @override
-  final JsonObject? status;
+  final PurchaseStatusEnum status;
   @override
   final DateTime submittedAt;
+  @override
+  final DateTime? decidedAt;
+  @override
+  final String? decidedById;
+  @override
+  final String? decisionReasonCode;
   @override
   final int version;
 
@@ -45,8 +116,11 @@ class _$Purchase extends Purchase {
     required this.priceRpSnapshot,
     required this.sessionCountSnapshot,
     required this.durationDaysSnapshot,
-    this.status,
+    required this.status,
     required this.submittedAt,
+    this.decidedAt,
+    this.decidedById,
+    this.decisionReasonCode,
     required this.version,
   }) : super._();
   @override
@@ -71,6 +145,9 @@ class _$Purchase extends Purchase {
         durationDaysSnapshot == other.durationDaysSnapshot &&
         status == other.status &&
         submittedAt == other.submittedAt &&
+        decidedAt == other.decidedAt &&
+        decidedById == other.decidedById &&
+        decisionReasonCode == other.decisionReasonCode &&
         version == other.version;
   }
 
@@ -88,6 +165,9 @@ class _$Purchase extends Purchase {
     _$hash = $jc(_$hash, durationDaysSnapshot.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, submittedAt.hashCode);
+    _$hash = $jc(_$hash, decidedAt.hashCode);
+    _$hash = $jc(_$hash, decidedById.hashCode);
+    _$hash = $jc(_$hash, decisionReasonCode.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -107,6 +187,9 @@ class _$Purchase extends Purchase {
           ..add('durationDaysSnapshot', durationDaysSnapshot)
           ..add('status', status)
           ..add('submittedAt', submittedAt)
+          ..add('decidedAt', decidedAt)
+          ..add('decidedById', decidedById)
+          ..add('decisionReasonCode', decisionReasonCode)
           ..add('version', version))
         .toString();
   }
@@ -156,13 +239,26 @@ class PurchaseBuilder implements Builder<Purchase, PurchaseBuilder> {
   set durationDaysSnapshot(int? durationDaysSnapshot) =>
       _$this._durationDaysSnapshot = durationDaysSnapshot;
 
-  JsonObject? _status;
-  JsonObject? get status => _$this._status;
-  set status(JsonObject? status) => _$this._status = status;
+  PurchaseStatusEnum? _status;
+  PurchaseStatusEnum? get status => _$this._status;
+  set status(PurchaseStatusEnum? status) => _$this._status = status;
 
   DateTime? _submittedAt;
   DateTime? get submittedAt => _$this._submittedAt;
   set submittedAt(DateTime? submittedAt) => _$this._submittedAt = submittedAt;
+
+  DateTime? _decidedAt;
+  DateTime? get decidedAt => _$this._decidedAt;
+  set decidedAt(DateTime? decidedAt) => _$this._decidedAt = decidedAt;
+
+  String? _decidedById;
+  String? get decidedById => _$this._decidedById;
+  set decidedById(String? decidedById) => _$this._decidedById = decidedById;
+
+  String? _decisionReasonCode;
+  String? get decisionReasonCode => _$this._decisionReasonCode;
+  set decisionReasonCode(String? decisionReasonCode) =>
+      _$this._decisionReasonCode = decisionReasonCode;
 
   int? _version;
   int? get version => _$this._version;
@@ -186,6 +282,9 @@ class PurchaseBuilder implements Builder<Purchase, PurchaseBuilder> {
       _durationDaysSnapshot = $v.durationDaysSnapshot;
       _status = $v.status;
       _submittedAt = $v.submittedAt;
+      _decidedAt = $v.decidedAt;
+      _decidedById = $v.decidedById;
+      _decisionReasonCode = $v.decisionReasonCode;
       _version = $v.version;
       _$v = null;
     }
@@ -250,12 +349,19 @@ class PurchaseBuilder implements Builder<Purchase, PurchaseBuilder> {
             r'Purchase',
             'durationDaysSnapshot',
           ),
-          status: status,
+          status: BuiltValueNullFieldError.checkNotNull(
+            status,
+            r'Purchase',
+            'status',
+          ),
           submittedAt: BuiltValueNullFieldError.checkNotNull(
             submittedAt,
             r'Purchase',
             'submittedAt',
           ),
+          decidedAt: decidedAt,
+          decidedById: decidedById,
+          decisionReasonCode: decisionReasonCode,
           version: BuiltValueNullFieldError.checkNotNull(
             version,
             r'Purchase',
