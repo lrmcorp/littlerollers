@@ -394,7 +394,7 @@ test('purchase proof clean flow submits one pending intent with keyboard control
   await page.goto('/purchases');
   await page.getByLabel('ID cabang').fill('branch-1');
   await page.getByRole('button', { name: 'Muat paket' }).press('Enter');
-  await page.getByLabel('Paket').selectOption('package-1');
+  await page.getByLabel('Paket', { exact: true }).selectOption('package-1');
   await page.getByLabel('Nama file').fill('proof.png');
   await page.getByLabel('Ukuran byte').fill('1024');
   await page.getByLabel('SHA-256').fill('a'.repeat(64));
@@ -415,7 +415,7 @@ test('unsafe scan and provider failure never enable purchase submission', async 
   await page.goto('/purchases');
   await page.getByLabel('ID cabang').fill('branch-1');
   await page.getByRole('button', { name: 'Muat paket' }).click();
-  await expect(page.getByRole('alert')).toContainText('CONFIGURATION_REQUIRED');
+  await expect(page.getByText('CONFIGURATION_REQUIRED', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Kirim purchase' })).toBeDisabled();
 });
 
