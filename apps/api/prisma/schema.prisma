@@ -149,6 +149,7 @@ model User {
   customerPackages CustomerPackage[]
   requestedAdjustments SessionAdjustment[] @relation("AdjustmentRequester")
   decidedAdjustments SessionAdjustment[] @relation("AdjustmentDecider")
+  instructorAvailabilities InstructorAvailability[]
 }
 model Identity {
   id String @id @db.Uuid
@@ -178,6 +179,7 @@ model Branch {
   customerPackages CustomerPackage[]
   paymentProofs PaymentProof[]
   purchases Purchase[]
+  instructorAvailabilities InstructorAvailability[]
 }
 
 model ClassType {
@@ -207,8 +209,27 @@ model Assignment {
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
   projectedRole UserRole? @relation("AssignmentRoleProjection")
+  instructorAvailabilities InstructorAvailability[]
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, type, activeFrom, activeUntil])
+}
+
+model InstructorAvailability {
+  id String @id @db.Uuid
+  instructorUserId String @db.Uuid
+  branchId String @db.Uuid
+  sourceAssignmentId String @db.Uuid
+  startAt DateTime
+  endAt DateTime
+  timezone String
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  instructor User @relation(fields: [instructorUserId], references: [id], onDelete: Restrict)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceAssignment Assignment @relation(fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+  @@index([instructorUserId, startAt, id])
+  @@index([branchId, startAt, endAt])
 }
 
 model UserRole {

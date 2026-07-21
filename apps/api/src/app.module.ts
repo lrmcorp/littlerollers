@@ -7,6 +7,7 @@ import { IdentityModule } from './identity/identity.module';
 import { MasterModule } from './master/master.module';
 import { PackagesModule } from './packages/packages.module';
 import { LedgerModule } from './ledger/ledger.module';
+import { ClassesModule } from './classes/classes.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LedgerModule } from './ledger/ledger.module';
     MasterModule,
     PackagesModule,
     LedgerModule,
+    ClassesModule,
   ],
 })
 export class AppModule {}

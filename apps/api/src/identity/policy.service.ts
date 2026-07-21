@@ -4,7 +4,12 @@ import { ApiProblem } from './security';
 
 const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   CUSTOMER: ['customer:self', 'package:read', 'ledger:read'],
-  INSTRUCTOR: ['class:assigned:read', 'attendance:self'],
+  INSTRUCTOR: [
+    'class:assigned:read',
+    'attendance:self',
+    'availability:self:read',
+    'availability:self:create',
+  ],
   ADMIN: [
     'branch:operate',
     'user:read',

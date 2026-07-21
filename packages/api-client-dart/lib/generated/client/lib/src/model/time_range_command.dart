@@ -12,16 +12,18 @@ part 'time_range_command.g.dart';
 ///
 /// Properties:
 /// * [branchId] 
-/// * [startAt] 
-/// * [endAt] 
+/// * [startAt] - RFC3339 with numeric offset or Z
+/// * [endAt] - RFC3339 exclusive boundary with numeric offset or Z
 @BuiltValue()
 abstract class TimeRangeCommand implements Built<TimeRangeCommand, TimeRangeCommandBuilder> {
   @BuiltValueField(wireName: r'branchId')
   String get branchId;
 
+  /// RFC3339 with numeric offset or Z
   @BuiltValueField(wireName: r'startAt')
   DateTime get startAt;
 
+  /// RFC3339 exclusive boundary with numeric offset or Z
   @BuiltValueField(wireName: r'endAt')
   DateTime get endAt;
 

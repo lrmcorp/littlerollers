@@ -241,7 +241,7 @@ class ClassesApi {
   }
 
   /// createAvailability
-  /// 
+  /// Creates one UTC-normalized [startAt,endAt) interval under an effective INSTRUCTOR assignment. Adjacent intervals are allowed; overlap for the same instructor across branches is rejected.
   ///
   /// Parameters:
   /// * [idempotencyKey] 
@@ -449,10 +449,12 @@ class ClassesApi {
   }
 
   /// listAvailabilities
-  /// 
+  /// Instructor-own half-open intervals ordered by startAt and id descending. Optional from/until selects intervals that overlap the requested UTC window.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
+  /// * [from] - Inclusive UTC-normalized window start; offset or Z required
+  /// * [until] - Exclusive UTC-normalized window end; offset or Z required
   /// * [cursor] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -465,6 +467,8 @@ class ClassesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<AvailabilityPage>> listAvailabilities({ 
     String? branchId,
+    DateTime? from,
+    DateTime? until,
     String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -494,6 +498,8 @@ class ClassesApi {
 
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
     };
 

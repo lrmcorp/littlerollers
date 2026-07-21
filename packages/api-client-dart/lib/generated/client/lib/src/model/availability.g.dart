@@ -81,6 +81,8 @@ class _$Availability extends Availability {
   final AvailabilityStatusEnum status;
   @override
   final int version;
+  @override
+  final bool? idempotentReplay;
 
   factory _$Availability([void Function(AvailabilityBuilder)? updates]) =>
       (AvailabilityBuilder()..update(updates))._build();
@@ -94,6 +96,7 @@ class _$Availability extends Availability {
     required this.timezone,
     required this.status,
     required this.version,
+    this.idempotentReplay,
   }) : super._();
   @override
   Availability rebuild(void Function(AvailabilityBuilder) updates) =>
@@ -113,7 +116,8 @@ class _$Availability extends Availability {
         endAt == other.endAt &&
         timezone == other.timezone &&
         status == other.status &&
-        version == other.version;
+        version == other.version &&
+        idempotentReplay == other.idempotentReplay;
   }
 
   @override
@@ -127,6 +131,7 @@ class _$Availability extends Availability {
     _$hash = $jc(_$hash, timezone.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
+    _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -141,7 +146,8 @@ class _$Availability extends Availability {
           ..add('endAt', endAt)
           ..add('timezone', timezone)
           ..add('status', status)
-          ..add('version', version))
+          ..add('version', version)
+          ..add('idempotentReplay', idempotentReplay))
         .toString();
   }
 }
@@ -183,6 +189,11 @@ class AvailabilityBuilder
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
 
+  bool? _idempotentReplay;
+  bool? get idempotentReplay => _$this._idempotentReplay;
+  set idempotentReplay(bool? idempotentReplay) =>
+      _$this._idempotentReplay = idempotentReplay;
+
   AvailabilityBuilder() {
     Availability._defaults(this);
   }
@@ -198,6 +209,7 @@ class AvailabilityBuilder
       _timezone = $v.timezone;
       _status = $v.status;
       _version = $v.version;
+      _idempotentReplay = $v.idempotentReplay;
       _$v = null;
     }
     return this;
@@ -256,6 +268,7 @@ class AvailabilityBuilder
             r'Availability',
             'version',
           ),
+          idempotentReplay: idempotentReplay,
         );
     replace(_$result);
     return _$result;

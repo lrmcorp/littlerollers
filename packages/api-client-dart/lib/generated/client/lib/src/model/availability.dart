@@ -20,6 +20,7 @@ part 'availability.g.dart';
 /// * [timezone] 
 /// * [status] 
 /// * [version] 
+/// * [idempotentReplay] 
 @BuiltValue()
 abstract class Availability implements Built<Availability, AvailabilityBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -46,6 +47,9 @@ abstract class Availability implements Built<Availability, AvailabilityBuilder> 
 
   @BuiltValueField(wireName: r'version')
   int get version;
+
+  @BuiltValueField(wireName: r'idempotentReplay')
+  bool? get idempotentReplay;
 
   Availability._();
 
@@ -110,6 +114,13 @@ class _$AvailabilitySerializer implements PrimitiveSerializer<Availability> {
       object.version,
       specifiedType: const FullType(int),
     );
+    if (object.idempotentReplay != null) {
+      yield r'idempotentReplay';
+      yield serializers.serialize(
+        object.idempotentReplay,
+        specifiedType: const FullType(bool),
+      );
+    }
   }
 
   @override
@@ -188,6 +199,13 @@ class _$AvailabilitySerializer implements PrimitiveSerializer<Availability> {
             specifiedType: const FullType(int),
           ) as int;
           result.version = valueDes;
+          break;
+        case r'idempotentReplay':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.idempotentReplay = valueDes;
           break;
         default:
           unhandled.add(key);

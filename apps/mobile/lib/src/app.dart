@@ -6,6 +6,8 @@ import 'purchase_repository.dart';
 import 'purchase_view.dart';
 import 'ledger_repository.dart';
 import 'ledger_view.dart';
+import 'availability_repository.dart';
+import 'availability_view.dart';
 
 final _router = GoRouter(
   routes: [
@@ -35,6 +37,12 @@ final _router = GoRouter(
       builder: (context, state) => const RoleShell(
         title: 'Instructor',
         items: ['Penugasan', 'Availability', 'Check-in'],
+      ),
+    ),
+    GoRoute(
+      path: '/instructor/availability',
+      builder: (context, state) => const InstructorAvailabilityView(
+        repository: ConfigurationRequiredAvailabilityRepository(),
       ),
     ),
   ],
@@ -241,8 +249,15 @@ class RoleShell extends StatelessWidget {
           (item) => Card(
             child: ListTile(
               title: Text(item),
-              subtitle: const Text('Segera tersedia'),
+              subtitle: Text(
+                title == 'Instructor' && item == 'Availability'
+                    ? 'Kelola jadwal tersedia'
+                    : 'Segera tersedia',
+              ),
               trailing: const Icon(Icons.chevron_right),
+              onTap: title == 'Instructor' && item == 'Availability'
+                  ? () => context.go('/instructor/availability')
+                  : null,
             ),
           ),
         ),

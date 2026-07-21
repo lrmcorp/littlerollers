@@ -114,6 +114,8 @@ Name | Type | Description  | Notes
 
 
 
+Creates one UTC-normalized [startAt,endAt) interval under an effective INSTRUCTOR assignment. Adjacent intervals are allowed; overlap for the same instructor across branches is rejected.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -196,9 +198,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listAvailabilities**
-> AvailabilityPage listAvailabilities(branchId, cursor)
+> AvailabilityPage listAvailabilities(branchId, from, until, cursor)
 
 
+
+Instructor-own half-open intervals ordered by startAt and id descending. Optional from/until selects intervals that overlap the requested UTC window.
 
 ### Example
 ```dart
@@ -206,10 +210,12 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getClassesApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | Inclusive UTC-normalized window start; offset or Z required
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | Exclusive UTC-normalized window end; offset or Z required
 final String cursor = cursor_example; // String | 
 
 try {
-    final response = api.listAvailabilities(branchId, cursor);
+    final response = api.listAvailabilities(branchId, from, until, cursor);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling ClassesApi->listAvailabilities: $e\n');
@@ -221,6 +227,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **from** | **DateTime**| Inclusive UTC-normalized window start; offset or Z required | [optional] 
+ **until** | **DateTime**| Exclusive UTC-normalized window end; offset or Z required | [optional] 
  **cursor** | **String**|  | [optional] 
 
 ### Return type
