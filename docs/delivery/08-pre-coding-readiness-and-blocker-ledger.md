@@ -37,7 +37,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-ID-02 | D | D / B | P | D | D | DEC-012 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | SYNTHETIC BUILD PASS LOCAL; PROD NO / hosted evidence plus signed session/MFA decision |
 | US-MST-02 | D | D / B | P | D | D | — | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 90 | SYNTHETIC BUILD PASS LOCAL; PROD NO / hosted evidence, Figma, UAT |
 | US-MST-01 | D | D / B | P | D | D | DEC-005,006 | AI / in progress | BG-2 IN_PROGRESS; PG-1 B | 86 | SYNTHETIC implementation/evidence in progress; PROD NO / approved effective configuration plus gates |
-| US-PKG-01 | D | D / B | P | D | D | DEC-004,011 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | SYNTHETIC BUILD PASS LOCAL; hosted evidence pending; PROD NO / package config, storage/scan decision and signatures |
+| US-PKG-01 | D | D / B | P | D | D | DEC-004,011 | AI / hosted source pass | BG-2 EVIDENCE RUN PENDING; PG-1 B | 86 | SYNTHETIC source `62fd16b` hosted PASS; final evidence run pending; PROD NO / package config, storage/scan decision and signatures |
 | US-PKG-02 | D | D / B | P | D | D | DEC-004,006,011,012 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+Finance+TL / decisions, Figma and signed contract review |
 | US-LED-01 | D | D / B | P | D | D | — | AI / local pending | BG-1 NEXT; PG-1 B | 83 | BUILD YES; PROD NO / TL+QA / generated clients, Figma, environment and gates |
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / MFA/SoD review and signed evidence |
