@@ -2,6 +2,8 @@
 
 Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS / HOSTED PENDING**.
 
+Source commit: `b18dde8`. Evidence commit: commit dokumentasi berikutnya; hosted run ID/URL pending.
+
 ## Scope dan keputusan
 
 - Closure `US-LED-01` direkam pada evidence commit `c18c562`; hosted `typescript`, `flutter`, dan `secrets` hijau berdasarkan konfirmasi pengguna. Run ID/URL tidak difabrikasi karena tidak tersedia di workspace.
