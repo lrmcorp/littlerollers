@@ -157,7 +157,7 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
         id: packageId,
         branchId,
         classTypeId,
-        businessKey: 'CLS02-RESERVATION',
+        businessKey: 'class-slot-reservation-fixture',
         name: 'Synthetic',
         sessionCount: 10,
         durationDays: 30,

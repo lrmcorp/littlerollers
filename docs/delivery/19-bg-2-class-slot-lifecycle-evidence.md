@@ -25,6 +25,8 @@ Source commit: `1ceabdb`. Story tidak dipromosikan menjadi PASS sebelum evidence
 | Monorepo | `pnpm check` | PASS — format, OpenAPI, lint, typecheck, unit, build |
 | Hosted | private `typescript`, `flutter`, `secrets` | PENDING — wajib setelah source/evidence commit dipush |
 
+Hosted `secrets` pertama mendeteksi false positive `generic-api-key` pada literal business key fixture di source commit `1ceabdb`. Literal tersebut bukan credential. Remediasi mengganti fixture dan menambahkan `.gitleaksignore` untuk satu fingerprint historis yang tepat; full-history scan tetap aktif dan tidak mengabaikan commit, path, atau rule secara luas.
+
 ## Review disposition
 
 - **AI QA:** LOCAL PASS — migration, concurrency boundary, idempotency, lifecycle, clients, Web/Flutter regression hijau.

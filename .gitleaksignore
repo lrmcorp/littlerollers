@@ -1,0 +1,4 @@
+# Exact historical fingerprint for a non-secret synthetic package business key.
+# The fixture was renamed after commit 1ceabdb; retaining the fingerprint is
+# necessary because CI intentionally scans the complete Git history.
+1ceabdb5e19269395db952b175c841a3acb2f5d9:apps/api/src/classes/class-slot.integration.spec.ts:generic-api-key:160

@@ -69,5 +69,6 @@ jobs:
         run: >-
           docker run --rm
           -v "$PWD:/repo"
+          -w /repo
           zricethezav/gitleaks:v8.24.3
-          git --redact --verbose --log-opts="--all" /repo
+          git --redact --verbose --log-opts="--all" .
