@@ -36,6 +36,7 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | WRK-BG2-LED01-001 | Authoritative customer-package balance, append-only history dan reservation read foundation | AI Backend/Web/Flutter/Data | AI QA/Security/Peer | AI TL; Finance production | PASS FOR SYNTHETIC NON-PRODUCTION | `pnpm check`; OpenAPI `1.0.0-draft`; 19 Web component/a11y; Flutter 7 widgets; hosted migration/integration/E2E, Docker drift dan Gitleaks hijau (user-confirmed) | source `906e781`; evidence `c18c562` | closed synthetic; run ID/URL unavailable; `US-LED-02` next; US-BKG-01 not started |
 | WRK-BG2-LED02-001 | Branch-scoped session adjustment request/decision dengan SoD dan append-only posting | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO production | PASS FOR SYNTHETIC NON-PRODUCTION | OpenAPI `1.1.0-draft`; `pnpm check`; hosted PostgreSQL migration/integration, 13 Web E2E, Flutter/Dart dan Gitleaks hijau (user-confirmed) | source `b18dde8`; evidence `817e384` | closed synthetic; run ID/URL unavailable; choose next between US-CLS-01 and US-BKG-01 |
 | WRK-BG2-CLS01-001 | Instructor-own UTC availability dengan branch timezone, assignment coverage dan cross-branch overlap constraint | AI Backend/Flutter/Data | AI QA/Security/Peer | AI TL; Instructor representative production | PASS FOR SYNTHETIC NON-PRODUCTION | OpenAPI `1.2.0-draft`; hosted PostgreSQL concurrency/migration, Docker drift, Flutter/Dart dan Gitleaks hijau (user-confirmed) | source `77cab22`; acceptance `e72c809`; evidence `5577637` | closed synthetic; run ID/URL unavailable; CLS-02 next; BKG-01 not started |
+| WRK-BG2-CLS02-001 | Branch-scoped class-slot create/assign/publish/cancel dengan quota snapshot dan atomic reservation release | AI Backend/Web/Data | AI QA/Security/Peer | AI TL; PO production | LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION | OpenAPI `1.3.0-draft`; 14 PostgreSQL suites/62 tests; 23 Web component/a11y; 15 E2E; 140 TS/147 Dart drift; Flutter/Dart PASS | working tree after `2dc6d78` | commit/push dan hosted `typescript`, `flutter`, `secrets`; DEC-008 production remains blocked |
 
 ## Independent Review Record
 
@@ -70,6 +71,9 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 | REV-BG2-CLS01-QA-001 | AI QA | interval, assignment boundary, overlap, idempotency dan Flutter states | PASS | local dan hosted PostgreSQL/Flutter/consumer evidence hijau |
 | REV-BG2-CLS01-SEC-001 | AI Security | self scope, branch hiding, audit masking dan no schedule leakage | PASS FOR SYNTHETIC NON-PRODUCTION | capability/assignment checks dan hosted Gitleaks hijau |
 | REV-BG2-CLS01-PEER-001 | AI Peer Reviewer | half-open UTC/timezone semantics dan scope discipline | PASS FOR SYNTHETIC NON-PRODUCTION | no recurrence/class-slot/booking policy introduced |
+| REV-BG2-CLS02-QA-001 | AI QA | lifecycle, config snapshot, availability, optimistic concurrency, migration dan Web states | LOCAL PASS | empty DB 14 migrations, double seed, 62 PostgreSQL tests, 23 Web component/a11y, 15 E2E, Flutter/Dart dan monorepo pipeline hijau |
+| REV-BG2-CLS02-SEC-001 | AI Security | MFA, branch hiding, controlled cancellation, masked audit/event dan reservation release | LOCAL PASS FOR SYNTHETIC NON-PRODUCTION | no free-text reason, PII, secret, notification/provider default; hosted full-history Gitleaks pending |
+| REV-BG2-CLS02-PEER-001 | AI Peer Reviewer | state/idempotency boundary dan exclusion of CLS-03/BKG-01 | LOCAL PASS FOR SYNTHETIC NON-PRODUCTION | CONFIRMED/AUTO_CANCELLED, booking endpoint and notification remain out of scope; hosted closure pending |
 
 ## Gate Disposition
 
@@ -77,5 +81,5 @@ ini mencatat delivery modes; ia tidak memberikan application permission atau bus
 `typescript`, `flutter`, dan `secrets` hijau. `US-ID-01/02 = LOCAL_PASS FOR SYNTHETIC
 NON-PRODUCTION` pada source commit `97f3901`; `US-MST-02 = IN_PROGRESS FOR SYNTHETIC
 NON-PRODUCTION LOCAL_PASS` pada source commit `4edacf4`;
-`US-MST-01`, `US-PKG-01/02`, `US-LED-01/02`, dan `US-CLS-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-CLS-02 = NEXT`; `US-BKG-01 = NOT STARTED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
+`US-MST-01`, `US-PKG-01/02`, `US-LED-01/02`, dan `US-CLS-01 = PASS FOR SYNTHETIC NON-PRODUCTION`; `US-CLS-02 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`; `US-CLS-03 = NEXT`; `US-BKG-01 = NOT STARTED`; `BG-3 = PENDING` dan `PG-1 = BLOCKED`.
 DEC/CFG production values, Figma, provider/account, migration/UAT dan production approvals tetap.

@@ -10,6 +10,9 @@ import {
 import type {
   ErrorEnvelope as GeneratedErrorEnvelope,
   HealthResult as GeneratedHealthResult,
+  ClassSlot as GeneratedClassSlot,
+  ClassSlotCancellationCommand,
+  ClassSlotVersionCommand,
   Session as GeneratedSession,
 } from '../generated/models/index.js';
 test('representative generated contract compiles', () => {
@@ -22,6 +25,12 @@ test('representative generated contract compiles', () => {
   const generatedSession = {} as GeneratedSession;
   const generatedError = {} as GeneratedErrorEnvelope;
   const generatedHealth = {} as GeneratedHealthResult;
+  const generatedSlot = {} as GeneratedClassSlot;
+  const versionCommand: ClassSlotVersionCommand = { expectedVersion: 2 };
+  const cancellation: ClassSlotCancellationCommand = {
+    expectedVersion: 2,
+    reasonCode: 'OTHER_REVIEW_REQUIRED',
+  };
   assert.equal(contractVersion, '0.4.0-draft');
   assert.equal(page.hasMore, false);
   assert.equal(error.error.correlationId, 'c');
@@ -30,4 +39,7 @@ test('representative generated contract compiles', () => {
   assert.ok(generatedSession);
   assert.ok(generatedError);
   assert.ok(generatedHealth);
+  assert.ok(generatedSlot);
+  assert.equal(versionCommand.expectedVersion, 2);
+  assert.equal(cancellation.reasonCode, 'OTHER_REVIEW_REQUIRED');
 });

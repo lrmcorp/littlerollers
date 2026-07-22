@@ -624,3 +624,78 @@ test('assignment overlap and hidden branch failures do not show optimistic succe
   await expect(page.getByText('EFFECTIVE_PERIOD_OVERLAP', { exact: true })).toBeVisible();
   await expect(page.getByText('Assignment berhasil dibuat.')).toHaveCount(0);
 });
+
+test('class-slot draft assign publish and cancel lifecycle is keyboard operable', async ({
+  page,
+}) => {
+  let slot = {
+    id: 'slot-1',
+    branchId: 'branch-1',
+    classTypeId: 'type-1',
+    instructorUserId: null as string | null,
+    startAt: '2026-08-01T02:00:00Z',
+    endAt: '2026-08-01T03:00:00Z',
+    timezone: 'Asia/Jakarta',
+    status: 'DRAFT' as string,
+    minimumQuota: 2,
+    capacity: 8,
+    bookedCount: 0,
+    cancellationReasonCode: null as string | null,
+    version: 0,
+    idempotentReplay: false,
+  };
+  await page.route('**/api/v1/class-slots**', async (route) => {
+    const request = route.request();
+    const url = request.url();
+    if (request.method() === 'GET')
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [slot], page: { hasMore: false, nextCursor: null } }),
+      });
+    if (url.endsWith('/assign-instructor'))
+      slot = { ...slot, instructorUserId: 'instructor-1', version: 1 };
+    else if (url.endsWith('/publish')) slot = { ...slot, status: 'PUBLISHED', version: 2 };
+    else if (url.endsWith('/cancel'))
+      slot = {
+        ...slot,
+        status: 'CANCELLED',
+        cancellationReasonCode: 'OTHER_REVIEW_REQUIRED',
+        version: 3,
+      };
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(slot),
+    });
+  });
+  await page.goto('/classes');
+  await page.getByLabel('ID cabang kelas').fill('branch-1');
+  await page.getByRole('button', { name: 'Muat class slot' }).press('Enter');
+  await page.getByLabel('Instructor slot-1').fill('instructor-1');
+  await page.getByRole('button', { name: 'Assign' }).press('Enter');
+  await expect(page.getByText('Instructor ditetapkan.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Publish' }).press('Enter');
+  await expect(page.getByText(/PUBLISHED/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Cancel' }).press('Enter');
+  await expect(page.getByText(/CANCELLED/)).toBeVisible();
+});
+
+test('class-slot configuration and hidden failures never show optimistic success', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/class-slots**', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({ code: 'CONFIGURATION_REQUIRED' }),
+    }),
+  );
+  await page.goto('/classes');
+  await page.getByLabel('ID cabang kelas').fill('foreign-branch');
+  await page.getByRole('button', { name: 'Muat class slot' }).click();
+  await expect(page.getByText('CONFIGURATION_REQUIRED', { exact: true })).toBeVisible();
+  await expect(page.getByText('Class slot dimuat.')).toHaveCount(0);
+});

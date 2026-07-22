@@ -65,9 +65,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **cancelClassSlot**
-> ClassSlot cancelClassSlot(id, idempotencyKey, deactivateUserRequest)
+> ClassSlot cancelClassSlot(id, idempotencyKey, classSlotCancellationCommand)
 
 
+
+Synthetic-only MFA-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
 
 ### Example
 ```dart
@@ -76,10 +78,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getClassesApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ClassSlotCancellationCommand classSlotCancellationCommand = ; // ClassSlotCancellationCommand | 
 
 try {
-    final response = api.cancelClassSlot(id, idempotencyKey, deactivateUserRequest);
+    final response = api.cancelClassSlot(id, idempotencyKey, classSlotCancellationCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling ClassesApi->cancelClassSlot: $e\n');
@@ -92,7 +94,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **classSlotCancellationCommand** | [**ClassSlotCancellationCommand**](ClassSlotCancellationCommand.md)|  | 
 
 ### Return type
 
@@ -158,6 +160,8 @@ Name | Type | Description  | Notes
 > ClassSlot createClassSlot(idempotencyKey, classSlotCommand)
 
 
+
+Creates a DRAFT [startAt,endAt) slot and snapshots effective synthetic quota/capacity. No production defaults.
 
 ### Example
 ```dart
@@ -247,9 +251,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listClassSlots**
-> ClassSlotPage listClassSlots(branchId, cursor)
+> ClassSlotPage listClassSlots(branchId, status, from, until, cursor)
 
 
+
+Scoped class slots ordered by startAt and id descending. Customer sees PUBLISHED only; Instructor sees assigned slots; internal roles see branch-scoped lifecycle.
 
 ### Example
 ```dart
@@ -257,10 +263,13 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getClassesApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String status = status_example; // String | 
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | Inclusive UTC-normalized window start; offset or Z required
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | Exclusive UTC-normalized window end; offset or Z required
 final String cursor = cursor_example; // String | 
 
 try {
-    final response = api.listClassSlots(branchId, cursor);
+    final response = api.listClassSlots(branchId, status, from, until, cursor);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling ClassesApi->listClassSlots: $e\n');
@@ -272,6 +281,9 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **status** | **String**|  | [optional] 
+ **from** | **DateTime**| Inclusive UTC-normalized window start; offset or Z required | [optional] 
+ **until** | **DateTime**| Exclusive UTC-normalized window end; offset or Z required | [optional] 
  **cursor** | **String**|  | [optional] 
 
 ### Return type
@@ -290,9 +302,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **publishClassSlot**
-> ClassSlot publishClassSlot(id, idempotencyKey, deactivateUserRequest)
+> ClassSlot publishClassSlot(id, idempotencyKey, classSlotVersionCommand)
 
 
+
+MFA-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
 
 ### Example
 ```dart
@@ -301,10 +315,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getClassesApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ClassSlotVersionCommand classSlotVersionCommand = ; // ClassSlotVersionCommand | 
 
 try {
-    final response = api.publishClassSlot(id, idempotencyKey, deactivateUserRequest);
+    final response = api.publishClassSlot(id, idempotencyKey, classSlotVersionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling ClassesApi->publishClassSlot: $e\n');
@@ -317,7 +331,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **classSlotVersionCommand** | [**ClassSlotVersionCommand**](ClassSlotVersionCommand.md)|  | 
 
 ### Return type
 

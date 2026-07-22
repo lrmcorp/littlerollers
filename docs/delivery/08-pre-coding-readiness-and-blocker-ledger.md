@@ -29,7 +29,7 @@ Thus a fully documented story with an unresolved decision scores `78%`; one with
 
 ## 2. Story Readiness Snapshot
 
-Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `0.8.0-draft` checksum `885ddd6ede30b19fa0f4b5c96986e78e0e82076a30c05420d89c9caaf8406c5e`.
+Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `1.3.0-draft` checksum `9967fa3dedb7d37611ea5939b7eba5dbbfda61ceb47a3ea16ebe8eab9794f41e`.
 
 | Story | Requirement | UX text / Figma | Contract | Test/UAT | Migration/release | Blocking DEC | Assignee/env | Gates | % | READY / blocker owner / closure evidence |
 |---|---|---|---|---|---|---|---|---|---:|---|
@@ -42,7 +42,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-LED-01 | D | D / B | P | D | D | — | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 88 | Source `906e781`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO / Figma, reconciliation, UAT and approvals |
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `b18dde8`, evidence `817e384`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
 | US-CLS-01 | D | D / B | P | D | D | — | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `77cab22`, concurrency `e72c809`, evidence `5577637`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
-| US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+Finance+TL / configuration/cancel policy and approvals |
+| US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | Synthetic lifecycle/migration/API/Web/consumer evidence PASS locally; hosted evidence pending; PROD NO / PO+Finance+TL policy and approvals |
 | US-CLS-03 | D | D / B | P | D | D | DEC-005,013 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL+Ops / quota/fallback decisions and job review |
 | US-BKG-01 | D | D / B | P | D | D | DEC-005 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / quota/capacity evidence, Figma and concurrency review |
 | US-BKG-02 | D | D / B | P | D | D | DEC-008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO / cancellation/reschedule policy and signed reviews |

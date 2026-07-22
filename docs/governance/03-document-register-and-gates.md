@@ -59,10 +59,11 @@ Dokumen repository adalah calon source of truth baru. PDF `Spesifikasi Sistem Da
 | DOC-TECH-04 | Data Dictionary & ERD | TL | QA, Finance | TL | 0.1 | DRAFT | TBD-BLOCKING | G4 |
 | DOC-TECH-05 | OpenAPI Contract | TL | Web, Flutter, QA | TL | 0.1 | DRAFT | TBD-BLOCKING | G4 |
 | DOC-TECH-06 | Event, Error & Security Contract | TL | QA, PM/BA | TL | 0.1 | DRAFT | TBD-BLOCKING | G4 |
-| DOC-TECH-07 | MVP Proposed Contract Manifest | TL | Web, Flutter, QA, Finance/Ops/Data, peer reviewer | TL | 0.4-draft | PROPOSED | 2026-07-18 | G4 |
+| DOC-TECH-07 | MVP Proposed Contract Manifest | TL | Web, Flutter, QA, Finance/Ops/Data, peer reviewer | TL | 1.3-draft | PROPOSED | 2026-07-22 | G4 |
 | DOC-TECH-08 | Technical Contract Review Workbook | TL | Web, Flutter, QA, Finance, peer reviewer | TL | 0.1 | DRAFT | 2026-07-18 | G4 |
 | DOC-QA-01 | Test/UAT/Release | QA | PM/BA, TL | QA pass/fail; PO release | 0.1 | DRAFT | TBD-BLOCKING | G5 |
 | DOC-MIG-01 | Migration/Pilot/Support | PM/BA | TL, QA, Data Owner, Finance | PO | 0.1 | DRAFT | TBD-BLOCKING | G5 |
+| DOC-DEL-19 | BG-2 Class Slot Lifecycle Evidence | AI Backend/Web/Data | AI QA/Security/Peer | AI TL synthetic; PO production | 1.0 | LOCAL PASS | 2026-07-22 | BG-2/PG-1 |
 
 Versi dan review date diperbarui pada Pull Request yang mengubah isi material. Link approval harus dicatat pada Approval Evidence Register.
 

@@ -42,6 +42,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [BG-2 Ledger Read Evidence](delivery/16-bg-2-ledger-read-evidence.md) | AI Backend/Web/Flutter/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Session Adjustment Evidence](delivery/17-bg-2-session-adjustment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Instructor Availability Evidence](delivery/18-bg-2-instructor-availability-evidence.md) | AI Backend/Flutter/Data | AI QA/Security/Peer Reviewer |
+| Delivery | [BG-2 Class Slot Lifecycle Evidence](delivery/19-bg-2-class-slot-lifecycle-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Product | [PRD & Business Rules](product/01-prd-and-business-rules.md) | PM/BA | Product Owner |
 | Product | [Backlog, Acceptance & Traceability](product/02-backlog-and-traceability.md) | PM/BA | Product Owner |
 | Product | [MVP Implementation Backlog](product/03-mvp-implementation-backlog.md) | PM/BA | Product Owner |

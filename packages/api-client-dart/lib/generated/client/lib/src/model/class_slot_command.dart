@@ -14,8 +14,8 @@ part 'class_slot_command.g.dart';
 /// * [branchId] 
 /// * [classTypeId] 
 /// * [instructorUserId] 
-/// * [startAt] 
-/// * [endAt] 
+/// * [startAt] - RFC3339 with numeric offset or Z
+/// * [endAt] - Exclusive RFC3339 boundary with numeric offset or Z
 @BuiltValue()
 abstract class ClassSlotCommand implements Built<ClassSlotCommand, ClassSlotCommandBuilder> {
   @BuiltValueField(wireName: r'branchId')
@@ -27,9 +27,11 @@ abstract class ClassSlotCommand implements Built<ClassSlotCommand, ClassSlotComm
   @BuiltValueField(wireName: r'instructorUserId')
   String? get instructorUserId;
 
+  /// RFC3339 with numeric offset or Z
   @BuiltValueField(wireName: r'startAt')
   DateTime get startAt;
 
+  /// Exclusive RFC3339 boundary with numeric offset or Z
   @BuiltValueField(wireName: r'endAt')
   DateTime get endAt;
 

@@ -1,9 +1,9 @@
 # MVP Proposed Contract Manifest
 
 **Status:** PROPOSED / REVIEW REQUIRED  
-**OpenAPI version:** `0.8.0-draft`
-**SHA-256:** `885ddd6ede30b19fa0f4b5c96986e78e0e82076a30c05420d89c9caaf8406c5e`
-**Generated clients:** TypeScript Web dan Dart Flutter — regeneration `0.8.0-draft` selesai; 134 TS/141 Dart drift lokal PASS, hosted pending
+**OpenAPI version:** `1.3.0-draft`
+**SHA-256:** `9967fa3dedb7d37611ea5939b7eba5dbbfda61ceb47a3ea16ebe8eab9794f41e`
+**Generated clients:** TypeScript Web dan Dart Flutter — regeneration `1.3.0-draft` selesai; 140 TS/147 Dart drift lokal PASS, hosted pending
 **Gate 4:** BLOCKED
 
 The checksum is evidence for this exact draft only. Any OpenAPI change invalidates it and requires manifest/checksum regeneration and review.
@@ -20,6 +20,7 @@ The checksum is evidence for this exact draft only. Any OpenAPI change invalidat
 | Purchase/proof | list/create Package, submit/list Purchase, proof create/finalize/status/download/replace | Package, Purchase, PaymentProof, DownloadAuthorization | Dart Customer + TS Web | DEC-004/006, storage/scan provider, security review |
 | Approval | approvePurchase, rejectPurchase | ApprovalResult, snapshots, LedgerEntry | TS Web | DEC-004/006, idempotency/event review |
 | Ledger/adjustment | listCustomerPackages, getPackageLedger, request/list/decide adjustment | CustomerPackageBalance/Page, PackageLedgerResult, SessionAdjustment/DecisionResult | Dart Customer + TS Web | SoD/error/audit review |
+| Class scheduling | list/create ClassSlot, assign instructor, publish, cancel | ClassSlot/Page, typed version/cancellation commands | TS Web; read contracts for Dart Customer/Instructor | DEC-005/006/008, Figma/UAT and production policy |
 | Scheduling/booking/attendance | availability, explicit class actions, booking/reschedule, check-in/token/completion | Availability/ClassSlot/Booking/Reschedule/CheckInResult/CompletionResult and typed pages | TS Web + Dart Customer/Instructor | DEC-007/008, transaction/client/QA review |
 | Finance/notification/audit/operations | reports/cost/close/correction, notification retry, audit/export, health/jobs/recovery | FinancialReport, OtherCost, BranchPeriod/CloseResult, Correction, Notification, AuditLog, OperationalJob, HealthResult | TS Web/Operations | DEC-009/013, Finance/Privacy/Ops review |
 | Migration | source upload, explicit validate/apply/reconcile/rollback | MigrationSourceUpload, MigrationBatchResult/Page | TS Migration/Internal | source mapping, Data Owner/security/QA review |

@@ -44,8 +44,10 @@ import 'package:openapi/src/model/check_in_result.dart';
 import 'package:openapi/src/model/check_in_token.dart';
 import 'package:openapi/src/model/check_in_token_status.dart';
 import 'package:openapi/src/model/class_slot.dart';
+import 'package:openapi/src/model/class_slot_cancellation_command.dart';
 import 'package:openapi/src/model/class_slot_command.dart';
 import 'package:openapi/src/model/class_slot_page.dart';
+import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/class_type.dart';
 import 'package:openapi/src/model/class_type_command.dart';
 import 'package:openapi/src/model/class_type_page.dart';
@@ -169,8 +171,10 @@ part 'serializers.g.dart';
   CheckInToken,
   CheckInTokenStatus,
   ClassSlot,
+  ClassSlotCancellationCommand,
   ClassSlotCommand,
   ClassSlotPage,
+  ClassSlotVersionCommand,
   ClassType,
   ClassTypeCommand,
   ClassTypePage,

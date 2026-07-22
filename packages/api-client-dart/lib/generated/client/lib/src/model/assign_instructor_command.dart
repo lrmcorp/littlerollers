@@ -12,15 +12,11 @@ part 'assign_instructor_command.g.dart';
 ///
 /// Properties:
 /// * [instructorUserId] 
-/// * [reason] 
 /// * [expectedVersion] 
 @BuiltValue()
 abstract class AssignInstructorCommand implements Built<AssignInstructorCommand, AssignInstructorCommandBuilder> {
   @BuiltValueField(wireName: r'instructorUserId')
   String get instructorUserId;
-
-  @BuiltValueField(wireName: r'reason')
-  String get reason;
 
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
@@ -51,11 +47,6 @@ class _$AssignInstructorCommandSerializer implements PrimitiveSerializer<AssignI
     yield r'instructorUserId';
     yield serializers.serialize(
       object.instructorUserId,
-      specifiedType: const FullType(String),
-    );
-    yield r'reason';
-    yield serializers.serialize(
-      object.reason,
       specifiedType: const FullType(String),
     );
     yield r'expectedVersion';
@@ -92,13 +83,6 @@ class _$AssignInstructorCommandSerializer implements PrimitiveSerializer<AssignI
             specifiedType: const FullType(String),
           ) as String;
           result.instructorUserId = valueDes;
-          break;
-        case r'reason':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.reason = valueDes;
           break;
         case r'expectedVersion':
           final valueDes = serializers.deserialize(

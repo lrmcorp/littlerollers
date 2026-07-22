@@ -14,9 +14,10 @@ import 'package:openapi/src/model/assign_instructor_command.dart';
 import 'package:openapi/src/model/availability.dart';
 import 'package:openapi/src/model/availability_page.dart';
 import 'package:openapi/src/model/class_slot.dart';
+import 'package:openapi/src/model/class_slot_cancellation_command.dart';
 import 'package:openapi/src/model/class_slot_command.dart';
 import 'package:openapi/src/model/class_slot_page.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
+import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 
@@ -135,12 +136,12 @@ class ClassesApi {
   }
 
   /// cancelClassSlot
-  /// 
+  /// Synthetic-only MFA-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
   ///
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [classSlotCancellationCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -153,7 +154,7 @@ class ClassesApi {
   Future<Response<ClassSlot>> cancelClassSlot({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required ClassSlotCancellationCommand classSlotCancellationCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -185,8 +186,8 @@ class ClassesApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(ClassSlotCancellationCommand);
+      _bodyData = _serializers.serialize(classSlotCancellationCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -345,7 +346,7 @@ class ClassesApi {
   }
 
   /// createClassSlot
-  /// 
+  /// Creates a DRAFT [startAt,endAt) slot and snapshots effective synthetic quota/capacity. No production defaults.
   ///
   /// Parameters:
   /// * [idempotencyKey] 
@@ -544,10 +545,13 @@ class ClassesApi {
   }
 
   /// listClassSlots
-  /// 
+  /// Scoped class slots ordered by startAt and id descending. Customer sees PUBLISHED only; Instructor sees assigned slots; internal roles see branch-scoped lifecycle.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
+  /// * [status] 
+  /// * [from] - Inclusive UTC-normalized window start; offset or Z required
+  /// * [until] - Exclusive UTC-normalized window end; offset or Z required
   /// * [cursor] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -560,6 +564,9 @@ class ClassesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<ClassSlotPage>> listClassSlots({ 
     String? branchId,
+    String? status,
+    DateTime? from,
+    DateTime? until,
     String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -589,6 +596,9 @@ class ClassesApi {
 
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
     };
 
@@ -633,12 +643,12 @@ class ClassesApi {
   }
 
   /// publishClassSlot
-  /// 
+  /// MFA-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
   ///
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [classSlotVersionCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -651,7 +661,7 @@ class ClassesApi {
   Future<Response<ClassSlot>> publishClassSlot({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required ClassSlotVersionCommand classSlotVersionCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -683,8 +693,8 @@ class ClassesApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(ClassSlotVersionCommand);
+      _bodyData = _serializers.serialize(classSlotVersionCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

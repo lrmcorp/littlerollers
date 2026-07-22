@@ -43,8 +43,10 @@ models/CheckInResult.ts
 models/CheckInToken.ts
 models/CheckInTokenStatus.ts
 models/ClassSlot.ts
+models/ClassSlotCancellationCommand.ts
 models/ClassSlotCommand.ts
 models/ClassSlotPage.ts
+models/ClassSlotVersionCommand.ts
 models/ClassType.ts
 models/ClassTypeCommand.ts
 models/ClassTypePage.ts

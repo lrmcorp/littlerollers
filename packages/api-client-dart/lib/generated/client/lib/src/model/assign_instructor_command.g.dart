@@ -10,8 +10,6 @@ class _$AssignInstructorCommand extends AssignInstructorCommand {
   @override
   final String instructorUserId;
   @override
-  final String reason;
-  @override
   final int expectedVersion;
 
   factory _$AssignInstructorCommand([
@@ -20,7 +18,6 @@ class _$AssignInstructorCommand extends AssignInstructorCommand {
 
   _$AssignInstructorCommand._({
     required this.instructorUserId,
-    required this.reason,
     required this.expectedVersion,
   }) : super._();
   @override
@@ -37,7 +34,6 @@ class _$AssignInstructorCommand extends AssignInstructorCommand {
     if (identical(other, this)) return true;
     return other is AssignInstructorCommand &&
         instructorUserId == other.instructorUserId &&
-        reason == other.reason &&
         expectedVersion == other.expectedVersion;
   }
 
@@ -45,7 +41,6 @@ class _$AssignInstructorCommand extends AssignInstructorCommand {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, instructorUserId.hashCode);
-    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jc(_$hash, expectedVersion.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -55,7 +50,6 @@ class _$AssignInstructorCommand extends AssignInstructorCommand {
   String toString() {
     return (newBuiltValueToStringHelper(r'AssignInstructorCommand')
           ..add('instructorUserId', instructorUserId)
-          ..add('reason', reason)
           ..add('expectedVersion', expectedVersion))
         .toString();
   }
@@ -71,10 +65,6 @@ class AssignInstructorCommandBuilder
   set instructorUserId(String? instructorUserId) =>
       _$this._instructorUserId = instructorUserId;
 
-  String? _reason;
-  String? get reason => _$this._reason;
-  set reason(String? reason) => _$this._reason = reason;
-
   int? _expectedVersion;
   int? get expectedVersion => _$this._expectedVersion;
   set expectedVersion(int? expectedVersion) =>
@@ -88,7 +78,6 @@ class AssignInstructorCommandBuilder
     final $v = _$v;
     if ($v != null) {
       _instructorUserId = $v.instructorUserId;
-      _reason = $v.reason;
       _expectedVersion = $v.expectedVersion;
       _$v = null;
     }
@@ -116,11 +105,6 @@ class AssignInstructorCommandBuilder
             instructorUserId,
             r'AssignInstructorCommand',
             'instructorUserId',
-          ),
-          reason: BuiltValueNullFieldError.checkNotNull(
-            reason,
-            r'AssignInstructorCommand',
-            'reason',
           ),
           expectedVersion: BuiltValueNullFieldError.checkNotNull(
             expectedVersion,

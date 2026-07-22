@@ -48,8 +48,51 @@ final BuiltSet<ClassSlotStatusEnum> _$classSlotStatusEnumValues =
       _$classSlotStatusEnum_COMPLETED,
     ]);
 
+const ClassSlotCancellationReasonCodeEnum
+_$classSlotCancellationReasonCodeEnum_STUDIO_UNAVAILABLE =
+    const ClassSlotCancellationReasonCodeEnum._('STUDIO_UNAVAILABLE');
+const ClassSlotCancellationReasonCodeEnum
+_$classSlotCancellationReasonCodeEnum_INSTRUCTOR_UNAVAILABLE =
+    const ClassSlotCancellationReasonCodeEnum._('INSTRUCTOR_UNAVAILABLE');
+const ClassSlotCancellationReasonCodeEnum
+_$classSlotCancellationReasonCodeEnum_SAFETY_ISSUE =
+    const ClassSlotCancellationReasonCodeEnum._('SAFETY_ISSUE');
+const ClassSlotCancellationReasonCodeEnum
+_$classSlotCancellationReasonCodeEnum_OTHER_REVIEW_REQUIRED =
+    const ClassSlotCancellationReasonCodeEnum._('OTHER_REVIEW_REQUIRED');
+
+ClassSlotCancellationReasonCodeEnum
+_$classSlotCancellationReasonCodeEnumValueOf(String name) {
+  switch (name) {
+    case 'STUDIO_UNAVAILABLE':
+      return _$classSlotCancellationReasonCodeEnum_STUDIO_UNAVAILABLE;
+    case 'INSTRUCTOR_UNAVAILABLE':
+      return _$classSlotCancellationReasonCodeEnum_INSTRUCTOR_UNAVAILABLE;
+    case 'SAFETY_ISSUE':
+      return _$classSlotCancellationReasonCodeEnum_SAFETY_ISSUE;
+    case 'OTHER_REVIEW_REQUIRED':
+      return _$classSlotCancellationReasonCodeEnum_OTHER_REVIEW_REQUIRED;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<ClassSlotCancellationReasonCodeEnum>
+_$classSlotCancellationReasonCodeEnumValues =
+    BuiltSet<ClassSlotCancellationReasonCodeEnum>(
+      const <ClassSlotCancellationReasonCodeEnum>[
+        _$classSlotCancellationReasonCodeEnum_STUDIO_UNAVAILABLE,
+        _$classSlotCancellationReasonCodeEnum_INSTRUCTOR_UNAVAILABLE,
+        _$classSlotCancellationReasonCodeEnum_SAFETY_ISSUE,
+        _$classSlotCancellationReasonCodeEnum_OTHER_REVIEW_REQUIRED,
+      ],
+    );
+
 Serializer<ClassSlotStatusEnum> _$classSlotStatusEnumSerializer =
     _$ClassSlotStatusEnumSerializer();
+Serializer<ClassSlotCancellationReasonCodeEnum>
+_$classSlotCancellationReasonCodeEnumSerializer =
+    _$ClassSlotCancellationReasonCodeEnumSerializer();
 
 class _$ClassSlotStatusEnumSerializer
     implements PrimitiveSerializer<ClassSlotStatusEnum> {
@@ -92,6 +135,45 @@ class _$ClassSlotStatusEnumSerializer
   );
 }
 
+class _$ClassSlotCancellationReasonCodeEnumSerializer
+    implements PrimitiveSerializer<ClassSlotCancellationReasonCodeEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'STUDIO_UNAVAILABLE': 'STUDIO_UNAVAILABLE',
+    'INSTRUCTOR_UNAVAILABLE': 'INSTRUCTOR_UNAVAILABLE',
+    'SAFETY_ISSUE': 'SAFETY_ISSUE',
+    'OTHER_REVIEW_REQUIRED': 'OTHER_REVIEW_REQUIRED',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'STUDIO_UNAVAILABLE': 'STUDIO_UNAVAILABLE',
+    'INSTRUCTOR_UNAVAILABLE': 'INSTRUCTOR_UNAVAILABLE',
+    'SAFETY_ISSUE': 'SAFETY_ISSUE',
+    'OTHER_REVIEW_REQUIRED': 'OTHER_REVIEW_REQUIRED',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    ClassSlotCancellationReasonCodeEnum,
+  ];
+  @override
+  final String wireName = 'ClassSlotCancellationReasonCodeEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    ClassSlotCancellationReasonCodeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  ClassSlotCancellationReasonCodeEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => ClassSlotCancellationReasonCodeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$ClassSlot extends ClassSlot {
   @override
   final String id;
@@ -110,11 +192,17 @@ class _$ClassSlot extends ClassSlot {
   @override
   final ClassSlotStatusEnum status;
   @override
+  final int minimumQuota;
+  @override
   final int capacity;
   @override
   final int bookedCount;
   @override
+  final ClassSlotCancellationReasonCodeEnum? cancellationReasonCode;
+  @override
   final int version;
+  @override
+  final bool idempotentReplay;
 
   factory _$ClassSlot([void Function(ClassSlotBuilder)? updates]) =>
       (ClassSlotBuilder()..update(updates))._build();
@@ -128,9 +216,12 @@ class _$ClassSlot extends ClassSlot {
     required this.endAt,
     required this.timezone,
     required this.status,
+    required this.minimumQuota,
     required this.capacity,
     required this.bookedCount,
+    this.cancellationReasonCode,
     required this.version,
+    required this.idempotentReplay,
   }) : super._();
   @override
   ClassSlot rebuild(void Function(ClassSlotBuilder) updates) =>
@@ -151,9 +242,12 @@ class _$ClassSlot extends ClassSlot {
         endAt == other.endAt &&
         timezone == other.timezone &&
         status == other.status &&
+        minimumQuota == other.minimumQuota &&
         capacity == other.capacity &&
         bookedCount == other.bookedCount &&
-        version == other.version;
+        cancellationReasonCode == other.cancellationReasonCode &&
+        version == other.version &&
+        idempotentReplay == other.idempotentReplay;
   }
 
   @override
@@ -167,9 +261,12 @@ class _$ClassSlot extends ClassSlot {
     _$hash = $jc(_$hash, endAt.hashCode);
     _$hash = $jc(_$hash, timezone.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, minimumQuota.hashCode);
     _$hash = $jc(_$hash, capacity.hashCode);
     _$hash = $jc(_$hash, bookedCount.hashCode);
+    _$hash = $jc(_$hash, cancellationReasonCode.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
+    _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -185,9 +282,12 @@ class _$ClassSlot extends ClassSlot {
           ..add('endAt', endAt)
           ..add('timezone', timezone)
           ..add('status', status)
+          ..add('minimumQuota', minimumQuota)
           ..add('capacity', capacity)
           ..add('bookedCount', bookedCount)
-          ..add('version', version))
+          ..add('cancellationReasonCode', cancellationReasonCode)
+          ..add('version', version)
+          ..add('idempotentReplay', idempotentReplay))
         .toString();
   }
 }
@@ -228,6 +328,10 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
   ClassSlotStatusEnum? get status => _$this._status;
   set status(ClassSlotStatusEnum? status) => _$this._status = status;
 
+  int? _minimumQuota;
+  int? get minimumQuota => _$this._minimumQuota;
+  set minimumQuota(int? minimumQuota) => _$this._minimumQuota = minimumQuota;
+
   int? _capacity;
   int? get capacity => _$this._capacity;
   set capacity(int? capacity) => _$this._capacity = capacity;
@@ -236,9 +340,21 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
   int? get bookedCount => _$this._bookedCount;
   set bookedCount(int? bookedCount) => _$this._bookedCount = bookedCount;
 
+  ClassSlotCancellationReasonCodeEnum? _cancellationReasonCode;
+  ClassSlotCancellationReasonCodeEnum? get cancellationReasonCode =>
+      _$this._cancellationReasonCode;
+  set cancellationReasonCode(
+    ClassSlotCancellationReasonCodeEnum? cancellationReasonCode,
+  ) => _$this._cancellationReasonCode = cancellationReasonCode;
+
   int? _version;
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
+
+  bool? _idempotentReplay;
+  bool? get idempotentReplay => _$this._idempotentReplay;
+  set idempotentReplay(bool? idempotentReplay) =>
+      _$this._idempotentReplay = idempotentReplay;
 
   ClassSlotBuilder() {
     ClassSlot._defaults(this);
@@ -255,9 +371,12 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
       _endAt = $v.endAt;
       _timezone = $v.timezone;
       _status = $v.status;
+      _minimumQuota = $v.minimumQuota;
       _capacity = $v.capacity;
       _bookedCount = $v.bookedCount;
+      _cancellationReasonCode = $v.cancellationReasonCode;
       _version = $v.version;
+      _idempotentReplay = $v.idempotentReplay;
       _$v = null;
     }
     return this;
@@ -312,6 +431,11 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
             r'ClassSlot',
             'status',
           ),
+          minimumQuota: BuiltValueNullFieldError.checkNotNull(
+            minimumQuota,
+            r'ClassSlot',
+            'minimumQuota',
+          ),
           capacity: BuiltValueNullFieldError.checkNotNull(
             capacity,
             r'ClassSlot',
@@ -322,10 +446,16 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
             r'ClassSlot',
             'bookedCount',
           ),
+          cancellationReasonCode: cancellationReasonCode,
           version: BuiltValueNullFieldError.checkNotNull(
             version,
             r'ClassSlot',
             'version',
+          ),
+          idempotentReplay: BuiltValueNullFieldError.checkNotNull(
+            idempotentReplay,
+            r'ClassSlot',
+            'idempotentReplay',
           ),
         );
     replace(_$result);

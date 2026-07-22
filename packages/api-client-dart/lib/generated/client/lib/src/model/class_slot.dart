@@ -20,9 +20,12 @@ part 'class_slot.g.dart';
 /// * [endAt] 
 /// * [timezone] 
 /// * [status] 
+/// * [minimumQuota] 
 /// * [capacity] 
 /// * [bookedCount] 
+/// * [cancellationReasonCode] 
 /// * [version] 
+/// * [idempotentReplay] 
 @BuiltValue()
 abstract class ClassSlot implements Built<ClassSlot, ClassSlotBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -50,14 +53,24 @@ abstract class ClassSlot implements Built<ClassSlot, ClassSlotBuilder> {
   ClassSlotStatusEnum get status;
   // enum statusEnum {  DRAFT,  PUBLISHED,  CONFIRMED,  AUTO_CANCELLED,  CANCELLED,  COMPLETED,  };
 
+  @BuiltValueField(wireName: r'minimumQuota')
+  int get minimumQuota;
+
   @BuiltValueField(wireName: r'capacity')
   int get capacity;
 
   @BuiltValueField(wireName: r'bookedCount')
   int get bookedCount;
 
+  @BuiltValueField(wireName: r'cancellationReasonCode')
+  ClassSlotCancellationReasonCodeEnum? get cancellationReasonCode;
+  // enum cancellationReasonCodeEnum {  STUDIO_UNAVAILABLE,  INSTRUCTOR_UNAVAILABLE,  SAFETY_ISSUE,  OTHER_REVIEW_REQUIRED,  ,  };
+
   @BuiltValueField(wireName: r'version')
   int get version;
+
+  @BuiltValueField(wireName: r'idempotentReplay')
+  bool get idempotentReplay;
 
   ClassSlot._();
 
@@ -124,6 +137,11 @@ class _$ClassSlotSerializer implements PrimitiveSerializer<ClassSlot> {
       object.status,
       specifiedType: const FullType(ClassSlotStatusEnum),
     );
+    yield r'minimumQuota';
+    yield serializers.serialize(
+      object.minimumQuota,
+      specifiedType: const FullType(int),
+    );
     yield r'capacity';
     yield serializers.serialize(
       object.capacity,
@@ -134,10 +152,22 @@ class _$ClassSlotSerializer implements PrimitiveSerializer<ClassSlot> {
       object.bookedCount,
       specifiedType: const FullType(int),
     );
+    if (object.cancellationReasonCode != null) {
+      yield r'cancellationReasonCode';
+      yield serializers.serialize(
+        object.cancellationReasonCode,
+        specifiedType: const FullType.nullable(ClassSlotCancellationReasonCodeEnum),
+      );
+    }
     yield r'version';
     yield serializers.serialize(
       object.version,
       specifiedType: const FullType(int),
+    );
+    yield r'idempotentReplay';
+    yield serializers.serialize(
+      object.idempotentReplay,
+      specifiedType: const FullType(bool),
     );
   }
 
@@ -219,6 +249,13 @@ class _$ClassSlotSerializer implements PrimitiveSerializer<ClassSlot> {
           ) as ClassSlotStatusEnum;
           result.status = valueDes;
           break;
+        case r'minimumQuota':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.minimumQuota = valueDes;
+          break;
         case r'capacity':
           final valueDes = serializers.deserialize(
             value,
@@ -233,12 +270,27 @@ class _$ClassSlotSerializer implements PrimitiveSerializer<ClassSlot> {
           ) as int;
           result.bookedCount = valueDes;
           break;
+        case r'cancellationReasonCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(ClassSlotCancellationReasonCodeEnum),
+          ) as ClassSlotCancellationReasonCodeEnum?;
+          if (valueDes == null) continue;
+          result.cancellationReasonCode = valueDes;
+          break;
         case r'version':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(int),
           ) as int;
           result.version = valueDes;
+          break;
+        case r'idempotentReplay':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.idempotentReplay = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -290,5 +342,24 @@ class ClassSlotStatusEnum extends EnumClass {
 
   static BuiltSet<ClassSlotStatusEnum> get values => _$classSlotStatusEnumValues;
   static ClassSlotStatusEnum valueOf(String name) => _$classSlotStatusEnumValueOf(name);
+}
+
+class ClassSlotCancellationReasonCodeEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'STUDIO_UNAVAILABLE')
+  static const ClassSlotCancellationReasonCodeEnum STUDIO_UNAVAILABLE = _$classSlotCancellationReasonCodeEnum_STUDIO_UNAVAILABLE;
+  @BuiltValueEnumConst(wireName: r'INSTRUCTOR_UNAVAILABLE')
+  static const ClassSlotCancellationReasonCodeEnum INSTRUCTOR_UNAVAILABLE = _$classSlotCancellationReasonCodeEnum_INSTRUCTOR_UNAVAILABLE;
+  @BuiltValueEnumConst(wireName: r'SAFETY_ISSUE')
+  static const ClassSlotCancellationReasonCodeEnum SAFETY_ISSUE = _$classSlotCancellationReasonCodeEnum_SAFETY_ISSUE;
+  @BuiltValueEnumConst(wireName: r'OTHER_REVIEW_REQUIRED')
+  static const ClassSlotCancellationReasonCodeEnum OTHER_REVIEW_REQUIRED = _$classSlotCancellationReasonCodeEnum_OTHER_REVIEW_REQUIRED;
+
+  static Serializer<ClassSlotCancellationReasonCodeEnum> get serializer => _$classSlotCancellationReasonCodeEnumSerializer;
+
+  const ClassSlotCancellationReasonCodeEnum._(String name): super(name);
+
+  static BuiltSet<ClassSlotCancellationReasonCodeEnum> get values => _$classSlotCancellationReasonCodeEnumValues;
+  static ClassSlotCancellationReasonCodeEnum valueOf(String name) => _$classSlotCancellationReasonCodeEnumValueOf(name);
 }
 

@@ -35,8 +35,10 @@ doc/CheckInResult.md
 doc/CheckInToken.md
 doc/CheckInTokenStatus.md
 doc/ClassSlot.md
+doc/ClassSlotCancellationCommand.md
 doc/ClassSlotCommand.md
 doc/ClassSlotPage.md
+doc/ClassSlotVersionCommand.md
 doc/ClassType.md
 doc/ClassTypeCommand.md
 doc/ClassTypePage.md
@@ -187,8 +189,10 @@ lib/src/model/check_in_result.dart
 lib/src/model/check_in_token.dart
 lib/src/model/check_in_token_status.dart
 lib/src/model/class_slot.dart
+lib/src/model/class_slot_cancellation_command.dart
 lib/src/model/class_slot_command.dart
 lib/src/model/class_slot_page.dart
+lib/src/model/class_slot_version_command.dart
 lib/src/model/class_type.dart
 lib/src/model/class_type_command.dart
 lib/src/model/class_type_page.dart
@@ -281,3 +285,5 @@ lib/src/model/token_check_in_command.dart
 lib/src/model/version_command.dart
 lib/src/serializers.dart
 pubspec.yaml
+test/class_slot_cancellation_command_test.dart
+test/class_slot_version_command_test.dart
