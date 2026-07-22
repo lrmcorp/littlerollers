@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../database/database.module';
+import { FoundationModule } from '../foundation/foundation.module';
+import { IdentityModule } from '../identity/identity.module';
+import { OperationsController } from './operations.controller';
+import { OperationsService } from './operations.service';
+
+@Module({
+  imports: [DatabaseModule, FoundationModule, IdentityModule],
+  controllers: [OperationsController],
+  providers: [OperationsService],
+})
+export class OperationsModule {}

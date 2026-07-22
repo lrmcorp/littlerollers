@@ -11,19 +11,16 @@ part 'quota_evaluation_command.g.dart';
 /// QuotaEvaluationCommand
 ///
 /// Properties:
-/// * [expectedDueAt] 
+/// * [expectedDueAt] - Must exactly match the persisted H-24 due boundary.
 /// * [expectedVersion] 
-/// * [reason] 
 @BuiltValue()
 abstract class QuotaEvaluationCommand implements Built<QuotaEvaluationCommand, QuotaEvaluationCommandBuilder> {
+  /// Must exactly match the persisted H-24 due boundary.
   @BuiltValueField(wireName: r'expectedDueAt')
   DateTime get expectedDueAt;
 
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
-
-  @BuiltValueField(wireName: r'reason')
-  String? get reason;
 
   QuotaEvaluationCommand._();
 
@@ -58,13 +55,6 @@ class _$QuotaEvaluationCommandSerializer implements PrimitiveSerializer<QuotaEva
       object.expectedVersion,
       specifiedType: const FullType(int),
     );
-    if (object.reason != null) {
-      yield r'reason';
-      yield serializers.serialize(
-        object.reason,
-        specifiedType: const FullType(String),
-      );
-    }
   }
 
   @override
@@ -101,13 +91,6 @@ class _$QuotaEvaluationCommandSerializer implements PrimitiveSerializer<QuotaEva
             specifiedType: const FullType(int),
           ) as int;
           result.expectedVersion = valueDes;
-          break;
-        case r'reason':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.reason = valueDes;
           break;
         default:
           unhandled.add(key);

@@ -135,7 +135,7 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Get('me')
   me(@Req() request: AuthenticatedRequest) {
-    return this.identities.me(request.principal.userId);
+    return this.identities.meForSession(request.principal);
   }
 
   @UseGuards(AuthGuard)

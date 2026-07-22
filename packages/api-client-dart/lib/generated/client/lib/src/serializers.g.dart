@@ -39,6 +39,8 @@ Serializers _$serializers =
           ..add(BookingCommand.serializer)
           ..add(BookingCommandSource_Enum.serializer)
           ..add(BookingPage.serializer)
+          ..add(BookingReservedQuantityEnum.serializer)
+          ..add(BookingSource_Enum.serializer)
           ..add(BookingStatusEnum.serializer)
           ..add(Branch.serializer)
           ..add(BranchCommand.serializer)
@@ -107,6 +109,7 @@ Serializers _$serializers =
           ..add(LedgerEntry.serializer)
           ..add(LedgerEntryTypeEnum.serializer)
           ..add(Me.serializer)
+          ..add(MeAssuranceEnum.serializer)
           ..add(MfaChallenge.serializer)
           ..add(MfaChallengeCommand.serializer)
           ..add(MfaChallengeCommandPurposeEnum.serializer)
@@ -182,6 +185,7 @@ Serializers _$serializers =
           ..add(SessionAdjustmentReasonCodeEnum.serializer)
           ..add(SessionAdjustmentStatusEnum.serializer)
           ..add(SessionAssuranceEnum.serializer)
+          ..add(SessionBranch.serializer)
           ..add(SessionChannelEnum.serializer)
           ..add(SubmitPurchaseRequest.serializer)
           ..add(TimeRangeCommand.serializer)
@@ -306,6 +310,10 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(String)]),
             () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(SessionBranch)]),
+            () => ListBuilder<SessionBranch>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [

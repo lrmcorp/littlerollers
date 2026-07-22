@@ -1,5 +1,57 @@
 import { expect, test } from '@playwright/test';
 
+const webCapabilities = [
+  'user:read',
+  'user:admin',
+  'assignment:read',
+  'assignment:manage',
+  'master:read',
+  'master:manage',
+  'finance:manage',
+  'package:read',
+  'purchase:review',
+  'purchase:decide',
+  'ledger:read',
+  'ledger:adjust:read',
+  'ledger:adjust:request',
+  'ledger:adjust:decide',
+  'class-slot:read',
+  'class-slot:manage',
+  'operations:read',
+  'operations:recover',
+  'booking:read',
+  'booking:create:assisted',
+  'branch:all',
+];
+
+test.beforeEach(async ({ page }) => {
+  let sessionReads = 0;
+  await page.route('**/api/v1/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'user-1',
+        displayName: 'Synthetic Super Owner',
+        roles: ['SUPER_OWNER'],
+        branchIds: ['branch-1'],
+        capabilities: webCapabilities,
+        assurance: sessionReads++ === 0 && /\/users|\/sign-in/.test(page.url()) ? 'BASE' : 'MFA',
+        sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        branches: [
+          { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
+          {
+            id: '00000000-0000-4000-8000-000000000301',
+            code: 'BDG',
+            name: 'Bandung',
+            timezone: 'Asia/Jakarta',
+          },
+        ],
+      }),
+    }),
+  );
+});
+
 test('sign-in exposes success without a token body', async ({ page }) => {
   await page.route('**/api/v1/auth/google', (route) =>
     route.fulfill({
@@ -14,18 +66,22 @@ test('sign-in exposes success without a token body', async ({ page }) => {
           roles: ['OWNER'],
           branchIds: ['branch-1'],
           capabilities: ['user:admin'],
+          assurance: 'BASE',
+          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
         },
         assurance: 'BASE',
         channel: 'WEB',
-        expiresAt: new Date().toISOString(),
-        refreshExpiresAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       }),
     }),
   );
-  await page.goto('/sign-in');
+  await page.goto('/sign-in?returnTo=https://evil.example/steal');
   await page.getByLabel('Email Google synthetic').fill('owner@example.test');
   await page.getByRole('button', { name: /Google/ }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('terverifikasi');
+  await expect(page).toHaveURL('/');
+  await expect(page.getByText('Synthetic Super Owner')).toBeVisible();
 });
 
 test('MFA invitation and deactivation flow is keyboard operable', async ({ page }) => {
@@ -48,14 +104,18 @@ test('MFA invitation and deactivation flow is keyboard operable', async ({ page 
       body: JSON.stringify({
         user: {
           id: 'owner',
+          displayName: 'Owner',
           roles: ['OWNER'],
           branchIds: ['branch-1'],
           capabilities: ['user:admin'],
+          assurance: 'MFA',
+          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
         },
         assurance: 'MFA',
         channel: 'WEB',
-        expiresAt: new Date().toISOString(),
-        refreshExpiresAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       }),
     }),
   );
@@ -118,14 +178,18 @@ test('duplicate invitation is idempotent and forbidden branch does not mutate', 
       body: JSON.stringify({
         user: {
           id: 'owner',
+          displayName: 'Owner',
           roles: ['OWNER'],
           branchIds: ['branch-1'],
           capabilities: ['user:admin'],
+          assurance: 'MFA',
+          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
         },
         assurance: 'MFA',
         channel: 'WEB',
-        expiresAt: new Date().toISOString(),
-        refreshExpiresAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       }),
     }),
   );
@@ -170,14 +234,18 @@ test('self-deactivation conflict is visible without optimistic mutation', async 
       body: JSON.stringify({
         user: {
           id: 'owner',
+          displayName: 'Owner',
           roles: ['OWNER'],
           branchIds: ['branch-1'],
           capabilities: ['user:admin'],
+          assurance: 'MFA',
+          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
         },
         assurance: 'MFA',
         channel: 'WEB',
-        expiresAt: new Date().toISOString(),
-        refreshExpiresAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       }),
     }),
   );
@@ -698,4 +766,111 @@ test('class-slot configuration and hidden failures never show optimistic success
   await page.getByRole('button', { name: 'Muat class slot' }).click();
   await expect(page.getByText('CONFIGURATION_REQUIRED', { exact: true })).toBeVisible();
   await expect(page.getByText('Class slot dimuat.')).toHaveCount(0);
+});
+
+test('operations H-24 queue and MFA recovery are keyboard operable', async ({ page }) => {
+  const job = {
+    id: '00000000-0000-4000-8000-000000000101',
+    type: 'H24_QUOTA_EVALUATION',
+    status: 'RETRYING',
+    attemptCount: 1,
+    maxAttempts: 5,
+    progress: 0,
+    dueAt: '2026-07-22T00:00:00Z',
+    nextAttemptAt: '2026-07-22T00:01:00Z',
+    leaseExpiresAt: null,
+    lastErrorCode: 'DEPENDENCY_UNAVAILABLE',
+    createdAt: '2026-07-21T00:00:00Z',
+    version: 1,
+  };
+  await page.route('**/api/v1/operations/jobs', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [job], page: { hasMore: false, nextCursor: null } }),
+    }),
+  );
+  await page.route('**/api/v1/operations/quota-evaluations/*/run', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        classSlotId: '00000000-0000-4000-8000-000000000102',
+        previousStatus: 'PUBLISHED',
+        status: 'CONFIRMED',
+        bookingCount: 2,
+        minimumQuota: 2,
+        releasedReservationIds: [],
+        outboxEventIds: ['00000000-0000-4000-8000-000000000103'],
+        evaluatedAt: '2026-07-22T00:02:00Z',
+        idempotentReplay: false,
+      }),
+    }),
+  );
+  await page.goto('/operations');
+  await page.getByRole('button', { name: 'Muat job' }).press('Enter');
+  await expect(page.getByText(/RETRYING.*DEPENDENCY_UNAVAILABLE/)).toBeVisible();
+  await page.getByRole('button', { name: 'Jalankan recovery MFA' }).press('Enter');
+  await expect(page.getByText('Evaluasi selesai.')).toBeVisible();
+});
+
+test('assisted booking reserves one session with keyboard confirmation', async ({ page }) => {
+  const branchId = '00000000-0000-4000-8000-000000000301';
+  const classSlotId = '00000000-0000-4000-8000-000000000302';
+  const customerUserId = '00000000-0000-4000-8000-000000000303';
+  const customerPackageId = '00000000-0000-4000-8000-000000000304';
+  await page.route('**/api/v1/bookings**', (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], page: { hasMore: false, nextCursor: null } }),
+      });
+    return route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: '00000000-0000-4000-8000-000000000305',
+        branchId,
+        classSlotId,
+        customerUserId,
+        customerPackageId,
+        reservationId: '00000000-0000-4000-8000-000000000306',
+        createdById: '00000000-0000-4000-8000-000000000307',
+        source: 'ADMIN_ASSISTED',
+        status: 'BOOKED',
+        reservedQuantity: 1,
+        createdAt: new Date().toISOString(),
+        version: 0,
+        idempotentReplay: false,
+      }),
+    });
+  });
+  await page.goto('/bookings');
+  await page.getByLabel('ID cabang booking').fill(branchId);
+  await page.getByRole('button', { name: 'Muat booking' }).press('Enter');
+  await page.getByLabel('ID class slot').fill(classSlotId);
+  await page.getByLabel('ID customer', { exact: true }).fill(customerUserId);
+  await page.getByLabel('ID customer package').fill(customerPackageId);
+  await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).press('Enter');
+  await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toBeVisible();
+  await expect(page.getByText(/BOOKED.*reservasi 1 sesi/)).toBeVisible();
+});
+
+test('booking conflict never renders optimistic success', async ({ page }) => {
+  await page.route('**/api/v1/bookings', (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({ code: 'CLASS_CAPACITY_FULL' }),
+    }),
+  );
+  await page.goto('/bookings');
+  await page.getByLabel('ID cabang booking').fill('branch-1');
+  await page.getByLabel('ID class slot').fill('slot-1');
+  await page.getByLabel('ID customer', { exact: true }).fill('customer-1');
+  await page.getByLabel('ID customer package').fill('package-1');
+  await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).click();
+  await expect(page.getByText('BOOKING_CONFLICT', { exact: true })).toBeVisible();
+  await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toHaveCount(0);
 });

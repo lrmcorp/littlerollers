@@ -1,4 +1,5 @@
 import { Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 
 export type AssignmentFailure =
   | 'MFA_REQUIRED'
@@ -63,6 +64,7 @@ export const browserAssignmentClient: AssignmentClient = {
 };
 
 export function assignmentFailure(error: unknown): AssignmentFailure {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 404) return 'RESOURCE_NOT_FOUND';
   if (status === 422 || status === 400) return 'VALIDATION_ERROR';

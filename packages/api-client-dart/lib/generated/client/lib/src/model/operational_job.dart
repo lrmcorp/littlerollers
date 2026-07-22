@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -18,8 +19,10 @@ part 'operational_job.g.dart';
 /// * [attemptCount] 
 /// * [maxAttempts] 
 /// * [progress] 
+/// * [dueAt] 
+/// * [nextAttemptAt] 
 /// * [leaseExpiresAt] 
-/// * [lastErrorCode] 
+/// * [lastErrorCode] - Safe code only; no provider or user data.
 /// * [createdAt] 
 /// * [version] 
 @BuiltValue()
@@ -28,11 +31,11 @@ abstract class OperationalJob implements Built<OperationalJob, OperationalJobBui
   String get id;
 
   @BuiltValueField(wireName: r'type')
-  String get type;
+  JsonObject? get type;
 
   @BuiltValueField(wireName: r'status')
   OperationalJobStatusEnum get status;
-  // enum statusEnum {  QUEUED,  RUNNING,  RETRYING,  SUCCEEDED,  FAILED,  DEAD_LETTER,  };
+  // enum statusEnum {  QUEUED,  RUNNING,  RETRYING,  SUCCEEDED,  FAILED,  };
 
   @BuiltValueField(wireName: r'attemptCount')
   int get attemptCount;
@@ -43,9 +46,16 @@ abstract class OperationalJob implements Built<OperationalJob, OperationalJobBui
   @BuiltValueField(wireName: r'progress')
   int get progress;
 
+  @BuiltValueField(wireName: r'dueAt')
+  DateTime get dueAt;
+
+  @BuiltValueField(wireName: r'nextAttemptAt')
+  DateTime get nextAttemptAt;
+
   @BuiltValueField(wireName: r'leaseExpiresAt')
   DateTime? get leaseExpiresAt;
 
+  /// Safe code only; no provider or user data.
   @BuiltValueField(wireName: r'lastErrorCode')
   String? get lastErrorCode;
 
@@ -84,9 +94,9 @@ class _$OperationalJobSerializer implements PrimitiveSerializer<OperationalJob> 
       specifiedType: const FullType(String),
     );
     yield r'type';
-    yield serializers.serialize(
+    yield object.type == null ? null : serializers.serialize(
       object.type,
-      specifiedType: const FullType(String),
+      specifiedType: const FullType.nullable(JsonObject),
     );
     yield r'status';
     yield serializers.serialize(
@@ -107,6 +117,16 @@ class _$OperationalJobSerializer implements PrimitiveSerializer<OperationalJob> 
     yield serializers.serialize(
       object.progress,
       specifiedType: const FullType(int),
+    );
+    yield r'dueAt';
+    yield serializers.serialize(
+      object.dueAt,
+      specifiedType: const FullType(DateTime),
+    );
+    yield r'nextAttemptAt';
+    yield serializers.serialize(
+      object.nextAttemptAt,
+      specifiedType: const FullType(DateTime),
     );
     if (object.leaseExpiresAt != null) {
       yield r'leaseExpiresAt';
@@ -165,8 +185,9 @@ class _$OperationalJobSerializer implements PrimitiveSerializer<OperationalJob> 
         case r'type':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
+            specifiedType: const FullType.nullable(JsonObject),
+          ) as JsonObject?;
+          if (valueDes == null) continue;
           result.type = valueDes;
           break;
         case r'status':
@@ -196,6 +217,20 @@ class _$OperationalJobSerializer implements PrimitiveSerializer<OperationalJob> 
             specifiedType: const FullType(int),
           ) as int;
           result.progress = valueDes;
+          break;
+        case r'dueAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.dueAt = valueDes;
+          break;
+        case r'nextAttemptAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.nextAttemptAt = valueDes;
           break;
         case r'leaseExpiresAt':
           final valueDes = serializers.deserialize(
@@ -268,8 +303,6 @@ class OperationalJobStatusEnum extends EnumClass {
   static const OperationalJobStatusEnum SUCCEEDED = _$operationalJobStatusEnum_SUCCEEDED;
   @BuiltValueEnumConst(wireName: r'FAILED')
   static const OperationalJobStatusEnum FAILED = _$operationalJobStatusEnum_FAILED;
-  @BuiltValueEnumConst(wireName: r'DEAD_LETTER')
-  static const OperationalJobStatusEnum DEAD_LETTER = _$operationalJobStatusEnum_DEAD_LETTER;
 
   static Serializer<OperationalJobStatusEnum> get serializer => _$operationalJobStatusEnumSerializer;
 

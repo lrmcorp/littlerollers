@@ -8,6 +8,17 @@ export interface RuntimeConfig {
   healthProbeTimeoutMs: number;
   workerHeartbeatIntervalMs: number;
   workerHeartbeatTtlSeconds: number;
+  quotaEvaluation: {
+    syntheticEnabled: boolean;
+    pollIntervalMs: number;
+    leaseMs: number;
+    maxAttempts: number;
+    backoffMs: number;
+  };
+  booking: {
+    syntheticEnabled: boolean;
+    cutoffHours: number | null;
+  };
   objectStorage: {
     endpoint: string;
     accessKey: string;
@@ -35,6 +46,15 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     if (!Number.isInteger(value) || value < 1) throw new Error(`CONFIGURATION_INVALID:${key}`);
     return value;
   };
+  const bookingSyntheticEnabled =
+    environment !== 'production' && env.BOOKING_SYNTHETIC_ENABLED === 'true';
+  const bookingCutoffValue = env.BOOKING_SYNTHETIC_CUTOFF_HOURS?.trim();
+  const bookingCutoffHours = bookingCutoffValue ? Number(bookingCutoffValue) : null;
+  if (
+    bookingCutoffHours !== null &&
+    (!Number.isInteger(bookingCutoffHours) || bookingCutoffHours < 1)
+  )
+    throw new Error('CONFIGURATION_INVALID:BOOKING_SYNTHETIC_CUTOFF_HOURS');
   return {
     environment,
     port,
@@ -43,6 +63,18 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     healthProbeTimeoutMs: positiveInteger('HEALTH_PROBE_TIMEOUT_MS'),
     workerHeartbeatIntervalMs: positiveInteger('WORKER_HEARTBEAT_INTERVAL_MS'),
     workerHeartbeatTtlSeconds: positiveInteger('WORKER_HEARTBEAT_TTL_SECONDS'),
+    quotaEvaluation: {
+      syntheticEnabled:
+        environment !== 'production' && env.QUOTA_EVALUATION_SYNTHETIC_ENABLED === 'true',
+      pollIntervalMs: positiveInteger('QUOTA_EVALUATION_POLL_INTERVAL_MS'),
+      leaseMs: positiveInteger('QUOTA_EVALUATION_LEASE_MS'),
+      maxAttempts: positiveInteger('QUOTA_EVALUATION_MAX_ATTEMPTS'),
+      backoffMs: positiveInteger('QUOTA_EVALUATION_BACKOFF_MS'),
+    },
+    booking: {
+      syntheticEnabled: bookingSyntheticEnabled,
+      cutoffHours: bookingCutoffHours,
+    },
     objectStorage: {
       endpoint: required(env, 'OBJECT_STORAGE_ENDPOINT'),
       accessKey: required(env, 'OBJECT_STORAGE_ACCESS_KEY'),

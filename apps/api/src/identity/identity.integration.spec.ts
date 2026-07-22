@@ -134,6 +134,36 @@ databaseDescribe('identity PostgreSQL integration', () => {
     ).toBe(1);
   });
 
+  it('returns authoritative session assurance, expiry and active branch contexts', async () => {
+    const inactiveBranchId = randomUUID();
+    await db.branch.create({
+      data: {
+        id: inactiveBranchId,
+        code: `${namespace}-inactive`,
+        name: 'Inactive integration branch',
+        timezone: 'Asia/Makassar',
+        active: false,
+      },
+    });
+    try {
+      const issued = await service.issueSession(inviterId, 'WEB', 'MFA');
+      const principal = await service.authenticateBearer(issued.webCookieToken!);
+      const view = await service.meForSession(principal);
+      expect(view.assurance).toBe('MFA');
+      expect(view.sessionExpiresAt).toBe(issued.expiresAt);
+      expect(view.branches).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: branchId, code: namespace, timezone: 'Asia/Jakarta' }),
+        ]),
+      );
+      expect(view.branches).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: inactiveBranchId })]),
+      );
+    } finally {
+      await db.branch.delete({ where: { id: inactiveBranchId } });
+    }
+  });
+
   it('enforces OTP lock/replay/rate limits, recovery and refresh reuse', async () => {
     const locked = await service.requestOtp('+628111111111', `${namespace}-otp-lock`);
     for (let attempt = 0; attempt < 5; attempt += 1)

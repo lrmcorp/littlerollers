@@ -13,8 +13,12 @@ Name | Type | Description | Notes
 **classSlotId** | **String** |  | 
 **customerUserId** | **String** |  | 
 **customerPackageId** | **String** |  | 
+**reservationId** | **String** |  | 
+**createdById** | **String** |  | 
+**source_** | **String** |  | 
 **status** | **String** |  | 
 **reservedQuantity** | **int** |  | 
+**createdAt** | [**DateTime**](DateTime.md) |  | 
 **version** | **int** |  | 
 **idempotentReplay** | **bool** |  | 
 

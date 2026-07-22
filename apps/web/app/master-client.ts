@@ -1,4 +1,5 @@
 import { Configuration, MasterApi } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 
 export type MasterKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
 export interface MasterSettingInput {
@@ -91,6 +92,7 @@ export const browserMasterClient: MasterClient = {
 };
 
 export function masterFailure(error: unknown): string {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 403) return 'MFA_REQUIRED_OR_FORBIDDEN';
   if (status === 404) return 'RESOURCE_NOT_FOUND';

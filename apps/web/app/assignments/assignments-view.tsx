@@ -8,13 +8,18 @@ import {
   type AssignmentFailure,
   type AssignmentSummary,
 } from '../assignment-client';
+import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function AssignmentsView({
   client = browserAssignmentClient,
 }: {
   client?: AssignmentClient;
 }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canManage = !sessionContext || sessionContext.hasCapability('assignment:manage');
+  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<AssignmentSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -34,12 +39,18 @@ export function AssignmentsView({
 
   return (
     <section className="card" aria-labelledby="assignment-title">
-      <p className="muted">SUPER OWNER · MFA REQUIRED</p>
-      <h1 id="assignment-title">Assignment Owner dan Instructor</h1>
-      <p>
-        Periode memakai interval [mulai, selesai) pada timezone cabang. Backend tetap menjadi batas
-        otorisasi.
-      </p>
+      <PageHeader
+        eyebrow="Role dan cabang"
+        title="Assignment Owner dan Instructor"
+        titleId="assignment-title"
+        description="Periode memakai interval [mulai, selesai) pada timezone cabang. Backend tetap menjadi batas otorisasi."
+        context={
+          <>
+            <StatusBadge tone="info">SUPER OWNER</StatusBadge>
+            <StatusBadge tone="warning">MFA wajib</StatusBadge>
+          </>
+        }
+      />
       <label>
         ID cabang aktif
         <input
@@ -102,13 +113,19 @@ export function AssignmentsView({
           Alasan
           <input name="reason" minLength={3} required />
         </label>
-        <button disabled={!branchId} type="submit">
+        <button disabled={!branchId || !canManage || !hasMfa} type="submit">
           Buat assignment
         </button>
       </form>
 
       <h2>Daftar scoped</h2>
-      {!loading && items.length === 0 && <p>Belum ada assignment pada cabang ini.</p>}
+      {loading && <Skeleton label="Memuat assignment" />}
+      {!loading && items.length === 0 && (
+        <EmptyState
+          title="Belum ada assignment"
+          description="Pilih cabang dan muat data, atau buat assignment baru."
+        />
+      )}
       <ul>
         {items.map((item) => (
           <li key={item.id}>
@@ -134,6 +151,9 @@ export function AssignmentsView({
                   }
                 }}
               >
+                <ConfirmationPanel title="Akhiri assignment">
+                  Role projection berhenti pada awal tanggal efektif di timezone cabang.
+                </ConfirmationPanel>
                 <label>
                   Efektif berakhir
                   <input name="effectiveAt" type="datetime-local" required />
@@ -142,14 +162,16 @@ export function AssignmentsView({
                   Alasan akhir
                   <input name="reason" minLength={3} required />
                 </label>
-                <button type="submit">Konfirmasi akhiri</button>
+                <button disabled={!canManage || !hasMfa} type="submit">
+                  Konfirmasi akhiri
+                </button>
               </form>
             )}
           </li>
         ))}
       </ul>
-      {message && <p role="status">{message}</p>}
-      {failure && <p role="alert">{failure}</p>}
+      {message && !loading && <Feedback kind="status">{message}</Feedback>}
+      {failure && <Feedback kind="error">{failure}</Feedback>}
     </section>
   );
 }

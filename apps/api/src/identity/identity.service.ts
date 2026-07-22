@@ -30,6 +30,7 @@ export interface SessionPrincipal {
   roles: { role: ApplicationRole; branchId: string | null }[];
   capabilities: string[];
   branchIds: string[];
+  sessionExpiresAt?: Date;
 }
 
 @Injectable()
@@ -90,6 +91,35 @@ export class IdentityService {
       branchIds: this.policy.branches(user.roles),
       capabilities: this.policy.capabilities(user.roles),
     };
+  }
+
+  private async sessionMe(
+    userId: string,
+    assurance: 'BASE' | 'MFA',
+    sessionExpiresAt: Date,
+    at = new Date(),
+  ) {
+    const projection = await this.me(userId, at);
+    const branchScope = projection.capabilities.includes('branch:all')
+      ? undefined
+      : { in: projection.branchIds };
+    const branches = await this.db.branch.findMany({
+      where: { active: true, ...(branchScope ? { id: branchScope } : {}) },
+      orderBy: [{ code: 'asc' }, { id: 'asc' }],
+      select: { id: true, code: true, name: true, timezone: true },
+    });
+    return {
+      ...projection,
+      assurance,
+      sessionExpiresAt: sessionExpiresAt.toISOString(),
+      branches,
+    };
+  }
+
+  meForSession(principal: SessionPrincipal, at = new Date()) {
+    if (!principal.sessionExpiresAt)
+      throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    return this.sessionMe(principal.userId, principal.assurance, principal.sessionExpiresAt, at);
   }
 
   async authenticateGoogle(
@@ -260,7 +290,7 @@ export class IdentityService {
     return {
       accessToken: channel === 'MOBILE' ? accessToken : null,
       refreshToken,
-      user: await this.me(userId),
+      user: await this.sessionMe(userId, assurance, expiresAt),
       assurance,
       channel,
       expiresAt: expiresAt.toISOString(),
@@ -324,6 +354,7 @@ export class IdentityService {
       roles: session.user.roles,
       capabilities: this.policy.capabilities(session.user.roles),
       branchIds: this.policy.branches(session.user.roles),
+      sessionExpiresAt: session.expiresAt,
     };
   }
 

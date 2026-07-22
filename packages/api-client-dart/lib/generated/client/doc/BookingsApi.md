@@ -20,6 +20,8 @@ Method | HTTP request | Description
 
 
 
+Atomically creates one booking, one ACTIVE reservation, masked audit, and booking.created.v1. Synthetic H-2 cutoff is explicit configuration; production is fail-closed.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -109,6 +111,8 @@ Name | Type | Description  | Notes
 > BookingPage listBookings(branchId, cursor, status)
 
 
+
+Customer self history or branch-scoped internal booking list, ordered by createdAt and id descending.
 
 ### Example
 ```dart

@@ -7,6 +7,8 @@ import {
   type IdentityClient,
   type UiFailure,
 } from '../identity-client';
+import { Feedback, PageHeader, StatusBadge } from '../ui';
+import { useSessionContext } from '../session-context';
 
 const messages: Record<UiFailure, string> = {
   CONFIGURATION_REQUIRED: 'Konfigurasi autentikasi belum tersedia. Hubungi administrator.',
@@ -26,11 +28,16 @@ export function SignInView({
 }) {
   const [state, setState] = useState<'idle' | 'loading' | 'success' | UiFailure>('idle');
   const [syntheticEmail, setSyntheticEmail] = useState('');
+  const sessionContext = useSessionContext();
   return (
     <section className="card" aria-labelledby="sign-in-title">
-      <p className="muted">AKSES INTERNAL</p>
-      <h1 id="sign-in-title">Masuk dengan identitas terverifikasi</h1>
-      <p>Google dan MFA akan tersedia setelah konfigurasi organisasi disetujui.</p>
+      <PageHeader
+        eyebrow="Akses internal"
+        title="Masuk dengan identitas terverifikasi"
+        titleId="sign-in-title"
+        description="Google dan MFA akan tersedia setelah konfigurasi organisasi disetujui."
+        context={<StatusBadge tone="warning">Konfigurasi wajib</StatusBadge>}
+      />
       {syntheticMode && (
         <label>
           Email Google synthetic
@@ -43,14 +50,20 @@ export function SignInView({
           />
         </label>
       )}
-      {state in messages && <p role="alert">{messages[state as UiFailure]}</p>}
-      {state === 'success' && <p role="status">Identitas terverifikasi.</p>}
+      {state in messages && <Feedback kind="error">{messages[state as UiFailure]}</Feedback>}
+      {state === 'success' && <Feedback kind="status">Identitas terverifikasi.</Feedback>}
       <button
         disabled={state === 'loading' || (syntheticMode && !syntheticEmail)}
         onClick={async () => {
           setState('loading');
           try {
             await client.signIn(syntheticMode ? syntheticEmail : undefined);
+            if (sessionContext) {
+              const completed = await sessionContext.completeSignIn(
+                new URLSearchParams(window.location.search).get('returnTo') ?? '/',
+              );
+              if (!completed) throw { response: { status: 401 } };
+            }
             setState('success');
           } catch (error) {
             setState(failureCode(error));

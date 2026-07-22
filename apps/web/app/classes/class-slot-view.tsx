@@ -6,9 +6,14 @@ import {
   type ClassSlot,
   type ClassSlotClient,
 } from '../class-slot-client';
+import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function ClassSlotView({ client = browserClassSlotClient }: { client?: ClassSlotClient }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canManage = !sessionContext || sessionContext.hasCapability('class-slot:manage');
+  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<ClassSlot[]>([]);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
@@ -29,9 +34,18 @@ export function ClassSlotView({ client = browserClassSlotClient }: { client?: Cl
     setItems((current) => current.map((item) => (item.id === slot.id ? slot : item)));
   return (
     <section className="card" aria-labelledby="classes-title">
-      <p className="muted">ADMIN / MANAGER · SYNTHETIC NON-PRODUCTION</p>
-      <h1 id="classes-title">Timetable dan lifecycle kelas</h1>
-      <p>Waktu memakai interval [mulai, selesai). Publish dan cancel wajib MFA.</p>
+      <PageHeader
+        eyebrow="Timetable branch-scoped"
+        title="Timetable dan lifecycle kelas"
+        titleId="classes-title"
+        description="Waktu memakai interval [mulai, selesai). Publish dan cancel wajib MFA."
+        context={
+          <>
+            <StatusBadge tone="info">Admin / Manager</StatusBadge>
+            <StatusBadge tone="warning">MFA mutation</StatusBadge>
+          </>
+        }
+      />
       <label>
         ID cabang
         <input
@@ -82,16 +96,19 @@ export function ClassSlotView({ client = browserClassSlotClient }: { client?: Cl
           Selesai eksklusif
           <input name="endAt" type="datetime-local" required />
         </label>
-        <button type="submit" disabled={busy || !branchId}>
+        <button type="submit" disabled={busy || !branchId || !canManage}>
           Buat draft class slot
         </button>
       </form>
-      {busy && <p role="status">Memproses…</p>}
-      {failure && <p role="alert">{failure}</p>}
-      {message && <p role="status">{message}</p>}
+      {busy && <Skeleton label="Memproses class slot" />}
+      {failure && <Feedback kind="error">{failure}</Feedback>}
+      {message && !busy && <Feedback kind="status">{message}</Feedback>}
       <h2>Jadwal branch</h2>
       {items.length === 0 ? (
-        <p>Belum ada class slot.</p>
+        <EmptyState
+          title="Belum ada class slot"
+          description="Pilih cabang untuk memuat timetable atau buat draft baru."
+        />
       ) : (
         <ul aria-label="Daftar class slot">
           {items.map((slot) => (
@@ -107,7 +124,7 @@ export function ClassSlotView({ client = browserClassSlotClient }: { client?: Cl
                   />
                 </label>
                 <button
-                  disabled={busy || slot.status !== 'DRAFT'}
+                  disabled={busy || slot.status !== 'DRAFT' || !canManage}
                   onClick={(event) => {
                     const input = event.currentTarget.parentElement?.querySelector(
                       'input',
@@ -121,7 +138,13 @@ export function ClassSlotView({ client = browserClassSlotClient }: { client?: Cl
                   Assign
                 </button>
                 <button
-                  disabled={busy || slot.status !== 'DRAFT' || !slot.instructorUserId}
+                  disabled={
+                    busy ||
+                    slot.status !== 'DRAFT' ||
+                    !slot.instructorUserId ||
+                    !canManage ||
+                    !hasMfa
+                  }
                   onClick={() =>
                     void run(
                       async () => replace(await client.publish(slot.id, slot.version)),
@@ -132,7 +155,9 @@ export function ClassSlotView({ client = browserClassSlotClient }: { client?: Cl
                   Publish
                 </button>
                 <button
-                  disabled={busy || !['DRAFT', 'PUBLISHED'].includes(slot.status)}
+                  disabled={
+                    busy || !['DRAFT', 'PUBLISHED'].includes(slot.status) || !canManage || !hasMfa
+                  }
                   onClick={() =>
                     void run(
                       async () =>

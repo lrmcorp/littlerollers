@@ -13,7 +13,12 @@ const principal = {
 
 describe('ClassSlotService contract boundaries', () => {
   const db = { classSlot: { findMany: jest.fn().mockResolvedValue([]) } };
-  const service = new ClassSlotService(db as never, new PolicyService(), {} as never);
+  const service = new ClassSlotService(
+    db as never,
+    new PolicyService(),
+    {} as never,
+    { value: { quotaEvaluation: { maxAttempts: 5 } } } as never,
+  );
 
   it('exposes only controlled synthetic cancellation reasons', () => {
     expect(CANCELLATION_REASONS).toEqual([

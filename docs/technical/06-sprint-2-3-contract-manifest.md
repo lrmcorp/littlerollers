@@ -1,9 +1,9 @@
 # MVP Proposed Contract Manifest
 
 **Status:** PROPOSED / REVIEW REQUIRED  
-**OpenAPI version:** `1.3.0-draft`
-**SHA-256:** `9967fa3dedb7d37611ea5939b7eba5dbbfda61ceb47a3ea16ebe8eab9794f41e`
-**Generated clients:** TypeScript Web dan Dart Flutter — regeneration `1.3.0-draft` selesai; 140 TS/147 Dart drift lokal PASS, hosted pending
+**OpenAPI version:** `1.6.0-draft`
+**SHA-256:** `26ab6ff4ce451b0c1d3e7b7434c6d87b003c07bd808067f33b7bdea73ac5e627`
+**Generated clients:** TypeScript Web dan Dart Flutter — pinned 7.15.0 regeneration `1.6.0-draft`; 141 TypeScript dan 148 Dart source match byte-for-byte; Dart `.g.dart` synchronized via `build_runner`
 **Gate 4:** BLOCKED
 
 The checksum is evidence for this exact draft only. Any OpenAPI change invalidates it and requires manifest/checksum regeneration and review.

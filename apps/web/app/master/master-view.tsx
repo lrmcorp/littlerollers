@@ -6,9 +6,15 @@ import {
   type MasterClient,
   type MasterKind,
 } from '../master-client';
+import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function MasterView({ client = browserMasterClient }: { client?: MasterClient }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canManage = !sessionContext || sessionContext.hasCapability('master:manage');
+  const canFinance = !sessionContext || sessionContext.hasCapability('finance:manage');
+  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [classTypeId, setClassTypeId] = useState('');
   const [branches, setBranches] = useState<Awaited<ReturnType<MasterClient['listBranches']>>>([]);
   const [classTypes, setClassTypes] = useState<Awaited<ReturnType<MasterClient['listClassTypes']>>>(
@@ -33,9 +39,18 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
 
   return (
     <section className="card" aria-labelledby="master-title">
-      <p className="muted">SUPER OWNER · MFA · SYNTHETIC NON-PRODUCTION</p>
-      <h1 id="master-title">Branch, Class Type, dan Effective Master</h1>
-      <p>Nilai produksi tetap configuration-required. Periode menggunakan [mulai, selesai).</p>
+      <PageHeader
+        eyebrow="Master operasional"
+        title="Branch, Class Type, dan Effective Master"
+        titleId="master-title"
+        description="Nilai produksi tetap configuration-required. Periode menggunakan [mulai, selesai)."
+        context={
+          <>
+            <StatusBadge tone="info">SUPER OWNER</StatusBadge>
+            <StatusBadge tone="warning">MFA wajib</StatusBadge>
+          </>
+        }
+      />
       <button onClick={load}>Muat master data</button>
       <label>
         ID cabang aktif
@@ -75,7 +90,9 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
           Timezone IANA
           <input name="timezone" placeholder="Asia/Jakarta" required />
         </label>
-        <button type="submit">Buat branch</button>
+        <button type="submit" disabled={!canManage || !hasMfa}>
+          Buat branch
+        </button>
       </form>
       <form
         aria-label="Buat class type"
@@ -102,7 +119,7 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
           Nama class
           <input name="name" required />
         </label>
-        <button type="submit" disabled={!branchId}>
+        <button type="submit" disabled={!branchId || !canManage || !hasMfa}>
           Buat class type
         </button>
       </form>
@@ -162,7 +179,10 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
           Alasan
           <input name="reason" minLength={3} required />
         </label>
-        <button type="submit" disabled={!branchId || !classTypeId}>
+        <button
+          type="submit"
+          disabled={!branchId || !classTypeId || !canManage || !canFinance || !hasMfa}
+        >
           Buat setting
         </button>
       </form>
@@ -176,7 +196,10 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
           ))}
         </ul>
       ) : (
-        <p>Belum ada branch dimuat.</p>
+        <EmptyState
+          title="Belum ada branch"
+          description="Muat master data atau buat branch baru."
+        />
       )}
       <h2>Class type scoped</h2>
       {classTypes.length ? (
@@ -188,10 +211,13 @@ export function MasterView({ client = browserMasterClient }: { client?: MasterCl
           ))}
         </ul>
       ) : (
-        <p>Belum ada class type dimuat.</p>
+        <EmptyState
+          title="Belum ada class type"
+          description="Pilih branch lalu muat class type terkait."
+        />
       )}
-      {message && <p role="status">{message}</p>}
-      {failure && <p role="alert">{failure}</p>}
+      {message && <Feedback kind="status">{message}</Feedback>}
+      {failure && <Feedback kind="error">{failure}</Feedback>}
     </section>
   );
 }

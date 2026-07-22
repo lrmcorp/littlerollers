@@ -7,17 +7,33 @@ import {
   type IdentityClient,
   type UiFailure,
 } from '../identity-client';
+import { ConfirmationPanel, Feedback, PageHeader, StatusBadge } from '../ui';
+import { useSessionContext } from '../session-context';
 
 export function UsersView({ client = browserIdentityClient }: { client?: IdentityClient }) {
-  const [assurance, setAssurance] = useState<'BASE' | 'MFA'>('BASE');
+  const context = useSessionContext();
+  const [fallbackAssurance, setFallbackAssurance] = useState<'BASE' | 'MFA'>('BASE');
+  const assurance = context?.session?.assurance ?? fallbackAssurance;
+  const canAdmin = !context || context.hasCapability('user:admin');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [result, setResult] = useState<string>();
   const [failure, setFailure] = useState<UiFailure>();
   return (
     <section className="card" aria-labelledby="users-title">
-      <p className="muted">SUPER OWNER · {assurance} ASSURANCE</p>
-      <h1 id="users-title">Administrasi pengguna</h1>
-      <p>Daftar, undangan, role, branch scope, dan deaktivasi selalu diverifikasi oleh backend.</p>
+      <PageHeader
+        eyebrow="Administrasi identitas"
+        title="Administrasi pengguna"
+        titleId="users-title"
+        description="Daftar, undangan, role, branch scope, dan deaktivasi selalu diverifikasi oleh backend."
+        context={
+          <>
+            <StatusBadge tone="info">SUPER OWNER</StatusBadge>
+            <StatusBadge tone={assurance === 'MFA' ? 'success' : 'warning'}>
+              {assurance} assurance
+            </StatusBadge>
+          </>
+        }
+      />
       {assurance === 'BASE' ? (
         <div className="notice" role="alert">
           Verifikasi MFA diperlukan untuk tindakan administrasi.
@@ -25,7 +41,8 @@ export function UsersView({ client = browserIdentityClient }: { client?: Identit
             onClick={async () => {
               try {
                 await client.stepUp();
-                setAssurance('MFA');
+                if (context) await context.refresh();
+                else setFallbackAssurance('MFA');
               } catch (error) {
                 setFailure(failureCode(error));
               }
@@ -34,7 +51,7 @@ export function UsersView({ client = browserIdentityClient }: { client?: Identit
             Gunakan MFA synthetic
           </button>
         </div>
-      ) : (
+      ) : canAdmin ? (
         <>
           <button onClick={() => setInviteOpen(true)}>Undang pengguna</button>
           {inviteOpen && (
@@ -84,10 +101,18 @@ export function UsersView({ client = browserIdentityClient }: { client?: Identit
           >
             Nonaktifkan pengguna
           </button>
+          <ConfirmationPanel title="Konsekuensi deaktivasi">
+            Seluruh sesi Web dan mobile pengguna akan dicabut. Pastikan target serta cakupan cabang
+            sudah benar.
+          </ConfirmationPanel>
         </>
+      ) : (
+        <Feedback kind="info">
+          Anda memiliki akses baca tanpa capability administrasi pengguna.
+        </Feedback>
       )}
-      {result && <p role="status">{result}</p>}
-      {failure && <p role="alert">{failure}</p>}
+      {result && <Feedback kind="status">{result}</Feedback>}
+      {failure && <Feedback kind="error">{failure}</Feedback>}
     </section>
   );
 }

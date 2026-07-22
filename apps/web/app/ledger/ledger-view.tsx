@@ -8,9 +8,15 @@ import {
   type LedgerHistory,
   type Adjustment,
 } from '../ledger-client';
+import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function LedgerView({ client = browserLedgerClient }: { client?: LedgerClient }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canRequest = !sessionContext || sessionContext.hasCapability('ledger:adjust:request');
+  const canDecide = !sessionContext || sessionContext.hasCapability('ledger:adjust:decide');
+  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<LedgerBalance[]>([]);
   const [history, setHistory] = useState<LedgerHistory | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null | undefined>();
@@ -41,8 +47,18 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
     });
   return (
     <section className="card" aria-labelledby="ledger-title">
-      <p className="muted">SYNTHETIC NON-PRODUCTION · AUTHORITATIVE READ</p>
-      <h1 id="ledger-title">Saldo dan histori paket</h1>
+      <PageHeader
+        eyebrow="Append-only ledger"
+        title="Saldo dan histori paket"
+        titleId="ledger-title"
+        description="Saldo authoritative memperhitungkan ledger dan reservation aktif pada cakupan cabang."
+        context={
+          <>
+            <StatusBadge tone="info">Branch scoped</StatusBadge>
+            <StatusBadge tone="warning">Synthetic</StatusBadge>
+          </>
+        }
+      />
       <label>
         Cabang ledger
         <input value={branchId} onChange={(event) => setBranchId(event.target.value)} />
@@ -60,6 +76,12 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           </li>
         ))}
       </ul>
+      {!loading && items.length === 0 && (
+        <EmptyState
+          title="Belum ada saldo paket"
+          description="Muat saldo sesuai cabang untuk melihat balance dan histori."
+        />
+      )}
       {nextCursor && <button onClick={() => void load(nextCursor)}>Muat berikutnya</button>}
       {history && (
         <section aria-labelledby="history-title">
@@ -93,6 +115,9 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           Request Admin tidak mengubah saldo. Keputusan memerlukan Manager/Super Owner berbeda dan
           MFA.
         </p>
+        <ConfirmationPanel title="Separation of duties">
+          Request tidak mengubah saldo. Approval hanya dapat dilakukan actor berbeda dengan MFA.
+        </ConfirmationPanel>
         <label>
           Paket customer
           <input value={packageId} onChange={(event) => setPackageId(event.target.value)} />
@@ -115,7 +140,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           </select>
         </label>
         <button
-          disabled={loading || !packageId || !quantity || Number(quantity) === 0}
+          disabled={loading || !packageId || !quantity || Number(quantity) === 0 || !canRequest}
           onClick={() =>
             void run(async () => {
               await client.requestAdjustment(
@@ -145,6 +170,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
               {item.status === 'PENDING' && (
                 <>
                   <button
+                    disabled={!canDecide || !hasMfa}
                     onClick={() =>
                       void run(async () => {
                         await client.decideAdjustment(
@@ -160,6 +186,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
                     Setujui
                   </button>
                   <button
+                    disabled={!canDecide || !hasMfa}
                     onClick={() =>
                       void run(async () => {
                         await client.decideAdjustment(
@@ -180,9 +207,9 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           ))}
         </ul>
       </section>
-      {loading && <p role="status">Memuat…</p>}
-      {message && !loading && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
+      {loading && <Skeleton label="Memuat ledger" />}
+      {message && !loading && <Feedback kind="status">{message}</Feedback>}
+      {error && <Feedback kind="error">{error}</Feedback>}
     </section>
   );
 }

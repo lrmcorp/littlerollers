@@ -6,6 +6,29 @@ part of 'booking.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const BookingSource_Enum _$bookingSourceEnum_SELF = const BookingSource_Enum._(
+  'SELF',
+);
+const BookingSource_Enum _$bookingSourceEnum_ADMIN_ASSISTED =
+    const BookingSource_Enum._('ADMIN_ASSISTED');
+
+BookingSource_Enum _$bookingSourceEnumValueOf(String name) {
+  switch (name) {
+    case 'SELF':
+      return _$bookingSourceEnum_SELF;
+    case 'ADMIN_ASSISTED':
+      return _$bookingSourceEnum_ADMIN_ASSISTED;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<BookingSource_Enum> _$bookingSourceEnumValues =
+    BuiltSet<BookingSource_Enum>(const <BookingSource_Enum>[
+      _$bookingSourceEnum_SELF,
+      _$bookingSourceEnum_ADMIN_ASSISTED,
+    ]);
+
 const BookingStatusEnum _$bookingStatusEnum_BOOKED = const BookingStatusEnum._(
   'BOOKED',
 );
@@ -45,8 +68,63 @@ final BuiltSet<BookingStatusEnum> _$bookingStatusEnumValues =
       _$bookingStatusEnum_NO_SHOW,
     ]);
 
+const BookingReservedQuantityEnum _$bookingReservedQuantityEnum_number1 =
+    const BookingReservedQuantityEnum._('number1');
+
+BookingReservedQuantityEnum _$bookingReservedQuantityEnumValueOf(String name) {
+  switch (name) {
+    case 'number1':
+      return _$bookingReservedQuantityEnum_number1;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<BookingReservedQuantityEnum>
+_$bookingReservedQuantityEnumValues = BuiltSet<BookingReservedQuantityEnum>(
+  const <BookingReservedQuantityEnum>[_$bookingReservedQuantityEnum_number1],
+);
+
+Serializer<BookingSource_Enum> _$bookingSourceEnumSerializer =
+    _$BookingSource_EnumSerializer();
 Serializer<BookingStatusEnum> _$bookingStatusEnumSerializer =
     _$BookingStatusEnumSerializer();
+Serializer<BookingReservedQuantityEnum>
+_$bookingReservedQuantityEnumSerializer =
+    _$BookingReservedQuantityEnumSerializer();
+
+class _$BookingSource_EnumSerializer
+    implements PrimitiveSerializer<BookingSource_Enum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'SELF': 'SELF',
+    'ADMIN_ASSISTED': 'ADMIN_ASSISTED',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'SELF': 'SELF',
+    'ADMIN_ASSISTED': 'ADMIN_ASSISTED',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[BookingSource_Enum];
+  @override
+  final String wireName = 'BookingSource_Enum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    BookingSource_Enum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  BookingSource_Enum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BookingSource_Enum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
 
 class _$BookingStatusEnumSerializer
     implements PrimitiveSerializer<BookingStatusEnum> {
@@ -87,6 +165,37 @@ class _$BookingStatusEnumSerializer
   );
 }
 
+class _$BookingReservedQuantityEnumSerializer
+    implements PrimitiveSerializer<BookingReservedQuantityEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'number1': 1,
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    1: 'number1',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[BookingReservedQuantityEnum];
+  @override
+  final String wireName = 'BookingReservedQuantityEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    BookingReservedQuantityEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  BookingReservedQuantityEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BookingReservedQuantityEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$Booking extends Booking {
   @override
   final String id;
@@ -99,9 +208,17 @@ class _$Booking extends Booking {
   @override
   final String customerPackageId;
   @override
+  final String reservationId;
+  @override
+  final String createdById;
+  @override
+  final BookingSource_Enum source_;
+  @override
   final BookingStatusEnum status;
   @override
-  final int reservedQuantity;
+  final BookingReservedQuantityEnum reservedQuantity;
+  @override
+  final DateTime createdAt;
   @override
   final int version;
   @override
@@ -116,8 +233,12 @@ class _$Booking extends Booking {
     required this.classSlotId,
     required this.customerUserId,
     required this.customerPackageId,
+    required this.reservationId,
+    required this.createdById,
+    required this.source_,
     required this.status,
     required this.reservedQuantity,
+    required this.createdAt,
     required this.version,
     required this.idempotentReplay,
   }) : super._();
@@ -137,8 +258,12 @@ class _$Booking extends Booking {
         classSlotId == other.classSlotId &&
         customerUserId == other.customerUserId &&
         customerPackageId == other.customerPackageId &&
+        reservationId == other.reservationId &&
+        createdById == other.createdById &&
+        source_ == other.source_ &&
         status == other.status &&
         reservedQuantity == other.reservedQuantity &&
+        createdAt == other.createdAt &&
         version == other.version &&
         idempotentReplay == other.idempotentReplay;
   }
@@ -151,8 +276,12 @@ class _$Booking extends Booking {
     _$hash = $jc(_$hash, classSlotId.hashCode);
     _$hash = $jc(_$hash, customerUserId.hashCode);
     _$hash = $jc(_$hash, customerPackageId.hashCode);
+    _$hash = $jc(_$hash, reservationId.hashCode);
+    _$hash = $jc(_$hash, createdById.hashCode);
+    _$hash = $jc(_$hash, source_.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, reservedQuantity.hashCode);
+    _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
@@ -167,8 +296,12 @@ class _$Booking extends Booking {
           ..add('classSlotId', classSlotId)
           ..add('customerUserId', customerUserId)
           ..add('customerPackageId', customerPackageId)
+          ..add('reservationId', reservationId)
+          ..add('createdById', createdById)
+          ..add('source_', source_)
           ..add('status', status)
           ..add('reservedQuantity', reservedQuantity)
+          ..add('createdAt', createdAt)
           ..add('version', version)
           ..add('idempotentReplay', idempotentReplay))
         .toString();
@@ -200,14 +333,31 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
   set customerPackageId(String? customerPackageId) =>
       _$this._customerPackageId = customerPackageId;
 
+  String? _reservationId;
+  String? get reservationId => _$this._reservationId;
+  set reservationId(String? reservationId) =>
+      _$this._reservationId = reservationId;
+
+  String? _createdById;
+  String? get createdById => _$this._createdById;
+  set createdById(String? createdById) => _$this._createdById = createdById;
+
+  BookingSource_Enum? _source_;
+  BookingSource_Enum? get source_ => _$this._source_;
+  set source_(BookingSource_Enum? source_) => _$this._source_ = source_;
+
   BookingStatusEnum? _status;
   BookingStatusEnum? get status => _$this._status;
   set status(BookingStatusEnum? status) => _$this._status = status;
 
-  int? _reservedQuantity;
-  int? get reservedQuantity => _$this._reservedQuantity;
-  set reservedQuantity(int? reservedQuantity) =>
+  BookingReservedQuantityEnum? _reservedQuantity;
+  BookingReservedQuantityEnum? get reservedQuantity => _$this._reservedQuantity;
+  set reservedQuantity(BookingReservedQuantityEnum? reservedQuantity) =>
       _$this._reservedQuantity = reservedQuantity;
+
+  DateTime? _createdAt;
+  DateTime? get createdAt => _$this._createdAt;
+  set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
 
   int? _version;
   int? get version => _$this._version;
@@ -230,8 +380,12 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
       _classSlotId = $v.classSlotId;
       _customerUserId = $v.customerUserId;
       _customerPackageId = $v.customerPackageId;
+      _reservationId = $v.reservationId;
+      _createdById = $v.createdById;
+      _source_ = $v.source_;
       _status = $v.status;
       _reservedQuantity = $v.reservedQuantity;
+      _createdAt = $v.createdAt;
       _version = $v.version;
       _idempotentReplay = $v.idempotentReplay;
       _$v = null;
@@ -277,6 +431,21 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
             r'Booking',
             'customerPackageId',
           ),
+          reservationId: BuiltValueNullFieldError.checkNotNull(
+            reservationId,
+            r'Booking',
+            'reservationId',
+          ),
+          createdById: BuiltValueNullFieldError.checkNotNull(
+            createdById,
+            r'Booking',
+            'createdById',
+          ),
+          source_: BuiltValueNullFieldError.checkNotNull(
+            source_,
+            r'Booking',
+            'source_',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
             status,
             r'Booking',
@@ -286,6 +455,11 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
             reservedQuantity,
             r'Booking',
             'reservedQuantity',
+          ),
+          createdAt: BuiltValueNullFieldError.checkNotNull(
+            createdAt,
+            r'Booking',
+            'createdAt',
           ),
           version: BuiltValueNullFieldError.checkNotNull(
             version,

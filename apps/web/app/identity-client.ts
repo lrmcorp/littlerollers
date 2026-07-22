@@ -1,4 +1,5 @@
 import { AuthApi, Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 
 export type UiFailure =
   | 'CONFIGURATION_REQUIRED'
@@ -61,6 +62,7 @@ export const browserIdentityClient: IdentityClient = {
 };
 
 export const failureCode = (error: unknown): UiFailure => {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 403) return 'FORBIDDEN';
   if (status === 410) return 'MFA_CHALLENGE_EXPIRED';

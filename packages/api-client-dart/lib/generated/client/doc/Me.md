@@ -13,6 +13,9 @@ Name | Type | Description | Notes
 **roles** | [**BuiltList&lt;Role&gt;**](Role.md) |  | 
 **branchIds** | **BuiltList&lt;String&gt;** |  | 
 **capabilities** | **BuiltList&lt;String&gt;** |  | 
+**assurance** | **String** |  | 
+**sessionExpiresAt** | [**DateTime**](DateTime.md) |  | 
+**branches** | [**BuiltList&lt;SessionBranch&gt;**](SessionBranch.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

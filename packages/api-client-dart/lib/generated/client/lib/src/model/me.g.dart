@@ -6,6 +6,62 @@ part of 'me.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const MeAssuranceEnum _$meAssuranceEnum_BASE = const MeAssuranceEnum._('BASE');
+const MeAssuranceEnum _$meAssuranceEnum_MFA = const MeAssuranceEnum._('MFA');
+
+MeAssuranceEnum _$meAssuranceEnumValueOf(String name) {
+  switch (name) {
+    case 'BASE':
+      return _$meAssuranceEnum_BASE;
+    case 'MFA':
+      return _$meAssuranceEnum_MFA;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<MeAssuranceEnum> _$meAssuranceEnumValues =
+    BuiltSet<MeAssuranceEnum>(const <MeAssuranceEnum>[
+      _$meAssuranceEnum_BASE,
+      _$meAssuranceEnum_MFA,
+    ]);
+
+Serializer<MeAssuranceEnum> _$meAssuranceEnumSerializer =
+    _$MeAssuranceEnumSerializer();
+
+class _$MeAssuranceEnumSerializer
+    implements PrimitiveSerializer<MeAssuranceEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'BASE': 'BASE',
+    'MFA': 'MFA',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'BASE': 'BASE',
+    'MFA': 'MFA',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[MeAssuranceEnum];
+  @override
+  final String wireName = 'MeAssuranceEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    MeAssuranceEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  MeAssuranceEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => MeAssuranceEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$Me extends Me {
   @override
   final String id;
@@ -17,6 +73,12 @@ class _$Me extends Me {
   final BuiltList<String> branchIds;
   @override
   final BuiltList<String> capabilities;
+  @override
+  final MeAssuranceEnum assurance;
+  @override
+  final DateTime sessionExpiresAt;
+  @override
+  final BuiltList<SessionBranch> branches;
 
   factory _$Me([void Function(MeBuilder)? updates]) =>
       (MeBuilder()..update(updates))._build();
@@ -27,6 +89,9 @@ class _$Me extends Me {
     required this.roles,
     required this.branchIds,
     required this.capabilities,
+    required this.assurance,
+    required this.sessionExpiresAt,
+    required this.branches,
   }) : super._();
   @override
   Me rebuild(void Function(MeBuilder) updates) =>
@@ -43,7 +108,10 @@ class _$Me extends Me {
         displayName == other.displayName &&
         roles == other.roles &&
         branchIds == other.branchIds &&
-        capabilities == other.capabilities;
+        capabilities == other.capabilities &&
+        assurance == other.assurance &&
+        sessionExpiresAt == other.sessionExpiresAt &&
+        branches == other.branches;
   }
 
   @override
@@ -54,6 +122,9 @@ class _$Me extends Me {
     _$hash = $jc(_$hash, roles.hashCode);
     _$hash = $jc(_$hash, branchIds.hashCode);
     _$hash = $jc(_$hash, capabilities.hashCode);
+    _$hash = $jc(_$hash, assurance.hashCode);
+    _$hash = $jc(_$hash, sessionExpiresAt.hashCode);
+    _$hash = $jc(_$hash, branches.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -65,7 +136,10 @@ class _$Me extends Me {
           ..add('displayName', displayName)
           ..add('roles', roles)
           ..add('branchIds', branchIds)
-          ..add('capabilities', capabilities))
+          ..add('capabilities', capabilities)
+          ..add('assurance', assurance)
+          ..add('sessionExpiresAt', sessionExpiresAt)
+          ..add('branches', branches))
         .toString();
   }
 }
@@ -97,6 +171,21 @@ class MeBuilder implements Builder<Me, MeBuilder> {
   set capabilities(ListBuilder<String>? capabilities) =>
       _$this._capabilities = capabilities;
 
+  MeAssuranceEnum? _assurance;
+  MeAssuranceEnum? get assurance => _$this._assurance;
+  set assurance(MeAssuranceEnum? assurance) => _$this._assurance = assurance;
+
+  DateTime? _sessionExpiresAt;
+  DateTime? get sessionExpiresAt => _$this._sessionExpiresAt;
+  set sessionExpiresAt(DateTime? sessionExpiresAt) =>
+      _$this._sessionExpiresAt = sessionExpiresAt;
+
+  ListBuilder<SessionBranch>? _branches;
+  ListBuilder<SessionBranch> get branches =>
+      _$this._branches ??= ListBuilder<SessionBranch>();
+  set branches(ListBuilder<SessionBranch>? branches) =>
+      _$this._branches = branches;
+
   MeBuilder() {
     Me._defaults(this);
   }
@@ -109,6 +198,9 @@ class MeBuilder implements Builder<Me, MeBuilder> {
       _roles = $v.roles.toBuilder();
       _branchIds = $v.branchIds.toBuilder();
       _capabilities = $v.capabilities.toBuilder();
+      _assurance = $v.assurance;
+      _sessionExpiresAt = $v.sessionExpiresAt;
+      _branches = $v.branches.toBuilder();
       _$v = null;
     }
     return this;
@@ -142,6 +234,17 @@ class MeBuilder implements Builder<Me, MeBuilder> {
             roles: roles.build(),
             branchIds: branchIds.build(),
             capabilities: capabilities.build(),
+            assurance: BuiltValueNullFieldError.checkNotNull(
+              assurance,
+              r'Me',
+              'assurance',
+            ),
+            sessionExpiresAt: BuiltValueNullFieldError.checkNotNull(
+              sessionExpiresAt,
+              r'Me',
+              'sessionExpiresAt',
+            ),
+            branches: branches.build(),
           );
     } catch (_) {
       late String _$failedField;
@@ -152,6 +255,9 @@ class MeBuilder implements Builder<Me, MeBuilder> {
         branchIds.build();
         _$failedField = 'capabilities';
         capabilities.build();
+
+        _$failedField = 'branches';
+        branches.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(r'Me', _$failedField, e.toString());
       }

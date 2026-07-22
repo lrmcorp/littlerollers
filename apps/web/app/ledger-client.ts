@@ -1,4 +1,5 @@
 import { Configuration, LedgerApi } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 
 export type LedgerBalance = {
   id: string;
@@ -77,6 +78,7 @@ export const browserLedgerClient: LedgerClient = {
 };
 
 export function ledgerFailure(error: unknown) {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 409) return 'LEDGER_INVARIANT_VIOLATION';
   if (status === 404) return 'RESOURCE_NOT_FOUND';

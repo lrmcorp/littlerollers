@@ -6,8 +6,12 @@ import {
   type PurchaseClient,
   type PurchasePackage,
 } from '../purchase-client';
+import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 export function PurchaseView({ client = browserPurchaseClient }: { client?: PurchaseClient }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canSubmit = !sessionContext || sessionContext.hasCapability('package:read');
   const [packages, setPackages] = useState<PurchasePackage[]>([]);
   const [selected, setSelected] = useState('');
   const [proofId, setProofId] = useState('');
@@ -28,8 +32,18 @@ export function PurchaseView({ client = browserPurchaseClient }: { client?: Purc
   };
   return (
     <section className="card" aria-labelledby="purchase-title">
-      <p className="muted">SYNTHETIC NON-PRODUCTION · PRIVATE PROOF</p>
-      <h1 id="purchase-title">Pilih paket dan kirim bukti pembayaran</h1>
+      <PageHeader
+        eyebrow="Customer purchase"
+        title="Pilih paket dan kirim bukti pembayaran"
+        titleId="purchase-title"
+        description="Bukti tersimpan privat dan purchase hanya dapat dikirim setelah hasil scan CLEAN."
+        context={
+          <>
+            <StatusBadge tone="warning">Synthetic</StatusBadge>
+            <StatusBadge tone="info">Private proof</StatusBadge>
+          </>
+        }
+      />
       <label>
         ID cabang
         <input value={branchId} onChange={(e) => setBranchId(e.target.value)} />
@@ -109,7 +123,7 @@ export function PurchaseView({ client = browserPurchaseClient }: { client?: Purc
         Status scan: <strong>{scan || 'BELUM ADA'}</strong>
       </p>
       <button
-        disabled={scan !== 'CLEAN' || loading}
+        disabled={scan !== 'CLEAN' || loading || !canSubmit}
         onClick={() =>
           run(async () => {
             const status = await client.submit(selected, proofId, crypto.randomUUID());
@@ -119,9 +133,9 @@ export function PurchaseView({ client = browserPurchaseClient }: { client?: Purc
       >
         Kirim purchase
       </button>
-      {loading && <p role="status">Memproses…</p>}
-      {message && !loading && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
+      {loading && <Skeleton label="Memproses bukti pembayaran" />}
+      {message && !loading && <Feedback kind="status">{message}</Feedback>}
+      {error && <Feedback kind="error">{error}</Feedback>}
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ClassSlotStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { dateInTimeZone } from '../identity/assignment-boundary';
 import type { SessionPrincipal } from '../identity/identity.service';
@@ -48,6 +49,7 @@ export class ClassSlotService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
+    private readonly config: RuntimeConfigService,
   ) {}
 
   private scope(principal: SessionPrincipal, branchId: string) {
@@ -293,6 +295,19 @@ export class ClassSlotService {
         const slot = await tx.classSlot.update({
           where: { id },
           data: { status: 'PUBLISHED', version: { increment: 1 } },
+        });
+        const dueAt = new Date(slot.startAt.getTime() - 24 * 60 * 60 * 1000);
+        await tx.quotaEvaluationJob.upsert({
+          where: { classSlotId: slot.id },
+          create: {
+            id: newId(),
+            classSlotId: slot.id,
+            evaluationKey: `H24:${slot.id}`,
+            dueAt,
+            nextAttemptAt: dueAt,
+            maxAttempts: this.config.value.quotaEvaluation.maxAttempts,
+          },
+          update: {},
         });
         await this.audit(
           tx,

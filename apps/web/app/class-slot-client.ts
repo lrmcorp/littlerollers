@@ -1,4 +1,5 @@
 import { ClassesApi, Configuration, type ClassSlot } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 export type { ClassSlot };
 export interface ClassSlotClient {
   list(input: { branchId?: string; status?: string }): Promise<ClassSlot[]>;
@@ -50,6 +51,7 @@ export const browserClassSlotClient: ClassSlotClient = {
   },
 };
 export function classSlotFailure(error: unknown) {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 403) return 'MFA_REQUIRED_OR_FORBIDDEN';
   if (status === 404) return 'RESOURCE_NOT_FOUND';

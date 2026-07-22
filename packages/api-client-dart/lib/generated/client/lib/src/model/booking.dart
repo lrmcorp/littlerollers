@@ -17,8 +17,12 @@ part 'booking.g.dart';
 /// * [classSlotId] 
 /// * [customerUserId] 
 /// * [customerPackageId] 
+/// * [reservationId] 
+/// * [createdById] 
+/// * [source_] 
 /// * [status] 
 /// * [reservedQuantity] 
+/// * [createdAt] 
 /// * [version] 
 /// * [idempotentReplay] 
 @BuiltValue()
@@ -38,12 +42,26 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
   @BuiltValueField(wireName: r'customerPackageId')
   String get customerPackageId;
 
+  @BuiltValueField(wireName: r'reservationId')
+  String get reservationId;
+
+  @BuiltValueField(wireName: r'createdById')
+  String get createdById;
+
+  @BuiltValueField(wireName: r'source')
+  BookingSource_Enum get source_;
+  // enum source_Enum {  SELF,  ADMIN_ASSISTED,  };
+
   @BuiltValueField(wireName: r'status')
   BookingStatusEnum get status;
   // enum statusEnum {  BOOKED,  RESCHEDULE_PENDING,  CANCELLED,  ATTENDED,  NO_SHOW,  };
 
   @BuiltValueField(wireName: r'reservedQuantity')
-  int get reservedQuantity;
+  BookingReservedQuantityEnum get reservedQuantity;
+  // enum reservedQuantityEnum {  1,  };
+
+  @BuiltValueField(wireName: r'createdAt')
+  DateTime get createdAt;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -99,6 +117,21 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       object.customerPackageId,
       specifiedType: const FullType(String),
     );
+    yield r'reservationId';
+    yield serializers.serialize(
+      object.reservationId,
+      specifiedType: const FullType(String),
+    );
+    yield r'createdById';
+    yield serializers.serialize(
+      object.createdById,
+      specifiedType: const FullType(String),
+    );
+    yield r'source';
+    yield serializers.serialize(
+      object.source_,
+      specifiedType: const FullType(BookingSource_Enum),
+    );
     yield r'status';
     yield serializers.serialize(
       object.status,
@@ -107,7 +140,12 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
     yield r'reservedQuantity';
     yield serializers.serialize(
       object.reservedQuantity,
-      specifiedType: const FullType(int),
+      specifiedType: const FullType(BookingReservedQuantityEnum),
+    );
+    yield r'createdAt';
+    yield serializers.serialize(
+      object.createdAt,
+      specifiedType: const FullType(DateTime),
     );
     yield r'version';
     yield serializers.serialize(
@@ -177,6 +215,27 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
           ) as String;
           result.customerPackageId = valueDes;
           break;
+        case r'reservationId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reservationId = valueDes;
+          break;
+        case r'createdById':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.createdById = valueDes;
+          break;
+        case r'source':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingSource_Enum),
+          ) as BookingSource_Enum;
+          result.source_ = valueDes;
+          break;
         case r'status':
           final valueDes = serializers.deserialize(
             value,
@@ -187,9 +246,16 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
         case r'reservedQuantity':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(int),
-          ) as int;
+            specifiedType: const FullType(BookingReservedQuantityEnum),
+          ) as BookingReservedQuantityEnum;
           result.reservedQuantity = valueDes;
+          break;
+        case r'createdAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.createdAt = valueDes;
           break;
         case r'version':
           final valueDes = serializers.deserialize(
@@ -234,6 +300,21 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
   }
 }
 
+class BookingSource_Enum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'SELF')
+  static const BookingSource_Enum SELF = _$bookingSourceEnum_SELF;
+  @BuiltValueEnumConst(wireName: r'ADMIN_ASSISTED')
+  static const BookingSource_Enum ADMIN_ASSISTED = _$bookingSourceEnum_ADMIN_ASSISTED;
+
+  static Serializer<BookingSource_Enum> get serializer => _$bookingSourceEnumSerializer;
+
+  const BookingSource_Enum._(String name): super(name);
+
+  static BuiltSet<BookingSource_Enum> get values => _$bookingSourceEnumValues;
+  static BookingSource_Enum valueOf(String name) => _$bookingSourceEnumValueOf(name);
+}
+
 class BookingStatusEnum extends EnumClass {
 
   @BuiltValueEnumConst(wireName: r'BOOKED')
@@ -253,5 +334,18 @@ class BookingStatusEnum extends EnumClass {
 
   static BuiltSet<BookingStatusEnum> get values => _$bookingStatusEnumValues;
   static BookingStatusEnum valueOf(String name) => _$bookingStatusEnumValueOf(name);
+}
+
+class BookingReservedQuantityEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireNumber: 1)
+  static const BookingReservedQuantityEnum number1 = _$bookingReservedQuantityEnum_number1;
+
+  static Serializer<BookingReservedQuantityEnum> get serializer => _$bookingReservedQuantityEnumSerializer;
+
+  const BookingReservedQuantityEnum._(String name): super(name);
+
+  static BuiltSet<BookingReservedQuantityEnum> get values => _$bookingReservedQuantityEnumValues;
+  static BookingReservedQuantityEnum valueOf(String name) => _$bookingReservedQuantityEnumValueOf(name);
 }
 

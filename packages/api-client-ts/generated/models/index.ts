@@ -119,6 +119,7 @@ export * from './Session';
 export * from './SessionAdjustment';
 export * from './SessionAdjustmentDecisionCommand';
 export * from './SessionAdjustmentPage';
+export * from './SessionBranch';
 export * from './SubmitPurchaseRequest';
 export * from './TimeRangeCommand';
 export * from './TokenCheckInCommand';

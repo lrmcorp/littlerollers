@@ -132,6 +132,7 @@ models/Session.ts
 models/SessionAdjustment.ts
 models/SessionAdjustmentDecisionCommand.ts
 models/SessionAdjustmentPage.ts
+models/SessionBranch.ts
 models/SubmitPurchaseRequest.ts
 models/TimeRangeCommand.ts
 models/TokenCheckInCommand.ts

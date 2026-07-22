@@ -133,6 +133,7 @@ import 'package:openapi/src/model/session.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:openapi/src/model/session_adjustment_decision_command.dart';
 import 'package:openapi/src/model/session_adjustment_page.dart';
+import 'package:openapi/src/model/session_branch.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
@@ -260,6 +261,7 @@ part 'serializers.g.dart';
   SessionAdjustment,
   SessionAdjustmentDecisionCommand,
   SessionAdjustmentPage,
+  SessionBranch,
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,

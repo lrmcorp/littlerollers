@@ -29,7 +29,7 @@ Thus a fully documented story with an unresolved decision scores `78%`; one with
 
 ## 2. Story Readiness Snapshot
 
-Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `1.3.0-draft` checksum `9967fa3dedb7d37611ea5939b7eba5dbbfda61ceb47a3ea16ebe8eab9794f41e`.
+Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `1.6.0-draft` checksum `26ab6ff4ce451b0c1d3e7b7434c6d87b003c07bd808067f33b7bdea73ac5e627`.
 
 | Story | Requirement | UX text / Figma | Contract | Test/UAT | Migration/release | Blocking DEC | Assignee/env | Gates | % | READY / blocker owner / closure evidence |
 |---|---|---|---|---|---|---|---|---|---:|---|
@@ -43,8 +43,8 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `b18dde8`, evidence `817e384`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
 | US-CLS-01 | D | D / B | P | D | D | — | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `77cab22`, concurrency `e72c809`, evidence `5577637`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
 | US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `1ceabdb`, fix/evidence run `4c6ddf7`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO / PO+Finance+TL policy and approvals |
-| US-CLS-03 | D | D / B | P | D | D | DEC-005,013 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL+Ops / quota/fallback decisions and job review |
-| US-BKG-01 | D | D / B | P | D | D | DEC-005 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / quota/capacity evidence, Figma and concurrency review |
+| US-CLS-03 | D | D / B | P | D | D | DEC-005,013 | AI / local evidence in progress | BG-2 IN_PROGRESS; PG-1 B | 82 | H-24 synthetic scheduler implemented; PROD NO / quota worker configuration, Flutter/Dart regression and hosted evidence |
+| US-BKG-01 | D | D / B | P | D | D | DEC-005 | AI / Web/backend local implementation | BG-2 IN_PROGRESS; PG-1 B | 82 | Web-first synthetic booking implemented; Flutter/Dart regression, hosted evidence, Figma, UAT dan production cutoff approval pending |
 | US-BKG-02 | D | D / B | P | D | D | DEC-008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO / cancellation/reschedule policy and signed reviews |
 | US-ATT-01 | D | D / B | P | D | D | DEC-007 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / check-in boundary, threat/client tests and Figma |
 | US-ATT-02 | D | D / B | P | D | D | DEC-007,008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / check-in/backfill policy and signed evidence |

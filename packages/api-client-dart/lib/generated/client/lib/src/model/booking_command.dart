@@ -9,7 +9,7 @@ import 'package:built_value/serializer.dart';
 
 part 'booking_command.g.dart';
 
-/// BookingCommand
+/// customerUserId is required for ADMIN_ASSISTED and must be absent or equal to the authenticated customer for SELF.
 ///
 /// Properties:
 /// * [classSlotId] 
@@ -28,7 +28,7 @@ abstract class BookingCommand implements Built<BookingCommand, BookingCommandBui
   String? get customerUserId;
 
   @BuiltValueField(wireName: r'source')
-  BookingCommandSource_Enum? get source_;
+  BookingCommandSource_Enum get source_;
   // enum source_Enum {  SELF,  ADMIN_ASSISTED,  };
 
   BookingCommand._();
@@ -71,13 +71,11 @@ class _$BookingCommandSerializer implements PrimitiveSerializer<BookingCommand> 
         specifiedType: const FullType(String),
       );
     }
-    if (object.source_ != null) {
-      yield r'source';
-      yield serializers.serialize(
-        object.source_,
-        specifiedType: const FullType(BookingCommandSource_Enum),
-      );
-    }
+    yield r'source';
+    yield serializers.serialize(
+      object.source_,
+      specifiedType: const FullType(BookingCommandSource_Enum),
+    );
   }
 
   @override

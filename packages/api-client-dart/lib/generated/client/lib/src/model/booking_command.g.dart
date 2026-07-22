@@ -72,7 +72,7 @@ class _$BookingCommand extends BookingCommand {
   @override
   final String? customerUserId;
   @override
-  final BookingCommandSource_Enum? source_;
+  final BookingCommandSource_Enum source_;
 
   factory _$BookingCommand([void Function(BookingCommandBuilder)? updates]) =>
       (BookingCommandBuilder()..update(updates))._build();
@@ -81,7 +81,7 @@ class _$BookingCommand extends BookingCommand {
     required this.classSlotId,
     required this.customerPackageId,
     this.customerUserId,
-    this.source_,
+    required this.source_,
   }) : super._();
   @override
   BookingCommand rebuild(void Function(BookingCommandBuilder) updates) =>
@@ -188,7 +188,11 @@ class BookingCommandBuilder
             'customerPackageId',
           ),
           customerUserId: customerUserId,
-          source_: source_,
+          source_: BuiltValueNullFieldError.checkNotNull(
+            source_,
+            r'BookingCommand',
+            'source_',
+          ),
         );
     replace(_$result);
     return _$result;

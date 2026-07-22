@@ -27,7 +27,7 @@ class BookingsApi {
   const BookingsApi(this._dio, this._serializers);
 
   /// createBooking
-  /// 
+  /// Atomically creates one booking, one ACTIVE reservation, masked audit, and booking.created.v1. Synthetic H-2 cutoff is explicit configuration; production is fail-closed.
   ///
   /// Parameters:
   /// * [idempotencyKey] 
@@ -239,7 +239,7 @@ class BookingsApi {
   }
 
   /// listBookings
-  /// 
+  /// Customer self history or branch-scoped internal booking list, ordered by createdAt and id descending.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority

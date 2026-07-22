@@ -43,6 +43,8 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [BG-2 Session Adjustment Evidence](delivery/17-bg-2-session-adjustment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Instructor Availability Evidence](delivery/18-bg-2-instructor-availability-evidence.md) | AI Backend/Flutter/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Class Slot Lifecycle Evidence](delivery/19-bg-2-class-slot-lifecycle-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
+| Delivery | [BG-2 H-24 Quota Evaluation Evidence](delivery/20-bg-2-quota-evaluation-evidence.md) | AI Backend/Web/Ops/Data | AI QA/Security/Peer Reviewer |
+| Delivery | [BG-2 Web-first Booking Evidence](delivery/21-bg-2-booking-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Product | [PRD & Business Rules](product/01-prd-and-business-rules.md) | PM/BA | Product Owner |
 | Product | [Backlog, Acceptance & Traceability](product/02-backlog-and-traceability.md) | PM/BA | Product Owner |
 | Product | [MVP Implementation Backlog](product/03-mvp-implementation-backlog.md) | PM/BA | Product Owner |
@@ -56,6 +58,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Design | [Priority Figma Production & Review Pack](design/04-priority-figma-production-and-review-pack.md) | UI/UX Designer | Product Owner |
 | Design | [Remaining MVP Screen-level Handoff Queue](design/05-remaining-mvp-screen-handoff-queue.md) | UI/UX Designer | Product Owner |
 | Design | [Remaining MVP Detailed Screen Handoff](design/06-remaining-mvp-detailed-screen-handoff.md) | UI/UX Designer | Product Owner |
+| Design | [Frontend Design Baseline — Interim Executable Reference](design/07-frontend-design-baseline.md) | AI Design/Web | Product Owner untuk visual production acceptance |
 | Technical | [Solution Architecture](technical/01-solution-architecture.md) | Technical Lead | Technical Lead |
 | Technical | [Data, API, Security & Operations](technical/02-data-api-security-operations.md) | Technical Lead | Technical Lead |
 | Technical | [Architecture Decision Baseline](technical/03-architecture-decision-baseline.md) | Technical Lead | Technical Lead |

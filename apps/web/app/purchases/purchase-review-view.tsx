@@ -6,13 +6,19 @@ import {
   type PurchaseReviewClient,
   type ReviewPurchase,
 } from '../purchase-client';
+import { ConfirmationPanel, EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function PurchaseReviewView({
   client = browserPurchaseReviewClient,
 }: {
   client?: PurchaseReviewClient;
 }) {
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useActiveBranchState();
+  const sessionContext = useSessionContext();
+  const canReview = !sessionContext || sessionContext.hasCapability('purchase:review');
+  const canDecide = !sessionContext || sessionContext.hasCapability('purchase:decide');
+  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<ReviewPurchase[]>([]);
   const [selected, setSelected] = useState<ReviewPurchase | null>(null);
   const [reasonCode, setReasonCode] = useState<
@@ -43,14 +49,17 @@ export function PurchaseReviewView({
   };
   return (
     <section className="card" aria-labelledby="review-title">
-      <p className="muted">SYNTHETIC NON-PRODUCTION · MFA REQUIRED</p>
+      <p className="eyebrow">Internal decision queue</p>
       <h2 id="review-title">Review purchase</h2>
+      <div className="context-bar">
+        <StatusBadge tone="warning">MFA wajib</StatusBadge>
+      </div>
       <label>
         Cabang review
         <input value={branchId} onChange={(event) => setBranchId(event.target.value)} />
       </label>
       <button
-        disabled={!branchId || loading}
+        disabled={!branchId || loading || !canReview}
         onClick={() =>
           run(async () => {
             const result = await client.list(branchId);
@@ -70,13 +79,23 @@ export function PurchaseReviewView({
           </li>
         ))}
       </ul>
+      {!loading && items.length === 0 && (
+        <EmptyState
+          title="Queue kosong"
+          description="Pilih cabang dan muat purchase yang menunggu keputusan."
+        />
+      )}
       {selected && (
         <div role="dialog" aria-modal="true" aria-labelledby="decision-title">
           <h3 id="decision-title">Konfirmasi keputusan</h3>
+          <ConfirmationPanel title="Konsekuensi keputusan">
+            Approval membuat customer package dan ledger PURCHASE. Rejection tidak mengubah saldo.
+          </ConfirmationPanel>
           <p>
             {selected.packageNameSnapshot} · {selected.sessionCountSnapshot} sesi
           </p>
           <button
+            disabled={!canReview}
             onClick={() =>
               run(async () => {
                 const proof = await client.authorizeProof(selected.paymentProofId);
@@ -87,6 +106,7 @@ export function PurchaseReviewView({
             Buka proof privat
           </button>
           <button
+            disabled={!canDecide || !hasMfa}
             onClick={() =>
               run(async () =>
                 decided(await client.approve(selected.id, selected.version, crypto.randomUUID())),
@@ -108,6 +128,7 @@ export function PurchaseReviewView({
             </select>
           </label>
           <button
+            disabled={!canDecide || !hasMfa}
             onClick={() =>
               run(async () =>
                 decided(
@@ -126,9 +147,9 @@ export function PurchaseReviewView({
           <button onClick={() => setSelected(null)}>Batal</button>
         </div>
       )}
-      {loading && <p role="status">Memproses…</p>}
-      {message && !loading && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
+      {loading && <Skeleton label="Memproses keputusan purchase" />}
+      {message && !loading && <Feedback kind="status">{message}</Feedback>}
+      {error && <Feedback kind="error">{error}</Feedback>}
     </section>
   );
 }

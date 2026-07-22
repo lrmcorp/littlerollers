@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
 import { ClassSlotService } from './class-slot.service';
+import { evaluateQuota } from '@dailydose/quota-evaluator';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
@@ -11,6 +12,7 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
     db as never,
     new PolicyService(),
     new IdempotencyService(db as never),
+    { value: { quotaEvaluation: { maxAttempts: 5 } } } as never,
   );
   const namespace = `class-slot-${Date.now()}`;
   const actorId = randomUUID(),
@@ -90,6 +92,7 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
       where: { aggregateType: 'ClassSlot', aggregateId: { in: slotIds } },
     });
     await db.auditLog.deleteMany({ where: { objectType: 'ClassSlot', objectId: { in: slotIds } } });
+    await db.quotaEvaluationJob.deleteMany({ where: { classSlotId: { in: slotIds } } });
     await db.idempotencyRecord.deleteMany({ where: { scope: { contains: actorId } } });
     await db.idempotencyRecord.deleteMany({
       where: {
@@ -100,7 +103,7 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
         ],
       },
     });
-    await db.sessionReservation.deleteMany({ where: { id: reservationId } });
+    await db.sessionReservation.deleteMany({ where: { customerPackageId } });
     await db.customerPackage.deleteMany({ where: { id: customerPackageId } });
     await db.purchase.deleteMany({ where: { id: purchaseId } });
     await db.paymentProof.deleteMany({ where: { id: proofId } });
@@ -237,6 +240,114 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
     expect(await db.outboxEvent.count({ where: { aggregateId: id } })).toBe(2);
     expect(await db.auditLog.count({ where: { objectId: id } })).toBe(4);
     expect(assigned.replay).toBe(false);
+  });
+
+  it('confirms or auto-cancels exactly once from authoritative active reservations', async () => {
+    const createAndPublish = async (hour: number, suffix: string) => {
+      const created = await service.create(
+        principal,
+        {
+          branchId,
+          classTypeId,
+          instructorUserId: instructorId,
+          startAt: `2026-08-01T${hour}:00:00+07:00`,
+          endAt: `2026-08-01T${hour + 1}:00:00+07:00`,
+        },
+        `${namespace}-${suffix}-create`,
+        namespace,
+      );
+      const id = (created.body as { id: string }).id;
+      await service.publish(
+        principal,
+        id,
+        { expectedVersion: 0 },
+        `${namespace}-${suffix}-publish`,
+        namespace,
+      );
+      const job = await db.quotaEvaluationJob.findUniqueOrThrow({ where: { classSlotId: id } });
+      return { id, job };
+    };
+    const confirmed = await createAndPublish(14, 'confirmed');
+    const confirmedReservation = randomUUID();
+    await db.sessionReservation.create({
+      data: {
+        id: confirmedReservation,
+        customerPackageId,
+        classSlotId: confirmed.id,
+        referenceHash: randomUUID(),
+        quantity: 2,
+      },
+    });
+    await expect(
+      evaluateQuota(db, {
+        jobId: confirmed.job.id,
+        now: new Date('2026-07-31T06:59:59.999Z'),
+        actor: { type: 'SYSTEM' },
+        correlationId: namespace,
+        syntheticEnabled: true,
+      }),
+    ).rejects.toMatchObject({ code: 'QUOTA_EVALUATION_NOT_DUE' });
+    await expect(
+      evaluateQuota(db, {
+        jobId: confirmed.job.id,
+        now: new Date('2026-07-31T07:00:00Z'),
+        expectedDueAt: new Date('2026-07-31T07:00:01Z'),
+        actor: { type: 'SYSTEM' },
+        correlationId: namespace,
+        syntheticEnabled: true,
+      }),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+    const confirmedResult = await evaluateQuota(db, {
+      jobId: confirmed.job.id,
+      now: new Date('2026-07-31T07:00:00Z'),
+      actor: { type: 'SYSTEM' },
+      correlationId: namespace,
+      syntheticEnabled: true,
+    });
+    expect(confirmedResult).toMatchObject({ status: 'CONFIRMED', bookingCount: 2 });
+    expect(
+      await evaluateQuota(db, {
+        jobId: confirmed.job.id,
+        now: new Date('2026-07-31T08:01:00Z'),
+        actor: { type: 'SYSTEM' },
+        correlationId: namespace,
+        syntheticEnabled: true,
+      }),
+    ).toMatchObject({ status: 'CONFIRMED', idempotentReplay: true });
+
+    const cancelled = await createAndPublish(16, 'auto-cancelled');
+    const releasedReservation = randomUUID();
+    await db.sessionReservation.create({
+      data: {
+        id: releasedReservation,
+        customerPackageId,
+        classSlotId: cancelled.id,
+        referenceHash: randomUUID(),
+        quantity: 1,
+      },
+    });
+    const cancelledResult = await evaluateQuota(db, {
+      jobId: cancelled.job.id,
+      now: new Date('2026-07-31T10:00:00Z'),
+      actor: { type: 'SYSTEM' },
+      correlationId: namespace,
+      syntheticEnabled: true,
+    });
+    expect(cancelledResult).toMatchObject({ status: 'AUTO_CANCELLED', bookingCount: 1 });
+    expect(cancelledResult.releasedReservationIds).toEqual([releasedReservation]);
+    expect(
+      await db.sessionReservation.findUniqueOrThrow({ where: { id: releasedReservation } }),
+    ).toMatchObject({ status: 'RELEASED' });
+    const started = await createAndPublish(18, 'already-started');
+    await expect(
+      evaluateQuota(db, {
+        jobId: started.job.id,
+        now: new Date('2026-08-01T11:00:00Z'),
+        actor: { type: 'SYSTEM' },
+        correlationId: namespace,
+        syntheticEnabled: true,
+      }),
+    ).rejects.toMatchObject({ code: 'CLASS_ALREADY_STARTED' });
   });
 
   it('rejects missing availability, stale version, overlap, and base assurance', async () => {

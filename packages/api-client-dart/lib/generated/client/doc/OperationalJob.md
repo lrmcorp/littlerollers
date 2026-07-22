@@ -9,13 +9,15 @@ import 'package:openapi/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
-**type** | **String** |  | 
+**type** | [**JsonObject**](.md) |  | 
 **status** | **String** |  | 
 **attemptCount** | **int** |  | 
 **maxAttempts** | **int** |  | 
 **progress** | **int** |  | 
+**dueAt** | [**DateTime**](DateTime.md) |  | 
+**nextAttemptAt** | [**DateTime**](DateTime.md) |  | 
 **leaseExpiresAt** | [**DateTime**](DateTime.md) |  | [optional] 
-**lastErrorCode** | **String** |  | [optional] 
+**lastErrorCode** | **String** | Safe code only; no provider or user data. | [optional] 
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 **version** | **int** |  | 
 

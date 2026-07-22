@@ -16,8 +16,6 @@ const OperationalJobStatusEnum _$operationalJobStatusEnum_SUCCEEDED =
     const OperationalJobStatusEnum._('SUCCEEDED');
 const OperationalJobStatusEnum _$operationalJobStatusEnum_FAILED =
     const OperationalJobStatusEnum._('FAILED');
-const OperationalJobStatusEnum _$operationalJobStatusEnum_DEAD_LETTER =
-    const OperationalJobStatusEnum._('DEAD_LETTER');
 
 OperationalJobStatusEnum _$operationalJobStatusEnumValueOf(String name) {
   switch (name) {
@@ -31,8 +29,6 @@ OperationalJobStatusEnum _$operationalJobStatusEnumValueOf(String name) {
       return _$operationalJobStatusEnum_SUCCEEDED;
     case 'FAILED':
       return _$operationalJobStatusEnum_FAILED;
-    case 'DEAD_LETTER':
-      return _$operationalJobStatusEnum_DEAD_LETTER;
     default:
       throw ArgumentError(name);
   }
@@ -45,7 +41,6 @@ final BuiltSet<OperationalJobStatusEnum> _$operationalJobStatusEnumValues =
       _$operationalJobStatusEnum_RETRYING,
       _$operationalJobStatusEnum_SUCCEEDED,
       _$operationalJobStatusEnum_FAILED,
-      _$operationalJobStatusEnum_DEAD_LETTER,
     ]);
 
 Serializer<OperationalJobStatusEnum> _$operationalJobStatusEnumSerializer =
@@ -59,7 +54,6 @@ class _$OperationalJobStatusEnumSerializer
     'RETRYING': 'RETRYING',
     'SUCCEEDED': 'SUCCEEDED',
     'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
     'QUEUED': 'QUEUED',
@@ -67,7 +61,6 @@ class _$OperationalJobStatusEnumSerializer
     'RETRYING': 'RETRYING',
     'SUCCEEDED': 'SUCCEEDED',
     'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
   };
 
   @override
@@ -96,7 +89,7 @@ class _$OperationalJob extends OperationalJob {
   @override
   final String id;
   @override
-  final String type;
+  final JsonObject? type;
   @override
   final OperationalJobStatusEnum status;
   @override
@@ -105,6 +98,10 @@ class _$OperationalJob extends OperationalJob {
   final int maxAttempts;
   @override
   final int progress;
+  @override
+  final DateTime dueAt;
+  @override
+  final DateTime nextAttemptAt;
   @override
   final DateTime? leaseExpiresAt;
   @override
@@ -119,11 +116,13 @@ class _$OperationalJob extends OperationalJob {
 
   _$OperationalJob._({
     required this.id,
-    required this.type,
+    this.type,
     required this.status,
     required this.attemptCount,
     required this.maxAttempts,
     required this.progress,
+    required this.dueAt,
+    required this.nextAttemptAt,
     this.leaseExpiresAt,
     this.lastErrorCode,
     required this.createdAt,
@@ -146,6 +145,8 @@ class _$OperationalJob extends OperationalJob {
         attemptCount == other.attemptCount &&
         maxAttempts == other.maxAttempts &&
         progress == other.progress &&
+        dueAt == other.dueAt &&
+        nextAttemptAt == other.nextAttemptAt &&
         leaseExpiresAt == other.leaseExpiresAt &&
         lastErrorCode == other.lastErrorCode &&
         createdAt == other.createdAt &&
@@ -161,6 +162,8 @@ class _$OperationalJob extends OperationalJob {
     _$hash = $jc(_$hash, attemptCount.hashCode);
     _$hash = $jc(_$hash, maxAttempts.hashCode);
     _$hash = $jc(_$hash, progress.hashCode);
+    _$hash = $jc(_$hash, dueAt.hashCode);
+    _$hash = $jc(_$hash, nextAttemptAt.hashCode);
     _$hash = $jc(_$hash, leaseExpiresAt.hashCode);
     _$hash = $jc(_$hash, lastErrorCode.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
@@ -178,6 +181,8 @@ class _$OperationalJob extends OperationalJob {
           ..add('attemptCount', attemptCount)
           ..add('maxAttempts', maxAttempts)
           ..add('progress', progress)
+          ..add('dueAt', dueAt)
+          ..add('nextAttemptAt', nextAttemptAt)
           ..add('leaseExpiresAt', leaseExpiresAt)
           ..add('lastErrorCode', lastErrorCode)
           ..add('createdAt', createdAt)
@@ -194,9 +199,9 @@ class OperationalJobBuilder
   String? get id => _$this._id;
   set id(String? id) => _$this._id = id;
 
-  String? _type;
-  String? get type => _$this._type;
-  set type(String? type) => _$this._type = type;
+  JsonObject? _type;
+  JsonObject? get type => _$this._type;
+  set type(JsonObject? type) => _$this._type = type;
 
   OperationalJobStatusEnum? _status;
   OperationalJobStatusEnum? get status => _$this._status;
@@ -213,6 +218,15 @@ class OperationalJobBuilder
   int? _progress;
   int? get progress => _$this._progress;
   set progress(int? progress) => _$this._progress = progress;
+
+  DateTime? _dueAt;
+  DateTime? get dueAt => _$this._dueAt;
+  set dueAt(DateTime? dueAt) => _$this._dueAt = dueAt;
+
+  DateTime? _nextAttemptAt;
+  DateTime? get nextAttemptAt => _$this._nextAttemptAt;
+  set nextAttemptAt(DateTime? nextAttemptAt) =>
+      _$this._nextAttemptAt = nextAttemptAt;
 
   DateTime? _leaseExpiresAt;
   DateTime? get leaseExpiresAt => _$this._leaseExpiresAt;
@@ -245,6 +259,8 @@ class OperationalJobBuilder
       _attemptCount = $v.attemptCount;
       _maxAttempts = $v.maxAttempts;
       _progress = $v.progress;
+      _dueAt = $v.dueAt;
+      _nextAttemptAt = $v.nextAttemptAt;
       _leaseExpiresAt = $v.leaseExpiresAt;
       _lastErrorCode = $v.lastErrorCode;
       _createdAt = $v.createdAt;
@@ -276,11 +292,7 @@ class OperationalJobBuilder
             r'OperationalJob',
             'id',
           ),
-          type: BuiltValueNullFieldError.checkNotNull(
-            type,
-            r'OperationalJob',
-            'type',
-          ),
+          type: type,
           status: BuiltValueNullFieldError.checkNotNull(
             status,
             r'OperationalJob',
@@ -300,6 +312,16 @@ class OperationalJobBuilder
             progress,
             r'OperationalJob',
             'progress',
+          ),
+          dueAt: BuiltValueNullFieldError.checkNotNull(
+            dueAt,
+            r'OperationalJob',
+            'dueAt',
+          ),
+          nextAttemptAt: BuiltValueNullFieldError.checkNotNull(
+            nextAttemptAt,
+            r'OperationalJob',
+            'nextAttemptAt',
           ),
           leaseExpiresAt: leaseExpiresAt,
           lastErrorCode: lastErrorCode,

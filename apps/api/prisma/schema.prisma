@@ -144,6 +144,24 @@ enum ClassSlotCancellationReasonCode {
   SAFETY_ISSUE
   OTHER_REVIEW_REQUIRED
 }
+enum QuotaEvaluationJobStatus {
+  QUEUED
+  RUNNING
+  RETRYING
+  SUCCEEDED
+  FAILED
+}
+enum BookingStatus {
+  BOOKED
+  RESCHEDULE_PENDING
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+enum BookingSource {
+  SELF
+  ADMIN_ASSISTED
+}
 
 model User {
   id String @id @db.Uuid
@@ -165,6 +183,8 @@ model User {
   decidedAdjustments SessionAdjustment[] @relation("AdjustmentDecider")
   instructorAvailabilities InstructorAvailability[]
   instructedClassSlots ClassSlot[] @relation("ClassSlotInstructor")
+  customerBookings Booking[] @relation("BookingCustomer")
+  createdBookings Booking[] @relation("BookingActor")
 }
 model Identity {
   id String @id @db.Uuid
@@ -196,6 +216,7 @@ model Branch {
   purchases Purchase[]
   instructorAvailabilities InstructorAvailability[]
   classSlots ClassSlot[]
+  bookings Booking[]
 }
 
 model ClassType {
@@ -269,9 +290,32 @@ model ClassSlot {
   classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   instructor User? @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
   reservations SessionReservation[]
+  bookings Booking[]
+  quotaEvaluationJob QuotaEvaluationJob?
   @@index([branchId, startAt, id])
   @@index([instructorUserId, startAt, endAt])
   @@index([status, startAt])
+}
+
+model QuotaEvaluationJob {
+  id String @id @db.Uuid
+  classSlotId String @unique @db.Uuid
+  evaluationKey String @unique
+  dueAt DateTime
+  status QuotaEvaluationJobStatus @default(QUEUED)
+  leaseOwner String?
+  leaseExpiresAt DateTime?
+  attempts Int @default(0)
+  maxAttempts Int
+  nextAttemptAt DateTime
+  lastErrorCode String?
+  result Json?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  classSlot ClassSlot @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  @@index([status, dueAt, nextAttemptAt])
+  @@index([leaseExpiresAt])
 }
 
 model UserRole {
@@ -502,6 +546,7 @@ model CustomerPackage {
   ledgerEntries LedgerEntry[]
   reservations SessionReservation[]
   adjustments SessionAdjustment[]
+  bookings Booking[]
   @@index([customerUserId, branchId, expiryAt])
 }
 
@@ -517,8 +562,34 @@ model SessionReservation {
   consumedAt DateTime?
   customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
   classSlot ClassSlot? @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  booking Booking?
   @@unique([customerPackageId, referenceHash])
   @@index([customerPackageId, status, createdAt])
+  @@index([classSlotId, status])
+}
+
+model Booking {
+  id String @id @db.Uuid
+  branchId String @db.Uuid
+  classSlotId String @db.Uuid
+  customerUserId String @db.Uuid
+  customerPackageId String @db.Uuid
+  reservationId String @unique @db.Uuid
+  createdById String @db.Uuid
+  source BookingSource
+  status BookingStatus @default(BOOKED)
+  reservedQuantity Int @default(1)
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot ClassSlot @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  customer User @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  reservation SessionReservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  createdBy User @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  @@index([branchId, createdAt, id])
+  @@index([customerUserId, createdAt, id])
   @@index([classSlotId, status])
 }
 

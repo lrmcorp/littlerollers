@@ -1,4 +1,5 @@
 import { Configuration, PackagesApi } from '@dailydose/api-client-ts/generated';
+import { notifySessionFailure } from './session-client';
 export type PurchasePackage = {
   id: string;
   branchId: string;
@@ -100,6 +101,7 @@ export const browserPurchaseReviewClient: PurchaseReviewClient = {
   },
 };
 export function purchaseFailure(error: unknown) {
+  notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 503) return 'CONFIGURATION_REQUIRED';
   if (status === 409) return 'PAYMENT_PROOF_NOT_CLEAN_OR_DUPLICATE';

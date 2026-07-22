@@ -7,20 +7,24 @@
     "dev": "nest start --watch",
     "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest --passWithNoTests"
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "@dailydose/config": "workspace:*",
+    "@dailydose/quota-evaluator": "workspace:*",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
+    "@prisma/client": "^6.15.0",
     "ioredis": "^5.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.3.0",
     "jest": "^30.1.3",
+    "ts-jest": "^29.4.1",
     "typescript": "^5.9.2"
   }
 }

@@ -133,6 +133,7 @@ doc/Session.md
 doc/SessionAdjustment.md
 doc/SessionAdjustmentDecisionCommand.md
 doc/SessionAdjustmentPage.md
+doc/SessionBranch.md
 doc/SubmitPurchaseRequest.md
 doc/TimeRangeCommand.md
 doc/TokenCheckInCommand.md
@@ -279,11 +280,10 @@ lib/src/model/session.dart
 lib/src/model/session_adjustment.dart
 lib/src/model/session_adjustment_decision_command.dart
 lib/src/model/session_adjustment_page.dart
+lib/src/model/session_branch.dart
 lib/src/model/submit_purchase_request.dart
 lib/src/model/time_range_command.dart
 lib/src/model/token_check_in_command.dart
 lib/src/model/version_command.dart
 lib/src/serializers.dart
 pubspec.yaml
-test/class_slot_cancellation_command_test.dart
-test/class_slot_version_command_test.dart

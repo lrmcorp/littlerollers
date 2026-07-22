@@ -3,7 +3,14 @@ import type { ApplicationRole, AssuranceLevel } from '@prisma/client';
 import { ApiProblem } from './security';
 
 const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
-  CUSTOMER: ['customer:self', 'package:read', 'ledger:read', 'class-slot:read'],
+  CUSTOMER: [
+    'customer:self',
+    'package:read',
+    'ledger:read',
+    'class-slot:read',
+    'booking:self:read',
+    'booking:self:create',
+  ],
   INSTRUCTOR: [
     'class:assigned:read',
     'attendance:self',
@@ -19,6 +26,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'ledger:adjust:request',
     'class-slot:read',
     'class-slot:manage',
+    'booking:read',
+    'booking:create:assisted',
   ],
   MANAGER: [
     'branch:manage',
@@ -30,6 +39,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'ledger:adjust:decide',
     'class-slot:read',
     'class-slot:manage',
+    'booking:read',
+    'booking:create:assisted',
   ],
   OWNER: ['branch:own', 'user:read', 'ledger:read'],
   SUPER_OWNER: [
@@ -48,6 +59,10 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'ledger:adjust:decide',
     'class-slot:read',
     'class-slot:manage',
+    'operations:read',
+    'operations:recover',
+    'booking:read',
+    'booking:create:assisted',
   ],
   FINANCE: ['finance:read', 'finance:manage', 'ledger:read'],
   OPS: ['operations:read', 'operations:recover'],
