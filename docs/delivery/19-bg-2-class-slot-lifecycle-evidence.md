@@ -2,7 +2,7 @@
 
 Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS FOR SYNTHETIC NON-PRODUCTION**.
 
-Source commit: `1ceabdb`. Story tidak dipromosikan menjadi PASS sebelum evidence commit dipush dan hosted `typescript`, `flutter`, serta `secrets` hijau. Run ID/URL tidak tersedia dan tidak difabrikasi.
+Source commit: `1ceabdb`; evidence commit: `44d66b5`; exact-fingerprint Gitleaks remediation: `a731967`. Story tidak dipromosikan menjadi PASS sebelum final hosted `typescript`, `flutter`, serta `secrets` hijau. Run ID/URL tidak tersedia dan tidak difabrikasi.
 
 ## Scope dan boundary
 
