@@ -42,7 +42,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-LED-01 | D | D / B | P | D | D | — | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 88 | Source `906e781`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO / Figma, reconciliation, UAT and approvals |
 | US-LED-02 | D | D / B | P | D | D | DEC-012 | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `b18dde8`, evidence `817e384`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
 | US-CLS-01 | D | D / B | P | D | D | — | AI / hosted PASS | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `77cab22`, concurrency `e72c809`, evidence `5577637`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO |
-| US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / local pass | BG-2 LOCAL_PASS; PG-1 B | 86 | Synthetic lifecycle/migration/API/Web/consumer evidence PASS locally; hosted evidence pending; PROD NO / PO+Finance+TL policy and approvals |
+| US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `1ceabdb`, fix/evidence run `4c6ddf7`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO / PO+Finance+TL policy and approvals |
 | US-CLS-03 | D | D / B | P | D | D | DEC-005,013 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL+Ops / quota/fallback decisions and job review |
 | US-BKG-01 | D | D / B | P | D | D | DEC-005 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / quota/capacity evidence, Figma and concurrency review |
 | US-BKG-02 | D | D / B | P | D | D | DEC-008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO / cancellation/reschedule policy and signed reviews |

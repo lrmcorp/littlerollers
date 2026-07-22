@@ -1,8 +1,8 @@
 # BG-2 Synthetic US-CLS-02 Evidence
 
-Tanggal eksekusi: 2026-07-22. Status: **LOCAL PASS FOR SYNTHETIC NON-PRODUCTION**.
+Tanggal eksekusi: 2026-07-22. Status: **PASS FOR SYNTHETIC NON-PRODUCTION**.
 
-Source commit: `1ceabdb`; evidence commit: `44d66b5`; exact-fingerprint Gitleaks remediation: `a731967`. Story tidak dipromosikan menjadi PASS sebelum final hosted `typescript`, `flutter`, serta `secrets` hijau. Run ID/URL tidak tersedia dan tidak difabrikasi.
+Source commit: `1ceabdb`; evidence commit: `44d66b5`; exact-fingerprint Gitleaks remediation: `a731967`; hosted-green commit: `4c6ddf7`. Hosted `typescript`, `flutter`, serta `secrets` hijau berdasarkan konfirmasi pengguna. Run ID/URL tidak tersedia dan tidak difabrikasi.
 
 ## Scope dan boundary
 
@@ -23,14 +23,14 @@ Source commit: `1ceabdb`; evidence commit: `44d66b5`; exact-fingerprint Gitleaks
 | Clients | pinned generator `7.15.0`, Dart `build_runner`, byte comparison | PASS — 140 TypeScript dan 147 Dart non-generated-serializer files stabil |
 | Mobile | Flutter analyze/widget dan Dart consumer | PASS — 9 Flutter regression tests dan Dart consumer hijau |
 | Monorepo | `pnpm check` | PASS — format, OpenAPI, lint, typecheck, unit, build |
-| Hosted | private `typescript`, `flutter`, `secrets` | PENDING — wajib setelah source/evidence commit dipush |
+| Hosted | private `typescript`, `flutter`, `secrets` | PASS — commit `4c6ddf7`, user-confirmed; run ID/URL unavailable |
 
 Hosted `secrets` pertama mendeteksi false positive `generic-api-key` pada literal business key fixture di source commit `1ceabdb`. Literal tersebut bukan credential. Remediasi mengganti fixture dan menambahkan `.gitleaksignore` untuk satu fingerprint historis yang tepat; full-history scan tetap aktif dan tidak mengabaikan commit, path, atau rule secara luas.
 
 ## Review disposition
 
-- **AI QA:** LOCAL PASS — migration, concurrency boundary, idempotency, lifecycle, clients, Web/Flutter regression hijau.
-- **AI Security:** LOCAL PASS — MFA, hidden branch, controlled reason, masked audit/outbox, atomic reservation release, dan no production default tervalidasi; hosted Gitleaks pending.
-- **AI Peer Reviewer:** LOCAL PASS — scope berhenti pada PUBLISHED/CANCELLED; quota evaluation dan booking tidak dimulai.
+- **AI QA:** PASS — migration, concurrency boundary, idempotency, lifecycle, clients, Web/Flutter regression dan hosted pipeline hijau.
+- **AI Security:** PASS FOR SYNTHETIC NON-PRODUCTION — MFA, hidden branch, controlled reason, masked audit/outbox, atomic reservation release, no production default dan hosted Gitleaks hijau.
+- **AI Peer Reviewer:** PASS FOR SYNTHETIC NON-PRODUCTION — scope berhenti pada PUBLISHED/CANCELLED; quota evaluation dan booking tidak dimulai.
 
-`US-CLS-02 = LOCAL_PASS FOR SYNTHETIC NON-PRODUCTION`. Setelah hosted closure, `US-CLS-03 = NEXT`; `US-BKG-01` menunggu confirmed slot foundation; `BG-3 = PENDING`, `PG-1 = BLOCKED`.
+`US-CLS-02 = PASS FOR SYNTHETIC NON-PRODUCTION`. `US-CLS-03 = NEXT`; `US-BKG-01` menunggu confirmed slot foundation; `BG-3 = PENDING`, `PG-1 = BLOCKED`.
