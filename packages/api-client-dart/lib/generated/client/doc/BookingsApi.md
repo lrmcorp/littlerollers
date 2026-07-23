@@ -12,6 +12,7 @@ Method | HTTP request | Description
 [**createBooking**](BookingsApi.md#createbooking) | **POST** /bookings | 
 [**decideReschedule**](BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
 [**listBookings**](BookingsApi.md#listbookings) | **GET** /bookings | 
+[**listReschedules**](BookingsApi.md#listreschedules) | **GET** /reschedules | 
 [**requestReschedule**](BookingsApi.md#requestreschedule) | **POST** /reschedules | 
 
 
@@ -61,9 +62,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **decideReschedule**
-> RescheduleDecisionResult decideReschedule(id, decision, idempotencyKey, deactivateUserRequest)
+> RescheduleDecisionResult decideReschedule(id, decision, idempotencyKey, rescheduleDecisionCommand)
 
 
+
+MFA-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
 
 ### Example
 ```dart
@@ -73,10 +76,10 @@ final api = Openapi().getBookingsApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String decision = decision_example; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final RescheduleDecisionCommand rescheduleDecisionCommand = ; // RescheduleDecisionCommand | 
 
 try {
-    final response = api.decideReschedule(id, decision, idempotencyKey, deactivateUserRequest);
+    final response = api.decideReschedule(id, decision, idempotencyKey, rescheduleDecisionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling BookingsApi->decideReschedule: $e\n');
@@ -90,7 +93,7 @@ Name | Type | Description  | Notes
  **id** | **String**|  | 
  **decision** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **rescheduleDecisionCommand** | [**RescheduleDecisionCommand**](RescheduleDecisionCommand.md)|  | 
 
 ### Return type
 
@@ -154,10 +157,59 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listReschedules**
+> ReschedulePage listReschedules(branchId, status, cursor)
+
+
+
+Customer-own or internal branch-scoped reschedule queue ordered by requestedAt and id descending.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listReschedules(branchId, status, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->listReschedules: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**ReschedulePage**](ReschedulePage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **requestReschedule**
-> Reschedule requestReschedule(idempotencyKey, rescheduleCommand)
+> Reschedule requestReschedule(idempotencyKey, rescheduleRequestCommand)
 
 
+
+Customer-owned request before the explicit synthetic H-24 boundary. Request marks booking pending without moving its reservation.
 
 ### Example
 ```dart
@@ -165,10 +217,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getBookingsApi();
 final String idempotencyKey = idempotencyKey_example; // String | 
-final RescheduleCommand rescheduleCommand = ; // RescheduleCommand | 
+final RescheduleRequestCommand rescheduleRequestCommand = ; // RescheduleRequestCommand | 
 
 try {
-    final response = api.requestReschedule(idempotencyKey, rescheduleCommand);
+    final response = api.requestReschedule(idempotencyKey, rescheduleRequestCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling BookingsApi->requestReschedule: $e\n');
@@ -180,7 +232,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **idempotencyKey** | **String**|  | 
- **rescheduleCommand** | [**RescheduleCommand**](RescheduleCommand.md)|  | 
+ **rescheduleRequestCommand** | [**RescheduleRequestCommand**](RescheduleRequestCommand.md)|  | 
 
 ### Return type
 

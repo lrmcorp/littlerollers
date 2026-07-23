@@ -1,111 +1,178 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import type { PurchaseClient, PurchaseReviewClient } from './purchase-client';
 import { PurchaseView } from './purchases/purchase-view';
 import { PurchaseReviewView } from './purchases/purchase-review-view';
-const fake = (overrides: Partial<PurchaseClient> = {}): PurchaseClient => ({
-  list: vi.fn().mockResolvedValue([
-    {
-      id: 'package-1',
-      branchId: 'branch-1',
-      name: 'Ten Sessions',
-      sessionCount: 10,
-      durationDays: 30,
-      priceRp: 2000000,
-    },
-  ]),
-  issue: vi.fn().mockResolvedValue('proof-1'),
-  finalize: vi.fn().mockResolvedValue('CLEAN'),
-  submit: vi.fn().mockResolvedValue('PENDING'),
+
+const branch = { id: 'branch-1', name: 'Jakarta', timezone: 'Asia/Jakarta' };
+const purchase = {
+  id: 'purchase-1',
+  branchId: 'branch-1',
+  userId: 'customer-1',
+  packageId: 'package-1',
+  paymentProofId: 'proof-1',
+  packageNameSnapshot: 'Ten Sessions',
+  priceRpSnapshot: 2_000_000,
+  sessionCountSnapshot: 10,
+  durationDaysSnapshot: 30,
+  status: 'PENDING' as const,
+  submittedAt: new Date('2026-07-23T02:00:00Z'),
+  version: 0,
+};
+const proof = {
+  id: 'proof-1',
+  uploadStatus: 'FINALIZED' as const,
+  scanStatus: 'CLEAN' as const,
+  fileName: 'proof.png',
+  mimeType: 'image/png',
+  sizeBytes: 1024,
+  version: 0,
+};
+const submissionFake = (overrides: Partial<PurchaseClient> = {}): PurchaseClient => ({
+  list: vi.fn().mockResolvedValue({
+    items: [
+      {
+        id: 'package-1',
+        branchId: 'branch-1',
+        classTypeId: 'class-1',
+        businessKey: 'PKG-10',
+        name: 'Ten Sessions',
+        sessionCount: 10,
+        durationDays: 30,
+        priceRp: 2_000_000,
+        status: 'ACTIVE',
+        effectiveFrom: new Date('2026-01-01'),
+        effectiveUntil: null,
+        version: 0,
+      },
+    ],
+    nextCursor: null,
+  }),
+  issue: vi.fn().mockResolvedValue({ ...proof, uploadStatus: 'ISSUED', scanStatus: 'PENDING' }),
+  finalize: vi.fn().mockResolvedValue(proof),
+  status: vi.fn().mockResolvedValue(proof),
+  replace: vi.fn().mockResolvedValue(undefined),
+  submit: vi.fn().mockResolvedValue(purchase),
   ...overrides,
 });
-describe('synthetic purchase UI', () => {
-  it('is accessible and completes clean proof to pending purchase', async () => {
-    const client = fake();
-    const view = render(<PurchaseView client={client} />);
-    expect((await axe(view.container)).violations).toHaveLength(0);
-    await userEvent.type(screen.getByLabelText('ID cabang'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat paket' }));
-    await userEvent.selectOptions(screen.getByLabelText('Paket'), 'package-1');
-    await userEvent.type(screen.getByLabelText('Nama file'), 'proof.png');
-    await userEvent.type(screen.getByLabelText('Ukuran byte'), '1024');
-    await userEvent.type(screen.getByLabelText('SHA-256'), 'a'.repeat(64));
-    await userEvent.click(screen.getByRole('button', { name: 'Upload dan scan' }));
-    expect(await screen.findByText(/Status scan:/)).toHaveTextContent('CLEAN');
-    await userEvent.click(screen.getByRole('button', { name: 'Kirim purchase' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('PENDING');
-  });
-  it.each([
-    [503, 'CONFIGURATION_REQUIRED'],
-    [409, 'PAYMENT_PROOF_NOT_CLEAN_OR_DUPLICATE'],
-    [404, 'RESOURCE_NOT_FOUND'],
-  ])('shows safe status %s', async (status, code) => {
-    render(
-      <PurchaseView client={fake({ list: vi.fn().mockRejectedValue({ response: { status } }) })} />,
-    );
-    await userEvent.type(screen.getByLabelText('ID cabang'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat paket' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(code);
-  });
-});
 
+const reviewPurchase = { ...purchase, customerName: 'Pelanggan Synthetic' };
 const reviewFake = (overrides: Partial<PurchaseReviewClient> = {}): PurchaseReviewClient => ({
-  list: vi.fn().mockResolvedValue([
-    {
-      id: 'purchase-1',
-      branchId: 'branch-1',
-      userId: 'customer-1',
-      paymentProofId: 'proof-1',
-      packageNameSnapshot: 'Ten Sessions',
-      priceRpSnapshot: 2000000,
-      sessionCountSnapshot: 10,
-      status: 'PENDING',
-      version: 0,
-    },
-  ]),
+  list: vi.fn().mockResolvedValue({ items: [reviewPurchase], nextCursor: null }),
   authorizeProof: vi
     .fn()
-    .mockResolvedValue({ url: '/private/opaque', expiresAt: new Date('2026-07-21T12:00:00Z') }),
-  approve: vi.fn().mockResolvedValue('APPROVED'),
-  reject: vi.fn().mockResolvedValue('REJECTED'),
+    .mockResolvedValue({ url: '/private/opaque', expiresAt: new Date('2026-07-23T12:00:00Z') }),
+  approve: vi.fn().mockResolvedValue({
+    ...reviewPurchase,
+    status: 'APPROVED',
+    version: 1,
+  }),
+  reject: vi.fn().mockResolvedValue({
+    ...reviewPurchase,
+    status: 'REJECTED',
+    version: 1,
+  }),
   ...overrides,
 });
 
-describe('synthetic purchase review UI', () => {
-  it('is accessible and approves a pending purchase with keyboard-visible controls', async () => {
-    const client = reviewFake();
-    const view = render(<PurchaseReviewView client={client} />);
-    expect((await axe(view.container)).violations).toHaveLength(0);
-    await userEvent.type(screen.getByLabelText('Cabang review'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await userEvent.click(await screen.findByRole('button', { name: /Ten Sessions/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Setujui purchase' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('APPROVED');
-    expect(client.approve).toHaveBeenCalledWith('purchase-1', 0, expect.any(String));
+describe('purchase submission workspace', () => {
+  it('requires an explicit branch', () => {
+    render(<PurchaseView client={submissionFake()} />);
+    expect(screen.getByText('Cabang aktif wajib dipilih secara eksplisit.')).toBeVisible();
   });
 
-  it('sends only a safe rejection code and renders configuration failure', async () => {
-    const client = reviewFake({ reject: vi.fn().mockResolvedValue('REJECTED') });
-    render(<PurchaseReviewView client={client} />);
-    await userEvent.type(screen.getByLabelText('Cabang review'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await userEvent.click(await screen.findByRole('button', { name: /Ten Sessions/ }));
-    await userEvent.selectOptions(screen.getByLabelText('Kode penolakan'), 'AMOUNT_MISMATCH');
-    await userEvent.click(screen.getByRole('button', { name: 'Tolak purchase' }));
+  it('selects a package, hashes a real file and submits one stable intent accessibly', async () => {
+    const client = submissionFake();
+    const view = render(
+      <PurchaseView
+        client={client}
+        branchOverride={branch}
+        digestFile={vi.fn().mockResolvedValue('a'.repeat(64))}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Muat paket' }));
+    await user.click(await screen.findByRole('radio', { name: /Ten Sessions/ }));
+    await user.upload(
+      screen.getByLabelText('Bukti pembayaran'),
+      new File(['proof'], 'proof.png', { type: 'image/png' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Upload dan periksa' }));
+    expect(await screen.findByText('Bersih')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Kirim pengajuan' }));
+    expect(client.submit).toHaveBeenCalledWith('package-1', 'proof-1', expect.any(String));
+    expect(await screen.findByText(/Purchase PENDING/)).toBeVisible();
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('polls pending proof and never enables submit before CLEAN', async () => {
+    const client = submissionFake({
+      finalize: vi.fn().mockResolvedValue({ ...proof, scanStatus: 'PENDING' }),
+    });
+    render(
+      <PurchaseView
+        client={client}
+        branchOverride={branch}
+        digestFile={vi.fn().mockResolvedValue('a'.repeat(64))}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Muat paket' }));
+    await user.click(await screen.findByRole('radio', { name: /Ten Sessions/ }));
+    await user.upload(
+      screen.getByLabelText('Bukti pembayaran'),
+      new File(['proof'], 'proof.png', { type: 'image/png' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Upload dan periksa' }));
+    expect(screen.queryByRole('button', { name: 'Kirim pengajuan' })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Periksa status scan' }));
+    expect(await screen.findByRole('button', { name: 'Kirim pengajuan' })).toBeEnabled();
+  });
+});
+
+describe('purchase internal review workspace', () => {
+  it('loads queue, authorizes proof and applies authoritative approval with expected version', async () => {
+    const client = reviewFake();
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const view = render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Muat queue' }));
+    await user.click(within(await screen.findByRole('listitem')).getByRole('button'));
+    const dialog = screen.getByRole('dialog', { name: 'Detail review' });
+    await user.click(within(dialog).getByRole('button', { name: 'Buka bukti privat' }));
+    expect(open).toHaveBeenCalledWith('/private/opaque', '_blank', 'noopener,noreferrer');
+    await user.click(within(dialog).getByRole('button', { name: 'Setujui purchase' }));
+    expect(client.approve).toHaveBeenCalledWith('purchase-1', 0, expect.any(String));
+    expect(await within(dialog).findByText('Disetujui')).toBeVisible();
+    expect((await axe(view.container)).violations).toHaveLength(0);
+    open.mockRestore();
+  });
+
+  it('rejects with only a controlled code and renders safe configuration failure', async () => {
+    const client = reviewFake();
+    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Muat queue' }));
+    await user.click(within(await screen.findByRole('listitem')).getByRole('button'));
+    const dialog = screen.getByRole('dialog', { name: 'Detail review' });
+    await user.selectOptions(within(dialog).getByLabelText('Alasan penolakan'), 'AMOUNT_MISMATCH');
+    await user.click(within(dialog).getByRole('button', { name: 'Tolak purchase' }));
     expect(client.reject).toHaveBeenCalledWith(
       'purchase-1',
       0,
       'AMOUNT_MISMATCH',
       expect.any(String),
     );
-    const failing = reviewFake({ list: vi.fn().mockRejectedValue({ response: { status: 503 } }) });
-    render(<PurchaseReviewView client={failing} />);
-    const branches = screen.getAllByLabelText('Cabang review');
-    await userEvent.type(branches.at(-1)!, 'branch-1');
-    const queues = screen.getAllByRole('button', { name: 'Muat queue' });
-    await userEvent.click(queues.at(-1)!);
-    expect(await screen.findByText('CONFIGURATION_REQUIRED')).toBeInTheDocument();
+
+    const failing = reviewFake({
+      list: vi.fn().mockRejectedValue({ response: { status: 503 } }),
+    });
+    render(<PurchaseReviewView client={failing} branchOverride={branch} />);
+    await user.click(screen.getAllByRole('button', { name: 'Muat queue' }).at(-1)!);
+    expect(
+      await screen.findByText('Layanan penyimpanan atau pemindaian belum dikonfigurasi.'),
+    ).toBeVisible();
   });
 });

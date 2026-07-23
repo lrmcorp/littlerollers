@@ -1,4 +1,5 @@
-import { ClassSlotView } from './class-slot-view';
-export default function ClassesPage() {
-  return <ClassSlotView />;
+import { PublicClassesView } from './public-classes-view';
+
+export default function PublicClassesPage() {
+  return <PublicClassesView />;
 }

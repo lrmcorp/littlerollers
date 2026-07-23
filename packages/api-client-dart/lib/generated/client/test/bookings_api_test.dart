@@ -12,7 +12,7 @@ void main() {
       // TODO
     });
 
-    //Future<RescheduleDecisionResult> decideReschedule(String id, String decision, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<RescheduleDecisionResult> decideReschedule(String id, String decision, String idempotencyKey, RescheduleDecisionCommand rescheduleDecisionCommand) async
     test('test decideReschedule', () async {
       // TODO
     });
@@ -22,7 +22,12 @@ void main() {
       // TODO
     });
 
-    //Future<Reschedule> requestReschedule(String idempotencyKey, RescheduleCommand rescheduleCommand) async
+    //Future<ReschedulePage> listReschedules({ String branchId, String status, String cursor }) async
+    test('test listReschedules', () async {
+      // TODO
+    });
+
+    //Future<Reschedule> requestReschedule(String idempotencyKey, RescheduleRequestCommand rescheduleRequestCommand) async
     test('test requestReschedule', () async {
       // TODO
     });

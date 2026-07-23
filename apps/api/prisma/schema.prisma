@@ -79,12 +79,14 @@ enum PackageStatus {
   ACTIVE
   INACTIVE
 }
+
 enum PaymentProofUploadStatus {
   ISSUED
   UPLOADED
   FINALIZED
   FAILED
 }
+
 enum PaymentProofScanStatus {
   PENDING
   CLEAN
@@ -92,11 +94,13 @@ enum PaymentProofScanStatus {
   INFECTED
   ERROR
 }
+
 enum PurchaseStatus {
   PENDING
   APPROVED
   REJECTED
 }
+
 enum LedgerEntryType {
   PURCHASE
   MIGRATION_OPENING
@@ -104,32 +108,38 @@ enum LedgerEntryType {
   REVERSAL
   ADJUST_MANUAL
 }
+
 enum CustomerPackageStatus {
   ACTIVE
   INACTIVE
 }
+
 enum SessionReservationStatus {
   ACTIVE
   RELEASED
   CONSUMED
 }
+
 enum SessionAdjustmentStatus {
   PENDING
   POSTED
   REJECTED
 }
+
 enum SessionAdjustmentReasonCode {
   MIGRATION_CORRECTION
   ATTENDANCE_CORRECTION
   PACKAGE_COMPENSATION
   SUPPORT_RECONCILIATION
 }
+
 enum SessionAdjustmentDecisionCode {
   CORRECTION_VERIFIED
   INVALID_EVIDENCE
   DUPLICATE_REQUEST
   OUT_OF_SCOPE
 }
+
 enum ClassSlotStatus {
   DRAFT
   PUBLISHED
@@ -138,12 +148,14 @@ enum ClassSlotStatus {
   CANCELLED
   COMPLETED
 }
+
 enum ClassSlotCancellationReasonCode {
   STUDIO_UNAVAILABLE
   INSTRUCTOR_UNAVAILABLE
   SAFETY_ISSUE
   OTHER_REVIEW_REQUIRED
 }
+
 enum QuotaEvaluationJobStatus {
   QUEUED
   RUNNING
@@ -151,6 +163,7 @@ enum QuotaEvaluationJobStatus {
   SUCCEEDED
   FAILED
 }
+
 enum BookingStatus {
   BOOKED
   RESCHEDULE_PENDING
@@ -158,491 +171,575 @@ enum BookingStatus {
   ATTENDED
   NO_SHOW
 }
+
 enum BookingSource {
   SELF
   ADMIN_ASSISTED
 }
 
-model User {
-  id String @id @db.Uuid
-  displayName String
-  status UserStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  identities Identity[]
-  assignments Assignment[]
-  roles UserRole[]
-  sessions UserSession[]
-  challenges AuthChallenge[]
-  createdInvitations UserInvitation[]
-  paymentProofs PaymentProof[]
-  purchases Purchase[]
-  decidedPurchases Purchase[] @relation("PurchaseDecisionActor")
-  customerPackages CustomerPackage[]
-  requestedAdjustments SessionAdjustment[] @relation("AdjustmentRequester")
-  decidedAdjustments SessionAdjustment[] @relation("AdjustmentDecider")
-  instructorAvailabilities InstructorAvailability[]
-  instructedClassSlots ClassSlot[] @relation("ClassSlotInstructor")
-  customerBookings Booking[] @relation("BookingCustomer")
-  createdBookings Booking[] @relation("BookingActor")
+enum RescheduleStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
+
+enum RescheduleRequestReasonCode {
+  CUSTOMER_SCHEDULE_CONFLICT
+  WRONG_CLASS_SELECTED
+  PERSONAL_UNAVAILABLE
+}
+
+enum RescheduleDecisionReasonCode {
+  ELIGIBILITY_VERIFIED
+  TARGET_UNAVAILABLE
+  OUTSIDE_POLICY
+  OUT_OF_SCOPE
+}
+
+model User {
+  id                       String                   @id @db.Uuid
+  displayName              String
+  status                   UserStatus               @default(ACTIVE)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  identities               Identity[]
+  assignments              Assignment[]
+  roles                    UserRole[]
+  sessions                 UserSession[]
+  challenges               AuthChallenge[]
+  createdInvitations       UserInvitation[]
+  paymentProofs            PaymentProof[]
+  purchases                Purchase[]
+  decidedPurchases         Purchase[]               @relation("PurchaseDecisionActor")
+  customerPackages         CustomerPackage[]
+  requestedAdjustments     SessionAdjustment[]      @relation("AdjustmentRequester")
+  decidedAdjustments       SessionAdjustment[]      @relation("AdjustmentDecider")
+  instructorAvailabilities InstructorAvailability[]
+  instructedClassSlots     ClassSlot[]              @relation("ClassSlotInstructor")
+  customerBookings         Booking[]                @relation("BookingCustomer")
+  createdBookings          Booking[]                @relation("BookingActor")
+  requestedReschedules     Reschedule[]             @relation("RescheduleRequester")
+  decidedReschedules       Reschedule[]             @relation("RescheduleDecider")
+}
+
 model Identity {
-  id String @id @db.Uuid
-  userId String @db.Uuid
-  provider IdentityProvider
+  id          String           @id @db.Uuid
+  userId      String           @db.Uuid
+  provider    IdentityProvider
   subjectHash String
-  verifiedAt DateTime
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  verifiedAt  DateTime
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
   @@unique([provider, subjectHash])
   @@index([userId])
 }
+
 model Branch {
-  id String @id @db.Uuid
-  code String @unique
-  name String
-  timezone String
-  active Boolean @default(true)
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  assignments Assignment[]
-  userRoles UserRole[]
-  configurations EffectiveConfiguration[]
-  classTypes ClassType[]
-  packages Package[]
-  customerPackages CustomerPackage[]
-  paymentProofs PaymentProof[]
-  purchases Purchase[]
+  id                       String                   @id @db.Uuid
+  code                     String                   @unique
+  name                     String
+  timezone                 String
+  active                   Boolean                  @default(true)
+  version                  Int                      @default(0)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  assignments              Assignment[]
+  userRoles                UserRole[]
+  configurations           EffectiveConfiguration[]
+  classTypes               ClassType[]
+  packages                 Package[]
+  customerPackages         CustomerPackage[]
+  paymentProofs            PaymentProof[]
+  purchases                Purchase[]
   instructorAvailabilities InstructorAvailability[]
-  classSlots ClassSlot[]
-  bookings Booking[]
+  classSlots               ClassSlot[]
+  bookings                 Booking[]
+  reschedules              Reschedule[]
 }
 
 model ClassType {
-  id String @id @db.Uuid
-  branchId String @db.Uuid
-  code String
-  name String
-  active Boolean @default(true)
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  configurations EffectiveConfiguration[]
-  packages Package[]
+  id               String                   @id @db.Uuid
+  branchId         String                   @db.Uuid
+  code             String
+  name             String
+  active           Boolean                  @default(true)
+  version          Int                      @default(0)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  branch           Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  configurations   EffectiveConfiguration[]
+  packages         Package[]
   customerPackages CustomerPackage[]
-  classSlots ClassSlot[]
+  classSlots       ClassSlot[]
+
   @@unique([branchId, code])
   @@index([branchId, active])
 }
+
 model Assignment {
-  id String @id @db.Uuid
-  userId String @db.Uuid
-  branchId String @db.Uuid
-  type AssignmentType
-  activeFrom DateTime @db.Date
-  activeUntil DateTime? @db.Date
-  version Int @default(0)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  projectedRole UserRole? @relation("AssignmentRoleProjection")
+  id                       String                   @id @db.Uuid
+  userId                   String                   @db.Uuid
+  branchId                 String                   @db.Uuid
+  type                     AssignmentType
+  activeFrom               DateTime                 @db.Date
+  activeUntil              DateTime?                @db.Date
+  version                  Int                      @default(0)
+  user                     User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                   Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  projectedRole            UserRole?                @relation("AssignmentRoleProjection")
   instructorAvailabilities InstructorAvailability[]
+
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, type, activeFrom, activeUntil])
 }
 
 model InstructorAvailability {
-  id String @id @db.Uuid
-  instructorUserId String @db.Uuid
-  branchId String @db.Uuid
-  sourceAssignmentId String @db.Uuid
-  startAt DateTime
-  endAt DateTime
-  timezone String
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  instructor User @relation(fields: [instructorUserId], references: [id], onDelete: Restrict)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  sourceAssignment Assignment @relation(fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+  id                 String     @id @db.Uuid
+  instructorUserId   String     @db.Uuid
+  branchId           String     @db.Uuid
+  sourceAssignmentId String     @db.Uuid
+  startAt            DateTime
+  endAt              DateTime
+  timezone           String
+  version            Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  instructor         User       @relation(fields: [instructorUserId], references: [id], onDelete: Restrict)
+  branch             Branch     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceAssignment   Assignment @relation(fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+
   @@index([instructorUserId, startAt, id])
   @@index([branchId, startAt, endAt])
 }
 
 model ClassSlot {
-  id String @id @db.Uuid
-  branchId String @db.Uuid
-  classTypeId String @db.Uuid
-  instructorUserId String? @db.Uuid
-  startAt DateTime
-  endAt DateTime
-  timezone String
-  minimumQuota Int
-  capacity Int
-  bookedCount Int @default(0)
-  status ClassSlotStatus @default(DRAFT)
+  id                     String                           @id @db.Uuid
+  branchId               String                           @db.Uuid
+  classTypeId            String                           @db.Uuid
+  instructorUserId       String?                          @db.Uuid
+  startAt                DateTime
+  endAt                  DateTime
+  timezone               String
+  minimumQuota           Int
+  capacity               Int
+  bookedCount            Int                              @default(0)
+  status                 ClassSlotStatus                  @default(DRAFT)
   cancellationReasonCode ClassSlotCancellationReasonCode?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  instructor User? @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
-  reservations SessionReservation[]
-  bookings Booking[]
-  quotaEvaluationJob QuotaEvaluationJob?
+  version                Int                              @default(0)
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
+  branch                 Branch                           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType              ClassType                        @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  instructor             User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  reservations           SessionReservation[]
+  bookings               Booking[]
+  sourceReschedules      Reschedule[]                     @relation("RescheduleSourceSlot")
+  targetReschedules      Reschedule[]                     @relation("RescheduleTargetSlot")
+  quotaEvaluationJob     QuotaEvaluationJob?
+
   @@index([branchId, startAt, id])
   @@index([instructorUserId, startAt, endAt])
   @@index([status, startAt])
 }
 
 model QuotaEvaluationJob {
-  id String @id @db.Uuid
-  classSlotId String @unique @db.Uuid
-  evaluationKey String @unique
-  dueAt DateTime
-  status QuotaEvaluationJobStatus @default(QUEUED)
-  leaseOwner String?
+  id             String                   @id @db.Uuid
+  classSlotId    String                   @unique @db.Uuid
+  evaluationKey  String                   @unique
+  dueAt          DateTime
+  status         QuotaEvaluationJobStatus @default(QUEUED)
+  leaseOwner     String?
   leaseExpiresAt DateTime?
-  attempts Int @default(0)
-  maxAttempts Int
-  nextAttemptAt DateTime
-  lastErrorCode String?
-  result Json?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  classSlot ClassSlot @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  attempts       Int                      @default(0)
+  maxAttempts    Int
+  nextAttemptAt  DateTime
+  lastErrorCode  String?
+  result         Json?
+  version        Int                      @default(0)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  classSlot      ClassSlot                @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+
   @@index([status, dueAt, nextAttemptAt])
   @@index([leaseExpiresAt])
 }
 
 model UserRole {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  role ApplicationRole
-  branchId String? @db.Uuid
-  activeFrom DateTime
-  activeUntil DateTime?
-  sourceAssignmentId String? @unique @db.Uuid
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  sourceAssignment Assignment? @relation("AssignmentRoleProjection", fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+  id                 String          @id @default(uuid()) @db.Uuid
+  userId             String          @db.Uuid
+  role               ApplicationRole
+  branchId           String?         @db.Uuid
+  activeFrom         DateTime
+  activeUntil        DateTime?
+  sourceAssignmentId String?         @unique @db.Uuid
+  createdAt          DateTime        @default(now())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch             Branch?         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceAssignment   Assignment?     @relation("AssignmentRoleProjection", fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, role, activeFrom, activeUntil])
 }
 
 model UserSession {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  channel SessionChannel
-  tokenFamilyHash String
-  accessTokenHash String @unique
-  refreshTokenHash String? @unique
-  assurance AssuranceLevel @default(BASE)
-  expiresAt DateTime
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @db.Uuid
+  channel          SessionChannel
+  tokenFamilyHash  String
+  accessTokenHash  String         @unique
+  refreshTokenHash String?        @unique
+  assurance        AssuranceLevel @default(BASE)
+  expiresAt        DateTime
   refreshExpiresAt DateTime?
-  revokedAt DateTime?
+  revokedAt        DateTime?
   revocationReason String?
-  createdAt DateTime @default(now())
-  rotatedAt DateTime?
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt        DateTime       @default(now())
+  rotatedAt        DateTime?
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
   @@index([userId, expiresAt, revokedAt])
   @@index([tokenFamilyHash, revokedAt])
 }
 
 model AuthChallenge {
-  id String @id @default(uuid()) @db.Uuid
-  userId String? @db.Uuid
-  kind ChallengeKind
-  purpose String
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String?         @db.Uuid
+  kind        ChallengeKind
+  purpose     String
   subjectHash String
-  proofHash String
-  status ChallengeStatus @default(PENDING)
-  attempts Int @default(0)
+  proofHash   String
+  status      ChallengeStatus @default(PENDING)
+  attempts    Int             @default(0)
   maxAttempts Int
-  expiresAt DateTime
-  verifiedAt DateTime?
-  createdAt DateTime @default(now())
-  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  user        User?           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
   @@index([kind, subjectHash, createdAt])
   @@index([status, expiresAt])
 }
 
 model UserInvitation {
-  id String @id @default(uuid()) @db.Uuid
-  invitedById String @db.Uuid
+  id               String           @id @default(uuid()) @db.Uuid
+  invitedById      String           @db.Uuid
   identityProvider IdentityProvider @default(GOOGLE)
-  subjectHash String
-  roles Json
-  branchIds Json
-  status InvitationStatus @default(PENDING)
-  expiresAt DateTime
-  acceptedAt DateTime?
-  createdAt DateTime @default(now())
-  invitedBy User @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  subjectHash      String
+  roles            Json
+  branchIds        Json
+  status           InvitationStatus @default(PENDING)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  invitedBy        User             @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+
   @@index([identityProvider, subjectHash, status, expiresAt])
   @@index([invitedById, createdAt])
 }
 
 model RateLimitCounter {
-  id String @id @default(uuid()) @db.Uuid
-  scope String
+  id          String   @id @default(uuid()) @db.Uuid
+  scope       String
   subjectHash String
   windowStart DateTime
-  attempts Int @default(1)
-  expiresAt DateTime
+  attempts    Int      @default(1)
+  expiresAt   DateTime
+
   @@unique([scope, subjectHash, windowStart])
   @@index([expiresAt])
 }
+
 model AuditLog {
-  id String @id @db.Uuid
-  occurredAt DateTime @default(now())
-  actorType String
-  actorId String? @db.Uuid
-  branchId String? @db.Uuid
-  action String
-  objectType String
-  objectId String
-  beforeMasked Json?
-  afterMasked Json?
+  id            String   @id @db.Uuid
+  occurredAt    DateTime @default(now())
+  actorType     String
+  actorId       String?  @db.Uuid
+  branchId      String?  @db.Uuid
+  action        String
+  objectType    String
+  objectId      String
+  beforeMasked  Json?
+  afterMasked   Json?
   correlationId String
+
   @@index([branchId, occurredAt])
   @@index([objectType, objectId, occurredAt])
 }
+
 model IdempotencyRecord {
-  id String @id @db.Uuid
-  scope String
-  keyHash String
-  requestHash String
-  status IdempotencyStatus @default(IN_PROGRESS)
-  responseStatus Int?
-  responseBody Json?
+  id              String            @id @db.Uuid
+  scope           String
+  keyHash         String
+  requestHash     String
+  status          IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus  Int?
+  responseBody    Json?
   responseHeaders Json?
-  createdAt DateTime @default(now())
-  completedAt DateTime?
-  leaseExpiresAt DateTime
-  expiresAt DateTime
+  createdAt       DateTime          @default(now())
+  completedAt     DateTime?
+  leaseExpiresAt  DateTime
+  expiresAt       DateTime
+
   @@unique([scope, keyHash])
   @@index([expiresAt])
   @@index([status, leaseExpiresAt])
 }
+
 model OutboxEvent {
-  id String @id @db.Uuid
-  eventType String
+  id            String       @id @db.Uuid
+  eventType     String
   aggregateType String
-  aggregateId String
-  payload Json
+  aggregateId   String
+  payload       Json
   correlationId String
-  status OutboxStatus @default(PENDING)
-  occurredAt DateTime @default(now())
-  publishedAt DateTime?
-  attempts Int @default(0)
+  status        OutboxStatus @default(PENDING)
+  occurredAt    DateTime     @default(now())
+  publishedAt   DateTime?
+  attempts      Int          @default(0)
+
   @@index([status, occurredAt])
   @@index([aggregateType, aggregateId])
 }
+
 model Package {
-  id String @id @db.Uuid
-  branchId String @db.Uuid
-  classTypeId String @db.Uuid
-  businessKey String
-  name String
-  sessionCount Int
-  durationDays Int
-  priceRp Int
-  effectiveFrom DateTime @db.Date
-  effectiveUntil DateTime? @db.Date
-  status PackageStatus @default(ACTIVE)
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  proofs PaymentProof[]
-  purchases Purchase[]
+  id               String            @id @db.Uuid
+  branchId         String            @db.Uuid
+  classTypeId      String            @db.Uuid
+  businessKey      String
+  name             String
+  sessionCount     Int
+  durationDays     Int
+  priceRp          Int
+  effectiveFrom    DateTime          @db.Date
+  effectiveUntil   DateTime?         @db.Date
+  status           PackageStatus     @default(ACTIVE)
+  version          Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  branch           Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType        ClassType         @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  proofs           PaymentProof[]
+  purchases        Purchase[]
   customerPackages CustomerPackage[]
+
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
 }
 
 model PaymentProof {
-  id String @id @db.Uuid
-  userId String @db.Uuid
-  branchId String @db.Uuid
-  packageId String? @db.Uuid
-  objectKey String @unique
-  checksum String
-  fileName String
-  mimeType String
-  sizeBytes Int
-  uploadStatus PaymentProofUploadStatus @default(ISSUED)
-  scanStatus PaymentProofScanStatus @default(PENDING)
+  id                    String                   @id @db.Uuid
+  userId                String                   @db.Uuid
+  branchId              String                   @db.Uuid
+  packageId             String?                  @db.Uuid
+  objectKey             String                   @unique
+  checksum              String
+  fileName              String
+  mimeType              String
+  sizeBytes             Int
+  uploadStatus          PaymentProofUploadStatus @default(ISSUED)
+  scanStatus            PaymentProofScanStatus   @default(PENDING)
   providerReferenceHash String?
-  issuedAt DateTime @default(now())
-  uploadedAt DateTime?
-  finalizedAt DateTime?
-  replacedById String? @db.Uuid
-  version Int @default(0)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package Package? @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  purchase Purchase?
-  replacedBy PaymentProof? @relation("PaymentProofReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
-  replaces PaymentProof[] @relation("PaymentProofReplacement")
+  issuedAt              DateTime                 @default(now())
+  uploadedAt            DateTime?
+  finalizedAt           DateTime?
+  replacedById          String?                  @db.Uuid
+  version               Int                      @default(0)
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package               Package?                 @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  purchase              Purchase?
+  replacedBy            PaymentProof?            @relation("PaymentProofReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces              PaymentProof[]           @relation("PaymentProofReplacement")
+
   @@index([userId, branchId, scanStatus])
 }
 
 model Purchase {
-  id String @id @db.Uuid
-  userId String @db.Uuid
-  branchId String @db.Uuid
-  packageId String @db.Uuid
-  paymentProofId String @unique @db.Uuid
-  packageNameSnapshot String
-  priceRpSnapshot Int
+  id                   String           @id @db.Uuid
+  userId               String           @db.Uuid
+  branchId             String           @db.Uuid
+  packageId            String           @db.Uuid
+  paymentProofId       String           @unique @db.Uuid
+  packageNameSnapshot  String
+  priceRpSnapshot      Int
   sessionCountSnapshot Int
   durationDaysSnapshot Int
-  status PurchaseStatus @default(PENDING)
-  idempotencyKeyHash String
-  submittedAt DateTime @default(now())
-  decidedAt DateTime?
-  decidedById String? @db.Uuid
-  decisionReasonCode String?
-  version Int @default(0)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  paymentProof PaymentProof @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
-  decidedBy User? @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
-  customerPackage CustomerPackage?
+  status               PurchaseStatus   @default(PENDING)
+  idempotencyKeyHash   String
+  submittedAt          DateTime         @default(now())
+  decidedAt            DateTime?
+  decidedById          String?          @db.Uuid
+  decisionReasonCode   String?
+  version              Int              @default(0)
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch               Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package              Package          @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  paymentProof         PaymentProof     @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
+  decidedBy            User?            @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
+  customerPackage      CustomerPackage?
+
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
 }
 
 model CustomerPackage {
-  id String @id @db.Uuid
-  purchaseId String @unique @db.Uuid
-  customerUserId String @db.Uuid
-  branchId String @db.Uuid
-  packageId String @db.Uuid
-  classTypeId String @db.Uuid
-  activationDate DateTime @db.Date
-  expiryAt DateTime
-  salePriceRp Int
+  id                   String                @id @db.Uuid
+  purchaseId           String                @unique @db.Uuid
+  customerUserId       String                @db.Uuid
+  branchId             String                @db.Uuid
+  packageId            String                @db.Uuid
+  classTypeId          String                @db.Uuid
+  activationDate       DateTime              @db.Date
+  expiryAt             DateTime
+  salePriceRp          Int
   sessionCountSnapshot Int
   durationDaysSnapshot Int
-  projectionRateRp Int
-  status CustomerPackageStatus @default(ACTIVE)
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
-  customer User @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  classType ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  ledgerEntries LedgerEntry[]
-  reservations SessionReservation[]
-  adjustments SessionAdjustment[]
-  bookings Booking[]
+  projectionRateRp     Int
+  status               CustomerPackageStatus @default(ACTIVE)
+  version              Int                   @default(0)
+  createdAt            DateTime              @default(now())
+  purchase             Purchase              @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  customer             User                  @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch               Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package              Package               @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  classType            ClassType             @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  ledgerEntries        LedgerEntry[]
+  reservations         SessionReservation[]
+  adjustments          SessionAdjustment[]
+  bookings             Booking[]
+
   @@index([customerUserId, branchId, expiryAt])
 }
 
 model SessionReservation {
-  id String @id @db.Uuid
-  customerPackageId String @db.Uuid
-  classSlotId String? @db.Uuid
-  referenceHash String
-  quantity Int @default(1)
-  status SessionReservationStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  releasedAt DateTime?
-  consumedAt DateTime?
-  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  classSlot ClassSlot? @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  booking Booking?
+  id                String                   @id @db.Uuid
+  customerPackageId String                   @db.Uuid
+  classSlotId       String?                  @db.Uuid
+  referenceHash     String
+  quantity          Int                      @default(1)
+  status            SessionReservationStatus @default(ACTIVE)
+  createdAt         DateTime                 @default(now())
+  releasedAt        DateTime?
+  consumedAt        DateTime?
+  customerPackage   CustomerPackage          @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  classSlot         ClassSlot?               @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  booking           Booking?
+
   @@unique([customerPackageId, referenceHash])
   @@index([customerPackageId, status, createdAt])
   @@index([classSlotId, status])
 }
 
 model Booking {
-  id String @id @db.Uuid
-  branchId String @db.Uuid
-  classSlotId String @db.Uuid
-  customerUserId String @db.Uuid
-  customerPackageId String @db.Uuid
-  reservationId String @unique @db.Uuid
-  createdById String @db.Uuid
-  source BookingSource
-  status BookingStatus @default(BOOKED)
-  reservedQuantity Int @default(1)
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classSlot ClassSlot @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  customer User @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
-  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  reservation SessionReservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
-  createdBy User @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  id                String             @id @db.Uuid
+  branchId          String             @db.Uuid
+  classSlotId       String             @db.Uuid
+  customerUserId    String             @db.Uuid
+  customerPackageId String             @db.Uuid
+  reservationId     String             @unique @db.Uuid
+  createdById       String             @db.Uuid
+  source            BookingSource
+  status            BookingStatus      @default(BOOKED)
+  reservedQuantity  Int                @default(1)
+  version           Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  branch            Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot         ClassSlot          @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  customer          User               @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  customerPackage   CustomerPackage    @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  reservation       SessionReservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  createdBy         User               @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  reschedules       Reschedule[]
+
   @@index([branchId, createdAt, id])
   @@index([customerUserId, createdAt, id])
   @@index([classSlotId, status])
 }
 
+model Reschedule {
+  id                  String                        @id @db.Uuid
+  branchId            String                        @db.Uuid
+  bookingId           String                        @db.Uuid
+  sourceClassSlotId   String                        @db.Uuid
+  targetClassSlotId   String                        @db.Uuid
+  requestedById       String                        @db.Uuid
+  decidedById         String?                       @db.Uuid
+  requestReasonCode   RescheduleRequestReasonCode
+  decisionReasonCode  RescheduleDecisionReasonCode?
+  status              RescheduleStatus              @default(PENDING)
+  entitlementCutoffAt DateTime
+  entitledAtRequest   Boolean                       @default(true)
+  decidedAt           DateTime?
+  version             Int                           @default(0)
+  requestedAt         DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  branch              Branch                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  booking             Booking                       @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  sourceClassSlot     ClassSlot                     @relation("RescheduleSourceSlot", fields: [sourceClassSlotId], references: [id], onDelete: Restrict)
+  targetClassSlot     ClassSlot                     @relation("RescheduleTargetSlot", fields: [targetClassSlotId], references: [id], onDelete: Restrict)
+  requestedBy         User                          @relation("RescheduleRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy           User?                         @relation("RescheduleDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, requestedAt, id])
+  @@index([bookingId, requestedAt])
+}
+
 model LedgerEntry {
-  id String @id @db.Uuid
-  customerPackageId String @db.Uuid
-  type LedgerEntryType
-  quantity Int
-  referenceType String
-  referenceId String
-  occurredAt DateTime @default(now())
-  sessionAdjustmentId String? @unique @db.Uuid
-  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  sessionAdjustment SessionAdjustment? @relation(fields: [sessionAdjustmentId], references: [id], onDelete: Restrict)
+  id                  String             @id @db.Uuid
+  customerPackageId   String             @db.Uuid
+  type                LedgerEntryType
+  quantity            Int
+  referenceType       String
+  referenceId         String
+  occurredAt          DateTime           @default(now())
+  sessionAdjustmentId String?            @unique @db.Uuid
+  customerPackage     CustomerPackage    @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  sessionAdjustment   SessionAdjustment? @relation(fields: [sessionAdjustmentId], references: [id], onDelete: Restrict)
+
   @@unique([type, referenceType, referenceId])
   @@index([customerPackageId, occurredAt])
 }
 
 model SessionAdjustment {
-  id String @id @db.Uuid
-  customerPackageId String @db.Uuid
-  quantity Int
-  reasonCode SessionAdjustmentReasonCode
-  requestedById String @db.Uuid
-  decidedById String? @db.Uuid
-  decisionCode SessionAdjustmentDecisionCode?
-  status SessionAdjustmentStatus @default(PENDING)
-  decidedAt DateTime?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  customerPackage CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  requestedBy User @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  decidedBy User? @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
-  ledgerEntry LedgerEntry?
+  id                String                         @id @db.Uuid
+  customerPackageId String                         @db.Uuid
+  quantity          Int
+  reasonCode        SessionAdjustmentReasonCode
+  requestedById     String                         @db.Uuid
+  decidedById       String?                        @db.Uuid
+  decisionCode      SessionAdjustmentDecisionCode?
+  status            SessionAdjustmentStatus        @default(PENDING)
+  decidedAt         DateTime?
+  version           Int                            @default(0)
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+  customerPackage   CustomerPackage                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  requestedBy       User                           @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy         User?                          @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  ledgerEntry       LedgerEntry?
+
   @@index([customerPackageId, createdAt])
   @@index([status, createdAt])
 }
 
 model EffectiveConfiguration {
-  id String @id @db.Uuid
-  kind String
-  businessKey String
-  branchId String? @db.Uuid
-  classTypeId String? @db.Uuid
-  value Json
-  effectiveFrom DateTime @db.Date
-  effectiveUntil DateTime? @db.Date
-  version Int @default(0)
+  id               String     @id @db.Uuid
+  kind             String
+  businessKey      String
+  branchId         String?    @db.Uuid
+  classTypeId      String?    @db.Uuid
+  value            Json
+  effectiveFrom    DateTime   @db.Date
+  effectiveUntil   DateTime?  @db.Date
+  version          Int        @default(0)
   approvedEvidence String?
-  createdAt DateTime @default(now())
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  createdAt        DateTime   @default(now())
+  branch           Branch?    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType        ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
   @@index([kind, businessKey, effectiveFrom, effectiveUntil])
   @@index([branchId, kind, effectiveFrom])
 }

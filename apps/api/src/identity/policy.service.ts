@@ -10,6 +10,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:read',
     'booking:self:read',
     'booking:self:create',
+    'reschedule:self:read',
+    'reschedule:self:request',
   ],
   INSTRUCTOR: [
     'class:assigned:read',
@@ -28,6 +30,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:manage',
     'booking:read',
     'booking:create:assisted',
+    'reschedule:read',
+    'reschedule:decide',
   ],
   MANAGER: [
     'branch:manage',
@@ -63,6 +67,8 @@ const CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'operations:recover',
     'booking:read',
     'booking:create:assisted',
+    'reschedule:read',
+    'reschedule:decide',
   ],
   FINANCE: ['finance:read', 'finance:manage', 'ledger:read'],
   OPS: ['operations:read', 'operations:recover'],

@@ -1,7 +1,7 @@
 # Frontend Design Baseline
 
 Status: `LOCAL IMPLEMENTATION / INTERIM EXECUTABLE REFERENCE`  
-Tanggal: 2026-07-22  
+Tanggal: 2026-07-23  
 Scope: Web light theme, synthetic non-production
 
 ## Tujuan dan Batas Otoritas
@@ -17,7 +17,7 @@ Navigation visibility membantu usability. Backend tetap satu-satunya authorizati
 | Brand | primary `#396552`; strong `#274a3d`; soft `#e8f0ec` |
 | Surface | canvas hangat, surface putih, muted surface; border netral hijau-abu |
 | Status | success, information, warning, danger selalu memakai warna + teks/ikon |
-| Typography | system sans-serif; heading ringkas; body minimum 16px pada mobile |
+| Typography | workspace memakai system sans-serif; public brand memakai serif editorial untuk heading dan sans-serif untuk copy; body minimum 16px pada mobile |
 | Spacing | skala 4, 8, 12, 16, 20, 24, 32, 40, 48 px |
 | Radius | small untuk control, medium untuk panel, large untuk workspace card |
 | Elevation | shadow kecil untuk item; sedang untuk card utama; tidak menjadi indikator status |
@@ -31,6 +31,7 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 | Primitive | Anatomy/variant | Aturan |
 |---|---|---|
 | Application shell | logo, grouped navigation, environment, topbar, workspace | sidebar desktop; rail tablet; horizontal navigation mobile |
+| Role-aware dashboard | greeting, assurance/expiry, active branch, capability-filtered work cards, session summary | tidak menampilkan halaman di luar capability; branch tidak dipilih otomatis |
 | Page header | eyebrow, title, description, context | branch/role/timezone/MFA ditempatkan pada context |
 | Button | primary, destructive/secondary melalui konteks aksi | label berbentuk kata kerja; disabled bukan satu-satunya penjelasan |
 | Form field | label, control, hint/error | label programatik; error aman dan fokus dapat dipindahkan |
@@ -40,6 +41,7 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 | Confirmation panel | consequence title + summary | wajib untuk destructive/financial mutation |
 | Data region | accessible overflow + table/list | region fokus; heading/column context dipertahankan |
 | Filter/pagination | labeled controls + cursor action | state filter tetap terlihat; cursor rusak dipetakan aman |
+| Public landing shell | logo, anchor navigation, editorial hero, content sections, CTA, footer | tidak bergantung sesi; desktop/tablet/mobile; tidak mengekspos data privat |
 
 ## Responsive dan Accessibility
 
@@ -52,16 +54,20 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 
 ## Screen dan Route Mapping
 
+Inventaris lengkap route/capability/status berada di `docs/design/08-frontend-page-inventory.md`. Konfigurasi executable untuk navigation dan dashboard berada di `apps/web/app/frontend-pages.ts` agar label, grouping dan capability tidak mengalami drift antar-komponen.
+
 | Screen ID | Route | Kelompok layar | State executable |
 |---|---|---|---|
+| SCR-P-01 | `/` | public brand landing | hero, approach, official class formats, studio locations, CTA, responsive footer |
 | SCR-W-01 | `/sign-in` | auth/MFA/recovery boundary | idle, loading, success, configuration, rate limit, expired MFA, forbidden, conflict, session revoked |
 | SCR-W-02 | `/users`, `/assignments` | user/role/branch/effective period | list, validation, MFA, confirmation, success, hidden/error |
 | SCR-W-03 | `/master` | branch/class/fee/rate/quota | list, create, inactive, history, overlap, stale, configuration |
-| SCR-W-04 | `/purchases` | package/proof + review | upload/scan/retry, pending, approve/reject, MFA, conflict, provider failure |
+| SCR-W-04 | `/purchases` | capability-aware package/proof submission + internal review | package cards, file/hash boundary, scan poll/replace, pending submit, queue/filter/pagination, private proof panel, approve/reject, MFA, stale/replay/provider/session |
 | SCR-W-05 | `/ledger` | balance/history/adjustment | loading, empty, active/expired, invariant, request/review, SoD, stale |
-| SCR-W-06 | `/classes` | timetable lifecycle | create, assign, publish/cancel, configuration, availability, overlap, MFA, stale |
+| SCR-P-02 | `/classes` | public authoritative class catalog | explicit studio, 14-day schedule, date/type filter, availability, empty/dependency/retry, auth handoff |
+| SCR-W-06 | `/workspace/classes` | weekly timetable lifecycle | calendar Senin–Minggu desktop/tablet; agenda mobile; create/detail side panel; filter; assign; publish/cancel; configuration, availability, overlap, MFA, stale, hidden, offline/session |
 | SCR-W-07 | `/operations` | H-24 jobs/recovery | queued, retrying, locked, late, confirmed, auto-cancelled, configuration, MFA |
-| SCR-W-08 | `/bookings` | assisted booking | loading, empty, success/replay, cutoff, full, insufficient balance, duplicate, hidden, offline/session |
+| SCR-W-08 | `/bookings` | assisted booking dan reschedule review | explicit active branch; authoritative customer/package/class selectors; balance/capacity/timezone confirmation; reschedule queue dengan approve/reject MFA; loading, empty, pagination, success/replay, cutoff, full, stale, hidden, offline/session |
 
 Sembilan route tersebut sengaja direkonsiliasi menjadi delapan screen groups karena `/users` dan `/assignments` merupakan satu kelompok administrasi identitas.
 
@@ -90,11 +96,17 @@ Sembilan route tersebut sengaja direkonsiliasi menjadi delapan screen groups kar
 ## Authoritative Session dan Capability Context
 
 - `GET /me` adalah satu-satunya sumber Web untuk display name, role, capability, assurance, masa berlaku sesi, serta branch aktif yang boleh dipilih.
-- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/sign-in` dan `/health` tetap publik.
+- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/`, `/classes`, `/sign-in`, dan `/health` tetap publik; dashboard internal berada di `/workspace` dan timetable operator di `/workspace/classes`.
 - Navigation disaring berdasarkan capability untuk usability. Direct URL, query branch, dan setiap mutation tetap diverifikasi backend.
 - Branch dipilih eksplisit, disimpan per tab melalui `sessionStorage`, dan dihapus bila tidak lagi terdapat pada branch context `/me`. Tidak ada fallback branch pertama atau `all branches`.
 - Step-up MFA wajib memuat ulang `/me`; badge assurance tidak boleh dinaikkan hanya dari state frontend.
 - Response 401 dari adapter bisnis memicu revocation event lokal, membersihkan context dan branch selection, lalu menjalankan re-authentication tanpa optimistic mutation.
+- Assisted booking memakai active branch untuk memuat pelanggan aktif, customer package yang masih berlaku dan memiliki saldo, serta class slot `PUBLISHED/CONFIRMED` yang cocok. Pilihan turunan selalu dihapus ketika branch/customer/package berubah; frontend eligibility hanya bantuan UX dan tidak menggantikan validasi backend.
+- Queue reschedule hanya terlihat untuk `reschedule:read`; keputusan memerlukan `reschedule:decide` dan assurance MFA. UI menampilkan sumber, target, cutoff, controlled reason, version dan konsekuensi tanpa free text atau pemindahan reservation optimistik.
+- Timetable kelas memakai timezone cabang dari session context, bukan timezone mesin. Minggu selalu dimulai Senin; input lokal dikonversi deterministik ke RFC3339 dan waktu DST yang tidak ada ditolak. Desktop/tablet memakai grid tujuh hari, sedangkan mobile memakai agenda berurutan.
+- Panel create/detail kelas menjaga konteks kalender, memuat label class type/instructor authoritative, dan tidak memilih opsi pertama secara otomatis. Assign hanya berlaku untuk `DRAFT`; publish/cancel memakai versi authoritative, MFA, controlled reason, dan hasil server tanpa optimistic mutation.
+- Purchase workspace menampilkan submission hanya untuk Customer dan internal queue hanya untuk reviewer. File checksum dihitung lokal tanpa ditampilkan; proof authorization dibuka sementara memakai `noopener,noreferrer`; URL, checksum, dan provider reference tidak disimpan ke state persisten atau telemetry.
+- Package, proof, purchase, customer label, cursor, version, dan keputusan berasal dari generated clients. Branch/session change mereset seluruh selection dan intent; retry mempertahankan key intent yang sama hingga hasil authoritative diterima.
 
 ## Gate Disposition
 

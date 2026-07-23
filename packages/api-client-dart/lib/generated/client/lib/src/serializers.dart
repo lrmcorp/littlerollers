@@ -123,8 +123,10 @@ import 'package:openapi/src/model/recovery_verify_command.dart';
 import 'package:openapi/src/model/recovery_verify_command_new_verified_identity.dart';
 import 'package:openapi/src/model/replace_payment_proof_command.dart';
 import 'package:openapi/src/model/reschedule.dart';
-import 'package:openapi/src/model/reschedule_command.dart';
+import 'package:openapi/src/model/reschedule_decision_command.dart';
 import 'package:openapi/src/model/reschedule_decision_result.dart';
+import 'package:openapi/src/model/reschedule_page.dart';
+import 'package:openapi/src/model/reschedule_request_command.dart';
 import 'package:openapi/src/model/reservation_summary.dart';
 import 'package:openapi/src/model/resource.dart';
 import 'package:openapi/src/model/revoke_sessions_command.dart';
@@ -251,8 +253,10 @@ part 'serializers.g.dart';
   RecoveryVerifyCommandNewVerifiedIdentity,
   ReplacePaymentProofCommand,
   Reschedule,
-  RescheduleCommand,
+  RescheduleDecisionCommand,
   RescheduleDecisionResult,
+  ReschedulePage,
+  RescheduleRequestCommand,
   ReservationSummary,
   Resource,
   RevokeSessionsCommand,

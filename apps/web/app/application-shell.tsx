@@ -2,13 +2,19 @@
 
 import { AppNavigation } from './app-navigation';
 import { useSessionContext } from './session-context';
+import { usePathname } from 'next/navigation';
 import { StatusBadge } from './ui';
 
 export function ApplicationShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const context = useSessionContext();
   const session = context?.session;
+  if (pathname === '/' || pathname === '/classes') return children;
   return (
     <div className="shell">
+      <a className="skip-link" href="#main-content">
+        Langsung ke konten utama
+      </a>
       <AppNavigation />
       <div className="workspace">
         <header className="topbar">
@@ -22,7 +28,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <StatusBadge tone={session.assurance === 'MFA' ? 'success' : 'warning'}>
                   {session.assurance}
                 </StatusBadge>
-                <span>{session.roles.join(' · ')}</span>
+                <span className="topbar-role">{session.roles.join(' · ')}</span>
                 <label className="branch-context-field">
                   <span>Cabang aktif</span>
                   <select

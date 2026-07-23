@@ -60,7 +60,7 @@ export function SignInView({
             await client.signIn(syntheticMode ? syntheticEmail : undefined);
             if (sessionContext) {
               const completed = await sessionContext.completeSignIn(
-                new URLSearchParams(window.location.search).get('returnTo') ?? '/',
+                new URLSearchParams(window.location.search).get('returnTo') ?? '/workspace',
               );
               if (!completed) throw { response: { status: 401 } };
             }

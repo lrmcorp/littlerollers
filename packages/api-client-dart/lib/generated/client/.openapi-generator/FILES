@@ -123,8 +123,10 @@ doc/RecoveryVerifyCommand.md
 doc/RecoveryVerifyCommandNewVerifiedIdentity.md
 doc/ReplacePaymentProofCommand.md
 doc/Reschedule.md
-doc/RescheduleCommand.md
+doc/RescheduleDecisionCommand.md
 doc/RescheduleDecisionResult.md
+doc/ReschedulePage.md
+doc/RescheduleRequestCommand.md
 doc/ReservationSummary.md
 doc/Resource.md
 doc/RevokeSessionsCommand.md
@@ -270,8 +272,10 @@ lib/src/model/recovery_verify_command.dart
 lib/src/model/recovery_verify_command_new_verified_identity.dart
 lib/src/model/replace_payment_proof_command.dart
 lib/src/model/reschedule.dart
-lib/src/model/reschedule_command.dart
+lib/src/model/reschedule_decision_command.dart
 lib/src/model/reschedule_decision_result.dart
+lib/src/model/reschedule_page.dart
+lib/src/model/reschedule_request_command.dart
 lib/src/model/reservation_summary.dart
 lib/src/model/resource.dart
 lib/src/model/revoke_sessions_command.dart
@@ -287,3 +291,6 @@ lib/src/model/token_check_in_command.dart
 lib/src/model/version_command.dart
 lib/src/serializers.dart
 pubspec.yaml
+test/reschedule_decision_command_test.dart
+test/reschedule_page_test.dart
+test/reschedule_request_command_test.dart

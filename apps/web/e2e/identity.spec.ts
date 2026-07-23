@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const webCapabilities = [
   'user:read',
@@ -21,6 +21,8 @@ const webCapabilities = [
   'operations:recover',
   'booking:read',
   'booking:create:assisted',
+  'reschedule:read',
+  'reschedule:decide',
   'branch:all',
 ];
 
@@ -52,6 +54,94 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+async function routeBookingDiscovery(
+  page: Page,
+  ids: { branchId: string; classSlotId: string; customerUserId: string; customerPackageId: string },
+  reschedules: object[] = [],
+) {
+  const classTypeId = '00000000-0000-4000-8000-000000000399';
+  await page.route('**/api/v1/users**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: ids.customerUserId,
+            status: 'ACTIVE',
+            attributes: { displayName: 'Customer Synthetic' },
+          },
+        ],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/customer-packages**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: ids.customerPackageId,
+            branchId: ids.branchId,
+            customerUserId: ids.customerUserId,
+            packageId: '00000000-0000-4000-8000-000000000398',
+            classTypeId,
+            status: 'ACTIVE',
+            activationDate: '2026-01-01',
+            expiryAt: '2028-01-01T00:00:00Z',
+            ledgerBalance: 10,
+            reserved: 2,
+            available: 8,
+            salePriceRp: 1000000,
+            sessionCountSnapshot: 10,
+            durationDaysSnapshot: 30,
+            projectionRateRp: 100000,
+            version: 0,
+          },
+        ],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/class-slots**', (route) => {
+    const isPublished = new URL(route.request().url()).searchParams.get('status') === 'PUBLISHED';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: isPublished
+          ? [
+              {
+                id: ids.classSlotId,
+                branchId: ids.branchId,
+                classTypeId,
+                startAt: '2027-01-02T02:00:00Z',
+                endAt: '2027-01-02T03:00:00Z',
+                timezone: 'Asia/Jakarta',
+                status: 'PUBLISHED',
+                minimumQuota: 2,
+                capacity: 10,
+                bookedCount: 3,
+                version: 0,
+                idempotentReplay: false,
+              },
+            ]
+          : [],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    });
+  });
+  await page.route('**/api/v1/reschedules**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: reschedules, page: { hasMore: false, nextCursor: null } }),
+    }),
+  );
+}
+
 test('sign-in exposes success without a token body', async ({ page }) => {
   await page.route('**/api/v1/auth/google', (route) =>
     route.fulfill({
@@ -80,8 +170,8 @@ test('sign-in exposes success without a token body', async ({ page }) => {
   await page.goto('/sign-in?returnTo=https://evil.example/steal');
   await page.getByLabel('Email Google synthetic').fill('owner@example.test');
   await page.getByRole('button', { name: /Google/ }).press('Enter');
-  await expect(page).toHaveURL('/');
-  await expect(page.getByText('Synthetic Super Owner')).toBeVisible();
+  await expect(page).toHaveURL('/workspace');
+  await expect(page.getByText('Synthetic Super Owner', { exact: true })).toBeVisible();
 });
 
 test('MFA invitation and deactivation flow is keyboard operable', async ({ page }) => {
@@ -387,6 +477,22 @@ test('master creates quota without a production default and exposes overlap safe
 test('purchase proof clean flow submits one pending intent with keyboard controls', async ({
   page,
 }) => {
+  await page.route('**/api/v1/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'customer-1',
+        displayName: 'Customer Synthetic',
+        roles: ['CUSTOMER'],
+        branchIds: ['branch-1'],
+        capabilities: ['package:read'],
+        assurance: 'BASE',
+        sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
+      }),
+    }),
+  );
   await page.route('**/api/v1/packages**', (route) =>
     route.fulfill({
       status: 200,
@@ -460,19 +566,37 @@ test('purchase proof clean flow submits one pending intent with keyboard control
     }),
   );
   await page.goto('/purchases');
-  await page.getByLabel('ID cabang').fill('branch-1');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
   await page.getByRole('button', { name: 'Muat paket' }).press('Enter');
-  await page.getByLabel('Paket', { exact: true }).selectOption('package-1');
-  await page.getByLabel('Nama file').fill('proof.png');
-  await page.getByLabel('Ukuran byte').fill('1024');
-  await page.getByLabel('SHA-256').fill('a'.repeat(64));
-  await page.getByRole('button', { name: 'Upload dan scan' }).press('Enter');
-  await expect(page.getByText('Status scan:')).toContainText('CLEAN');
-  await page.getByRole('button', { name: 'Kirim purchase' }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('PENDING');
+  await page.getByRole('radio', { name: /Ten Sessions/ }).check();
+  await page.getByLabel('Bukti pembayaran', { exact: true }).setInputFiles({
+    name: 'proof.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('synthetic-proof'),
+  });
+  await page.getByRole('button', { name: 'Upload dan periksa' }).press('Enter');
+  await expect(page.getByText('Bersih', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Kirim pengajuan' }).press('Enter');
+  await expect(page.getByText(/Purchase PENDING/)).toBeVisible();
 });
 
 test('unsafe scan and provider failure never enable purchase submission', async ({ page }) => {
+  await page.route('**/api/v1/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'customer-1',
+        displayName: 'Customer Synthetic',
+        roles: ['CUSTOMER'],
+        branchIds: ['branch-1'],
+        capabilities: ['package:read'],
+        assurance: 'BASE',
+        sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
+      }),
+    }),
+  );
   await page.route('**/api/v1/packages**', (route) =>
     route.fulfill({
       status: 503,
@@ -481,16 +605,28 @@ test('unsafe scan and provider failure never enable purchase submission', async 
     }),
   );
   await page.goto('/purchases');
-  await page.getByLabel('ID cabang').fill('branch-1');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
   await page.getByRole('button', { name: 'Muat paket' }).click();
-  await expect(page.getByText('CONFIGURATION_REQUIRED', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Kirim purchase' })).toBeDisabled();
+  await expect(page.getByText(/belum dikonfigurasi/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kirim pengajuan' })).toHaveCount(0);
 });
 
 test('MFA purchase review approves once and exposes only an opaque proof authorization', async ({
   page,
 }) => {
-  await page.route('**/api/v1/purchases?branchId=branch-1', (route) =>
+  await page.route('**/api/v1/users**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          { id: 'customer-1', status: 'ACTIVE', attributes: { displayName: 'Customer Synthetic' } },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/purchases**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -507,7 +643,7 @@ test('MFA purchase review approves once and exposes only an opaque proof authori
             sessionCountSnapshot: 10,
             durationDaysSnapshot: 30,
             status: 'PENDING',
-            submittedAt: new Date().toISOString(),
+            submittedAt: '2026-07-23T02:00:00.000Z',
             version: 0,
           },
         ],
@@ -553,13 +689,27 @@ test('MFA purchase review approves once and exposes only an opaque proof authori
     }),
   );
   await page.goto('/purchases');
-  await page.getByLabel('Cabang review').fill('branch-1');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
   await page.getByRole('button', { name: 'Muat queue' }).press('Enter');
-  await page.getByRole('button', { name: /Ten Sessions.*PENDING/ }).press('Enter');
-  await page.getByRole('button', { name: 'Buka proof privat' }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('Proof tersedia');
+  for (const viewport of [
+    { name: 'desktop-1280', width: 1280, height: 900 },
+    { name: 'tablet-768', width: 768, height: 900 },
+    { name: 'mobile-360', width: 360, height: 800 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await expect(page).toHaveScreenshot(`purchases-${viewport.name}.png`, {
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('button', { name: /Customer Synthetic/ }).press('Enter');
+  await page.getByRole('button', { name: 'Buka bukti privat' }).press('Enter');
+  await expect(page.getByRole('status')).toContainText('Bukti privat diotorisasi');
   await page.getByRole('button', { name: 'Setujui purchase' }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('APPROVED');
+  await expect(
+    page.getByRole('dialog', { name: 'Detail review' }).getByText('Disetujui', { exact: true }),
+  ).toBeVisible();
 });
 
 test('ledger balance and history are keyboard accessible and branch scoped', async ({ page }) => {
@@ -701,8 +851,8 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     branchId: 'branch-1',
     classTypeId: 'type-1',
     instructorUserId: null as string | null,
-    startAt: '2026-08-01T02:00:00Z',
-    endAt: '2026-08-01T03:00:00Z',
+    startAt: '2026-07-24T02:00:00Z',
+    endAt: '2026-07-24T03:00:00Z',
     timezone: 'Asia/Jakarta',
     status: 'DRAFT' as string,
     minimumQuota: 2,
@@ -712,6 +862,57 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     version: 0,
     idempotentReplay: false,
   };
+  await page.route('**/api/v1/class-types**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'type-1',
+            branchId: 'branch-1',
+            code: 'REF',
+            name: 'Reformer',
+            active: true,
+            version: 0,
+          },
+        ],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/users**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          { id: 'instructor-1', status: 'ACTIVE', attributes: { displayName: 'Ayu Instructor' } },
+        ],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/assignments**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'assignment-1',
+            userId: 'instructor-1',
+            branchId: 'branch-1',
+            assignmentType: 'INSTRUCTOR',
+            activeFrom: '2026-01-01',
+            activeUntil: null,
+            version: 0,
+          },
+        ],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
   await page.route('**/api/v1/class-slots**', async (route) => {
     const request = route.request();
     const url = request.url();
@@ -737,18 +938,34 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
       body: JSON.stringify(slot),
     });
   });
-  await page.goto('/classes');
-  await page.getByLabel('ID cabang kelas').fill('branch-1');
-  await page.getByRole('button', { name: 'Muat class slot' }).press('Enter');
-  await page.getByLabel('Instructor slot-1').fill('instructor-1');
-  await page.getByRole('button', { name: 'Assign' }).press('Enter');
-  await expect(page.getByText('Instructor ditetapkan.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Publish' }).press('Enter');
-  await expect(page.getByText(/PUBLISHED/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Cancel' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Cancel' }).press('Enter');
-  await expect(page.getByText(/CANCELLED/)).toBeVisible();
+  await page.goto('/workspace/classes');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await page.getByRole('button', { name: 'Muat timetable' }).press('Enter');
+  for (const viewport of [
+    { name: 'desktop-1280', width: 1280, height: 900 },
+    { name: 'tablet-768', width: 768, height: 900 },
+    { name: 'mobile-360', width: 360, height: 800 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await expect(page).toHaveScreenshot(`classes-${viewport.name}.png`, {
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page
+    .getByRole('region', { name: 'Kalender kelas tujuh hari' })
+    .getByRole('button', { name: /Reformer/ })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Detail kelas' });
+  await dialog.getByLabel('Instructor', { exact: true }).selectOption('instructor-1');
+  await dialog.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  await expect(page.getByText('Instructor berhasil ditetapkan.', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Publish kelas' }).press('Enter');
+  await expect(dialog.getByText('Dipublikasikan', { exact: true })).toBeVisible();
+  await dialog.getByLabel('Alasan pembatalan').selectOption('OTHER_REVIEW_REQUIRED');
+  await dialog.getByRole('button', { name: 'Konfirmasi pembatalan' }).press('Enter');
+  await expect(dialog.getByText('Dibatalkan', { exact: true })).toBeVisible();
 });
 
 test('class-slot configuration and hidden failures never show optimistic success', async ({
@@ -761,11 +978,20 @@ test('class-slot configuration and hidden failures never show optimistic success
       body: JSON.stringify({ code: 'CONFIGURATION_REQUIRED' }),
     }),
   );
-  await page.goto('/classes');
-  await page.getByLabel('ID cabang kelas').fill('foreign-branch');
-  await page.getByRole('button', { name: 'Muat class slot' }).click();
-  await expect(page.getByText('CONFIGURATION_REQUIRED', { exact: true })).toBeVisible();
-  await expect(page.getByText('Class slot dimuat.')).toHaveCount(0);
+  await page.route('**/api/v1/class-types**', (route) =>
+    route.fulfill({ status: 200, body: JSON.stringify({ items: [], page: { hasMore: false } }) }),
+  );
+  await page.route('**/api/v1/users**', (route) =>
+    route.fulfill({ status: 200, body: JSON.stringify({ items: [], page: { hasMore: false } }) }),
+  );
+  await page.route('**/api/v1/assignments**', (route) =>
+    route.fulfill({ status: 200, body: JSON.stringify({ items: [], page: { hasMore: false } }) }),
+  );
+  await page.goto('/workspace/classes');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await page.getByRole('button', { name: 'Muat timetable' }).click();
+  await expect(page.getByText(/Konfigurasi quota atau capacity/)).toBeVisible();
+  await expect(page.getByText('Draft kelas berhasil dibuat.')).toHaveCount(0);
 });
 
 test('operations H-24 queue and MFA recovery are keyboard operable', async ({ page }) => {
@@ -819,6 +1045,7 @@ test('assisted booking reserves one session with keyboard confirmation', async (
   const classSlotId = '00000000-0000-4000-8000-000000000302';
   const customerUserId = '00000000-0000-4000-8000-000000000303';
   const customerPackageId = '00000000-0000-4000-8000-000000000304';
+  await routeBookingDiscovery(page, { branchId, classSlotId, customerUserId, customerPackageId });
   await page.route('**/api/v1/bookings**', (route) => {
     if (route.request().method() === 'GET')
       return route.fulfill({
@@ -847,30 +1074,121 @@ test('assisted booking reserves one session with keyboard confirmation', async (
     });
   });
   await page.goto('/bookings');
-  await page.getByLabel('ID cabang booking').fill(branchId);
-  await page.getByRole('button', { name: 'Muat booking' }).press('Enter');
-  await page.getByLabel('ID class slot').fill(classSlotId);
-  await page.getByLabel('ID customer', { exact: true }).fill(customerUserId);
-  await page.getByLabel('ID customer package').fill(customerPackageId);
+  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByRole('button', { name: 'Muat data booking' }).press('Enter');
+  await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
+  await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
+  await page.getByLabel('Kelas').selectOption(classSlotId);
+  await expect(page.getByText(/Saldo tersedia berubah dari 8 menjadi 7/)).toBeVisible();
   await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).press('Enter');
   await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toBeVisible();
   await expect(page.getByText(/BOOKED.*reservasi 1 sesi/)).toBeVisible();
 });
 
 test('booking conflict never renders optimistic success', async ({ page }) => {
-  await page.route('**/api/v1/bookings', (route) =>
+  const branchId = '00000000-0000-4000-8000-000000000301';
+  const classSlotId = '00000000-0000-4000-8000-000000000302';
+  const customerUserId = '00000000-0000-4000-8000-000000000303';
+  const customerPackageId = '00000000-0000-4000-8000-000000000304';
+  await routeBookingDiscovery(page, { branchId, classSlotId, customerUserId, customerPackageId });
+  await page.route('**/api/v1/bookings**', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ items: [], page: { hasMore: false, nextCursor: null } }),
+        })
+      : route.fulfill({
+          status: 409,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({ code: 'CLASS_CAPACITY_FULL' }),
+        }),
+  );
+  await page.goto('/bookings');
+  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByRole('button', { name: 'Muat data booking' }).click();
+  await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
+  await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
+  await page.getByLabel('Kelas').selectOption(classSlotId);
+  await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).click();
+  await expect(page.getByText('Kapasitas kelas sudah penuh.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toHaveCount(0);
+});
+
+test('MFA reschedule review moves one reservation with controlled decision', async ({ page }) => {
+  const branchId = '00000000-0000-4000-8000-000000000301';
+  const sourceClassSlotId = '00000000-0000-4000-8000-000000000302';
+  const targetClassSlotId = '00000000-0000-4000-8000-000000000308';
+  const customerUserId = '00000000-0000-4000-8000-000000000303';
+  const customerPackageId = '00000000-0000-4000-8000-000000000304';
+  const bookingId = '00000000-0000-4000-8000-000000000305';
+  const rescheduleId = '00000000-0000-4000-8000-000000000309';
+  const reschedule = {
+    id: rescheduleId,
+    branchId,
+    bookingId,
+    sourceClassSlotId,
+    targetClassSlotId,
+    requestedById: customerUserId,
+    requestReasonCode: 'PERSONAL_UNAVAILABLE',
+    status: 'PENDING',
+    entitlementCutoffAt: '2027-01-01T02:00:00Z',
+    entitledAtRequest: true,
+    requestedAt: '2026-12-31T00:00:00Z',
+    version: 0,
+    idempotentReplay: false,
+  };
+  await routeBookingDiscovery(
+    page,
+    { branchId, classSlotId: targetClassSlotId, customerUserId, customerPackageId },
+    [reschedule],
+  );
+  await page.route('**/api/v1/bookings**', (route) =>
     route.fulfill({
-      status: 409,
-      contentType: 'application/problem+json',
-      body: JSON.stringify({ code: 'CLASS_CAPACITY_FULL' }),
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], page: { hasMore: false, nextCursor: null } }),
+    }),
+  );
+  await page.route('**/api/v1/reschedules/*/approve', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        reschedule: {
+          ...reschedule,
+          status: 'APPROVED',
+          decisionReasonCode: 'ELIGIBILITY_VERIFIED',
+          decidedById: 'user-1',
+          decidedAt: new Date().toISOString(),
+          version: 1,
+        },
+        booking: {
+          id: bookingId,
+          branchId,
+          classSlotId: targetClassSlotId,
+          customerUserId,
+          customerPackageId,
+          reservationId: '00000000-0000-4000-8000-000000000306',
+          createdById: customerUserId,
+          source: 'SELF',
+          status: 'BOOKED',
+          reservedQuantity: 1,
+          createdAt: new Date().toISOString(),
+          version: 2,
+          idempotentReplay: false,
+        },
+        idempotentReplay: false,
+      }),
     }),
   );
   await page.goto('/bookings');
-  await page.getByLabel('ID cabang booking').fill('branch-1');
-  await page.getByLabel('ID class slot').fill('slot-1');
-  await page.getByLabel('ID customer', { exact: true }).fill('customer-1');
-  await page.getByLabel('ID customer package').fill('package-1');
-  await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).click();
-  await expect(page.getByText('BOOKING_CONFLICT', { exact: true })).toBeVisible();
-  await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toHaveCount(0);
+  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByRole('button', { name: 'Muat data booking' }).click();
+  await page.getByRole('button', { name: /Tinjau reschedule/ }).press('Enter');
+  await page.getByRole('button', { name: 'Setujui reschedule' }).press('Enter');
+  await expect(
+    page.getByText('Reschedule disetujui dan reservation dipindahkan secara atomik.'),
+  ).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Queue reschedule' })).toHaveCount(0);
 });

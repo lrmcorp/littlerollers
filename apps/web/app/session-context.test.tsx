@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationShell } from './application-shell';
+import { Dashboard } from './dashboard';
 import { safeReturnTo, SessionProvider, useSessionContext } from './session-context';
 import type { SessionClient, WebSession } from './session-client';
 
-const navigation = vi.hoisted(() => ({ pathname: '/', replace: vi.fn() }));
+const navigation = vi.hoisted(() => ({ pathname: '/workspace', replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({ replace: navigation.replace }),
@@ -32,7 +33,7 @@ function ContextProbe() {
 
 describe('capability-aware session shell', () => {
   beforeEach(() => {
-    navigation.pathname = '/';
+    navigation.pathname = '/workspace';
     navigation.replace.mockReset();
     sessionStorage.clear();
   });
@@ -77,7 +78,23 @@ describe('capability-aware session shell', () => {
 
   it('accepts only same-origin relative return targets', () => {
     expect(safeReturnTo('/ledger?cursor=one')).toBe('/ledger?cursor=one');
-    expect(safeReturnTo('//evil.example/path')).toBe('/');
-    expect(safeReturnTo('https://evil.example/path')).toBe('/');
+    expect(safeReturnTo('//evil.example/path')).toBe('/workspace');
+    expect(safeReturnTo('https://evil.example/path')).toBe('/workspace');
+  });
+
+  it('renders a role-aware dashboard without exposing unavailable workspaces', async () => {
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(adminSession), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <Dashboard />
+      </SessionProvider>,
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Selamat datang, Admin Jakarta' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: /Booking & reschedule/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Ledger & adjustment/ })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Operations H-24/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();
   });
 });

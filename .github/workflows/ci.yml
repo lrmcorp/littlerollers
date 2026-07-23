@@ -28,6 +28,8 @@ jobs:
       QUOTA_EVALUATION_BACKOFF_MS: '60000'
       BOOKING_SYNTHETIC_ENABLED: 'true'
       BOOKING_SYNTHETIC_CUTOFF_HOURS: '2'
+      RESCHEDULE_SYNTHETIC_ENABLED: 'true'
+      RESCHEDULE_SYNTHETIC_CUTOFF_HOURS: '24'
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4

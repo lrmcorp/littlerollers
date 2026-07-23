@@ -29,7 +29,7 @@ Thus a fully documented story with an unresolved decision scores `78%`; one with
 
 ## 2. Story Readiness Snapshot
 
-Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `1.6.0-draft` checksum `26ab6ff4ce451b0c1d3e7b7434c6d87b003c07bd808067f33b7bdea73ac5e627`.
+Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B` = blocking/absent, `N/A` = no direct data migration beyond documented impact. Current contract references use OpenAPI `1.7.0-draft` checksum `ce7e0dbd82486dba917b0b38eb83a94be11e0a26554dc477b2f26ad00acb169a`.
 
 | Story | Requirement | UX text / Figma | Contract | Test/UAT | Migration/release | Blocking DEC | Assignee/env | Gates | % | READY / blocker owner / closure evidence |
 |---|---|---|---|---|---|---|---|---|---:|---|
@@ -45,7 +45,7 @@ Abbreviations: `D` = detailed draft complete, `P` = proposed/review pending, `B`
 | US-CLS-02 | D | D / B | P | D | D | DEC-005,006,008 | AI / hosted pass | BG-2 SYNTHETIC PASS; PG-1 B | 94 | Source `1ceabdb`, fix/evidence run `4c6ddf7`; hosted TypeScript/Flutter/Gitleaks PASS (user-confirmed); PROD NO / PO+Finance+TL policy and approvals |
 | US-CLS-03 | D | D / B | P | D | D | DEC-005,013 | AI / local evidence in progress | BG-2 IN_PROGRESS; PG-1 B | 82 | H-24 synthetic scheduler implemented; PROD NO / quota worker configuration, Flutter/Dart regression and hosted evidence |
 | US-BKG-01 | D | D / B | P | D | D | DEC-005 | AI / Web/backend local implementation | BG-2 IN_PROGRESS; PG-1 B | 82 | Web-first synthetic booking implemented; Flutter/Dart regression, hosted evidence, Figma, UAT dan production cutoff approval pending |
-| US-BKG-02 | D | D / B | P | D | D | DEC-008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO / cancellation/reschedule policy and signed reviews |
+| US-BKG-02 | D | D / B | P | D | D | DEC-008 | AI / Web-backend local pass | BG-2 IN PROGRESS; PG-1 B | 84 | WEB/BACKEND BUILD YES; PROD NO / Flutter, hosted, cancellation/reschedule policy and signed reviews |
 | US-ATT-01 | D | D / B | P | D | D | DEC-007 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / check-in boundary, threat/client tests and Figma |
 | US-ATT-02 | D | D / B | P | D | D | DEC-007,008 | AI / local pending | BG-1 NEXT; PG-1 B | 78 | BUILD YES; PROD NO / PO+TL / check-in/backfill policy and signed evidence |
 | US-ATT-03 | D | D / B | P | D | D | — | AI / local pending | BG-1 NEXT; PG-1 B | 83 | BUILD YES; PROD NO / TL+Finance+QA / atomic completion review and all gates |

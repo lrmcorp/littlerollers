@@ -122,8 +122,10 @@ models/RecoveryVerifyCommand.ts
 models/RecoveryVerifyCommandNewVerifiedIdentity.ts
 models/ReplacePaymentProofCommand.ts
 models/Reschedule.ts
-models/RescheduleCommand.ts
+models/RescheduleDecisionCommand.ts
 models/RescheduleDecisionResult.ts
+models/ReschedulePage.ts
+models/RescheduleRequestCommand.ts
 models/ReservationSummary.ts
 models/Resource.ts
 models/RevokeSessionsCommand.ts

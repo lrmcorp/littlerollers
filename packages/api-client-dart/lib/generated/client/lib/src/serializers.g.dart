@@ -169,8 +169,15 @@ Serializers _$serializers =
           ..add(RecoveryVerifyCommandNewVerifiedIdentity.serializer)
           ..add(ReplacePaymentProofCommand.serializer)
           ..add(Reschedule.serializer)
-          ..add(RescheduleCommand.serializer)
+          ..add(RescheduleDecisionCommand.serializer)
+          ..add(RescheduleDecisionCommandReasonCodeEnum.serializer)
+          ..add(RescheduleDecisionReasonCodeEnum.serializer)
           ..add(RescheduleDecisionResult.serializer)
+          ..add(RescheduleEntitledAtRequestEnum.serializer)
+          ..add(ReschedulePage.serializer)
+          ..add(RescheduleRequestCommand.serializer)
+          ..add(RescheduleRequestCommandReasonCodeEnum.serializer)
+          ..add(RescheduleRequestReasonCodeEnum.serializer)
           ..add(RescheduleStatusEnum.serializer)
           ..add(ReservationSummary.serializer)
           ..add(Resource.serializer)
@@ -286,6 +293,10 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Purchase)]),
             () => ListBuilder<Purchase>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Reschedule)]),
+            () => ListBuilder<Reschedule>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Resource)]),

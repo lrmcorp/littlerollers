@@ -19,6 +19,10 @@ export interface RuntimeConfig {
     syntheticEnabled: boolean;
     cutoffHours: number | null;
   };
+  reschedule: {
+    syntheticEnabled: boolean;
+    cutoffHours: number | null;
+  };
   objectStorage: {
     endpoint: string;
     accessKey: string;
@@ -55,6 +59,15 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     (!Number.isInteger(bookingCutoffHours) || bookingCutoffHours < 1)
   )
     throw new Error('CONFIGURATION_INVALID:BOOKING_SYNTHETIC_CUTOFF_HOURS');
+  const rescheduleSyntheticEnabled =
+    environment !== 'production' && env.RESCHEDULE_SYNTHETIC_ENABLED === 'true';
+  const rescheduleCutoffValue = env.RESCHEDULE_SYNTHETIC_CUTOFF_HOURS?.trim();
+  const rescheduleCutoffHours = rescheduleCutoffValue ? Number(rescheduleCutoffValue) : null;
+  if (
+    rescheduleCutoffHours !== null &&
+    (!Number.isInteger(rescheduleCutoffHours) || rescheduleCutoffHours < 1)
+  )
+    throw new Error('CONFIGURATION_INVALID:RESCHEDULE_SYNTHETIC_CUTOFF_HOURS');
   return {
     environment,
     port,
@@ -74,6 +87,10 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     booking: {
       syntheticEnabled: bookingSyntheticEnabled,
       cutoffHours: bookingCutoffHours,
+    },
+    reschedule: {
+      syntheticEnabled: rescheduleSyntheticEnabled,
+      cutoffHours: rescheduleCutoffHours,
     },
     objectStorage: {
       endpoint: required(env, 'OBJECT_STORAGE_ENDPOINT'),

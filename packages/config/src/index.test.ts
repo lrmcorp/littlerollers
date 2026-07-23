@@ -20,6 +20,8 @@ const validEnvironment = {
   OBJECT_STORAGE_BUCKET: 'dailydose-private',
   BOOKING_SYNTHETIC_ENABLED: 'true',
   BOOKING_SYNTHETIC_CUTOFF_HOURS: '2',
+  RESCHEDULE_SYNTHETIC_ENABLED: 'true',
+  RESCHEDULE_SYNTHETIC_CUTOFF_HOURS: '24',
 };
 
 test('loads a complete synthetic local configuration', () => {
@@ -28,11 +30,13 @@ test('loads a complete synthetic local configuration', () => {
   assert.equal(config.redisUrl, 'redis://127.0.0.1:6379');
   assert.equal(config.quotaEvaluation.syntheticEnabled, true);
   assert.deepEqual(config.booking, { syntheticEnabled: true, cutoffHours: 2 });
+  assert.deepEqual(config.reschedule, { syntheticEnabled: true, cutoffHours: 24 });
 });
 
 test('never enables synthetic booking in production', () => {
   const config = loadRuntimeConfig({ ...validEnvironment, NODE_ENV: 'production' });
   assert.deepEqual(config.booking, { syntheticEnabled: false, cutoffHours: 2 });
+  assert.deepEqual(config.reschedule, { syntheticEnabled: false, cutoffHours: 24 });
 });
 
 test('does not invent defaults for production-required values', () => {

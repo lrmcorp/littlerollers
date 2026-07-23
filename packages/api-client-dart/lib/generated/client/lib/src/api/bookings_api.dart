@@ -12,11 +12,12 @@ import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/booking.dart';
 import 'package:openapi/src/model/booking_command.dart';
 import 'package:openapi/src/model/booking_page.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/reschedule.dart';
-import 'package:openapi/src/model/reschedule_command.dart';
+import 'package:openapi/src/model/reschedule_decision_command.dart';
 import 'package:openapi/src/model/reschedule_decision_result.dart';
+import 'package:openapi/src/model/reschedule_page.dart';
+import 'package:openapi/src/model/reschedule_request_command.dart';
 
 class BookingsApi {
 
@@ -131,13 +132,13 @@ class BookingsApi {
   }
 
   /// decideReschedule
-  /// 
+  /// MFA-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
   ///
   /// Parameters:
   /// * [id] 
   /// * [decision] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [rescheduleDecisionCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -151,7 +152,7 @@ class BookingsApi {
     required String id,
     required String decision,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required RescheduleDecisionCommand rescheduleDecisionCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -183,8 +184,8 @@ class BookingsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(RescheduleDecisionCommand);
+      _bodyData = _serializers.serialize(rescheduleDecisionCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -330,12 +331,104 @@ class BookingsApi {
     );
   }
 
+  /// listReschedules
+  /// Customer-own or internal branch-scoped reschedule queue ordered by requestedAt and id descending.
+  ///
+  /// Parameters:
+  /// * [branchId] - Filter only; never grants authority
+  /// * [status] 
+  /// * [cursor] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [ReschedulePage] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<ReschedulePage>> listReschedules({ 
+    String? branchId,
+    String? status,
+    String? cursor,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/reschedules';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    ReschedulePage? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(ReschedulePage),
+      ) as ReschedulePage;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ReschedulePage>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// requestReschedule
-  /// 
+  /// Customer-owned request before the explicit synthetic H-24 boundary. Request marks booking pending without moving its reservation.
   ///
   /// Parameters:
   /// * [idempotencyKey] 
-  /// * [rescheduleCommand] 
+  /// * [rescheduleRequestCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -347,7 +440,7 @@ class BookingsApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<Reschedule>> requestReschedule({ 
     required String idempotencyKey,
-    required RescheduleCommand rescheduleCommand,
+    required RescheduleRequestCommand rescheduleRequestCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -379,8 +472,8 @@ class BookingsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(RescheduleCommand);
-      _bodyData = _serializers.serialize(rescheduleCommand, specifiedType: _type);
+      const _type = FullType(RescheduleRequestCommand);
+      _bodyData = _serializers.serialize(rescheduleRequestCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

@@ -12,7 +12,7 @@ import {
 import { Feedback, Skeleton } from './ui';
 
 const ACTIVE_BRANCH_KEY = 'dd_active_branch';
-const publicPaths = new Set(['/sign-in', '/health']);
+const publicPaths = new Set(['/', '/classes', '/sign-in', '/health']);
 
 const routeCapabilities: Array<[string, string[]]> = [
   ['/users', ['user:read']],
@@ -20,7 +20,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/master', ['master:read']],
   ['/purchases', ['package:read', 'purchase:review']],
   ['/ledger', ['ledger:read']],
-  ['/classes', ['class-slot:read']],
+  ['/workspace/classes', ['class-slot:read']],
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:read']],
 ];
@@ -40,12 +40,14 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function safeReturnTo(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/workspace';
   try {
     const url = new URL(value, 'http://local.invalid');
-    return url.origin === 'http://local.invalid' ? `${url.pathname}${url.search}${url.hash}` : '/';
+    return url.origin === 'http://local.invalid'
+      ? `${url.pathname}${url.search}${url.hash}`
+      : '/workspace';
   } catch {
-    return '/';
+    return '/workspace';
   }
 }
 
@@ -195,7 +197,7 @@ export function SessionProvider({
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
         <main className="content session-state">
           <Feedback kind="error">Anda tidak memiliki akses ke area ini.</Feedback>
-          <a href="/">Kembali ke ringkasan</a>
+          <a href="/workspace">Kembali ke ringkasan</a>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
         <main className="content session-state">
