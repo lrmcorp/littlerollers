@@ -6,58 +6,84 @@ part of 'me.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-const MeAssuranceEnum _$meAssuranceEnum_BASE = const MeAssuranceEnum._('BASE');
-const MeAssuranceEnum _$meAssuranceEnum_MFA = const MeAssuranceEnum._('MFA');
+const MeIdentityVerificationStatusEnum
+_$meIdentityVerificationStatusEnum_NOT_REQUIRED =
+    const MeIdentityVerificationStatusEnum._('NOT_REQUIRED');
+const MeIdentityVerificationStatusEnum
+_$meIdentityVerificationStatusEnum_PENDING =
+    const MeIdentityVerificationStatusEnum._('PENDING');
+const MeIdentityVerificationStatusEnum
+_$meIdentityVerificationStatusEnum_ACTION_REQUIRED =
+    const MeIdentityVerificationStatusEnum._('ACTION_REQUIRED');
+const MeIdentityVerificationStatusEnum
+_$meIdentityVerificationStatusEnum_APPROVED =
+    const MeIdentityVerificationStatusEnum._('APPROVED');
 
-MeAssuranceEnum _$meAssuranceEnumValueOf(String name) {
+MeIdentityVerificationStatusEnum _$meIdentityVerificationStatusEnumValueOf(
+  String name,
+) {
   switch (name) {
-    case 'BASE':
-      return _$meAssuranceEnum_BASE;
-    case 'MFA':
-      return _$meAssuranceEnum_MFA;
+    case 'NOT_REQUIRED':
+      return _$meIdentityVerificationStatusEnum_NOT_REQUIRED;
+    case 'PENDING':
+      return _$meIdentityVerificationStatusEnum_PENDING;
+    case 'ACTION_REQUIRED':
+      return _$meIdentityVerificationStatusEnum_ACTION_REQUIRED;
+    case 'APPROVED':
+      return _$meIdentityVerificationStatusEnum_APPROVED;
     default:
       throw ArgumentError(name);
   }
 }
 
-final BuiltSet<MeAssuranceEnum> _$meAssuranceEnumValues =
-    BuiltSet<MeAssuranceEnum>(const <MeAssuranceEnum>[
-      _$meAssuranceEnum_BASE,
-      _$meAssuranceEnum_MFA,
-    ]);
+final BuiltSet<MeIdentityVerificationStatusEnum>
+_$meIdentityVerificationStatusEnumValues =
+    BuiltSet<MeIdentityVerificationStatusEnum>(
+      const <MeIdentityVerificationStatusEnum>[
+        _$meIdentityVerificationStatusEnum_NOT_REQUIRED,
+        _$meIdentityVerificationStatusEnum_PENDING,
+        _$meIdentityVerificationStatusEnum_ACTION_REQUIRED,
+        _$meIdentityVerificationStatusEnum_APPROVED,
+      ],
+    );
 
-Serializer<MeAssuranceEnum> _$meAssuranceEnumSerializer =
-    _$MeAssuranceEnumSerializer();
+Serializer<MeIdentityVerificationStatusEnum>
+_$meIdentityVerificationStatusEnumSerializer =
+    _$MeIdentityVerificationStatusEnumSerializer();
 
-class _$MeAssuranceEnumSerializer
-    implements PrimitiveSerializer<MeAssuranceEnum> {
+class _$MeIdentityVerificationStatusEnumSerializer
+    implements PrimitiveSerializer<MeIdentityVerificationStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
-    'BASE': 'BASE',
-    'MFA': 'MFA',
+    'NOT_REQUIRED': 'NOT_REQUIRED',
+    'PENDING': 'PENDING',
+    'ACTION_REQUIRED': 'ACTION_REQUIRED',
+    'APPROVED': 'APPROVED',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
-    'BASE': 'BASE',
-    'MFA': 'MFA',
+    'NOT_REQUIRED': 'NOT_REQUIRED',
+    'PENDING': 'PENDING',
+    'ACTION_REQUIRED': 'ACTION_REQUIRED',
+    'APPROVED': 'APPROVED',
   };
 
   @override
-  final Iterable<Type> types = const <Type>[MeAssuranceEnum];
+  final Iterable<Type> types = const <Type>[MeIdentityVerificationStatusEnum];
   @override
-  final String wireName = 'MeAssuranceEnum';
+  final String wireName = 'MeIdentityVerificationStatusEnum';
 
   @override
   Object serialize(
     Serializers serializers,
-    MeAssuranceEnum object, {
+    MeIdentityVerificationStatusEnum object, {
     FullType specifiedType = FullType.unspecified,
   }) => _toWire[object.name] ?? object.name;
 
   @override
-  MeAssuranceEnum deserialize(
+  MeIdentityVerificationStatusEnum deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
-  }) => MeAssuranceEnum.valueOf(
+  }) => MeIdentityVerificationStatusEnum.valueOf(
     _fromWire[serialized] ?? (serialized is String ? serialized : ''),
   );
 }
@@ -74,7 +100,7 @@ class _$Me extends Me {
   @override
   final BuiltList<String> capabilities;
   @override
-  final MeAssuranceEnum assurance;
+  final MeIdentityVerificationStatusEnum identityVerificationStatus;
   @override
   final DateTime sessionExpiresAt;
   @override
@@ -89,7 +115,7 @@ class _$Me extends Me {
     required this.roles,
     required this.branchIds,
     required this.capabilities,
-    required this.assurance,
+    required this.identityVerificationStatus,
     required this.sessionExpiresAt,
     required this.branches,
   }) : super._();
@@ -109,7 +135,7 @@ class _$Me extends Me {
         roles == other.roles &&
         branchIds == other.branchIds &&
         capabilities == other.capabilities &&
-        assurance == other.assurance &&
+        identityVerificationStatus == other.identityVerificationStatus &&
         sessionExpiresAt == other.sessionExpiresAt &&
         branches == other.branches;
   }
@@ -122,7 +148,7 @@ class _$Me extends Me {
     _$hash = $jc(_$hash, roles.hashCode);
     _$hash = $jc(_$hash, branchIds.hashCode);
     _$hash = $jc(_$hash, capabilities.hashCode);
-    _$hash = $jc(_$hash, assurance.hashCode);
+    _$hash = $jc(_$hash, identityVerificationStatus.hashCode);
     _$hash = $jc(_$hash, sessionExpiresAt.hashCode);
     _$hash = $jc(_$hash, branches.hashCode);
     _$hash = $jf(_$hash);
@@ -137,7 +163,7 @@ class _$Me extends Me {
           ..add('roles', roles)
           ..add('branchIds', branchIds)
           ..add('capabilities', capabilities)
-          ..add('assurance', assurance)
+          ..add('identityVerificationStatus', identityVerificationStatus)
           ..add('sessionExpiresAt', sessionExpiresAt)
           ..add('branches', branches))
         .toString();
@@ -171,9 +197,12 @@ class MeBuilder implements Builder<Me, MeBuilder> {
   set capabilities(ListBuilder<String>? capabilities) =>
       _$this._capabilities = capabilities;
 
-  MeAssuranceEnum? _assurance;
-  MeAssuranceEnum? get assurance => _$this._assurance;
-  set assurance(MeAssuranceEnum? assurance) => _$this._assurance = assurance;
+  MeIdentityVerificationStatusEnum? _identityVerificationStatus;
+  MeIdentityVerificationStatusEnum? get identityVerificationStatus =>
+      _$this._identityVerificationStatus;
+  set identityVerificationStatus(
+    MeIdentityVerificationStatusEnum? identityVerificationStatus,
+  ) => _$this._identityVerificationStatus = identityVerificationStatus;
 
   DateTime? _sessionExpiresAt;
   DateTime? get sessionExpiresAt => _$this._sessionExpiresAt;
@@ -198,7 +227,7 @@ class MeBuilder implements Builder<Me, MeBuilder> {
       _roles = $v.roles.toBuilder();
       _branchIds = $v.branchIds.toBuilder();
       _capabilities = $v.capabilities.toBuilder();
-      _assurance = $v.assurance;
+      _identityVerificationStatus = $v.identityVerificationStatus;
       _sessionExpiresAt = $v.sessionExpiresAt;
       _branches = $v.branches.toBuilder();
       _$v = null;
@@ -234,10 +263,10 @@ class MeBuilder implements Builder<Me, MeBuilder> {
             roles: roles.build(),
             branchIds: branchIds.build(),
             capabilities: capabilities.build(),
-            assurance: BuiltValueNullFieldError.checkNotNull(
-              assurance,
+            identityVerificationStatus: BuiltValueNullFieldError.checkNotNull(
+              identityVerificationStatus,
               r'Me',
-              'assurance',
+              'identityVerificationStatus',
             ),
             sessionExpiresAt: BuiltValueNullFieldError.checkNotNull(
               sessionExpiresAt,

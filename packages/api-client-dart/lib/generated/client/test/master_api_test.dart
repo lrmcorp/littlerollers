@@ -7,14 +7,14 @@ void main() {
   final instance = Openapi().getMasterApi();
 
   group(MasterApi, () {
-    // Creates an active branch. Requires master:manage and MFA.
+    // Creates an active branch. Requires master:manage.
     //
     //Future<Branch> createBranch(BranchCommand branchCommand) async
     test('test createBranch', () async {
       // TODO
     });
 
-    // Creates an active class type in one visible branch. Requires master:manage and MFA.
+    // Creates an active class type in one visible branch. Requires master:manage.
     //
     //Future<ClassType> createClassType(ClassTypeCommand classTypeCommand) async
     test('test createClassType', () async {

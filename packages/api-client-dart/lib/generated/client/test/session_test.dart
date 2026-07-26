@@ -24,8 +24,6 @@ void main() {
       // TODO
     });
 
-    // String assurance
-    test('to test the property `assurance`', () async {
       // TODO
     });
 

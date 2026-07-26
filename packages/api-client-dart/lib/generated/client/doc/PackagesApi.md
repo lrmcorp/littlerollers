@@ -10,16 +10,22 @@ All URIs are relative to */api/v1*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**approvePurchase**](PackagesApi.md#approvepurchase) | **POST** /purchases/{id}/approve | 
+[**attachOrderPaymentProof**](PackagesApi.md#attachorderpaymentproof) | **POST** /orders/{id}/payment-proof | 
 [**authorizePaymentProofDownload**](PackagesApi.md#authorizepaymentproofdownload) | **POST** /uploads/payment-proofs/{id}/download-authorizations | 
+[**createOrder**](PackagesApi.md#createorder) | **POST** /orders | 
 [**createPackage**](PackagesApi.md#createpackage) | **POST** /packages | 
 [**createPaymentProofUpload**](PackagesApi.md#createpaymentproofupload) | **POST** /uploads/payment-proofs | 
 [**finalizePaymentProofUpload**](PackagesApi.md#finalizepaymentproofupload) | **POST** /uploads/payment-proofs/{id}/finalize | 
+[**getCheckoutOptions**](PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
+[**getOrder**](PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [**getPaymentProofStatus**](PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
+[**listOrders**](PackagesApi.md#listorders) | **GET** /orders | 
 [**listPackages**](PackagesApi.md#listpackages) | **GET** /packages | 
 [**listPurchases**](PackagesApi.md#listpurchases) | **GET** /purchases | 
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
+[**uploadPaymentProofContent**](PackagesApi.md#uploadpaymentproofcontent) | **PUT** /uploads/payment-proofs/{id}/content | 
 
 
 # **approvePurchase**
@@ -27,7 +33,7 @@ Method | HTTP request | Description
 
 
 
-MFA-gated atomic decision. Activation is the approval date in branch timezone; expiry is exclusive at the start of activationDate + durationDays.
+Permission-gated atomic decision. Activation is the approval date in branch timezone; expiry is exclusive at the start of activationDate + durationDays.
 
 ### Example
 ```dart
@@ -57,6 +63,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**ApprovalResult**](ApprovalResult.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **attachOrderPaymentProof**
+> Order attachOrderPaymentProof(id, attachOrderProofCommand)
+
+
+
+Attaches a CLEAN finalized private upload and transitions the same order to PENDING.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final AttachOrderProofCommand attachOrderProofCommand = ; // AttachOrderProofCommand | 
+
+try {
+    final response = api.attachOrderPaymentProof(id, attachOrderProofCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->attachOrderPaymentProof: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **attachOrderProofCommand** | [**AttachOrderProofCommand**](AttachOrderProofCommand.md)|  | 
+
+### Return type
+
+[**Order**](Order.md)
 
 ### Authorization
 
@@ -110,6 +161,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **createOrder**
+> Order createOrder(idempotencyKey, createOrderCommand)
+
+
+
+Creates AWAITING_PAYMENT before transfer with commercial and destination-account snapshots.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
+final CreateOrderCommand createOrderCommand = ; // CreateOrderCommand | 
+
+try {
+    final response = api.createOrder(idempotencyKey, createOrderCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->createOrder: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
+ **createOrderCommand** | [**CreateOrderCommand**](CreateOrderCommand.md)|  | 
+
+### Return type
+
+[**Order**](Order.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **createPackage**
 > Resource createPackage(packageCommand)
 
@@ -156,7 +252,7 @@ Name | Type | Description  | Notes
 
 
 
-Issues an opaque private upload reference after metadata validation. Production remains CONFIGURATION_REQUIRED until storage and scan providers are approved.
+Issues an opaque private upload reference after metadata, order ownership and expiry validation.
 
 ### Example
 ```dart
@@ -239,6 +335,90 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getCheckoutOptions**
+> CheckoutOptions getCheckoutOptions(packageId)
+
+
+
+Approved customer checkout snapshot with the full account number for the selected active package only.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String packageId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getCheckoutOptions(packageId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getCheckoutOptions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **packageId** | **String**|  | 
+
+### Return type
+
+[**CheckoutOptions**](CheckoutOptions.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getOrder**
+> Order getOrder(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getOrder(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getOrder: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**Order**](Order.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getPaymentProofStatus**
 > PaymentProof getPaymentProofStatus(id)
 
@@ -268,6 +448,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**PaymentProof**](PaymentProof.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listOrders**
+> OrderPage listOrders(status, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listOrders(status, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listOrders: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**OrderPage**](OrderPage.md)
 
 ### Authorization
 
@@ -375,7 +598,7 @@ Name | Type | Description  | Notes
 
 
 
-MFA-gated rejection. Creates no customer package or ledger entry.
+Permission-gated rejection. Creates no customer package or ledger entry.
 
 ### Example
 ```dart
@@ -501,6 +724,51 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **uploadPaymentProofContent**
+> PaymentProof uploadPaymentProofContent(id, body)
+
+
+
+Moves actual bytes into private storage after ownership, size, checksum, extension and MIME-signature validation.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final MultipartFile body = BINARY_DATA_HERE; // MultipartFile | 
+
+try {
+    final response = api.uploadPaymentProofContent(id, body);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->uploadPaymentProofContent: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **body** | **MultipartFile**|  | 
+
+### Return type
+
+[**PaymentProof**](PaymentProof.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/octet-stream
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

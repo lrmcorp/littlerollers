@@ -7,6 +7,7 @@ import {
   type BookingClient,
   type BookingCustomer,
   type ClassSlot,
+  type CheckInIssue,
   type CustomerPackageBalance,
   type Reschedule,
 } from '../booking-client';
@@ -30,7 +31,6 @@ export function BookingView({
   const canCreate = !sessionContext || sessionContext.hasCapability('booking:create:assisted');
   const canReview = !sessionContext || sessionContext.hasCapability('reschedule:read');
   const canDecide = !sessionContext || sessionContext.hasCapability('reschedule:decide');
-  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [customers, setCustomers] = useState<BookingCustomer[]>([]);
   const [packages, setPackages] = useState<CustomerPackageBalance[]>([]);
   const [slots, setSlots] = useState<ClassSlot[]>([]);
@@ -48,6 +48,7 @@ export function BookingView({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
+  const [checkInIssues, setCheckInIssues] = useState<Record<string, CheckInIssue>>({});
   const intentKey = useRef(newIntentKey());
   const decisionKey = useRef(newIntentKey());
 
@@ -136,7 +137,7 @@ export function BookingView({
 
   const decideReschedule = async (decision: 'approve' | 'reject') => {
     const selected = reschedules.find(({ id }) => id === reviewId);
-    if (!selected || !canDecide || !hasMfa) return;
+    if (!selected || !canDecide) return;
     setBusy(true);
     setFailure(undefined);
     setMessage(undefined);
@@ -218,9 +219,32 @@ export function BookingView({
     }
   };
 
+  const issueCheckIn = async (booking: Booking) => {
+    if (!canCreate || booking.status !== 'BOOKED') return;
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      if (!client.issueCheckIn) return;
+      const issue = await client.issueCheckIn(booking.id, booking.version, crypto.randomUUID());
+      setCheckInIssues((current) => ({ ...current, [booking.id]: issue }));
+      setMessage(
+        issue.idempotentReplay
+          ? 'Pass QR sebelumnya ditemukan kembali.'
+          : 'Pass QR berhasil dibuat.',
+      );
+    } catch (error) {
+      setFailure(await bookingFailure(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!branchId)
     return (
-      <section className="card" aria-labelledby="bookings-title">
+      <section
+        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+        aria-labelledby="bookings-title"
+      >
         <PageHeader
           eyebrow="Booking branch-scoped"
           title="Booking bantuan pelanggan"
@@ -235,7 +259,10 @@ export function BookingView({
     );
 
   return (
-    <section className="card" aria-labelledby="bookings-title">
+    <section
+      className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+      aria-labelledby="bookings-title"
+    >
       <PageHeader
         eyebrow="Booking branch-scoped"
         title="Booking bantuan pelanggan"
@@ -244,7 +271,7 @@ export function BookingView({
         context={
           <>
             <StatusBadge tone="info">Cabang {shortId(branchId)}</StatusBadge>
-            <StatusBadge tone="warning">Synthetic H-2</StatusBadge>
+            <StatusBadge tone="warning">Kebijakan H-2</StatusBadge>
           </>
         }
       />
@@ -418,17 +445,14 @@ export function BookingView({
                   }
                 >
                   <option value="TARGET_UNAVAILABLE">Target tidak tersedia</option>
-                  <option value="OUTSIDE_POLICY">Di luar kebijakan synthetic</option>
+                  <option value="OUTSIDE_POLICY">Di luar kebijakan reschedule</option>
                   <option value="OUT_OF_SCOPE">Di luar scope cabang</option>
                 </select>
               </label>
-              {!hasMfa && (
-                <Feedback kind="error">Verifikasi MFA diperlukan untuk keputusan.</Feedback>
-              )}
-              <button disabled={busy || !hasMfa} onClick={() => void decideReschedule('approve')}>
+              <button disabled={busy} onClick={() => void decideReschedule('approve')}>
                 Setujui reschedule
               </button>
-              <button disabled={busy || !hasMfa} onClick={() => void decideReschedule('reject')}>
+              <button disabled={busy} onClick={() => void decideReschedule('reject')}>
                 Tolak reschedule
               </button>
             </ConfirmationPanel>
@@ -448,6 +472,46 @@ export function BookingView({
               <strong>{booking.status}</strong> · kelas {shortId(booking.classSlotId)} · paket{' '}
               {shortId(booking.customerPackageId)} · reservasi {booking.reservedQuantity} sesi
               {booking.idempotentReplay ? ' · replay authoritative' : ''}
+              {booking.status === 'BOOKED' && canCreate && (
+                <span className="ml-3 inline-flex flex-wrap gap-2">
+                  <button type="button" disabled={busy} onClick={() => void issueCheckIn(booking)}>
+                    Buat/Kirim QR
+                  </button>
+                  {checkInIssues[booking.id]?.whatsappUrl && (
+                    <a
+                      className="button-quiet"
+                      href={checkInIssues[booking.id]?.whatsappUrl ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Buka WhatsApp
+                    </a>
+                  )}
+                  {checkInIssues[booking.id]?.passUrl && (
+                    <>
+                      <a
+                        className="button-quiet"
+                        href={checkInIssues[booking.id]?.passUrl ?? '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Buka pass
+                      </a>
+                      <button
+                        type="button"
+                        className="button-quiet"
+                        onClick={() =>
+                          void navigator.clipboard.writeText(
+                            checkInIssues[booking.id]?.passUrl ?? '',
+                          )
+                        }
+                      >
+                        Salin link
+                      </button>
+                    </>
+                  )}
+                </span>
+              )}
             </li>
           ))}
         </ul>

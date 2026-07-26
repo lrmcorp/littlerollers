@@ -12,6 +12,8 @@ Method | HTTP request | Description
 [**closeMonth**](FinanceApi.md#closemonth) | **POST** /monthly-closes | 
 [**createOtherCost**](FinanceApi.md#createothercost) | **POST** /other-costs | 
 [**decideCorrection**](FinanceApi.md#decidecorrection) | **POST** /correction-journals/{id}/{decision} | 
+[**getFinanceReconciliationAnomalies**](FinanceApi.md#getfinancereconciliationanomalies) | **GET** /finance/reconciliation/anomalies | 
+[**getFinanceReconciliationOverview**](FinanceApi.md#getfinancereconciliationoverview) | **GET** /finance/reconciliation/overview | 
 [**getFinancialReport**](FinanceApi.md#getfinancialreport) | **GET** /reports/{reportType} | 
 [**listOtherCosts**](FinanceApi.md#listothercosts) | **GET** /other-costs | 
 [**listPeriods**](FinanceApi.md#listperiods) | **GET** /periods | 
@@ -147,6 +149,100 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getFinanceReconciliationAnomalies**
+> GetFinanceReconciliationAnomalies200Response getFinanceReconciliationAnomalies(branchId, from, until)
+
+
+
+Actionable reconciliation anomalies without private proof contents.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getFinanceApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
+
+try {
+    final response = api.getFinanceReconciliationAnomalies(branchId, from, until);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling FinanceApi->getFinanceReconciliationAnomalies: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
+
+### Return type
+
+[**GetFinanceReconciliationAnomalies200Response**](GetFinanceReconciliationAnomalies200Response.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getFinanceReconciliationOverview**
+> FinanceReconciliationOverview getFinanceReconciliationOverview(branchId, from, until)
+
+
+
+Global Finance or Super Owner reconciliation aggregates from authoritative purchase and ledger records.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getFinanceApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
+
+try {
+    final response = api.getFinanceReconciliationOverview(branchId, from, until);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling FinanceApi->getFinanceReconciliationOverview: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
+
+### Return type
+
+[**FinanceReconciliationOverview**](FinanceReconciliationOverview.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

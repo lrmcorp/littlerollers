@@ -15,7 +15,7 @@ flowchart LR
   S[Internal Roles] --> W[Next.js Web]
   M --> A[NestJS REST API]
   W --> A
-  A --> P[(PostgreSQL)]
+  A --> P[(MySQL)]
   A --> R[(Redis)]
   A --> O[Object Storage]
   A --> G[Google Identity]
@@ -36,7 +36,7 @@ Satu NestJS modular monolith menyediakan versioned REST API bagi Next.js dan Flu
 | Web | Next.js App Router, TypeScript, Tailwind, component library, TanStack Query/Table, React Hook Form + Zod |
 | Mobile | Flutter, feature-first MVVM, Riverpod, GoRouter, Dio, Freezed/json_serializable, secure storage |
 | API | NestJS, TypeScript, REST JSON, OpenAPI 3.x, validation/serialization/guards/interceptors |
-| Data | PostgreSQL, Prisma baseline dengan SQL migration review untuk constraint/query kritis |
+| Data | MySQL 8.4+, Prisma baseline dengan SQL migration review dan transactional row locking untuk constraint/query kritis |
 | Async | Redis + BullMQ-compatible queue/scheduler |
 | Files | Private object storage, signed URL, antivirus/content validation pipeline |
 | Auth | Google OIDC/OAuth; OTP WhatsApp; application RBAC/branch assignment |
@@ -48,7 +48,7 @@ Versi dependency dipin saat scaffold melalui ADR dan lockfile; dokumen ini tidak
 
 ## 3. Backend Module Boundaries
 
-- `identity-access`: external identities, sessions/tokens, OTP, MFA, role, branch authorization.
+- `identity-access`: external identities, sessions/tokens, OTP, role, permission, dan branch authorization.
 - `branches-master`: Branch, ClassType, Package definitions, effective-dated setting.
 - `customers-packages`: Customer, purchase proof, approval, CustomerPackage, expiry.
 - `session-ledger`: append-only ledger, reservation, available balance, adjustment.
@@ -135,7 +135,7 @@ ADR minimum sebelum build:
 - ADR-002 REST/OpenAPI dan generated clients.
 - ADR-003 Prisma/SQL migration strategy.
 - ADR-004 Ledger/reservation/concurrency model.
-- ADR-005 Auth session/token dan MFA implementation.
+- ADR-005 Auth session/token dan permission-based authorization implementation.
 - ADR-006 Queue/scheduler/outbox/idempotency.
 - ADR-007 Cloud, region, networking, storage, backup.
 - ADR-008 Observability dan PII-safe logging.

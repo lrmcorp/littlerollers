@@ -8,6 +8,14 @@ import {
   type ReviewPurchase,
 } from '../purchase-client';
 import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import {
+  Badge,
+  Button,
+  DataTable,
+  DetailDrawer,
+  FilterBar,
+  Panel,
+} from '../components/admin/admin-ui';
 import { useSessionContext } from '../session-context';
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
@@ -33,10 +41,11 @@ export function PurchaseReviewView({
 }) {
   const sessionContext = useSessionContext();
   const branch = branchOverride ?? sessionContext?.activeBranch ?? null;
-  const canReview = !sessionContext || sessionContext.hasCapability('purchase:review');
-  const canDecide = !sessionContext || sessionContext.hasCapability('purchase:decide');
-  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
-  const authorityKey = `${sessionContext?.session?.id ?? 'test'}:${sessionContext?.session?.assurance ?? 'MFA'}`;
+  const canReview =
+    !sessionContext || sessionContext.hasCapability('payment:review', 'purchase:review');
+  const canDecide =
+    !sessionContext || sessionContext.hasCapability('payment:decide', 'purchase:decide');
+  const authorityKey = sessionContext?.session?.id ?? 'test';
   const [items, setItems] = useState<ReviewPurchase[]>([]);
   const [selected, setSelected] = useState<ReviewPurchase | null>(null);
   const [status, setStatus] = useState('PENDING');
@@ -46,7 +55,6 @@ export function PurchaseReviewView({
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const closeButton = useRef<HTMLButtonElement>(null);
   const opener = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -58,10 +66,6 @@ export function PurchaseReviewView({
     setMessage('');
     setError('');
   }, [branch?.id, authorityKey]);
-  useEffect(() => {
-    if (selected) closeButton.current?.focus();
-  }, [selected]);
-
   const run = async (action: () => Promise<void>) => {
     setLoading(true);
     setError('');
@@ -98,7 +102,7 @@ export function PurchaseReviewView({
   if (!canReview) return null;
   if (!branch)
     return (
-      <section className="card" aria-labelledby="review-title">
+      <Panel className="p-6">
         <PageHeader
           eyebrow="Internal review"
           title="Review purchase"
@@ -106,23 +110,21 @@ export function PurchaseReviewView({
           description="Pilih cabang aktif untuk membuka queue purchase."
         />
         <Feedback kind="warning">Cabang aktif wajib dipilih secara eksplisit.</Feedback>
-      </section>
+      </Panel>
     );
 
   return (
-    <section className="card purchase-workspace" aria-labelledby="review-title">
-      <PageHeader
-        eyebrow={`${branch.name} · ${branch.timezone}`}
-        title="Review purchase"
-        titleId="review-title"
-        description="Periksa snapshot komersial dan bukti privat sebelum mengambil keputusan."
-        context={
-          <StatusBadge tone={hasMfa ? 'success' : 'warning'}>
-            {hasMfa ? 'MFA aktif' : 'MFA diperlukan'}
-          </StatusBadge>
-        }
-      />
-      <div className="filter-bar">
+    <section className="purchase-workspace space-y-6" aria-labelledby="review-title">
+      <Panel className="p-6 sm:p-8">
+        <PageHeader
+          eyebrow={`${branch.name} · ${branch.timezone}`}
+          title="Review purchase"
+          titleId="review-title"
+          description="Periksa snapshot komersial dan bukti privat sebelum mengambil keputusan."
+          context={<StatusBadge tone="success">Permission terverifikasi</StatusBadge>}
+        />
+      </Panel>
+      <FilterBar>
         <label>
           Status
           <select
@@ -139,50 +141,109 @@ export function PurchaseReviewView({
             <option value="ALL">Semua status</option>
           </select>
         </label>
-        <button disabled={loading} onClick={() => void load()}>
+        <Button disabled={loading} onClick={() => void load()}>
           Muat queue
-        </button>
-      </div>
+        </Button>
+      </FilterBar>
       {items.length > 0 && (
-        <div className="purchase-queue" role="list" aria-label="Queue purchase">
-          {items.map((item) => (
-            <div role="listitem" key={item.id}>
-              <button
-                className="purchase-row"
-                onClick={(event) => {
-                  opener.current = event.currentTarget;
-                  setSelected(item);
-                  setIntentKey('');
-                }}
-              >
-                <span>
+        <DataTable
+          items={items}
+          rowKey={(item) => item.id}
+          columns={[
+            {
+              id: 'customer',
+              header: 'Pelanggan',
+              cell: (item) => (
+                <div>
                   <strong>{item.customerName}</strong>
-                  <small>{item.packageNameSnapshot}</small>
-                </span>
-                <span>
+                  <p className="text-xs text-dd-muted">{item.packageNameSnapshot}</p>
+                </div>
+              ),
+            },
+            {
+              id: 'value',
+              header: 'Nilai',
+              cell: (item) => (
+                <div>
                   {rupiah.format(item.priceRpSnapshot)}
-                  <small>
+                  <p className="text-xs text-dd-muted">
                     {item.sessionCountSnapshot} sesi · {item.durationDaysSnapshot} hari
-                  </small>
-                </span>
-                <span>
-                  <StatusBadge
-                    tone={
-                      item.status === 'APPROVED'
-                        ? 'success'
-                        : item.status === 'REJECTED'
-                          ? 'danger'
-                          : 'warning'
-                    }
-                  >
-                    {statusLabels[item.status]}
-                  </StatusBadge>
-                  <small>{item.submittedAt.toLocaleString('id-ID')}</small>
-                </span>
-              </button>
+                  </p>
+                </div>
+              ),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (item) => (
+                <Badge
+                  tone={
+                    item.status === 'APPROVED'
+                      ? 'success'
+                      : item.status === 'REJECTED'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                >
+                  {statusLabels[item.status]}
+                </Badge>
+              ),
+            },
+            {
+              id: 'submitted',
+              header: 'Diajukan',
+              cell: (item) => item.submittedAt.toLocaleString('id-ID'),
+            },
+            {
+              id: 'action',
+              header: 'Tindakan',
+              cell: (item) => (
+                <Button
+                  variant="secondary"
+                  onClick={(event) => {
+                    opener.current = event.currentTarget;
+                    setSelected(item);
+                    setIntentKey('');
+                  }}
+                >
+                  Review
+                </Button>
+              ),
+            },
+          ]}
+          mobileCard={(item) => (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <strong>{item.customerName}</strong>
+                <p className="mt-1 text-sm text-dd-muted">{item.packageNameSnapshot}</p>
+                <p className="mt-2 font-semibold">{rupiah.format(item.priceRpSnapshot)}</p>
+              </div>
+              <div className="grid justify-items-end gap-3">
+                <Badge
+                  tone={
+                    item.status === 'APPROVED'
+                      ? 'success'
+                      : item.status === 'REJECTED'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                >
+                  {statusLabels[item.status]}
+                </Badge>
+                <Button
+                  variant="secondary"
+                  onClick={(event) => {
+                    opener.current = event.currentTarget;
+                    setSelected(item);
+                    setIntentKey('');
+                  }}
+                >
+                  Review
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
       {!loading && items.length === 0 && (
         <EmptyState
@@ -191,126 +252,105 @@ export function PurchaseReviewView({
         />
       )}
       {nextCursor && (
-        <button disabled={loading} onClick={() => void load(nextCursor)}>
+        <Button variant="secondary" disabled={loading} onClick={() => void load(nextCursor)}>
           Muat purchase berikutnya
-        </button>
+        </Button>
       )}
       {selected && (
-        <div
-          className="panel-backdrop"
-          onMouseDown={(event) => event.target === event.currentTarget && close()}
-        >
-          <div
-            className="side-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="decision-title"
+        <DetailDrawer open title="Detail review" onClose={close}>
+          <dl className="purchase-summary">
+            <div>
+              <dt>Pelanggan</dt>
+              <dd>{selected.customerName}</dd>
+            </div>
+            <div>
+              <dt>Paket</dt>
+              <dd>{selected.packageNameSnapshot}</dd>
+            </div>
+            <div>
+              <dt>Harga</dt>
+              <dd>{rupiah.format(selected.priceRpSnapshot)}</dd>
+            </div>
+            <div>
+              <dt>Sesi / durasi</dt>
+              <dd>
+                {selected.sessionCountSnapshot} / {selected.durationDaysSnapshot} hari
+              </dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{statusLabels[selected.status]}</dd>
+            </div>
+            <div>
+              <dt>Versi</dt>
+              <dd>{selected.version}</dd>
+            </div>
+          </dl>
+          <Button
+            variant="secondary"
+            disabled={loading || !selected.paymentProofId}
+            onClick={() =>
+              void run(async () => {
+                if (!selected.paymentProofId) return;
+                const authorization = await client.authorizeProof(selected.paymentProofId);
+                window.open(authorization.url, '_blank', 'noopener,noreferrer');
+                setMessage(
+                  `Bukti privat diotorisasi sampai ${authorization.expiresAt.toLocaleTimeString('id-ID')}.`,
+                );
+              })
+            }
           >
-            <header className="side-panel-header">
-              <div>
-                <p className="eyebrow">Purchase •{selected.id.slice(-6)}</p>
-                <h2 id="decision-title">Detail review</h2>
-              </div>
-              <button ref={closeButton} onClick={close} aria-label="Tutup panel review">
-                Tutup
-              </button>
-            </header>
-            <dl className="purchase-summary">
-              <div>
-                <dt>Pelanggan</dt>
-                <dd>{selected.customerName}</dd>
-              </div>
-              <div>
-                <dt>Paket</dt>
-                <dd>{selected.packageNameSnapshot}</dd>
-              </div>
-              <div>
-                <dt>Harga</dt>
-                <dd>{rupiah.format(selected.priceRpSnapshot)}</dd>
-              </div>
-              <div>
-                <dt>Sesi / durasi</dt>
-                <dd>
-                  {selected.sessionCountSnapshot} / {selected.durationDaysSnapshot} hari
-                </dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{statusLabels[selected.status]}</dd>
-              </div>
-              <div>
-                <dt>Versi</dt>
-                <dd>{selected.version}</dd>
-              </div>
-            </dl>
-            <button
-              disabled={loading}
-              onClick={() =>
-                void run(async () => {
-                  const authorization = await client.authorizeProof(selected.paymentProofId);
-                  window.open(authorization.url, '_blank', 'noopener,noreferrer');
-                  setMessage(
-                    `Bukti privat diotorisasi sampai ${authorization.expiresAt.toLocaleTimeString('id-ID')}.`,
-                  );
-                })
-              }
-            >
-              Buka bukti privat
-            </button>
-            {selected.status === 'PENDING' && (
-              <>
-                <ConfirmationPanel title="Konsekuensi approval">
-                  Approval membuat customer package dan ledger PURCHASE. Rejection tidak menambah
-                  saldo.
-                </ConfirmationPanel>
-                {!hasMfa && (
-                  <Feedback kind="warning">
-                    Lakukan step-up MFA sebelum mengambil keputusan.
-                  </Feedback>
-                )}
-                <button
-                  disabled={loading || !canDecide || !hasMfa}
-                  onClick={() =>
-                    void run(async () => {
-                      const key = intentKey || crypto.randomUUID();
-                      if (!intentKey) setIntentKey(key);
-                      authoritative(await client.approve(selected.id, selected.version, key));
-                    })
-                  }
+            Buka bukti privat
+          </Button>
+          {selected.status === 'PENDING' && (
+            <>
+              <ConfirmationPanel title="Konsekuensi approval">
+                Approval membuat customer package dan ledger PURCHASE. Rejection tidak menambah
+                saldo.
+              </ConfirmationPanel>
+              <Button
+                disabled={loading || !canDecide}
+                onClick={() =>
+                  void run(async () => {
+                    const key = intentKey || crypto.randomUUID();
+                    if (!intentKey) setIntentKey(key);
+                    authoritative(await client.approve(selected.id, selected.version, key));
+                  })
+                }
+              >
+                Setujui purchase
+              </Button>
+              <label>
+                Alasan penolakan
+                <select
+                  value={reasonCode}
+                  onChange={(event) => setReasonCode(event.target.value as RejectReason)}
                 >
-                  Setujui purchase
-                </button>
-                <label>
-                  Alasan penolakan
-                  <select
-                    value={reasonCode}
-                    onChange={(event) => setReasonCode(event.target.value as RejectReason)}
-                  >
-                    {Object.entries(reasonLabels).map(([value, label]) => (
-                      <option value={value} key={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  disabled={loading || !canDecide || !hasMfa}
-                  onClick={() =>
-                    void run(async () => {
-                      const key = intentKey || crypto.randomUUID();
-                      if (!intentKey) setIntentKey(key);
-                      authoritative(
-                        await client.reject(selected.id, selected.version, reasonCode, key),
-                      );
-                    })
-                  }
-                >
-                  Tolak purchase
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+                  {Object.entries(reasonLabels).map(([value, label]) => (
+                    <option value={value} key={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                variant="danger"
+                disabled={loading || !canDecide}
+                onClick={() =>
+                  void run(async () => {
+                    const key = intentKey || crypto.randomUUID();
+                    if (!intentKey) setIntentKey(key);
+                    authoritative(
+                      await client.reject(selected.id, selected.version, reasonCode, key),
+                    );
+                  })
+                }
+              >
+                Tolak purchase
+              </Button>
+            </>
+          )}
+        </DetailDrawer>
       )}
       {loading && <Skeleton label="Memproses purchase" />}
       {message && !loading && <Feedback kind="status">{message}</Feedback>}

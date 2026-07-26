@@ -6,7 +6,7 @@ import { AvailabilityService } from './availability.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 
-databaseDescribe('synthetic instructor availability PostgreSQL integration', () => {
+databaseDescribe('synthetic instructor availability MySQL integration', () => {
   const db = new PrismaClient();
   const service = new AvailabilityService(
     db as never,
@@ -22,7 +22,6 @@ databaseDescribe('synthetic instructor availability PostgreSQL integration', () 
   const principal = {
     sessionId: namespace,
     userId: instructorId,
-    assurance: 'BASE' as const,
     roles: [{ role: 'INSTRUCTOR' as const, branchId }],
     capabilities: ['availability:self:read', 'availability:self:create'],
     branchIds: [branchId, otherBranchId],

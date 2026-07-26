@@ -4,7 +4,6 @@ import { PolicyService } from '../identity/policy.service';
 const principal = {
   sessionId: 'session',
   userId: '00000000-0000-4000-8000-000000000001',
-  assurance: 'BASE' as const,
   roles: [{ role: 'INSTRUCTOR' as const, branchId: '00000000-0000-4000-8000-000000000002' }],
   capabilities: ['availability:self:read', 'availability:self:create'],
   branchIds: ['00000000-0000-4000-8000-000000000002'],

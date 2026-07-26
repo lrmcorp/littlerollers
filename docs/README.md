@@ -59,6 +59,8 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Design | [Remaining MVP Screen-level Handoff Queue](design/05-remaining-mvp-screen-handoff-queue.md) | UI/UX Designer | Product Owner |
 | Design | [Remaining MVP Detailed Screen Handoff](design/06-remaining-mvp-detailed-screen-handoff.md) | UI/UX Designer | Product Owner |
 | Design | [Frontend Design Baseline — Interim Executable Reference](design/07-frontend-design-baseline.md) | AI Design/Web | Product Owner untuk visual production acceptance |
+| Design | [Frontend Page Inventory dan Route Map](design/08-frontend-page-inventory.md) | AI Design/Web | Product Owner untuk scope dan visual production acceptance |
+| Design | [ChatGPT Public UI Handoff — Landing dan Studios](design/09-chatgpt-public-ui-handoff.md) | AI Design/Web/QA | Product Owner untuk visual production acceptance |
 | Technical | [Solution Architecture](technical/01-solution-architecture.md) | Technical Lead | Technical Lead |
 | Technical | [Data, API, Security & Operations](technical/02-data-api-security-operations.md) | Technical Lead | Technical Lead |
 | Technical | [Architecture Decision Baseline](technical/03-architecture-decision-baseline.md) | Technical Lead | Technical Lead |

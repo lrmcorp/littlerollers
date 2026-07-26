@@ -10,13 +10,13 @@ import {
 } from '../ledger-client';
 import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
+import { Button, Panel, StatCard } from '../components/admin/admin-ui';
 
 export function LedgerView({ client = browserLedgerClient }: { client?: LedgerClient }) {
   const [branchId, setBranchId] = useActiveBranchState();
   const sessionContext = useSessionContext();
   const canRequest = !sessionContext || sessionContext.hasCapability('ledger:adjust:request');
   const canDecide = !sessionContext || sessionContext.hasCapability('ledger:adjust:decide');
-  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<LedgerBalance[]>([]);
   const [history, setHistory] = useState<LedgerHistory | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null | undefined>();
@@ -46,26 +46,42 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
       setMessage(result.items.length ? 'Saldo paket dimuat.' : 'Belum ada paket customer.');
     });
   return (
-    <section className="card" aria-labelledby="ledger-title">
-      <PageHeader
-        eyebrow="Append-only ledger"
-        title="Saldo dan histori paket"
-        titleId="ledger-title"
-        description="Saldo authoritative memperhitungkan ledger dan reservation aktif pada cakupan cabang."
-        context={
-          <>
-            <StatusBadge tone="info">Branch scoped</StatusBadge>
-            <StatusBadge tone="warning">Synthetic</StatusBadge>
-          </>
-        }
-      />
-      <label>
-        Cabang ledger
-        <input value={branchId} onChange={(event) => setBranchId(event.target.value)} />
-      </label>
-      <button disabled={loading} onClick={() => void load()}>
+    <section className="space-y-6" aria-labelledby="ledger-title">
+      <Panel className="p-6 sm:p-8">
+        <PageHeader
+          eyebrow="Append-only ledger"
+          title="Saldo dan histori paket"
+          titleId="ledger-title"
+          description="Saldo authoritative memperhitungkan ledger dan reservation aktif pada cakupan cabang."
+          context={
+            <>
+              <StatusBadge tone="info">Branch scoped</StatusBadge>
+              <StatusBadge tone="warning">Mode simulasi</StatusBadge>
+            </>
+          }
+        />
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <StatCard label="Paket ditampilkan" value={String(items.length)} />
+          <StatCard
+            label="Total sesi"
+            value={String(items.reduce((sum, item) => sum + item.ledgerBalance, 0))}
+          />
+          <StatCard
+            label="Sesi tersedia"
+            value={String(items.reduce((sum, item) => sum + item.available, 0))}
+            tone="success"
+          />
+        </div>
+      </Panel>
+      {!sessionContext && (
+        <label>
+          Cabang ledger
+          <input value={branchId} onChange={(event) => setBranchId(event.target.value)} />
+        </label>
+      )}
+      <Button disabled={loading} onClick={() => void load()}>
         Muat saldo
-      </button>
+      </Button>
       <ul aria-label="Daftar saldo paket">
         {items.map((item) => (
           <li key={item.id}>
@@ -82,7 +98,11 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           description="Muat saldo sesuai cabang untuk melihat balance dan histori."
         />
       )}
-      {nextCursor && <button onClick={() => void load(nextCursor)}>Muat berikutnya</button>}
+      {nextCursor && (
+        <Button variant="secondary" onClick={() => void load(nextCursor)}>
+          Muat berikutnya
+        </Button>
+      )}
       {history && (
         <section aria-labelledby="history-title">
           <h2 id="history-title">Histori ledger</h2>
@@ -113,10 +133,10 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
         <h2 id="adjustment-title">Penyesuaian sesi</h2>
         <p className="muted">
           Request Admin tidak mengubah saldo. Keputusan memerlukan Manager/Super Owner berbeda dan
-          MFA.
+          permission yang sesuai.
         </p>
         <ConfirmationPanel title="Separation of duties">
-          Request tidak mengubah saldo. Approval hanya dapat dilakukan actor berbeda dengan MFA.
+          Request tidak mengubah saldo. Approval hanya dapat dilakukan actor berbeda yang berizin.
         </ConfirmationPanel>
         <label>
           Paket customer
@@ -139,7 +159,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
             <option>SUPPORT_RECONCILIATION</option>
           </select>
         </label>
-        <button
+        <Button
           disabled={loading || !packageId || !quantity || Number(quantity) === 0 || !canRequest}
           onClick={() =>
             void run(async () => {
@@ -152,8 +172,9 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           }
         >
           Buat request adjustment
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
           disabled={loading}
           onClick={() =>
             void run(async () =>
@@ -162,7 +183,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
           }
         >
           Muat antrean adjustment
-        </button>
+        </Button>
         <ul aria-label="Antrean adjustment">
           {adjustments.map((item) => (
             <li key={item.id}>
@@ -170,7 +191,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
               {item.status === 'PENDING' && (
                 <>
                   <button
-                    disabled={!canDecide || !hasMfa}
+                    disabled={!canDecide}
                     onClick={() =>
                       void run(async () => {
                         await client.decideAdjustment(
@@ -186,7 +207,7 @@ export function LedgerView({ client = browserLedgerClient }: { client?: LedgerCl
                     Setujui
                   </button>
                   <button
-                    disabled={!canDecide || !hasMfa}
+                    disabled={!canDecide}
                     onClick={() =>
                       void run(async () => {
                         await client.decideAdjustment(

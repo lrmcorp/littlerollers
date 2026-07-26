@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **actorType** | **String** |  | 
 **actorId** | **String** |  | [optional] 
 **branchId** | **String** |  | [optional] 
+**targetUserId** | **String** |  | [optional] 
 **action** | **String** |  | 
 **objectType** | **String** |  | 
 **objectId** | **String** |  | 

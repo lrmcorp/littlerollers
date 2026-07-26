@@ -20,3 +20,6 @@ apps/mobile/build/
 apps/mobile/.idea/
 packages/api-client-dart/.dart_tool/
 infra/local/data/
+.local-data/
+apps/api/.local-data/
+Archive.zip

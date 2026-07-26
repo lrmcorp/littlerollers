@@ -69,7 +69,7 @@ Name | Type | Description  | Notes
 
 
 
-Synthetic-only MFA-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
+Permission-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
 
 ### Example
 ```dart
@@ -306,7 +306,7 @@ Name | Type | Description  | Notes
 
 
 
-MFA-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
+Permission-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
 
 ### Example
 ```dart

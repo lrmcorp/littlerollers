@@ -2,7 +2,6 @@ import { Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
 import { notifySessionFailure } from './session-client';
 
 export type AssignmentFailure =
-  | 'MFA_REQUIRED'
   | 'EFFECTIVE_PERIOD_OVERLAP'
   | 'STALE_VERSION'
   | 'RESOURCE_NOT_FOUND'
@@ -21,6 +20,7 @@ export interface AssignmentSummary {
 
 export interface AssignmentClient {
   list(branchId: string): Promise<AssignmentSummary[]>;
+  listUsers(branchId: string): Promise<{ id: string; displayName: string }[]>;
   create(input: Omit<AssignmentSummary, 'id' | 'version'> & { reason: string }): Promise<void>;
   end(id: string, effectiveAt: string, expectedVersion: number, reason: string): Promise<void>;
 }
@@ -41,6 +41,10 @@ export const browserAssignmentClient: AssignmentClient = {
       activeUntil: item.activeUntil?.toISOString().slice(0, 10) ?? null,
       version: item.version,
     }));
+  },
+  async listUsers(branchId) {
+    const page = await identity.listUsers({ branchId, status: 'ACTIVE' });
+    return page.items.map(({ id, displayName }) => ({ id, displayName }));
   },
   async create(input) {
     await identity.createAssignment({
@@ -69,6 +73,5 @@ export function assignmentFailure(error: unknown): AssignmentFailure {
   if (status === 404) return 'RESOURCE_NOT_FOUND';
   if (status === 422 || status === 400) return 'VALIDATION_ERROR';
   if (status === 409) return 'EFFECTIVE_PERIOD_OVERLAP';
-  if (status === 403) return 'MFA_REQUIRED';
   return 'FORBIDDEN';
 }

@@ -1,24 +1,186 @@
-import { AuthApi, Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
+import {
+  AuthApi,
+  Configuration,
+  IdentityApi,
+  type UserSummary as GeneratedUserSummary,
+} from '@dailydose/api-client-ts/generated';
 import { notifySessionFailure } from './session-client';
 
 export type UiFailure =
   | 'CONFIGURATION_REQUIRED'
   | 'RATE_LIMITED'
-  | 'MFA_CHALLENGE_EXPIRED'
   | 'FORBIDDEN'
   | 'IDENTITY_CONFLICT'
+  | 'STALE_VERSION'
   | 'SESSION_REVOKED';
+
+export type ApplicationRole =
+  'CUSTOMER' | 'INSTRUCTOR' | 'ADMIN' | 'MANAGER' | 'OWNER' | 'SUPER_OWNER' | 'FINANCE' | 'OPS';
+
+export interface UserRoleSummary {
+  role: ApplicationRole;
+  branchId: string | null;
+  branch: { id: string; code: string; name: string } | null;
+  source: 'DIRECT' | 'ASSIGNMENT';
+}
+
+export interface UserSummary {
+  id: string;
+  displayName: string;
+  status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  roles: UserRoleSummary[];
+  directRoles: UserRoleSummary[];
+  assignmentRoles: UserRoleSummary[];
+  effectiveCapabilities: string[];
+}
+
+export interface RoleCatalogItem {
+  role: ApplicationRole;
+  capabilities: string[];
+  assignable: boolean;
+  readOnly: boolean;
+  scope: 'GLOBAL' | 'BRANCH';
+}
+
+export interface AuditSummary {
+  id: string;
+  occurredAt: string;
+  action: string;
+  actorId: string | null;
+  correlationId: string;
+  branchId?: string | null;
+  targetUserId?: string | null;
+  objectType?: string;
+  objectId?: string;
+  beforeMasked?: unknown;
+  afterMasked?: unknown;
+}
+
+export interface UserFilters {
+  branchId?: string;
+  cursor?: string;
+  search?: string;
+  status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+  role?: ApplicationRole;
+}
+
+export interface LookupOption {
+  id: string;
+  label: string;
+  description: string;
+  metadata: { roles: ApplicationRole[]; branchIds: string[] };
+}
+export interface AuditExportSummary {
+  id: string;
+  status: 'QUEUED' | 'RUNNING' | 'READY' | 'FAILED' | 'EXPIRED';
+  requestedAt: string;
+  completedAt: string | null;
+  expiresAt: string;
+  rowCount: number;
+  failureCode: string | null;
+}
 
 export interface IdentityClient {
   signIn(syntheticEmail?: string): Promise<void>;
-  stepUp(): Promise<void>;
-  invite(email: string, role: string): Promise<'CREATED' | 'EXISTS'>;
-  deactivate(id: string): Promise<void>;
+  signInWithPassword(email: string, password: string): Promise<void>;
+  signInWithGoogleToken(idToken: string, nonce: string): Promise<void>;
+  activatePassword(token: string, password: string): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
+  resetPassword(token: string, password: string): Promise<void>;
+  securityStatus(): Promise<{
+    passwordEnabled: boolean;
+    passwordChangedAt: string | null;
+  }>;
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
+  listUsers(filters: UserFilters): Promise<{
+    items: UserSummary[];
+    page: { nextCursor: string | null; hasMore: boolean };
+  }>;
+  lookupUsers(filters: {
+    q?: string;
+    branchId?: string;
+    cursor?: string;
+    limit?: number;
+    instructorsOnly?: boolean;
+  }): Promise<{ items: LookupOption[]; page: { nextCursor: string | null; hasMore: boolean } }>;
+  createAuditExport(
+    command: {
+      branchIds: string[];
+      from: string;
+      to: string;
+      actorId?: string;
+      objectType?: string;
+      format: 'CSV' | 'JSONL';
+      reason: string;
+    },
+    idempotencyKey: string,
+  ): Promise<AuditExportSummary>;
+  getAuditExport(id: string): Promise<AuditExportSummary>;
+  authorizeAuditExport(id: string): Promise<{ url: string; expiresAt: string }>;
+  getUser(id: string): Promise<UserSummary>;
+  roleCatalog(): Promise<RoleCatalogItem[]>;
+  listAudit(id: string): Promise<AuditSummary[]>;
+  listAuditLogs(filters: {
+    actorId?: string;
+    targetUserId?: string;
+    action?: string;
+    branchId?: string;
+    correlationId?: string;
+    from?: string;
+    until?: string;
+    cursor?: string;
+  }): Promise<{ items: AuditSummary[]; page: { nextCursor: string | null; hasMore: boolean } }>;
+  invite(
+    email: string,
+    displayName: string,
+    roles: { role: ApplicationRole; branchId?: string | null }[],
+  ): Promise<'CREATED' | 'EXISTS'>;
+  requestPasswordSetup(id: string, email: string, reason: string): Promise<void>;
+  updateRoles(
+    id: string,
+    roles: { role: ApplicationRole; branchId?: string | null }[],
+    expectedVersion: number,
+    reason: string,
+  ): Promise<UserSummary>;
+  deactivate(id: string, reason?: string): Promise<void>;
+  reactivate(id: string, reason: string): Promise<void>;
 }
 
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
 const auth = new AuthApi(configuration);
 const identity = new IdentityApi(configuration);
+
+async function request(path: string, init: RequestInit = {}) {
+  const response = await fetch(`/api/v1${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...init.headers,
+    },
+  });
+  if (!response.ok) throw { response };
+  if (response.status === 204) return undefined;
+  return response.json();
+}
+
+function mapUser(user: GeneratedUserSummary): UserSummary {
+  const mapped = user as GeneratedUserSummary & Partial<UserSummary>;
+  const roles = user.roles as UserRoleSummary[];
+  return {
+    ...user,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    roles,
+    directRoles: mapped.directRoles ?? roles.filter(({ source }) => source === 'DIRECT'),
+    assignmentRoles:
+      mapped.assignmentRoles ?? roles.filter(({ source }) => source === 'ASSIGNMENT'),
+    effectiveCapabilities: mapped.effectiveCapabilities ?? [],
+  };
+}
 
 export const browserIdentityClient: IdentityClient = {
   async signIn(syntheticEmail) {
@@ -37,35 +199,168 @@ export const browserIdentityClient: IdentityClient = {
       },
     });
   },
-  async stepUp() {
-    if (
-      process.env.NODE_ENV === 'production' ||
-      process.env.NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED !== 'true'
-    )
-      throw { response: { status: 503 } };
-    const challenge = await auth.createMfaChallenge({
-      mfaChallengeCommand: { purpose: 'STEP_UP', method: 'configured-provider' },
-    });
-    await auth.verifyMfaChallenge({
-      mfaVerifyCommand: { challengeId: challenge.id, proof: '' },
+  async signInWithPassword(email, password) {
+    await request('/auth/password/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, channel: 'WEB' }),
     });
   },
-  async invite(email, role) {
-    const result = await identity.inviteUser({
-      inviteUserRequest: { email, roles: [role as never] },
+  async signInWithGoogleToken(idToken, nonce) {
+    await auth.authenticateGoogle({
+      googleAuthRequest: { idToken, nonce, channel: 'WEB' },
     });
-    return result.status === 'EXISTS' ? 'EXISTS' : 'CREATED';
   },
-  async deactivate(id) {
-    await identity.deactivateUser({ id, deactivateUserRequest: { reason: 'ADMIN_REQUEST' } });
+  async lookupUsers(filters) {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q);
+    if (filters.branchId) params.set('branchId', filters.branchId);
+    if (filters.cursor) params.set('cursor', filters.cursor);
+    if (filters.limit) params.set('limit', String(filters.limit));
+    return request(`/lookups/${filters.instructorsOnly ? 'instructors' : 'users'}?${params}`);
+  },
+  async createAuditExport(command, idempotencyKey) {
+    return request('/audit-exports', {
+      method: 'POST',
+      headers: { 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(command),
+    });
+  },
+  async getAuditExport(id) {
+    return request(`/audit-exports/${id}`);
+  },
+  async authorizeAuditExport(id) {
+    return request(`/audit-exports/${id}/download-authorizations`, { method: 'POST' });
+  },
+  async activatePassword(token, password) {
+    await request('/auth/password/activations', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  },
+  async requestPasswordReset(email) {
+    await request('/auth/password/reset-requests', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+  async resetPassword(token, password) {
+    await request('/auth/password/resets', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  },
+  async securityStatus() {
+    return request('/auth/security') as Promise<{
+      passwordEnabled: boolean;
+      passwordChangedAt: string | null;
+    }>;
+  },
+  async changePassword(currentPassword, newPassword) {
+    await request('/auth/password/change', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+  async listUsers(filters) {
+    const result = await identity.listUsers({
+      ...filters,
+      role: filters.role as never,
+      status: filters.status as never,
+    });
+    return {
+      items: result.items.map(mapUser),
+      page: {
+        nextCursor: result.page.nextCursor ?? null,
+        hasMore: result.page.hasMore,
+      },
+    };
+  },
+  async getUser(id) {
+    return mapUser(await identity.getUser({ id }));
+  },
+  async roleCatalog() {
+    const result = await identity.getRoleCatalog();
+    return result.items as RoleCatalogItem[];
+  },
+  async listAudit(id) {
+    const result = await identity.listUserAudit({ id });
+    return result.items.map((item) => ({
+      id: item.id,
+      occurredAt: item.occurredAt.toISOString(),
+      action: item.action,
+      actorId: item.actorId ?? null,
+      correlationId: item.correlationId,
+      branchId: item.branchId ?? null,
+      objectType: item.objectType,
+      objectId: item.objectId,
+      beforeMasked: item.beforeMasked,
+      afterMasked: item.afterMasked,
+    }));
+  },
+  async listAuditLogs(filters) {
+    const params = new URLSearchParams(
+      Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])),
+    );
+    const result = (await request(`/audit-logs?${params.toString()}`)) as {
+      items: Array<AuditSummary & { occurredAt: string }>;
+      page: { nextCursor: string | null; hasMore: boolean };
+    };
+    return result;
+  },
+  async invite(email, displayName, roles) {
+    const result = await request('/users', {
+      method: 'POST',
+      body: JSON.stringify({ email, displayName, roleAssignments: roles }),
+    });
+    return (result as { status: string }).status === 'EXISTS' ? 'EXISTS' : 'CREATED';
+  },
+  async requestPasswordSetup(id, email, reason) {
+    await request(`/users/${encodeURIComponent(id)}/password-setup-requests`, {
+      method: 'POST',
+      body: JSON.stringify({ email, reason }),
+    });
+  },
+  async updateRoles(id, roles, expectedVersion, reason) {
+    try {
+      return mapUser(
+        await identity.updateUserRoles({
+          id,
+          updateUserRolesCommand: {
+            roles: roles.map((item) => ({ ...item, role: item.role as never })),
+            expectedVersion,
+            reason,
+          },
+        }),
+      );
+    } catch (error) {
+      const response = (error as { response?: Response }).response;
+      if (response?.status === 409) {
+        const problem = (await response
+          .clone()
+          .json()
+          .catch(() => ({}))) as { code?: string; error?: { code?: string } };
+        throw {
+          response,
+          code: problem.code ?? problem.error?.code,
+        };
+      }
+      throw error;
+    }
+  },
+  async deactivate(id, reason = 'ADMIN_REQUEST') {
+    await identity.deactivateUser({ id, deactivateUserRequest: { reason } });
+  },
+  async reactivate(id, reason) {
+    await identity.reactivateUser({ id, deactivateUserRequest: { reason } });
   },
 };
 
 export const failureCode = (error: unknown): UiFailure => {
   notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
+  const code = (error as { code?: string })?.code;
+  if (code === 'STALE_VERSION') return 'STALE_VERSION';
   if (status === 403) return 'FORBIDDEN';
-  if (status === 410) return 'MFA_CHALLENGE_EXPIRED';
   if (status === 409) return 'IDENTITY_CONFLICT';
   if (status === 429) return 'RATE_LIMITED';
   if (status === 401) return 'SESSION_REVOKED';

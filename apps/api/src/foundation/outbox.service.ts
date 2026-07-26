@@ -22,20 +22,27 @@ export class OutboxService {
 
   async claim(limit = 25): Promise<OutboxEvent[]> {
     const boundedLimit = Math.max(1, Math.min(limit, 100));
-    return this.prisma.$queryRaw<OutboxEvent[]>`
-      WITH selected AS (
-        SELECT id FROM "OutboxEvent"
-        WHERE status = 'PENDING'
-        ORDER BY "occurredAt"
-        FOR UPDATE SKIP LOCKED
+    return this.prisma.$transaction(async (transaction) => {
+      const selected = await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT \`id\`
+        FROM \`OutboxEvent\`
+        WHERE \`status\` = 'PENDING'
+        ORDER BY \`occurredAt\`
         LIMIT ${boundedLimit}
-      )
-      UPDATE "OutboxEvent" event
-      SET attempts = attempts + 1
-      FROM selected
-      WHERE event.id = selected.id
-      RETURNING event.*
-    `;
+        FOR UPDATE SKIP LOCKED
+      `;
+      const ids = selected.map(({ id }) => id);
+      if (ids.length === 0) return [];
+
+      await transaction.outboxEvent.updateMany({
+        where: { id: { in: ids } },
+        data: { attempts: { increment: 1 } },
+      });
+      return transaction.outboxEvent.findMany({
+        where: { id: { in: ids } },
+        orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+      });
+    });
   }
 
   markPublished(id: string): Promise<OutboxEvent> {

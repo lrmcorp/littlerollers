@@ -9,7 +9,7 @@ Version/checksum and Sprint 2–3 review blockers are tracked in [Sprint 2–3 C
 
 Entitas minimum:
 
-- Identity: `User`, `ExternalIdentity`, `UserRole`, `UserMfa`, `UserSession`.
+- Identity: `User`, `ExternalIdentity`, `UserRole`, `UserSession`.
 - Organization: `Branch`, `OwnerBranch`, `InstructorBranch`, `ClassType`.
 - Package: `Package`, `Purchase`, `PaymentProof`, `CustomerPackage`.
 - Session: `SessionLedger`, `SessionReservation`, `SessionAdjustRequest`.
@@ -68,7 +68,7 @@ Public API changes mengikuti semantic versioning contract policy: additive field
 Setiap request melewati:
 
 1. Authentication dan session validity.
-2. User active/MFA assurance sesuai action.
+2. User aktif dan memiliki permission efektif sesuai action.
 3. Role permission.
 4. Branch/data scope.
 5. Resource state dan separation of duties.
@@ -85,7 +85,7 @@ Backend tidak menerima `role` atau branch authority dari client sebagai kebenara
 - QR/deep-link token signed, short-lived, audience/resource-bound, one-purpose; sensitive token tidak masuk analytics/referrer/log.
 - Upload proof: extension/MIME/signature/size validation, private bucket, random key, malware scan, signed short-lived access.
 - Secret hanya pada managed secret store; rotation dan break-glass process terdokumentasi.
-- Production access least privilege, MFA, time-bound bila tersedia, dan quarterly access review.
+- Production access least privilege, time-bound bila tersedia, dan quarterly access review.
 - PII disensor pada log; nomor telepon dan bukti bayar hanya terlihat bagi role berizin.
 - Consent/privacy notice, data subject handling, retention schedule, incident response, dan breach communication dimiliki bisnis dan direview legal sesuai kebutuhan.
 

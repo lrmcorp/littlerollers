@@ -5,7 +5,6 @@ const branchId = '00000000-0000-4000-8000-000000000002';
 const principal = {
   sessionId: 'session',
   userId: '00000000-0000-4000-8000-000000000001',
-  assurance: 'MFA' as const,
   roles: [{ role: 'ADMIN' as const, branchId }],
   capabilities: ['class-slot:read', 'class-slot:manage'],
   branchIds: [branchId],

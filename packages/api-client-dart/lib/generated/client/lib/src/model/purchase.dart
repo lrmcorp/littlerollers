@@ -9,7 +9,7 @@ import 'package:built_value/serializer.dart';
 
 part 'purchase.g.dart';
 
-/// Immutable commercial snapshots. Decision metadata is populated only for APPROVED or REJECTED.
+/// Legacy-compatible internal purchase view backed by the order model.
 ///
 /// Properties:
 /// * [id] 
@@ -42,7 +42,7 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   String get packageId;
 
   @BuiltValueField(wireName: r'paymentProofId')
-  String get paymentProofId;
+  String? get paymentProofId;
 
   @BuiltValueField(wireName: r'packageNameSnapshot')
   String get packageNameSnapshot;
@@ -58,7 +58,7 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
 
   @BuiltValueField(wireName: r'status')
   PurchaseStatusEnum get status;
-  // enum statusEnum {  PENDING,  APPROVED,  REJECTED,  };
+  // enum statusEnum {  AWAITING_PAYMENT,  PENDING,  ACTION_REQUIRED,  APPROVED,  REJECTED,  EXPIRED,  };
 
   @BuiltValueField(wireName: r'submittedAt')
   DateTime get submittedAt;
@@ -118,11 +118,13 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.packageId,
       specifiedType: const FullType(String),
     );
-    yield r'paymentProofId';
-    yield serializers.serialize(
-      object.paymentProofId,
-      specifiedType: const FullType(String),
-    );
+    if (object.paymentProofId != null) {
+      yield r'paymentProofId';
+      yield serializers.serialize(
+        object.paymentProofId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     yield r'packageNameSnapshot';
     yield serializers.serialize(
       object.packageNameSnapshot,
@@ -233,8 +235,9 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
         case r'paymentProofId':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
           result.paymentProofId = valueDes;
           break;
         case r'packageNameSnapshot':
@@ -341,12 +344,18 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
 
 class PurchaseStatusEnum extends EnumClass {
 
+  @BuiltValueEnumConst(wireName: r'AWAITING_PAYMENT')
+  static const PurchaseStatusEnum AWAITING_PAYMENT = _$purchaseStatusEnum_AWAITING_PAYMENT;
   @BuiltValueEnumConst(wireName: r'PENDING')
   static const PurchaseStatusEnum PENDING = _$purchaseStatusEnum_PENDING;
+  @BuiltValueEnumConst(wireName: r'ACTION_REQUIRED')
+  static const PurchaseStatusEnum ACTION_REQUIRED = _$purchaseStatusEnum_ACTION_REQUIRED;
   @BuiltValueEnumConst(wireName: r'APPROVED')
   static const PurchaseStatusEnum APPROVED = _$purchaseStatusEnum_APPROVED;
   @BuiltValueEnumConst(wireName: r'REJECTED')
   static const PurchaseStatusEnum REJECTED = _$purchaseStatusEnum_REJECTED;
+  @BuiltValueEnumConst(wireName: r'EXPIRED')
+  static const PurchaseStatusEnum EXPIRED = _$purchaseStatusEnum_EXPIRED;
 
   static Serializer<PurchaseStatusEnum> get serializer => _$purchaseStatusEnumSerializer;
 

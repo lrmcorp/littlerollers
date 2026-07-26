@@ -9,6 +9,8 @@ part of 'create_payment_proof_upload_request.dart';
 class _$CreatePaymentProofUploadRequest
     extends CreatePaymentProofUploadRequest {
   @override
+  final String? orderId;
+  @override
   final String branchId;
   @override
   final String? packageId;
@@ -26,6 +28,7 @@ class _$CreatePaymentProofUploadRequest
   ]) => (CreatePaymentProofUploadRequestBuilder()..update(updates))._build();
 
   _$CreatePaymentProofUploadRequest._({
+    this.orderId,
     required this.branchId,
     this.packageId,
     required this.fileName,
@@ -46,6 +49,7 @@ class _$CreatePaymentProofUploadRequest
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is CreatePaymentProofUploadRequest &&
+        orderId == other.orderId &&
         branchId == other.branchId &&
         packageId == other.packageId &&
         fileName == other.fileName &&
@@ -57,6 +61,7 @@ class _$CreatePaymentProofUploadRequest
   @override
   int get hashCode {
     var _$hash = 0;
+    _$hash = $jc(_$hash, orderId.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, packageId.hashCode);
     _$hash = $jc(_$hash, fileName.hashCode);
@@ -70,6 +75,7 @@ class _$CreatePaymentProofUploadRequest
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'CreatePaymentProofUploadRequest')
+          ..add('orderId', orderId)
           ..add('branchId', branchId)
           ..add('packageId', packageId)
           ..add('fileName', fileName)
@@ -87,6 +93,10 @@ class CreatePaymentProofUploadRequestBuilder
           CreatePaymentProofUploadRequestBuilder
         > {
   _$CreatePaymentProofUploadRequest? _$v;
+
+  String? _orderId;
+  String? get orderId => _$this._orderId;
+  set orderId(String? orderId) => _$this._orderId = orderId;
 
   String? _branchId;
   String? get branchId => _$this._branchId;
@@ -119,6 +129,7 @@ class CreatePaymentProofUploadRequestBuilder
   CreatePaymentProofUploadRequestBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
+      _orderId = $v.orderId;
       _branchId = $v.branchId;
       _packageId = $v.packageId;
       _fileName = $v.fileName;
@@ -147,6 +158,7 @@ class CreatePaymentProofUploadRequestBuilder
     final _$result =
         _$v ??
         _$CreatePaymentProofUploadRequest._(
+          orderId: orderId,
           branchId: BuiltValueNullFieldError.checkNotNull(
             branchId,
             r'CreatePaymentProofUploadRequest',

@@ -4,7 +4,7 @@ import { loadRuntimeConfig } from './index.js';
 
 const validEnvironment = {
   NODE_ENV: 'test',
-  DATABASE_URL: 'postgresql://local:local@127.0.0.1:55432/dailydose',
+  DATABASE_URL: 'mysql://local:local@127.0.0.1:3306/dailydose',
   REDIS_URL: 'redis://127.0.0.1:6379',
   HEALTH_PROBE_TIMEOUT_MS: '2000',
   WORKER_HEARTBEAT_INTERVAL_MS: '10000',

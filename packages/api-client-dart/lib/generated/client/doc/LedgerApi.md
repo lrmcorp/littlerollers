@@ -21,7 +21,7 @@ Method | HTTP request | Description
 
 
 
-MFA-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
+Permission-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
 
 ### Example
 ```dart

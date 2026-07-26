@@ -3,11 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
+  PENDING_ACTIVATION
   ACTIVE
   INACTIVE
 }
@@ -15,6 +16,13 @@ enum UserStatus {
 enum IdentityProvider {
   GOOGLE
   WHATSAPP_PHONE
+  EMAIL_PASSWORD
+}
+
+enum PasswordActionKind {
+  ACTIVATION
+  RESET
+  SETUP
 }
 
 enum AssignmentType {
@@ -38,14 +46,8 @@ enum SessionChannel {
   MOBILE
 }
 
-enum AssuranceLevel {
-  BASE
-  MFA
-}
-
 enum ChallengeKind {
   OTP
-  MFA
   RECOVERY
 }
 
@@ -95,10 +97,25 @@ enum PaymentProofScanStatus {
   ERROR
 }
 
-enum PurchaseStatus {
+enum IdentityDocumentKind {
+  SELFIE
+  KTP_FRONT
+}
+
+enum IdentityVerificationStatus {
   PENDING
   APPROVED
   REJECTED
+  DELETED
+}
+
+enum PurchaseStatus {
+  AWAITING_PAYMENT
+  PENDING
+  ACTION_REQUIRED
+  APPROVED
+  REJECTED
+  EXPIRED
 }
 
 enum LedgerEntryType {
@@ -177,6 +194,16 @@ enum BookingSource {
   ADMIN_ASSISTED
 }
 
+enum CheckInTokenStatus {
+  ACTIVE
+  USED
+  REVOKED
+}
+
+enum AttendanceSource {
+  QR
+}
+
 enum RescheduleStatus {
   PENDING
   APPROVED
@@ -197,34 +224,81 @@ enum RescheduleDecisionReasonCode {
 }
 
 model User {
-  id                       String                   @id @db.Uuid
-  displayName              String
-  status                   UserStatus               @default(ACTIVE)
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime                 @updatedAt
-  identities               Identity[]
-  assignments              Assignment[]
-  roles                    UserRole[]
-  sessions                 UserSession[]
-  challenges               AuthChallenge[]
-  createdInvitations       UserInvitation[]
-  paymentProofs            PaymentProof[]
-  purchases                Purchase[]
-  decidedPurchases         Purchase[]               @relation("PurchaseDecisionActor")
-  customerPackages         CustomerPackage[]
-  requestedAdjustments     SessionAdjustment[]      @relation("AdjustmentRequester")
-  decidedAdjustments       SessionAdjustment[]      @relation("AdjustmentDecider")
-  instructorAvailabilities InstructorAvailability[]
-  instructedClassSlots     ClassSlot[]              @relation("ClassSlotInstructor")
-  customerBookings         Booking[]                @relation("BookingCustomer")
-  createdBookings          Booking[]                @relation("BookingActor")
-  requestedReschedules     Reschedule[]             @relation("RescheduleRequester")
-  decidedReschedules       Reschedule[]             @relation("RescheduleDecider")
+  id                        String                         @id @db.Char(36)
+  displayName               String
+  phoneE164                 String?                        @unique
+  status                    UserStatus                     @default(ACTIVE)
+  version                   Int                            @default(0)
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+  identities                Identity[]
+  assignments               Assignment[]
+  roles                     UserRole[]
+  sessions                  UserSession[]
+  challenges                AuthChallenge[]
+  passwordCredential        PasswordCredential?
+  passwordActions           PasswordActionToken[]
+  createdInvitations        UserInvitation[]               @relation("InvitationCreator")
+  activationInvitation      UserInvitation?                @relation("InvitationTarget")
+  paymentProofs             PaymentProof[]
+  purchases                 Purchase[]
+  decidedPurchases          Purchase[]                     @relation("PurchaseDecisionActor")
+  customerPackages          CustomerPackage[]
+  requestedAdjustments      SessionAdjustment[]            @relation("AdjustmentRequester")
+  decidedAdjustments        SessionAdjustment[]            @relation("AdjustmentDecider")
+  instructorAvailabilities  InstructorAvailability[]
+  instructedClassSlots      ClassSlot[]                    @relation("ClassSlotInstructor")
+  customerBookings          Booking[]                      @relation("BookingCustomer")
+  createdBookings           Booking[]                      @relation("BookingActor")
+  requestedReschedules      Reschedule[]                   @relation("RescheduleRequester")
+  decidedReschedules        Reschedule[]                   @relation("RescheduleDecider")
+  issuedCheckInTokens       CheckInToken[]                 @relation("CheckInTokenIssuer")
+  recordedAttendances       CustomerAttendance[]           @relation("AttendanceRecorder")
+  identityDocuments         IdentityVerificationDocument[] @relation("IdentityDocumentOwner")
+  reviewedIdentityDocuments IdentityVerificationDocument[] @relation("IdentityDocumentReviewer")
+  deletedIdentityDocuments  IdentityVerificationDocument[] @relation("IdentityDocumentDeleter")
+}
+
+model IdentityVerificationDocument {
+  id                    String                         @id @db.Char(36)
+  userId                String                         @db.Char(36)
+  kind                  IdentityDocumentKind
+  status                IdentityVerificationStatus     @default(PENDING)
+  objectKey             String?                        @unique
+  checksum              String
+  fileName              String
+  mimeType              String
+  sizeBytes             Int
+  uploadStatus          PaymentProofUploadStatus       @default(ISSUED)
+  scanStatus            PaymentProofScanStatus         @default(PENDING)
+  providerReferenceHash String?
+  issuedAt              DateTime                       @default(now())
+  uploadedAt            DateTime?
+  finalizedAt           DateTime?
+  reviewedAt            DateTime?
+  reviewedById          String?                        @db.Char(36)
+  rejectionReasonCode   String?
+  rejectionNote         String?
+  replacedById          String?                        @db.Char(36)
+  deletedAt             DateTime?
+  deletedById           String?                        @db.Char(36)
+  deletionReason        String?
+  version               Int                            @default(0)
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  user                  User                           @relation("IdentityDocumentOwner", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy            User?                          @relation("IdentityDocumentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  deletedBy             User?                          @relation("IdentityDocumentDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
+  replacedBy            IdentityVerificationDocument?  @relation("IdentityDocumentReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces              IdentityVerificationDocument[] @relation("IdentityDocumentReplacement")
+
+  @@index([userId, kind, createdAt])
+  @@index([status, kind, createdAt])
 }
 
 model Identity {
-  id          String           @id @db.Uuid
-  userId      String           @db.Uuid
+  id          String           @id @db.Char(36)
+  userId      String           @db.Char(36)
   provider    IdentityProvider
   subjectHash String
   verifiedAt  DateTime
@@ -236,7 +310,7 @@ model Identity {
 }
 
 model Branch {
-  id                       String                   @id @db.Uuid
+  id                       String                   @id @db.Char(36)
   code                     String                   @unique
   name                     String
   timezone                 String
@@ -249,6 +323,7 @@ model Branch {
   configurations           EffectiveConfiguration[]
   classTypes               ClassType[]
   packages                 Package[]
+  paymentAccounts          PaymentAccount[]
   customerPackages         CustomerPackage[]
   paymentProofs            PaymentProof[]
   purchases                Purchase[]
@@ -256,11 +331,12 @@ model Branch {
   classSlots               ClassSlot[]
   bookings                 Booking[]
   reschedules              Reschedule[]
+  customerAttendances      CustomerAttendance[]
 }
 
 model ClassType {
-  id               String                   @id @db.Uuid
-  branchId         String                   @db.Uuid
+  id               String                   @id @db.Char(36)
+  branchId         String                   @db.Char(36)
   code             String
   name             String
   active           Boolean                  @default(true)
@@ -278,9 +354,9 @@ model ClassType {
 }
 
 model Assignment {
-  id                       String                   @id @db.Uuid
-  userId                   String                   @db.Uuid
-  branchId                 String                   @db.Uuid
+  id                       String                   @id @db.Char(36)
+  userId                   String                   @db.Char(36)
+  branchId                 String                   @db.Char(36)
   type                     AssignmentType
   activeFrom               DateTime                 @db.Date
   activeUntil              DateTime?                @db.Date
@@ -295,10 +371,10 @@ model Assignment {
 }
 
 model InstructorAvailability {
-  id                 String     @id @db.Uuid
-  instructorUserId   String     @db.Uuid
-  branchId           String     @db.Uuid
-  sourceAssignmentId String     @db.Uuid
+  id                 String     @id @db.Char(36)
+  instructorUserId   String     @db.Char(36)
+  branchId           String     @db.Char(36)
+  sourceAssignmentId String     @db.Char(36)
   startAt            DateTime
   endAt              DateTime
   timezone           String
@@ -314,10 +390,10 @@ model InstructorAvailability {
 }
 
 model ClassSlot {
-  id                     String                           @id @db.Uuid
-  branchId               String                           @db.Uuid
-  classTypeId            String                           @db.Uuid
-  instructorUserId       String?                          @db.Uuid
+  id                     String                           @id @db.Char(36)
+  branchId               String                           @db.Char(36)
+  classTypeId            String                           @db.Char(36)
+  instructorUserId       String?                          @db.Char(36)
   startAt                DateTime
   endAt                  DateTime
   timezone               String
@@ -334,6 +410,8 @@ model ClassSlot {
   instructor             User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
   reservations           SessionReservation[]
   bookings               Booking[]
+  customerAttendances    CustomerAttendance[]
+  continuationPurchases  Purchase[]                       @relation("PurchaseContinuationSlot")
   sourceReschedules      Reschedule[]                     @relation("RescheduleSourceSlot")
   targetReschedules      Reschedule[]                     @relation("RescheduleTargetSlot")
   quotaEvaluationJob     QuotaEvaluationJob?
@@ -344,8 +422,8 @@ model ClassSlot {
 }
 
 model QuotaEvaluationJob {
-  id             String                   @id @db.Uuid
-  classSlotId    String                   @unique @db.Uuid
+  id             String                   @id @db.Char(36)
+  classSlotId    String                   @unique @db.Char(36)
   evaluationKey  String                   @unique
   dueAt          DateTime
   status         QuotaEvaluationJobStatus @default(QUEUED)
@@ -366,13 +444,13 @@ model QuotaEvaluationJob {
 }
 
 model UserRole {
-  id                 String          @id @default(uuid()) @db.Uuid
-  userId             String          @db.Uuid
+  id                 String          @id @default(uuid()) @db.Char(36)
+  userId             String          @db.Char(36)
   role               ApplicationRole
-  branchId           String?         @db.Uuid
+  branchId           String?         @db.Char(36)
   activeFrom         DateTime
   activeUntil        DateTime?
-  sourceAssignmentId String?         @unique @db.Uuid
+  sourceAssignmentId String?         @unique @db.Char(36)
   createdAt          DateTime        @default(now())
   user               User            @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch             Branch?         @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -383,13 +461,12 @@ model UserRole {
 }
 
 model UserSession {
-  id               String         @id @default(uuid()) @db.Uuid
-  userId           String         @db.Uuid
+  id               String         @id @default(uuid()) @db.Char(36)
+  userId           String         @db.Char(36)
   channel          SessionChannel
   tokenFamilyHash  String
   accessTokenHash  String         @unique
   refreshTokenHash String?        @unique
-  assurance        AssuranceLevel @default(BASE)
   expiresAt        DateTime
   refreshExpiresAt DateTime?
   revokedAt        DateTime?
@@ -403,8 +480,8 @@ model UserSession {
 }
 
 model AuthChallenge {
-  id          String          @id @default(uuid()) @db.Uuid
-  userId      String?         @db.Uuid
+  id          String          @id @default(uuid()) @db.Char(36)
+  userId      String?         @db.Char(36)
   kind        ChallengeKind
   purpose     String
   subjectHash String
@@ -422,24 +499,60 @@ model AuthChallenge {
 }
 
 model UserInvitation {
-  id               String           @id @default(uuid()) @db.Uuid
-  invitedById      String           @db.Uuid
-  identityProvider IdentityProvider @default(GOOGLE)
+  id               String                @id @default(uuid()) @db.Char(36)
+  invitedById      String                @db.Char(36)
+  userId           String?               @unique @db.Char(36)
+  identityProvider IdentityProvider      @default(GOOGLE)
   subjectHash      String
+  emailHash        String?
+  displayName      String?
   roles            Json
   branchIds        Json
-  status           InvitationStatus @default(PENDING)
+  status           InvitationStatus      @default(PENDING)
   expiresAt        DateTime
   acceptedAt       DateTime?
-  createdAt        DateTime         @default(now())
-  invitedBy        User             @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  createdAt        DateTime              @default(now())
+  invitedBy        User                  @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Restrict)
+  user             User?                 @relation("InvitationTarget", fields: [userId], references: [id], onDelete: Restrict)
+  passwordActions  PasswordActionToken[]
 
   @@index([identityProvider, subjectHash, status, expiresAt])
+  @@index([emailHash, status, expiresAt])
   @@index([invitedById, createdAt])
 }
 
+model PasswordCredential {
+  id                String   @id @default(uuid()) @db.Char(36)
+  userId            String   @unique @db.Char(36)
+  emailHash         String   @unique
+  passwordHash      String
+  verifiedAt        DateTime
+  passwordChangedAt DateTime
+  version           Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model PasswordActionToken {
+  id           String             @id @default(uuid()) @db.Char(36)
+  kind         PasswordActionKind
+  tokenHash    String             @unique
+  emailHash    String
+  userId       String?            @db.Char(36)
+  invitationId String?            @db.Char(36)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  invitation   UserInvitation?    @relation(fields: [invitationId], references: [id], onDelete: Restrict)
+
+  @@index([emailHash, kind, expiresAt])
+  @@index([userId, kind, expiresAt])
+}
+
 model RateLimitCounter {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid()) @db.Char(36)
   scope       String
   subjectHash String
   windowStart DateTime
@@ -451,24 +564,68 @@ model RateLimitCounter {
 }
 
 model AuditLog {
-  id            String   @id @db.Uuid
+  id            String   @id @db.Char(36)
   occurredAt    DateTime @default(now())
   actorType     String
-  actorId       String?  @db.Uuid
-  branchId      String?  @db.Uuid
+  actorId       String?  @db.Char(36)
+  branchId      String?  @db.Char(36)
   action        String
   objectType    String
   objectId      String
+  targetUserId  String?  @db.Char(36)
   beforeMasked  Json?
   afterMasked   Json?
   correlationId String
 
   @@index([branchId, occurredAt])
   @@index([objectType, objectId, occurredAt])
+  @@index([targetUserId, occurredAt])
+}
+
+enum AuditExportStatus {
+  QUEUED
+  RUNNING
+  READY
+  FAILED
+  EXPIRED
+}
+
+enum AuditExportFormat {
+  CSV
+  JSONL
+}
+
+model AuditExport {
+  id                 String            @id @db.Char(36)
+  requestedById      String            @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  branchIds          Json
+  from               DateTime
+  until              DateTime
+  actorId            String?           @db.Char(36)
+  objectType         String?
+  format             AuditExportFormat
+  reasonPresent      Boolean           @default(true)
+  status             AuditExportStatus @default(QUEUED)
+  rowCount           Int               @default(0)
+  content            String?           @db.LongText
+  failureCode        String?
+  downloadTokenHash  String?
+  downloadExpiresAt  DateTime?
+  requestedAt        DateTime          @default(now())
+  completedAt        DateTime?
+  expiresAt          DateTime
+  version            Int               @default(0)
+
+  @@unique([requestedById, idempotencyKeyHash])
+  @@index([requestedById, requestedAt])
+  @@index([status, requestedAt])
+  @@index([expiresAt])
 }
 
 model IdempotencyRecord {
-  id              String            @id @db.Uuid
+  id              String            @id @db.Char(36)
   scope           String
   keyHash         String
   requestHash     String
@@ -487,7 +644,7 @@ model IdempotencyRecord {
 }
 
 model OutboxEvent {
-  id            String       @id @db.Uuid
+  id            String       @id @db.Char(36)
   eventType     String
   aggregateType String
   aggregateId   String
@@ -503,9 +660,9 @@ model OutboxEvent {
 }
 
 model Package {
-  id               String            @id @db.Uuid
-  branchId         String            @db.Uuid
-  classTypeId      String            @db.Uuid
+  id               String            @id @db.Char(36)
+  branchId         String            @db.Char(36)
+  classTypeId      String            @db.Char(36)
   businessKey      String
   name             String
   sessionCount     Int
@@ -528,10 +685,10 @@ model Package {
 }
 
 model PaymentProof {
-  id                    String                   @id @db.Uuid
-  userId                String                   @db.Uuid
-  branchId              String                   @db.Uuid
-  packageId             String?                  @db.Uuid
+  id                    String                   @id @db.Char(36)
+  userId                String                   @db.Char(36)
+  branchId              String                   @db.Char(36)
+  packageId             String?                  @db.Char(36)
   objectKey             String                   @unique
   checksum              String
   fileName              String
@@ -543,7 +700,7 @@ model PaymentProof {
   issuedAt              DateTime                 @default(now())
   uploadedAt            DateTime?
   finalizedAt           DateTime?
-  replacedById          String?                  @db.Uuid
+  replacedById          String?                  @db.Char(36)
   version               Int                      @default(0)
   user                  User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch                Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -555,42 +712,72 @@ model PaymentProof {
   @@index([userId, branchId, scanStatus])
 }
 
+model PaymentAccount {
+  id                     String     @id @db.Char(36)
+  branchId               String     @db.Char(36)
+  activeBranchKey        String?    @unique @db.Char(36)
+  bankCode               String
+  bankName               String
+  accountNumberEncrypted String     @db.Text
+  accountNumberLast4     String     @db.VarChar(4)
+  accountHolderName      String
+  paymentWindowHours     Int        @default(24)
+  active                 Boolean    @default(true)
+  version                Int        @default(0)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  branch                 Branch     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  purchases              Purchase[]
+
+  @@index([branchId, active])
+}
+
 model Purchase {
-  id                   String           @id @db.Uuid
-  userId               String           @db.Uuid
-  branchId             String           @db.Uuid
-  packageId            String           @db.Uuid
-  paymentProofId       String           @unique @db.Uuid
-  packageNameSnapshot  String
-  priceRpSnapshot      Int
-  sessionCountSnapshot Int
-  durationDaysSnapshot Int
-  status               PurchaseStatus   @default(PENDING)
-  idempotencyKeyHash   String
-  submittedAt          DateTime         @default(now())
-  decidedAt            DateTime?
-  decidedById          String?          @db.Uuid
-  decisionReasonCode   String?
-  version              Int              @default(0)
-  user                 User             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch               Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package              Package          @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  paymentProof         PaymentProof     @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
-  decidedBy            User?            @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
-  customerPackage      CustomerPackage?
+  id                                    String           @id @db.Char(36)
+  userId                                String           @db.Char(36)
+  branchId                              String           @db.Char(36)
+  packageId                             String           @db.Char(36)
+  paymentProofId                        String?          @unique @db.Char(36)
+  paymentAccountId                      String?          @db.Char(36)
+  paymentBankNameSnapshot               String?
+  paymentAccountNumberSnapshotEncrypted String?          @db.Text
+  paymentAccountLast4Snapshot           String?          @db.VarChar(4)
+  paymentAccountHolderSnapshot          String?
+  paymentExpiresAt                      DateTime?
+  continuationClassSlotId               String?          @db.Char(36)
+  packageNameSnapshot                   String
+  priceRpSnapshot                       Int
+  sessionCountSnapshot                  Int
+  durationDaysSnapshot                  Int
+  status                                PurchaseStatus   @default(PENDING)
+  idempotencyKeyHash                    String
+  submittedAt                           DateTime         @default(now())
+  decidedAt                             DateTime?
+  decidedById                           String?          @db.Char(36)
+  decisionReasonCode                    String?
+  version                               Int              @default(0)
+  user                                  User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                                Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package                               Package          @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  paymentProof                          PaymentProof?    @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
+  paymentAccount                        PaymentAccount?  @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict)
+  continuationClassSlot                 ClassSlot?       @relation("PurchaseContinuationSlot", fields: [continuationClassSlotId], references: [id], onDelete: Restrict)
+  decidedBy                             User?            @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
+  customerPackage                       CustomerPackage?
 
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
+  @@index([paymentAccountId, status, paymentExpiresAt])
 }
 
 model CustomerPackage {
-  id                   String                @id @db.Uuid
-  purchaseId           String                @unique @db.Uuid
-  customerUserId       String                @db.Uuid
-  branchId             String                @db.Uuid
-  packageId            String                @db.Uuid
-  classTypeId          String                @db.Uuid
+  id                   String                @id @db.Char(36)
+  purchaseId           String                @unique @db.Char(36)
+  customerUserId       String                @db.Char(36)
+  branchId             String                @db.Char(36)
+  packageId            String                @db.Char(36)
+  classTypeId          String                @db.Char(36)
   activationDate       DateTime              @db.Date
   expiryAt             DateTime
   salePriceRp          Int
@@ -614,9 +801,9 @@ model CustomerPackage {
 }
 
 model SessionReservation {
-  id                String                   @id @db.Uuid
-  customerPackageId String                   @db.Uuid
-  classSlotId       String?                  @db.Uuid
+  id                String                   @id @db.Char(36)
+  customerPackageId String                   @db.Char(36)
+  classSlotId       String?                  @db.Char(36)
   referenceHash     String
   quantity          Int                      @default(1)
   status            SessionReservationStatus @default(ACTIVE)
@@ -633,40 +820,88 @@ model SessionReservation {
 }
 
 model Booking {
-  id                String             @id @db.Uuid
-  branchId          String             @db.Uuid
-  classSlotId       String             @db.Uuid
-  customerUserId    String             @db.Uuid
-  customerPackageId String             @db.Uuid
-  reservationId     String             @unique @db.Uuid
-  createdById       String             @db.Uuid
+  id                String              @id @db.Char(36)
+  branchId          String              @db.Char(36)
+  classSlotId       String              @db.Char(36)
+  customerUserId    String              @db.Char(36)
+  customerPackageId String              @db.Char(36)
+  reservationId     String              @unique @db.Char(36)
+  createdById       String              @db.Char(36)
   source            BookingSource
-  status            BookingStatus      @default(BOOKED)
-  reservedQuantity  Int                @default(1)
-  version           Int                @default(0)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  branch            Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classSlot         ClassSlot          @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  customer          User               @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
-  customerPackage   CustomerPackage    @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  reservation       SessionReservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
-  createdBy         User               @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  status            BookingStatus       @default(BOOKED)
+  reservedQuantity  Int                 @default(1)
+  version           Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  branch            Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot         ClassSlot           @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  customer          User                @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  customerPackage   CustomerPackage     @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  reservation       SessionReservation  @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  createdBy         User                @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
   reschedules       Reschedule[]
+  checkInTokens     CheckInToken[]
+  attendance        CustomerAttendance?
 
   @@index([branchId, createdAt, id])
   @@index([customerUserId, createdAt, id])
   @@index([classSlotId, status])
 }
 
+model CheckInToken {
+  id                 String              @id @db.Char(36)
+  bookingId          String              @db.Char(36)
+  issuedById         String              @db.Char(36)
+  tokenHash          String              @unique
+  activeBookingKey   String?             @unique @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  purpose            String              @default("CUSTOMER_CHECK_IN")
+  notBeforeAt        DateTime
+  expiresAt          DateTime
+  status             CheckInTokenStatus  @default(ACTIVE)
+  usedAt             DateTime?
+  revokedAt          DateTime?
+  version            Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  booking            Booking             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  issuedBy           User                @relation("CheckInTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  attendance         CustomerAttendance?
+
+  @@unique([issuedById, idempotencyKeyHash])
+  @@index([bookingId, status, expiresAt])
+  @@index([expiresAt, status])
+}
+
+model CustomerAttendance {
+  id           String           @id @db.Char(36)
+  bookingId    String           @unique @db.Char(36)
+  tokenId      String           @unique @db.Char(36)
+  branchId     String           @db.Char(36)
+  classSlotId  String           @db.Char(36)
+  recordedById String           @db.Char(36)
+  source       AttendanceSource @default(QR)
+  checkedInAt  DateTime
+  auditLogId   String           @db.Char(36)
+  createdAt    DateTime         @default(now())
+  booking      Booking          @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  token        CheckInToken     @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  branch       Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot    ClassSlot        @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  recordedBy   User             @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, checkedInAt])
+  @@index([classSlotId, checkedInAt])
+}
+
 model Reschedule {
-  id                  String                        @id @db.Uuid
-  branchId            String                        @db.Uuid
-  bookingId           String                        @db.Uuid
-  sourceClassSlotId   String                        @db.Uuid
-  targetClassSlotId   String                        @db.Uuid
-  requestedById       String                        @db.Uuid
-  decidedById         String?                       @db.Uuid
+  id                  String                        @id @db.Char(36)
+  branchId            String                        @db.Char(36)
+  bookingId           String                        @db.Char(36)
+  sourceClassSlotId   String                        @db.Char(36)
+  targetClassSlotId   String                        @db.Char(36)
+  requestedById       String                        @db.Char(36)
+  decidedById         String?                       @db.Char(36)
   requestReasonCode   RescheduleRequestReasonCode
   decisionReasonCode  RescheduleDecisionReasonCode?
   status              RescheduleStatus              @default(PENDING)
@@ -688,14 +923,14 @@ model Reschedule {
 }
 
 model LedgerEntry {
-  id                  String             @id @db.Uuid
-  customerPackageId   String             @db.Uuid
+  id                  String             @id @db.Char(36)
+  customerPackageId   String             @db.Char(36)
   type                LedgerEntryType
   quantity            Int
   referenceType       String
   referenceId         String
   occurredAt          DateTime           @default(now())
-  sessionAdjustmentId String?            @unique @db.Uuid
+  sessionAdjustmentId String?            @unique @db.Char(36)
   customerPackage     CustomerPackage    @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
   sessionAdjustment   SessionAdjustment? @relation(fields: [sessionAdjustmentId], references: [id], onDelete: Restrict)
 
@@ -704,12 +939,12 @@ model LedgerEntry {
 }
 
 model SessionAdjustment {
-  id                String                         @id @db.Uuid
-  customerPackageId String                         @db.Uuid
+  id                String                         @id @db.Char(36)
+  customerPackageId String                         @db.Char(36)
   quantity          Int
   reasonCode        SessionAdjustmentReasonCode
-  requestedById     String                         @db.Uuid
-  decidedById       String?                        @db.Uuid
+  requestedById     String                         @db.Char(36)
+  decidedById       String?                        @db.Char(36)
   decisionCode      SessionAdjustmentDecisionCode?
   status            SessionAdjustmentStatus        @default(PENDING)
   decidedAt         DateTime?
@@ -726,11 +961,11 @@ model SessionAdjustment {
 }
 
 model EffectiveConfiguration {
-  id               String     @id @db.Uuid
+  id               String     @id @db.Char(36)
   kind             String
   businessKey      String
-  branchId         String?    @db.Uuid
-  classTypeId      String?    @db.Uuid
+  branchId         String?    @db.Char(36)
+  classTypeId      String?    @db.Char(36)
   value            Json
   effectiveFrom    DateTime   @db.Date
   effectiveUntil   DateTime?  @db.Date

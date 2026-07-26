@@ -120,7 +120,7 @@ export const browserPurchaseReviewClient: PurchaseReviewClient = {
       identity.listUsers({ branchId }),
     ]);
     const labels = new Map(
-      users.items.map((user) => [user.id, customerLabel(user.attributes, user.id)]),
+      users.items.map((user) => [user.id, user.displayName || customerLabel(undefined, user.id)]),
     );
     return {
       items: purchases.items.map((purchase) => ({
@@ -175,7 +175,6 @@ export function purchaseFailure(error: unknown): string {
     PURCHASE_ALREADY_DECIDED: 'Purchase ini sudah memiliki keputusan.',
     STALE_VERSION: 'Data purchase berubah. Muat ulang sebelum mengambil keputusan.',
     SEPARATION_OF_DUTIES_VIOLATION: 'Purchase tidak boleh diputus oleh requestor yang sama.',
-    MFA_REQUIRED: 'Verifikasi MFA diperlukan untuk keputusan purchase.',
     RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
   };
   if (code && messages[code]) return messages[code];

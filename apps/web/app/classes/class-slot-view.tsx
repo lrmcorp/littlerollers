@@ -19,6 +19,7 @@ import {
 } from '../class-time';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
+import { bookingFailure, browserBookingClient, type CheckInIssue } from '../booking-client';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type CancellationReason =
@@ -58,15 +59,19 @@ function tone(status: string): 'neutral' | 'info' | 'success' | 'warning' | 'dan
 export function ClassSlotView({
   client = browserClassSlotClient,
   branchOverride,
+  capabilitiesOverride,
 }: {
   client?: ClassSlotClient;
   branchOverride?: { id: string; name: string; timezone: string };
+  capabilitiesOverride?: readonly string[];
 }) {
   const sessionContext = useSessionContext();
   const branch = branchOverride ?? sessionContext?.activeBranch ?? null;
-  const authorityKey = `${sessionContext?.session?.id ?? 'test'}:${sessionContext?.session?.assurance ?? 'MFA'}`;
-  const canManage = !sessionContext || sessionContext.hasCapability('class-slot:manage');
-  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
+  const authorityKey = sessionContext?.session?.id ?? 'test';
+  const capabilities = capabilitiesOverride ?? sessionContext?.session?.capabilities ?? [];
+  const canRead = capabilities.includes('class-slot:read');
+  const canManage = capabilities.includes('class-slot:manage');
+  const canManageAttendance = capabilities.includes('attendance:manage');
   const [reference, setReference] = useState(new Date());
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
@@ -167,9 +172,29 @@ export function ClassSlotView({
     ]),
   );
 
+  if (!canRead) {
+    return (
+      <section
+        className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-6"
+        aria-labelledby="classes-title"
+      >
+        <PageHeader
+          eyebrow="Akses terbatas"
+          title="Timetable kelas"
+          titleId="classes-title"
+          description="Anda tidak memiliki capability untuk membaca jadwal kelas."
+        />
+        <Feedback kind="error">Akses kelas memerlukan capability class-slot:read.</Feedback>
+      </section>
+    );
+  }
+
   if (!branch) {
     return (
-      <section className="card" aria-labelledby="classes-title">
+      <section
+        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+        aria-labelledby="classes-title"
+      >
         <PageHeader
           eyebrow="Timetable branch-scoped"
           title="Timetable kelas"
@@ -209,8 +234,8 @@ export function ClassSlotView({
         description="Kelola draft, instructor, publish, dan cancellation pada waktu lokal cabang."
         context={
           <>
-            <StatusBadge tone={hasMfa ? 'success' : 'warning'}>
-              {hasMfa ? 'MFA aktif' : 'MFA diperlukan'}
+            <StatusBadge tone={canManage ? 'success' : 'neutral'}>
+              {canManage ? 'Dapat mengelola' : 'Read only'}
             </StatusBadge>
             <span>Interval [mulai, selesai)</span>
           </>
@@ -322,18 +347,18 @@ export function ClassSlotView({
 
       {panel && (
         <div
-          className="panel-backdrop"
+          className="fixed inset-0 z-[80] bg-dd-sidebar/50 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) closePanel();
           }}
         >
           <div
-            className="side-panel"
+            className="ml-auto h-full w-full max-w-xl overflow-y-auto border-l border-dd-line bg-dd-surface p-6 shadow-dd-float"
             aria-label={panel.kind === 'create' ? 'Buat kelas' : 'Detail kelas'}
             aria-modal="true"
             role="dialog"
           >
-            <div className="side-panel-header">
+            <div className="mb-6 flex items-start justify-between gap-4 border-b border-dd-line pb-4">
               <div>
                 <p className="eyebrow">
                   {branch.name} · {branch.timezone}
@@ -367,7 +392,7 @@ export function ClassSlotView({
                 instructorName={instructorName(panel.slot.instructorUserId)}
                 instructors={instructors}
                 canManage={canManage}
-                hasMfa={hasMfa}
+                canManageAttendance={canManageAttendance}
                 busy={busy}
                 onAssign={(instructorId) =>
                   run(
@@ -502,7 +527,7 @@ function DetailPanel({
   instructorName,
   instructors,
   canManage,
-  hasMfa,
+  canManageAttendance,
   busy,
   onAssign,
   onPublish,
@@ -513,7 +538,7 @@ function DetailPanel({
   instructorName: string;
   instructors: InstructorOption[];
   canManage: boolean;
-  hasMfa: boolean;
+  canManageAttendance: boolean;
   busy: boolean;
   onAssign(id: string): Promise<void>;
   onPublish(): Promise<void>;
@@ -521,6 +546,9 @@ function DetailPanel({
 }) {
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
   const [reason, setReason] = useState<CancellationReason>('OTHER_REVIEW_REQUIRED');
+  const [issuing, setIssuing] = useState(false);
+  const [issues, setIssues] = useState<CheckInIssue[]>([]);
+  const [issueFailure, setIssueFailure] = useState('');
   return (
     <div className="class-detail">
       <StatusBadge tone={tone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
@@ -551,6 +579,75 @@ function DetailPanel({
           <dd>{slot.version}</dd>
         </div>
       </dl>
+      {slot.status === 'CONFIRMED' && (
+        <section>
+          <h3>QR check-in roster</h3>
+          <p className="text-sm text-dd-muted">
+            Terbitkan pass untuk seluruh booking aktif. Setiap customer dikirim melalui tombol
+            WhatsApp masing-masing; browser tidak membuka popup massal.
+          </p>
+          <button
+            disabled={busy || issuing || !canManageAttendance}
+            onClick={() => {
+              const issueBulk = browserBookingClient.issueBulkCheckIns;
+              if (!issueBulk) return;
+              setIssuing(true);
+              setIssueFailure('');
+              void issueBulk(slot.id, undefined, crypto.randomUUID())
+                .then((response) => {
+                  setIssues(
+                    response.items.flatMap((item) => (item.ok && item.result ? [item.result] : [])),
+                  );
+                  const failures = response.items.filter((item) => !item.ok);
+                  if (failures.length)
+                    setIssueFailure(
+                      `${failures.length} booking tidak dapat diterbitkan. Booking lain tetap berhasil.`,
+                    );
+                })
+                .catch(async (error) => setIssueFailure(await bookingFailure(error)))
+                .finally(() => setIssuing(false));
+            }}
+          >
+            {issuing ? 'Menerbitkan…' : 'Buat QR untuk roster'}
+          </button>
+          {issueFailure && <Feedback kind="warning">{issueFailure}</Feedback>}
+          {issues.length > 0 && (
+            <ul className="mt-4 grid list-none gap-2 p-0" aria-label="QR roster siap dikirim">
+              {issues.map((issue) => (
+                <li
+                  key={issue.bookingId}
+                  className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-3"
+                >
+                  <strong className="block text-sm">
+                    {issue.maskedCustomerPhone ?? 'Tanpa WhatsApp'}
+                  </strong>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {issue.whatsappUrl && (
+                      <a
+                        className="button-primary"
+                        href={issue.whatsappUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Buka WhatsApp
+                      </a>
+                    )}
+                    {issue.passUrl && (
+                      <button
+                        type="button"
+                        className="button-quiet"
+                        onClick={() => void navigator.clipboard.writeText(issue.passUrl!)}
+                      >
+                        Salin link
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       {slot.status === 'DRAFT' && (
         <section>
           <h3>Tetapkan instructor</h3>
@@ -580,9 +677,8 @@ function DetailPanel({
       {slot.status === 'DRAFT' && (
         <section>
           <h3>Publish kelas</h3>
-          {!hasMfa && <Feedback kind="warning">Lakukan step-up MFA sebelum publish.</Feedback>}
           <button
-            disabled={busy || !canManage || !hasMfa || !slot.instructorUserId}
+            disabled={busy || !canManage || !slot.instructorUserId}
             onClick={() => void onPublish()}
           >
             Publish kelas
@@ -610,7 +706,7 @@ function DetailPanel({
             Cancellation melepaskan reservation aktif. Konfirmasi hanya jika konsekuensi sudah
             ditinjau.
           </Feedback>
-          <button disabled={busy || !canManage || !hasMfa} onClick={() => void onCancel(reason)}>
+          <button disabled={busy || !canManage} onClick={() => void onCancel(reason)}>
             Konfirmasi pembatalan
           </button>
         </section>

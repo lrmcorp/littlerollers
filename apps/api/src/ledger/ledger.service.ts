@@ -271,7 +271,6 @@ export class LedgerService {
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
-    this.policy.requireMfa(principal.assurance);
     const valid =
       decision === 'approve'
         ? ['CORRECTION_VERIFIED']
@@ -412,10 +411,18 @@ export class LedgerService {
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           take: PAGE_SIZE + 1,
+          include: { branch: true, package: true, classType: true },
         });
         const hasMore = items.length > PAGE_SIZE;
         const pageItems = items.slice(0, PAGE_SIZE);
-        const balances = await Promise.all(pageItems.map((item) => this.balance(tx, item)));
+        const balances = await Promise.all(
+          pageItems.map(async (item) => ({
+            ...(await this.balance(tx, item)),
+            packageName: item.package.name,
+            branchName: item.branch.name,
+            classTypeName: item.classType.name,
+          })),
+        );
         const last = pageItems.at(-1);
         return {
           items: balances,

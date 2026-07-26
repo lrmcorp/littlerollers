@@ -15,6 +15,7 @@ Method | HTTP request | Description
 [**getCheckInTokenStatus**](AttendanceApi.md#getcheckintokenstatus) | **GET** /check-in-tokens/{id} | 
 [**instructorCheckIn**](AttendanceApi.md#instructorcheckin) | **POST** /check-ins/instructors | 
 [**issueCustomerCheckInLink**](AttendanceApi.md#issuecustomercheckinlink) | **POST** /bookings/{id}/customer-check-in-links | 
+[**issueCustomerCheckInLinksBulk**](AttendanceApi.md#issuecustomercheckinlinksbulk) | **POST** /class-slots/{id}/customer-check-in-links/bulk | 
 [**issueInstructorCheckInToken**](AttendanceApi.md#issueinstructorcheckintoken) | **POST** /class-slots/{id}/instructor-check-in-tokens | 
 [**revokeCheckInToken**](AttendanceApi.md#revokecheckintoken) | **POST** /check-in-tokens/{id}/revoke | 
 
@@ -112,6 +113,8 @@ Name | Type | Description  | Notes
 
 
 
+Admin or Manager consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -151,7 +154,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getCheckInTokenStatus**
-> CheckInTokenStatus getCheckInTokenStatus(id)
+> CustomerCheckInTokenStatus getCheckInTokenStatus(id)
 
 
 
@@ -178,7 +181,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**CheckInTokenStatus**](CheckInTokenStatus.md)
+[**CustomerCheckInTokenStatus**](CustomerCheckInTokenStatus.md)
 
 ### Authorization
 
@@ -235,9 +238,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **issueCustomerCheckInLink**
-> CheckInToken issueCustomerCheckInLink(id, idempotencyKey)
+> CustomerCheckInIssue issueCustomerCheckInLink(id, idempotencyKey, issueCustomerCheckInLinkCommand)
 
 
+
+Issues a one-time booking pass. The raw token is returned only on first issuance and is never persisted.
 
 ### Example
 ```dart
@@ -246,9 +251,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getAttendanceApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
+final IssueCustomerCheckInLinkCommand issueCustomerCheckInLinkCommand = ; // IssueCustomerCheckInLinkCommand | 
 
 try {
-    final response = api.issueCustomerCheckInLink(id, idempotencyKey);
+    final response = api.issueCustomerCheckInLink(id, idempotencyKey, issueCustomerCheckInLinkCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling AttendanceApi->issueCustomerCheckInLink: $e\n');
@@ -261,10 +267,11 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
+ **issueCustomerCheckInLinkCommand** | [**IssueCustomerCheckInLinkCommand**](IssueCustomerCheckInLinkCommand.md)|  | 
 
 ### Return type
 
-[**CheckInToken**](CheckInToken.md)
+[**CustomerCheckInIssue**](CustomerCheckInIssue.md)
 
 ### Authorization
 
@@ -272,7 +279,54 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **issueCustomerCheckInLinksBulk**
+> BulkCustomerCheckInLinkResult issueCustomerCheckInLinksBulk(id, idempotencyKey, bulkCustomerCheckInLinkCommand)
+
+
+
+Issues passes independently for active bookings in one confirmed class; one failure does not roll back other results.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAttendanceApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final BulkCustomerCheckInLinkCommand bulkCustomerCheckInLinkCommand = ; // BulkCustomerCheckInLinkCommand | 
+
+try {
+    final response = api.issueCustomerCheckInLinksBulk(id, idempotencyKey, bulkCustomerCheckInLinkCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AttendanceApi->issueCustomerCheckInLinksBulk: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **bulkCustomerCheckInLinkCommand** | [**BulkCustomerCheckInLinkCommand**](BulkCustomerCheckInLinkCommand.md)|  | 
+
+### Return type
+
+[**BulkCustomerCheckInLinkResult**](BulkCustomerCheckInLinkResult.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -321,7 +375,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **revokeCheckInToken**
-> CheckInTokenStatus revokeCheckInToken(id, idempotencyKey, deactivateUserRequest)
+> CustomerCheckInTokenStatus revokeCheckInToken(id, revokeCustomerCheckInTokenCommand)
 
 
 
@@ -331,11 +385,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getAttendanceApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final RevokeCustomerCheckInTokenCommand revokeCustomerCheckInTokenCommand = ; // RevokeCustomerCheckInTokenCommand | 
 
 try {
-    final response = api.revokeCheckInToken(id, idempotencyKey, deactivateUserRequest);
+    final response = api.revokeCheckInToken(id, revokeCustomerCheckInTokenCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling AttendanceApi->revokeCheckInToken: $e\n');
@@ -347,12 +400,11 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **revokeCustomerCheckInTokenCommand** | [**RevokeCustomerCheckInTokenCommand**](RevokeCustomerCheckInTokenCommand.md)|  | 
 
 ### Return type
 
-[**CheckInTokenStatus**](CheckInTokenStatus.md)
+[**CustomerCheckInTokenStatus**](CustomerCheckInTokenStatus.md)
 
 ### Authorization
 

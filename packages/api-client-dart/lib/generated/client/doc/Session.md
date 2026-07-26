@@ -11,7 +11,6 @@ Name | Type | Description | Notes
 **accessToken** | **String** | Mobile only; web uses secure HttpOnly cookie | [optional] 
 **refreshToken** | **String** | Mobile only and returned only at issuance/rotation | [optional] 
 **user** | [**Me**](Me.md) |  | 
-**assurance** | **String** |  | 
 **channel** | **String** |  | 
 **expiresAt** | [**DateTime**](DateTime.md) |  | 
 **refreshExpiresAt** | [**DateTime**](DateTime.md) |  | [optional] 

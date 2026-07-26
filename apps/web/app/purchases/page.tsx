@@ -1,10 +1,4 @@
-import { PurchaseView } from './purchase-view';
-import { PurchaseReviewView } from './purchase-review-view';
+import { LegacyPurchaseRedirect } from './legacy-purchase-redirect';
 export default function PurchasesPage() {
-  return (
-    <>
-      <PurchaseView />
-      <PurchaseReviewView />
-    </>
-  );
+  return <LegacyPurchaseRedirect />;
 }

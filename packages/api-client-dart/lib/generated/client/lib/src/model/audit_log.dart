@@ -18,6 +18,7 @@ part 'audit_log.g.dart';
 /// * [actorType] 
 /// * [actorId] 
 /// * [branchId] 
+/// * [targetUserId] 
 /// * [action] 
 /// * [objectType] 
 /// * [objectId] 
@@ -41,6 +42,9 @@ abstract class AuditLog implements Built<AuditLog, AuditLogBuilder> {
 
   @BuiltValueField(wireName: r'branchId')
   String? get branchId;
+
+  @BuiltValueField(wireName: r'targetUserId')
+  String? get targetUserId;
 
   @BuiltValueField(wireName: r'action')
   String get action;
@@ -109,6 +113,13 @@ class _$AuditLogSerializer implements PrimitiveSerializer<AuditLog> {
       yield r'branchId';
       yield serializers.serialize(
         object.branchId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.targetUserId != null) {
+      yield r'targetUserId';
+      yield serializers.serialize(
+        object.targetUserId,
         specifiedType: const FullType.nullable(String),
       );
     }
@@ -205,6 +216,14 @@ class _$AuditLogSerializer implements PrimitiveSerializer<AuditLog> {
           ) as String?;
           if (valueDes == null) continue;
           result.branchId = valueDes;
+          break;
+        case r'targetUserId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.targetUserId = valueDes;
           break;
         case r'action':
           final valueDes = serializers.deserialize(

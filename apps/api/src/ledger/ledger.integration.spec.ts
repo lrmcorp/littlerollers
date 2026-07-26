@@ -6,7 +6,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 
-databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
+databaseDescribe('synthetic ledger read MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `ledger-${Date.now()}`;
   const customerId = randomUUID();
@@ -26,7 +26,6 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
   const customer = {
     sessionId: namespace,
     userId: customerId,
-    assurance: 'BASE' as const,
     roles: [{ role: 'CUSTOMER' as const, branchId }],
     capabilities: ['customer:self', 'package:read', 'ledger:read'],
     branchIds: [branchId],
@@ -35,7 +34,6 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
     ...customer,
     sessionId: `${namespace}-manager`,
     userId: managerId,
-    assurance: 'MFA' as const,
     roles: [{ role: 'MANAGER' as const, branchId }],
     capabilities: ['branch:manage', 'ledger:read', 'ledger:adjust:read', 'ledger:adjust:decide'],
   };
@@ -43,7 +41,6 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
     ...manager,
     sessionId: `${namespace}-admin`,
     userId: adminId,
-    assurance: 'BASE' as const,
     roles: [{ role: 'ADMIN' as const, branchId }],
     capabilities: ['branch:operate', 'ledger:read', 'ledger:adjust:read', 'ledger:adjust:request'],
   };
@@ -252,7 +249,7 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
     await db.sessionReservation.delete({ where: { id: extra.id } });
   });
 
-  it('requests without ledger mutation and posts exactly one adjustment by a different MFA actor', async () => {
+  it('requests without ledger mutation and posts exactly one adjustment by a different authorized actor', async () => {
     const before = await db.ledgerEntry.count({ where: { customerPackageId } });
     const requested = await service.requestAdjustment(
       admin,
@@ -285,7 +282,7 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
     expect(detail.balance).toMatchObject({ ledgerBalance: 8, reserved: 2, available: 6 });
   });
 
-  it('rejects self-decision, missing MFA and unsafe post-balance', async () => {
+  it('rejects self-decision and unsafe post-balance', async () => {
     const request = await service.requestAdjustment(
       admin,
       { customerPackageId, quantity: -7, reasonCode: 'SUPPORT_RECONCILIATION' },
@@ -298,7 +295,6 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
         {
           ...admin,
           capabilities: [...admin.capabilities, 'ledger:adjust:decide'],
-          assurance: 'MFA',
         },
         id,
         'approve',
@@ -307,16 +303,6 @@ databaseDescribe('synthetic ledger read PostgreSQL integration', () => {
         namespace,
       ),
     ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
-    await expect(
-      service.decideAdjustment(
-        { ...manager, assurance: 'BASE' },
-        id,
-        'approve',
-        { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
-        `${namespace}-base`,
-        namespace,
-      ),
-    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
     await expect(
       service.decideAdjustment(
         manager,

@@ -1,0 +1,52 @@
+/* Temporary compatibility boundary while internal pages move from legacy CSS to Tailwind. */
+[data-admin-shell] {
+  font-family: var(--font-sans);
+}
+
+[data-admin-shell] :where(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+[data-admin-shell] button {
+  margin-left: 0;
+}
+
+[data-admin-shell] .card {
+  max-width: none;
+  border-color: var(--color-dd-line);
+  background: var(--color-dd-surface);
+}
+
+[data-admin-shell] .page-header h1 {
+  letter-spacing: -0.035em;
+}
+
+[data-admin-shell] .data-region {
+  border-color: var(--color-dd-line);
+  background: var(--color-dd-surface);
+}
+
+[data-admin-shell] table th {
+  background: var(--color-dd-surface-muted);
+}
+
+[data-admin-shell] .panel-backdrop {
+  z-index: 70;
+  background: rgb(18 38 30 / 48%);
+  backdrop-filter: blur(3px);
+}
+
+[data-admin-shell] .side-panel {
+  border-left: 1px solid var(--color-dd-line);
+  box-shadow: var(--shadow-dd-float);
+}
+
+@media (max-width: 767px) {
+  [data-admin-shell] .page-header {
+    gap: 1rem;
+  }
+  [data-admin-shell] .card {
+    padding: 1.1rem;
+    border-radius: var(--radius-dd-lg);
+  }
+}

@@ -54,8 +54,12 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 ### Identity dan Authorization
 
 - **BR-001:** Customer dapat login melalui Google atau OTP WhatsApp ke nomor terverifikasi.
-- **BR-002:** Instructor/staf hanya dapat login memakai akun Google yang telah diundang dan berstatus aktif.
-- **BR-003:** Role sensitif `MANAGER`, `OWNER`, `SUPER_OWNER`, dan `FINANCE` wajib MFA. Admin dapat diwajibkan melalui security policy.
+- **BR-002 (amendment draft):** Instructor/staf berstatus aktif hanya dapat login melalui
+  identitas Google terverifikasi atau email/password yang dibuat dari undangan valid. Aktivasi
+  password tidak boleh memberi role baru, melakukan account linking otomatis, atau melewati
+  lifecycle assignment. Amendment ini belum menjadi baseline production sebelum DEC-012/014
+  dan review security disetujui.
+- **BR-003:** Tindakan sensitif wajib memeriksa permission efektif, scope cabang, status user, optimistic locking, audit, dan separation-of-duties pada backend.
 - **BR-004:** Authorization ditentukan backend berdasarkan role, assignment cabang, status user, dan action; UI bukan enforcement boundary.
 - **BR-005:** Owner hanya melihat cabang pada OwnerBranch; Instructor hanya beroperasi pada InstructorBranch; Super Owner dan Finance memiliki akses lintas cabang sesuai permission.
 
@@ -77,6 +81,11 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 - **BR-023:** Pembuatan booking/reservation dan capacity allocation harus atomik serta aman terhadap concurrent request/retry.
 - **BR-024:** Active reservation dilepas ketika booking dibatalkan/reschedule/auto-cancel sesuai rule, atau dikonsumsi saat attendance diposting.
 - **BR-025:** Idempotency key mencegah duplicate booking akibat retry.
+- **BR-026:** MVP tidak menawarkan `trial class`. CTA publik hanya boleh mengarahkan
+  pengguna ke katalog jadwal atau autentikasi. Booking tetap memerlukan
+  CustomerPackage aktif sesuai BR-021. Fitur trial baru boleh diperkenalkan setelah
+  keputusan produk terpisah menyetujui eligibility, harga, batas pemakaian,
+  cancellation/no-show, entitlement, reporting, dan audit.
 
 ### Availability, Timetable, dan Class Lifecycle
 
@@ -146,7 +155,7 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 
 ## 6. Non-functional Requirements
 
-- **NFR-001 Security:** TLS, encryption at rest where supported, least privilege, MFA, secret manager, OWASP controls, and dependency scanning.
+- **NFR-001 Security:** TLS, encryption at rest where supported, least privilege, secret manager, OWASP controls, audit, and dependency scanning.
 - **NFR-002 Availability:** target MVP 99.5% monthly excluding planned maintenance; scheduled backup and tested restore.
 - **NFR-003 Performance:** p95 read API <500 ms dan command API <1 s pada beban pilot, di luar latency provider eksternal.
 - **NFR-004 Reliability:** financial/ledger command memakai database transaction, constraint, idempotency, dan retry-safe design.

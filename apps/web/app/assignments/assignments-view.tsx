@@ -13,14 +13,16 @@ import { useActiveBranchState, useSessionContext } from '../session-context';
 
 export function AssignmentsView({
   client = browserAssignmentClient,
+  branchOptions,
 }: {
   client?: AssignmentClient;
+  branchOptions?: { id: string; code: string; name: string }[];
 }) {
   const [branchId, setBranchId] = useActiveBranchState();
   const sessionContext = useSessionContext();
   const canManage = !sessionContext || sessionContext.hasCapability('assignment:manage');
-  const hasMfa = !sessionContext || sessionContext.session?.assurance === 'MFA';
   const [items, setItems] = useState<AssignmentSummary[]>([]);
+  const [users, setUsers] = useState<{ id: string; displayName: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<AssignmentFailure>();
@@ -29,7 +31,12 @@ export function AssignmentsView({
     setLoading(true);
     setFailure(undefined);
     try {
-      setItems(await client.list(branchId));
+      const [assignments, scopedUsers] = await Promise.all([
+        client.list(branchId),
+        client.listUsers(branchId),
+      ]);
+      setItems(assignments);
+      setUsers(scopedUsers);
     } catch (error) {
       setFailure(assignmentFailure(error));
     } finally {
@@ -47,18 +54,24 @@ export function AssignmentsView({
         context={
           <>
             <StatusBadge tone="info">SUPER OWNER</StatusBadge>
-            <StatusBadge tone="warning">MFA wajib</StatusBadge>
           </>
         }
       />
       <label>
-        ID cabang aktif
-        <input
+        Cabang aktif
+        <select
           aria-describedby="branch-help"
           value={branchId}
           onChange={(event) => setBranchId(event.target.value)}
           required
-        />
+        >
+          <option value="">Pilih cabang</option>
+          {(branchOptions ?? sessionContext?.session?.branches ?? []).map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.code} · {branch.name}
+            </option>
+          ))}
+        </select>
       </label>
       <small id="branch-help">
         Mutation selalu memakai satu cabang; tidak ada pilihan semua cabang.
@@ -91,8 +104,15 @@ export function AssignmentsView({
       >
         <h2>Buat assignment</h2>
         <label>
-          ID pengguna
-          <input name="userId" required />
+          Pengguna
+          <select name="userId" defaultValue="" required>
+            <option value="">Pilih pengguna</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.displayName}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Tipe
@@ -113,7 +133,7 @@ export function AssignmentsView({
           Alasan
           <input name="reason" minLength={3} required />
         </label>
-        <button disabled={!branchId || !canManage || !hasMfa} type="submit">
+        <button disabled={!branchId || !canManage} type="submit">
           Buat assignment
         </button>
       </form>
@@ -162,7 +182,7 @@ export function AssignmentsView({
                   Alasan akhir
                   <input name="reason" minLength={3} required />
                 </label>
-                <button disabled={!canManage || !hasMfa} type="submit">
+                <button disabled={!canManage} type="submit">
                   Konfirmasi akhiri
                 </button>
               </form>

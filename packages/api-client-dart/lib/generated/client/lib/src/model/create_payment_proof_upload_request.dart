@@ -11,6 +11,7 @@ part 'create_payment_proof_upload_request.g.dart';
 /// CreatePaymentProofUploadRequest
 ///
 /// Properties:
+/// * [orderId] 
 /// * [branchId] 
 /// * [packageId] 
 /// * [fileName] 
@@ -19,6 +20,9 @@ part 'create_payment_proof_upload_request.g.dart';
 /// * [sha256] 
 @BuiltValue()
 abstract class CreatePaymentProofUploadRequest implements Built<CreatePaymentProofUploadRequest, CreatePaymentProofUploadRequestBuilder> {
+  @BuiltValueField(wireName: r'orderId')
+  String? get orderId;
+
   @BuiltValueField(wireName: r'branchId')
   String get branchId;
 
@@ -60,6 +64,13 @@ class _$CreatePaymentProofUploadRequestSerializer implements PrimitiveSerializer
     CreatePaymentProofUploadRequest object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
+    if (object.orderId != null) {
+      yield r'orderId';
+      yield serializers.serialize(
+        object.orderId,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'branchId';
     yield serializers.serialize(
       object.branchId,
@@ -115,6 +126,13 @@ class _$CreatePaymentProofUploadRequestSerializer implements PrimitiveSerializer
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
+        case r'orderId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.orderId = valueDes;
+          break;
         case r'branchId':
           final valueDes = serializers.deserialize(
             value,

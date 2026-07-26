@@ -10,6 +10,9 @@ export type LedgerBalance = {
   ledgerBalance: number;
   reserved: number;
   available: number;
+  packageName?: string;
+  branchName?: string;
+  classTypeName?: string;
 };
 export type LedgerHistory = {
   balance: LedgerBalance;

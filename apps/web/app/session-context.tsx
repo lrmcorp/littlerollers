@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   browserSessionClient,
   sessionFailure,
@@ -12,17 +13,48 @@ import {
 import { Feedback, Skeleton } from './ui';
 
 const ACTIVE_BRANCH_KEY = 'dd_active_branch';
-const publicPaths = new Set(['/', '/classes', '/sign-in', '/health']);
+const publicPaths = new Set([
+  '/',
+  '/classes',
+  '/packages',
+  '/locations',
+  '/contact',
+  '/sign-in',
+  '/register',
+  '/activate-account',
+  '/forgot-password',
+  '/reset-password',
+  '/health',
+  '/check-in-pass',
+]);
+const anonymousEntryPaths = new Set([
+  '/sign-in',
+  '/register',
+  '/activate-account',
+  '/forgot-password',
+  '/reset-password',
+]);
 
 const routeCapabilities: Array<[string, string[]]> = [
+  ['/account/verification', ['customer:self']],
+  ['/account/security', []],
+  ['/account', ['customer:self']],
+  ['/identity-verifications', ['identity-verification:review']],
+  ['/audit', ['audit:read']],
   ['/users', ['user:read']],
   ['/assignments', ['assignment:read']],
   ['/master', ['master:read']],
-  ['/purchases', ['package:read', 'purchase:review']],
+  ['/checkout', ['customer:self']],
+  ['/orders', ['customer:self']],
+  ['/account/packages', ['customer:self']],
+  ['/workspace/payments', ['payment:review', 'purchase:review']],
+  ['/purchases', ['package:read', 'payment:review', 'purchase:review']],
+  ['/finance', ['finance:reconcile']],
   ['/ledger', ['ledger:read']],
   ['/workspace/classes', ['class-slot:read']],
   ['/operations', ['operations:read']],
-  ['/bookings', ['booking:read']],
+  ['/bookings', ['booking:read', 'booking:self:read']],
+  ['/check-in-scanner', ['attendance:manage']],
 ];
 
 interface SessionContextValue {
@@ -43,12 +75,80 @@ export function safeReturnTo(value: string | null): string {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return '/workspace';
   try {
     const url = new URL(value, 'http://local.invalid');
-    return url.origin === 'http://local.invalid'
-      ? `${url.pathname}${url.search}${url.hash}`
-      : '/workspace';
+    if (url.origin !== 'http://local.invalid') return '/workspace';
+    if (
+      [
+        '/sign-in',
+        '/register',
+        '/activate-account',
+        '/forgot-password',
+        '/reset-password',
+      ].includes(url.pathname)
+    )
+      return '/workspace';
+    return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return '/workspace';
   }
+}
+
+const internalRoles = new Set([
+  'INSTRUCTOR',
+  'ADMIN',
+  'MANAGER',
+  'OWNER',
+  'SUPER_OWNER',
+  'FINANCE',
+  'OPS',
+]);
+
+export function defaultSessionDestination(session: WebSession): string {
+  if (session.roles.some((role) => internalRoles.has(role))) return '/workspace';
+  if (session.roles.includes('CUSTOMER'))
+    return session.identityVerificationStatus === 'APPROVED'
+      ? '/classes#schedule'
+      : '/account/verification';
+  return '/workspace';
+}
+
+export function canAccessSessionPath(session: WebSession, value: string): boolean {
+  const path = new URL(value, 'http://local.invalid').pathname;
+  if (publicPaths.has(path) || path.startsWith('/classes/')) return true;
+  const customerOnly =
+    session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  if (
+    customerOnly &&
+    session.identityVerificationStatus !== 'APPROVED' &&
+    (path === '/bookings' ||
+      path.startsWith('/bookings/') ||
+      path === '/checkout' ||
+      path.startsWith('/checkout/') ||
+      path === '/orders' ||
+      path.startsWith('/orders/') ||
+      path === '/purchases' ||
+      path.startsWith('/purchases/'))
+  )
+    return false;
+  if (path === '/workspace') return session.roles.some((role) => internalRoles.has(role));
+  const rule = routeCapabilities.find(([route]) => path === route || path.startsWith(`${route}/`));
+  if (!rule) return false;
+  const required = rule[1];
+  return (
+    required.length === 0 ||
+    required.some((capability) => session.capabilities.includes(capability))
+  );
+}
+
+export function resolveSessionDestination(
+  session: WebSession,
+  requestedReturnTo?: string | null,
+): string {
+  const fallback = defaultSessionDestination(session);
+  if (!requestedReturnTo) return fallback;
+  const safe = safeReturnTo(requestedReturnTo);
+  if (safe === '/workspace' && requestedReturnTo !== '/workspace') return fallback;
+  if (!canAccessSessionPath(session, safe)) return fallback;
+  return safe;
 }
 
 export function SessionProvider({
@@ -104,23 +204,24 @@ export function SessionProvider({
   }, [client]);
 
   useEffect(() => {
+    if (anonymousEntryPaths.has(pathname)) {
+      setStatus('unauthenticated');
+      return;
+    }
     void refresh();
-  }, [refresh]);
+  }, [pathname, refresh]);
 
   useEffect(() => {
     if (!session) return;
     const remaining = session.sessionExpiresAt.getTime() - Date.now();
     const timer = window.setTimeout(
       () => {
-        setSession(null);
-        setBranch('');
-        sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
-        setStatus('expired');
+        void refresh();
       },
       Math.min(remaining, 2_147_483_647),
     );
     return () => window.clearTimeout(timer);
-  }, [session]);
+  }, [refresh, session]);
 
   useEffect(() => {
     const revoked = () => {
@@ -136,7 +237,9 @@ export function SessionProvider({
   useEffect(() => {
     if (publicPaths.has(pathname) || status === 'loading' || status === 'dependency-error') return;
     if (status !== 'authenticated') {
-      const returnTo = encodeURIComponent(`${pathname}${window.location.search}`);
+      const returnTo = encodeURIComponent(
+        `${pathname}${window.location.search}${window.location.hash}`,
+      );
       router.replace(`/sign-in?returnTo=${returnTo}`);
     }
   }, [pathname, router, status]);
@@ -157,7 +260,7 @@ export function SessionProvider({
     async (returnTo: string) => {
       const current = await refresh();
       if (!current) return false;
-      router.replace(safeReturnTo(returnTo));
+      router.replace(resolveSessionDestination(current, returnTo));
       return true;
     },
     [refresh, router],
@@ -179,9 +282,16 @@ export function SessionProvider({
     [activeBranchId, completeSignIn, logout, refresh, session, setActiveBranchId, status],
   );
 
-  const required = routeCapabilities.find(([route]) => pathname.startsWith(route))?.[1];
+  const required = routeCapabilities.find(
+    ([route]) => pathname === route || pathname.startsWith(`${route}/`),
+  )?.[1];
   const publicRoute = publicPaths.has(pathname);
-  const allowed = !required || required.some((item) => session?.capabilities.includes(item));
+  const allowed = session ? canAccessSessionPath(session, pathname) : !required;
+  const fallback = session ? defaultSessionDestination(session) : '/workspace';
+
+  useEffect(() => {
+    if (status === 'authenticated' && session && !publicRoute && !allowed) router.replace(fallback);
+  }, [allowed, fallback, publicRoute, router, session, status]);
 
   return (
     <SessionContext.Provider value={value}>
@@ -197,7 +307,7 @@ export function SessionProvider({
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
         <main className="content session-state">
           <Feedback kind="error">Anda tidak memiliki akses ke area ini.</Feedback>
-          <a href="/workspace">Kembali ke ringkasan</a>
+          <Link href={fallback}>Kembali ke ringkasan</Link>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
         <main className="content session-state">

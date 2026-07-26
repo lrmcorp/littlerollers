@@ -15,9 +15,12 @@ import 'package:openapi/src/model/close_result.dart';
 import 'package:openapi/src/model/correction.dart';
 import 'package:openapi/src/model/correction_command.dart';
 import 'package:openapi/src/model/correction_decision_result.dart';
+import 'package:openapi/src/model/date.dart';
 import 'package:openapi/src/model/deactivate_user_request.dart';
 import 'package:openapi/src/model/error_envelope.dart';
+import 'package:openapi/src/model/finance_reconciliation_overview.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
+import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
 import 'package:openapi/src/model/other_cost.dart';
 import 'package:openapi/src/model/other_cost_command.dart';
 import 'package:openapi/src/model/other_cost_page.dart';
@@ -335,6 +338,190 @@ class FinanceApi {
     }
 
     return Response<CorrectionDecisionResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// getFinanceReconciliationAnomalies
+  /// Actionable reconciliation anomalies without private proof contents.
+  ///
+  /// Parameters:
+  /// * [branchId] - Filter only; never grants authority
+  /// * [from] 
+  /// * [until] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [GetFinanceReconciliationAnomalies200Response] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<GetFinanceReconciliationAnomalies200Response>> getFinanceReconciliationAnomalies({ 
+    String? branchId,
+    Date? from,
+    Date? until,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/finance/reconciliation/anomalies';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    GetFinanceReconciliationAnomalies200Response? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(GetFinanceReconciliationAnomalies200Response),
+      ) as GetFinanceReconciliationAnomalies200Response;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<GetFinanceReconciliationAnomalies200Response>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// getFinanceReconciliationOverview
+  /// Global Finance or Super Owner reconciliation aggregates from authoritative purchase and ledger records.
+  ///
+  /// Parameters:
+  /// * [branchId] - Filter only; never grants authority
+  /// * [from] 
+  /// * [until] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [FinanceReconciliationOverview] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<FinanceReconciliationOverview>> getFinanceReconciliationOverview({ 
+    String? branchId,
+    Date? from,
+    Date? until,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/finance/reconciliation/overview';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    FinanceReconciliationOverview? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(FinanceReconciliationOverview),
+      ) as FinanceReconciliationOverview;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<FinanceReconciliationOverview>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

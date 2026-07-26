@@ -4,6 +4,8 @@ import { FoundationModule } from '../foundation/foundation.module';
 import { IdentityModule } from '../identity/identity.module';
 import { PackagesController } from './packages.controller';
 import { PackagesService } from './packages.service';
+import { PublicPackageCatalogController } from './public-package-catalog.controller';
+import { PublicPackageCatalogService } from './public-package-catalog.service';
 import {
   ConfigGatedMalwareScanProvider,
   ConfigGatedObjectStorageProvider,
@@ -11,7 +13,12 @@ import {
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
-  controllers: [PackagesController],
-  providers: [PackagesService, ConfigGatedObjectStorageProvider, ConfigGatedMalwareScanProvider],
+  controllers: [PackagesController, PublicPackageCatalogController],
+  providers: [
+    PackagesService,
+    PublicPackageCatalogService,
+    ConfigGatedObjectStorageProvider,
+    ConfigGatedMalwareScanProvider,
+  ],
 })
 export class PackagesModule {}

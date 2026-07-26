@@ -19,7 +19,7 @@ part 'me.g.dart';
 /// * [roles] 
 /// * [branchIds] 
 /// * [capabilities] 
-/// * [assurance] 
+/// * [identityVerificationStatus] 
 /// * [sessionExpiresAt] 
 /// * [branches] 
 @BuiltValue()
@@ -39,9 +39,9 @@ abstract class Me implements Built<Me, MeBuilder> {
   @BuiltValueField(wireName: r'capabilities')
   BuiltList<String> get capabilities;
 
-  @BuiltValueField(wireName: r'assurance')
-  MeAssuranceEnum get assurance;
-  // enum assuranceEnum {  BASE,  MFA,  };
+  @BuiltValueField(wireName: r'identityVerificationStatus')
+  MeIdentityVerificationStatusEnum get identityVerificationStatus;
+  // enum identityVerificationStatusEnum {  NOT_REQUIRED,  PENDING,  ACTION_REQUIRED,  APPROVED,  };
 
   @BuiltValueField(wireName: r'sessionExpiresAt')
   DateTime get sessionExpiresAt;
@@ -97,10 +97,10 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
       object.capabilities,
       specifiedType: const FullType(BuiltList, [FullType(String)]),
     );
-    yield r'assurance';
+    yield r'identityVerificationStatus';
     yield serializers.serialize(
-      object.assurance,
-      specifiedType: const FullType(MeAssuranceEnum),
+      object.identityVerificationStatus,
+      specifiedType: const FullType(MeIdentityVerificationStatusEnum),
     );
     yield r'sessionExpiresAt';
     yield serializers.serialize(
@@ -170,12 +170,12 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
           ) as BuiltList<String>;
           result.capabilities.replace(valueDes);
           break;
-        case r'assurance':
+        case r'identityVerificationStatus':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(MeAssuranceEnum),
-          ) as MeAssuranceEnum;
-          result.assurance = valueDes;
+            specifiedType: const FullType(MeIdentityVerificationStatusEnum),
+          ) as MeIdentityVerificationStatusEnum;
+          result.identityVerificationStatus = valueDes;
           break;
         case r'sessionExpiresAt':
           final valueDes = serializers.deserialize(
@@ -220,18 +220,22 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
   }
 }
 
-class MeAssuranceEnum extends EnumClass {
+class MeIdentityVerificationStatusEnum extends EnumClass {
 
-  @BuiltValueEnumConst(wireName: r'BASE')
-  static const MeAssuranceEnum BASE = _$meAssuranceEnum_BASE;
-  @BuiltValueEnumConst(wireName: r'MFA')
-  static const MeAssuranceEnum MFA = _$meAssuranceEnum_MFA;
+  @BuiltValueEnumConst(wireName: r'NOT_REQUIRED')
+  static const MeIdentityVerificationStatusEnum NOT_REQUIRED = _$meIdentityVerificationStatusEnum_NOT_REQUIRED;
+  @BuiltValueEnumConst(wireName: r'PENDING')
+  static const MeIdentityVerificationStatusEnum PENDING = _$meIdentityVerificationStatusEnum_PENDING;
+  @BuiltValueEnumConst(wireName: r'ACTION_REQUIRED')
+  static const MeIdentityVerificationStatusEnum ACTION_REQUIRED = _$meIdentityVerificationStatusEnum_ACTION_REQUIRED;
+  @BuiltValueEnumConst(wireName: r'APPROVED')
+  static const MeIdentityVerificationStatusEnum APPROVED = _$meIdentityVerificationStatusEnum_APPROVED;
 
-  static Serializer<MeAssuranceEnum> get serializer => _$meAssuranceEnumSerializer;
+  static Serializer<MeIdentityVerificationStatusEnum> get serializer => _$meIdentityVerificationStatusEnumSerializer;
 
-  const MeAssuranceEnum._(String name): super(name);
+  const MeIdentityVerificationStatusEnum._(String name): super(name);
 
-  static BuiltSet<MeAssuranceEnum> get values => _$meAssuranceEnumValues;
-  static MeAssuranceEnum valueOf(String name) => _$meAssuranceEnumValueOf(name);
+  static BuiltSet<MeIdentityVerificationStatusEnum> get values => _$meIdentityVerificationStatusEnumValues;
+  static MeIdentityVerificationStatusEnum valueOf(String name) => _$meIdentityVerificationStatusEnumValueOf(name);
 }
 

@@ -32,14 +32,69 @@ export type BookingPage = {
   nextCursor?: string | null;
 };
 
+export type CustomerBookingOptions = {
+  slot: {
+    id: string;
+    branchId: string;
+    classTypeId: string;
+    startAt: Date;
+    endAt: Date;
+    timezone: string;
+    status: 'PUBLISHED' | 'CONFIRMED';
+    capacity: number;
+    bookedCount: number;
+    available: number;
+    branch: { id: string; code: string; name: string; timezone: string };
+    classType: { id: string; code: string; name: string };
+  };
+  packages: Array<{
+    id: string;
+    packageId: string;
+    name: string;
+    available: number;
+    expiryAt: Date;
+  }>;
+};
+
 export type ReschedulePage = {
   items: Reschedule[];
   nextCursor?: string | null;
 };
 
+export type CheckInIssue = {
+  id: string;
+  bookingId: string;
+  notBeforeAt: string;
+  expiresAt: string;
+  status: 'ACTIVE' | 'USED' | 'REVOKED';
+  version: number;
+  token: string | null;
+  qrPayload: string | null;
+  passUrl: string | null;
+  maskedCustomerPhone: string | null;
+  whatsappUrl: string | null;
+  message: string | null;
+  idempotentReplay: boolean;
+};
+
+export type CheckInResult = {
+  id: string;
+  resourceId: string;
+  status: 'CHECKED_IN';
+  checkedInAt: string;
+  auditReference: string;
+  idempotentReplay: boolean;
+  customerName: string;
+  className: string;
+  branch: { code: string; name: string };
+  startAt: string;
+  endAt: string;
+};
+
 export interface BookingClient {
   discover(branchId: string): Promise<BookingDiscovery>;
-  list(input: { branchId: string; status?: string; cursor?: string }): Promise<BookingPage>;
+  options(classSlotId: string): Promise<CustomerBookingOptions>;
+  list(input: { branchId?: string; status?: string; cursor?: string }): Promise<BookingPage>;
   create(input: BookingCommand, idempotencyKey: string): Promise<Booking>;
   listReschedules(input: {
     branchId: string;
@@ -53,6 +108,20 @@ export interface BookingClient {
     input: RescheduleDecisionCommand,
     idempotencyKey: string,
   ): Promise<{ reschedule: Reschedule; booking: Booking; idempotentReplay: boolean }>;
+  issueCheckIn?(
+    bookingId: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CheckInIssue>;
+  issueBulkCheckIns?(
+    classSlotId: string,
+    bookingIds: string[] | undefined,
+    idempotencyKey: string,
+  ): Promise<{
+    classSlotId: string;
+    items: Array<{ bookingId: string; ok: boolean; result?: CheckInIssue; errorCode?: string }>;
+  }>;
+  consumeCheckIn?(token: string, idempotencyKey: string): Promise<CheckInResult>;
 }
 
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
@@ -62,6 +131,31 @@ const identity = new IdentityApi(configuration);
 const ledger = new LedgerApi(configuration);
 
 export const browserBookingClient: BookingClient = {
+  async options(classSlotId) {
+    const response = await fetch(`/api/v1/bookings/options/${encodeURIComponent(classSlotId)}`, {
+      credentials: 'include',
+    });
+    if (!response.ok) throw { response };
+    const value = (await response.json()) as Omit<CustomerBookingOptions, 'slot' | 'packages'> & {
+      slot: Omit<CustomerBookingOptions['slot'], 'startAt' | 'endAt'> & {
+        startAt: string;
+        endAt: string;
+      };
+      packages: Array<
+        Omit<CustomerBookingOptions['packages'][number], 'expiryAt'> & {
+          expiryAt: string;
+        }
+      >;
+    };
+    return {
+      slot: {
+        ...value.slot,
+        startAt: new Date(value.slot.startAt),
+        endAt: new Date(value.slot.endAt),
+      },
+      packages: value.packages.map((item) => ({ ...item, expiryAt: new Date(item.expiryAt) })),
+    };
+  },
   async discover(branchId) {
     const [users, packages, published, confirmed] = await Promise.all([
       identity.listUsers({ branchId }),
@@ -75,13 +169,7 @@ export const browserBookingClient: BookingClient = {
         .filter((user) => user.status === 'ACTIVE')
         .map((user) => ({
           id: user.id,
-          displayName:
-            typeof user.attributes === 'object' &&
-            user.attributes !== null &&
-            'displayName' in user.attributes &&
-            typeof user.attributes.displayName === 'string'
-              ? user.attributes.displayName
-              : 'Pelanggan',
+          displayName: user.displayName || 'Pelanggan',
         })),
       packages: packages.items.filter(
         (item) =>
@@ -122,6 +210,42 @@ export const browserBookingClient: BookingClient = {
       rescheduleDecisionCommand: input,
     });
   },
+  async issueCheckIn(bookingId, expectedVersion, idempotencyKey) {
+    const response = await fetch(
+      `/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ expectedVersion }),
+      },
+    );
+    if (!response.ok) throw { response };
+    return response.json() as Promise<CheckInIssue>;
+  },
+  async issueBulkCheckIns(classSlotId, bookingIds, idempotencyKey) {
+    const response = await fetch(
+      `/api/v1/class-slots/${encodeURIComponent(classSlotId)}/customer-check-in-links/bulk`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ bookingIds }),
+      },
+    );
+    if (!response.ok) throw { response };
+    return response.json();
+  },
+  async consumeCheckIn(token, idempotencyKey) {
+    const response = await fetch('/api/v1/check-ins/customers', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      body: JSON.stringify({ token }),
+    });
+    if (!response.ok) throw { response };
+    return response.json() as Promise<CheckInResult>;
+  },
 };
 
 const messages: Record<string, string> = {
@@ -143,7 +267,11 @@ const messages: Record<string, string> = {
   TARGET_CLASS_INELIGIBLE: 'Kelas tujuan tidak lagi memenuhi syarat.',
   RESCHEDULE_ALREADY_DECIDED: 'Reschedule ini sudah diputuskan.',
   STALE_VERSION: 'Data berubah sejak terakhir dimuat. Muat ulang sebelum melanjutkan.',
-  MFA_REQUIRED: 'Verifikasi MFA diperlukan untuk memutuskan reschedule.',
+  CHECK_IN_TOO_EARLY: 'QR belum aktif. Check-in dibuka 30 menit sebelum kelas.',
+  CHECK_IN_WINDOW_CLOSED: 'QR sudah kedaluwarsa karena jadwal kelas telah selesai.',
+  CHECK_IN_TOKEN_REVOKED: 'QR sudah dicabut dan perlu diterbitkan ulang.',
+  CHECK_IN_TOKEN_INVALID: 'QR tidak valid atau tidak dikenali.',
+  INVALID_STATE_TRANSITION: 'Booking atau kelas tidak berada pada status yang dapat di-check-in.',
 };
 
 export async function bookingFailure(error: unknown): Promise<string> {

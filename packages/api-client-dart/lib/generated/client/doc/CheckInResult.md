@@ -14,7 +14,13 @@ Name | Type | Description | Notes
 **status** | [**JsonObject**](.md) |  | 
 **checkedInAt** | [**DateTime**](DateTime.md) |  | 
 **auditLogId** | **String** |  | 
+**auditReference** | **String** |  | 
 **idempotentReplay** | **bool** |  | 
+**customerName** | **String** |  | [optional] 
+**className** | **String** |  | [optional] 
+**branch** | [**CheckInResultBranch**](CheckInResultBranch.md) |  | [optional] 
+**startAt** | [**DateTime**](DateTime.md) |  | [optional] 
+**endAt** | [**DateTime**](DateTime.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

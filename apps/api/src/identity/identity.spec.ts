@@ -38,6 +38,8 @@ describe('identity security foundation', () => {
         'user:admin',
         'finance:manage',
         'operations:recover',
+        'identity-verification:review',
+        'identity-verification:delete',
       ]),
     );
     expect(policy.branches(roles.map((role) => ({ role, branchId: 'branch-a' })))).toEqual([
@@ -45,10 +47,61 @@ describe('identity security foundation', () => {
     ]);
   });
 
-  it('denies missing capability and insufficient assurance', () => {
+  it('allows Admin to review identity evidence but reserves permanent deletion for Super Owner', () => {
+    const policy = new PolicyService();
+    const admin = policy.capabilities([{ role: 'ADMIN', branchId: 'branch-a' }]);
+    const superOwner = policy.capabilities([{ role: 'SUPER_OWNER', branchId: null }]);
+    expect(admin).toContain('identity-verification:review');
+    expect(admin).not.toContain('identity-verification:delete');
+    expect(superOwner).toEqual(
+      expect.arrayContaining(['identity-verification:review', 'identity-verification:delete']),
+    );
+  });
+
+  it('reserves payment decisions for Finance and Super Owner', () => {
+    const policy = new PolicyService();
+    const admin = policy.capabilities([{ role: 'ADMIN', branchId: 'branch-a' }]);
+    const manager = policy.capabilities([{ role: 'MANAGER', branchId: 'branch-a' }]);
+    const finance = policy.capabilities([{ role: 'FINANCE', branchId: null }]);
+    const superOwner = policy.capabilities([{ role: 'SUPER_OWNER', branchId: null }]);
+    expect(admin).toContain('payment:review');
+    expect(admin).not.toContain('payment:decide');
+    expect(manager).not.toContain('payment:decide');
+    expect(finance).toEqual(
+      expect.arrayContaining(['payment:review', 'payment:decide', 'finance:reconcile']),
+    );
+    expect(superOwner).toEqual(expect.arrayContaining(['payment:decide', 'finance:export']));
+  });
+
+  it('enforces the class workspace role matrix without a Super Admin role', () => {
+    const policy = new PolicyService();
+    const capabilities = (role: Parameters<PolicyService['capabilities']>[0][number]['role']) =>
+      policy.capabilities([{ role, branchId: role === 'SUPER_OWNER' ? null : 'branch-a' }]);
+
+    expect(capabilities('SUPER_OWNER')).toEqual(
+      expect.arrayContaining([
+        'class-slot:read',
+        'class-slot:manage',
+        'attendance:read',
+        'attendance:manage',
+      ]),
+    );
+    expect(capabilities('OWNER')).toContain('class-slot:read');
+    expect(capabilities('OWNER')).not.toContain('class-slot:manage');
+    for (const role of ['ADMIN', 'MANAGER'] as const) {
+      expect(capabilities(role)).toEqual(
+        expect.arrayContaining(['class-slot:read', 'class-slot:manage', 'attendance:manage']),
+      );
+    }
+    for (const role of ['FINANCE', 'OPS'] as const) {
+      expect(capabilities(role)).not.toContain('class-slot:read');
+      expect(capabilities(role)).not.toContain('class-slot:manage');
+    }
+  });
+
+  it('denies missing capability', () => {
     const policy = new PolicyService();
     expect(() => policy.requireCapability(['user:read'], 'user:admin')).toThrow('FORBIDDEN');
-    expect(() => policy.requireMfa('BASE')).toThrow('MFA_REQUIRED');
   });
 
   it('uses constant-time digest comparison semantics', () => {
@@ -74,7 +127,6 @@ describe('identity security foundation', () => {
       NODE_ENV: 'test',
       AUTH_SYNTHETIC_ENABLED: 'true',
       AUTH_SYNTHETIC_OTP_CODE: '123456',
-      AUTH_SYNTHETIC_MFA_PROOF: 'mfa-proof',
       AUTH_SYNTHETIC_RECOVERY_PROOF: 'recovery-proof',
     };
     await expect(
@@ -83,7 +135,7 @@ describe('identity security foundation', () => {
     const otp = await new ConfigGatedOtpProvider().send('+628123456789');
     expect(otp.proofHash).toBe(digest(`${digest('+628123456789')}:123456`));
     const proofs = new ConfigGatedProofProvider();
-    expect(proofs.verify('MFA', digest('user-1'), 'mfa-proof')).toBe(true);
+    expect(proofs.verify('RECOVERY', digest('user-1'), 'recovery-proof')).toBe(true);
     expect(proofs.verify('RECOVERY', digest('user-1'), 'wrong')).toBe(false);
   });
 
@@ -97,7 +149,6 @@ describe('identity security foundation', () => {
       id: 'session-old',
       userId: 'user-1',
       channel: 'MOBILE',
-      assurance: 'BASE',
       tokenFamilyHash: 'family-hash',
       refreshExpiresAt: new Date(Date.now() + 60_000),
       revokedAt: null,
@@ -109,7 +160,7 @@ describe('identity security foundation', () => {
       userSession: {
         findUnique: jest.fn().mockResolvedValue(activeSession),
         update: jest.fn().mockResolvedValue({}),
-        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn().mockResolvedValue({}),
       },
       user: {
@@ -125,6 +176,7 @@ describe('identity security foundation', () => {
       new ConfigGatedOtpProvider(),
       new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
     );
     await service.refresh('refresh-token');
     expect(db.userSession.create).toHaveBeenCalledWith(
@@ -160,6 +212,7 @@ describe('identity security foundation', () => {
       new ConfigGatedOtpProvider(),
       new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
     );
     await expect(
       service.authenticateGoogle(

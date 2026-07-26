@@ -6,7 +6,7 @@ import { ClassSlotService } from './class-slot.service';
 import { evaluateQuota } from '@dailydose/quota-evaluator';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
-databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
+databaseDescribe('synthetic class-slot MySQL integration', () => {
   const db = new PrismaClient();
   const service = new ClassSlotService(
     db as never,
@@ -31,7 +31,6 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
   const principal = {
     sessionId: namespace,
     userId: actorId,
-    assurance: 'MFA' as const,
     roles: [{ role: 'ADMIN' as const, branchId }],
     capabilities: ['class-slot:read', 'class-slot:manage'],
     branchIds: [branchId],
@@ -350,7 +349,7 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
     ).rejects.toMatchObject({ code: 'CLASS_ALREADY_STARTED' });
   });
 
-  it('rejects missing availability, stale version, overlap, and base assurance', async () => {
+  it('rejects missing availability, stale version, and overlap', async () => {
     const first = await service.create(
       principal,
       {
@@ -381,15 +380,6 @@ databaseDescribe('synthetic class-slot PostgreSQL integration', () => {
     await expect(
       service.publish(principal, id, { expectedVersion: 9 }, `${namespace}-stale`, namespace),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' });
-    await expect(
-      service.publish(
-        { ...principal, assurance: 'BASE' },
-        id,
-        { expectedVersion: 0 },
-        `${namespace}-base`,
-        namespace,
-      ),
-    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
     await expect(
       service.create(
         principal,

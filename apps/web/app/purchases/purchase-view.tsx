@@ -31,10 +31,17 @@ export function PurchaseView({
   digestFile?: (file: File) => Promise<string>;
 }) {
   const sessionContext = useSessionContext();
-  const branch = branchOverride ?? sessionContext?.activeBranch ?? null;
   const isCustomer = !sessionContext || sessionContext.session?.roles.includes('CUSTOMER');
+  const [flowBranch, setFlowBranch] = useState<{
+    id: string;
+    name: string;
+    timezone: string;
+  } | null>(null);
+  const [requestedPackageId, setRequestedPackageId] = useState('');
+  const [continuationSlot, setContinuationSlot] = useState('');
+  const branch = branchOverride ?? sessionContext?.activeBranch ?? flowBranch;
   const canSubmit = !sessionContext || sessionContext.hasCapability('package:read');
-  const authorityKey = `${sessionContext?.session?.id ?? 'test'}:${sessionContext?.session?.assurance ?? 'MFA'}`;
+  const authorityKey = sessionContext?.session?.id ?? 'test';
   const [packages, setPackages] = useState<PurchasePackage[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [proof, setProof] = useState<PaymentProof | null>(null);
@@ -49,6 +56,15 @@ export function PurchaseView({
     () => packages.find((item) => item.id === selectedId) ?? null,
     [packages, selectedId],
   );
+
+  useEffect(() => {
+    if (!isCustomer) return;
+    const query = new URLSearchParams(window.location.search);
+    const branchId = query.get('branch');
+    setRequestedPackageId(query.get('package') ?? '');
+    setContinuationSlot(query.get('slot') ?? '');
+    if (branchId) setFlowBranch({ id: branchId, name: 'Studio pilihan', timezone: 'Asia/Jakarta' });
+  }, [isCustomer]);
 
   useEffect(() => {
     setPackages([]);
@@ -82,6 +98,22 @@ export function PurchaseView({
       setMessage(result.items.length ? 'Paket aktif berhasil dimuat.' : 'Belum ada paket aktif.');
     });
 
+  useEffect(() => {
+    if (!branch?.id || !requestedPackageId || !canSubmit) return;
+    void run(async () => {
+      const result = await client.list(branch.id);
+      setPackages(result.items);
+      setSelectedId(
+        result.items.some(({ id }) => id === requestedPackageId) ? requestedPackageId : '',
+      );
+      setMessage(
+        result.items.some(({ id }) => id === requestedPackageId)
+          ? 'Paket pilihan siap diproses.'
+          : 'Paket pilihan tidak lagi tersedia.',
+      );
+    });
+  }, [branch?.id, canSubmit, client, requestedPackageId]);
+
   if (!isCustomer) return null;
   if (!branch)
     return (
@@ -105,7 +137,7 @@ export function PurchaseView({
         description="Pilih paket, periksa bukti pembayaran secara privat, lalu kirim pengajuan."
         context={
           <>
-            <StatusBadge tone="warning">Synthetic</StatusBadge>
+            <StatusBadge tone="warning">Mode simulasi</StatusBadge>
             <StatusBadge tone="info">Bukti privat</StatusBadge>
           </>
         }
@@ -268,7 +300,16 @@ export function PurchaseView({
       )}
       {purchase && (
         <Feedback kind="status">
-          Purchase {purchase.status}. Referensi •{purchase.id.slice(-6)}.
+          Purchase {purchase.status}. Referensi •{purchase.id.slice(-6)}.{' '}
+          {continuationSlot && (
+            <span>
+              Setelah paket disetujui,{' '}
+              <a href={`/bookings/new?slot=${encodeURIComponent(continuationSlot)}`}>
+                lanjutkan booking kelas
+              </a>
+              .
+            </span>
+          )}
         </Feedback>
       )}
       {loading && <Skeleton label="Memproses purchase" />}

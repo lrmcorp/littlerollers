@@ -11,6 +11,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**createBooking**](BookingsApi.md#createbooking) | **POST** /bookings | 
 [**decideReschedule**](BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
+[**getCustomerBookingOptions**](BookingsApi.md#getcustomerbookingoptions) | **GET** /bookings/options/{classSlotId} | 
 [**listBookings**](BookingsApi.md#listbookings) | **GET** /bookings | 
 [**listReschedules**](BookingsApi.md#listreschedules) | **GET** /reschedules | 
 [**requestReschedule**](BookingsApi.md#requestreschedule) | **POST** /reschedules | 
@@ -66,7 +67,7 @@ Name | Type | Description  | Notes
 
 
 
-MFA-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
+Permission-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
 
 ### Example
 ```dart
@@ -106,6 +107,49 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getCustomerBookingOptions**
+> CustomerBookingOptions getCustomerBookingOptions(classSlotId)
+
+
+
+Returns one safe future slot and only the authenticated customer own eligible package balances.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String classSlotId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getCustomerBookingOptions(classSlotId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->getCustomerBookingOptions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **classSlotId** | **String**|  | 
+
+### Return type
+
+[**CustomerBookingOptions**](CustomerBookingOptions.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

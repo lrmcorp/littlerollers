@@ -2,6 +2,17 @@ import { Configuration, MasterApi } from '@dailydose/api-client-ts/generated';
 import { notifySessionFailure } from './session-client';
 
 export type MasterKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
+export interface MasterSetting {
+  id: string;
+  kind: MasterKind;
+  businessKey: string;
+  branchId: string;
+  classTypeId: string;
+  value: object;
+  effectiveFrom: Date;
+  effectiveUntil: Date | null;
+  version: number;
+}
 export interface MasterSettingInput {
   kind: MasterKind;
   branchId: string;
@@ -29,6 +40,9 @@ export interface MasterClient {
   ): Promise<Array<{ id: string; code: string; name: string; active: boolean; version: number }>>;
   createBranch(input: { code: string; name: string; timezone: string }): Promise<void>;
   createClassType(input: { branchId: string; code: string; name: string }): Promise<void>;
+  deactivateBranch(id: string, expectedVersion: number): Promise<void>;
+  deactivateClassType(id: string, expectedVersion: number): Promise<void>;
+  listSettings(kind: MasterKind, branchId?: string): Promise<MasterSetting[]>;
   createSetting(input: MasterSettingInput): Promise<void>;
 }
 
@@ -46,6 +60,19 @@ export const browserMasterClient: MasterClient = {
   },
   async createClassType(input) {
     await api.createClassType({ classTypeCommand: input });
+  },
+  async deactivateBranch(id, expectedVersion) {
+    await api.deactivateBranch({ id, versionCommand: { expectedVersion } });
+  },
+  async deactivateClassType(id, expectedVersion) {
+    await api.deactivateClassType({ id, versionCommand: { expectedVersion } });
+  },
+  async listSettings(kind, branchId) {
+    if (kind === 'INSTRUCTOR_FEE')
+      return (await api.listInstructorFees({ branchId })).items as MasterSetting[];
+    if (kind === 'PROJECTION_RATE')
+      return (await api.listProjectionRates({ branchId })).items as MasterSetting[];
+    return (await api.listQuotaCapacitySettings({ branchId })).items as MasterSetting[];
   },
   async createSetting(input) {
     const period = {
@@ -94,7 +121,7 @@ export const browserMasterClient: MasterClient = {
 export function masterFailure(error: unknown): string {
   notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
-  if (status === 403) return 'MFA_REQUIRED_OR_FORBIDDEN';
+  if (status === 403) return 'FORBIDDEN';
   if (status === 404) return 'RESOURCE_NOT_FOUND';
   if (status === 409) return 'EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION';
   if (status === 422 || status === 400) return 'VALIDATION_ERROR';

@@ -4,7 +4,7 @@ import { PolicyService } from '../identity/policy.service';
 import { MasterService } from './master.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
-databaseDescribe('effective master PostgreSQL integration', () => {
+databaseDescribe('effective master MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `mst-${Date.now()}`;
   const actorId = randomUUID();
@@ -15,7 +15,6 @@ databaseDescribe('effective master PostgreSQL integration', () => {
   const principal = () => ({
     sessionId: 'mst',
     userId: actorId,
-    assurance: 'MFA' as const,
     roles: [
       { role: 'SUPER_OWNER' as const, branchId: null },
       { role: 'FINANCE' as const, branchId: null },
@@ -132,22 +131,7 @@ databaseDescribe('effective master PostgreSQL integration', () => {
     ).toBe(1);
   });
 
-  it('enforces MFA, finance authority, hidden scope and stale lifecycle', async () => {
-    await expect(
-      service.createSetting(
-        { ...principal(), assurance: 'BASE' },
-        {
-          kind: 'QUOTA_CAPACITY',
-          branchId,
-          classTypeId,
-          minimumQuota: 1,
-          defaultCapacity: 2,
-          effectiveFrom: '2028-01-01',
-          reason: 'base',
-        },
-        `${namespace}-base`,
-      ),
-    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
+  it('enforces finance authority, hidden scope and stale lifecycle', async () => {
     await expect(
       service.createSetting(
         { ...principal(), capabilities: ['branch:all', 'master:read', 'master:manage'] },

@@ -9,18 +9,64 @@ All URIs are relative to */api/v1*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
+[**activatePassword**](AuthApi.md#activatepassword) | **POST** /auth/password/activations | 
 [**authenticateGoogle**](AuthApi.md#authenticategoogle) | **POST** /auth/google | 
-[**createMfaChallenge**](AuthApi.md#createmfachallenge) | **POST** /auth/mfa/challenges | 
+[**authenticatePassword**](AuthApi.md#authenticatepassword) | **POST** /auth/password/sessions | 
+[**changePassword**](AuthApi.md#changepassword) | **POST** /auth/password/change | 
+[**getAuthSecurityStatus**](AuthApi.md#getauthsecuritystatus) | **GET** /auth/security | 
 [**linkVerifiedIdentity**](AuthApi.md#linkverifiedidentity) | **POST** /auth/account-links | 
 [**logout**](AuthApi.md#logout) | **POST** /auth/logout | 
 [**refreshSession**](AuthApi.md#refreshsession) | **POST** /auth/refresh | 
+[**registerCustomer**](AuthApi.md#registercustomer) | **POST** /auth/customer-registrations | 
 [**requestAccountRecovery**](AuthApi.md#requestaccountrecovery) | **POST** /auth/recovery-requests | 
 [**requestOtp**](AuthApi.md#requestotp) | **POST** /auth/otp/requests | 
+[**requestPasswordReset**](AuthApi.md#requestpasswordreset) | **POST** /auth/password/reset-requests | 
+[**resetPassword**](AuthApi.md#resetpassword) | **POST** /auth/password/resets | 
 [**revokeAllSessions**](AuthApi.md#revokeallsessions) | **POST** /auth/sessions/revoke-all | 
 [**verifyAccountRecovery**](AuthApi.md#verifyaccountrecovery) | **POST** /auth/recoveries/{id}/verify | 
-[**verifyMfaChallenge**](AuthApi.md#verifymfachallenge) | **POST** /auth/mfa/verifications | 
 [**verifyOtp**](AuthApi.md#verifyotp) | **POST** /auth/otp/verifications | 
 
+
+# **activatePassword**
+> Session activatePassword(passwordTokenCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+final PasswordTokenCommand passwordTokenCommand = ; // PasswordTokenCommand | 
+
+try {
+    final response = api.activatePassword(passwordTokenCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->activatePassword: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **passwordTokenCommand** | [**PasswordTokenCommand**](PasswordTokenCommand.md)|  | 
+
+### Return type
+
+[**Session**](Session.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **authenticateGoogle**
 > Session authenticateGoogle(googleAuthRequest)
@@ -63,8 +109,8 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **createMfaChallenge**
-> MfaChallenge createMfaChallenge(mfaChallengeCommand)
+# **authenticatePassword**
+> Session authenticatePassword(passwordSessionRequest)
 
 
 
@@ -73,13 +119,13 @@ No authorization required
 import 'package:openapi/api.dart';
 
 final api = Openapi().getAuthApi();
-final MfaChallengeCommand mfaChallengeCommand = ; // MfaChallengeCommand | 
+final PasswordSessionRequest passwordSessionRequest = ; // PasswordSessionRequest | 
 
 try {
-    final response = api.createMfaChallenge(mfaChallengeCommand);
+    final response = api.authenticatePassword(passwordSessionRequest);
     print(response);
 } catch on DioException (e) {
-    print('Exception when calling AuthApi->createMfaChallenge: $e\n');
+    print('Exception when calling AuthApi->authenticatePassword: $e\n');
 }
 ```
 
@@ -87,11 +133,52 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **mfaChallengeCommand** | [**MfaChallengeCommand**](MfaChallengeCommand.md)|  | 
+ **passwordSessionRequest** | [**PasswordSessionRequest**](PasswordSessionRequest.md)|  | 
 
 ### Return type
 
-[**MfaChallenge**](MfaChallenge.md)
+[**Session**](Session.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **changePassword**
+> ChangedStatus changePassword(passwordChangeCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+final PasswordChangeCommand passwordChangeCommand = ; // PasswordChangeCommand | 
+
+try {
+    final response = api.changePassword(passwordChangeCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->changePassword: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **passwordChangeCommand** | [**PasswordChangeCommand**](PasswordChangeCommand.md)|  | 
+
+### Return type
+
+[**ChangedStatus**](ChangedStatus.md)
 
 ### Authorization
 
@@ -100,6 +187,43 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getAuthSecurityStatus**
+> AuthSecurityStatus getAuthSecurityStatus()
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+
+try {
+    final response = api.getAuthSecurityStatus();
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->getAuthSecurityStatus: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AuthSecurityStatus**](AuthSecurityStatus.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -222,6 +346,49 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **registerCustomer**
+> Session registerCustomer(customerRegistrationCommand)
+
+
+
+Creates an active CUSTOMER account with pending private selfie and KTP verification, then issues a web session.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+final CustomerRegistrationCommand customerRegistrationCommand = ; // CustomerRegistrationCommand | 
+
+try {
+    final response = api.registerCustomer(customerRegistrationCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->registerCustomer: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **customerRegistrationCommand** | [**CustomerRegistrationCommand**](CustomerRegistrationCommand.md)|  | 
+
+### Return type
+
+[**Session**](Session.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **requestAccountRecovery**
 > ChallengeAccepted requestAccountRecovery(recoveryRequestCommand)
 
@@ -304,6 +471,88 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **requestPasswordReset**
+> AcceptedStatus requestPasswordReset(passwordResetRequest)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+final PasswordResetRequest passwordResetRequest = ; // PasswordResetRequest | 
+
+try {
+    final response = api.requestPasswordReset(passwordResetRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->requestPasswordReset: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **passwordResetRequest** | [**PasswordResetRequest**](PasswordResetRequest.md)|  | 
+
+### Return type
+
+[**AcceptedStatus**](AcceptedStatus.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **resetPassword**
+> ChangedStatus resetPassword(passwordTokenCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getAuthApi();
+final PasswordTokenCommand passwordTokenCommand = ; // PasswordTokenCommand | 
+
+try {
+    final response = api.resetPassword(passwordTokenCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling AuthApi->resetPassword: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **passwordTokenCommand** | [**PasswordTokenCommand**](PasswordTokenCommand.md)|  | 
+
+### Return type
+
+[**ChangedStatus**](ChangedStatus.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **revokeAllSessions**
 > revokeAllSessions(revokeSessionsCommand)
 
@@ -373,47 +622,6 @@ Name | Type | Description  | Notes
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
  **recoveryVerifyCommand** | [**RecoveryVerifyCommand**](RecoveryVerifyCommand.md)|  | 
-
-### Return type
-
-[**Session**](Session.md)
-
-### Authorization
-
-[bearerAuth](../README.md#bearerAuth)
-
-### HTTP request headers
-
- - **Content-Type**: application/json
- - **Accept**: application/json, application/problem+json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **verifyMfaChallenge**
-> Session verifyMfaChallenge(mfaVerifyCommand)
-
-
-
-### Example
-```dart
-import 'package:openapi/api.dart';
-
-final api = Openapi().getAuthApi();
-final MfaVerifyCommand mfaVerifyCommand = ; // MfaVerifyCommand | 
-
-try {
-    final response = api.verifyMfaChallenge(mfaVerifyCommand);
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling AuthApi->verifyMfaChallenge: $e\n');
-}
-```
-
-### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **mfaVerifyCommand** | [**MfaVerifyCommand**](MfaVerifyCommand.md)|  | 
 
 ### Return type
 

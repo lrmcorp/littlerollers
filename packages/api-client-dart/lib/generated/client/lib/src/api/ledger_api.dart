@@ -27,7 +27,7 @@ class LedgerApi {
   const LedgerApi(this._dio, this._serializers);
 
   /// decideSessionAdjustment
-  /// MFA-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
+  /// Permission-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
   ///
   /// Parameters:
   /// * [id] 

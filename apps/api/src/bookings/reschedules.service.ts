@@ -165,7 +165,7 @@ export class ReschedulesService {
           leaseMs: 30_000,
         },
         async (tx) => {
-          await tx.$queryRaw`SELECT "id" FROM "Booking" WHERE "id" = ${input.bookingId}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`Booking\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
           const booking = await tx.booking.findUnique({ where: { id: input.bookingId } });
           if (
             !booking ||
@@ -179,7 +179,7 @@ export class ReschedulesService {
             throw new ApiProblem('TARGET_CLASS_INELIGIBLE', HttpStatus.CONFLICT);
 
           const ids = [booking.classSlotId, input.targetClassSlotId].sort();
-          await tx.$queryRaw`SELECT "id" FROM "ClassSlot" WHERE "id" IN (${ids[0]}::uuid, ${ids[1]}::uuid) ORDER BY "id" FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` IN (${ids[0]}, ${ids[1]}) ORDER BY \`id\` FOR UPDATE`;
           const [source, target, customerPackage] = await Promise.all([
             tx.classSlot.findUnique({ where: { id: booking.classSlotId } }),
             tx.classSlot.findUnique({ where: { id: input.targetClassSlotId } }),
@@ -285,7 +285,6 @@ export class ReschedulesService {
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     this.policy.requireCapability(principal.capabilities, 'reschedule:decide');
-    this.policy.requireMfa(principal.assurance);
     const policy = this.syntheticPolicy();
 
     return this.idempotency
@@ -298,7 +297,7 @@ export class ReschedulesService {
           leaseMs: 30_000,
         },
         async (tx) => {
-          await tx.$queryRaw`SELECT "id" FROM "Reschedule" WHERE "id" = ${id}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`Reschedule\` WHERE \`id\` = ${id} FOR UPDATE`;
           const reschedule = await tx.reschedule.findUnique({ where: { id } });
           if (!reschedule) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           this.requireBranch(principal, reschedule.branchId);
@@ -307,7 +306,7 @@ export class ReschedulesService {
           if (reschedule.version !== input.expectedVersion)
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
 
-          await tx.$queryRaw`SELECT "id" FROM "Booking" WHERE "id" = ${reschedule.bookingId}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`Booking\` WHERE \`id\` = ${reschedule.bookingId} FOR UPDATE`;
           const booking = await tx.booking.findUnique({ where: { id: reschedule.bookingId } });
           if (!booking || booking.status !== 'RESCHEDULE_PENDING')
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
@@ -361,8 +360,8 @@ export class ReschedulesService {
           }
 
           const slotIds = [reschedule.sourceClassSlotId, reschedule.targetClassSlotId].sort();
-          await tx.$queryRaw`SELECT "id" FROM "ClassSlot" WHERE "id" IN (${slotIds[0]}::uuid, ${slotIds[1]}::uuid) ORDER BY "id" FOR UPDATE`;
-          await tx.$queryRaw`SELECT "id" FROM "SessionReservation" WHERE "id" = ${booking.reservationId}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` IN (${slotIds[0]}, ${slotIds[1]}) ORDER BY \`id\` FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`SessionReservation\` WHERE \`id\` = ${booking.reservationId} FOR UPDATE`;
           const [source, target, reservation, customerPackage] = await Promise.all([
             tx.classSlot.findUnique({ where: { id: reschedule.sourceClassSlotId } }),
             tx.classSlot.findUnique({ where: { id: reschedule.targetClassSlotId } }),

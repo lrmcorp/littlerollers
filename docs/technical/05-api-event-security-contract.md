@@ -19,7 +19,6 @@ Normative HTTP shape berada di `openapi-v1.yaml`. Dokumen ini menetapkan semanti
 | Code | HTTP | Retryable | Meaning/client action |
 |---|---:|---:|---|
 | AUTHENTICATION_REQUIRED | 401 | N | Sign in; no resource detail |
-| MFA_REQUIRED | 403 | N | Complete step-up MFA |
 | FORBIDDEN | 403 | N | Action not permitted; no sensitive detail |
 | RESOURCE_NOT_FOUND | 404 | N | Missing or deliberately hidden cross-scope resource |
 | VALIDATION_FAILED | 422 | N | Render safe field details |
@@ -41,8 +40,6 @@ Normative HTTP shape berada di `openapi-v1.yaml`. Dokumen ini menetapkan semanti
 | CONCURRENCY_RETRY_EXHAUSTED | 503 | Y | Safe retry with same idempotency key |
 | INTERNAL_ERROR | 500 | Maybe | Show support correlation ID only |
 | IDENTITY_CONFLICT | 409 | N | Do not auto-link; use approved recovery/support flow |
-| MFA_CHALLENGE_REQUIRED | 403 | N | Create/complete approved challenge |
-| MFA_CHALLENGE_EXPIRED | 410 | N | Restart challenge without reusing proof |
 | EFFECTIVE_PERIOD_OVERLAP | 409 | N | Change business key/effective period |
 | PAYMENT_PROOF_NOT_CLEAN | 409 | Y | Wait for scan or replace proof; cannot review/approve |
 | PAYMENT_PROOF_UNSAFE | 422 | N | Replace with an allowed clean file |
@@ -144,7 +141,7 @@ Exact attempts/timeouts are operational configuration with owner and alert evide
 
 ## 7. Authorization and Security Controls
 
-Each request evaluates authenticated active session → assurance/MFA → permission → branch/data scope → resource state → separation of duties. List, detail, export, signed-download, and command share the same policy service.
+Each request evaluates authenticated active session → permission → branch/data scope → resource state → separation of duties. List, detail, export, signed-download, and command share the same policy service.
 
 Security minimum:
 
@@ -154,7 +151,7 @@ Security minimum:
 - Check-in token includes purpose, subject/audience, resource, issued/expiry and JTI; raw token is never persisted.
 - Parameterized DB access, output encoding, CSRF protection for cookie commands, CORS allowlist, security headers and dependency/secret scanning.
 - PII logging uses allowlist fields and deterministic redaction; production debug payload is prohibited.
-- Break-glass access is time-bound, MFA-protected, alerted, reasoned and reviewed next business day.
+- Break-glass access is time-bound, alerted, reasoned and reviewed next business day.
 
 ## 8. Threat Model
 
@@ -169,7 +166,7 @@ Security minimum:
 | Ledger/close tampering | append-only, period lock, SoD, audit, reconciliation | TC-SEC-030..035 |
 | Queue/webhook replay | signed webhook, deterministic key, idempotent consumer | TC-SEC-036..039 |
 | PII leakage in logs/export | allowlist/redaction, scoped export, retention | TC-SEC-040..043 |
-| Privileged compromise | MFA, least privilege, access review, break-glass alerts | TC-SEC-044..048 |
+| Privileged compromise | least privilege, session revocation, access review, audit and break-glass alerts | TC-SEC-044..048 |
 
 ## 9. Observability and SLO Evidence
 

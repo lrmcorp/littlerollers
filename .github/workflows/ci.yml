@@ -7,20 +7,21 @@ jobs:
   typescript:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:17-alpine
+      mysql:
+        image: mysql:8.4
         env:
-          POSTGRES_USER: dailydose
-          POSTGRES_PASSWORD: dailydose_ci
-          POSTGRES_DB: dailydose_ci
-        ports: ['5432:5432']
+          MYSQL_DATABASE: dailydose_ci
+          MYSQL_USER: dailydose
+          MYSQL_PASSWORD: dailydose_ci
+          MYSQL_ROOT_PASSWORD: dailydose_root_ci
+        ports: ['3306:3306']
         options: >-
-          --health-cmd "pg_isready -U dailydose -d dailydose_ci"
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u dailydose -pdailydose_ci"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
     env:
-      DATABASE_URL: postgresql://dailydose:dailydose_ci@localhost:5432/dailydose_ci?schema=public
+      DATABASE_URL: mysql://dailydose:dailydose_ci@127.0.0.1:3306/dailydose_ci
       QUOTA_EVALUATION_SYNTHETIC_ENABLED: 'true'
       QUOTA_EVALUATION_POLL_INTERVAL_MS: '10000'
       QUOTA_EVALUATION_LEASE_MS: '30000'

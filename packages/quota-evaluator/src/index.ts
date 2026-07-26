@@ -42,10 +42,12 @@ export async function evaluateQuota(
 ): Promise<QuotaEvaluationResult> {
   if (!input.syntheticEnabled) throw new QuotaEvaluationError('CONFIGURATION_REQUIRED', true);
   const execute = async (tx: Prisma.TransactionClient): Promise<QuotaEvaluationResult> => {
-    await tx.$queryRawUnsafe(
-      'SELECT id FROM "QuotaEvaluationJob" WHERE id = $1::uuid FOR UPDATE',
-      input.jobId,
-    );
+    await tx.$queryRaw`
+      SELECT \`id\`
+      FROM \`QuotaEvaluationJob\`
+      WHERE \`id\` = ${input.jobId}
+      FOR UPDATE
+    `;
     const job = await tx.quotaEvaluationJob.findUnique({
       where: { id: input.jobId },
       include: { classSlot: true },

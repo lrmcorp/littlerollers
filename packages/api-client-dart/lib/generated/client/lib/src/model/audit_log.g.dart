@@ -83,6 +83,8 @@ class _$AuditLog extends AuditLog {
   @override
   final String? branchId;
   @override
+  final String? targetUserId;
+  @override
   final String action;
   @override
   final String objectType;
@@ -104,6 +106,7 @@ class _$AuditLog extends AuditLog {
     required this.actorType,
     this.actorId,
     this.branchId,
+    this.targetUserId,
     required this.action,
     required this.objectType,
     required this.objectId,
@@ -127,6 +130,7 @@ class _$AuditLog extends AuditLog {
         actorType == other.actorType &&
         actorId == other.actorId &&
         branchId == other.branchId &&
+        targetUserId == other.targetUserId &&
         action == other.action &&
         objectType == other.objectType &&
         objectId == other.objectId &&
@@ -143,6 +147,7 @@ class _$AuditLog extends AuditLog {
     _$hash = $jc(_$hash, actorType.hashCode);
     _$hash = $jc(_$hash, actorId.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
+    _$hash = $jc(_$hash, targetUserId.hashCode);
     _$hash = $jc(_$hash, action.hashCode);
     _$hash = $jc(_$hash, objectType.hashCode);
     _$hash = $jc(_$hash, objectId.hashCode);
@@ -161,6 +166,7 @@ class _$AuditLog extends AuditLog {
           ..add('actorType', actorType)
           ..add('actorId', actorId)
           ..add('branchId', branchId)
+          ..add('targetUserId', targetUserId)
           ..add('action', action)
           ..add('objectType', objectType)
           ..add('objectId', objectId)
@@ -194,6 +200,10 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
   String? _branchId;
   String? get branchId => _$this._branchId;
   set branchId(String? branchId) => _$this._branchId = branchId;
+
+  String? _targetUserId;
+  String? get targetUserId => _$this._targetUserId;
+  set targetUserId(String? targetUserId) => _$this._targetUserId = targetUserId;
 
   String? _action;
   String? get action => _$this._action;
@@ -233,6 +243,7 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
       _actorType = $v.actorType;
       _actorId = $v.actorId;
       _branchId = $v.branchId;
+      _targetUserId = $v.targetUserId;
       _action = $v.action;
       _objectType = $v.objectType;
       _objectId = $v.objectId;
@@ -274,6 +285,7 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
           ),
           actorId: actorId,
           branchId: branchId,
+          targetUserId: targetUserId,
           action: BuiltValueNullFieldError.checkNotNull(
             action,
             r'AuditLog',

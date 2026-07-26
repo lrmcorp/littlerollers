@@ -129,6 +129,12 @@ export class AvailabilityService {
           leaseMs: 30000,
         },
         async (tx) => {
+          await tx.$queryRaw`
+            SELECT \`id\`
+            FROM \`User\`
+            WHERE \`id\` = ${principal.userId}
+            FOR UPDATE
+          `;
           const [user, branch] = await Promise.all([
             tx.user.findUnique({ where: { id: principal.userId } }),
             tx.branch.findUnique({ where: { id: input.branchId } }),
@@ -156,6 +162,14 @@ export class AvailabilityService {
             },
           });
           if (!assignment) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          const overlap = await tx.instructorAvailability.findFirst({
+            where: {
+              instructorUserId: principal.userId,
+              startAt: { lt: endAt },
+              endAt: { gt: startAt },
+            },
+          });
+          if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
           const availability = await tx.instructorAvailability.create({
             data: {
               id: randomUUID(),

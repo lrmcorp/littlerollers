@@ -24,7 +24,7 @@ Outcome pilot dinyatakan tercapai ketika satu cabang dapat menjalankan alur penj
 ### MVP Pilot
 
 - Google sign-in dan OTP WhatsApp untuk Customer.
-- Google sign-in untuk akun internal terdaftar; MFA untuk role sensitif.
+- Google sign-in dan password untuk akun internal terdaftar; tindakan sensitif dibatasi permission, scope, audit, optimistic locking, dan separation-of-duties.
 - RBAC dan pembatasan data per cabang.
 - Master cabang, class type, package, instructor fee, projection rate, dan minimum quota dengan effective date.
 - Upload bukti transfer, approval, aktivasi paket, expiry, dan session ledger.

@@ -75,6 +75,7 @@ const reschedule = {
 
 function client(overrides: Partial<BookingClient> = {}): BookingClient {
   return {
+    options: vi.fn().mockRejectedValue(new Error('not used by assisted booking tests')),
     discover: vi.fn().mockResolvedValue({
       customers: [{ id: customerId, displayName: 'Customer Synthetic' }],
       packages: [customerPackage],

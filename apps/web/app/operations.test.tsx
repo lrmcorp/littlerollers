@@ -18,7 +18,7 @@ const job = {
 };
 
 describe('OperationsView', () => {
-  it('lists retry state and provides an accessible MFA recovery control', async () => {
+  it('lists retry state and provides an accessible recovery control', async () => {
     const client = {
       list: vi.fn().mockResolvedValue([job]),
       run: vi.fn().mockResolvedValue({
@@ -34,9 +34,9 @@ describe('OperationsView', () => {
     const view = render(<OperationsView client={client} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat job' }));
-    expect(await screen.findByRole('strong')).toHaveTextContent('RETRYING');
+    expect((await screen.findAllByText('RETRYING'))[0]).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await user.click(screen.getByRole('button', { name: 'Jalankan recovery MFA' }));
+    await user.click(screen.getAllByRole('button', { name: 'Jalankan recovery' })[0]!);
     expect(client.run).toHaveBeenCalledWith(job);
     expect(await screen.findByText('Evaluasi selesai.')).toBeInTheDocument();
   });

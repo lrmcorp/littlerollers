@@ -13,14 +13,17 @@ Method | HTTP request | Description
 [**createClassType**](MasterApi.md#createclasstype) | **POST** /class-types | 
 [**createEffectiveSetting**](MasterApi.md#createeffectivesetting) | **POST** /master-settings/{kind} | 
 [**createInstructorFee**](MasterApi.md#createinstructorfee) | **POST** /instructor-fees | 
+[**createPaymentAccount**](MasterApi.md#createpaymentaccount) | **POST** /payment-accounts | 
 [**createProjectionRate**](MasterApi.md#createprojectionrate) | **POST** /projection-rates | 
 [**createQuotaCapacitySetting**](MasterApi.md#createquotacapacitysetting) | **POST** /quota-capacity-settings | 
 [**deactivateBranch**](MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
 [**deactivateClassType**](MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
+[**deactivatePaymentAccount**](MasterApi.md#deactivatepaymentaccount) | **POST** /payment-accounts/{id}/deactivate | 
 [**listBranches**](MasterApi.md#listbranches) | **GET** /branches | 
 [**listClassTypes**](MasterApi.md#listclasstypes) | **GET** /class-types | 
 [**listEffectiveSettings**](MasterApi.md#listeffectivesettings) | **GET** /master-settings/{kind} | 
 [**listInstructorFees**](MasterApi.md#listinstructorfees) | **GET** /instructor-fees | 
+[**listPaymentAccounts**](MasterApi.md#listpaymentaccounts) | **GET** /payment-accounts | 
 [**listProjectionRates**](MasterApi.md#listprojectionrates) | **GET** /projection-rates | 
 [**listQuotaCapacitySettings**](MasterApi.md#listquotacapacitysettings) | **GET** /quota-capacity-settings | 
 
@@ -30,7 +33,7 @@ Method | HTTP request | Description
 
 
 
-Creates an active branch. Requires master:manage and MFA.
+Creates an active branch. Requires master:manage.
 
 ### Example
 ```dart
@@ -73,7 +76,7 @@ Name | Type | Description  | Notes
 
 
 
-Creates an active class type in one visible branch. Requires master:manage and MFA.
+Creates an active class type in one visible branch. Requires master:manage.
 
 ### Example
 ```dart
@@ -183,6 +186,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Resource**](Resource.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createPaymentAccount**
+> PaymentAccount createPaymentAccount(paymentAccountCommand)
+
+
+
+Creates the single active account for a branch. Requires Super Owner payment-account permission.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final PaymentAccountCommand paymentAccountCommand = ; // PaymentAccountCommand | 
+
+try {
+    final response = api.createPaymentAccount(paymentAccountCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->createPaymentAccount: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **paymentAccountCommand** | [**PaymentAccountCommand**](PaymentAccountCommand.md)|  | 
+
+### Return type
+
+[**PaymentAccount**](PaymentAccount.md)
 
 ### Authorization
 
@@ -363,6 +409,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **deactivatePaymentAccount**
+> PaymentAccount deactivatePaymentAccount(id, reasonedVersionCommand)
+
+
+
+Blocked while non-expired AWAITING_PAYMENT orders reference the account.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.deactivatePaymentAccount(id, reasonedVersionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->deactivatePaymentAccount: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
+
+### Return type
+
+[**PaymentAccount**](PaymentAccount.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listBranches**
 > BranchPage listBranches()
 
@@ -515,6 +606,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**EffectiveSettingPage**](EffectiveSettingPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPaymentAccounts**
+> ListPaymentAccounts200Response listPaymentAccounts(branchId)
+
+
+
+Returns masked account metadata only. Requires payment-account:read.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+
+try {
+    final response = api.listPaymentAccounts(branchId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->listPaymentAccounts: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+
+### Return type
+
+[**ListPaymentAccounts200Response**](ListPaymentAccounts200Response.md)
 
 ### Authorization
 

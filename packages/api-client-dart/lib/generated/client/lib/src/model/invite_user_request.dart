@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/role.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/user_role_input.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -14,6 +15,8 @@ part 'invite_user_request.g.dart';
 ///
 /// Properties:
 /// * [email] 
+/// * [displayName] 
+/// * [roleAssignments] 
 /// * [roles] 
 /// * [branchIds] 
 @BuiltValue()
@@ -21,8 +24,14 @@ abstract class InviteUserRequest implements Built<InviteUserRequest, InviteUserR
   @BuiltValueField(wireName: r'email')
   String get email;
 
+  @BuiltValueField(wireName: r'displayName')
+  String get displayName;
+
+  @BuiltValueField(wireName: r'roleAssignments')
+  BuiltList<UserRoleInput> get roleAssignments;
+
   @BuiltValueField(wireName: r'roles')
-  BuiltList<Role> get roles;
+  BuiltList<Role>? get roles;
 
   @BuiltValueField(wireName: r'branchIds')
   BuiltList<String>? get branchIds;
@@ -55,11 +64,23 @@ class _$InviteUserRequestSerializer implements PrimitiveSerializer<InviteUserReq
       object.email,
       specifiedType: const FullType(String),
     );
-    yield r'roles';
+    yield r'displayName';
     yield serializers.serialize(
-      object.roles,
-      specifiedType: const FullType(BuiltList, [FullType(Role)]),
+      object.displayName,
+      specifiedType: const FullType(String),
     );
+    yield r'roleAssignments';
+    yield serializers.serialize(
+      object.roleAssignments,
+      specifiedType: const FullType(BuiltList, [FullType(UserRoleInput)]),
+    );
+    if (object.roles != null) {
+      yield r'roles';
+      yield serializers.serialize(
+        object.roles,
+        specifiedType: const FullType(BuiltList, [FullType(Role)]),
+      );
+    }
     if (object.branchIds != null) {
       yield r'branchIds';
       yield serializers.serialize(
@@ -96,6 +117,20 @@ class _$InviteUserRequestSerializer implements PrimitiveSerializer<InviteUserReq
             specifiedType: const FullType(String),
           ) as String;
           result.email = valueDes;
+          break;
+        case r'displayName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.displayName = valueDes;
+          break;
+        case r'roleAssignments':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(UserRoleInput)]),
+          ) as BuiltList<UserRoleInput>;
+          result.roleAssignments.replace(valueDes);
           break;
         case r'roles':
           final valueDes = serializers.deserialize(

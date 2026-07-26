@@ -174,7 +174,7 @@ export class ClassSlotService {
           startAt,
           branch.timezone,
         );
-        if (input.instructorUserId)
+        if (input.instructorUserId) {
           await this.instructorCoverage(
             tx,
             input.instructorUserId,
@@ -183,6 +183,8 @@ export class ClassSlotService {
             endAt,
             branch.timezone,
           );
+          await this.ensureNoInstructorOverlap(tx, input.instructorUserId, startAt, endAt);
+        }
         const slot = await tx.classSlot.create({
           data: {
             id: newId(),
@@ -234,6 +236,13 @@ export class ClassSlotService {
           current.endAt,
           current.timezone,
         );
+        await this.ensureNoInstructorOverlap(
+          tx,
+          input.instructorUserId,
+          current.startAt,
+          current.endAt,
+          current.id,
+        );
         const slot = await tx.classSlot.update({
           where: { id: current.id },
           data: { instructorUserId: input.instructorUserId, version: { increment: 1 } },
@@ -259,7 +268,6 @@ export class ClassSlotService {
     correlationId: string,
   ) {
     this.manage(principal);
-    this.policy.requireMfa(principal.assurance);
     this.validateKey(key);
     return this.execute(
       principal,
@@ -345,7 +353,6 @@ export class ClassSlotService {
     correlationId: string,
   ) {
     this.manage(principal);
-    this.policy.requireMfa(principal.assurance);
     this.validateKey(key);
     if (!CANCELLATION_REASONS.includes(input.reasonCode))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -501,6 +508,30 @@ export class ClassSlotService {
       },
     });
     if (!availability) throw new ApiProblem('AVAILABILITY_REQUIRED', HttpStatus.CONFLICT);
+  }
+  private async ensureNoInstructorOverlap(
+    tx: Tx,
+    instructorUserId: string,
+    startAt: Date,
+    endAt: Date,
+    excludeId?: string,
+  ) {
+    await tx.$queryRaw`
+      SELECT \`id\`
+      FROM \`User\`
+      WHERE \`id\` = ${instructorUserId}
+      FOR UPDATE
+    `;
+    const overlap = await tx.classSlot.findFirst({
+      where: {
+        instructorUserId,
+        status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+    if (overlap) throw new ApiProblem('SCHEDULE_CONFLICT', HttpStatus.CONFLICT);
   }
   private audit(
     tx: Tx,

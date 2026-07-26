@@ -96,7 +96,6 @@ export class OperationsService {
     now = new Date(),
   ) {
     this.policy.requireCapability(principal.capabilities, 'operations:recover');
-    this.policy.requireMfa(principal.assurance);
     if (!UUID.test(id) || !key || key.length < 16 || key.length > 128)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const expectedDueAt = new Date(input.expectedDueAt);

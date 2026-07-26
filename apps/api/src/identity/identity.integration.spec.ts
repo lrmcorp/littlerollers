@@ -7,12 +7,13 @@ import {
   ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
+import { ResendPasswordEmailProvider } from './email-provider';
 import { digest } from './security';
 import { randomUUID } from 'node:crypto';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 
-databaseDescribe('identity PostgreSQL integration', () => {
+databaseDescribe('identity MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `it-${Date.now()}`;
   const branchId = randomUUID();
@@ -26,7 +27,6 @@ databaseDescribe('identity PostgreSQL integration', () => {
     process.env.NODE_ENV = 'test';
     process.env.AUTH_SYNTHETIC_ENABLED = 'true';
     process.env.AUTH_SYNTHETIC_OTP_CODE = '123456';
-    process.env.AUTH_SYNTHETIC_MFA_PROOF = 'mfa-proof';
     process.env.AUTH_SYNTHETIC_RECOVERY_PROOF = 'recovery-proof';
     await db.$connect();
     await db.rateLimitCounter.deleteMany({
@@ -59,6 +59,7 @@ databaseDescribe('identity PostgreSQL integration', () => {
       new ConfigGatedOtpProvider(),
       new ConfigGatedProofProvider(),
       new RateLimitService(db as never),
+      new ResendPasswordEmailProvider(),
     );
   });
 
@@ -71,11 +72,22 @@ databaseDescribe('identity PostgreSQL integration', () => {
       ...new Set([inviterId, targetId, otpUserId, assignmentUserId, ...users.map(({ id }) => id)]),
     ];
     await db.auditLog.deleteMany({
-      where: { OR: [{ actorId: { in: userIds } }, { objectId: { in: userIds } }] },
+      where: {
+        OR: [
+          { actorId: { in: userIds } },
+          { objectId: { in: userIds } },
+          { targetUserId: { in: userIds } },
+        ],
+      },
     });
     await db.authChallenge.deleteMany({ where: { userId: { in: userIds } } });
     await db.userSession.deleteMany({ where: { userId: { in: userIds } } });
     await db.identity.deleteMany({ where: { userId: { in: userIds } } });
+    await db.passwordActionToken.deleteMany({
+      where: {
+        OR: [{ userId: { in: userIds } }, { invitation: { invitedById: inviterId } }],
+      },
+    });
     await db.userInvitation.deleteMany({ where: { invitedById: inviterId } });
     await db.userRole.deleteMany({ where: { userId: { in: userIds } } });
     await db.assignment.deleteMany({ where: { userId: { in: userIds } } });
@@ -92,9 +104,15 @@ databaseDescribe('identity PostgreSQL integration', () => {
   const principal = {
     sessionId: 'pending',
     userId: inviterId,
-    assurance: 'MFA' as const,
     roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
-    capabilities: ['user:read', 'user:admin', 'branch:all', 'assignment:read', 'assignment:manage'],
+    capabilities: [
+      'user:read',
+      'user:admin',
+      'audit:read',
+      'branch:all',
+      'assignment:read',
+      'assignment:manage',
+    ],
     branchIds: [branchId],
   };
 
@@ -134,7 +152,44 @@ databaseDescribe('identity PostgreSQL integration', () => {
     ).toBe(1);
   });
 
-  it('returns authoritative session assurance, expiry and active branch contexts', async () => {
+  it('creates a visible pending internal user with multiple fixed-role permission bundles', async () => {
+    const email = `${namespace}-multi@example.test`;
+    const created = await service.inviteUser(
+      principal,
+      {
+        email,
+        displayName: 'Multi Role Staff',
+        roleAssignments: [
+          { role: 'ADMIN', branchId },
+          { role: 'FINANCE', branchId: null },
+        ],
+      },
+      `${namespace}-multi-create`,
+    );
+    const invitation = await db.userInvitation.findUniqueOrThrow({ where: { id: created.id } });
+    const user = await service.getUser(principal, invitation.userId!);
+    expect(user.status).toBe('PENDING_ACTIVATION');
+    expect(user.directRoles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'ADMIN', branchId }),
+        expect.objectContaining({ role: 'FINANCE', branchId: null }),
+      ]),
+    );
+    expect(user.effectiveCapabilities).toEqual(
+      expect.arrayContaining(['booking:read', 'finance:read']),
+    );
+    const audit = await service.listAuditLogs(principal, {
+      targetUserId: user.id,
+      action: 'security.user_created',
+    });
+    expect(audit.items).toHaveLength(1);
+    expect(audit.items[0]).toMatchObject({
+      targetUserId: user.id,
+      correlationId: `${namespace}-multi-create`,
+    });
+  });
+
+  it('returns authoritative session expiry and active branch contexts', async () => {
     const inactiveBranchId = randomUUID();
     await db.branch.create({
       data: {
@@ -146,10 +201,9 @@ databaseDescribe('identity PostgreSQL integration', () => {
       },
     });
     try {
-      const issued = await service.issueSession(inviterId, 'WEB', 'MFA');
+      const issued = await service.issueSession(inviterId, 'WEB');
       const principal = await service.authenticateBearer(issued.webCookieToken!);
       const view = await service.meForSession(principal);
-      expect(view.assurance).toBe('MFA');
       expect(view.sessionExpiresAt).toBe(issued.expiresAt);
       expect(view.branches).toEqual(
         expect.arrayContaining([
@@ -225,20 +279,12 @@ databaseDescribe('identity PostgreSQL integration', () => {
     await expect(service.requestOtp(limitedPhone)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
   });
 
-  it('claims MFA once and deactivation revokes every session with masked audit', async () => {
-    const issued = await service.issueSession(inviterId, 'MOBILE', 'BASE');
-    const authenticated = await service.authenticateBearer(issued.accessToken!);
-    const challenge = await service.createMfa(authenticated, 'STEP_UP');
-    await service.verifyMfa(authenticated, challenge.id, 'mfa-proof');
-    await expect(service.verifyMfa(authenticated, challenge.id, 'mfa-proof')).rejects.toMatchObject(
-      { code: 'MFA_CHALLENGE_EXPIRED' },
-    );
-
+  it('deactivation revokes every session with masked audit', async () => {
     await db.user.create({ data: { id: targetId, displayName: 'Integration target' } });
     await db.userRole.create({
       data: { userId: targetId, branchId, role: 'ADMIN', activeFrom: new Date() },
     });
-    await service.issueSession(targetId, 'MOBILE', 'BASE');
+    await service.issueSession(targetId, 'MOBILE');
     await service.deactivate(principal, targetId, 'integration reason', `${namespace}-deactivate`);
     expect(await db.userSession.count({ where: { userId: targetId, revokedAt: null } })).toBe(0);
     const audit = await db.auditLog.findFirstOrThrow({
@@ -246,16 +292,89 @@ databaseDescribe('identity PostgreSQL integration', () => {
     });
     const serialized = JSON.stringify(audit);
     expect(serialized).not.toContain('integration reason');
-    expect(serialized).not.toContain('mfa-proof');
   });
 
   it('enforces hidden branch and self-deactivation boundaries', async () => {
     await expect(
-      service.listUsers({ ...principal, capabilities: ['user:read'] }, 'outside-branch'),
+      service.listUsers(
+        { ...principal, capabilities: ['user:read'] },
+        { branchId: 'outside-branch' },
+      ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
       service.deactivate(principal, inviterId, 'self', `${namespace}-self`),
     ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
+  });
+
+  it('returns minimal branch-scoped lookup data and filters instructors', async () => {
+    const instructorId = randomUUID();
+    await db.user.create({ data: { id: instructorId, displayName: 'Lookup Instructor' } });
+    await db.userRole.create({
+      data: { userId: instructorId, branchId, role: 'INSTRUCTOR', activeFrom: new Date() },
+    });
+    const result = await service.lookupUsers(
+      { ...principal, capabilities: ['class-slot:read'] },
+      { branchId, q: 'Lookup', instructorsOnly: true },
+    );
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: instructorId,
+        label: 'Lookup Instructor',
+        metadata: expect.objectContaining({ roles: ['INSTRUCTOR'], branchIds: [branchId] }),
+      }),
+    ]);
+    expect(JSON.stringify(result)).not.toContain('phoneE164');
+    await expect(
+      service.lookupUsers(
+        { ...principal, capabilities: ['class-slot:read'], branchIds: [] },
+        { branchId, instructorsOnly: true },
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('updates assignable roles with concurrency, revokes sessions, reactivates and exposes audit', async () => {
+    await service.reactivate(principal, targetId, 'returning staff', `${namespace}-reactivate`);
+    const before = await service.getUser(principal, targetId);
+    await service.issueSession(targetId, 'MOBILE', 'BASE');
+    const updated = await service.updateUserRoles(
+      principal,
+      targetId,
+      {
+        roles: [{ role: 'MANAGER', branchId }],
+        expectedVersion: before.version,
+        reason: 'responsibility changed',
+      },
+      `${namespace}-roles`,
+    );
+    expect(updated.roles).toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: 'MANAGER', branchId })]),
+    );
+    expect(await db.userSession.count({ where: { userId: targetId, revokedAt: null } })).toBe(0);
+    await expect(
+      service.updateUserRoles(
+        principal,
+        targetId,
+        {
+          roles: [{ role: 'ADMIN', branchId }],
+          expectedVersion: before.version,
+          reason: 'stale update',
+        },
+        `${namespace}-roles-stale`,
+      ),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+    await expect(
+      service.updateUserRoles(
+        principal,
+        targetId,
+        {
+          roles: [{ role: 'SUPER_OWNER' }],
+          expectedVersion: updated.version,
+          reason: 'forbidden escalation',
+        },
+        `${namespace}-roles-forbidden`,
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect((await service.listUserAudit(principal, targetId)).items.length).toBeGreaterThan(0);
   });
 
   it('keeps concurrent linking unique and audit payloads free of raw credentials and PII', async () => {
@@ -289,14 +408,7 @@ databaseDescribe('identity PostgreSQL integration', () => {
     const auditText = JSON.stringify(
       await db.auditLog.findMany({ where: { correlationId: { startsWith: namespace } } }),
     );
-    for (const raw of [
-      token,
-      '+628111111111',
-      '+628222222222',
-      '123456',
-      'mfa-proof',
-      'recovery-proof',
-    ])
+    for (const raw of [token, '+628111111111', '+628222222222', '123456', 'recovery-proof'])
       expect(auditText).not.toContain(raw);
   });
 
@@ -424,20 +536,7 @@ databaseDescribe('identity PostgreSQL integration', () => {
     ).toBe(1);
   });
 
-  it('requires MFA and rejects self-escalation without mutation', async () => {
-    await expect(
-      service.createAssignment(
-        { ...principal, assurance: 'BASE' },
-        {
-          userId: assignmentUserId,
-          branchId,
-          assignmentType: 'OWNER',
-          activeFrom: '2027-01-01',
-          reason: 'base',
-        },
-        `${namespace}-base`,
-      ),
-    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
+  it('rejects self-escalation without mutation', async () => {
     await expect(
       service.createAssignment(
         principal,

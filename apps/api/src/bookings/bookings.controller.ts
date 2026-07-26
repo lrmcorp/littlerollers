@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Headers, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { BookingsService, type BookingCommand } from './bookings.service';
@@ -7,6 +18,11 @@ import { BookingsService, type BookingCommand } from './bookings.service';
 @UseGuards(AuthGuard)
 export class BookingsController {
   constructor(private readonly bookings: BookingsService) {}
+
+  @Get('options/:classSlotId')
+  options(@Req() request: AuthenticatedRequest, @Param('classSlotId') classSlotId: string) {
+    return this.bookings.customerOptions(request.principal, classSlotId);
+  }
 
   @Get()
   list(

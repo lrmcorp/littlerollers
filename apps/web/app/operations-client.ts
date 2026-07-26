@@ -29,7 +29,7 @@ export const browserOperationsClient: OperationsClient = {
 export function operationsFailure(error: unknown) {
   notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
-  if (status === 403) return 'MFA_REQUIRED_OR_FORBIDDEN';
+  if (status === 403) return 'FORBIDDEN';
   if (status === 404) return 'RESOURCE_NOT_FOUND';
   if (status === 409) return 'NOT_DUE_STARTED_OR_STALE';
   if (status === 423) return 'JOB_LOCKED';

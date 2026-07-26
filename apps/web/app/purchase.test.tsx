@@ -139,7 +139,7 @@ describe('purchase internal review workspace', () => {
     const view = render(<PurchaseReviewView client={client} branchOverride={branch} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await user.click(within(await screen.findByRole('listitem')).getByRole('button'));
+    await user.click((await screen.findAllByRole('button', { name: 'Review' }))[0]!);
     const dialog = screen.getByRole('dialog', { name: 'Detail review' });
     await user.click(within(dialog).getByRole('button', { name: 'Buka bukti privat' }));
     expect(open).toHaveBeenCalledWith('/private/opaque', '_blank', 'noopener,noreferrer');
@@ -155,7 +155,7 @@ describe('purchase internal review workspace', () => {
     render(<PurchaseReviewView client={client} branchOverride={branch} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await user.click(within(await screen.findByRole('listitem')).getByRole('button'));
+    await user.click((await screen.findAllByRole('button', { name: 'Review' }))[0]!);
     const dialog = screen.getByRole('dialog', { name: 'Detail review' });
     await user.selectOptions(within(dialog).getByLabelText('Alasan penolakan'), 'AMOUNT_MISMATCH');
     await user.click(within(dialog).getByRole('button', { name: 'Tolak purchase' }));

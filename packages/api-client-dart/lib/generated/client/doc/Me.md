@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **roles** | [**BuiltList&lt;Role&gt;**](Role.md) |  | 
 **branchIds** | **BuiltList&lt;String&gt;** |  | 
 **capabilities** | **BuiltList&lt;String&gt;** |  | 
-**assurance** | **String** |  | 
+**identityVerificationStatus** | **String** |  | 
 **sessionExpiresAt** | [**DateTime**](DateTime.md) |  | 
 **branches** | [**BuiltList&lt;SessionBranch&gt;**](SessionBranch.md) |  | 
 

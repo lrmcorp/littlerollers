@@ -17,8 +17,8 @@ Setiap story di bawah wajib diturunkan ke issue dengan actor/branch, preconditio
 | Story | Actor dan outcome | Precondition | Rules | UX | API/data | Test/UAT | Blocking decision |
 |---|---|---|---|---|---|---|---|
 | US-ID-01 | Customer login Google/OTP dan recovery aman | Active/eligible customer identity | BR-001,004; NFR-001,007 | UX-01 | API-AUTH; User, ExternalIdentity, UserSession | TC-AUTH-001..004; UAT-AUTH-01 | DEC-012,014 |
-| US-ID-02 | Internal user invitation, Google login, MFA dan deactivation | Inviter berizin; branch assignment valid | BR-002–005 | UX-11 | API-USERS; UserRole, UserMfa, assignments | TC-AUTH-005..009; UAT-AUTH-02 | DEC-012 |
-| US-MST-01 | Super Owner mengelola branch, class type dan effective master | MFA; period/branch valid | BR-004,032,061,062 | UX-11 | API-MASTER; Branch/ClassType/settings | TC-MST-001..005; UAT-MST-01 | DEC-005,006 |
+| US-ID-02 | Internal user invitation, Google login dan deactivation | Inviter berizin; branch assignment valid | BR-002–005 | UX-11 | API-USERS; UserRole, assignments | TC-AUTH-005..009; UAT-AUTH-02 | DEC-012 |
+| US-MST-01 | Super Owner mengelola branch, class type dan effective master | Permission; period/branch valid | BR-004,032,061,062 | UX-11 | API-MASTER; Branch/ClassType/settings | TC-MST-001..005; UAT-MST-01 | DEC-005,006 |
 | US-MST-02 | Super Owner mengelola owner/instructor branch assignment | User active; no forbidden conflict | BR-005,030–031 | UX-11 | API-ASSIGN; OwnerBranch/InstructorBranch | TC-MST-006..009; UAT-MST-02 | none |
 | US-PKG-01 | Customer/Admin mengajukan purchase dan bukti bayar | Package active; verified account | BR-010–012 | UX-02 | API-PURCHASE; Purchase/PaymentProof | TC-PKG-001..004; UAT-PKG-01 | DEC-004 |
 | US-PKG-02 | Manager/Super Owner approve/reject purchase secara idempotent | Pending purchase; branch permission | BR-012–016 | UX-02 | API-PURCHASE; CustomerPackage/Ledger/Outbox | TC-PKG-005..010; UAT-PKG-02 | DEC-004,006 |
@@ -34,10 +34,10 @@ Setiap story di bawah wajib diturunkan ke issue dengan actor/branch, preconditio
 | US-ATT-03 | Admin menyelesaikan kelas dan memposting attendance | Confirmed slot; attendance reviewed | BR-044–045 | UX-07 | API-COMPLETE; Ledger/Reservation/HourLog | TC-ATT-014..020; UAT-ATT-03 | none |
 | US-NOT-01 | Sistem mengirim notification transactional secara idempotent | Committed outbox event; approved template | BR-070–072 | UX notifications | API-NOTIFICATION; Outbox/Occurrence/Attempt | TC-NOTIF-001..008; UAT-NOTIF-01 | DEC-013 |
 | US-FIN-01 | Owner/Finance melihat laporan branch-scoped yang dapat direkonsiliasi | Authorized period/filter | BR-060–064 | UX-10 | API-REPORT; snapshots/ledger/hour/other cost | TC-FIN-001..008; UAT-FIN-01 | DEC-006 |
-| US-FIN-02 | Finance/Super Owner mengelola OtherCost pada OPEN period | Period OPEN; MFA | BR-063 | UX-10 | API-FINANCE; OtherCost/Audit | TC-FIN-009..012; UAT-FIN-02 | none |
+| US-FIN-02 | Finance/Super Owner mengelola OtherCost pada OPEN period | Period OPEN; permission | BR-063 | UX-10 | API-FINANCE; OtherCost/Audit | TC-FIN-009..012; UAT-FIN-02 | none |
 | US-FIN-03 | Finance/Super Owner close period secara transactional | Reconciliation pass; period OPEN | BR-065–067 | UX-10 | API-CLOSE; BranchPeriod/MonthlyClose | TC-FIN-013..020; UAT-FIN-03 | DEC-006 |
 | US-FIN-04 | Super Owner approve correction di current period | Old period locked; current open | BR-066–067 | UX-10 | API-CORRECTION; CorrectionJournal | TC-FIN-021..026; UAT-FIN-04 | none |
-| US-AUD-01 | Role berizin mencari/export audit tanpa data leak | MFA/permission; scoped query | BR-073–075 | UX internal audit | API-AUDIT; AuditLog | TC-AUD-001..008; UAT-AUD-01 | DEC-009 |
+| US-AUD-01 | Role berizin mencari/export audit tanpa data leak | Permission; scoped query | BR-073–075 | UX internal audit | API-AUDIT; AuditLog | TC-AUD-001..008; UAT-AUD-01 | DEC-009 |
 | US-OPS-01 | Operator memantau health, queue dan notification failure | Restricted operations role | BR-070–075; NFR-002,006 | UX operational health | API-OPS; metrics/jobs/dead-letter | TC-OPS-001..009; UAT-OPS-01 | DEC-011,013 |
 | US-MIG-01 | Data team mengimpor opening data secara repeatable | Approved mapping/source checksum | Migration rules | internal tool only | API-MIG/internal job; MigrationBatch/source keys | TC-MIG-001..010; UAT-MIG-01 | DEC-010 |
 
@@ -49,7 +49,7 @@ The grouped criteria in this section remain cross-story invariants. Unique `AC-U
 
 - **AC-ID-01:** Given identity terverifikasi dan user aktif, when authentication valid, then session diterbitkan tanpa membuat user/customer duplikat dan login security event tercatat.
 - **AC-ID-02:** Given OTP expired/replayed/attempt limit terlampaui, when verify dilakukan, then request ditolak dengan generic error, tidak ada session, dan abuse metric bertambah tanpa OTP/PII sensitif di log.
-- **AC-ID-03:** Given role/branch/MFA tidak memenuhi action, when list/detail/export/command dipanggil, then seluruh jalur scoped secara konsisten dan tidak membocorkan existence/data.
+- **AC-ID-03:** Given permission atau scope cabang tidak memenuhi action, when list/detail/export/command dipanggil, then seluruh jalur scoped secara konsisten dan tidak membocorkan existence/data.
 - **AC-ID-04:** Given account dinonaktifkan, when refresh atau protected request dilakukan, then session ditolak/revoked sesuai contract.
 
 ### Master, package, and ledger

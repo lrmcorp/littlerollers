@@ -12,7 +12,7 @@ Name | Type | Description | Notes
 **branchId** | **String** |  | 
 **userId** | **String** |  | 
 **packageId** | **String** |  | 
-**paymentProofId** | **String** |  | 
+**paymentProofId** | **String** |  | [optional] 
 **packageNameSnapshot** | **String** |  | 
 **priceRpSnapshot** | **int** |  | 
 **sessionCountSnapshot** | **int** |  | 

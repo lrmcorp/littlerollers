@@ -2,7 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationShell } from './application-shell';
 import { Dashboard } from './dashboard';
-import { safeReturnTo, SessionProvider, useSessionContext } from './session-context';
+import {
+  defaultSessionDestination,
+  resolveSessionDestination,
+  safeReturnTo,
+  SessionProvider,
+  useSessionContext,
+} from './session-context';
 import type { SessionClient, WebSession } from './session-client';
 
 const navigation = vi.hoisted(() => ({ pathname: '/workspace', replace: vi.fn() }));
@@ -18,12 +24,29 @@ const adminSession: WebSession = {
   roles: ['ADMIN'],
   branchIds: ['branch-1', 'branch-2'],
   capabilities: ['user:read', 'ledger:read', 'booking:read'],
-  assurance: 'BASE',
   sessionExpiresAt: new Date(Date.now() + 60_000),
   branches: [
     { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
     { id: 'branch-2', code: 'BDG', name: 'Bandung', timezone: 'Asia/Jakarta' },
   ],
+};
+
+const customerSession: WebSession = {
+  id: 'customer-1',
+  displayName: 'Nadia Customer',
+  roles: ['CUSTOMER'],
+  branchIds: [],
+  capabilities: [
+    'customer:self',
+    'package:read',
+    'ledger:read',
+    'class-slot:read',
+    'booking:self:read',
+    'booking:self:create',
+  ],
+  identityVerificationStatus: 'PENDING',
+  sessionExpiresAt: new Date(Date.now() + 60_000),
+  branches: [],
 };
 
 function ContextProbe() {
@@ -78,8 +101,46 @@ describe('capability-aware session shell', () => {
 
   it('accepts only same-origin relative return targets', () => {
     expect(safeReturnTo('/ledger?cursor=one')).toBe('/ledger?cursor=one');
+    expect(safeReturnTo('/classes?studio=Green%20Garden#schedule')).toBe(
+      '/classes?studio=Green%20Garden#schedule',
+    );
+    expect(safeReturnTo('/sign-in?returnTo=/sign-in')).toBe('/workspace');
     expect(safeReturnTo('//evil.example/path')).toBe('/workspace');
     expect(safeReturnTo('https://evil.example/path')).toBe('/workspace');
+  });
+
+  it('resolves role-aware defaults and verification-gated return targets', () => {
+    expect(defaultSessionDestination(customerSession)).toBe('/account/verification');
+    expect(
+      defaultSessionDestination({
+        ...customerSession,
+        identityVerificationStatus: 'APPROVED',
+      }),
+    ).toBe('/classes#schedule');
+    expect(defaultSessionDestination(adminSession)).toBe('/workspace');
+    expect(
+      defaultSessionDestination({
+        ...customerSession,
+        roles: ['CUSTOMER', 'ADMIN'],
+      }),
+    ).toBe('/workspace');
+
+    expect(resolveSessionDestination(customerSession, '/classes?slot=one')).toBe(
+      '/classes?slot=one',
+    );
+    expect(resolveSessionDestination(customerSession, '/bookings')).toBe('/account/verification');
+    expect(resolveSessionDestination(customerSession, '/purchases?package=one')).toBe(
+      '/account/verification',
+    );
+    expect(resolveSessionDestination(customerSession, '//evil.example/path')).toBe(
+      '/account/verification',
+    );
+    expect(
+      resolveSessionDestination(
+        { ...customerSession, identityVerificationStatus: 'APPROVED' },
+        '/bookings',
+      ),
+    ).toBe('/bookings');
   });
 
   it('renders a role-aware dashboard without exposing unavailable workspaces', async () => {

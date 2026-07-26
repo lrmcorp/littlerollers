@@ -29,7 +29,6 @@ export interface Session {
   accessToken?: string | null;
   refreshToken?: string | null;
   user: Me;
-  assurance: 'BASE' | 'MFA';
   channel: 'WEB' | 'MOBILE';
   expiresAt: string;
   refreshExpiresAt?: string | null;

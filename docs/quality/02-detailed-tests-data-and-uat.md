@@ -42,7 +42,7 @@ Expected controls:
 |---|---|---|
 | TC-AUTH-001 | Unauthenticated call each protected endpoint group | 401 generic; no body data; security metric/correlation ID |
 | TC-AUTH-002 | Owner A list/detail/export B-SBY through filter and guessed ID | Empty/404/403 consistently; no count/name/timing leak; scoped SQL evidence |
-| TC-AUTH-003 | Sensitive command without MFA | 403 MFA_REQUIRED; no write/audit business event |
+| TC-AUTH-003 | Sensitive command without permission | 403 FORBIDDEN; no write/audit business event |
 | TC-AUTH-004 | OTP expired, replayed, wrong until limit, then valid | All invalid; rate/attempt state; no OTP/phone in logs |
 | TC-AUTH-005 | Deactivate active internal user then refresh/use session | Session revoked/rejected across API; audit user deactivation |
 | TC-PKG-001 | Upload disguised executable and public URL attempt | Scan rejects; object private; no reviewer download URL |
@@ -93,7 +93,7 @@ Exact OS/device versions are selected no later than UAT entry based on customer/
 
 | UAT | Representative | End-to-end script | Pass criteria |
 |---|---|---|---|
-| UAT-AUTH-01 | Customer/Internal roles | Login/recovery/MFA; branch role navigation and denied access | Correct access and no data leak |
+| UAT-AUTH-01 | Customer/Internal roles | Login/recovery; permission and branch navigation with denied access | Correct access and no data leak |
 | UAT-PKG-01 | Customer, Manager | Purchase upload → review → approve/reject → balance/expiry | Commercial values and evidence correct |
 | UAT-CLASS-01 | Instructor, Admin | Availability → assignment → publish → H-24 result | Conflict/quota/status clear |
 | UAT-BOOK-01 | Customer, Admin | Timetable → booking → reschedule paths | Session/capacity/cutoff correct |

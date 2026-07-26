@@ -90,13 +90,7 @@ export const browserClassSlotClient: ClassSlotClient = {
         .filter((user) => user.status === 'ACTIVE' && instructorIds.has(user.id))
         .map((user) => ({
           id: user.id,
-          displayName:
-            typeof user.attributes === 'object' &&
-            user.attributes !== null &&
-            'displayName' in user.attributes &&
-            typeof user.attributes.displayName === 'string'
-              ? user.attributes.displayName
-              : `Instructor ${user.id.slice(0, 8)}`,
+          displayName: user.displayName || `Instructor ${user.id.slice(0, 8)}`,
         })),
     };
   },
@@ -135,13 +129,12 @@ export function classSlotFailure(error: unknown) {
     AVAILABILITY_REQUIRED: 'Availability instructor belum mencakup seluruh waktu kelas.',
     SCHEDULE_CONFLICT: 'Jadwal instructor bertabrakan dengan kelas lain.',
     STALE_VERSION: 'Data kelas berubah. Muat ulang sebelum melanjutkan.',
-    MFA_REQUIRED: 'Verifikasi MFA diperlukan untuk publish atau membatalkan kelas.',
     RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
     INVALID_STATE_TRANSITION: 'Status kelas tidak mendukung tindakan tersebut.',
     VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid.',
   };
   if (code && messages[code]) return messages[code];
-  if (status === 403) return 'Verifikasi MFA atau capability yang sesuai diperlukan.';
+  if (status === 403) return 'Permission yang sesuai diperlukan.';
   if (status === 404) return messages.RESOURCE_NOT_FOUND;
   if (status === 409)
     return 'Jadwal atau versi kelas mengalami konflik. Muat ulang lalu coba lagi.';

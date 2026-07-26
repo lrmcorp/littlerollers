@@ -7,7 +7,7 @@ void main() {
   final instance = Openapi().getIdentityApi();
 
   group(IdentityApi, () {
-    // Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage and MFA.
+    // Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage.
     //
     //Future<Resource> createAssignment(AssignmentCommand assignmentCommand) async
     test('test createAssignment', () async {
@@ -19,7 +19,7 @@ void main() {
       // TODO
     });
 
-    // Ends the half-open assignment at the start of the branch-local calendar date containing effectiveAt. Requires MFA and expectedVersion.
+    // Ends the half-open assignment at the start of the branch-local calendar date containing effectiveAt. Requires expectedVersion.
     //
     //Future<Resource> endAssignment(String id, String idempotencyKey, EndAssignmentCommand endAssignmentCommand) async
     test('test endAssignment', () async {

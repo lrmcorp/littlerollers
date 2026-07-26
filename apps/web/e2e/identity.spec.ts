@@ -27,7 +27,6 @@ const webCapabilities = [
 ];
 
 test.beforeEach(async ({ page }) => {
-  let sessionReads = 0;
   await page.route('**/api/v1/me', (route) =>
     route.fulfill({
       status: 200,
@@ -38,7 +37,6 @@ test.beforeEach(async ({ page }) => {
         roles: ['SUPER_OWNER'],
         branchIds: ['branch-1'],
         capabilities: webCapabilities,
-        assurance: sessionReads++ === 0 && /\/users|\/sign-in/.test(page.url()) ? 'BASE' : 'MFA',
         sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         branches: [
           { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
@@ -156,11 +154,9 @@ test('sign-in exposes success without a token body', async ({ page }) => {
           roles: ['OWNER'],
           branchIds: ['branch-1'],
           capabilities: ['user:admin'],
-          assurance: 'BASE',
           sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
         },
-        assurance: 'BASE',
         channel: 'WEB',
         expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -174,115 +170,9 @@ test('sign-in exposes success without a token body', async ({ page }) => {
   await expect(page.getByText('Synthetic Super Owner', { exact: true })).toBeVisible();
 });
 
-test('MFA invitation and deactivation flow is keyboard operable', async ({ page }) => {
-  await page.route('**/api/v1/auth/mfa/challenges', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'mfa-1',
-        purpose: 'STEP_UP',
-        methodHint: 'synthetic',
-        expiresAt: new Date().toISOString(),
-      }),
-    }),
-  );
-  await page.route('**/api/v1/auth/mfa/verifications', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: {
-          id: 'owner',
-          displayName: 'Owner',
-          roles: ['OWNER'],
-          branchIds: ['branch-1'],
-          capabilities: ['user:admin'],
-          assurance: 'MFA',
-          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-        },
-        assurance: 'MFA',
-        channel: 'WEB',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }),
-    }),
-  );
-  await page.route('**/api/v1/users', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'invite-1', status: 'PENDING' }),
-    }),
-  );
-  await page.route('**/api/v1/users/*/deactivate', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'selected-user', status: 'INACTIVE' }),
-    }),
-  );
-  await page.goto('/users');
-  await page.getByRole('button', { name: /MFA/ }).press('Enter');
-  await page.getByRole('button', { name: 'Undang pengguna' }).press('Enter');
-  await page.getByLabel('Email kerja').fill('staff@example.test');
-  await page.getByRole('button', { name: /Buat undangan/ }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('berhasil');
-  await page.getByRole('button', { name: /Nonaktifkan/ }).press('Enter');
-  await expect(page.getByRole('status')).toContainText('dinonaktifkan');
-});
-
-test('expired MFA and forbidden branch remain safe', async ({ page }) => {
-  await page.route('**/api/v1/auth/mfa/challenges', (route) =>
-    route.fulfill({
-      status: 410,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: { code: 'MFA_CHALLENGE_EXPIRED' } }),
-    }),
-  );
-  await page.goto('/users');
-  await page.getByRole('button', { name: /MFA/ }).click();
-  await expect(page.getByText('MFA_CHALLENGE_EXPIRED', { exact: true })).toBeVisible();
-});
-
 test('duplicate invitation is idempotent and forbidden branch does not mutate', async ({
   page,
 }) => {
-  await page.route('**/api/v1/auth/mfa/challenges', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'mfa-2',
-        purpose: 'STEP_UP',
-        methodHint: 'synthetic',
-        expiresAt: new Date().toISOString(),
-      }),
-    }),
-  );
-  await page.route('**/api/v1/auth/mfa/verifications', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: {
-          id: 'owner',
-          displayName: 'Owner',
-          roles: ['OWNER'],
-          branchIds: ['branch-1'],
-          capabilities: ['user:admin'],
-          assurance: 'MFA',
-          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-        },
-        assurance: 'MFA',
-        channel: 'WEB',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }),
-    }),
-  );
   let inviteCalls = 0;
   await page.route('**/api/v1/users', (route) => {
     inviteCalls += 1;
@@ -295,7 +185,6 @@ test('duplicate invitation is idempotent and forbidden branch does not mutate', 
     });
   });
   await page.goto('/users');
-  await page.getByRole('button', { name: /MFA/ }).click();
   await page.getByRole('button', { name: 'Undang pengguna' }).click();
   await page.getByLabel('Email kerja').fill('staff@example.test');
   await page.getByRole('button', { name: /Buat undangan/ }).click();
@@ -305,40 +194,6 @@ test('duplicate invitation is idempotent and forbidden branch does not mutate', 
 });
 
 test('self-deactivation conflict is visible without optimistic mutation', async ({ page }) => {
-  await page.route('**/api/v1/auth/mfa/challenges', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'mfa-3',
-        purpose: 'STEP_UP',
-        methodHint: 'synthetic',
-        expiresAt: new Date().toISOString(),
-      }),
-    }),
-  );
-  await page.route('**/api/v1/auth/mfa/verifications', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: {
-          id: 'owner',
-          displayName: 'Owner',
-          roles: ['OWNER'],
-          branchIds: ['branch-1'],
-          capabilities: ['user:admin'],
-          assurance: 'MFA',
-          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-        },
-        assurance: 'MFA',
-        channel: 'WEB',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }),
-    }),
-  );
   await page.route('**/api/v1/users/*/deactivate', (route) =>
     route.fulfill({
       status: 409,
@@ -347,7 +202,6 @@ test('self-deactivation conflict is visible without optimistic mutation', async 
     }),
   );
   await page.goto('/users');
-  await page.getByRole('button', { name: /MFA/ }).click();
   await page.getByRole('button', { name: /Nonaktifkan/ }).click();
   await expect(page.getByText('IDENTITY_CONFLICT', { exact: true })).toBeVisible();
   await expect(page.getByText('Pengguna dinonaktifkan.')).toHaveCount(0);
@@ -447,6 +301,12 @@ test('master creates quota without a production default and exposes overlap safe
   );
   let calls = 0;
   await page.route('**/api/v1/quota-capacity-settings', (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], page: { nextCursor: null, hasMore: false } }),
+      });
     calls += 1;
     return route.fulfill({
       status: calls === 1 ? 201 : 409,
@@ -459,16 +319,21 @@ test('master creates quota without a production default and exposes overlap safe
     });
   });
   await page.goto('/master');
-  await expect(page.getByLabel('Nilai Rupiah atau minimum quota')).toHaveValue('');
-  await page.getByLabel('ID cabang aktif').fill('branch-1');
-  await page.getByLabel('ID class type').fill('class-1');
-  await page.getByLabel('Nilai Rupiah atau minimum quota').fill('4');
-  await page.getByLabel('Capacity (khusus quota)').fill('8');
+  await expect(page.getByLabel('Minimum peserta')).toHaveValue('');
+  await page.getByRole('button', { name: 'Muat master data' }).click();
+  await expect(page.getByLabel('Cabang aktif')).toHaveValue('branch-1');
+  await expect(page.getByLabel('Tipe kelas')).toHaveValue('class-1');
+  await page.getByLabel('Minimum peserta').fill('4');
+  await page.getByLabel('Kapasitas maksimum').fill('8');
   await page.getByLabel('Efektif mulai').fill('2026-08-01');
-  await page.getByLabel('Alasan').fill('synthetic E2E');
-  await page.getByRole('button', { name: 'Buat setting' }).press('Enter');
+  await page.getByLabel('Alasan perubahan').fill('Penyesuaian operasional E2E');
+  await page.getByRole('button', { name: 'Simpan konfigurasi' }).press('Enter');
   await expect(page.getByRole('status')).toContainText('berhasil dibuat');
-  await page.getByRole('button', { name: 'Buat setting' }).press('Enter');
+  await page.getByLabel('Minimum peserta').fill('4');
+  await page.getByLabel('Kapasitas maksimum').fill('8');
+  await page.getByLabel('Efektif mulai').fill('2026-08-01');
+  await page.getByLabel('Alasan perubahan').fill('Validasi periode tumpang tindih');
+  await page.getByRole('button', { name: 'Simpan konfigurasi' }).press('Enter');
   await expect(
     page.getByText('EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION', { exact: true }),
   ).toBeVisible();
@@ -487,7 +352,6 @@ test('purchase proof clean flow submits one pending intent with keyboard control
         roles: ['CUSTOMER'],
         branchIds: ['branch-1'],
         capabilities: ['package:read'],
-        assurance: 'BASE',
         sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
       }),
@@ -591,7 +455,6 @@ test('unsafe scan and provider failure never enable purchase submission', async 
         roles: ['CUSTOMER'],
         branchIds: ['branch-1'],
         capabilities: ['package:read'],
-        assurance: 'BASE',
         sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
       }),
@@ -611,7 +474,7 @@ test('unsafe scan and provider failure never enable purchase submission', async 
   await expect(page.getByRole('button', { name: 'Kirim pengajuan' })).toHaveCount(0);
 });
 
-test('MFA purchase review approves once and exposes only an opaque proof authorization', async ({
+test('permission-gated purchase review approves once and exposes only an opaque proof authorization', async ({
   page,
 }) => {
   await page.route('**/api/v1/users**', (route) =>
@@ -767,7 +630,7 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
   await expect(page.getByText('PURCHASE 10')).toBeVisible();
 });
 
-test('session adjustment request and MFA review use controlled codes with keyboard flow', async ({
+test('session adjustment request and permission review use controlled codes with keyboard flow', async ({
   page,
 }) => {
   const pending = {
@@ -994,7 +857,7 @@ test('class-slot configuration and hidden failures never show optimistic success
   await expect(page.getByText('Draft kelas berhasil dibuat.')).toHaveCount(0);
 });
 
-test('operations H-24 queue and MFA recovery are keyboard operable', async ({ page }) => {
+test('operations H-24 queue and recovery are keyboard operable', async ({ page }) => {
   const job = {
     id: '00000000-0000-4000-8000-000000000101',
     type: 'H24_QUOTA_EVALUATION',
@@ -1036,7 +899,7 @@ test('operations H-24 queue and MFA recovery are keyboard operable', async ({ pa
   await page.goto('/operations');
   await page.getByRole('button', { name: 'Muat job' }).press('Enter');
   await expect(page.getByText(/RETRYING.*DEPENDENCY_UNAVAILABLE/)).toBeVisible();
-  await page.getByRole('button', { name: 'Jalankan recovery MFA' }).press('Enter');
+  await page.getByRole('button', { name: 'Jalankan recovery' }).press('Enter');
   await expect(page.getByText('Evaluasi selesai.')).toBeVisible();
 });
 
@@ -1115,7 +978,9 @@ test('booking conflict never renders optimistic success', async ({ page }) => {
   await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toHaveCount(0);
 });
 
-test('MFA reschedule review moves one reservation with controlled decision', async ({ page }) => {
+test('permission-gated reschedule review moves one reservation with controlled decision', async ({
+  page,
+}) => {
   const branchId = '00000000-0000-4000-8000-000000000301';
   const sourceClassSlotId = '00000000-0000-4000-8000-000000000302';
   const targetClassSlotId = '00000000-0000-4000-8000-000000000308';

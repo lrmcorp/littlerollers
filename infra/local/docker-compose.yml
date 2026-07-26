@@ -1,13 +1,21 @@
 services:
-  postgres:
-    image: postgres:17-alpine
+  mysql:
+    image: mysql:8.4
     environment:
-      { POSTGRES_USER: dailydose, POSTGRES_PASSWORD: dailydose_local, POSTGRES_DB: dailydose }
-    # Avoid the default host port because local developer PostgreSQL commonly owns 5432.
-    ports: ['55432:5432']
+      MYSQL_DATABASE: dailydose_local
+      MYSQL_USER: dailydose
+      MYSQL_PASSWORD: dailydose_local
+      MYSQL_ROOT_PASSWORD: dailydose_root_local
+    # Docker is optional. Port 3307 avoids the native MySQL port used by npm run dev.
+    ports: ['3307:3306']
     healthcheck:
-      { test: ['CMD-SHELL', 'pg_isready -U dailydose'], interval: 5s, timeout: 3s, retries: 20 }
-    volumes: ['postgres-data:/var/lib/postgresql/data']
+      {
+        test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u dailydose -pdailydose_local'],
+        interval: 5s,
+        timeout: 3s,
+        retries: 20,
+      }
+    volumes: ['mysql-data:/var/lib/mysql']
   redis:
     image: redis:8-alpine
     ports: ['6379:6379']
@@ -23,4 +31,4 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27
     ports: ['1025:1025', '8025:8025']
-volumes: { postgres-data: {}, redis-data: {}, minio-data: {} }
+volumes: { mysql-data: {}, redis-data: {}, minio-data: {} }

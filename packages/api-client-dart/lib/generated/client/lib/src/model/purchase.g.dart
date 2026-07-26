@@ -6,21 +6,33 @@ part of 'purchase.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const PurchaseStatusEnum _$purchaseStatusEnum_AWAITING_PAYMENT =
+    const PurchaseStatusEnum._('AWAITING_PAYMENT');
 const PurchaseStatusEnum _$purchaseStatusEnum_PENDING =
     const PurchaseStatusEnum._('PENDING');
+const PurchaseStatusEnum _$purchaseStatusEnum_ACTION_REQUIRED =
+    const PurchaseStatusEnum._('ACTION_REQUIRED');
 const PurchaseStatusEnum _$purchaseStatusEnum_APPROVED =
     const PurchaseStatusEnum._('APPROVED');
 const PurchaseStatusEnum _$purchaseStatusEnum_REJECTED =
     const PurchaseStatusEnum._('REJECTED');
+const PurchaseStatusEnum _$purchaseStatusEnum_EXPIRED =
+    const PurchaseStatusEnum._('EXPIRED');
 
 PurchaseStatusEnum _$purchaseStatusEnumValueOf(String name) {
   switch (name) {
+    case 'AWAITING_PAYMENT':
+      return _$purchaseStatusEnum_AWAITING_PAYMENT;
     case 'PENDING':
       return _$purchaseStatusEnum_PENDING;
+    case 'ACTION_REQUIRED':
+      return _$purchaseStatusEnum_ACTION_REQUIRED;
     case 'APPROVED':
       return _$purchaseStatusEnum_APPROVED;
     case 'REJECTED':
       return _$purchaseStatusEnum_REJECTED;
+    case 'EXPIRED':
+      return _$purchaseStatusEnum_EXPIRED;
     default:
       throw ArgumentError(name);
   }
@@ -28,9 +40,12 @@ PurchaseStatusEnum _$purchaseStatusEnumValueOf(String name) {
 
 final BuiltSet<PurchaseStatusEnum> _$purchaseStatusEnumValues =
     BuiltSet<PurchaseStatusEnum>(const <PurchaseStatusEnum>[
+      _$purchaseStatusEnum_AWAITING_PAYMENT,
       _$purchaseStatusEnum_PENDING,
+      _$purchaseStatusEnum_ACTION_REQUIRED,
       _$purchaseStatusEnum_APPROVED,
       _$purchaseStatusEnum_REJECTED,
+      _$purchaseStatusEnum_EXPIRED,
     ]);
 
 Serializer<PurchaseStatusEnum> _$purchaseStatusEnumSerializer =
@@ -39,14 +54,20 @@ Serializer<PurchaseStatusEnum> _$purchaseStatusEnumSerializer =
 class _$PurchaseStatusEnumSerializer
     implements PrimitiveSerializer<PurchaseStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
+    'AWAITING_PAYMENT': 'AWAITING_PAYMENT',
     'PENDING': 'PENDING',
+    'ACTION_REQUIRED': 'ACTION_REQUIRED',
     'APPROVED': 'APPROVED',
     'REJECTED': 'REJECTED',
+    'EXPIRED': 'EXPIRED',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
+    'AWAITING_PAYMENT': 'AWAITING_PAYMENT',
     'PENDING': 'PENDING',
+    'ACTION_REQUIRED': 'ACTION_REQUIRED',
     'APPROVED': 'APPROVED',
     'REJECTED': 'REJECTED',
+    'EXPIRED': 'EXPIRED',
   };
 
   @override
@@ -81,7 +102,7 @@ class _$Purchase extends Purchase {
   @override
   final String packageId;
   @override
-  final String paymentProofId;
+  final String? paymentProofId;
   @override
   final String packageNameSnapshot;
   @override
@@ -111,7 +132,7 @@ class _$Purchase extends Purchase {
     required this.branchId,
     required this.userId,
     required this.packageId,
-    required this.paymentProofId,
+    this.paymentProofId,
     required this.packageNameSnapshot,
     required this.priceRpSnapshot,
     required this.sessionCountSnapshot,
@@ -324,11 +345,7 @@ class PurchaseBuilder implements Builder<Purchase, PurchaseBuilder> {
             r'Purchase',
             'packageId',
           ),
-          paymentProofId: BuiltValueNullFieldError.checkNotNull(
-            paymentProofId,
-            r'Purchase',
-            'paymentProofId',
-          ),
+          paymentProofId: paymentProofId,
           packageNameSnapshot: BuiltValueNullFieldError.checkNotNull(
             packageNameSnapshot,
             r'Purchase',

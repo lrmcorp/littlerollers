@@ -5,7 +5,7 @@ import { PolicyService } from '../identity/policy.service';
 import { BookingsService } from './bookings.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
-databaseDescribe('synthetic booking PostgreSQL integration', () => {
+databaseDescribe('synthetic booking MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `booking-${Date.now()}`;
   const actorId = randomUUID();
@@ -19,7 +19,6 @@ databaseDescribe('synthetic booking PostgreSQL integration', () => {
   const principal = {
     sessionId: namespace,
     userId: actorId,
-    assurance: 'BASE' as const,
     roles: [{ role: 'ADMIN' as const, branchId }],
     capabilities: ['booking:read', 'booking:create:assisted'],
     branchIds: [branchId],
@@ -86,6 +85,36 @@ databaseDescribe('synthetic booking PostgreSQL integration', () => {
       ],
     });
     for (let index = 0; index < customerIds.length; index += 1) {
+      await db.identityVerificationDocument.createMany({
+        data: [
+          {
+            id: randomUUID(),
+            userId: customerIds[index]!,
+            kind: 'SELFIE',
+            objectKey: `identity/${customerIds[index]}/selfie`,
+            checksum: 'a'.repeat(64),
+            fileName: 'selfie.png',
+            mimeType: 'image/png',
+            sizeBytes: 100,
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+            status: 'APPROVED',
+          },
+          {
+            id: randomUUID(),
+            userId: customerIds[index]!,
+            kind: 'KTP_FRONT',
+            objectKey: `identity/${customerIds[index]}/ktp`,
+            checksum: 'b'.repeat(64),
+            fileName: 'ktp.png',
+            mimeType: 'image/png',
+            sizeBytes: 100,
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+            status: 'APPROVED',
+          },
+        ],
+      });
       const proofId = randomUUID();
       const purchaseId = randomUUID();
       await db.paymentProof.create({
@@ -164,12 +193,36 @@ databaseDescribe('synthetic booking PostgreSQL integration', () => {
     await db.customerPackage.deleteMany({ where: { id: { in: [...customerPackageIds] } } });
     await db.purchase.deleteMany({ where: { userId: { in: [...customerIds] } } });
     await db.paymentProof.deleteMany({ where: { userId: { in: [...customerIds] } } });
+    await db.identityVerificationDocument.deleteMany({
+      where: { userId: { in: [...customerIds] } },
+    });
     await db.classSlot.deleteMany({ where: { branchId } });
     await db.package.delete({ where: { id: packageId } });
     await db.classType.delete({ where: { id: classTypeId } });
     await db.branch.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, ...customerIds] } } });
     await db.$disconnect();
+  });
+
+  it('returns only the authenticated customer own eligible package for a selected slot', async () => {
+    const customerPrincipal = {
+      sessionId: `${namespace}-customer`,
+      userId: customerIds[0],
+      roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+      capabilities: ['customer:self', 'booking:self:read', 'booking:self:create'],
+      branchIds: [],
+    };
+    const result = await service.customerOptions(customerPrincipal, slotId);
+    expect(result.slot.id).toBe(slotId);
+    expect(result.slot.branch.id).toBe(branchId);
+    expect(result.packages).toEqual([
+      expect.objectContaining({
+        id: customerPackageIds[0],
+        packageId,
+        available: 10,
+      }),
+    ]);
+    expect(result.packages.some(({ id }) => id === customerPackageIds[1])).toBe(false);
   });
 
   it('atomically creates one booking/reservation/audit/event and replays it', async () => {

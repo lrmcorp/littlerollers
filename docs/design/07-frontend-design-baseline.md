@@ -17,7 +17,7 @@ Navigation visibility membantu usability. Backend tetap satu-satunya authorizati
 | Brand | primary `#396552`; strong `#274a3d`; soft `#e8f0ec` |
 | Surface | canvas hangat, surface putih, muted surface; border netral hijau-abu |
 | Status | success, information, warning, danger selalu memakai warna + teks/ikon |
-| Typography | workspace memakai system sans-serif; public brand memakai serif editorial untuk heading dan sans-serif untuk copy; body minimum 16px pada mobile |
+| Typography | DM Sans lokal untuk body/UI; Cormorant Garamond lokal untuk heading editorial public/auth; body minimum 16px dan control minimum 14px |
 | Spacing | skala 4, 8, 12, 16, 20, 24, 32, 40, 48 px |
 | Radius | small untuk control, medium untuk panel, large untuk workspace card |
 | Elevation | shadow kecil untuk item; sedang untuk card utama; tidak menjadi indikator status |
@@ -42,6 +42,7 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 | Data region | accessible overflow + table/list | region fokus; heading/column context dipertahankan |
 | Filter/pagination | labeled controls + cursor action | state filter tetap terlihat; cursor rusak dipetakan aman |
 | Public landing shell | logo, anchor navigation, editorial hero, content sections, CTA, footer | tidak bergantung sesi; desktop/tablet/mobile; tidak mengekspos data privat |
+| Authentication shell | approved brand image, logo, Google CTA, provider/MFA status, safe return | full-screen tanpa internal sidebar; tidak menambahkan password/OTP yang belum didukung |
 
 ## Responsive dan Accessibility
 
@@ -59,8 +60,11 @@ Inventaris lengkap route/capability/status berada di `docs/design/08-frontend-pa
 | Screen ID | Route | Kelompok layar | State executable |
 |---|---|---|---|
 | SCR-P-01 | `/` | public brand landing | hero, approach, official class formats, studio locations, CTA, responsive footer |
+| SCR-P-03 | `/packages` | public authoritative package catalog | explicit studio, active package cards, class type, Rupiah/session/duration, empty/dependency/retry, auth handoff |
+| SCR-P-04 | `/locations` | public approved studio directory | official studio/area labels, schedule/package links, missing-operational-detail notice |
+| SCR-P-05 | `/contact` | public support routing | schedule/package self-service, official contact link, no-PII privacy notice |
 | SCR-W-01 | `/sign-in` | auth/MFA/recovery boundary | idle, loading, success, configuration, rate limit, expired MFA, forbidden, conflict, session revoked |
-| SCR-W-02 | `/users`, `/assignments` | user/role/branch/effective period | list, validation, MFA, confirmation, success, hidden/error |
+| SCR-W-02 | `/users`, `/assignments` | user/role/branch/effective period | scoped user table/filter/cursor/detail, invite, fixed-role matrix, direct-role update, deactivate/reactivate, per-user audit; assignment selector/lifecycle; MFA, stale, confirmation, success, hidden/error |
 | SCR-W-03 | `/master` | branch/class/fee/rate/quota | list, create, inactive, history, overlap, stale, configuration |
 | SCR-W-04 | `/purchases` | capability-aware package/proof submission + internal review | package cards, file/hash boundary, scan poll/replace, pending submit, queue/filter/pagination, private proof panel, approve/reject, MFA, stale/replay/provider/session |
 | SCR-W-05 | `/ledger` | balance/history/adjustment | loading, empty, active/expired, invariant, request/review, SoD, stale |
@@ -96,7 +100,7 @@ Sembilan route tersebut sengaja direkonsiliasi menjadi delapan screen groups kar
 ## Authoritative Session dan Capability Context
 
 - `GET /me` adalah satu-satunya sumber Web untuk display name, role, capability, assurance, masa berlaku sesi, serta branch aktif yang boleh dipilih.
-- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/`, `/classes`, `/sign-in`, dan `/health` tetap publik; dashboard internal berada di `/workspace` dan timetable operator di `/workspace/classes`.
+- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/`, `/classes`, `/packages`, `/locations`, `/contact`, `/sign-in`, dan `/health` tetap publik; dashboard internal berada di `/workspace` dan timetable operator di `/workspace/classes`.
 - Navigation disaring berdasarkan capability untuk usability. Direct URL, query branch, dan setiap mutation tetap diverifikasi backend.
 - Branch dipilih eksplisit, disimpan per tab melalui `sessionStorage`, dan dihapus bila tidak lagi terdapat pada branch context `/me`. Tidak ada fallback branch pertama atau `all branches`.
 - Step-up MFA wajib memuat ulang `/me`; badge assurance tidak boleh dinaikkan hanya dari state frontend.
@@ -107,6 +111,15 @@ Sembilan route tersebut sengaja direkonsiliasi menjadi delapan screen groups kar
 - Panel create/detail kelas menjaga konteks kalender, memuat label class type/instructor authoritative, dan tidak memilih opsi pertama secara otomatis. Assign hanya berlaku untuk `DRAFT`; publish/cancel memakai versi authoritative, MFA, controlled reason, dan hasil server tanpa optimistic mutation.
 - Purchase workspace menampilkan submission hanya untuk Customer dan internal queue hanya untuk reviewer. File checksum dihitung lokal tanpa ditampilkan; proof authorization dibuka sementara memakai `noopener,noreferrer`; URL, checksum, dan provider reference tidak disimpan ke state persisten atau telemetry.
 - Package, proof, purchase, customer label, cursor, version, dan keputusan berasal dari generated clients. Branch/session change mereset seluruh selection dan intent; retry mempertahankan key intent yang sama hingga hasil authoritative diterima.
+
+## Strategi Migrasi Tailwind
+
+- Tailwind CSS v4 menjadi lapisan styling utama baru dengan token brand Daily Dose pada `app/tailwind.css`.
+- Tahap 1 mencakup shared public header, public footer, brand mark, dan layar autentikasi. Komponen tersebut memakai utility class dan tidak lagi bergantung pada selector khusus lama.
+- CSS global tetap memegang reset, accessibility primitives, dan komponen internal yang belum dimigrasikan.
+- Halaman publik dimigrasikan berikutnya per kelompok agar visual, state data authoritative, serta pengujian responsif dapat diverifikasi sebelum selector lama dihapus.
+- Urutan berikutnya: primitive publik dan landing, Studios, Kelas/Paket/Kontak, lalu primitive dan halaman dashboard internal.
+- Selector lama hanya dihapus ketika seluruh pemakainya sudah berpindah dan test/build terkait telah lulus.
 
 ## Gate Disposition
 

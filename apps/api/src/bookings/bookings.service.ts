@@ -63,6 +63,89 @@ export class BookingsService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
+  private async requireVerifiedCustomer(principal: SessionPrincipal) {
+    if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return;
+    const approved = await this.db.identityVerificationDocument.groupBy({
+      by: ['kind'],
+      where: { userId: principal.userId, status: 'APPROVED', replacedById: null },
+    });
+    if (!['SELFIE', 'KTP_FRONT'].every((kind) => approved.some((item) => item.kind === kind)))
+      throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
+  }
+
+  async customerOptions(principal: SessionPrincipal, classSlotId: string) {
+    this.policy.requireCapability(principal.capabilities, 'booking:self:read');
+    await this.requireVerifiedCustomer(principal);
+    if (!UUID.test(classSlotId)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const slot = await this.db.classSlot.findUnique({
+      where: { id: classSlotId },
+      include: {
+        branch: { select: { id: true, code: true, name: true, timezone: true } },
+        classType: { select: { id: true, code: true, name: true } },
+      },
+    });
+    if (!slot || !['PUBLISHED', 'CONFIRMED'].includes(slot.status) || slot.startAt <= new Date())
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const owned = await this.db.customerPackage.findMany({
+      where: {
+        customerUserId: principal.userId,
+        branchId: slot.branchId,
+        classTypeId: slot.classTypeId,
+        status: 'ACTIVE',
+        expiryAt: { gt: new Date() },
+      },
+      include: { package: { select: { name: true } } },
+      orderBy: [{ expiryAt: 'asc' }, { createdAt: 'asc' }],
+    });
+    const packages = (
+      await Promise.all(
+        owned.map(async (item) => {
+          const [ledger, reservations] = await Promise.all([
+            this.db.ledgerEntry.aggregate({
+              where: { customerPackageId: item.id },
+              _sum: { quantity: true },
+            }),
+            this.db.sessionReservation.aggregate({
+              where: { customerPackageId: item.id, status: 'ACTIVE' },
+              _sum: { quantity: true },
+            }),
+          ]);
+          const ledgerBalance = ledger._sum.quantity ?? 0;
+          const reserved = reservations._sum.quantity ?? 0;
+          const available = ledgerBalance - reserved;
+          if (ledgerBalance < 0 || reserved > ledgerBalance)
+            throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+          return {
+            id: item.id,
+            packageId: item.packageId,
+            name: item.package.name,
+            available,
+            expiryAt: item.expiryAt,
+          };
+        }),
+      )
+    ).filter(({ available }) => available > 0);
+
+    return {
+      slot: {
+        id: slot.id,
+        branchId: slot.branchId,
+        classTypeId: slot.classTypeId,
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        timezone: slot.timezone,
+        status: slot.status,
+        capacity: slot.capacity,
+        bookedCount: slot.bookedCount,
+        available: Math.max(0, slot.capacity - slot.bookedCount),
+        branch: slot.branch,
+        classType: slot.classType,
+      },
+      packages,
+    };
+  }
+
   async list(
     principal: SessionPrincipal,
     query: { branchId?: string; status?: string; cursor?: string },
@@ -119,6 +202,7 @@ export class BookingsService {
     key: string,
     correlationId: string,
   ) {
+    if (this.isCustomer(principal)) await this.requireVerifiedCustomer(principal);
     const customerFlow = input.source === 'SELF';
     if (
       !key ||
@@ -147,12 +231,12 @@ export class BookingsService {
           leaseMs: 30_000,
         },
         async (tx) => {
-          await tx.$queryRaw`SELECT "id" FROM "ClassSlot" WHERE "id" = ${input.classSlotId}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` = ${input.classSlotId} FOR UPDATE`;
           const slot = await tx.classSlot.findUnique({ where: { id: input.classSlotId } });
           if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           if (!customerFlow) this.requireBranch(principal, slot.branchId);
 
-          await tx.$queryRaw`SELECT "id" FROM "CustomerPackage" WHERE "id" = ${input.customerPackageId}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`CustomerPackage\` WHERE \`id\` = ${input.customerPackageId} FOR UPDATE`;
           const [customerPackage, customer] = await Promise.all([
             tx.customerPackage.findUnique({ where: { id: input.customerPackageId } }),
             tx.user.findUnique({ where: { id: customerUserId } }),

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   type ApplicationRole,
   type AssignmentType,
+  type IdentityDocumentKind,
   Prisma,
   type SessionChannel,
 } from '@prisma/client';
@@ -14,8 +15,16 @@ import {
 import { RateLimitService } from './rate-limit.service';
 import { assertIsoDate, dateInTimeZone, startOfLocalDateUtc } from './assignment-boundary';
 import { PolicyService } from './policy.service';
+import { ResendPasswordEmailProvider } from './email-provider';
+import {
+  canonicalEmailHash,
+  hashPassword,
+  normalizeEmail,
+  verifyPassword,
+} from './credential-security';
 import {
   ApiProblem,
+  configurationRequired,
   digest,
   newId,
   opaqueToken,
@@ -26,12 +35,29 @@ import {
 export interface SessionPrincipal {
   sessionId: string;
   userId: string;
-  assurance: 'BASE' | 'MFA';
   roles: { role: ApplicationRole; branchId: string | null }[];
   capabilities: string[];
   branchIds: string[];
   sessionExpiresAt?: Date;
 }
+
+interface IdentityDocumentInput {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+}
+
+const IDENTITY_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const IDENTITY_REJECTION_REASONS = new Set([
+  'BLURRY',
+  'GLARE',
+  'CROPPED',
+  'DOCUMENT_UNREADABLE',
+  'FACE_MISMATCH',
+  'WRONG_DOCUMENT',
+  'OTHER_REQUIRES_NOTE',
+]);
 
 @Injectable()
 export class IdentityService {
@@ -42,6 +68,7 @@ export class IdentityService {
     private readonly otp: ConfigGatedOtpProvider,
     private readonly proof: ConfigGatedProofProvider,
     private readonly rateLimit: RateLimitService,
+    private readonly passwordEmail: ResendPasswordEmailProvider,
   ) {}
 
   private audit(
@@ -51,6 +78,7 @@ export class IdentityService {
       action: string;
       objectType: string;
       objectId: string;
+      targetUserId?: string;
       correlationId: string;
       branchId?: string;
       before?: Prisma.InputJsonValue;
@@ -66,6 +94,7 @@ export class IdentityService {
         action: input.action,
         objectType: input.objectType,
         objectId: input.objectId,
+        targetUserId: input.targetUserId,
         beforeMasked: input.before,
         afterMasked: input.after,
         correlationId: input.correlationId,
@@ -75,6 +104,95 @@ export class IdentityService {
 
   private activeRoleWhere(now = new Date()) {
     return { activeFrom: { lte: now }, OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] };
+  }
+
+  private roleBranches(role: ApplicationRole, branchIds: string[]): Array<string | null> {
+    return role === 'ADMIN' || role === 'MANAGER' ? branchIds : [null];
+  }
+
+  private normalizePhone(value: string): string {
+    const compact = value.replace(/[\s().-]/g, '');
+    const normalized = compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
+    if (!/^\+[1-9]\d{7,14}$/u.test(normalized))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    return normalized;
+  }
+
+  private validateIdentityDocument(input: IdentityDocumentInput): void {
+    if (
+      !input.fileName?.trim() ||
+      input.fileName.length > 160 ||
+      !IDENTITY_MIME_TYPES.has(input.mimeType) ||
+      !Number.isInteger(input.sizeBytes) ||
+      input.sizeBytes < 1 ||
+      input.sizeBytes > 8_000_000 ||
+      !/^[a-f0-9]{64}$/iu.test(input.sha256)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (process.env.NODE_ENV === 'production' || process.env.AUTH_SYNTHETIC_ENABLED !== 'true')
+      configurationRequired();
+    if (process.env.IDENTITY_DOCUMENT_SYNTHETIC_SCAN_RESULT === 'UNSAFE')
+      throw new ApiProblem('UPLOAD_REJECTED', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  private documentView(document: {
+    id: string;
+    kind: IdentityDocumentKind;
+    status: string;
+    uploadStatus: string;
+    scanStatus: string;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    rejectionReasonCode: string | null;
+    rejectionNote: string | null;
+    reviewedAt: Date | null;
+    deletedAt: Date | null;
+    version: number;
+  }) {
+    return {
+      id: document.id,
+      kind: document.kind,
+      status: document.status,
+      uploadStatus: document.uploadStatus,
+      scanStatus: document.scanStatus,
+      fileName: document.fileName,
+      mimeType: document.mimeType,
+      sizeBytes: document.sizeBytes,
+      rejectionReasonCode: document.rejectionReasonCode,
+      rejectionNote: document.rejectionNote,
+      reviewedAt: document.reviewedAt?.toISOString() ?? null,
+      deletedAt: document.deletedAt?.toISOString() ?? null,
+      version: document.version,
+    };
+  }
+
+  async verificationStatus(userId: string) {
+    const documents = await this.db.identityVerificationDocument.findMany({
+      where: { userId, replacedById: null },
+      orderBy: [{ kind: 'asc' }, { createdAt: 'desc' }],
+    });
+    const current = [...new Map(documents.map((item) => [item.kind, item])).values()];
+    return {
+      status: ['SELFIE', 'KTP_FRONT'].every((kind) =>
+        current.some((item) => item.kind === kind && item.status === 'APPROVED'),
+      )
+        ? 'APPROVED'
+        : current.some((item) => item.status === 'REJECTED')
+          ? 'ACTION_REQUIRED'
+          : 'PENDING',
+      documents: current.map((item) => this.documentView(item)),
+    };
+  }
+
+  async requireCustomerVerification(userId: string) {
+    const customer = await this.db.userRole.findFirst({
+      where: { userId, role: 'CUSTOMER', ...this.activeRoleWhere() },
+    });
+    if (!customer) return;
+    const status = await this.verificationStatus(userId);
+    if (status.status !== 'APPROVED')
+      throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
   }
 
   async me(userId: string, at = new Date()) {
@@ -93,12 +211,7 @@ export class IdentityService {
     };
   }
 
-  private async sessionMe(
-    userId: string,
-    assurance: 'BASE' | 'MFA',
-    sessionExpiresAt: Date,
-    at = new Date(),
-  ) {
+  private async sessionMe(userId: string, sessionExpiresAt: Date, at = new Date()) {
     const projection = await this.me(userId, at);
     const branchScope = projection.capabilities.includes('branch:all')
       ? undefined
@@ -108,9 +221,12 @@ export class IdentityService {
       orderBy: [{ code: 'asc' }, { id: 'asc' }],
       select: { id: true, code: true, name: true, timezone: true },
     });
+    const verification = projection.roles.includes('CUSTOMER')
+      ? await this.verificationStatus(userId)
+      : { status: 'NOT_REQUIRED', documents: [] };
     return {
       ...projection,
-      assurance,
+      identityVerificationStatus: verification.status,
       sessionExpiresAt: sessionExpiresAt.toISOString(),
       branches,
     };
@@ -119,7 +235,7 @@ export class IdentityService {
   meForSession(principal: SessionPrincipal, at = new Date()) {
     if (!principal.sessionExpiresAt)
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
-    return this.sessionMe(principal.userId, principal.assurance, principal.sessionExpiresAt, at);
+    return this.sessionMe(principal.userId, principal.sessionExpiresAt, at);
   }
 
   async authenticateGoogle(
@@ -142,15 +258,41 @@ export class IdentityService {
       const invitation = await tx.userInvitation.findFirst({
         where: {
           identityProvider: verified.provider,
-          subjectHash: verified.subjectHash,
           status: 'PENDING',
           expiresAt: { gt: new Date() },
+          OR: [
+            ...(verified.emailHash ? [{ emailHash: verified.emailHash }] : []),
+            { subjectHash: verified.subjectHash },
+          ],
         },
         orderBy: { createdAt: 'asc' },
       });
       if (!invitation) throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
+      if (invitation.userId) {
+        const pending = await tx.user.findUnique({ where: { id: invitation.userId } });
+        if (!pending || pending.status !== 'PENDING_ACTIVATION')
+          throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+        await tx.identity.create({
+          data: {
+            id: newId(),
+            userId: pending.id,
+            provider: verified.provider,
+            subjectHash: verified.subjectHash,
+            verifiedAt: new Date(),
+          },
+        });
+        await tx.user.update({
+          where: { id: pending.id },
+          data: { status: 'ACTIVE', version: { increment: 1 } },
+        });
+        await tx.userInvitation.update({
+          where: { id: invitation.id },
+          data: { status: 'ACCEPTED', acceptedAt: new Date() },
+        });
+        return pending;
+      }
       const created = await tx.user.create({
-        data: { id: newId(), displayName: 'Invited internal user' },
+        data: { id: newId(), displayName: invitation.displayName ?? 'Invited internal user' },
       });
       await tx.identity.create({
         data: {
@@ -164,7 +306,7 @@ export class IdentityService {
       const roles = invitation.roles as ApplicationRole[];
       const branchIds = invitation.branchIds as string[];
       for (const role of roles) {
-        const scopedBranches = role === 'SUPER_OWNER' ? [null] : branchIds;
+        const scopedBranches = this.roleBranches(role, branchIds);
         for (const branchId of scopedBranches)
           await tx.userRole.create({
             data: { userId: created.id, role, branchId, activeFrom: new Date() },
@@ -176,7 +318,7 @@ export class IdentityService {
       });
       return created;
     });
-    const session = await this.issueSession(user.id, input.channel, 'BASE');
+    const session = await this.issueSession(user.id, input.channel);
     await this.audit(this.db, {
       actorId: user.id,
       action: 'security.login_succeeded',
@@ -250,7 +392,7 @@ export class IdentityService {
       data: { status: 'VERIFIED', verifiedAt: new Date(), userId: identity.userId },
     });
     if (claimed.count !== 1) throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
-    const session = await this.issueSession(identity.userId, channel, 'BASE');
+    const session = await this.issueSession(identity.userId, channel);
     await this.audit(this.db, {
       actorId: identity.userId,
       action: 'security.otp_verified',
@@ -262,16 +404,11 @@ export class IdentityService {
     return session;
   }
 
-  async issueSession(
-    userId: string,
-    channel: SessionChannel,
-    assurance: 'BASE' | 'MFA',
-    existingFamilyHash?: string,
-  ) {
+  async issueSession(userId: string, channel: SessionChannel, existingFamilyHash?: string) {
     const accessTtl = syntheticConfigSeconds('AUTH_ACCESS_TTL_SECONDS', 900);
     const refreshTtl = syntheticConfigSeconds('AUTH_REFRESH_TTL_SECONDS', 2_592_000);
     const accessToken = opaqueToken();
-    const refreshToken = channel === 'MOBILE' ? opaqueToken() : null;
+    const refreshToken = opaqueToken();
     const familyHash = existingFamilyHash ?? digest(opaqueToken());
     const expiresAt = new Date(Date.now() + accessTtl * 1000);
     const refreshExpiresAt = new Date(Date.now() + refreshTtl * 1000);
@@ -279,23 +416,22 @@ export class IdentityService {
       data: {
         userId,
         channel,
-        assurance,
         tokenFamilyHash: familyHash,
         accessTokenHash: digest(accessToken),
-        refreshTokenHash: refreshToken ? digest(refreshToken) : null,
+        refreshTokenHash: digest(refreshToken),
         expiresAt,
         refreshExpiresAt,
       },
     });
     return {
       accessToken: channel === 'MOBILE' ? accessToken : null,
-      refreshToken,
-      user: await this.sessionMe(userId, assurance, expiresAt),
-      assurance,
+      refreshToken: channel === 'MOBILE' ? refreshToken : null,
+      user: await this.sessionMe(userId, expiresAt),
       channel,
       expiresAt: expiresAt.toISOString(),
       refreshExpiresAt: refreshExpiresAt.toISOString(),
       webCookieToken: channel === 'WEB' ? accessToken : null,
+      webRefreshToken: channel === 'WEB' ? refreshToken : null,
     };
   }
 
@@ -323,16 +459,18 @@ export class IdentityService {
     }
     if (session.user.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
-    await this.db.userSession.update({
-      where: { id: session.id },
+    const claimed = await this.db.userSession.updateMany({
+      where: { id: session.id, revokedAt: null },
       data: { revokedAt: new Date(), revocationReason: 'ROTATED', rotatedAt: new Date() },
     });
-    return this.issueSession(
-      session.userId,
-      session.channel,
-      session.assurance,
-      session.tokenFamilyHash,
-    );
+    if (claimed.count !== 1) {
+      await this.db.userSession.updateMany({
+        where: { tokenFamilyHash: session.tokenFamilyHash, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: 'REFRESH_REUSE_DETECTED' },
+      });
+      throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    }
+    return this.issueSession(session.userId, session.channel, session.tokenFamilyHash);
   }
 
   async authenticateBearer(raw: string): Promise<SessionPrincipal> {
@@ -350,7 +488,6 @@ export class IdentityService {
     return {
       sessionId: session.id,
       userId: session.userId,
-      assurance: session.assurance,
       roles: session.user.roles,
       capabilities: this.policy.capabilities(session.user.roles),
       branchIds: this.policy.branches(session.user.roles),
@@ -395,8 +532,23 @@ export class IdentityService {
     });
   }
 
-  async listUsers(principal: SessionPrincipal, branchId?: string) {
+  roleCatalog(principal: SessionPrincipal) {
     this.policy.requireCapability(principal.capabilities, 'user:read');
+    return { items: this.policy.roleCatalog() };
+  }
+
+  async listUsers(
+    principal: SessionPrincipal,
+    filters: {
+      branchId?: string;
+      cursor?: string;
+      search?: string;
+      status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+      role?: ApplicationRole;
+    },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'user:read');
+    const { branchId, cursor, search, status, role } = filters;
     if (
       branchId &&
       !principal.capabilities.includes('branch:all') &&
@@ -404,90 +556,276 @@ export class IdentityService {
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     const allowedBranches = branchId ? [branchId] : principal.branchIds;
-    const users = await this.db.user.findMany({
-      where: principal.capabilities.includes('branch:all')
-        ? undefined
-        : { roles: { some: { branchId: { in: allowedBranches }, ...this.activeRoleWhere() } } },
-      take: 50,
-      orderBy: { createdAt: 'asc' },
-    });
-    return {
-      items: users.map((user) => ({
-        id: user.id,
-        status: user.status,
-        attributes: { displayName: user.displayName },
-      })),
-      page: { nextCursor: null, hasMore: false },
+    const roleWhere = {
+      ...this.activeRoleWhere(),
+      ...(role ? { role } : {}),
+      ...(branchId ? { OR: [{ branchId }, { branchId: null }] } : {}),
     };
+    const users = await this.db.user.findMany({
+      where: {
+        ...(status ? { status } : {}),
+        ...(search?.trim() ? { displayName: { contains: search.trim() } } : {}),
+        ...(principal.capabilities.includes('branch:all')
+          ? role || branchId
+            ? { roles: { some: roleWhere } }
+            : {}
+          : {
+              roles: {
+                some: {
+                  ...roleWhere,
+                  branchId: { in: allowedBranches },
+                },
+              },
+            }),
+        ...(cursor ? { id: { gt: cursor } } : {}),
+      },
+      include: {
+        roles: {
+          where: this.activeRoleWhere(),
+          include: { branch: { select: { id: true, code: true, name: true } } },
+          orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+        },
+      },
+      take: 21,
+      orderBy: { id: 'asc' },
+    });
+    const hasMore = users.length > 20;
+    const page = users.slice(0, 20);
+    return {
+      items: page.map((user) => this.userView(user)),
+      page: { nextCursor: hasMore ? page.at(-1)?.id : null, hasMore },
+    };
+  }
+
+  async lookupUsers(
+    principal: SessionPrincipal,
+    filters: {
+      q?: string;
+      branchId?: string;
+      cursor?: string;
+      limit?: number;
+      instructorsOnly?: boolean;
+    },
+  ) {
+    const allowed = filters.instructorsOnly
+      ? ['master:read', 'class-slot:manage', 'class-slot:read']
+      : ['user:read', 'audit:read'];
+    if (!allowed.some((capability) => principal.capabilities.includes(capability)))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    const limit = filters.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (
+      filters.branchId &&
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(filters.branchId)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const branchIds = filters.branchId ? [filters.branchId] : principal.branchIds;
+    const scopedRole = {
+      ...this.activeRoleWhere(),
+      ...(filters.instructorsOnly ? { role: 'INSTRUCTOR' as const } : {}),
+      ...(filters.branchId ? { branchId: filters.branchId } : {}),
+    };
+    const users = await this.db.user.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(filters.q?.trim() ? { displayName: { contains: filters.q.trim() } } : {}),
+        ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
+        ...(principal.capabilities.includes('branch:all')
+          ? filters.instructorsOnly || filters.branchId
+            ? { roles: { some: scopedRole } }
+            : {}
+          : {
+              roles: {
+                some: {
+                  ...scopedRole,
+                  branchId: { in: branchIds },
+                },
+              },
+            }),
+      },
+      include: {
+        roles: {
+          where: this.activeRoleWhere(),
+          include: { branch: { select: { id: true, code: true, name: true } } },
+          orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: limit + 1,
+    });
+    const hasMore = users.length > limit;
+    const page = users.slice(0, limit);
+    return {
+      items: page.map((user) => ({
+        id: user.id,
+        label: user.displayName,
+        description: user.roles
+          .map(({ role, branch }) => `${role}${branch ? ` · ${branch.code}` : ''}`)
+          .join(', '),
+        metadata: {
+          roles: user.roles.map(({ role }) => role),
+          branchIds: user.roles.flatMap(({ branchId }) => (branchId ? [branchId] : [])),
+        },
+      })),
+      page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
+    };
+  }
+
+  async getUser(principal: SessionPrincipal, targetId: string) {
+    this.policy.requireCapability(principal.capabilities, 'user:read');
+    const user = await this.db.user.findUnique({
+      where: { id: targetId },
+      include: {
+        roles: {
+          where: this.activeRoleWhere(),
+          include: { branch: { select: { id: true, code: true, name: true } } },
+          orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+        },
+      },
+    });
+    if (
+      !user ||
+      (!principal.capabilities.includes('branch:all') &&
+        !user.roles.some(({ branchId }) => branchId && principal.branchIds.includes(branchId)))
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return this.userView(user);
   }
 
   async inviteUser(
     principal: SessionPrincipal,
-    input: { email: string; roles: ApplicationRole[]; branchIds?: string[] },
+    input: {
+      email: string;
+      displayName?: string;
+      roles?: ApplicationRole[];
+      branchIds?: string[];
+      roleAssignments?: { role: ApplicationRole; branchId?: string | null }[];
+    },
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
-    this.policy.requireMfa(principal.assurance);
-    const branchIds = [...new Set(input.branchIds ?? [])];
+    const legacyBranchIds = [...new Set(input.branchIds ?? [])];
+    const roleAssignments = input.roleAssignments?.length
+      ? input.roleAssignments.map(({ role, branchId }) => ({ role, branchId: branchId ?? null }))
+      : (input.roles ?? []).flatMap((role) =>
+          this.roleBranches(role, legacyBranchIds).map((branchId) => ({ role, branchId })),
+        );
+    const branchIds = [
+      ...new Set(roleAssignments.flatMap(({ branchId }) => (branchId ? [branchId] : []))),
+    ];
     if (
       !principal.capabilities.includes('branch:all') &&
       branchIds.some((id) => !principal.branchIds.includes(id))
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const allowed = new Set<ApplicationRole>([
-      'INSTRUCTOR',
-      'ADMIN',
-      'MANAGER',
-      'OWNER',
-      'FINANCE',
-      'OPS',
-    ]);
-    if (!input.roles.length || input.roles.some((role) => !allowed.has(role)))
+    const allowed = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS']);
+    if (
+      !roleAssignments.length ||
+      roleAssignments.some(
+        ({ role, branchId }) =>
+          !allowed.has(role) ||
+          (['ADMIN', 'MANAGER'].includes(role) ? !branchId : Boolean(branchId)),
+      )
+    )
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    const subjectHash = digest(`google:${input.email.trim().toLowerCase()}`);
+    const roleKeys = roleAssignments.map(({ role, branchId }) => `${role}:${branchId ?? ''}`);
+    if (new Set(roleKeys).size !== roleKeys.length)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (
+      branchIds.length &&
+      (await this.db.branch.count({ where: { id: { in: branchIds }, active: true } })) !==
+        branchIds.length
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const normalizedEmail = normalizeEmail(input.email);
+    const emailHash = canonicalEmailHash(normalizedEmail);
+    const subjectHash = digest(`google:${normalizedEmail}`);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalizedEmail))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     await this.rateLimit.consume('USER_INVITE', digest(principal.userId));
-    const existingIdentity = await this.db.identity.findUnique({
-      where: { provider_subjectHash: { provider: 'GOOGLE', subjectHash } },
-    });
-    if (existingIdentity) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+    const [existingIdentity, existingPassword, acceptedInvitation] = await Promise.all([
+      this.db.identity.findUnique({
+        where: { provider_subjectHash: { provider: 'GOOGLE', subjectHash } },
+      }),
+      this.db.passwordCredential.findUnique({ where: { emailHash } }),
+      this.db.userInvitation.findFirst({ where: { emailHash, status: 'ACCEPTED' } }),
+    ]);
+    if (existingIdentity || existingPassword || acceptedInvitation)
+      throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
     const existing = await this.db.userInvitation.findFirst({
       where: {
-        identityProvider: 'GOOGLE',
-        subjectHash,
+        emailHash,
         status: 'PENDING',
         expiresAt: { gt: new Date() },
       },
     });
-    if (existing) return { id: existing.id, status: existing.status };
+    if (existing) {
+      if (process.env.AUTH_PASSWORD_ENABLED === 'true')
+        await this.sendPasswordAction('ACTIVATION', normalizedEmail, {
+          emailHash,
+          userId: existing.userId ?? undefined,
+          invitationId: existing.id,
+        });
+      return { id: existing.id, status: 'EXISTS' as const };
+    }
     const expiresAt = new Date(
       Date.now() + syntheticConfigSeconds('AUTH_INVITATION_TTL_SECONDS', 604_800) * 1000,
     );
     try {
       const invitation = await this.db.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            id: newId(),
+            displayName: input.displayName?.trim() || 'Internal user',
+            status: 'PENDING_ACTIVATION',
+          },
+        });
+        for (const item of roleAssignments)
+          await tx.userRole.create({
+            data: {
+              userId: user.id,
+              role: item.role,
+              branchId: item.branchId,
+              activeFrom: new Date(),
+            },
+          });
         const created = await tx.userInvitation.create({
           data: {
             invitedById: principal.userId,
+            userId: user.id,
             subjectHash,
-            roles: input.roles,
+            emailHash,
+            displayName: user.displayName,
+            roles: roleAssignments.map(({ role }) => role),
             branchIds,
             expiresAt,
           },
         });
         await this.audit(tx, {
           actorId: principal.userId,
-          action: 'security.user_invited',
+          action: 'security.user_created',
           objectType: 'UserInvitation',
           objectId: created.id,
+          targetUserId: user.id,
           correlationId,
-          after: { roles: input.roles, branchCount: branchIds.length },
+          after: { roles: roleAssignments, branchCount: branchIds.length, activation: 'PENDING' },
         });
         return created;
       });
+      if (process.env.AUTH_PASSWORD_ENABLED === 'true')
+        await this.sendPasswordAction('ACTIVATION', normalizedEmail, {
+          emailHash,
+          userId: invitation.userId ?? undefined,
+          invitationId: invitation.id,
+        });
       return { id: invitation.id, status: invitation.status };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const concurrent = await this.db.userInvitation.findFirst({
-          where: { identityProvider: 'GOOGLE', subjectHash, status: 'PENDING' },
+          where: { emailHash, status: 'PENDING' },
         });
         if (concurrent) return { id: concurrent.id, status: concurrent.status };
       }
@@ -495,84 +833,385 @@ export class IdentityService {
     }
   }
 
-  async createMfa(principal: SessionPrincipal, purpose: string, correlationId = 'unknown') {
-    await this.rateLimit.consume('MFA_CHALLENGE', digest(principal.userId));
-    const ttl = syntheticConfigSeconds('AUTH_MFA_TTL_SECONDS', 300);
-    const maxAttempts = syntheticConfigSeconds('AUTH_MFA_MAX_ATTEMPTS', 5);
-    const subjectHash = digest(principal.userId);
-    const expiresAt = new Date(Date.now() + ttl * 1000);
-    const challenge = await this.db.authChallenge.create({
+  private async sendPasswordAction(
+    kind: 'ACTIVATION' | 'RESET' | 'SETUP',
+    email: string,
+    target: { emailHash: string; userId?: string; invitationId?: string },
+  ) {
+    const token = opaqueToken();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await this.db.passwordActionToken.create({
       data: {
-        userId: principal.userId,
-        kind: 'MFA',
-        purpose,
-        subjectHash,
-        proofHash: this.proof.proofHash('MFA', subjectHash),
-        maxAttempts,
+        kind,
+        tokenHash: digest(token),
+        emailHash: target.emailHash,
+        userId: target.userId,
+        invitationId: target.invitationId,
         expiresAt,
       },
     });
-    await this.audit(this.db, {
-      actorId: principal.userId,
-      action: 'security.mfa_requested',
-      objectType: 'AuthChallenge',
-      objectId: challenge.id,
-      correlationId,
-      after: { purpose },
-    });
-    return {
-      id: challenge.id,
-      purpose,
-      methodHint: 'synthetic-non-production',
-      expiresAt: expiresAt.toISOString(),
-    };
+    await this.passwordEmail.send(kind, email, token);
+    return { expiresAt: expiresAt.toISOString() };
   }
 
-  async verifyMfa(
+  async authenticatePassword(
+    input: { email: string; password: string; channel: SessionChannel },
+    correlationId = 'unknown',
+    requestFingerprint = 'unknown',
+  ) {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    const emailHash = canonicalEmailHash(input.email);
+    await Promise.all([
+      this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', emailHash, 5, 900),
+      this.rateLimit.consume('PASSWORD_LOGIN_ORIGIN', digest(requestFingerprint), 50, 900),
+    ]);
+    const credential = await this.db.passwordCredential.findUnique({
+      where: { emailHash },
+      include: { user: true },
+    });
+    const valid = credential
+      ? await verifyPassword(credential.passwordHash, input.password)
+      : await verifyPassword(
+          '$argon2id$v=19$m=65536,t=3,p=1$OQ7j5B/1n5Tt6+Ww8bi6Iw$FDfbEPDKqHJFt1NDZll1WrMu46qpFcQteLeQSGho8Es',
+          input.password,
+        );
+    if (!credential || !valid || credential.user.status !== 'ACTIVE')
+      throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
+    const session = await this.issueSession(credential.userId, input.channel);
+    await this.audit(this.db, {
+      actorId: credential.userId,
+      action: 'security.login_succeeded',
+      objectType: 'UserSession',
+      objectId: credential.userId,
+      correlationId,
+      after: { provider: 'EMAIL_PASSWORD', channel: input.channel },
+    });
+    return session;
+  }
+
+  async activatePassword(token: string, password: string, correlationId = 'unknown') {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    const action = await this.db.passwordActionToken.findUnique({
+      where: { tokenHash: digest(token) },
+      include: { invitation: true, user: true },
+    });
+    if (
+      !action ||
+      !['ACTIVATION', 'SETUP'].includes(action.kind) ||
+      action.consumedAt ||
+      action.expiresAt <= new Date()
+    )
+      throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+    const passwordHash = await hashPassword(password);
+    const userId = await this.db.$transaction(async (tx) => {
+      const claimed = await tx.passwordActionToken.updateMany({
+        where: { id: action.id, consumedAt: null, expiresAt: { gt: new Date() } },
+        data: { consumedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+      let targetUserId = action.userId;
+      if (!targetUserId) {
+        const invitation = action.invitation;
+        if (!invitation || invitation.status !== 'PENDING' || invitation.expiresAt <= new Date())
+          throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+        const user = await tx.user.create({
+          data: {
+            id: newId(),
+            displayName: invitation.displayName ?? 'Invited internal user',
+          },
+        });
+        targetUserId = user.id;
+        for (const role of invitation.roles as ApplicationRole[]) {
+          const scopedBranches = this.roleBranches(role, invitation.branchIds as string[]);
+          for (const branchId of scopedBranches)
+            await tx.userRole.create({
+              data: { userId: user.id, role, branchId, activeFrom: new Date() },
+            });
+        }
+        await tx.userInvitation.update({
+          where: { id: invitation.id },
+          data: { status: 'ACCEPTED', acceptedAt: new Date() },
+        });
+      } else if (action.invitationId) {
+        const invitation = action.invitation;
+        if (!invitation || invitation.status !== 'PENDING' || invitation.expiresAt <= new Date())
+          throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+        await tx.userInvitation.update({
+          where: { id: invitation.id },
+          data: { status: 'ACCEPTED', acceptedAt: new Date() },
+        });
+      }
+      await tx.passwordCredential.create({
+        data: {
+          userId: targetUserId,
+          emailHash: action.emailHash,
+          passwordHash,
+          verifiedAt: new Date(),
+          passwordChangedAt: new Date(),
+        },
+      });
+      await tx.identity.create({
+        data: {
+          id: newId(),
+          userId: targetUserId,
+          provider: 'EMAIL_PASSWORD',
+          subjectHash: action.emailHash,
+          verifiedAt: new Date(),
+        },
+      });
+      await tx.user.updateMany({
+        where: { id: targetUserId, status: 'PENDING_ACTIVATION' },
+        data: { status: 'ACTIVE', version: { increment: 1 } },
+      });
+      await this.audit(tx, {
+        actorId: targetUserId,
+        action: 'security.password_activated',
+        objectType: 'User',
+        objectId: targetUserId,
+        targetUserId,
+        correlationId,
+        after: { provider: 'EMAIL_PASSWORD' },
+      });
+      return targetUserId;
+    });
+    return this.issueSession(userId, 'WEB');
+  }
+
+  async requestPasswordReset(
+    email: string,
+    correlationId = 'unknown',
+    requestFingerprint = 'unknown',
+  ) {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    this.passwordEmail.assertConfigured();
+    const normalized = normalizeEmail(email);
+    const emailHash = canonicalEmailHash(normalized);
+    await Promise.all([
+      this.rateLimit.consume('PASSWORD_RESET_SUBJECT', emailHash, 5, 900),
+      this.rateLimit.consume('PASSWORD_RESET_ORIGIN', digest(requestFingerprint), 30, 900),
+    ]);
+    const credential = await this.db.passwordCredential.findUnique({ where: { emailHash } });
+    if (credential)
+      try {
+        await this.sendPasswordAction('RESET', normalized, {
+          emailHash,
+          userId: credential.userId,
+        });
+      } catch {
+        // The public response remains generic to avoid disclosing account existence.
+      }
+    await this.audit(this.db, {
+      action: 'security.password_reset_requested',
+      objectType: 'PasswordActionToken',
+      objectId: digest(`${emailHash}:${correlationId}`),
+      correlationId,
+      after: { accepted: true },
+    });
+    return { status: 'ACCEPTED' as const };
+  }
+
+  async resetPassword(token: string, password: string, correlationId = 'unknown') {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    const action = await this.db.passwordActionToken.findUnique({
+      where: { tokenHash: digest(token) },
+    });
+    if (
+      !action ||
+      action.kind !== 'RESET' ||
+      !action.userId ||
+      action.consumedAt ||
+      action.expiresAt <= new Date()
+    )
+      throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+    const passwordHash = await hashPassword(password);
+    await this.db.$transaction(async (tx) => {
+      const claimed = await tx.passwordActionToken.updateMany({
+        where: { id: action.id, consumedAt: null, expiresAt: { gt: new Date() } },
+        data: { consumedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
+      await tx.passwordCredential.update({
+        where: { userId: action.userId! },
+        data: { passwordHash, passwordChangedAt: new Date(), version: { increment: 1 } },
+      });
+      await tx.userSession.updateMany({
+        where: { userId: action.userId!, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: 'PASSWORD_RESET' },
+      });
+      await this.audit(tx, {
+        actorId: action.userId!,
+        action: 'security.password_reset',
+        objectType: 'User',
+        objectId: action.userId!,
+        correlationId,
+        after: { sessionsRevoked: true },
+      });
+    });
+    return { status: 'CHANGED' as const };
+  }
+
+  async changePassword(
     principal: SessionPrincipal,
-    challengeId: string,
-    proof: string,
+    currentPassword: string,
+    nextPassword: string,
     correlationId = 'unknown',
   ) {
-    const challenge = await this.db.authChallenge.findUnique({ where: { id: challengeId } });
-    if (
-      !challenge ||
-      challenge.userId !== principal.userId ||
-      challenge.kind !== 'MFA' ||
-      challenge.status !== 'PENDING' ||
-      challenge.expiresAt <= new Date()
-    )
-      throw new ApiProblem('MFA_CHALLENGE_EXPIRED', HttpStatus.GONE);
-    if (!this.proof.verify('MFA', challenge.subjectHash, proof)) {
-      const attempts = challenge.attempts + 1;
-      await this.db.authChallenge.update({
-        where: { id: challenge.id },
-        data: { attempts, status: attempts >= challenge.maxAttempts ? 'LOCKED' : 'PENDING' },
-      });
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    const credential = await this.db.passwordCredential.findUnique({
+      where: { userId: principal.userId },
+    });
+    if (!credential || !(await verifyPassword(credential.passwordHash, currentPassword)))
       throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
-    }
-    const current = await this.db.userSession.findUnique({ where: { id: principal.sessionId } });
-    if (!current) throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    const passwordHash = await hashPassword(nextPassword);
     await this.db.$transaction(async (tx) => {
-      const claimed = await tx.authChallenge.updateMany({
-        where: { id: challenge.id, status: 'PENDING' },
-        data: { status: 'VERIFIED', verifiedAt: new Date() },
+      await tx.passwordCredential.update({
+        where: { userId: principal.userId },
+        data: { passwordHash, passwordChangedAt: new Date(), version: { increment: 1 } },
       });
-      if (claimed.count !== 1) throw new ApiProblem('MFA_CHALLENGE_EXPIRED', HttpStatus.GONE);
-      await tx.userSession.update({
-        where: { id: current.id },
-        data: { revokedAt: new Date(), revocationReason: 'MFA_ROTATED' },
+      await tx.userSession.updateMany({
+        where: { userId: principal.userId, id: { not: principal.sessionId }, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: 'PASSWORD_CHANGED' },
       });
       await this.audit(tx, {
         actorId: principal.userId,
-        action: 'security.mfa_verified',
-        objectType: 'AuthChallenge',
-        objectId: challenge.id,
+        action: 'security.password_changed',
+        objectType: 'User',
+        objectId: principal.userId,
         correlationId,
-        after: { assurance: 'MFA' },
+        after: { otherSessionsRevoked: true },
       });
     });
-    return this.issueSession(principal.userId, current.channel, 'MFA', current.tokenFamilyHash);
+    return { status: 'CHANGED' as const };
+  }
+
+  async requestPasswordSetup(
+    principal: SessionPrincipal,
+    targetId: string,
+    input: { email: string; reason: string },
+    correlationId = 'unknown',
+  ) {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (!input.reason.trim())
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const target = await this.db.user.findUnique({
+      where: { id: targetId },
+      include: { passwordCredential: true },
+    });
+    if (!target || target.status !== 'ACTIVE')
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (target.passwordCredential) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+    const normalized = normalizeEmail(input.email);
+    const emailHash = canonicalEmailHash(normalized);
+    const conflict = await this.db.passwordCredential.findUnique({ where: { emailHash } });
+    if (conflict) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+    const result = await this.sendPasswordAction('SETUP', normalized, {
+      emailHash,
+      userId: targetId,
+    });
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.password_setup_requested',
+      objectType: 'User',
+      objectId: targetId,
+      correlationId,
+      after: { reasonPresent: true },
+    });
+    return result;
+  }
+
+  async passwordSecurityStatus(principal: SessionPrincipal) {
+    const password = await this.db.passwordCredential.findUnique({
+      where: { userId: principal.userId },
+    });
+    return {
+      passwordEnabled: Boolean(password),
+      passwordChangedAt: password?.passwordChangedAt.toISOString() ?? null,
+    };
+  }
+
+  async updateUserRoles(
+    principal: SessionPrincipal,
+    targetId: string,
+    input: {
+      roles: { role: ApplicationRole; branchId?: string | null }[];
+      expectedVersion: number;
+      reason: string;
+    },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (targetId === principal.userId)
+      throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    if (!Number.isInteger(input.expectedVersion) || !input.reason.trim())
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS']);
+    if (
+      !input.roles.length ||
+      input.roles.some(
+        ({ role, branchId }) =>
+          !assignable.has(role) ||
+          (['ADMIN', 'MANAGER'].includes(role) ? !branchId : Boolean(branchId)),
+      )
+    )
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    const keys = input.roles.map(({ role, branchId }) => `${role}:${branchId ?? ''}`);
+    if (new Set(keys).size !== keys.length)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const branchIds = input.roles.flatMap(({ branchId }) => (branchId ? [branchId] : []));
+    const branches = await this.db.branch.count({
+      where: { id: { in: branchIds }, active: true },
+    });
+    if (branches !== new Set(branchIds).size)
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const now = new Date();
+    await this.db.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({
+        where: { id: targetId },
+        include: { roles: { where: this.activeRoleWhere(now) } },
+      });
+      if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      const updated = await tx.user.updateMany({
+        where: { id: targetId, version: input.expectedVersion },
+        data: { version: { increment: 1 } },
+      });
+      if (updated.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await tx.userRole.updateMany({
+        where: {
+          userId: targetId,
+          role: { in: ['ADMIN', 'MANAGER', 'FINANCE', 'OPS'] },
+          activeUntil: null,
+        },
+        data: { activeUntil: now },
+      });
+      for (const item of input.roles)
+        await tx.userRole.create({
+          data: {
+            userId: targetId,
+            role: item.role,
+            branchId: item.branchId ?? null,
+            activeFrom: now,
+          },
+        });
+      await tx.userSession.updateMany({
+        where: { userId: targetId, revokedAt: null },
+        data: { revokedAt: now, revocationReason: 'ROLE_CHANGED' },
+      });
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.user_roles_changed',
+        objectType: 'User',
+        objectId: targetId,
+        targetUserId: targetId,
+        correlationId,
+        before: {
+          roles: before.roles.map(({ role, branchId }) => ({ role, branchId })),
+          version: before.version,
+        },
+        after: { roles: input.roles, reasonPresent: true, version: before.version + 1 },
+      });
+    });
+    return this.getUser(principal, targetId);
   }
 
   async requestRecovery(
@@ -645,7 +1284,7 @@ export class IdentityService {
         after: { sessionsRevoked: true },
       });
     });
-    return this.issueSession(challenge.userId, 'MOBILE', 'MFA');
+    return this.issueSession(challenge.userId, 'MOBILE');
   }
 
   async linkIdentity(
@@ -717,13 +1356,15 @@ export class IdentityService {
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
-    this.policy.requireMfa(principal.assurance);
     if (targetId === principal.userId)
       throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
     return this.db.$transaction(async (tx) => {
       const before = await tx.user.findUnique({ where: { id: targetId } });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      const user = await tx.user.update({ where: { id: targetId }, data: { status: 'INACTIVE' } });
+      const user = await tx.user.update({
+        where: { id: targetId },
+        data: { status: 'INACTIVE', version: { increment: 1 } },
+      });
       await tx.userSession.updateMany({
         where: { userId: targetId, revokedAt: null },
         data: { revokedAt: new Date(), revocationReason: 'USER_DEACTIVATED' },
@@ -736,6 +1377,7 @@ export class IdentityService {
           action: 'security.user_deactivated',
           objectType: 'User',
           objectId: targetId,
+          targetUserId: targetId,
           beforeMasked: { status: before.status },
           afterMasked: { status: user.status, reasonPresent: Boolean(reason) },
           correlationId,
@@ -743,6 +1385,118 @@ export class IdentityService {
       });
       return { id: user.id, status: user.status };
     });
+  }
+
+  async reactivate(
+    principal: SessionPrincipal,
+    targetId: string,
+    reason: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (targetId === principal.userId)
+      throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    return this.db.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({ where: { id: targetId } });
+      if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      if (before.status === 'ACTIVE')
+        throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+      const user = await tx.user.update({
+        where: { id: targetId },
+        data: { status: 'ACTIVE', version: { increment: 1 } },
+      });
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.user_reactivated',
+        objectType: 'User',
+        objectId: targetId,
+        targetUserId: targetId,
+        correlationId,
+        before: { status: before.status, version: before.version },
+        after: { status: user.status, reasonPresent: Boolean(reason), version: user.version },
+      });
+      return { id: user.id, status: user.status, version: user.version };
+    });
+  }
+
+  async listUserAudit(principal: SessionPrincipal, targetId: string, cursor?: string) {
+    this.policy.requireCapability(principal.capabilities, 'audit:read');
+    await this.getUser(principal, targetId);
+    const items = await this.db.auditLog.findMany({
+      where: {
+        OR: [{ targetUserId: targetId }, { objectType: 'User', objectId: targetId }],
+        ...(cursor ? { id: { gt: cursor } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      take: 21,
+    });
+    const hasMore = items.length > 20;
+    const page = items.slice(0, 20);
+    return {
+      items: page,
+      page: { nextCursor: hasMore ? page.at(-1)?.id : null, hasMore },
+    };
+  }
+
+  async listAuditLogs(
+    principal: SessionPrincipal,
+    filters: {
+      actorId?: string;
+      targetUserId?: string;
+      action?: string;
+      branchId?: string;
+      correlationId?: string;
+      from?: string;
+      until?: string;
+      cursor?: string;
+    },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'audit:read');
+    const { actorId, targetUserId, action, branchId, correlationId, from, until, cursor } = filters;
+    const fromDate = from ? new Date(from) : undefined;
+    const untilDate = until ? new Date(until) : undefined;
+    if (
+      (fromDate && Number.isNaN(fromDate.getTime())) ||
+      (untilDate && Number.isNaN(untilDate.getTime())) ||
+      (fromDate && untilDate && fromDate >= untilDate)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (
+      branchId &&
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(branchId)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const items = await this.db.auditLog.findMany({
+      where: {
+        ...(actorId ? { actorId } : {}),
+        ...(targetUserId
+          ? {
+              OR: [{ targetUserId }, { objectType: 'User', objectId: targetUserId }],
+            }
+          : {}),
+        ...(action?.trim() ? { action: { contains: action.trim() } } : {}),
+        ...(branchId ? { branchId } : {}),
+        ...(correlationId?.trim() ? { correlationId: correlationId.trim() } : {}),
+        ...(fromDate || untilDate
+          ? {
+              occurredAt: {
+                ...(fromDate ? { gte: fromDate } : {}),
+                ...(untilDate ? { lt: untilDate } : {}),
+              },
+            }
+          : {}),
+        ...(cursor ? { id: { lt: cursor } } : {}),
+      },
+      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+      take: 21,
+    });
+    const hasMore = items.length > 20;
+    const page = items.slice(0, 20);
+    return {
+      items: page,
+      page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
+    };
   }
 
   async listAssignments(principal: SessionPrincipal, branchId?: string) {
@@ -781,7 +1535,6 @@ export class IdentityService {
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:manage');
-    this.policy.requireMfa(principal.assurance);
     if (
       !principal.capabilities.includes('branch:all') &&
       !principal.branchIds.includes(input.branchId)
@@ -799,6 +1552,12 @@ export class IdentityService {
     try {
       return await this.db.$transaction(
         async (tx) => {
+          await tx.$queryRaw`
+            SELECT \`id\`
+            FROM \`User\`
+            WHERE \`id\` = ${input.userId}
+            FOR UPDATE
+          `;
           const [user, branch] = await Promise.all([
             tx.user.findUnique({ where: { id: input.userId } }),
             tx.branch.findUnique({ where: { id: input.branchId } }),
@@ -844,6 +1603,7 @@ export class IdentityService {
             action: 'master.assignment_created',
             objectType: 'Assignment',
             objectId: id,
+            targetUserId: input.userId,
             branchId: input.branchId,
             correlationId,
             after: {
@@ -872,7 +1632,6 @@ export class IdentityService {
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:manage');
-    this.policy.requireMfa(principal.assurance);
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const effectiveInstant = new Date(input.effectiveAt);
@@ -916,6 +1675,7 @@ export class IdentityService {
             action: 'master.assignment_ended',
             objectType: 'Assignment',
             objectId: assignment.id,
+            targetUserId: assignment.userId,
             branchId: assignment.branchId,
             correlationId,
             before: { activeUntil: null, version: assignment.version },
@@ -936,6 +1696,258 @@ export class IdentityService {
     }
   }
 
+  async registerCustomer(
+    input: {
+      displayName: string;
+      phone: string;
+      email: string;
+      password: string;
+      consent: boolean;
+      selfie: IdentityDocumentInput;
+      ktp: IdentityDocumentInput;
+    },
+    correlationId: string,
+    requestFingerprint: string,
+  ) {
+    if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    const displayName = input.displayName?.trim();
+    const email = normalizeEmail(input.email);
+    const emailHash = canonicalEmailHash(email);
+    const phoneE164 = this.normalizePhone(input.phone);
+    if (!input.consent || !displayName || displayName.length > 160)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    this.validateIdentityDocument(input.selfie);
+    this.validateIdentityDocument(input.ktp);
+    await Promise.all([
+      this.rateLimit.consume('CUSTOMER_REGISTER_SUBJECT', emailHash, 3, 3600),
+      this.rateLimit.consume('CUSTOMER_REGISTER_ORIGIN', digest(requestFingerprint), 20, 3600),
+    ]);
+    const passwordHash = await hashPassword(input.password);
+    try {
+      const userId = await this.db.$transaction(async (tx) => {
+        const user = await tx.user.create({ data: { id: newId(), displayName, phoneE164 } });
+        await tx.userRole.create({
+          data: { userId: user.id, role: 'CUSTOMER', branchId: null, activeFrom: new Date() },
+        });
+        await tx.passwordCredential.create({
+          data: {
+            userId: user.id,
+            emailHash,
+            passwordHash,
+            verifiedAt: new Date(),
+            passwordChangedAt: new Date(),
+          },
+        });
+        await tx.identity.create({
+          data: {
+            id: newId(),
+            userId: user.id,
+            provider: 'EMAIL_PASSWORD',
+            subjectHash: emailHash,
+            verifiedAt: new Date(),
+          },
+        });
+        for (const [kind, document] of [
+          ['SELFIE', input.selfie],
+          ['KTP_FRONT', input.ktp],
+        ] as const) {
+          const objectKey = opaqueToken();
+          await tx.identityVerificationDocument.create({
+            data: {
+              id: newId(),
+              userId: user.id,
+              kind,
+              objectKey,
+              checksum: document.sha256.toLowerCase(),
+              fileName: document.fileName.trim(),
+              mimeType: document.mimeType,
+              sizeBytes: document.sizeBytes,
+              uploadStatus: 'FINALIZED',
+              scanStatus: 'CLEAN',
+              providerReferenceHash: digest(objectKey),
+              uploadedAt: new Date(),
+              finalizedAt: new Date(),
+            },
+          });
+        }
+        await this.audit(tx, {
+          actorId: user.id,
+          action: 'security.customer_registered',
+          objectType: 'User',
+          objectId: user.id,
+          correlationId,
+          after: { role: 'CUSTOMER', documentKinds: ['SELFIE', 'KTP_FRONT'], consent: true },
+        });
+        return user.id;
+      });
+      return this.issueSession(userId, 'WEB');
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+      throw error;
+    }
+  }
+
+  async myVerification(principal: SessionPrincipal) {
+    return this.verificationStatus(principal.userId);
+  }
+
+  async replaceIdentityDocument(
+    principal: SessionPrincipal,
+    kind: IdentityDocumentKind,
+    input: IdentityDocumentInput & { expectedVersion: number },
+    correlationId: string,
+  ) {
+    if (!['SELFIE', 'KTP_FRONT'].includes(kind))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    this.validateIdentityDocument(input);
+    const current = await this.db.identityVerificationDocument.findFirst({
+      where: { userId: principal.userId, kind, replacedById: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!current || current.status !== 'REJECTED' || current.version !== input.expectedVersion)
+      throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    return this.db.$transaction(async (tx) => {
+      const objectKey = opaqueToken();
+      const replacement = await tx.identityVerificationDocument.create({
+        data: {
+          id: newId(),
+          userId: principal.userId,
+          kind,
+          objectKey,
+          checksum: input.sha256.toLowerCase(),
+          fileName: input.fileName.trim(),
+          mimeType: input.mimeType,
+          sizeBytes: input.sizeBytes,
+          uploadStatus: 'FINALIZED',
+          scanStatus: 'CLEAN',
+          providerReferenceHash: digest(objectKey),
+          uploadedAt: new Date(),
+          finalizedAt: new Date(),
+        },
+      });
+      const claimed = await tx.identityVerificationDocument.updateMany({
+        where: { id: current.id, version: input.expectedVersion, replacedById: null },
+        data: { replacedById: replacement.id, version: { increment: 1 } },
+      });
+      if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.identity_document_replaced',
+        objectType: 'IdentityVerificationDocument',
+        objectId: replacement.id,
+        correlationId,
+        after: { kind },
+      });
+      return this.documentView(replacement);
+    });
+  }
+
+  async listIdentityReview(principal: SessionPrincipal, status?: string) {
+    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    const allowed = ['PENDING', 'APPROVED', 'REJECTED', 'DELETED'];
+    if (status && !allowed.includes(status))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const documents = await this.db.identityVerificationDocument.findMany({
+      where: { replacedById: null, ...(status ? { status: status as never } : {}) },
+      include: { user: { select: { id: true, displayName: true, phoneE164: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+    return { items: documents.map((item) => ({ ...this.documentView(item), user: item.user })) };
+  }
+
+  async authorizeIdentityDocument(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    const document = await this.db.identityVerificationDocument.findUnique({ where: { id } });
+    if (!document?.objectKey || document.status === 'DELETED')
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return {
+      url: `/synthetic-private-identity/${digest(`${document.objectKey}:${opaqueToken()}`)}`,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+    };
+  }
+
+  async decideIdentityDocument(
+    principal: SessionPrincipal,
+    id: string,
+    decision: 'APPROVED' | 'REJECTED',
+    input: { expectedVersion: number; reasonCode?: string; note?: string },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    if (
+      decision === 'REJECTED' &&
+      (!input.reasonCode ||
+        !IDENTITY_REJECTION_REASONS.has(input.reasonCode) ||
+        (input.reasonCode === 'OTHER_REQUIRES_NOTE' && !input.note?.trim()))
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const changed = await this.db.identityVerificationDocument.updateMany({
+      where: {
+        id,
+        status: 'PENDING',
+        version: input.expectedVersion,
+        replacedById: null,
+        scanStatus: 'CLEAN',
+        uploadStatus: 'FINALIZED',
+      },
+      data: {
+        status: decision,
+        reviewedAt: new Date(),
+        reviewedById: principal.userId,
+        rejectionReasonCode: decision === 'REJECTED' ? input.reasonCode : null,
+        rejectionNote: decision === 'REJECTED' ? input.note?.trim() || null : null,
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: `security.identity_document_${decision.toLowerCase()}`,
+      objectType: 'IdentityVerificationDocument',
+      objectId: id,
+      correlationId,
+      after: { decision, reasonCode: input.reasonCode ?? null },
+    });
+    return this.documentView(
+      (await this.db.identityVerificationDocument.findUnique({ where: { id } }))!,
+    );
+  }
+
+  async deleteIdentityDocument(
+    principal: SessionPrincipal,
+    id: string,
+    input: { expectedVersion: number; reason: string },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'identity-verification:delete');
+    if (!input.reason?.trim())
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const changed = await this.db.identityVerificationDocument.updateMany({
+      where: { id, version: input.expectedVersion, replacedById: null, status: { not: 'DELETED' } },
+      data: {
+        status: 'DELETED',
+        objectKey: null,
+        providerReferenceHash: null,
+        deletedAt: new Date(),
+        deletedById: principal.userId,
+        deletionReason: input.reason.trim(),
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.identity_document_deleted',
+      objectType: 'IdentityVerificationDocument',
+      objectId: id,
+      correlationId,
+      after: { reasonPresent: true },
+    });
+    return { id, status: 'DELETED', version: input.expectedVersion + 1 };
+  }
+
   private assignmentView(assignment: {
     id: string;
     userId: string;
@@ -953,6 +1965,40 @@ export class IdentityService {
       activeFrom: assignment.activeFrom.toISOString().slice(0, 10),
       activeUntil: assignment.activeUntil?.toISOString().slice(0, 10) ?? null,
       version: assignment.version,
+    };
+  }
+
+  private userView(user: {
+    id: string;
+    displayName: string;
+    status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+    version: number;
+    createdAt: Date;
+    updatedAt: Date;
+    roles: {
+      role: ApplicationRole;
+      branchId: string | null;
+      sourceAssignmentId: string | null;
+      branch: { id: string; code: string; name: string } | null;
+    }[];
+  }) {
+    const roles = user.roles.map(({ role, branchId, sourceAssignmentId, branch }) => ({
+      role,
+      branchId,
+      branch,
+      source: sourceAssignmentId ? ('ASSIGNMENT' as const) : ('DIRECT' as const),
+    }));
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      status: user.status,
+      version: user.version,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+      roles,
+      directRoles: roles.filter(({ source }) => source === 'DIRECT'),
+      assignmentRoles: roles.filter(({ source }) => source === 'ASSIGNMENT'),
+      effectiveCapabilities: this.policy.capabilities(user.roles),
     };
   }
 

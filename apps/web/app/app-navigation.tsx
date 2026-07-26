@@ -1,50 +1,236 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Activity,
+  BookOpenCheck,
+  CalendarDays,
+  ChevronLeft,
+  CircleDollarSign,
+  ClipboardCheck,
+  CreditCard,
+  Database,
+  HeartPulse,
+  LayoutDashboard,
+  Landmark,
+  ListChecks,
+  ScrollText,
+  ShieldCheck,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { frontendPageGroups, frontendPages } from './frontend-pages';
 import { useSessionContext } from './session-context';
+import { BrandMark } from './components/public/brand-mark';
+import { browserDashboardClient } from './dashboard-client';
 
-export function AppNavigation() {
+const pageIcons: Record<string, LucideIcon> = {
+  '/workspace': LayoutDashboard,
+  '/bookings': BookOpenCheck,
+  '/check-in-scanner': ClipboardCheck,
+  '/workspace/classes': CalendarDays,
+  '/workspace/payments': CreditCard,
+  '/finance': Landmark,
+  '/ledger': CircleDollarSign,
+  '/users': Users,
+  '/identity-verifications': ShieldCheck,
+  '/audit': ScrollText,
+  '/assignments': ClipboardCheck,
+  '/master': Database,
+  '/operations': Activity,
+  '/health': HeartPulse,
+};
+
+export function AppNavigation({
+  mobileOpen = false,
+  collapsed = false,
+  onClose,
+  onCollapse,
+}: {
+  mobileOpen?: boolean;
+  collapsed?: boolean;
+  onClose?(): void;
+  onCollapse?(): void;
+}) {
   const pathname = usePathname();
   const context = useSessionContext();
+  const session = context?.session;
+  const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
+  const customerOnly =
+    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
+  const customerLinks = [
+    { href: '/classes', label: 'Jadwal', icon: CalendarDays },
+    ...(session?.identityVerificationStatus === 'APPROVED'
+      ? [{ href: '/bookings', label: 'Booking Saya', icon: BookOpenCheck }]
+      : []),
+    { href: '/packages', label: 'Paket', icon: ListChecks },
+    ...(session?.identityVerificationStatus === 'APPROVED'
+      ? [
+          { href: '/orders', label: 'Pesanan', icon: CreditCard },
+          { href: '/account/packages', label: 'Paket Saya', icon: CircleDollarSign },
+        ]
+      : []),
+    { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
+    { href: '/account', label: 'Akun Saya', icon: Users },
+  ];
+  const navClass = customerOnly
+    ? 'nav'
+    : `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+
+  useEffect(() => {
+    if (!session || customerOnly) return;
+    let active = true;
+    browserDashboardClient
+      .overview({ branchId: context?.activeBranchId || undefined })
+      .then((overview) => {
+        if (active)
+          setQueueCounts(Object.fromEntries(overview.queues.map((item) => [item.key, item.count])));
+      })
+      .catch(() => {
+        if (active) setQueueCounts({});
+      });
+    return () => {
+      active = false;
+    };
+  }, [context?.activeBranchId, customerOnly, session]);
+
+  const linkClass = (active: boolean) =>
+    `group flex min-h-10 items-center gap-3 rounded-dd-md px-3 py-2 text-sm font-semibold transition ${active ? 'bg-white text-dd-sidebar shadow-sm' : 'text-white/72 hover:bg-white/8 hover:text-white'}`;
+
   return (
-    <nav className="nav" aria-label="Navigasi utama">
-      <a href="/workspace" className="brand" aria-label="Daily Dose Pilates — Dashboard">
-        <img
-          className="brand-logo"
-          src="https://dailydosepilates.com/assets/images/logo.png"
-          width="500"
-          height="138"
-          alt="Daily Dose Pilates"
+    <>
+      {!customerOnly && mobileOpen && (
+        <button
+          aria-label="Tutup navigasi"
+          className="fixed inset-0 z-40 min-h-0 w-full rounded-none border-0 bg-dd-sidebar/55 p-0 lg:hidden"
+          onClick={onClose}
         />
-        <span className="brand-caption">Studio operations</span>
-      </a>
-      <div className="nav-scroll">
-        {frontendPageGroups.map((group) => (
-          <section className="nav-group" aria-labelledby={`nav-${group}`} key={group}>
-            <h2 id={`nav-${group}`}>{group}</h2>
-            {frontendPages
-              .filter((item) => item.group === group)
-              .filter(
-                (item) =>
-                  item.capabilities.length === 0 || context?.hasCapability(...item.capabilities),
-              )
-              .map((item) => {
-                const active = pathname.startsWith(item.href);
+      )}
+      <nav className={navClass} aria-label="Navigasi utama">
+        <div
+          className={`flex min-h-24 items-center border-b border-white/10 px-5 ${collapsed ? 'lg:justify-center lg:px-2' : 'justify-between'}`}
+        >
+          <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
+            <BrandMark
+              ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
+              className="h-auto w-[166px] brightness-0 invert"
+              href={customerOnly ? '/account' : '/workspace'}
+              priority
+            />
+            {!collapsed && (
+              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-white/48">
+                Studio operations
+              </span>
+            )}
+          </div>
+          {!customerOnly && (
+            <button
+              type="button"
+              aria-label="Tutup navigasi"
+              onClick={onClose}
+              className="grid size-9 min-h-0 place-items-center rounded-full border border-white/15 bg-transparent p-0 text-white lg:hidden"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+        <div className="nav-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5">
+          {customerOnly ? (
+            <section className="space-y-1" aria-labelledby="nav-customer">
+              <h2
+                id="nav-customer"
+                className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/44"
+              >
+                Akun Saya
+              </h2>
+              {customerLinks.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  (item.href !== '/account' && pathname.startsWith(`${item.href}/`));
+                const Icon = item.icon;
                 return (
-                  <a href={item.href} aria-current={active ? 'page' : undefined} key={item.href}>
-                    <span aria-hidden="true" className="nav-dot" />
-                    <span className="nav-label">{item.shortLabel}</span>
-                  </a>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    key={item.href}
+                    className={linkClass(active)}
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </Link>
                 );
               })}
-          </section>
-        ))}
-      </div>
-      <div className="nav-footer">
-        <span className="environment-dot" aria-hidden="true" />
-        {context?.session ? `${context.session.assurance} · synthetic` : 'Synthetic non-production'}
-      </div>
-    </nav>
+            </section>
+          ) : (
+            frontendPageGroups.map((group) => (
+              <section className="space-y-1" aria-labelledby={`nav-${group}`} key={group}>
+                {!collapsed && (
+                  <h2
+                    id={`nav-${group}`}
+                    className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/44"
+                  >
+                    {group}
+                  </h2>
+                )}
+                {frontendPages
+                  .filter((item) => item.group === group)
+                  .filter(
+                    (item) =>
+                      item.capabilities.length === 0 ||
+                      context?.hasCapability(...item.capabilities),
+                  )
+                  .map((item) => {
+                    const active =
+                      item.href === '/workspace'
+                        ? pathname === item.href
+                        : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const Icon = pageIcons[item.href] ?? ListChecks;
+                    return (
+                      <Link
+                        href={item.href}
+                        aria-current={active ? 'page' : undefined}
+                        key={item.href}
+                        title={collapsed ? item.shortLabel : undefined}
+                        onClick={onClose}
+                        className={linkClass(active)}
+                      >
+                        <Icon className="size-[18px] shrink-0" aria-hidden="true" />
+                        {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                        {!collapsed &&
+                          item.queueBadgeSource &&
+                          (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
+                            <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
+                              {queueCounts[item.queueBadgeSource]}
+                            </span>
+                          )}
+                      </Link>
+                    );
+                  })}
+              </section>
+            ))
+          )}
+        </div>
+        {!customerOnly && (
+          <div className="border-t border-white/10 p-3">
+            <button
+              type="button"
+              onClick={onCollapse}
+              className="hidden min-h-10 w-full items-center gap-3 rounded-dd-md border-0 bg-white/6 px-3 text-sm text-white/72 hover:bg-white/10 lg:flex"
+            >
+              <ChevronLeft className={`size-4 transition ${collapsed ? 'rotate-180' : ''}`} />
+              {!collapsed && 'Ciutkan sidebar'}
+            </button>
+            {!collapsed && (
+              <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">
+                Akses berbasis permission
+              </p>
+            )}
+          </div>
+        )}
+      </nav>
+    </>
   );
 }

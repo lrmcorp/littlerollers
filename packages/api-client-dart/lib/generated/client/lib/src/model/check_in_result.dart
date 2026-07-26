@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/check_in_result_branch.dart';
 import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -19,7 +20,13 @@ part 'check_in_result.g.dart';
 /// * [status] 
 /// * [checkedInAt] 
 /// * [auditLogId] 
+/// * [auditReference] 
 /// * [idempotentReplay] 
+/// * [customerName] 
+/// * [className] 
+/// * [branch] 
+/// * [startAt] 
+/// * [endAt] 
 @BuiltValue()
 abstract class CheckInResult implements Built<CheckInResult, CheckInResultBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -41,8 +48,26 @@ abstract class CheckInResult implements Built<CheckInResult, CheckInResultBuilde
   @BuiltValueField(wireName: r'auditLogId')
   String get auditLogId;
 
+  @BuiltValueField(wireName: r'auditReference')
+  String get auditReference;
+
   @BuiltValueField(wireName: r'idempotentReplay')
   bool get idempotentReplay;
+
+  @BuiltValueField(wireName: r'customerName')
+  String? get customerName;
+
+  @BuiltValueField(wireName: r'className')
+  String? get className;
+
+  @BuiltValueField(wireName: r'branch')
+  CheckInResultBranch? get branch;
+
+  @BuiltValueField(wireName: r'startAt')
+  DateTime? get startAt;
+
+  @BuiltValueField(wireName: r'endAt')
+  DateTime? get endAt;
 
   CheckInResult._();
 
@@ -97,11 +122,51 @@ class _$CheckInResultSerializer implements PrimitiveSerializer<CheckInResult> {
       object.auditLogId,
       specifiedType: const FullType(String),
     );
+    yield r'auditReference';
+    yield serializers.serialize(
+      object.auditReference,
+      specifiedType: const FullType(String),
+    );
     yield r'idempotentReplay';
     yield serializers.serialize(
       object.idempotentReplay,
       specifiedType: const FullType(bool),
     );
+    if (object.customerName != null) {
+      yield r'customerName';
+      yield serializers.serialize(
+        object.customerName,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.className != null) {
+      yield r'className';
+      yield serializers.serialize(
+        object.className,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.branch != null) {
+      yield r'branch';
+      yield serializers.serialize(
+        object.branch,
+        specifiedType: const FullType(CheckInResultBranch),
+      );
+    }
+    if (object.startAt != null) {
+      yield r'startAt';
+      yield serializers.serialize(
+        object.startAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
+    if (object.endAt != null) {
+      yield r'endAt';
+      yield serializers.serialize(
+        object.endAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
   }
 
   @override
@@ -168,12 +233,54 @@ class _$CheckInResultSerializer implements PrimitiveSerializer<CheckInResult> {
           ) as String;
           result.auditLogId = valueDes;
           break;
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.auditReference = valueDes;
+          break;
         case r'idempotentReplay':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(bool),
           ) as bool;
           result.idempotentReplay = valueDes;
+          break;
+        case r'customerName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.customerName = valueDes;
+          break;
+        case r'className':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.className = valueDes;
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CheckInResultBranch),
+          ) as CheckInResultBranch;
+          result.branch.replace(valueDes);
+          break;
+        case r'startAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.startAt = valueDes;
+          break;
+        case r'endAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.endAt = valueDes;
           break;
         default:
           unhandled.add(key);

@@ -19,7 +19,7 @@ describe('frontend design primitives', () => {
           eyebrow="Cabang Jakarta"
           title="Antrean operasional"
           description="Tinjau perubahan sebelum mengonfirmasi."
-          context={<StatusBadge tone="warning">MFA wajib</StatusBadge>}
+          context={<StatusBadge tone="warning">Akses terbatas</StatusBadge>}
         />
         <Feedback kind="error">Sesi berakhir. Silakan masuk kembali.</Feedback>
         <EmptyState title="Belum ada data" description="Ubah filter atau buat data baru." />

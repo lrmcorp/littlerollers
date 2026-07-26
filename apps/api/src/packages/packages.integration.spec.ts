@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
 import { PackagesService } from './packages.service';
@@ -9,7 +9,7 @@ import {
 } from './proof-providers';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
-databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
+databaseDescribe('synthetic package purchase MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `pkg-${Date.now()}`;
   const actorId = randomUUID();
@@ -20,7 +20,6 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
   const principal = {
     sessionId: namespace,
     userId: actorId,
-    assurance: 'MFA' as const,
     roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
     capabilities: [
       'branch:all',
@@ -36,6 +35,12 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
     sessionId: `${namespace}-reviewer`,
     userId: reviewerId,
   };
+  const pngBytes = (size: number) => {
+    const bytes = Buffer.alloc(size);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(bytes);
+    return bytes;
+  };
+  const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
@@ -94,6 +99,7 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
       },
       `${namespace}-package`,
     );
+    const cleanBytes = pngBytes(2048);
     const proof = await service.issueProof(
       principal,
       {
@@ -102,14 +108,15 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
         fileName: 'proof.png',
         mimeType: 'image/png',
         sizeBytes: 2048,
-        sha256: 'a'.repeat(64),
+        sha256: sha256(cleanBytes),
       },
       `${namespace}-issue`,
     );
+    await service.uploadProofContent(principal, proof.id, cleanBytes);
     await service.finalizeProof(
       principal,
       proof.id,
-      { sha256: 'a'.repeat(64), sizeBytes: 2048 },
+      { sha256: sha256(cleanBytes), sizeBytes: 2048 },
       `${namespace}-finalize`,
     );
     const input = { packageId: pkg.id, paymentProofUploadId: proof.id };
@@ -141,6 +148,7 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
       ),
     ).rejects.toThrow('IDEMPOTENCY_KEY_REUSED');
     process.env.PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT = 'UNSAFE';
+    const unsafeBytes = Buffer.from('%PDF-unsafe!');
     const proof = await service.issueProof(
       principal,
       {
@@ -148,15 +156,16 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
         packageId: purchase.packageId,
         fileName: 'unsafe.pdf',
         mimeType: 'application/pdf',
-        sizeBytes: 12,
-        sha256: 'b'.repeat(64),
+        sizeBytes: unsafeBytes.length,
+        sha256: sha256(unsafeBytes),
       },
       `${namespace}-unsafe-issue`,
     );
+    await service.uploadProofContent(principal, proof.id, unsafeBytes);
     const finalized = await service.finalizeProof(
       principal,
       proof.id,
-      { sha256: 'b'.repeat(64), sizeBytes: 12 },
+      { sha256: sha256(unsafeBytes), sizeBytes: unsafeBytes.length },
       `${namespace}-unsafe-finalize`,
     );
     expect(finalized.scanStatus).toBe('REJECTED');
@@ -218,6 +227,7 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
         `${namespace}-extension`,
       ),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    const mismatchBytes = pngBytes(20);
     const mismatch = await service.issueProof(
       principal,
       {
@@ -225,10 +235,11 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
         fileName: 'mismatch.png',
         mimeType: 'image/png',
         sizeBytes: 20,
-        sha256: 'd'.repeat(64),
+        sha256: sha256(mismatchBytes),
       },
       `${namespace}-mismatch-issue`,
     );
+    await service.uploadProofContent(principal, mismatch.id, mismatchBytes);
     await expect(
       service.finalizeProof(
         principal,
@@ -294,18 +305,8 @@ databaseDescribe('synthetic package purchase PostgreSQL integration', () => {
     expect(pkg.sessionCount).toBe(customerPackage.sessionCountSnapshot);
   });
 
-  it('enforces MFA, separation of duties, reason codes and decided state', async () => {
+  it('enforces separation of duties, reason codes and decided state', async () => {
     const purchase = await db.purchase.findFirstOrThrow({ where: { userId: actorId } });
-    await expect(
-      service.decidePurchase(
-        { ...reviewer, assurance: 'BASE' },
-        purchase.id,
-        'REJECTED',
-        { reasonCode: 'PROOF_INVALID', expectedVersion: purchase.version },
-        'decision-key-0002',
-        `${namespace}-base`,
-      ),
-    ).rejects.toMatchObject({ code: 'MFA_REQUIRED' });
     await expect(
       service.decidePurchase(
         principal,

@@ -9,9 +9,9 @@
 |---|---|---|---|---|
 | ADR-001 | NestJS modular monolith; worker may deploy separately from same codebase | MVP consistency and lower operational overhead | Module public services/events only; architecture dependency test | PROPOSED |
 | ADR-002 | REST JSON `/api/v1`, OpenAPI 3.1, generated TS/Dart clients | Contract consistency across Web/Flutter | CI validates spec and breaking changes; clients generated from pinned artifact | PROPOSED |
-| ADR-003 | PostgreSQL + Prisma; reviewed SQL migrations for critical constraints/indexes | Productive baseline without sacrificing invariants | Migration review, forward-compatible deploy, no destructive rollback assumption | PROPOSED |
+| ADR-003 | MySQL 8.4+ + Prisma; reviewed SQL migrations and stable aggregate row locking for critical invariants | Productive baseline aligned with the selected operational database without sacrificing concurrency safety | Migration review, MySQL integration/concurrency suite, forward-compatible deploy, no destructive rollback assumption | PROPOSED |
 | ADR-004 | Append-only session ledger + active reservation; pessimistic row/advisory locking by aggregate | Correct available balance under concurrency | Unique references, transaction isolation test, retry on serialization/deadlock | PROPOSED |
-| ADR-005 | Google OIDC; hashed WhatsApp OTP; server session for web and rotating token family for mobile; step-up MFA | Channel-appropriate security | Exact provider/session TTL is DEC-012; revoke on inactive/compromise | BLOCKED |
+| ADR-005 | Google OIDC/password; hashed WhatsApp OTP; server session for web and rotating token family for mobile; no MFA | Channel-appropriate authentication with permission-based authorization | Exact session TTL is DEC-012; revoke on inactive/compromise | AMENDED |
 | ADR-006 | Transactional outbox + BullMQ-compatible jobs; deterministic occurrence/idempotency keys | Business commit and async delivery remain consistent | At-least-once processing, idempotent consumers, bounded retry/dead-letter | PROPOSED |
 | ADR-007 | Managed regional cloud services, private network where supported, object storage and PITR | Meets pilot RPO/RTO with small team | Provider/region blocked by DEC-011; adapter/IaC boundary retained | BLOCKED |
 | ADR-008 | Structured JSON logs, OpenTelemetry-compatible traces/metrics, PII allowlist/redaction | Operability without data leakage | Correlation/request IDs end-to-end; security tests inspect logs | PROPOSED |
@@ -41,4 +41,3 @@
 ## ADR Approval Record
 
 Each row becomes `ACCEPTED` only after context/options/decision/consequences have been reviewed by Web, Flutter and QA, and Technical Lead approval evidence is linked in `APR-004`. `BLOCKED` decisions remain Gate 4 blockers.
-

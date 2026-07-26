@@ -39,7 +39,7 @@ describe('public class catalog', () => {
     expect(screen.getByText('2 tempat')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Pilih kelas' })).toHaveAttribute(
       'href',
-      '/sign-in?returnTo=%2Fclasses%3Fslot%3Dslot-1',
+      '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1',
     );
     await waitFor(() => expect(client.list).toHaveBeenCalledTimes(2));
     expect((await axe(view.container)).violations).toHaveLength(0);

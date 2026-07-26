@@ -10,6 +10,7 @@ import {
   ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
+import { ResendPasswordEmailProvider } from './email-provider';
 
 @Module({
   imports: [DatabaseModule],
@@ -21,8 +22,9 @@ import { RateLimitService } from './rate-limit.service';
     ConfigGatedOtpProvider,
     ConfigGatedProofProvider,
     RateLimitService,
+    ResendPasswordEmailProvider,
     AuthGuard,
   ],
-  exports: [IdentityService, PolicyService],
+  exports: [IdentityService, PolicyService, AuthGuard],
 })
 export class IdentityModule {}

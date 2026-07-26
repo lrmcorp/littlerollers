@@ -33,7 +33,6 @@ export class MasterService {
       principal.capabilities,
       mutation ? 'master:manage' : 'master:read',
     );
-    if (mutation) this.policy.requireMfa(principal.assurance);
   }
 
   private ensureBranchScope(principal: SessionPrincipal, branchId: string) {
@@ -274,6 +273,12 @@ export class MasterService {
     try {
       return await this.db.$transaction(
         async (tx) => {
+          await tx.$queryRaw`
+            SELECT \`id\`
+            FROM \`ClassType\`
+            WHERE \`id\` = ${input.classTypeId}
+            FOR UPDATE
+          `;
           const [branch, classType] = await Promise.all([
             tx.branch.findUnique({ where: { id: input.branchId } }),
             tx.classType.findUnique({ where: { id: input.classTypeId } }),
@@ -285,6 +290,17 @@ export class MasterService {
             if (!user || user.status !== 'ACTIVE')
               throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
           }
+          const effectiveFrom = new Date(`${from}T00:00:00Z`);
+          const effectiveUntil = until ? new Date(`${until}T00:00:00Z`) : null;
+          const overlap = await tx.effectiveConfiguration.findFirst({
+            where: {
+              kind: input.kind,
+              businessKey: key,
+              effectiveFrom: effectiveUntil ? { lt: effectiveUntil } : undefined,
+              OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveFrom } }],
+            },
+          });
+          if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
           const item = await tx.effectiveConfiguration.create({
             data: {
               id: newId(),
@@ -293,8 +309,8 @@ export class MasterService {
               branchId: input.branchId,
               classTypeId: input.classTypeId,
               value,
-              effectiveFrom: new Date(`${from}T00:00:00Z`),
-              effectiveUntil: until ? new Date(`${until}T00:00:00Z`) : null,
+              effectiveFrom,
+              effectiveUntil,
               approvedEvidence: 'SYNTHETIC_NON_PRODUCTION',
             },
           });

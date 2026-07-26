@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ClassSlotView } from './classes/class-slot-view';
 import type { ClassSlotClient } from './class-slot-client';
 
+// Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
 const now = new Date();
 const slot = {
   id: 'slot-1',
@@ -36,17 +37,44 @@ const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   cancel: vi.fn().mockResolvedValue({ ...slot, status: 'CANCELLED', version: 1 }),
   ...overrides,
 });
+const readCapabilities = ['class-slot:read'] as const;
+const manageCapabilities = ['class-slot:read', 'class-slot:manage', 'attendance:manage'] as const;
 
 describe('ClassSlotView', () => {
+  it('defaults to deny when no authoritative capability is available', () => {
+    const client = fake();
+    render(<ClassSlotView client={client} branchOverride={branch} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('class-slot:read');
+    expect(client.discover).not.toHaveBeenCalled();
+  });
+
+  it('keeps an Owner-style read capability in read-only mode', async () => {
+    render(
+      <ClassSlotView
+        client={fake()}
+        branchOverride={branch}
+        capabilitiesOverride={readCapabilities}
+      />,
+    );
+    expect(screen.getByText('Read only')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
+  });
+
   it('requires an explicit authoritative branch before discovery', () => {
-    render(<ClassSlotView client={fake()} />);
+    render(<ClassSlotView client={fake()} capabilitiesOverride={readCapabilities} />);
     expect(screen.getByText('Cabang aktif wajib dipilih secara eksplisit.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Muat timetable' })).not.toBeInTheDocument();
   });
 
   it('discovers labels, renders seven days, and publishes authoritative slot accessibly', async () => {
     const client = fake();
-    const view = render(<ClassSlotView client={client} branchOverride={branch} />);
+    const view = render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
     const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
@@ -64,7 +92,13 @@ describe('ClassSlotView', () => {
 
   it('creates a draft from branch-local fields without technical IDs', async () => {
     const client = fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [] }) });
-    render(<ClassSlotView client={client} branchOverride={branch} />);
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
     await user.click(screen.getByRole('button', { name: 'Buat kelas' }));
@@ -88,14 +122,26 @@ describe('ClassSlotView', () => {
 
   it('renders safe configuration failure', async () => {
     const client = fake({ discover: vi.fn().mockRejectedValue({ response: { status: 503 } }) });
-    render(<ClassSlotView client={client} branchOverride={branch} />);
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Muat timetable' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Konfigurasi quota atau capacity');
   });
 
   it('cancels with the controlled reason and authoritative version', async () => {
     const client = fake();
-    render(<ClassSlotView client={client} branchOverride={branch} />);
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
     await user.click(

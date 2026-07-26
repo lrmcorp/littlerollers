@@ -5,7 +5,7 @@ import { PolicyService } from '../identity/policy.service';
 import { ReschedulesService } from './reschedules.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
-databaseDescribe('synthetic reschedule PostgreSQL integration', () => {
+databaseDescribe('synthetic reschedule MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `reschedule-${Date.now()}`;
   const adminId = randomUUID();
@@ -21,7 +21,6 @@ databaseDescribe('synthetic reschedule PostgreSQL integration', () => {
   const admin = {
     sessionId: namespace,
     userId: adminId,
-    assurance: 'MFA' as const,
     roles: [{ role: 'ADMIN' as const, branchId }],
     capabilities: ['reschedule:read', 'reschedule:decide'],
     branchIds: [branchId],
@@ -41,7 +40,6 @@ databaseDescribe('synthetic reschedule PostgreSQL integration', () => {
   const customerPrincipal = (index: number) => ({
     sessionId: `${namespace}-customer-${index}`,
     userId: customerIds[index]!,
-    assurance: 'BASE' as const,
     roles: [{ role: 'CUSTOMER' as const, branchId: null }],
     capabilities: ['reschedule:self:read', 'reschedule:self:request'],
     branchIds: [] as string[],
@@ -283,7 +281,7 @@ databaseDescribe('synthetic reschedule PostgreSQL integration', () => {
     ).toBe(sourceSlotIds[1]);
   });
 
-  it('fails closed without configuration and requires MFA for decision', async () => {
+  it('fails closed without required reschedule configuration', async () => {
     const gated = new ReschedulesService(
       db as never,
       new IdempotencyService(db as never),
@@ -308,15 +306,5 @@ databaseDescribe('synthetic reschedule PostgreSQL integration', () => {
         `${namespace}-gated`,
       ),
     ).rejects.toThrow('CONFIGURATION_REQUIRED');
-    await expect(
-      service.decide(
-        { ...admin, assurance: 'BASE' },
-        randomUUID(),
-        'approve',
-        { reasonCode: 'ELIGIBILITY_VERIFIED', expectedVersion: 0 },
-        `${namespace}-base`,
-        `${namespace}-base`,
-      ),
-    ).rejects.toThrow('MFA_REQUIRED');
   });
 });

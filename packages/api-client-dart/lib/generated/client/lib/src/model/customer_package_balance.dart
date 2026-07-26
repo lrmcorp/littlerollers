@@ -10,7 +10,7 @@ import 'package:built_value/serializer.dart';
 
 part 'customer_package_balance.g.dart';
 
-/// Authoritative synthetic balance. Expired/inactive available is zero; inconsistent negative/over-reserved state returns LEDGER_INVARIANT_VIOLATION instead of a clamped result.
+/// Authoritative balance. Safe customer labels may accompany identifiers.
 ///
 /// Properties:
 /// * [id] 
@@ -18,6 +18,9 @@ part 'customer_package_balance.g.dart';
 /// * [customerUserId] 
 /// * [packageId] 
 /// * [classTypeId] 
+/// * [packageName] 
+/// * [branchName] 
+/// * [classTypeName] 
 /// * [status] 
 /// * [activationDate] 
 /// * [expiryAt] 
@@ -45,6 +48,15 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'packageName')
+  String? get packageName;
+
+  @BuiltValueField(wireName: r'branchName')
+  String? get branchName;
+
+  @BuiltValueField(wireName: r'classTypeName')
+  String? get classTypeName;
 
   @BuiltValueField(wireName: r'status')
   CustomerPackageBalanceStatusEnum get status;
@@ -128,6 +140,27 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    if (object.packageName != null) {
+      yield r'packageName';
+      yield serializers.serialize(
+        object.packageName,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.branchName != null) {
+      yield r'branchName';
+      yield serializers.serialize(
+        object.branchName,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.classTypeName != null) {
+      yield r'classTypeName';
+      yield serializers.serialize(
+        object.classTypeName,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'status';
     yield serializers.serialize(
       object.status,
@@ -240,6 +273,27 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(String),
           ) as String;
           result.classTypeId = valueDes;
+          break;
+        case r'packageName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.packageName = valueDes;
+          break;
+        case r'branchName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.branchName = valueDes;
+          break;
+        case r'classTypeName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.classTypeName = valueDes;
           break;
         case r'status':
           final valueDes = serializers.deserialize(

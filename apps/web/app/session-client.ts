@@ -1,6 +1,5 @@
 import { AuthApi, Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
 
-export type Assurance = 'BASE' | 'MFA';
 export type SessionStatus =
   'loading' | 'authenticated' | 'unauthenticated' | 'expired' | 'dependency-error';
 
@@ -17,7 +16,7 @@ export interface WebSession {
   roles: string[];
   branchIds: string[];
   capabilities: string[];
-  assurance: Assurance;
+  identityVerificationStatus?: 'NOT_REQUIRED' | 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
   sessionExpiresAt: Date;
   branches: SessionBranch[];
 }
@@ -33,9 +32,15 @@ const auth = new AuthApi(configuration);
 
 export const browserSessionClient: SessionClient = {
   async me() {
-    const value = (await identity.getMe()) as unknown as Omit<WebSession, 'sessionExpiresAt'> & {
-      sessionExpiresAt: Date | string;
-    };
+    let value: Omit<WebSession, 'sessionExpiresAt'> & { sessionExpiresAt: Date | string };
+    try {
+      value = (await identity.getMe()) as unknown as typeof value;
+    } catch (error) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status !== 401) throw error;
+      await auth.refreshSession();
+      value = (await identity.getMe()) as unknown as typeof value;
+    }
     return { ...value, sessionExpiresAt: new Date(value.sessionExpiresAt) };
   },
   async logout() {

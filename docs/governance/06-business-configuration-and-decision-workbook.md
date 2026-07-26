@@ -124,19 +124,22 @@ Score candidates 0–5 and attach evidence; commercial price alone cannot overri
 
 Decision records selected services, region, networking, backup, object lifecycle, secret manager, monitoring, owner/admin backup, estimated pilot cost, exit plan and rejected alternatives.
 
-## 8. DEC-012 — Session, Token and MFA Policy
+## 8. DEC-012 — Session and Token Policy
 
 | Field | Recommended decision package | Status |
 |---|---|---|
-| Web session | Secure HttpOnly cookie session; CSRF/SameSite policy explicit | TBD-BLOCKING |
+| Web session | Implemented local draft: `dd_session` + rotating `dd_refresh`, HttpOnly, SameSite=Lax, Secure di non-development; production origin validation | Production approval required |
 | Mobile session | Rotating refresh-token family; access token in secure storage | TBD-BLOCKING |
 | Access/session/refresh TTL | Synthetic/test only: 15m access/web session, 30d mobile refresh; production TBD-BLOCKING | No production default |
 | Refresh reuse | Revoke token family and alert/security audit | TL approval required |
-| MFA-required roles | Manager, Owner, Super Owner, Finance; Admin policy explicit | Business baseline; implementation/provider TBD |
-| Step-up actions | Master/assignment, approval, close/correction, sensitive export/admin | TBD-BLOCKING exact list |
 | Session revocation | Inactive/deactivated/compromise/password or identity recovery events | Required; timing TBD |
-| MFA provider/method and recovery | Synthetic proof adapter, 5m challenge, 5 attempts; production provider/method TBD-BLOCKING | Non-production approval only |
+| Authorization amendment | MFA/TOTP dihapus. Tindakan sensitif memakai permission efektif, scope cabang, optimistic locking, audit dan separation-of-duties | Implemented local; production UAT required |
 | Owner/approval/evidence | TL / TBD-BLOCKING | ADR/OpenAPI/test references |
+
+Password sign-in amendment: internal accounts may create Argon2id credentials only through
+valid invitation/setup tokens. Resend configuration, verified sender/domain, HTTPS public base
+URL, Google OAuth origin, encryption key, migration rehearsal, and security UAT remain production
+blockers.
 
 ## 9. DEC-013 — Notification Fallback Policy
 
@@ -157,11 +160,11 @@ Decision records selected services, region, networking, backup, object lifecycle
 | Field | Proposed baseline/status |
 |---|---|
 | Automatic linking | Never link unverified phone/email; required baseline |
-| Google linking | Verified issuer/audience identity and controlled existing-account match |
+| Google linking | Verified issuer/audience/expiry/nonce/email_verified identity; match only an existing identity or valid pending invitation |
 | Phone change | Re-authentication; notify old verified channel when available |
 | Lost Google/phone access | Support escalation with approved identity evidence; exact proof TBD-BLOCKING |
 | Conflicting identities | Freeze automatic link; authorized support review and audit |
-| Recovery SLA/roles | Synthetic challenge 15m/5 attempts; production support role/SLA TBD-BLOCKING |
+| Recovery SLA/roles | Password token 15m, one-time, enumeration-safe request; production support role/SLA TBD-BLOCKING |
 | Session action after recovery | Revoke relevant sessions/token family; notify user |
 | PII handling/retention | Minimal evidence; DEC-009 linkage required before production |
 | Approval/evidence | PO+TL / TBD-BLOCKING; TC-AUTH references |

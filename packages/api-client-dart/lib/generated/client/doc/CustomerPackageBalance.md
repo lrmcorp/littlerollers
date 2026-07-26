@@ -13,6 +13,9 @@ Name | Type | Description | Notes
 **customerUserId** | **String** |  | 
 **packageId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**packageName** | **String** |  | [optional] 
+**branchName** | **String** |  | [optional] 
+**classTypeName** | **String** |  | [optional] 
 **status** | **String** |  | 
 **activationDate** | [**Date**](Date.md) |  | 
 **expiryAt** | [**DateTime**](DateTime.md) |  | 

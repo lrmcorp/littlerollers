@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
 import { configurationRequired, digest, safeEqual } from './security';
 
 export interface VerifiedIdentity {
   provider: 'GOOGLE' | 'WHATSAPP_PHONE';
   subjectHash: string;
+  emailHash?: string;
 }
 
 export interface GoogleIdentityProvider {
@@ -15,8 +17,8 @@ export interface OtpProvider {
 }
 
 export interface SyntheticProofProvider {
-  proofHash(kind: 'MFA' | 'RECOVERY', subjectHash: string): string;
-  verify(kind: 'MFA' | 'RECOVERY', subjectHash: string, proof: string): boolean;
+  proofHash(kind: 'RECOVERY', subjectHash: string): string;
+  verify(kind: 'RECOVERY', subjectHash: string, proof: string): boolean;
 }
 
 const syntheticEnabled = (): boolean =>
@@ -25,8 +27,36 @@ const syntheticEnabled = (): boolean =>
 @Injectable()
 export class ConfigGatedGoogleProvider implements GoogleIdentityProvider {
   async verify(idToken: string, nonce: string): Promise<VerifiedIdentity> {
-    if (!syntheticEnabled() || !idToken || !nonce) configurationRequired();
-    return { provider: 'GOOGLE', subjectHash: digest(`google:${idToken}`) };
+    if (!idToken || !nonce) configurationRequired();
+    if (syntheticEnabled()) {
+      const email = idToken.trim().toLowerCase();
+      return {
+        provider: 'GOOGLE',
+        subjectHash: digest(`google:${email}`),
+        emailHash: digest(`email:${email}`),
+      };
+    }
+    const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+    if (!clientId) configurationRequired();
+    const ticket = await new OAuth2Client(clientId).verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    if (
+      !payload?.sub ||
+      !payload.email ||
+      payload.email_verified !== true ||
+      payload.nonce !== nonce
+    )
+      configurationRequired();
+    const subject = payload!.sub!;
+    const email = payload!.email!.trim().toLowerCase();
+    return {
+      provider: 'GOOGLE',
+      subjectHash: digest(`google:${subject}`),
+      emailHash: digest(`email:${email}`),
+    };
   }
 }
 
@@ -41,16 +71,13 @@ export class ConfigGatedOtpProvider implements OtpProvider {
 
 @Injectable()
 export class ConfigGatedProofProvider implements SyntheticProofProvider {
-  proofHash(kind: 'MFA' | 'RECOVERY', subjectHash: string): string {
-    const proof =
-      kind === 'MFA'
-        ? process.env.AUTH_SYNTHETIC_MFA_PROOF
-        : process.env.AUTH_SYNTHETIC_RECOVERY_PROOF;
+  proofHash(kind: 'RECOVERY', subjectHash: string): string {
+    const proof = process.env.AUTH_SYNTHETIC_RECOVERY_PROOF;
     if (!syntheticEnabled() || !proof) configurationRequired();
     return digest(`${kind}:${subjectHash}:${proof}`);
   }
 
-  verify(kind: 'MFA' | 'RECOVERY', subjectHash: string, proof: string): boolean {
+  verify(kind: 'RECOVERY', subjectHash: string, proof: string): boolean {
     return safeEqual(this.proofHash(kind, subjectHash), digest(`${kind}:${subjectHash}:${proof}`));
   }
 }

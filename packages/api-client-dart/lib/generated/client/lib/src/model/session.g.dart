@@ -6,28 +6,6 @@ part of 'session.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-const SessionAssuranceEnum _$sessionAssuranceEnum_BASE =
-    const SessionAssuranceEnum._('BASE');
-const SessionAssuranceEnum _$sessionAssuranceEnum_MFA =
-    const SessionAssuranceEnum._('MFA');
-
-SessionAssuranceEnum _$sessionAssuranceEnumValueOf(String name) {
-  switch (name) {
-    case 'BASE':
-      return _$sessionAssuranceEnum_BASE;
-    case 'MFA':
-      return _$sessionAssuranceEnum_MFA;
-    default:
-      throw ArgumentError(name);
-  }
-}
-
-final BuiltSet<SessionAssuranceEnum> _$sessionAssuranceEnumValues =
-    BuiltSet<SessionAssuranceEnum>(const <SessionAssuranceEnum>[
-      _$sessionAssuranceEnum_BASE,
-      _$sessionAssuranceEnum_MFA,
-    ]);
-
 const SessionChannelEnum _$sessionChannelEnum_WEB = const SessionChannelEnum._(
   'WEB',
 );
@@ -51,43 +29,8 @@ final BuiltSet<SessionChannelEnum> _$sessionChannelEnumValues =
       _$sessionChannelEnum_MOBILE,
     ]);
 
-Serializer<SessionAssuranceEnum> _$sessionAssuranceEnumSerializer =
-    _$SessionAssuranceEnumSerializer();
 Serializer<SessionChannelEnum> _$sessionChannelEnumSerializer =
     _$SessionChannelEnumSerializer();
-
-class _$SessionAssuranceEnumSerializer
-    implements PrimitiveSerializer<SessionAssuranceEnum> {
-  static const Map<String, Object> _toWire = const <String, Object>{
-    'BASE': 'BASE',
-    'MFA': 'MFA',
-  };
-  static const Map<Object, String> _fromWire = const <Object, String>{
-    'BASE': 'BASE',
-    'MFA': 'MFA',
-  };
-
-  @override
-  final Iterable<Type> types = const <Type>[SessionAssuranceEnum];
-  @override
-  final String wireName = 'SessionAssuranceEnum';
-
-  @override
-  Object serialize(
-    Serializers serializers,
-    SessionAssuranceEnum object, {
-    FullType specifiedType = FullType.unspecified,
-  }) => _toWire[object.name] ?? object.name;
-
-  @override
-  SessionAssuranceEnum deserialize(
-    Serializers serializers,
-    Object serialized, {
-    FullType specifiedType = FullType.unspecified,
-  }) => SessionAssuranceEnum.valueOf(
-    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
-  );
-}
 
 class _$SessionChannelEnumSerializer
     implements PrimitiveSerializer<SessionChannelEnum> {
@@ -130,8 +73,6 @@ class _$Session extends Session {
   @override
   final Me user;
   @override
-  final SessionAssuranceEnum assurance;
-  @override
   final SessionChannelEnum channel;
   @override
   final DateTime expiresAt;
@@ -145,7 +86,6 @@ class _$Session extends Session {
     this.accessToken,
     this.refreshToken,
     required this.user,
-    required this.assurance,
     required this.channel,
     required this.expiresAt,
     this.refreshExpiresAt,
@@ -164,7 +104,6 @@ class _$Session extends Session {
         accessToken == other.accessToken &&
         refreshToken == other.refreshToken &&
         user == other.user &&
-        assurance == other.assurance &&
         channel == other.channel &&
         expiresAt == other.expiresAt &&
         refreshExpiresAt == other.refreshExpiresAt;
@@ -176,7 +115,6 @@ class _$Session extends Session {
     _$hash = $jc(_$hash, accessToken.hashCode);
     _$hash = $jc(_$hash, refreshToken.hashCode);
     _$hash = $jc(_$hash, user.hashCode);
-    _$hash = $jc(_$hash, assurance.hashCode);
     _$hash = $jc(_$hash, channel.hashCode);
     _$hash = $jc(_$hash, expiresAt.hashCode);
     _$hash = $jc(_$hash, refreshExpiresAt.hashCode);
@@ -190,7 +128,6 @@ class _$Session extends Session {
           ..add('accessToken', accessToken)
           ..add('refreshToken', refreshToken)
           ..add('user', user)
-          ..add('assurance', assurance)
           ..add('channel', channel)
           ..add('expiresAt', expiresAt)
           ..add('refreshExpiresAt', refreshExpiresAt))
@@ -212,11 +149,6 @@ class SessionBuilder implements Builder<Session, SessionBuilder> {
   MeBuilder? _user;
   MeBuilder get user => _$this._user ??= MeBuilder();
   set user(MeBuilder? user) => _$this._user = user;
-
-  SessionAssuranceEnum? _assurance;
-  SessionAssuranceEnum? get assurance => _$this._assurance;
-  set assurance(SessionAssuranceEnum? assurance) =>
-      _$this._assurance = assurance;
 
   SessionChannelEnum? _channel;
   SessionChannelEnum? get channel => _$this._channel;
@@ -241,7 +173,6 @@ class SessionBuilder implements Builder<Session, SessionBuilder> {
       _accessToken = $v.accessToken;
       _refreshToken = $v.refreshToken;
       _user = $v.user.toBuilder();
-      _assurance = $v.assurance;
       _channel = $v.channel;
       _expiresAt = $v.expiresAt;
       _refreshExpiresAt = $v.refreshExpiresAt;
@@ -272,11 +203,6 @@ class SessionBuilder implements Builder<Session, SessionBuilder> {
             accessToken: accessToken,
             refreshToken: refreshToken,
             user: user.build(),
-            assurance: BuiltValueNullFieldError.checkNotNull(
-              assurance,
-              r'Session',
-              'assurance',
-            ),
             channel: BuiltValueNullFieldError.checkNotNull(
               channel,
               r'Session',

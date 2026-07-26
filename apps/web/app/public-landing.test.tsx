@@ -9,16 +9,25 @@ describe('public landing page', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Gerak yang terasa baik, untuk hidup yang lebih seimbang.',
+        name: 'Stronger Body. Calmer Mind.',
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Navigasi publik' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Private Class' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Semi Private Class' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Private Group' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Green Garden' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Orange Groves' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Masuk / Registrasi' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Reformer Pilates' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mat Pilates' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Barre' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Cadillac Pilates' })).not.toBeInTheDocument();
+    screen.getAllByRole('link', { name: 'Jelajahi Studio' }).forEach((link) => {
+      expect(link).toHaveAttribute('href', '/locations');
+    });
+    expect(screen.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/sign-in');
+    expect(screen.getAllByRole('link', { name: 'Lihat Paket' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Pilih Paket' })).toHaveAttribute('href', '/packages');
+    expect(screen.getAllByRole('link', { name: 'Lihat Jadwal' })).toHaveLength(3);
+    screen.getAllByRole('link', { name: 'Lihat Jadwal' }).forEach((link) => {
+      expect(link).toHaveAttribute('href', '/classes#schedule');
+    });
+    expect(view.container).not.toHaveTextContent(/trial class/i);
     expect((await axe(view.container)).violations).toHaveLength(0);
   }, 30_000);
 });

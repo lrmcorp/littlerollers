@@ -16,7 +16,6 @@ part 'session.g.dart';
 /// * [accessToken] - Mobile only; web uses secure HttpOnly cookie
 /// * [refreshToken] - Mobile only and returned only at issuance/rotation
 /// * [user] 
-/// * [assurance] 
 /// * [channel] 
 /// * [expiresAt] 
 /// * [refreshExpiresAt] 
@@ -32,10 +31,6 @@ abstract class Session implements Built<Session, SessionBuilder> {
 
   @BuiltValueField(wireName: r'user')
   Me get user;
-
-  @BuiltValueField(wireName: r'assurance')
-  SessionAssuranceEnum get assurance;
-  // enum assuranceEnum {  BASE,  MFA,  };
 
   @BuiltValueField(wireName: r'channel')
   SessionChannelEnum get channel;
@@ -88,11 +83,6 @@ class _$SessionSerializer implements PrimitiveSerializer<Session> {
     yield serializers.serialize(
       object.user,
       specifiedType: const FullType(Me),
-    );
-    yield r'assurance';
-    yield serializers.serialize(
-      object.assurance,
-      specifiedType: const FullType(SessionAssuranceEnum),
     );
     yield r'channel';
     yield serializers.serialize(
@@ -157,13 +147,6 @@ class _$SessionSerializer implements PrimitiveSerializer<Session> {
           ) as Me;
           result.user.replace(valueDes);
           break;
-        case r'assurance':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(SessionAssuranceEnum),
-          ) as SessionAssuranceEnum;
-          result.assurance = valueDes;
-          break;
         case r'channel':
           final valueDes = serializers.deserialize(
             value,
@@ -213,21 +196,6 @@ class _$SessionSerializer implements PrimitiveSerializer<Session> {
     );
     return result.build();
   }
-}
-
-class SessionAssuranceEnum extends EnumClass {
-
-  @BuiltValueEnumConst(wireName: r'BASE')
-  static const SessionAssuranceEnum BASE = _$sessionAssuranceEnum_BASE;
-  @BuiltValueEnumConst(wireName: r'MFA')
-  static const SessionAssuranceEnum MFA = _$sessionAssuranceEnum_MFA;
-
-  static Serializer<SessionAssuranceEnum> get serializer => _$sessionAssuranceEnumSerializer;
-
-  const SessionAssuranceEnum._(String name): super(name);
-
-  static BuiltSet<SessionAssuranceEnum> get values => _$sessionAssuranceEnumValues;
-  static SessionAssuranceEnum valueOf(String name) => _$sessionAssuranceEnumValueOf(name);
 }
 
 class SessionChannelEnum extends EnumClass {

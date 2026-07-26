@@ -136,7 +136,7 @@ class ClassesApi {
   }
 
   /// cancelClassSlot
-  /// Synthetic-only MFA-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
+  /// Permission-gated cancellation from DRAFT/PUBLISHED. Atomically releases ACTIVE reservations; production remains blocked by DEC-008.
   ///
   /// Parameters:
   /// * [id] 
@@ -643,7 +643,7 @@ class ClassesApi {
   }
 
   /// publishClassSlot
-  /// MFA-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
+  /// Permission-gated DRAFT to PUBLISHED transition after assignment and availability revalidation.
   ///
   /// Parameters:
   /// * [id] 

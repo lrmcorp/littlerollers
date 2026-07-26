@@ -92,6 +92,12 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
   @override
   final String classTypeId;
   @override
+  final String? packageName;
+  @override
+  final String? branchName;
+  @override
+  final String? classTypeName;
+  @override
   final CustomerPackageBalanceStatusEnum status;
   @override
   final Date activationDate;
@@ -124,6 +130,9 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     required this.customerUserId,
     required this.packageId,
     required this.classTypeId,
+    this.packageName,
+    this.branchName,
+    this.classTypeName,
     required this.status,
     required this.activationDate,
     required this.expiryAt,
@@ -154,6 +163,9 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
         customerUserId == other.customerUserId &&
         packageId == other.packageId &&
         classTypeId == other.classTypeId &&
+        packageName == other.packageName &&
+        branchName == other.branchName &&
+        classTypeName == other.classTypeName &&
         status == other.status &&
         activationDate == other.activationDate &&
         expiryAt == other.expiryAt &&
@@ -175,6 +187,9 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     _$hash = $jc(_$hash, customerUserId.hashCode);
     _$hash = $jc(_$hash, packageId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, packageName.hashCode);
+    _$hash = $jc(_$hash, branchName.hashCode);
+    _$hash = $jc(_$hash, classTypeName.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, activationDate.hashCode);
     _$hash = $jc(_$hash, expiryAt.hashCode);
@@ -198,6 +213,9 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
           ..add('customerUserId', customerUserId)
           ..add('packageId', packageId)
           ..add('classTypeId', classTypeId)
+          ..add('packageName', packageName)
+          ..add('branchName', branchName)
+          ..add('classTypeName', classTypeName)
           ..add('status', status)
           ..add('activationDate', activationDate)
           ..add('expiryAt', expiryAt)
@@ -237,6 +255,19 @@ class CustomerPackageBalanceBuilder
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+
+  String? _packageName;
+  String? get packageName => _$this._packageName;
+  set packageName(String? packageName) => _$this._packageName = packageName;
+
+  String? _branchName;
+  String? get branchName => _$this._branchName;
+  set branchName(String? branchName) => _$this._branchName = branchName;
+
+  String? _classTypeName;
+  String? get classTypeName => _$this._classTypeName;
+  set classTypeName(String? classTypeName) =>
+      _$this._classTypeName = classTypeName;
 
   CustomerPackageBalanceStatusEnum? _status;
   CustomerPackageBalanceStatusEnum? get status => _$this._status;
@@ -300,6 +331,9 @@ class CustomerPackageBalanceBuilder
       _customerUserId = $v.customerUserId;
       _packageId = $v.packageId;
       _classTypeId = $v.classTypeId;
+      _packageName = $v.packageName;
+      _branchName = $v.branchName;
+      _classTypeName = $v.classTypeName;
       _status = $v.status;
       _activationDate = $v.activationDate;
       _expiryAt = $v.expiryAt;
@@ -358,6 +392,9 @@ class CustomerPackageBalanceBuilder
             r'CustomerPackageBalance',
             'classTypeId',
           ),
+          packageName: packageName,
+          branchName: branchName,
+          classTypeName: classTypeName,
           status: BuiltValueNullFieldError.checkNotNull(
             status,
             r'CustomerPackageBalance',
