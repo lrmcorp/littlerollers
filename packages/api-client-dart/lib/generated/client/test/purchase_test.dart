@@ -17,8 +17,8 @@ void main() {
       // TODO
     });
 
-    // String customerUserId
-    test('to test the property `customerUserId`', () async {
+    // String userId
+    test('to test the property `userId`', () async {
       // TODO
     });
 
@@ -29,6 +29,26 @@ void main() {
 
     // String paymentProofId
     test('to test the property `paymentProofId`', () async {
+      // TODO
+    });
+
+    // String packageNameSnapshot
+    test('to test the property `packageNameSnapshot`', () async {
+      // TODO
+    });
+
+    // int priceRpSnapshot
+    test('to test the property `priceRpSnapshot`', () async {
+      // TODO
+    });
+
+    // int sessionCountSnapshot
+    test('to test the property `sessionCountSnapshot`', () async {
+      // TODO
+    });
+
+    // int durationDaysSnapshot
+    test('to test the property `durationDaysSnapshot`', () async {
       // TODO
     });
 
@@ -47,8 +67,18 @@ void main() {
       // TODO
     });
 
-    // String reason
-    test('to test the property `reason`', () async {
+    // String decidedById
+    test('to test the property `decidedById`', () async {
+      // TODO
+    });
+
+    // String decisionReasonCode
+    test('to test the property `decisionReasonCode`', () async {
+      // TODO
+    });
+
+    // int version
+    test('to test the property `version`', () async {
       // TODO
     });
 

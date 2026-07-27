@@ -32,5 +32,25 @@ void main() {
       // TODO
     });
 
+    // String identityVerificationStatus
+    test('to test the property `identityVerificationStatus`', () async {
+      // TODO
+    });
+
+    // DateTime sessionExpiresAt
+    test('to test the property `sessionExpiresAt`', () async {
+      // TODO
+    });
+
+    // BuiltList<SessionBranch> branches
+    test('to test the property `branches`', () async {
+      // TODO
+    });
+
+    // PreferredStudio preferredBranch
+    test('to test the property `preferredBranch`', () async {
+      // TODO
+    });
+
   });
 }

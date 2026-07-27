@@ -52,6 +52,9 @@ export function PublicClassesView({
   client?: PublicClassCatalogClient;
 }) {
   const session = useSessionContext()?.session;
+  const inCustomerShell = Boolean(
+    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
+  );
   const [branches, setBranches] = useState<PublicBranch[]>([]);
   const [branchId, setBranchId] = useState('');
   const [slots, setSlots] = useState<PublicClassSlot[]>([]);
@@ -69,14 +72,19 @@ export function PublicClassesView({
         if (!active) return;
         setBranches(result.branches);
         setStatus('ready');
-        const requestedStudio = new URLSearchParams(window.location.search).get('studio');
+        const query = new URLSearchParams(window.location.search);
+        const requestedBranchId = query.get('branch');
+        const requestedStudio = query.get('studio');
         const requestedBranch = result.branches.find(
-          ({ name }) =>
+          ({ id, name }) =>
+            id === requestedBranchId ||
             name.toLocaleLowerCase('id-ID') === requestedStudio?.toLocaleLowerCase('id-ID'),
         );
-        if (requestedBranch) {
-          setBranchId(requestedBranch.id);
-          void load(requestedBranch.id);
+        const preferredBranch =
+          requestedBranch ?? result.branches.find(({ id }) => id === session?.preferredBranch?.id);
+        if (preferredBranch) {
+          setBranchId(preferredBranch.id);
+          void load(preferredBranch.id);
         }
       })
       .catch((error) => {
@@ -87,7 +95,7 @@ export function PublicClassesView({
     return () => {
       active = false;
     };
-  }, [client]);
+  }, [client, session?.preferredBranch?.id]);
 
   const load = async (selectedBranch = branchId) => {
     if (!selectedBranch) return;
@@ -128,7 +136,7 @@ export function PublicClassesView({
       <a className="skip-link" href="#catalog-main">
         Langsung ke jadwal
       </a>
-      <PublicHeader current="/classes" />
+      {!inCustomerShell && <PublicHeader />}
 
       <main id="catalog-main">
         <PublicPageHero
@@ -168,6 +176,15 @@ export function PublicClassesView({
                     setSlots([]);
                     setDay('');
                     setClassType('');
+                    const query = new URLSearchParams(window.location.search);
+                    if (value) query.set('branch', value);
+                    else query.delete('branch');
+                    query.delete('studio');
+                    window.history.replaceState(
+                      window.history.state,
+                      '',
+                      `${window.location.pathname}${query.size ? `?${query}` : ''}${window.location.hash}`,
+                    );
                     if (value) void load(value);
                   }}
                 >
@@ -338,7 +355,7 @@ export function PublicClassesView({
           </div>
         </section>
       </main>
-      <PublicFooter />
+      {!inCustomerShell && <PublicFooter />}
     </div>
   );
 }

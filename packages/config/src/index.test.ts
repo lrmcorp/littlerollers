@@ -14,10 +14,6 @@ const validEnvironment = {
   QUOTA_EVALUATION_LEASE_MS: '30000',
   QUOTA_EVALUATION_MAX_ATTEMPTS: '5',
   QUOTA_EVALUATION_BACKOFF_MS: '60000',
-  OBJECT_STORAGE_ENDPOINT: 'http://127.0.0.1:9000',
-  OBJECT_STORAGE_ACCESS_KEY: 'local-only',
-  OBJECT_STORAGE_SECRET_KEY: 'local-only-secret',
-  OBJECT_STORAGE_BUCKET: 'dailydose-private',
   BOOKING_SYNTHETIC_ENABLED: 'true',
   BOOKING_SYNTHETIC_CUTOFF_HOURS: '2',
   RESCHEDULE_SYNTHETIC_ENABLED: 'true',
@@ -31,14 +27,54 @@ test('loads a complete synthetic local configuration', () => {
   assert.equal(config.quotaEvaluation.syntheticEnabled, true);
   assert.deepEqual(config.booking, { syntheticEnabled: true, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { syntheticEnabled: true, cutoffHours: 24 });
+  assert.deepEqual(config.privateUploads, {
+    driver: 'local',
+    root: 'apps/api/.local-data/private',
+    maxBytes: 8_000_000,
+    viewAuthorizationTtlSeconds: 300,
+    retentionDays: 30,
+  });
+});
+
+test('does not require object storage credentials for local private uploads', () => {
+  const config = loadRuntimeConfig(validEnvironment);
+  assert.equal('objectStorage' in config, false);
+});
+
+test('loads and validates the public WhatsApp fallback as E.164', () => {
+  const config = loadRuntimeConfig({
+    ...validEnvironment,
+    PUBLIC_SUPPORT_WHATSAPP_E164: '+628111000000',
+  });
+  assert.equal(config.publicSupportWhatsappE164, '+628111000000');
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      PUBLIC_SUPPORT_WHATSAPP_E164: '0811-1000-000',
+    }),
+  );
 });
 
 test('never enables synthetic booking in production', () => {
-  const config = loadRuntimeConfig({ ...validEnvironment, NODE_ENV: 'production' });
+  const config = loadRuntimeConfig({
+    ...validEnvironment,
+    NODE_ENV: 'production',
+    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+  });
   assert.deepEqual(config.booking, { syntheticEnabled: false, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { syntheticEnabled: false, cutoffHours: 24 });
 });
 
 test('does not invent defaults for production-required values', () => {
   assert.throws(() => loadRuntimeConfig({ NODE_ENV: 'production' }));
+});
+
+test('requires private upload root in production and validates limits', () => {
+  assert.throws(() =>
+    loadRuntimeConfig({ ...validEnvironment, NODE_ENV: 'production', PRIVATE_UPLOAD_ROOT: '' }),
+  );
+  assert.throws(() => loadRuntimeConfig({ ...validEnvironment, PRIVATE_UPLOAD_MAX_BYTES: '0' }));
+  assert.throws(() =>
+    loadRuntimeConfig({ ...validEnvironment, PRIVATE_UPLOAD_MAX_BYTES: '8000001' }),
+  );
 });

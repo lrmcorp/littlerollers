@@ -17,12 +17,14 @@ void main() {
       // TODO
     });
 
+    // Admin or Manager consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
+    //
     //Future<CheckInResult> customerCheckIn(String idempotencyKey, TokenCheckInCommand tokenCheckInCommand) async
     test('test customerCheckIn', () async {
       // TODO
     });
 
-    //Future<CheckInTokenStatus> getCheckInTokenStatus(String id) async
+    //Future<CustomerCheckInTokenStatus> getCheckInTokenStatus(String id) async
     test('test getCheckInTokenStatus', () async {
       // TODO
     });
@@ -32,8 +34,17 @@ void main() {
       // TODO
     });
 
-    //Future<CheckInToken> issueCustomerCheckInLink(String id, String idempotencyKey) async
+    // Issues a one-time booking pass. The raw token is returned only on first issuance and is never persisted.
+    //
+    //Future<CustomerCheckInIssue> issueCustomerCheckInLink(String id, String idempotencyKey, IssueCustomerCheckInLinkCommand issueCustomerCheckInLinkCommand) async
     test('test issueCustomerCheckInLink', () async {
+      // TODO
+    });
+
+    // Issues passes independently for active bookings in one confirmed class; one failure does not roll back other results.
+    //
+    //Future<BulkCustomerCheckInLinkResult> issueCustomerCheckInLinksBulk(String id, String idempotencyKey, BulkCustomerCheckInLinkCommand bulkCustomerCheckInLinkCommand) async
+    test('test issueCustomerCheckInLinksBulk', () async {
       // TODO
     });
 
@@ -42,7 +53,7 @@ void main() {
       // TODO
     });
 
-    //Future<CheckInTokenStatus> revokeCheckInToken(String id, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<CustomerCheckInTokenStatus> revokeCheckInToken(String id, RevokeCustomerCheckInTokenCommand revokeCustomerCheckInTokenCommand) async
     test('test revokeCheckInToken', () async {
       // TODO
     });

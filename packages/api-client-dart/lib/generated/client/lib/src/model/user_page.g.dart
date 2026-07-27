@@ -11,11 +11,13 @@ class _$UserPage extends UserPage {
   final BuiltList<UserSummary> items;
   @override
   final CursorPageMeta page;
+  @override
+  final UserListSummary summary;
 
   factory _$UserPage([void Function(UserPageBuilder)? updates]) =>
       (UserPageBuilder()..update(updates))._build();
 
-  _$UserPage._({required this.items, required this.page}) : super._();
+  _$UserPage._({required this.items, required this.page, required this.summary}) : super._();
   @override
   UserPage rebuild(void Function(UserPageBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -26,7 +28,7 @@ class _$UserPage extends UserPage {
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is UserPage && items == other.items && page == other.page;
+    return other is UserPage && items == other.items && page == other.page && summary == other.summary;
   }
 
   @override
@@ -34,6 +36,7 @@ class _$UserPage extends UserPage {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
+    _$hash = $jc(_$hash, summary.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -42,7 +45,8 @@ class _$UserPage extends UserPage {
   String toString() {
     return (newBuiltValueToStringHelper(r'UserPage')
           ..add('items', items)
-          ..add('page', page))
+          ..add('page', page)
+          ..add('summary', summary))
         .toString();
   }
 }
@@ -59,6 +63,10 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
   CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
   set page(CursorPageMetaBuilder? page) => _$this._page = page;
 
+  UserListSummaryBuilder? _summary;
+  UserListSummaryBuilder get summary => _$this._summary ??= UserListSummaryBuilder();
+  set summary(UserListSummaryBuilder? summary) => _$this._summary = summary;
+
   UserPageBuilder() {
     UserPage._defaults(this);
   }
@@ -68,6 +76,7 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
     if ($v != null) {
       _items = $v.items.toBuilder();
       _page = $v.page.toBuilder();
+      _summary = $v.summary.toBuilder();
       _$v = null;
     }
     return this;
@@ -89,7 +98,7 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
   _$UserPage _build() {
     _$UserPage _$result;
     try {
-      _$result = _$v ?? _$UserPage._(items: items.build(), page: page.build());
+      _$result = _$v ?? _$UserPage._(items: items.build(), page: page.build(), summary: summary.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -97,6 +106,8 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
         items.build();
         _$failedField = 'page';
         page.build();
+        _$failedField = 'summary';
+        summary.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'UserPage',

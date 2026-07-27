@@ -4,21 +4,19 @@ import './unified-overrides.css';
 import './admin-overrides.css';
 import { ApplicationShell } from './application-shell';
 import { SessionProvider } from './session-context';
+import { AppFeedbackProvider } from './components/app-feedback';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 
-const dmSans = localFont({
-  src: './fonts/dm-sans-variable.ttf',
+const poppins = localFont({
+  src: [
+    { path: './fonts/poppins-regular.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/poppins-medium.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/poppins-semibold.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/poppins-bold.ttf', weight: '700', style: 'normal' },
+  ],
   variable: '--font-ui',
   display: 'swap',
-  weight: '100 1000',
-});
-
-const cormorant = localFont({
-  src: './fonts/cormorant-garamond-variable.ttf',
-  variable: '--font-editorial',
-  display: 'swap',
-  weight: '300 700',
 });
 
 export const metadata: Metadata = {
@@ -49,15 +47,13 @@ export const metadata: Metadata = {
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="id"
-      className={`${dmSans.variable} ${cormorant.variable}`}
-      data-scroll-behavior="smooth"
-    >
+    <html lang="id" className={poppins.variable} data-scroll-behavior="smooth">
       <body suppressHydrationWarning>
-        <SessionProvider>
-          <ApplicationShell>{children}</ApplicationShell>
-        </SessionProvider>
+        <AppFeedbackProvider>
+          <SessionProvider>
+            <ApplicationShell>{children}</ApplicationShell>
+          </SessionProvider>
+        </AppFeedbackProvider>
       </body>
     </html>
   );

@@ -7,6 +7,7 @@ void main() {
   // TODO add properties to the builder and call build()
 
   group(QuotaEvaluationCommand, () {
+    // Must exactly match the persisted H-24 due boundary.
     // DateTime expectedDueAt
     test('to test the property `expectedDueAt`', () async {
       // TODO
@@ -14,11 +15,6 @@ void main() {
 
     // int expectedVersion
     test('to test the property `expectedVersion`', () async {
-      // TODO
-    });
-
-    // String reason
-    test('to test the property `reason`', () async {
       // TODO
     });
 

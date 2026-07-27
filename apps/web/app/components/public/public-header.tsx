@@ -3,20 +3,38 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Menu, UserRound, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 import { BrandMark } from './brand-mark';
 import { publicNavigation, routes } from '../../routes';
+import { useSessionContext } from '../../session-context';
 
-function isCurrent(current: string | undefined, href: string) {
-  if (!current) return false;
-  const target = href.split('#')[0] || '/';
-  return current === target;
+function isCurrent(pathname: string, hash: string, href: string) {
+  if (href === '/classes#schedule') return pathname === '/classes' && hash === '#schedule';
+  if (href === '/classes')
+    return (pathname === '/classes' && hash !== '#schedule') || pathname.startsWith('/classes/');
+  const [target, targetHash = ''] = href.split('#');
+  return pathname === (target || '/') && (!targetHash || hash === `#${targetHash}`);
 }
 
-export function PublicHeader({ current }: { current?: string }) {
+export function PublicHeader() {
+  const pathname = usePathname() ?? '/';
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
+  const customerOnly = Boolean(
+    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
+  );
   const [open, setOpen] = useState(false);
+  const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const update = () => setHash(window.location.hash);
+    update();
+    window.addEventListener('hashchange', update);
+    return () => window.removeEventListener('hashchange', update);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,13 +88,13 @@ export function PublicHeader({ current }: { current?: string }) {
             {publicNavigation.map((item) => (
               <Link
                 className={`relative whitespace-nowrap py-2 text-sm font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:bg-dd-forest after:transition-transform ${
-                  isCurrent(current, item.href)
+                  isCurrent(pathname, hash, item.href)
                     ? 'text-dd-forest after:scale-x-100'
                     : 'text-dd-ink after:scale-x-0 hover:text-dd-forest hover:after:scale-x-100'
                 }`}
                 key={`${item.href}-${item.label}`}
                 href={item.href}
-                aria-current={isCurrent(current, item.href) ? 'page' : undefined}
+                aria-current={isCurrent(pathname, hash, item.href) ? 'page' : undefined}
               >
                 {item.label}
               </Link>
@@ -84,19 +102,66 @@ export function PublicHeader({ current }: { current?: string }) {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-2">
-            <Link
-              className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
-              href={routes.signIn}
-              aria-label="Masuk ke akun"
-            >
-              <UserRound className="size-5" aria-hidden="true" />
-            </Link>
-            <Link
-              className="hidden min-h-11 items-center justify-center rounded-dd-sm px-3 text-sm font-bold text-dd-forest no-underline hover:bg-white sm:inline-flex"
-              href={routes.signIn}
-            >
-              Masuk
-            </Link>
+            {!session ? (
+              <Link
+                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
+                href={routes.signIn}
+                aria-label="Masuk ke akun"
+              >
+                <UserRound className="size-5" aria-hidden="true" />
+              </Link>
+            ) : (
+              <Link
+                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
+                href={customerOnly ? routes.account : routes.workspace}
+                aria-label={customerOnly ? 'Buka akun saya' : 'Buka workspace'}
+              >
+                <UserRound className="size-5" aria-hidden="true" />
+              </Link>
+            )}
+            {!session ? (
+              <Link
+                className="hidden min-h-11 items-center justify-center rounded-dd-sm px-3 text-sm font-bold text-dd-forest no-underline hover:bg-white sm:inline-flex"
+                href={routes.signIn}
+              >
+                Masuk
+              </Link>
+            ) : (
+              <details className="relative hidden sm:block">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-dd-sm border border-dd-line bg-white px-3 text-sm font-bold text-dd-forest">
+                  <UserRound className="size-4" /> {session.displayName}
+                </summary>
+                <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float">
+                  <Link
+                    href={customerOnly ? routes.account : routes.workspace}
+                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                  >
+                    {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
+                  </Link>
+                  <Link
+                    href="/account/profile"
+                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                  >
+                    Profil Saya
+                  </Link>
+                  {customerOnly && (
+                    <Link
+                      href="/account/settings"
+                      className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                    >
+                      Pengaturan
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void sessionContext?.logout()}
+                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
+                  >
+                    Keluar
+                  </button>
+                </div>
+              </details>
+            )}
             <Link
               className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark lg:inline-flex"
               href={`${routes.classes}#schedule`}
@@ -152,11 +217,11 @@ export function PublicHeader({ current }: { current?: string }) {
               {publicNavigation.map((item) => (
                 <Link
                   className={`flex min-h-14 items-center justify-between border-b border-dd-line/75 text-base font-semibold no-underline ${
-                    isCurrent(current, item.href) ? 'text-dd-forest' : 'text-dd-ink'
+                    isCurrent(pathname, hash, item.href) ? 'text-dd-forest' : 'text-dd-ink'
                   }`}
                   key={`${item.href}-${item.label}-mobile`}
                   href={item.href}
-                  aria-current={isCurrent(current, item.href) ? 'page' : undefined}
+                  aria-current={isCurrent(pathname, hash, item.href) ? 'page' : undefined}
                   onClick={close}
                 >
                   {item.label}
@@ -166,6 +231,15 @@ export function PublicHeader({ current }: { current?: string }) {
             </nav>
 
             <div className="mt-auto grid gap-3 border-t border-dd-line pt-5">
+              {session && (
+                <Link
+                  className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                  href={customerOnly ? routes.account : routes.workspace}
+                  onClick={close}
+                >
+                  {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
+                </Link>
+              )}
               <Link
                 className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline"
                 href={`${routes.classes}#schedule`}
@@ -173,6 +247,15 @@ export function PublicHeader({ current }: { current?: string }) {
               >
                 Lihat Jadwal
               </Link>
+              {session && (
+                <button
+                  type="button"
+                  className="min-h-12 rounded-dd-sm border border-dd-danger/30 bg-white px-5 text-sm font-bold text-dd-danger"
+                  onClick={() => void sessionContext?.logout()}
+                >
+                  Keluar
+                </button>
+              )}
               <Link
                 className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline"
                 href={routes.packages}

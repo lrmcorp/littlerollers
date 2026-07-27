@@ -6,11 +6,14 @@ MODE="${1:-temp}"
 
 case "$MODE" in
   sync)
-    TS_OUTPUT=/local/packages/api-client-ts/generated
-    DART_OUTPUT=/local/packages/api-client-dart/lib/generated/client
-    DART_PUBSPEC=packages/api-client-dart/lib/generated/client/pubspec.yaml
-    LOCAL_TS_OUTPUT=packages/api-client-ts/generated
-    LOCAL_DART_OUTPUT=packages/api-client-dart/lib/generated/client
+    TS_OUTPUT=/local/.generated/sync/typescript
+    DART_OUTPUT=/local/.generated/sync/dart
+    DART_PUBSPEC=.generated/sync/dart/pubspec.yaml
+    LOCAL_TS_OUTPUT=.generated/sync/typescript
+    LOCAL_DART_OUTPUT=.generated/sync/dart
+    TARGET_TS_OUTPUT=packages/api-client-ts/generated
+    TARGET_DART_OUTPUT=packages/api-client-dart/lib/generated/client
+    rm -rf .generated/sync
     ;;
   temp)
     TS_OUTPUT=/local/.generated/typescript
@@ -48,5 +51,21 @@ fi
 # outputs use a different language version from their source libraries.
 sed -i.bak "s/sdk: '>=2.18.0 <4.0.0'/sdk: '>=3.10.4 <4.0.0'/" "$DART_PUBSPEC"
 rm -f "$DART_PUBSPEC.bak"
+
+if [ "$MODE" = sync ]; then
+  # Publish only after both generators complete successfully. OpenAPI Generator
+  # does not remove files for deleted/inlined schemas, so clean only the source
+  # files covered by drift checks while preserving compiled/build_runner output.
+  find "$TARGET_TS_OUTPUT" -type f -name '*.ts' ! -name '*.d.ts' -delete
+  find "$TARGET_DART_OUTPUT/lib" -type f -name '*.dart' ! -name '*.g.dart' -delete
+  cp -R "$LOCAL_TS_OUTPUT/." "$TARGET_TS_OUTPUT/"
+  cp -R "$LOCAL_DART_OUTPUT/." "$TARGET_DART_OUTPUT/"
+  find "$TARGET_DART_OUTPUT/lib/src/model" -type f -name '*.g.dart' | while IFS= read -r generated; do
+    source_file="${generated%.g.dart}.dart"
+    if [ ! -f "$source_file" ]; then
+      rm -f "$generated"
+    fi
+  done
+fi
 
 echo "Generated deterministic TypeScript and Dart clients ($MODE)."

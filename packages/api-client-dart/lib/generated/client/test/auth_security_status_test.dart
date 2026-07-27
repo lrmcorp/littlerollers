@@ -12,9 +12,6 @@ void main() {
       // TODO
     });
 
-      // TODO
-    });
-
     // DateTime passwordChangedAt
     test('to test the property `passwordChangedAt`', () async {
       // TODO

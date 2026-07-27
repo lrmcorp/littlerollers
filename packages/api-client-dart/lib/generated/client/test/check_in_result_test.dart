@@ -37,8 +37,38 @@ void main() {
       // TODO
     });
 
+    // String auditReference
+    test('to test the property `auditReference`', () async {
+      // TODO
+    });
+
     // bool idempotentReplay
     test('to test the property `idempotentReplay`', () async {
+      // TODO
+    });
+
+    // String customerName
+    test('to test the property `customerName`', () async {
+      // TODO
+    });
+
+    // String className
+    test('to test the property `className`', () async {
+      // TODO
+    });
+
+    // CheckInResultBranch branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
+    // DateTime startAt
+    test('to test the property `startAt`', () async {
+      // TODO
+    });
+
+    // DateTime endAt
+    test('to test the property `endAt`', () async {
       // TODO
     });
 

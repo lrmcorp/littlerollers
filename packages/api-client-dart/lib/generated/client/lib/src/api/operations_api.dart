@@ -11,7 +11,7 @@ import 'package:dio/dio.dart';
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/dashboard_overview.dart';
 import 'package:openapi/src/model/date.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
+import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/health_result.dart';
 import 'package:openapi/src/model/operational_job_page.dart';
@@ -33,7 +33,7 @@ class OperationsApi {
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [decideCorrectionRequest] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -46,7 +46,7 @@ class OperationsApi {
   Future<Response<OperationalJobResult>> deadLetterOperationalJob({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required DecideCorrectionRequest decideCorrectionRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -78,8 +78,8 @@ class OperationsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(DecideCorrectionRequest);
+      _bodyData = _serializers.serialize(decideCorrectionRequest, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -399,7 +399,7 @@ class OperationsApi {
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [deactivateUserRequest] 
+  /// * [decideCorrectionRequest] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -412,7 +412,7 @@ class OperationsApi {
   Future<Response<OperationalJobResult>> retryOperationalJob({ 
     required String id,
     required String idempotencyKey,
-    required DeactivateUserRequest deactivateUserRequest,
+    required DecideCorrectionRequest decideCorrectionRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -444,8 +444,8 @@ class OperationsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DeactivateUserRequest);
-      _bodyData = _serializers.serialize(deactivateUserRequest, specifiedType: _type);
+      const _type = FullType(DecideCorrectionRequest);
+      _bodyData = _serializers.serialize(decideCorrectionRequest, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

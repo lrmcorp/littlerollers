@@ -12,6 +12,16 @@ void main() {
       // TODO
     });
 
+    // String displayName
+    test('to test the property `displayName`', () async {
+      // TODO
+    });
+
+    // BuiltList<UserRoleInput> roleAssignments
+    test('to test the property `roleAssignments`', () async {
+      // TODO
+    });
+
     // BuiltList<Role> roles
     test('to test the property `roles`', () async {
       // TODO

@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **code** | **String** |  | 
 **name** | **String** |  | 
 **timezone** | **String** |  | 
+**supportWhatsappE164** | **String** |  | [optional] 
 **active** | **bool** |  | 
 **version** | **int** |  | 
 

@@ -1,0 +1,55 @@
+'use client';
+
+import { notifySessionFailure } from './session-client';
+
+export interface PreferredStudio {
+  id: string;
+  code: string;
+  name: string;
+  timezone: string;
+  supportWhatsappE164: string | null;
+}
+
+export interface MyProfile {
+  id: string;
+  displayName: string;
+  emailMasked: string | null;
+  phoneMasked: string | null;
+  preferredBranch: PreferredStudio | null;
+  version: number;
+}
+
+export interface PublicSiteConfig {
+  branches: PreferredStudio[];
+  fallbackWhatsappE164: string | null;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  if (!response.ok) {
+    const error = { response: { status: response.status }, body: await response.text() };
+    notifySessionFailure(error);
+    throw error;
+  }
+  return response.json();
+}
+
+export const accountClient = {
+  profile(): Promise<MyProfile> {
+    return request('/me/profile');
+  },
+  updateProfile(input: {
+    displayName: string;
+    preferredBranchId?: string;
+    expectedVersion: number;
+  }): Promise<MyProfile> {
+    return request('/me/profile', { method: 'PATCH', body: JSON.stringify(input) });
+  },
+  siteConfig(): Promise<PublicSiteConfig> {
+    return request('/public/site-config');
+  },
+};

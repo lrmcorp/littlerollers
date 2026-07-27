@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/user_summary.dart';
+import 'package:openapi/src/model/user_list_summary.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:built_value/built_value.dart';
@@ -16,6 +17,7 @@ part 'user_page.g.dart';
 /// Properties:
 /// * [items] 
 /// * [page] 
+/// * [summary] 
 @BuiltValue()
 abstract class UserPage implements Built<UserPage, UserPageBuilder> {
   @BuiltValueField(wireName: r'items')
@@ -23,6 +25,9 @@ abstract class UserPage implements Built<UserPage, UserPageBuilder> {
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
+
+  @BuiltValueField(wireName: r'summary')
+  UserListSummary get summary;
 
   UserPage._();
 
@@ -56,6 +61,11 @@ class _$UserPageSerializer implements PrimitiveSerializer<UserPage> {
     yield serializers.serialize(
       object.page,
       specifiedType: const FullType(CursorPageMeta),
+    );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(UserListSummary),
     );
   }
 
@@ -93,6 +103,13 @@ class _$UserPageSerializer implements PrimitiveSerializer<UserPage> {
             specifiedType: const FullType(CursorPageMeta),
           ) as CursorPageMeta;
           result.page.replace(valueDes);
+          break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(UserListSummary),
+          ) as UserListSummary;
+          result.summary.replace(valueDes);
           break;
         default:
           unhandled.add(key);

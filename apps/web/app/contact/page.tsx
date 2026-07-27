@@ -16,7 +16,7 @@ export default function ContactPage() {
       <a className="skip-link" href="#contact-main">
         Langsung ke kontak
       </a>
-      <PublicHeader current="/contact" />
+      <PublicHeader />
       <main id="contact-main">
         <PublicPageHero
           eyebrow="Kami siap membantu"

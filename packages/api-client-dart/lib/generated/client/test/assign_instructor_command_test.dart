@@ -12,11 +12,6 @@ void main() {
       // TODO
     });
 
-    // String reason
-    test('to test the property `reason`', () async {
-      // TODO
-    });
-
     // int expectedVersion
     test('to test the property `expectedVersion`', () async {
       // TODO

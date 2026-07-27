@@ -22,6 +22,11 @@ void main() {
       // TODO
     });
 
+    // DashboardSections sections
+    test('to test the property `sections`', () async {
+      // TODO
+    });
+
     // BuiltList<DashboardMetric> metrics
     test('to test the property `metrics`', () async {
       // TODO

@@ -25,7 +25,10 @@ export const demoUsers = [
   { key: 'owner-bsd', name: 'Owner Cabang BSD', email: 'bsd.owner@dailydose.local', role: 'OWNER' as ApplicationRole, branch: 'DD-BSD' },
   { key: 'admin', name: 'Admin Cabang Jakarta', email: 'admin@dailydose.local', role: 'ADMIN' as ApplicationRole, branch: 'DD-JKT' },
   { key: 'manager', name: 'Manager Cabang Jakarta', email: 'manager@dailydose.local', role: 'MANAGER' as ApplicationRole, branch: 'DD-JKT' },
+  { key: 'manager-bsd', name: 'Manager Cabang BSD', email: 'manager.bsd@dailydose.local', role: 'MANAGER' as ApplicationRole, branch: 'DD-BSD' },
   { key: 'instructor', name: 'Instructor Daily Dose', email: 'instructor@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-JKT' },
+  { key: 'instructor-jkt-2', name: 'Instructor Jakarta Dua', email: 'instructor.jakarta.2@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-JKT' },
+  { key: 'instructor-bsd-2', name: 'Instructor BSD Dua', email: 'instructor.bsd.2@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-BSD' },
   { key: 'finance', name: 'Finance Daily Dose', email: 'finance@dailydose.local', role: 'FINANCE' as ApplicationRole },
   { key: 'ops', name: 'Operations Daily Dose', email: 'ops@dailydose.local', role: 'OPS' as ApplicationRole },
   {
@@ -47,7 +50,7 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
   const selected =
     ctx.profile === 'minimal'
       ? demoUsers.filter((item) =>
-          ['ralamzah-super-owner', 'super-owner', 'owner-jkt', 'owner-bsd', 'instructor'].includes(
+          ['ralamzah-super-owner', 'super-owner', 'owner-jkt', 'owner-bsd', 'instructor', 'instructor-jkt-2', 'instructor-bsd-2'].includes(
             item.key,
           ),
         )
@@ -59,12 +62,14 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
       where: { id: userId },
       update: {
         displayName: user.name,
+        email: user.email,
         phoneE164: user.phoneE164 ?? null,
         status: 'ACTIVE',
       },
       create: {
         id: userId,
         displayName: user.name,
+        email: user.email,
         phoneE164: user.phoneE164,
         status: 'ACTIVE',
       },
@@ -85,6 +90,8 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
     { key: 'owner-bsd', user: 'owner-bsd', branch: 'DD-BSD', type: 'OWNER', role: 'OWNER' },
     { key: 'instructor-jkt', user: 'instructor', branch: 'DD-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
     { key: 'instructor-bsd', user: 'instructor', branch: 'DD-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'instructor-jkt-2', user: 'instructor-jkt-2', branch: 'DD-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'instructor-bsd-2', user: 'instructor-bsd-2', branch: 'DD-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
   ];
   for (const item of assignments) {
     if (!ids[item.user]) continue;

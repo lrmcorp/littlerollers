@@ -14,7 +14,6 @@ import 'package:openapi/src/model/account_link_command.dart';
 import 'package:openapi/src/model/auth_security_status.dart';
 import 'package:openapi/src/model/challenge_accepted.dart';
 import 'package:openapi/src/model/changed_status.dart';
-import 'package:openapi/src/model/customer_registration_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/google_auth_request.dart';
 import 'package:openapi/src/model/otp_request.dart';
@@ -740,7 +739,13 @@ class AuthApi {
   /// Creates an active CUSTOMER account with pending private selfie and KTP verification, then issues a web session.
   ///
   /// Parameters:
-  /// * [customerRegistrationCommand] 
+  /// * [displayName] 
+  /// * [phone] 
+  /// * [email] 
+  /// * [password] 
+  /// * [consent] 
+  /// * [selfie] 
+  /// * [ktp] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -751,7 +756,13 @@ class AuthApi {
   /// Returns a [Future] containing a [Response] with a [Session] as data
   /// Throws [DioException] if API call or serialization fails
   Future<Response<Session>> registerCustomer({ 
-    required CustomerRegistrationCommand customerRegistrationCommand,
+    required String displayName,
+    required String phone,
+    required String email,
+    required String password,
+    required bool consent,
+    required MultipartFile selfie,
+    required MultipartFile ktp,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -769,15 +780,22 @@ class AuthApi {
         'secure': <Map<String, String>>[],
         ...?extra,
       },
-      contentType: 'application/json',
+      contentType: 'multipart/form-data',
       validateStatus: validateStatus,
     );
 
     dynamic _bodyData;
 
     try {
-      const _type = FullType(CustomerRegistrationCommand);
-      _bodyData = _serializers.serialize(customerRegistrationCommand, specifiedType: _type);
+      _bodyData = FormData.fromMap(<String, dynamic>{
+        r'displayName': encodeFormParameter(_serializers, displayName, const FullType(String)),
+        r'phone': encodeFormParameter(_serializers, phone, const FullType(String)),
+        r'email': encodeFormParameter(_serializers, email, const FullType(String)),
+        r'password': encodeFormParameter(_serializers, password, const FullType(String)),
+        r'consent': encodeFormParameter(_serializers, consent, const FullType(bool)),
+        r'selfie': selfie,
+        r'ktp': ktp,
+      });
 
     } catch(error, stackTrace) {
       throw DioException(

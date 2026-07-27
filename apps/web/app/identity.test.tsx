@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { SignInView } from './sign-in/sign-in-view';
 import { UsersView } from './users/users-view';
+import { UserDetailView } from './users/[id]/user-detail-view';
 import type { IdentityClient } from './identity-client';
 import { AssignmentsView } from './assignments/assignments-view';
 import type { AssignmentClient } from './assignment-client';
@@ -14,6 +15,7 @@ import { ForgotPasswordView } from './forgot-password/forgot-password-view';
 import { ResetPasswordView } from './reset-password/reset-password-view';
 import { SecurityView } from './account/security/security-view';
 import { AuditView } from './audit/audit-view';
+import { RolePermissionsView } from './users/roles-permissions/role-permissions-view';
 
 const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   signIn: vi.fn().mockResolvedValue(undefined),
@@ -27,12 +29,17 @@ const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
     passwordChangedAt: null,
   }),
   changePassword: vi.fn().mockResolvedValue(undefined),
-  listUsers: vi.fn().mockResolvedValue({ items: [], page: { nextCursor: null, hasMore: false } }),
+  listUsers: vi.fn().mockResolvedValue({
+    items: [],
+    page: { nextCursor: null, hasMore: false },
+    summary: { total: 0, active: 0, pendingActivation: 0, inactive: 0 },
+  }),
   lookupUsers: vi.fn().mockResolvedValue({ items: [], page: { nextCursor: null, hasMore: false } }),
   createAuditExport: vi.fn(),
   getAuditExport: vi.fn(),
   authorizeAuditExport: vi.fn(),
   getUser: vi.fn(),
+  updateProfile: vi.fn(),
   roleCatalog: vi.fn().mockResolvedValue([
     {
       role: 'FINANCE',
@@ -89,7 +96,7 @@ describe('identity UI', () => {
     expect(screen.getByText(/Login Google menunggu konfigurasi/i)).toBeVisible();
   });
 
-  it('supports authoritative invite, detail and deactivate states', async () => {
+  it('supports authoritative invite and links every user to a dedicated detail route', async () => {
     const user = {
       id: 'user-1',
       displayName: 'Staff Finance',
@@ -103,12 +110,16 @@ describe('identity UI', () => {
       effectiveCapabilities: [],
     };
     const fake = client({
-      listUsers: vi
-        .fn()
-        .mockResolvedValue({ items: [user], page: { nextCursor: null, hasMore: false } }),
+      listUsers: vi.fn().mockResolvedValue({
+        items: [user],
+        page: { nextCursor: null, hasMore: false },
+        summary: { total: 1, active: 1, pendingActivation: 0, inactive: 0 },
+      }),
       getUser: vi.fn().mockResolvedValue(user),
     });
-    render(<UsersView client={fake} />);
+    render(
+      <UsersView client={fake} capabilitiesOverride={['user:read', 'user:admin', 'audit:read']} />,
+    );
     expect((await screen.findAllByText('Staff Finance'))[0]).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Buat pengguna internal' }));
     await userEvent.type(screen.getByLabelText('Nama tampilan'), 'Staff Baru');
@@ -119,10 +130,57 @@ describe('identity UI', () => {
     expect(fake.invite).toHaveBeenCalledWith('staff@example.test', 'Staff Baru', [
       { role: 'FINANCE', branchId: null },
     ]);
-    await userEvent.click(screen.getByRole('button', { name: 'Lihat detail' }));
+    expect(screen.getAllByRole('link', { name: 'Staff Finance' })[0]).toHaveAttribute(
+      'href',
+      '/users/user-1',
+    );
+  });
+
+  it('manages lifecycle from the dedicated user detail page', async () => {
+    window.history.replaceState({}, '', '/users/user-1');
+    const user = {
+      id: 'user-1',
+      displayName: 'Staff Finance',
+      phoneE164: null,
+      status: 'ACTIVE' as const,
+      version: 1,
+      createdAt: '2026-07-23T00:00:00.000Z',
+      updatedAt: '2026-07-23T00:00:00.000Z',
+      roles: [],
+      directRoles: [],
+      assignmentRoles: [],
+      effectiveCapabilities: [],
+    };
+    const fake = client({ getUser: vi.fn().mockResolvedValue(user) });
+    render(
+      <UserDetailView
+        id="user-1"
+        client={fake}
+        capabilitiesOverride={['user:read', 'user:admin', 'audit:read']}
+      />,
+    );
+    expect(await screen.findByRole('heading', { name: 'Staff Finance' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Nonaktifkan' }));
     await userEvent.type(screen.getByLabelText('Alasan deaktivasi'), 'akses selesai');
-    await userEvent.click(screen.getByRole('button', { name: /Konfirmasi nonaktifkan/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi nonaktifkan' }));
     expect(await screen.findByRole('status')).toHaveTextContent('dinonaktifkan');
+    expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1, 'akses selesai');
+  });
+
+  it('defaults user mutations to deny and exposes the fixed role matrix separately', async () => {
+    const fake = client();
+    const users = render(<UsersView client={fake} />);
+    await screen.findByText('Total pengguna');
+    expect(
+      screen.queryByRole('button', { name: 'Buat pengguna internal' }),
+    ).not.toBeInTheDocument();
+    users.unmount();
+
+    const matrix = render(<RolePermissionsView client={fake} />);
+    expect(await screen.findByRole('heading', { name: 'Roles & Permissions' })).toBeVisible();
+    expect(await screen.findByRole('region', { name: 'Matrix capability role' })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Kelola pengguna/ })).toHaveAttribute('href', '/users');
+    expect((await axe(matrix.container)).violations).toHaveLength(0);
   });
 
   it('filters the masked global access audit without exposing credential data', async () => {

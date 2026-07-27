@@ -83,7 +83,6 @@ import 'package:openapi/src/model/customer_check_in_issue.dart';
 import 'package:openapi/src/model/customer_check_in_token_status.dart';
 import 'package:openapi/src/model/customer_package_balance.dart';
 import 'package:openapi/src/model/customer_package_balance_page.dart';
-import 'package:openapi/src/model/customer_registration_command.dart';
 import 'package:openapi/src/model/dashboard_activity_item.dart';
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
@@ -91,8 +90,9 @@ import 'package:openapi/src/model/dashboard_overview.dart';
 import 'package:openapi/src/model/dashboard_overview_period.dart';
 import 'package:openapi/src/model/dashboard_queue_summary.dart';
 import 'package:openapi/src/model/dashboard_risk_item.dart';
+import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
-import 'package:openapi/src/model/deactivate_user_request.dart';
+import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/effective_period.dart';
@@ -113,9 +113,11 @@ import 'package:openapi/src/model/finance_reconciliation_overview_period.dart';
 import 'package:openapi/src/model/financial_report.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
 import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
+import 'package:openapi/src/model/get_my_notification_unread_count200_response.dart';
 import 'package:openapi/src/model/google_auth_request.dart';
 import 'package:openapi/src/model/health_result.dart';
 import 'package:openapi/src/model/health_result_dependencies_inner.dart';
+import 'package:openapi/src/model/identity_document_self_view_authorization.dart';
 import 'package:openapi/src/model/identity_verification_decision_command.dart';
 import 'package:openapi/src/model/identity_verification_document.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
@@ -128,6 +130,7 @@ import 'package:openapi/src/model/list_payment_accounts200_response.dart';
 import 'package:openapi/src/model/lookup_option.dart';
 import 'package:openapi/src/model/lookup_option_metadata.dart';
 import 'package:openapi/src/model/lookup_page.dart';
+import 'package:openapi/src/model/mark_all_my_notifications_read200_response.dart';
 import 'package:openapi/src/model/me.dart';
 import 'package:openapi/src/model/migration_batch_action_command.dart';
 import 'package:openapi/src/model/migration_batch_command.dart';
@@ -137,6 +140,7 @@ import 'package:openapi/src/model/migration_control_totals.dart';
 import 'package:openapi/src/model/migration_source_upload.dart';
 import 'package:openapi/src/model/migration_source_upload_command.dart';
 import 'package:openapi/src/model/money.dart';
+import 'package:openapi/src/model/my_profile.dart';
 import 'package:openapi/src/model/notification_attempt.dart';
 import 'package:openapi/src/model/notification_occurrence.dart';
 import 'package:openapi/src/model/notification_occurrence_page.dart';
@@ -166,8 +170,9 @@ import 'package:openapi/src/model/payment_account.dart';
 import 'package:openapi/src/model/payment_account_command.dart';
 import 'package:openapi/src/model/payment_proof.dart';
 import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
-import 'package:openapi/src/model/private_image_metadata.dart';
+import 'package:openapi/src/model/preferred_studio.dart';
 import 'package:openapi/src/model/projection_rate_command.dart';
+import 'package:openapi/src/model/public_site_config.dart';
 import 'package:openapi/src/model/purchase.dart';
 import 'package:openapi/src/model/purchase_page.dart';
 import 'package:openapi/src/model/quota_capacity_command.dart';
@@ -177,7 +182,6 @@ import 'package:openapi/src/model/reasoned_version_command.dart';
 import 'package:openapi/src/model/recovery_request_command.dart';
 import 'package:openapi/src/model/recovery_verify_command.dart';
 import 'package:openapi/src/model/recovery_verify_command_new_verified_identity.dart';
-import 'package:openapi/src/model/replace_my_identity_document_request.dart';
 import 'package:openapi/src/model/replace_payment_proof_command.dart';
 import 'package:openapi/src/model/reschedule.dart';
 import 'package:openapi/src/model/reschedule_decision_command.dart';
@@ -199,7 +203,12 @@ import 'package:openapi/src/model/session_branch.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
+import 'package:openapi/src/model/update_my_profile_command.dart';
+import 'package:openapi/src/model/update_user_profile_request.dart';
 import 'package:openapi/src/model/update_user_roles_command.dart';
+import 'package:openapi/src/model/user_list_summary.dart';
+import 'package:openapi/src/model/user_notification.dart';
+import 'package:openapi/src/model/user_notification_page.dart';
 import 'package:openapi/src/model/user_page.dart';
 import 'package:openapi/src/model/user_role_input.dart';
 import 'package:openapi/src/model/user_role_summary.dart';
@@ -279,7 +288,6 @@ part 'serializers.g.dart';
   CustomerCheckInTokenStatus,
   CustomerPackageBalance,
   CustomerPackageBalancePage,
-  CustomerRegistrationCommand,
   DashboardActivityItem,
   DashboardBranchPerformance,
   DashboardMetric,
@@ -287,8 +295,9 @@ part 'serializers.g.dart';
   DashboardOverviewPeriod,
   DashboardQueueSummary,
   DashboardRiskItem,
+  DashboardSections,
   DashboardTrendPoint,
-  DeactivateUserRequest,
+  DecideCorrectionRequest,
   DeleteIdentityVerificationFileRequest,
   DownloadAuthorization,
   EffectivePeriod,$EffectivePeriod,
@@ -309,9 +318,11 @@ part 'serializers.g.dart';
   FinancialReport,
   FinancialReportPage,
   GetFinanceReconciliationAnomalies200Response,
+  GetMyNotificationUnreadCount200Response,
   GoogleAuthRequest,
   HealthResult,
   HealthResultDependenciesInner,
+  IdentityDocumentSelfViewAuthorization,
   IdentityVerificationDecisionCommand,
   IdentityVerificationDocument,
   IdentityVerificationSummary,
@@ -324,6 +335,7 @@ part 'serializers.g.dart';
   LookupOption,
   LookupOptionMetadata,
   LookupPage,
+  MarkAllMyNotificationsRead200Response,
   Me,
   MigrationBatchActionCommand,
   MigrationBatchCommand,
@@ -333,6 +345,7 @@ part 'serializers.g.dart';
   MigrationSourceUpload,
   MigrationSourceUploadCommand,
   Money,
+  MyProfile,
   NotificationAttempt,
   NotificationOccurrence,
   NotificationOccurrencePage,
@@ -362,8 +375,9 @@ part 'serializers.g.dart';
   PaymentAccountCommand,
   PaymentProof,
   PaymentProofUploadInstruction,
-  PrivateImageMetadata,$PrivateImageMetadata,
+  PreferredStudio,
   ProjectionRateCommand,
+  PublicSiteConfig,
   Purchase,
   PurchasePage,
   QuotaCapacityCommand,
@@ -373,7 +387,6 @@ part 'serializers.g.dart';
   RecoveryRequestCommand,
   RecoveryVerifyCommand,
   RecoveryVerifyCommandNewVerifiedIdentity,
-  ReplaceMyIdentityDocumentRequest,
   ReplacePaymentProofCommand,
   Reschedule,
   RescheduleDecisionCommand,
@@ -391,11 +404,16 @@ part 'serializers.g.dart';
   SessionAdjustment,
   SessionAdjustmentDecisionCommand,
   SessionAdjustmentPage,
-  SessionBranch,
+  SessionBranch,$SessionBranch,
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,
+  UpdateMyProfileCommand,
+  UpdateUserProfileRequest,
   UpdateUserRolesCommand,
+  UserListSummary,
+  UserNotification,
+  UserNotificationPage,
   UserPage,
   UserRoleInput,
   UserRoleSummary,
@@ -405,7 +423,7 @@ part 'serializers.g.dart';
 ])
 Serializers serializers = (_$serializers.toBuilder()
       ..add(EffectivePeriod.serializer)
-      ..add(PrivateImageMetadata.serializer)
+      ..add(SessionBranch.serializer)
       ..add(const OneOfSerializer())
       ..add(const AnyOfSerializer())
       ..add(const DateSerializer())

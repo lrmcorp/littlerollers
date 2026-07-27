@@ -44,6 +44,12 @@ export interface UserSummary {
      * @type {string}
      * @memberof UserSummary
      */
+    phoneE164: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSummary
+     */
     status: UserSummaryStatusEnum;
     /**
      * 
@@ -107,6 +113,7 @@ export type UserSummaryStatusEnum = typeof UserSummaryStatusEnum[keyof typeof Us
 export function instanceOfUserSummary(value: object): value is UserSummary {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
+    if (!('phoneE164' in value) || value['phoneE164'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -130,6 +137,7 @@ export function UserSummaryFromJSONTyped(json: any, ignoreDiscriminator: boolean
         
         'id': json['id'],
         'displayName': json['displayName'],
+        'phoneE164': json['phoneE164'],
         'status': json['status'],
         'version': json['version'],
         'createdAt': (new Date(json['createdAt'])),
@@ -154,6 +162,7 @@ export function UserSummaryToJSONTyped(value?: UserSummary | null, ignoreDiscrim
         
         'id': value['id'],
         'displayName': value['displayName'],
+        'phoneE164': value['phoneE164'],
         'status': value['status'],
         'version': value['version'],
         'createdAt': ((value['createdAt']).toISOString()),

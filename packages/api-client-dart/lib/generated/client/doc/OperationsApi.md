@@ -18,7 +18,7 @@ Method | HTTP request | Description
 
 
 # **deadLetterOperationalJob**
-> OperationalJobResult deadLetterOperationalJob(id, idempotencyKey, deactivateUserRequest)
+> OperationalJobResult deadLetterOperationalJob(id, idempotencyKey, decideCorrectionRequest)
 
 
 
@@ -29,10 +29,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getOperationsApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final DecideCorrectionRequest decideCorrectionRequest = ; // DecideCorrectionRequest | 
 
 try {
-    final response = api.deadLetterOperationalJob(id, idempotencyKey, deactivateUserRequest);
+    final response = api.deadLetterOperationalJob(id, idempotencyKey, decideCorrectionRequest);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling OperationsApi->deadLetterOperationalJob: $e\n');
@@ -45,7 +45,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **decideCorrectionRequest** | [**DecideCorrectionRequest**](DecideCorrectionRequest.md)|  | 
 
 ### Return type
 
@@ -190,7 +190,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **retryOperationalJob**
-> OperationalJobResult retryOperationalJob(id, idempotencyKey, deactivateUserRequest)
+> OperationalJobResult retryOperationalJob(id, idempotencyKey, decideCorrectionRequest)
 
 
 
@@ -201,10 +201,10 @@ import 'package:openapi/api.dart';
 final api = Openapi().getOperationsApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final DecideCorrectionRequest decideCorrectionRequest = ; // DecideCorrectionRequest | 
 
 try {
-    final response = api.retryOperationalJob(id, idempotencyKey, deactivateUserRequest);
+    final response = api.retryOperationalJob(id, idempotencyKey, decideCorrectionRequest);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling OperationsApi->retryOperationalJob: $e\n');
@@ -217,7 +217,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **decideCorrectionRequest** | [**DecideCorrectionRequest**](DecideCorrectionRequest.md)|  | 
 
 ### Return type
 

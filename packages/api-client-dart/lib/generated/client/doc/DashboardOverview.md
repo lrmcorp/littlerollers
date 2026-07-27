@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **generatedAt** | [**DateTime**](DateTime.md) |  | 
 **period** | [**DashboardOverviewPeriod**](DashboardOverviewPeriod.md) |  | 
 **roleFocus** | **String** |  | 
+**sections** | [**DashboardSections**](DashboardSections.md) |  | 
 **metrics** | [**BuiltList&lt;DashboardMetric&gt;**](DashboardMetric.md) |  | 
 **queues** | [**BuiltList&lt;DashboardQueueSummary&gt;**](DashboardQueueSummary.md) |  | 
 **trend** | [**BuiltList&lt;DashboardTrendPoint&gt;**](DashboardTrendPoint.md) |  | 

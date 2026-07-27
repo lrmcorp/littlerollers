@@ -7,25 +7,42 @@ export function PublicPageHero({
   description,
   children,
   titleId,
+  variant = 'default',
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children?: ReactNode;
   titleId?: string;
+  variant?: 'default' | 'compact';
 }) {
+  const compact = variant === 'compact';
   return (
-    <section className="relative isolate overflow-hidden border-b border-dd-line bg-dd-paper py-16 sm:py-20 lg:py-24">
+    <section
+      className={`relative isolate overflow-hidden border-b border-dd-line bg-dd-paper ${
+        compact ? 'py-8 sm:py-9' : 'py-16 sm:py-20 lg:py-24'
+      }`}
+    >
       <div className={`${publicContainer} relative z-10`}>
         <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
         <h1
-          className="mt-3 max-w-4xl font-serif text-[clamp(3rem,7vw,5.5rem)] leading-[0.93] font-semibold tracking-[-0.035em]"
+          className={`max-w-4xl font-serif font-semibold tracking-[-0.035em] ${
+            compact
+              ? 'mt-2 text-[clamp(2.35rem,5.5vw,4.5rem)] leading-[0.98]'
+              : 'mt-3 text-[clamp(3rem,7vw,5.5rem)] leading-[0.93]'
+          }`}
           id={titleId}
         >
           {title}
         </h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-dd-muted sm:text-lg">{description}</p>
-        {children && <div className="mt-7">{children}</div>}
+        <p
+          className={`max-w-2xl text-base text-dd-muted sm:text-lg ${
+            compact ? 'mt-4 leading-6 sm:leading-7' : 'mt-5 leading-7'
+          }`}
+        >
+          {description}
+        </p>
+        {children && <div className={compact ? 'mt-5' : 'mt-7'}>{children}</div>}
       </div>
       <span
         className="absolute -top-20 right-[-8rem] -z-10 size-[28rem] rounded-full border border-dd-forest/10"

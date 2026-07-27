@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -22,6 +22,7 @@ import { useSessionContext } from '../session-context';
 import { bookingFailure, browserBookingClient, type CheckInIssue } from '../booking-client';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
+type BranchOption = { id: string; code?: string; name: string; timezone: string };
 type CancellationReason =
   'STUDIO_UNAVAILABLE' | 'INSTRUCTOR_UNAVAILABLE' | 'SAFETY_ISSUE' | 'OTHER_REVIEW_REQUIRED';
 
@@ -59,19 +60,30 @@ function tone(status: string): 'neutral' | 'info' | 'success' | 'warning' | 'dan
 export function ClassSlotView({
   client = browserClassSlotClient,
   branchOverride,
+  branchesOverride,
   capabilitiesOverride,
 }: {
   client?: ClassSlotClient;
-  branchOverride?: { id: string; name: string; timezone: string };
+  branchOverride?: BranchOption;
+  branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
 }) {
   const sessionContext = useSessionContext();
   const branch = branchOverride ?? sessionContext?.activeBranch ?? null;
+  const sessionBranches = sessionContext?.session?.branches;
+  const branches = useMemo(
+    () => branchesOverride ?? sessionBranches ?? (branch ? [branch] : []),
+    [branch, branchesOverride, sessionBranches],
+  );
   const authorityKey = sessionContext?.session?.id ?? 'test';
   const capabilities = capabilitiesOverride ?? sessionContext?.session?.capabilities ?? [];
   const canRead = capabilities.includes('class-slot:read');
   const canManage = capabilities.includes('class-slot:manage');
   const canManageAttendance = capabilities.includes('attendance:manage');
+  const canViewAllBranches = capabilities.includes('branch:all');
+  const globalMode = !branch && canViewAllBranches;
+  const canOperate = Boolean(branch && canManage);
+  const canOperateAttendance = Boolean(branch && canManageAttendance);
   const [reference, setReference] = useState(new Date());
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
@@ -85,19 +97,21 @@ export function ClassSlotView({
   const [busy, setBusy] = useState(false);
   const closeButton = useRef<HTMLButtonElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
-    () => (branch ? weekWindow(reference, branch.timezone) : null),
-    [branch, reference],
+    () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
+    [branch, displayTimezone, globalMode, reference],
   );
 
-  const load = async () => {
-    if (!branch || !week) return;
+  const load = useCallback(async () => {
+    if (!canRead || (!branch && !globalMode) || !week) return;
     setBusy(true);
     setFailure(undefined);
     try {
       const workspace = await client.discover({
-        branchId: branch.id,
-        timezone: branch.timezone,
+        branchId: branch?.id,
+        branches: globalMode ? branches : undefined,
+        timezone: displayTimezone,
         from: week.start,
         until: week.end,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
@@ -111,7 +125,7 @@ export function ClassSlotView({
     } finally {
       setBusy(false);
     }
-  };
+  }, [branch, branches, canRead, client, displayTimezone, globalMode, statusFilter, week]);
 
   useEffect(() => {
     setSlots([]);
@@ -123,6 +137,10 @@ export function ClassSlotView({
     setMessage(undefined);
     setFailure(undefined);
   }, [branch?.id, authorityKey]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (panel) closeButton.current?.focus();
@@ -161,6 +179,8 @@ export function ClassSlotView({
     id
       ? (instructors.find((item) => item.id === id)?.displayName ?? `Instructor ${id.slice(0, 8)}`)
       : 'Belum ditetapkan';
+  const branchName = (id: string) =>
+    branches.find((item) => item.id === id)?.name ?? `Cabang ${id.slice(0, 8)}`;
   const visible = slots
     .filter((slot) => !classTypeFilter || slot.classTypeId === classTypeFilter)
     .filter((slot) => !instructorFilter || slot.instructorUserId === instructorFilter)
@@ -168,7 +188,7 @@ export function ClassSlotView({
   const grouped = new Map(
     (week?.days ?? []).map((day) => [
       day,
-      visible.filter((slot) => localDateKey(slot.startAt, slot.timezone) === day),
+      visible.filter((slot) => localDateKey(slot.startAt, displayTimezone) === day),
     ]),
   );
 
@@ -189,7 +209,7 @@ export function ClassSlotView({
     );
   }
 
-  if (!branch) {
+  if (!branch && !globalMode) {
     return (
       <section
         className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
@@ -201,7 +221,9 @@ export function ClassSlotView({
           titleId="classes-title"
           description="Pilih cabang aktif pada bagian atas workspace untuk membuka jadwal."
         />
-        <Feedback kind="warning">Cabang aktif wajib dipilih secara eksplisit.</Feedback>
+        <Feedback kind="warning">
+          Pilih cabang aktif untuk membuka timetable sesuai scope Anda.
+        </Feedback>
       </section>
     );
   }
@@ -218,6 +240,7 @@ export function ClassSlotView({
       </span>
       <strong>{classTypeName(slot.classTypeId)}</strong>
       <small>{instructorName(slot.instructorUserId)}</small>
+      {globalMode && <small>{branchName(slot.branchId)}</small>}
       <small>
         {slot.bookedCount}/{slot.capacity} terisi · min. {slot.minimumQuota}
       </small>
@@ -228,19 +251,32 @@ export function ClassSlotView({
   return (
     <section className="class-workspace" aria-labelledby="classes-title">
       <PageHeader
-        eyebrow={`${branch.name} · ${branch.timezone}`}
+        eyebrow={
+          globalMode ? 'Semua cabang · ringkasan global' : `${branch?.name} · ${branch?.timezone}`
+        }
         title="Timetable kelas mingguan"
         titleId="classes-title"
-        description="Kelola draft, instructor, publish, dan cancellation pada waktu lokal cabang."
+        description={
+          globalMode
+            ? 'Pantau jadwal seluruh cabang. Pilih cabang aktif di topbar untuk menjalankan tindakan operasional.'
+            : 'Kelola draft, instructor, publish, dan pembatalan pada waktu lokal cabang.'
+        }
         context={
           <>
-            <StatusBadge tone={canManage ? 'success' : 'neutral'}>
-              {canManage ? 'Dapat mengelola' : 'Read only'}
+            <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
+              {canOperate ? 'Dapat mengelola' : 'Read only'}
             </StatusBadge>
-            <span>Interval [mulai, selesai)</span>
+            <span>{globalMode ? 'Scope global' : `Scope ${branch?.name}`}</span>
           </>
         }
       />
+
+      {globalMode && (
+        <Feedback kind="info">
+          Anda sedang melihat seluruh cabang. Pilih satu cabang pada topbar untuk membuat atau
+          mengubah kelas.
+        </Feedback>
+      )}
 
       <div className="calendar-toolbar" aria-label="Kontrol timetable">
         <div className="calendar-navigation">
@@ -256,7 +292,8 @@ export function ClassSlotView({
         </div>
         <strong aria-live="polite">{week?.label}</strong>
         <button
-          disabled={!canManage}
+          disabled={!canOperate}
+          title={globalMode ? 'Pilih cabang aktif untuk membuat kelas' : undefined}
           onClick={(event) => openPanel({ kind: 'create' }, event.currentTarget)}
         >
           Buat kelas
@@ -283,6 +320,7 @@ export function ClassSlotView({
             <option value="">Semua class type</option>
             {classTypes.map((item) => (
               <option value={item.id} key={item.id}>
+                {globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}
                 {item.code} · {item.name}
               </option>
             ))}
@@ -297,14 +335,12 @@ export function ClassSlotView({
             <option value="">Semua instructor</option>
             {instructors.map((item) => (
               <option value={item.id} key={item.id}>
+                {globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}
                 {item.displayName}
               </option>
             ))}
           </select>
         </label>
-        <button disabled={busy} onClick={() => void load()}>
-          Muat timetable
-        </button>
       </div>
 
       {busy && <Skeleton label="Memuat timetable kelas" />}
@@ -325,7 +361,7 @@ export function ClassSlotView({
           <div className="weekly-calendar" role="region" aria-label="Kalender kelas tujuh hari">
             {week?.days.map((day) => (
               <section className="calendar-day" aria-labelledby={`day-${day}`} key={day}>
-                <h2 id={`day-${day}`}>{formatBranchDay(day, branch.timezone)}</h2>
+                <h2 id={`day-${day}`}>{formatBranchDay(day, displayTimezone)}</h2>
                 <div>{grouped.get(day)?.map(slotCard)}</div>
               </section>
             ))}
@@ -333,7 +369,7 @@ export function ClassSlotView({
           <div className="mobile-agenda" aria-label="Agenda kelas mingguan">
             {week?.days.map((day) => (
               <section key={day}>
-                <h2>{formatBranchDay(day, branch.timezone)}</h2>
+                <h2>{formatBranchDay(day, displayTimezone)}</h2>
                 {grouped.get(day)?.length ? (
                   grouped.get(day)?.map(slotCard)
                 ) : (
@@ -361,7 +397,8 @@ export function ClassSlotView({
             <div className="mb-6 flex items-start justify-between gap-4 border-b border-dd-line pb-4">
               <div>
                 <p className="eyebrow">
-                  {branch.name} · {branch.timezone}
+                  {panel.kind === 'detail' ? branchName(panel.slot.branchId) : branch?.name} ·{' '}
+                  {panel.kind === 'detail' ? panel.slot.timezone : branch?.timezone}
                 </p>
                 <h2>
                   {panel.kind === 'create'
@@ -375,8 +412,8 @@ export function ClassSlotView({
             </div>
             {panel.kind === 'create' ? (
               <CreatePanel
-                branchId={branch.id}
-                timezone={branch.timezone}
+                branchId={branch!.id}
+                timezone={branch!.timezone}
                 classTypes={classTypes}
                 instructors={instructors}
                 busy={busy}
@@ -391,8 +428,8 @@ export function ClassSlotView({
                 classTypeName={classTypeName(panel.slot.classTypeId)}
                 instructorName={instructorName(panel.slot.instructorUserId)}
                 instructors={instructors}
-                canManage={canManage}
-                canManageAttendance={canManageAttendance}
+                canManage={canOperate}
+                canManageAttendance={canOperateAttendance}
                 busy={busy}
                 onAssign={(instructorId) =>
                   run(

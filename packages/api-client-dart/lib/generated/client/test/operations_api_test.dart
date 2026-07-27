@@ -7,8 +7,15 @@ void main() {
   final instance = Openapi().getOperationsApi();
 
   group(OperationsApi, () {
-    //Future<OperationalJobResult> deadLetterOperationalJob(String id, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<OperationalJobResult> deadLetterOperationalJob(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
     test('test deadLetterOperationalJob', () async {
+      // TODO
+    });
+
+    // Capability- and branch-scoped aggregate overview for authenticated internal workspaces.
+    //
+    //Future<DashboardOverview> getDashboardOverview({ String branchId, Date from, Date until }) async
+    test('test getDashboardOverview', () async {
       // TODO
     });
 
@@ -22,7 +29,7 @@ void main() {
       // TODO
     });
 
-    //Future<OperationalJobResult> retryOperationalJob(String id, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<OperationalJobResult> retryOperationalJob(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
     test('test retryOperationalJob', () async {
       // TODO
     });

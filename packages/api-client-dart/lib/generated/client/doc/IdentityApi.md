@@ -10,6 +10,7 @@ All URIs are relative to */api/v1*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**authorizeIdentityVerificationView**](IdentityApi.md#authorizeidentityverificationview) | **POST** /identity-verifications/{id}/view-authorizations | 
+[**authorizeMyIdentityDocumentView**](IdentityApi.md#authorizemyidentitydocumentview) | **POST** /identity-verification/me/documents/{kind}/view-authorizations | 
 [**createAssignment**](IdentityApi.md#createassignment) | **POST** /assignments | 
 [**deactivateUser**](IdentityApi.md#deactivateuser) | **POST** /users/{id}/deactivate | 
 [**decideIdentityVerification**](IdentityApi.md#decideidentityverification) | **POST** /identity-verifications/{id}/decisions/{decision} | 
@@ -17,6 +18,8 @@ Method | HTTP request | Description
 [**endAssignment**](IdentityApi.md#endassignment) | **POST** /assignments/{id}/end | 
 [**getMe**](IdentityApi.md#getme) | **GET** /me | 
 [**getMyIdentityVerification**](IdentityApi.md#getmyidentityverification) | **GET** /identity-verification/me | 
+[**getMyProfile**](IdentityApi.md#getmyprofile) | **GET** /me/profile | 
+[**getPublicSiteConfig**](IdentityApi.md#getpublicsiteconfig) | **GET** /public/site-config | 
 [**getRoleCatalog**](IdentityApi.md#getrolecatalog) | **GET** /users/role-catalog | 
 [**getUser**](IdentityApi.md#getuser) | **GET** /users/{id} | 
 [**inviteUser**](IdentityApi.md#inviteuser) | **POST** /users | 
@@ -27,8 +30,11 @@ Method | HTTP request | Description
 [**lookupInstructors**](IdentityApi.md#lookupinstructors) | **GET** /lookups/instructors | 
 [**lookupUsers**](IdentityApi.md#lookupusers) | **GET** /lookups/users | 
 [**reactivateUser**](IdentityApi.md#reactivateuser) | **POST** /users/{id}/reactivate | 
+[**readAuthorizedIdentityVerificationFile**](IdentityApi.md#readauthorizedidentityverificationfile) | **GET** /identity-verification-files/{authorizationId}/content | 
 [**replaceMyIdentityDocument**](IdentityApi.md#replacemyidentitydocument) | **POST** /identity-verification/me/documents/{kind}/replacements | 
 [**requestUserPasswordSetup**](IdentityApi.md#requestuserpasswordsetup) | **POST** /users/{id}/password-setup-requests | 
+[**updateMyProfile**](IdentityApi.md#updatemyprofile) | **PATCH** /me/profile | 
+[**updateUserProfile**](IdentityApi.md#updateuserprofile) | **PATCH** /users/{id}/profile | 
 [**updateUserRoles**](IdentityApi.md#updateuserroles) | **POST** /users/{id}/roles | 
 
 
@@ -61,6 +67,47 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**AuthorizeIdentityVerificationView200Response**](AuthorizeIdentityVerificationView200Response.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **authorizeMyIdentityDocumentView**
+> IdentityDocumentSelfViewAuthorization authorizeMyIdentityDocumentView(kind)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final String kind = kind_example; // String | 
+
+try {
+    final response = api.authorizeMyIdentityDocumentView(kind);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->authorizeMyIdentityDocumentView: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **kind** | **String**|  | 
+
+### Return type
+
+[**IdentityDocumentSelfViewAuthorization**](IdentityDocumentSelfViewAuthorization.md)
 
 ### Authorization
 
@@ -117,7 +164,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **deactivateUser**
-> Resource deactivateUser(id, deactivateUserRequest)
+> Resource deactivateUser(id, reasonedVersionCommand)
 
 
 
@@ -127,10 +174,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
 
 try {
-    final response = api.deactivateUser(id, deactivateUserRequest);
+    final response = api.deactivateUser(id, reasonedVersionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->deactivateUser: $e\n');
@@ -142,7 +189,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
 
 ### Return type
 
@@ -365,6 +412,80 @@ This endpoint does not need any parameter.
 
  - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getMyProfile**
+> MyProfile getMyProfile()
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+
+try {
+    final response = api.getMyProfile();
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->getMyProfile: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**MyProfile**](MyProfile.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getPublicSiteConfig**
+> PublicSiteConfig getPublicSiteConfig()
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+
+try {
+    final response = api.getPublicSiteConfig();
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->getPublicSiteConfig: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**PublicSiteConfig**](PublicSiteConfig.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -764,7 +885,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **reactivateUser**
-> Resource reactivateUser(id, deactivateUserRequest)
+> Resource reactivateUser(id, reasonedVersionCommand)
 
 
 
@@ -774,10 +895,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
 
 try {
-    final response = api.reactivateUser(id, deactivateUserRequest);
+    final response = api.reactivateUser(id, reasonedVersionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->reactivateUser: $e\n');
@@ -789,7 +910,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
 
 ### Return type
 
@@ -806,8 +927,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **readAuthorizedIdentityVerificationFile**
+> Uint8List readAuthorizedIdentityVerificationFile(authorizationId)
+
+
+
+Streams one private identity image through a short-lived, viewer-bound, single-use authorization. The viewer is either the owning customer or an authorized reviewer. The response is never cacheable.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final String authorizationId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.readAuthorizedIdentityVerificationFile(authorizationId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->readAuthorizedIdentityVerificationFile: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **authorizationId** | **String**|  | 
+
+### Return type
+
+[**Uint8List**](Uint8List.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: image/jpeg, image/png, image/webp, application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **replaceMyIdentityDocument**
-> IdentityVerificationDocument replaceMyIdentityDocument(kind, replaceMyIdentityDocumentRequest)
+> IdentityVerificationDocument replaceMyIdentityDocument(kind, replacement, expectedVersion)
 
 
 
@@ -817,10 +981,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String kind = kind_example; // String | 
-final ReplaceMyIdentityDocumentRequest replaceMyIdentityDocumentRequest = ; // ReplaceMyIdentityDocumentRequest | 
+final MultipartFile replacement = BINARY_DATA_HERE; // MultipartFile | 
+final int expectedVersion = 56; // int | 
 
 try {
-    final response = api.replaceMyIdentityDocument(kind, replaceMyIdentityDocumentRequest);
+    final response = api.replaceMyIdentityDocument(kind, replacement, expectedVersion);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->replaceMyIdentityDocument: $e\n');
@@ -832,7 +997,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **kind** | **String**|  | 
- **replaceMyIdentityDocumentRequest** | [**ReplaceMyIdentityDocumentRequest**](ReplaceMyIdentityDocumentRequest.md)|  | 
+ **replacement** | **MultipartFile**|  | 
+ **expectedVersion** | **int**|  | 
 
 ### Return type
 
@@ -844,7 +1010,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: multipart/form-data
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -892,8 +1058,94 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **updateMyProfile**
+> MyProfile updateMyProfile(updateMyProfileCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final UpdateMyProfileCommand updateMyProfileCommand = ; // UpdateMyProfileCommand | 
+
+try {
+    final response = api.updateMyProfile(updateMyProfileCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->updateMyProfile: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **updateMyProfileCommand** | [**UpdateMyProfileCommand**](UpdateMyProfileCommand.md)|  | 
+
+### Return type
+
+[**MyProfile**](MyProfile.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateUserProfile**
+> UserSummary updateUserProfile(id, updateUserProfileRequest)
+
+
+
+Updates permitted staff profile fields with optimistic locking and audit. Existing sessions remain valid because credential and authorization state do not change.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final UpdateUserProfileRequest updateUserProfileRequest = ; // UpdateUserProfileRequest | 
+
+try {
+    final response = api.updateUserProfile(id, updateUserProfileRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->updateUserProfile: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **updateUserProfileRequest** | [**UpdateUserProfileRequest**](UpdateUserProfileRequest.md)|  | 
+
+### Return type
+
+[**UserSummary**](UserSummary.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **updateUserRoles**
-> UserSummary updateUserRoles(id, updateUserRolesCommand)
+> UserSummary updateUserRoles(id, idempotencyKey, updateUserRolesCommand)
 
 
 
@@ -903,10 +1155,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
 final UpdateUserRolesCommand updateUserRolesCommand = ; // UpdateUserRolesCommand | 
 
 try {
-    final response = api.updateUserRoles(id, updateUserRolesCommand);
+    final response = api.updateUserRoles(id, idempotencyKey, updateUserRolesCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->updateUserRoles: $e\n');
@@ -918,6 +1171,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
  **updateUserRolesCommand** | [**UpdateUserRolesCommand**](UpdateUserRolesCommand.md)|  | 
 
 ### Return type

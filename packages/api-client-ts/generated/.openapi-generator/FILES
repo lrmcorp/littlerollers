@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 apis/AttendanceApi.ts
 apis/AuditApi.ts
 apis/AuthApi.ts
@@ -82,7 +83,6 @@ models/CustomerCheckInIssue.ts
 models/CustomerCheckInTokenStatus.ts
 models/CustomerPackageBalance.ts
 models/CustomerPackageBalancePage.ts
-models/CustomerRegistrationCommand.ts
 models/DashboardActivityItem.ts
 models/DashboardBranchPerformance.ts
 models/DashboardMetric.ts
@@ -90,8 +90,9 @@ models/DashboardOverview.ts
 models/DashboardOverviewPeriod.ts
 models/DashboardQueueSummary.ts
 models/DashboardRiskItem.ts
+models/DashboardSections.ts
 models/DashboardTrendPoint.ts
-models/DeactivateUserRequest.ts
+models/DecideCorrectionRequest.ts
 models/DeleteIdentityVerificationFileRequest.ts
 models/DownloadAuthorization.ts
 models/EffectivePeriod.ts
@@ -112,9 +113,11 @@ models/FinanceReconciliationOverviewPeriod.ts
 models/FinancialReport.ts
 models/FinancialReportPage.ts
 models/GetFinanceReconciliationAnomalies200Response.ts
+models/GetMyNotificationUnreadCount200Response.ts
 models/GoogleAuthRequest.ts
 models/HealthResult.ts
 models/HealthResultDependenciesInner.ts
+models/IdentityDocumentSelfViewAuthorization.ts
 models/IdentityVerificationDecisionCommand.ts
 models/IdentityVerificationDocument.ts
 models/IdentityVerificationSummary.ts
@@ -127,6 +130,7 @@ models/ListPaymentAccounts200Response.ts
 models/LookupOption.ts
 models/LookupOptionMetadata.ts
 models/LookupPage.ts
+models/MarkAllMyNotificationsRead200Response.ts
 models/Me.ts
 models/MigrationBatchActionCommand.ts
 models/MigrationBatchCommand.ts
@@ -136,6 +140,7 @@ models/MigrationControlTotals.ts
 models/MigrationSourceUpload.ts
 models/MigrationSourceUploadCommand.ts
 models/Money.ts
+models/MyProfile.ts
 models/NotificationAttempt.ts
 models/NotificationOccurrence.ts
 models/NotificationOccurrencePage.ts
@@ -165,8 +170,9 @@ models/PaymentAccount.ts
 models/PaymentAccountCommand.ts
 models/PaymentProof.ts
 models/PaymentProofUploadInstruction.ts
-models/PrivateImageMetadata.ts
+models/PreferredStudio.ts
 models/ProjectionRateCommand.ts
+models/PublicSiteConfig.ts
 models/Purchase.ts
 models/PurchasePage.ts
 models/QuotaCapacityCommand.ts
@@ -176,7 +182,6 @@ models/ReasonedVersionCommand.ts
 models/RecoveryRequestCommand.ts
 models/RecoveryVerifyCommand.ts
 models/RecoveryVerifyCommandNewVerifiedIdentity.ts
-models/ReplaceMyIdentityDocumentRequest.ts
 models/ReplacePaymentProofCommand.ts
 models/Reschedule.ts
 models/RescheduleDecisionCommand.ts
@@ -198,7 +203,12 @@ models/SessionBranch.ts
 models/SubmitPurchaseRequest.ts
 models/TimeRangeCommand.ts
 models/TokenCheckInCommand.ts
+models/UpdateMyProfileCommand.ts
+models/UpdateUserProfileRequest.ts
 models/UpdateUserRolesCommand.ts
+models/UserListSummary.ts
+models/UserNotification.ts
+models/UserNotificationPage.ts
 models/UserPage.ts
 models/UserRoleInput.ts
 models/UserRoleSummary.ts

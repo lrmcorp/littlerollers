@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import {
+  useEffect,
+  useState,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -10,6 +16,7 @@ import {
   Minus,
   X,
 } from 'lucide-react';
+import { Drawer as GlobalDrawer, Modal as GlobalModal } from '../app-feedback';
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -54,10 +61,11 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   );
 }
 
-export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Panel({ children, className = '', ...props }: HTMLAttributes<HTMLElement>) {
   return (
     <section
       className={`rounded-dd-lg border border-dd-line bg-dd-surface shadow-dd-card ${className}`}
+      {...props}
     >
       {children}
     </section>
@@ -220,29 +228,10 @@ export function Drawer({
   children: ReactNode;
   onClose(): void;
 }) {
-  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[80] bg-dd-sidebar/50 backdrop-blur-sm"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-drawer-title"
-        className="ml-auto h-full w-full max-w-xl overflow-y-auto border-l border-dd-line bg-dd-surface p-5 shadow-dd-float sm:p-7"
-      >
-        <header className="mb-6 flex items-center justify-between gap-4 border-b border-dd-line pb-4">
-          <h2 id="admin-drawer-title" className="text-xl font-semibold">
-            {title}
-          </h2>
-          <Button variant="quiet" onClick={onClose} aria-label="Tutup panel">
-            <X className="size-4" />
-          </Button>
-        </header>
-        {children}
-      </div>
-    </div>
+    <GlobalDrawer open={open} title={title} onClose={onClose}>
+      {children}
+    </GlobalDrawer>
   );
 }
 
@@ -259,32 +248,10 @@ export function Dialog({
   children: ReactNode;
   onClose(): void;
 }) {
-  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[90] grid place-items-center bg-dd-sidebar/55 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-dialog-title"
-        className="w-full max-w-lg rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-float"
-      >
-        <header className="mb-5">
-          <div className="flex items-start justify-between gap-4">
-            <h2 id="admin-dialog-title" className="text-xl font-semibold">
-              {title}
-            </h2>
-            <Button variant="quiet" onClick={onClose} aria-label="Tutup dialog">
-              <X className="size-4" />
-            </Button>
-          </div>
-          {description && <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>}
-        </header>
-        {children}
-      </section>
-    </div>
+    <GlobalModal open={open} title={title} description={description} onClose={onClose}>
+      {children}
+    </GlobalModal>
   );
 }
 

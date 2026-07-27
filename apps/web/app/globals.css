@@ -32,14 +32,7 @@
   --space-8: 32px;
   --space-10: 40px;
   --focus-ring: 0 0 0 3px rgb(57 101 82 / 24%);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
   font-synthesis: none;
 }
 
@@ -193,8 +186,8 @@
 
 /* Unified Daily Dose typography and interface layer */
 :root {
-  --font-sans: var(--font-ui), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-editorial), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --text-caption: 0.75rem;
   --text-small: 0.8125rem;
   --text-control: 0.875rem;
@@ -236,7 +229,6 @@ textarea {
 .marketing-site :where(h1, h2),
 .marketing-site .studio-card-copy h2,
 .marketing-site .marketing-class-grid h3,
-.marketing-site .public-package-card h3,
 .marketing-site .contact-card-grid h3,
 .marketing-site .catalog-state strong,
 .marketing-site .catalog-empty strong,
@@ -378,7 +370,6 @@ textarea {
 }
 
 .public-directory-section.catalog-discovery,
-.public-directory-section.package-discovery,
 .public-directory-section.contact-options {
   padding-inline: 0;
 }
@@ -439,7 +430,6 @@ textarea {
 .marketing-site .catalog-time span,
 .marketing-site .catalog-class span,
 .marketing-site .catalog-capacity span,
-.marketing-site .public-package-type,
 .marketing-site .location-page-card > span,
 .marketing-site .contact-card-grid article > span {
   font-size: var(--text-caption);
@@ -461,8 +451,7 @@ textarea {
 
 .marketing-site .catalog-state,
 .marketing-site .catalog-schedule,
-.marketing-site .catalog-live,
-.marketing-site .public-package-grid {
+.marketing-site .catalog-live {
   max-width: none;
 }
 
@@ -487,11 +476,6 @@ textarea {
   font-size: var(--text-control);
 }
 
-.marketing-site .public-package-grid {
-  gap: 20px;
-}
-
-.marketing-site .public-package-card,
 .marketing-site .contact-card-grid article {
   min-height: 360px;
   background: rgb(255 255 255 / 78%);
@@ -499,14 +483,10 @@ textarea {
   box-shadow: 0 16px 42px rgb(31 68 53 / 6%);
 }
 
-.marketing-site .public-package-card h3,
 .marketing-site .contact-card-grid h3 {
   font-size: clamp(1.8rem, 2.8vw, 2.5rem);
 }
 
-.marketing-site .public-package-card p,
-.marketing-site .public-package-card dt,
-.marketing-site .public-package-card dd,
 .marketing-site .contact-card-grid p,
 .marketing-site .public-data-note,
 .marketing-site .contact-privacy-note p {
@@ -582,8 +562,7 @@ label,
 .eyebrow,
 .muted,
 .user-admin-table th,
-.permission-matrix th,
-.user-detail-panel dt {
+.permission-matrix th {
   font-size: var(--text-caption);
 }
 
@@ -593,15 +572,13 @@ label,
 
 .card,
 .side-panel,
-.user-detail-panel,
 .admin-form {
   border-color: #d4ddd7;
 }
 
 .button-quiet,
 .topbar-context a,
-.cursor-pagination button,
-.detail-actions button {
+.cursor-pagination button {
   min-height: 44px;
   font-size: var(--text-control);
 }
@@ -805,7 +782,7 @@ label,
 .marketing-final-cta h2,
 .studio-why h2,
 .studio-notify h2 {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
 }
 
 .marketing-hero h1 {
@@ -961,7 +938,7 @@ label,
 
 .marketing-studio-copy dd {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   font-size: 1.3rem;
 }
 
@@ -1013,7 +990,7 @@ label,
 
 .marketing-class-grid h3 {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   font-size: 1rem;
 }
 
@@ -1055,7 +1032,7 @@ label,
 }
 
 .marketing-testimonials blockquote {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   font-size: 1.05rem;
   line-height: 1.5;
 }
@@ -1261,7 +1238,7 @@ label,
 
 .studio-card-copy h2 {
   margin: 0 0 8px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -1316,7 +1293,7 @@ label,
 
 .studio-empty h2 {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
 }
 
 .studio-empty p {
@@ -1663,12 +1640,12 @@ label,
   overflow: hidden;
   background: var(--public-paper);
   color: var(--public-ink);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .public-site h1,
 .public-site h2,
 .public-site blockquote {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.04em;
 }
@@ -1941,7 +1918,7 @@ label,
   text-transform: uppercase;
 }
 .public-hero-note strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.25rem;
   font-weight: 400;
 }
@@ -2043,7 +2020,7 @@ label,
 }
 .public-class-card h3 {
   margin: 16px 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(2rem, 3vw, 3.1rem);
   font-weight: 400;
   letter-spacing: -0.04em;
@@ -2096,7 +2073,7 @@ label,
 }
 .public-ritual-visual span {
   position: absolute;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.25rem;
   font-style: italic;
 }
@@ -2137,7 +2114,7 @@ label,
 }
 .public-location-list h3 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(1.45rem, 2.5vw, 2.3rem);
   font-weight: 400;
 }
@@ -2275,7 +2252,7 @@ label,
 }
 .catalog-filter-heading > p strong {
   color: var(--public-ink);
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.35rem;
   font-weight: 400;
 }
@@ -2335,7 +2312,7 @@ label,
   text-align: center;
 }
 .catalog-state strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.8rem;
   font-weight: 400;
 }
@@ -2371,7 +2348,7 @@ label,
 }
 .catalog-day > header h3 {
   margin: 10px 0 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.6rem;
   font-weight: 400;
   line-height: 1.15;
@@ -2394,7 +2371,7 @@ label,
   gap: 3px;
 }
 .catalog-time strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.55rem;
   font-weight: 400;
 }
@@ -2409,7 +2386,7 @@ label,
 }
 .catalog-class h4 {
   margin: 2px 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.45rem;
   font-weight: 400;
 }
@@ -2446,21 +2423,16 @@ label,
   margin-top: 0;
 }
 
-.package-discovery,
 .location-page-grid,
 .contact-options {
   padding: clamp(70px, 8vw, 120px) clamp(24px, 7vw, 110px);
   background: var(--public-cream);
 }
-.package-discovery > *,
 .location-page-grid > *,
 .contact-options > * {
   max-width: 1300px;
   margin-right: auto;
   margin-left: auto;
-}
-.package-filters {
-  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
 }
 .catalog-live {
   margin-top: 34px;
@@ -2474,7 +2446,7 @@ label,
 }
 .catalog-empty strong,
 .catalog-error strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.45rem;
   font-weight: 400;
 }
@@ -2489,59 +2461,6 @@ label,
   border-radius: 999px;
   background: var(--public-forest);
   color: white;
-  font-weight: 750;
-}
-.public-package-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
-  margin-top: 42px;
-}
-.public-package-card {
-  display: flex;
-  min-height: 410px;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 34px;
-  padding: 34px;
-  border: 1px solid #c8d2cc;
-  border-radius: 24px;
-  background: #f8faf8;
-}
-.public-package-type {
-  color: var(--public-forest);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.public-package-card h3 {
-  margin: 18px 0 30px;
-  font-family: Georgia, serif;
-  font-size: clamp(2rem, 3vw, 3rem);
-  font-weight: 400;
-  line-height: 1;
-}
-.public-package-card div > p {
-  color: var(--public-forest-deep);
-  font-size: 1.35rem;
-  font-weight: 750;
-}
-.public-package-card dl {
-  margin: 0;
-  border-top: 1px solid #c8d2cc;
-}
-.public-package-card dl div {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 1px solid #c8d2cc;
-}
-.public-package-card dt {
-  color: #687970;
-}
-.public-package-card dd {
-  margin: 0;
   font-weight: 750;
 }
 .information-heading {
@@ -2584,7 +2503,7 @@ label,
 .location-page-card h3,
 .contact-card-grid h3 {
   margin: 10px 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(2rem, 3vw, 3.2rem);
   font-weight: 400;
   line-height: 1.05;
@@ -2624,7 +2543,7 @@ label,
   min-height: 360px;
 }
 .contact-privacy-note strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 1.35rem;
   font-weight: 400;
 }
@@ -2664,51 +2583,10 @@ label,
   font-size: 0.75rem;
   letter-spacing: 0.04em;
 }
-.cursor-pagination,
-.detail-actions {
+.cursor-pagination {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-}
-.user-detail-panel {
-  display: grid;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-muted);
-  box-shadow: var(--shadow-md);
-}
-.user-detail-panel > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.user-detail-panel h2,
-.user-detail-panel h3,
-.user-detail-panel p {
-  margin-top: 0;
-}
-.user-detail-panel dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin: 0;
-}
-.user-detail-panel dl div {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-}
-.user-detail-panel dt {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-}
-.user-detail-panel dd {
-  margin: var(--space-2) 0 0;
-  font-weight: 700;
 }
 .admin-form {
   display: grid;
@@ -2816,9 +2694,6 @@ label,
   .catalog-book {
     grid-column: 2 / -1;
   }
-  .public-package-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .information-heading {
     grid-template-columns: 1fr;
     gap: 18px;
@@ -2829,13 +2704,11 @@ label,
 }
 
 @media (max-width: 640px) {
-  .user-admin-toolbar,
-  .user-detail-panel dl {
+  .user-admin-toolbar {
     grid-template-columns: 1fr;
   }
   .user-admin-toolbar button,
-  .admin-form button,
-  .detail-actions button {
+  .admin-form button {
     width: 100%;
   }
   .public-header {
@@ -2939,17 +2812,13 @@ label,
     grid-column: 1 / -1;
     width: 100%;
   }
-  .package-discovery,
   .location-page-grid,
   .contact-options {
     padding: 70px 18px;
   }
-  .package-filters,
-  .public-package-grid,
   .location-card-grid {
     grid-template-columns: 1fr;
   }
-  .public-package-card,
   .location-page-card,
   .contact-card-grid article {
     min-height: 0;
@@ -3853,6 +3722,31 @@ th {
 }
 .mobile-agenda {
   display: none;
+}
+
+@media (min-width: 641px) and (max-width: 1279px) {
+  .weekly-calendar {
+    display: none;
+  }
+  .mobile-agenda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+  .mobile-agenda > section {
+    min-width: 0;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+  .mobile-agenda h2 {
+    margin: 0 0 var(--space-3);
+    font-size: 0.9rem;
+  }
+  .mobile-agenda .calendar-slot + .calendar-slot {
+    margin-top: var(--space-2);
+  }
 }
 .purchase-workspace {
   display: grid;

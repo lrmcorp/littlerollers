@@ -285,7 +285,13 @@ databaseDescribe('identity MySQL integration', () => {
       data: { userId: targetId, branchId, role: 'ADMIN', activeFrom: new Date() },
     });
     await service.issueSession(targetId, 'MOBILE');
-    await service.deactivate(principal, targetId, 'integration reason', `${namespace}-deactivate`);
+    await service.deactivate(
+      principal,
+      targetId,
+      'integration reason',
+      0,
+      `${namespace}-deactivate`,
+    );
     expect(await db.userSession.count({ where: { userId: targetId, revokedAt: null } })).toBe(0);
     const audit = await db.auditLog.findFirstOrThrow({
       where: { correlationId: `${namespace}-deactivate` },
@@ -302,8 +308,16 @@ databaseDescribe('identity MySQL integration', () => {
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
-      service.deactivate(principal, inviterId, 'self', `${namespace}-self`),
+      service.deactivate(principal, inviterId, 'self', 0, `${namespace}-self`),
     ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
+  });
+
+  it('returns capability-scoped user totals independent of the selected status filter', async () => {
+    const result = await service.listUsers(principal, { branchId, status: 'ACTIVE' });
+    expect(result.items.every((user) => user.status === 'ACTIVE')).toBe(true);
+    expect(result.summary.total).toBeGreaterThanOrEqual(result.items.length);
+    expect(result.summary.active).toBeGreaterThanOrEqual(result.items.length);
+    expect(result.summary.pendingActivation + result.summary.inactive).toBeGreaterThanOrEqual(0);
   });
 
   it('returns minimal branch-scoped lookup data and filters instructors', async () => {
@@ -333,7 +347,7 @@ databaseDescribe('identity MySQL integration', () => {
   });
 
   it('updates assignable roles with concurrency, revokes sessions, reactivates and exposes audit', async () => {
-    await service.reactivate(principal, targetId, 'returning staff', `${namespace}-reactivate`);
+    await service.reactivate(principal, targetId, 'returning staff', 1, `${namespace}-reactivate`);
     const before = await service.getUser(principal, targetId);
     await service.issueSession(targetId, 'MOBILE', 'BASE');
     const updated = await service.updateUserRoles(
@@ -345,6 +359,7 @@ databaseDescribe('identity MySQL integration', () => {
         reason: 'responsibility changed',
       },
       `${namespace}-roles`,
+      randomUUID(),
     );
     expect(updated.roles).toEqual(
       expect.arrayContaining([expect.objectContaining({ role: 'MANAGER', branchId })]),
@@ -360,6 +375,7 @@ databaseDescribe('identity MySQL integration', () => {
           reason: 'stale update',
         },
         `${namespace}-roles-stale`,
+        randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' });
     await expect(
@@ -372,6 +388,7 @@ databaseDescribe('identity MySQL integration', () => {
           reason: 'forbidden escalation',
         },
         `${namespace}-roles-forbidden`,
+        randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect((await service.listUserAudit(principal, targetId)).items.length).toBeGreaterThan(0);

@@ -484,41 +484,21 @@ textarea {
   }
 }
 
-.role-selection {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-}
-
-.role-selection-item {
-  display: grid;
-  gap: 0.65rem;
-  padding: 0.85rem;
-  border-radius: 0.8rem;
-  background: color-mix(in srgb, var(--surface) 88%, var(--brand) 12%);
-}
-
-.role-selection-item > label:first-child {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-}
-
-.role-selection-item small {
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--muted);
-}
-
-.permission-preview {
-  padding: 0.9rem 1rem;
-  border-left: 3px solid var(--brand);
-  border-radius: 0.5rem;
-  background: var(--surface);
-  overflow-wrap: anywhere;
+/* Operational/customer controls always use the UI face; the serif token is editorial-only. */
+.customer-status-card h2,
+.customer-action-grid strong,
+.customer-selected-class h2,
+.customer-booking-flow legend,
+.public-selection-summary strong,
+.marketing-site .catalog-state strong,
+.marketing-site .catalog-empty strong,
+.marketing-site .catalog-error strong,
+.marketing-site .catalog-day h3,
+.marketing-site .catalog-time strong,
+.marketing-site .catalog-class h4,
+.catalog-filter-heading > p strong,
+.contact-privacy-note strong {
+  font-family: var(--font-sans);
 }
 
 .audit-filter {
@@ -553,7 +533,6 @@ textarea {
 .marketing-site :where(h1, h2),
 .marketing-site .studio-card-copy h2,
 .marketing-site .marketing-class-grid h3,
-.marketing-site .public-package-card h3,
 .marketing-site .contact-card-grid h3,
 .marketing-site .catalog-state strong,
 .marketing-site .catalog-empty strong,
@@ -651,7 +630,6 @@ textarea {
 }
 
 .public-directory-section.catalog-discovery,
-.public-directory-section.package-discovery,
 .public-directory-section.contact-options {
   padding: clamp(64px, 8vw, 104px) 0;
   background: var(--marketing-cream);
@@ -698,7 +676,6 @@ textarea {
 .marketing-site .catalog-time span,
 .marketing-site .catalog-class span,
 .marketing-site .catalog-capacity span,
-.marketing-site .public-package-type,
 .marketing-site .contact-card-grid article > span {
   font-size: var(--text-caption);
 }
@@ -719,8 +696,7 @@ textarea {
 
 .marketing-site .catalog-state,
 .marketing-site .catalog-schedule,
-.marketing-site .catalog-live,
-.marketing-site .public-package-grid {
+.marketing-site .catalog-live {
   max-width: none;
 }
 
@@ -736,7 +712,6 @@ textarea {
   font-size: var(--text-control);
 }
 
-.marketing-site .public-package-card,
 .marketing-site .contact-card-grid article {
   min-height: 360px;
   background: rgb(255 255 255 / 78%);
@@ -744,14 +719,10 @@ textarea {
   box-shadow: 0 16px 42px rgb(31 68 53 / 6%);
 }
 
-.marketing-site .public-package-card h3,
 .marketing-site .contact-card-grid h3 {
   font-size: clamp(1.8rem, 2.8vw, 2.5rem);
 }
 
-.marketing-site .public-package-card p,
-.marketing-site .public-package-card dt,
-.marketing-site .public-package-card dd,
 .marketing-site .contact-card-grid p,
 .marketing-site .public-data-note,
 .marketing-site .contact-privacy-note p {
@@ -804,16 +775,14 @@ label,
 .eyebrow,
 .muted,
 .user-admin-table th,
-.permission-matrix th,
-.user-detail-panel dt {
+.permission-matrix th {
   font-size: var(--text-caption);
 }
 
 .nav-group a,
 .button-quiet,
 .topbar-context a,
-.cursor-pagination button,
-.detail-actions button {
+.cursor-pagination button {
   min-height: 44px;
 }
 

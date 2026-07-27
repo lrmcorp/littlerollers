@@ -68,17 +68,30 @@ export class QuotaWorker {
       const code = error instanceof QuotaEvaluationError ? error.code : 'DEPENDENCY_UNAVAILABLE';
       const attempts = candidate.attempts + 1;
       const exhausted = attempts >= candidate.maxAttempts;
-      await this.db.quotaEvaluationJob.updateMany({
-        where: { id: candidate.id, leaseOwner: this.owner },
-        data: {
-          status: exhausted ? 'FAILED' : 'RETRYING',
-          attempts,
-          nextAttemptAt: new Date(now.getTime() + this.config.backoffMs * attempts),
-          lastErrorCode: code,
-          leaseOwner: null,
-          leaseExpiresAt: null,
-          version: { increment: 1 },
-        },
+      await this.db.$transaction(async (tx) => {
+        await tx.quotaEvaluationJob.updateMany({
+          where: { id: candidate.id, leaseOwner: this.owner },
+          data: {
+            status: exhausted ? 'FAILED' : 'RETRYING',
+            attempts,
+            nextAttemptAt: new Date(now.getTime() + this.config.backoffMs * attempts),
+            lastErrorCode: code,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            version: { increment: 1 },
+          },
+        });
+        if (exhausted)
+          await tx.outboxEvent.create({
+            data: {
+              id: randomUUID(),
+              eventType: 'operations.job_failed.v1',
+              aggregateType: 'QuotaEvaluationJob',
+              aggregateId: candidate.id,
+              payload: { jobId: candidate.id, failureCode: code },
+              correlationId: `quota-job:${candidate.id}`,
+            },
+          });
       });
     }
     return true;

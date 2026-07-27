@@ -11,10 +11,12 @@ export interface ClassTypeOption {
   id: string;
   code: string;
   name: string;
+  branchId?: string;
 }
 export interface InstructorOption {
   id: string;
   displayName: string;
+  branchId?: string;
 }
 export interface ClassWorkspace {
   slots: ClassSlot[];
@@ -24,7 +26,8 @@ export interface ClassWorkspace {
 }
 export interface ClassSlotClient {
   discover(input: {
-    branchId: string;
+    branchId?: string;
+    branches?: { id: string; timezone: string }[];
     timezone: string;
     from: Date;
     until: Date;
@@ -53,11 +56,26 @@ const master = new MasterApi(configuration);
 const key = () => crypto.randomUUID();
 export const browserClassSlotClient: ClassSlotClient = {
   async discover(input) {
-    const [slots, classTypes, users, assignments] = await Promise.all([
-      api.listClassSlots(input),
-      master.listClassTypes({ branchId: input.branchId }),
-      identity.listUsers({ branchId: input.branchId }),
-      identity.listAssignments({ branchId: input.branchId }),
+    const scopedBranches = input.branchId
+      ? [{ id: input.branchId, timezone: input.timezone }]
+      : (input.branches ?? []);
+    const [slots, branchWorkspaces] = await Promise.all([
+      api.listClassSlots({
+        branchId: input.branchId,
+        from: input.from,
+        until: input.until,
+        status: input.status,
+      }),
+      Promise.all(
+        scopedBranches.map(async (branch) => {
+          const [classTypes, users, assignments] = await Promise.all([
+            master.listClassTypes({ branchId: branch.id }),
+            identity.listUsers({ branchId: branch.id }),
+            identity.listAssignments({ branchId: branch.id }),
+          ]);
+          return { branch, classTypes, users, assignments };
+        }),
+      ),
     ]);
     const branchDate = (value: Date) =>
       new Intl.DateTimeFormat('en-CA', {
@@ -68,30 +86,37 @@ export const browserClassSlotClient: ClassSlotClient = {
       }).format(value);
     const weekStart = branchDate(input.from);
     const weekEnd = branchDate(input.until);
-    const instructorIds = new Set(
-      assignments.items
-        .filter(
-          (assignment) =>
-            assignment.assignmentType === 'INSTRUCTOR' &&
-            assignment.branchId === input.branchId &&
-            assignment.activeFrom.toISOString().slice(0, 10) < weekEnd &&
-            (!assignment.activeUntil ||
-              assignment.activeUntil.toISOString().slice(0, 10) > weekStart),
-        )
-        .map((assignment) => assignment.userId),
-    );
-    return {
-      slots: slots.items,
-      nextCursor: slots.page.nextCursor,
-      classTypes: classTypes.items
+    const classTypeOptions = branchWorkspaces.flatMap(({ branch, classTypes }) =>
+      classTypes.items
         .filter((item) => item.active)
-        .map(({ id, code, name }) => ({ id, code, name })),
-      instructors: users.items
+        .map(({ id, code, name }) => ({ id, code, name, branchId: branch.id })),
+    );
+    const instructorOptions = branchWorkspaces.flatMap(({ branch, users, assignments }) => {
+      const instructorIds = new Set(
+        assignments.items
+          .filter(
+            (assignment) =>
+              assignment.assignmentType === 'INSTRUCTOR' &&
+              assignment.branchId === branch.id &&
+              assignment.activeFrom.toISOString().slice(0, 10) < weekEnd &&
+              (!assignment.activeUntil ||
+                assignment.activeUntil.toISOString().slice(0, 10) > weekStart),
+          )
+          .map((assignment) => assignment.userId),
+      );
+      return users.items
         .filter((user) => user.status === 'ACTIVE' && instructorIds.has(user.id))
         .map((user) => ({
           id: user.id,
+          branchId: branch.id,
           displayName: user.displayName || `Instructor ${user.id.slice(0, 8)}`,
-        })),
+        }));
+    });
+    return {
+      slots: slots.items,
+      nextCursor: slots.page.nextCursor,
+      classTypes: classTypeOptions,
+      instructors: [...new Map(instructorOptions.map((item) => [item.id, item])).values()],
     };
   },
   create(input) {

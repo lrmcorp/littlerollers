@@ -243,6 +243,7 @@ Serializers _$serializers =
           ..add(TimeRangeCommand.serializer)
           ..add(TokenCheckInCommand.serializer)
           ..add(UpdateUserRolesCommand.serializer)
+          ..add(UserListSummary.serializer)
           ..add(UserPage.serializer)
           ..add(UserRoleInput.serializer)
           ..add(UserRoleSummary.serializer)

@@ -17,6 +17,11 @@ void main() {
       // TODO
     });
 
+    // String businessKey
+    test('to test the property `businessKey`', () async {
+      // TODO
+    });
+
     // String name
     test('to test the property `name`', () async {
       // TODO
@@ -39,6 +44,11 @@ void main() {
 
     // Date effectiveFrom
     test('to test the property `effectiveFrom`', () async {
+      // TODO
+    });
+
+    // Date effectiveUntil
+    test('to test the property `effectiveUntil`', () async {
       // TODO
     });
 

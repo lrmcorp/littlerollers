@@ -20,7 +20,6 @@ import type {
   AuthSecurityStatus,
   ChallengeAccepted,
   ChangedStatus,
-  CustomerRegistrationCommand,
   ErrorEnvelope,
   GoogleAuthRequest,
   OtpRequest,
@@ -46,8 +45,6 @@ import {
     ChallengeAcceptedToJSON,
     ChangedStatusFromJSON,
     ChangedStatusToJSON,
-    CustomerRegistrationCommandFromJSON,
-    CustomerRegistrationCommandToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
     GoogleAuthRequestFromJSON,
@@ -98,7 +95,13 @@ export interface LinkVerifiedIdentityRequest {
 }
 
 export interface RegisterCustomerRequest {
-    customerRegistrationCommand: CustomerRegistrationCommand;
+    displayName: string;
+    phone: string;
+    email: string;
+    password: string;
+    consent: RegisterCustomerConsentEnum;
+    selfie: Blob;
+    ktp: Blob;
 }
 
 export interface RequestAccountRecoveryRequest {
@@ -458,10 +461,52 @@ export class AuthApi extends runtime.BaseAPI {
      * Creates an active CUSTOMER account with pending private selfie and KTP verification, then issues a web session.
      */
     async registerCustomerRaw(requestParameters: RegisterCustomerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Session>> {
-        if (requestParameters['customerRegistrationCommand'] == null) {
+        if (requestParameters['displayName'] == null) {
             throw new runtime.RequiredError(
-                'customerRegistrationCommand',
-                'Required parameter "customerRegistrationCommand" was null or undefined when calling registerCustomer().'
+                'displayName',
+                'Required parameter "displayName" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['phone'] == null) {
+            throw new runtime.RequiredError(
+                'phone',
+                'Required parameter "phone" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['email'] == null) {
+            throw new runtime.RequiredError(
+                'email',
+                'Required parameter "email" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['password'] == null) {
+            throw new runtime.RequiredError(
+                'password',
+                'Required parameter "password" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['consent'] == null) {
+            throw new runtime.RequiredError(
+                'consent',
+                'Required parameter "consent" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['selfie'] == null) {
+            throw new runtime.RequiredError(
+                'selfie',
+                'Required parameter "selfie" was null or undefined when calling registerCustomer().'
+            );
+        }
+
+        if (requestParameters['ktp'] == null) {
+            throw new runtime.RequiredError(
+                'ktp',
+                'Required parameter "ktp" was null or undefined when calling registerCustomer().'
             );
         }
 
@@ -469,7 +514,51 @@ export class AuthApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        headerParameters['Content-Type'] = 'application/json';
+        const consumes: runtime.Consume[] = [
+            { contentType: 'multipart/form-data' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['displayName'] != null) {
+            formParams.append('displayName', requestParameters['displayName'] as any);
+        }
+
+        if (requestParameters['phone'] != null) {
+            formParams.append('phone', requestParameters['phone'] as any);
+        }
+
+        if (requestParameters['email'] != null) {
+            formParams.append('email', requestParameters['email'] as any);
+        }
+
+        if (requestParameters['password'] != null) {
+            formParams.append('password', requestParameters['password'] as any);
+        }
+
+        if (requestParameters['consent'] != null) {
+            formParams.append('consent', requestParameters['consent'] as any);
+        }
+
+        if (requestParameters['selfie'] != null) {
+            formParams.append('selfie', requestParameters['selfie'] as any);
+        }
+
+        if (requestParameters['ktp'] != null) {
+            formParams.append('ktp', requestParameters['ktp'] as any);
+        }
 
 
         let urlPath = `/auth/customer-registrations`;
@@ -479,7 +568,7 @@ export class AuthApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: CustomerRegistrationCommandToJSON(requestParameters['customerRegistrationCommand']),
+            body: formParams,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => SessionFromJSON(jsonValue));
@@ -787,3 +876,11 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const RegisterCustomerConsentEnum = {
+    True: true
+} as const;
+export type RegisterCustomerConsentEnum = typeof RegisterCustomerConsentEnum[keyof typeof RegisterCustomerConsentEnum];

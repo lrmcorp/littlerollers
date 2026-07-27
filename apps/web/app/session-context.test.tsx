@@ -78,6 +78,16 @@ describe('capability-aware session shell', () => {
     fireEvent.change(screen.getByLabelText('Cabang aktif'), { target: { value: 'branch-2' } });
     expect(screen.getByText('Bandung')).toBeInTheDocument();
     expect(sessionStorage.getItem('dd_active_branch')).toBe('branch-2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    expect(screen.getByRole('region', { name: 'Pusat notifikasi' })).toBeVisible();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Pusat notifikasi' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menu profil Admin Jakarta' }));
+    expect(screen.getByRole('region', { name: 'Menu akun internal' })).toBeVisible();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('region', { name: 'Menu akun internal' })).not.toBeInTheDocument();
   });
 
   it('clears an unauthorized stored branch and redirects a protected route on 401', async () => {
@@ -157,5 +167,33 @@ describe('capability-aware session shell', () => {
     expect(screen.getByRole('link', { name: /Ledger & adjustment/ })).toBeVisible();
     expect(screen.queryByRole('link', { name: /Operations H-24/ })).not.toBeInTheDocument();
     expect(screen.getByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();
+  });
+
+  it('keeps logged-in customers inside the customer shell on the public catalog routes', async () => {
+    navigation.pathname = '/classes';
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue({
+        ...customerSession,
+        identityVerificationStatus: 'APPROVED',
+        preferredBranch: {
+          id: 'branch-1',
+          code: 'JKT',
+          name: 'Jakarta',
+          timezone: 'Asia/Jakarta',
+        },
+      }),
+      logout: vi.fn(),
+    };
+    const view = render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Katalog kelas customer</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    expect(await screen.findByRole('navigation', { name: 'Navigasi akun' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
+    expect(view.container.querySelector('[data-customer-shell]')).toBeInTheDocument();
+    expect(view.container.querySelector('[data-admin-shell]')).not.toBeInTheDocument();
   });
 });

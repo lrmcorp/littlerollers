@@ -20,10 +20,10 @@ import type {
   AuditLogPage,
   AuthorizeIdentityVerificationView200Response,
   ChallengeExpiry,
-  DeactivateUserRequest,
   DeleteIdentityVerificationFileRequest,
   EndAssignmentCommand,
   ErrorEnvelope,
+  IdentityDocumentSelfViewAuthorization,
   IdentityVerificationDecisionCommand,
   IdentityVerificationDocument,
   IdentityVerificationSummary,
@@ -31,11 +31,15 @@ import type {
   ListIdentityVerifications200Response,
   LookupPage,
   Me,
+  MyProfile,
   PasswordSetupRequest,
-  ReplaceMyIdentityDocumentRequest,
+  PublicSiteConfig,
+  ReasonedVersionCommand,
   Resource,
   Role,
   RoleCatalog,
+  UpdateMyProfileCommand,
+  UpdateUserProfileRequest,
   UpdateUserRolesCommand,
   UserPage,
   UserSummary,
@@ -51,14 +55,14 @@ import {
     AuthorizeIdentityVerificationView200ResponseToJSON,
     ChallengeExpiryFromJSON,
     ChallengeExpiryToJSON,
-    DeactivateUserRequestFromJSON,
-    DeactivateUserRequestToJSON,
     DeleteIdentityVerificationFileRequestFromJSON,
     DeleteIdentityVerificationFileRequestToJSON,
     EndAssignmentCommandFromJSON,
     EndAssignmentCommandToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
+    IdentityDocumentSelfViewAuthorizationFromJSON,
+    IdentityDocumentSelfViewAuthorizationToJSON,
     IdentityVerificationDecisionCommandFromJSON,
     IdentityVerificationDecisionCommandToJSON,
     IdentityVerificationDocumentFromJSON,
@@ -73,16 +77,24 @@ import {
     LookupPageToJSON,
     MeFromJSON,
     MeToJSON,
+    MyProfileFromJSON,
+    MyProfileToJSON,
     PasswordSetupRequestFromJSON,
     PasswordSetupRequestToJSON,
-    ReplaceMyIdentityDocumentRequestFromJSON,
-    ReplaceMyIdentityDocumentRequestToJSON,
+    PublicSiteConfigFromJSON,
+    PublicSiteConfigToJSON,
+    ReasonedVersionCommandFromJSON,
+    ReasonedVersionCommandToJSON,
     ResourceFromJSON,
     ResourceToJSON,
     RoleFromJSON,
     RoleToJSON,
     RoleCatalogFromJSON,
     RoleCatalogToJSON,
+    UpdateMyProfileCommandFromJSON,
+    UpdateMyProfileCommandToJSON,
+    UpdateUserProfileRequestFromJSON,
+    UpdateUserProfileRequestToJSON,
     UpdateUserRolesCommandFromJSON,
     UpdateUserRolesCommandToJSON,
     UserPageFromJSON,
@@ -95,13 +107,17 @@ export interface AuthorizeIdentityVerificationViewRequest {
     id: string;
 }
 
+export interface AuthorizeMyIdentityDocumentViewRequest {
+    kind: AuthorizeMyIdentityDocumentViewKindEnum;
+}
+
 export interface CreateAssignmentRequest {
     assignmentCommand: AssignmentCommand;
 }
 
-export interface DeactivateUserOperationRequest {
+export interface DeactivateUserRequest {
     id: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    reasonedVersionCommand: ReasonedVersionCommand;
 }
 
 export interface DecideIdentityVerificationRequest {
@@ -167,12 +183,17 @@ export interface LookupUsersRequest {
 
 export interface ReactivateUserRequest {
     id: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    reasonedVersionCommand: ReasonedVersionCommand;
 }
 
-export interface ReplaceMyIdentityDocumentOperationRequest {
-    kind: ReplaceMyIdentityDocumentOperationKindEnum;
-    replaceMyIdentityDocumentRequest: ReplaceMyIdentityDocumentRequest;
+export interface ReadAuthorizedIdentityVerificationFileRequest {
+    authorizationId: string;
+}
+
+export interface ReplaceMyIdentityDocumentRequest {
+    kind: ReplaceMyIdentityDocumentKindEnum;
+    replacement: Blob;
+    expectedVersion: number;
 }
 
 export interface RequestUserPasswordSetupRequest {
@@ -180,8 +201,18 @@ export interface RequestUserPasswordSetupRequest {
     passwordSetupRequest: PasswordSetupRequest;
 }
 
+export interface UpdateMyProfileRequest {
+    updateMyProfileCommand: UpdateMyProfileCommand;
+}
+
+export interface UpdateUserProfileOperationRequest {
+    id: string;
+    updateUserProfileRequest: UpdateUserProfileRequest;
+}
+
 export interface UpdateUserRolesRequest {
     id: string;
+    idempotencyKey: string;
     updateUserRolesCommand: UpdateUserRolesCommand;
 }
 
@@ -234,6 +265,49 @@ export class IdentityApi extends runtime.BaseAPI {
     }
 
     /**
+     */
+    async authorizeMyIdentityDocumentViewRaw(requestParameters: AuthorizeMyIdentityDocumentViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IdentityDocumentSelfViewAuthorization>> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling authorizeMyIdentityDocumentView().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/identity-verification/me/documents/{kind}/view-authorizations`;
+        urlPath = urlPath.replace(`{${"kind"}}`, encodeURIComponent(String(requestParameters['kind'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => IdentityDocumentSelfViewAuthorizationFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async authorizeMyIdentityDocumentView(requestParameters: AuthorizeMyIdentityDocumentViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityDocumentSelfViewAuthorization> {
+        const response = await this.authorizeMyIdentityDocumentViewRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates an OWNER or INSTRUCTOR interval and linked role projection atomically. Requires assignment:manage.
      */
     async createAssignmentRaw(requestParameters: CreateAssignmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Resource>> {
@@ -282,7 +356,7 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
-    async deactivateUserRaw(requestParameters: DeactivateUserOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Resource>> {
+    async deactivateUserRaw(requestParameters: DeactivateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Resource>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -290,10 +364,10 @@ export class IdentityApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['reasonedVersionCommand'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling deactivateUser().'
+                'reasonedVersionCommand',
+                'Required parameter "reasonedVersionCommand" was null or undefined when calling deactivateUser().'
             );
         }
 
@@ -320,7 +394,7 @@ export class IdentityApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: ReasonedVersionCommandToJSON(requestParameters['reasonedVersionCommand']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ResourceFromJSON(jsonValue));
@@ -328,7 +402,7 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
-    async deactivateUser(requestParameters: DeactivateUserOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Resource> {
+    async deactivateUser(requestParameters: DeactivateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Resource> {
         const response = await this.deactivateUserRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -580,6 +654,68 @@ export class IdentityApi extends runtime.BaseAPI {
      */
     async getMyIdentityVerification(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityVerificationSummary> {
         const response = await this.getMyIdentityVerificationRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getMyProfileRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MyProfile>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/profile`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MyProfileFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getMyProfile(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MyProfile> {
+        const response = await this.getMyProfileRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPublicSiteConfigRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicSiteConfig>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/site-config`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicSiteConfigFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPublicSiteConfig(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicSiteConfig> {
+        const response = await this.getPublicSiteConfigRaw(initOverrides);
         return await response.value();
     }
 
@@ -1008,10 +1144,10 @@ export class IdentityApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['reasonedVersionCommand'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling reactivateUser().'
+                'reasonedVersionCommand',
+                'Required parameter "reasonedVersionCommand" was null or undefined when calling reactivateUser().'
             );
         }
 
@@ -1038,7 +1174,7 @@ export class IdentityApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: ReasonedVersionCommandToJSON(requestParameters['reasonedVersionCommand']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ResourceFromJSON(jsonValue));
@@ -1052,27 +1188,19 @@ export class IdentityApi extends runtime.BaseAPI {
     }
 
     /**
+     * Streams one private identity image through a short-lived, viewer-bound, single-use authorization. The viewer is either the owning customer or an authorized reviewer. The response is never cacheable.
      */
-    async replaceMyIdentityDocumentRaw(requestParameters: ReplaceMyIdentityDocumentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IdentityVerificationDocument>> {
-        if (requestParameters['kind'] == null) {
+    async readAuthorizedIdentityVerificationFileRaw(requestParameters: ReadAuthorizedIdentityVerificationFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Blob>> {
+        if (requestParameters['authorizationId'] == null) {
             throw new runtime.RequiredError(
-                'kind',
-                'Required parameter "kind" was null or undefined when calling replaceMyIdentityDocument().'
-            );
-        }
-
-        if (requestParameters['replaceMyIdentityDocumentRequest'] == null) {
-            throw new runtime.RequiredError(
-                'replaceMyIdentityDocumentRequest',
-                'Required parameter "replaceMyIdentityDocumentRequest" was null or undefined when calling replaceMyIdentityDocument().'
+                'authorizationId',
+                'Required parameter "authorizationId" was null or undefined when calling readAuthorizedIdentityVerificationFile().'
             );
         }
 
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -1083,6 +1211,88 @@ export class IdentityApi extends runtime.BaseAPI {
             }
         }
 
+        let urlPath = `/identity-verification-files/{authorizationId}/content`;
+        urlPath = urlPath.replace(`{${"authorizationId"}}`, encodeURIComponent(String(requestParameters['authorizationId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.BlobApiResponse(response);
+    }
+
+    /**
+     * Streams one private identity image through a short-lived, viewer-bound, single-use authorization. The viewer is either the owning customer or an authorized reviewer. The response is never cacheable.
+     */
+    async readAuthorizedIdentityVerificationFile(requestParameters: ReadAuthorizedIdentityVerificationFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Blob> {
+        const response = await this.readAuthorizedIdentityVerificationFileRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async replaceMyIdentityDocumentRaw(requestParameters: ReplaceMyIdentityDocumentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IdentityVerificationDocument>> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling replaceMyIdentityDocument().'
+            );
+        }
+
+        if (requestParameters['replacement'] == null) {
+            throw new runtime.RequiredError(
+                'replacement',
+                'Required parameter "replacement" was null or undefined when calling replaceMyIdentityDocument().'
+            );
+        }
+
+        if (requestParameters['expectedVersion'] == null) {
+            throw new runtime.RequiredError(
+                'expectedVersion',
+                'Required parameter "expectedVersion" was null or undefined when calling replaceMyIdentityDocument().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const consumes: runtime.Consume[] = [
+            { contentType: 'multipart/form-data' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['replacement'] != null) {
+            formParams.append('replacement', requestParameters['replacement'] as any);
+        }
+
+        if (requestParameters['expectedVersion'] != null) {
+            formParams.append('expectedVersion', requestParameters['expectedVersion'] as any);
+        }
+
+
         let urlPath = `/identity-verification/me/documents/{kind}/replacements`;
         urlPath = urlPath.replace(`{${"kind"}}`, encodeURIComponent(String(requestParameters['kind'])));
 
@@ -1091,7 +1301,7 @@ export class IdentityApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ReplaceMyIdentityDocumentRequestToJSON(requestParameters['replaceMyIdentityDocumentRequest']),
+            body: formParams,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => IdentityVerificationDocumentFromJSON(jsonValue));
@@ -1099,7 +1309,7 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
-    async replaceMyIdentityDocument(requestParameters: ReplaceMyIdentityDocumentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityVerificationDocument> {
+    async replaceMyIdentityDocument(requestParameters: ReplaceMyIdentityDocumentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityVerificationDocument> {
         const response = await this.replaceMyIdentityDocumentRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1159,11 +1369,118 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
+    async updateMyProfileRaw(requestParameters: UpdateMyProfileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MyProfile>> {
+        if (requestParameters['updateMyProfileCommand'] == null) {
+            throw new runtime.RequiredError(
+                'updateMyProfileCommand',
+                'Required parameter "updateMyProfileCommand" was null or undefined when calling updateMyProfile().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/profile`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: UpdateMyProfileCommandToJSON(requestParameters['updateMyProfileCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MyProfileFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async updateMyProfile(requestParameters: UpdateMyProfileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MyProfile> {
+        const response = await this.updateMyProfileRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Updates permitted staff profile fields with optimistic locking and audit. Existing sessions remain valid because credential and authorization state do not change.
+     */
+    async updateUserProfileRaw(requestParameters: UpdateUserProfileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserSummary>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling updateUserProfile().'
+            );
+        }
+
+        if (requestParameters['updateUserProfileRequest'] == null) {
+            throw new runtime.RequiredError(
+                'updateUserProfileRequest',
+                'Required parameter "updateUserProfileRequest" was null or undefined when calling updateUserProfile().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/users/{id}/profile`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: UpdateUserProfileRequestToJSON(requestParameters['updateUserProfileRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserSummaryFromJSON(jsonValue));
+    }
+
+    /**
+     * Updates permitted staff profile fields with optimistic locking and audit. Existing sessions remain valid because credential and authorization state do not change.
+     */
+    async updateUserProfile(requestParameters: UpdateUserProfileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserSummary> {
+        const response = await this.updateUserProfileRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
     async updateUserRolesRaw(requestParameters: UpdateUserRolesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserSummary>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
                 'Required parameter "id" was null or undefined when calling updateUserRoles().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling updateUserRoles().'
             );
         }
 
@@ -1179,6 +1496,10 @@ export class IdentityApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -1215,6 +1536,14 @@ export class IdentityApi extends runtime.BaseAPI {
 /**
  * @export
  */
+export const AuthorizeMyIdentityDocumentViewKindEnum = {
+    Selfie: 'SELFIE',
+    KtpFront: 'KTP_FRONT'
+} as const;
+export type AuthorizeMyIdentityDocumentViewKindEnum = typeof AuthorizeMyIdentityDocumentViewKindEnum[keyof typeof AuthorizeMyIdentityDocumentViewKindEnum];
+/**
+ * @export
+ */
 export const DecideIdentityVerificationDecisionEnum = {
     Approve: 'approve',
     Reject: 'reject'
@@ -1227,6 +1556,8 @@ export const ListIdentityVerificationsStatusEnum = {
     Pending: 'PENDING',
     Approved: 'APPROVED',
     Rejected: 'REJECTED',
+    PendingDeletion: 'PENDING_DELETION',
+    DeleteFailed: 'DELETE_FAILED',
     Deleted: 'DELETED'
 } as const;
 export type ListIdentityVerificationsStatusEnum = typeof ListIdentityVerificationsStatusEnum[keyof typeof ListIdentityVerificationsStatusEnum];
@@ -1242,8 +1573,8 @@ export type ListUsersStatusEnum = typeof ListUsersStatusEnum[keyof typeof ListUs
 /**
  * @export
  */
-export const ReplaceMyIdentityDocumentOperationKindEnum = {
+export const ReplaceMyIdentityDocumentKindEnum = {
     Selfie: 'SELFIE',
     KtpFront: 'KTP_FRONT'
 } as const;
-export type ReplaceMyIdentityDocumentOperationKindEnum = typeof ReplaceMyIdentityDocumentOperationKindEnum[keyof typeof ReplaceMyIdentityDocumentOperationKindEnum];
+export type ReplaceMyIdentityDocumentKindEnum = typeof ReplaceMyIdentityDocumentKindEnum[keyof typeof ReplaceMyIdentityDocumentKindEnum];

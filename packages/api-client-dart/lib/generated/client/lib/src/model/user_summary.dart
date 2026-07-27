@@ -15,6 +15,7 @@ part 'user_summary.g.dart';
 /// Properties:
 /// * [id] 
 /// * [displayName] 
+/// * [phoneE164] 
 /// * [status] 
 /// * [version] 
 /// * [createdAt] 
@@ -30,6 +31,9 @@ abstract class UserSummary implements Built<UserSummary, UserSummaryBuilder> {
 
   @BuiltValueField(wireName: r'displayName')
   String get displayName;
+
+  @BuiltValueField(wireName: r'phoneE164')
+  String? get phoneE164;
 
   @BuiltValueField(wireName: r'status')
   UserSummaryStatusEnum get status;
@@ -88,6 +92,11 @@ class _$UserSummarySerializer implements PrimitiveSerializer<UserSummary> {
     yield serializers.serialize(
       object.displayName,
       specifiedType: const FullType(String),
+    );
+    yield r'phoneE164';
+    yield object.phoneE164 == null ? null : serializers.serialize(
+      object.phoneE164,
+      specifiedType: const FullType.nullable(String),
     );
     yield r'status';
     yield serializers.serialize(
@@ -165,6 +174,14 @@ class _$UserSummarySerializer implements PrimitiveSerializer<UserSummary> {
             specifiedType: const FullType(String),
           ) as String;
           result.displayName = valueDes;
+          break;
+        case r'phoneE164':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.phoneE164 = valueDes;
           break;
         case r'status':
           final valueDes = serializers.deserialize(

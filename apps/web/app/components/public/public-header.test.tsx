@@ -1,13 +1,17 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PublicHeader } from './public-header';
+
+const navigation = vi.hoisted(() => ({ pathname: '/packages' }));
+vi.mock('next/navigation', () => ({ usePathname: () => navigation.pathname }));
 
 describe('PublicHeader', () => {
   it('opens an accessible mobile drawer, traps focus, and closes with Escape', async () => {
+    navigation.pathname = '/packages';
     const user = userEvent.setup();
-    const view = render(<PublicHeader current="/packages" />);
+    const view = render(<PublicHeader />);
     const trigger = screen.getByRole('button', { name: 'Buka menu navigasi' });
 
     await user.click(trigger);
@@ -24,5 +28,31 @@ describe('PublicHeader', () => {
     expect(trigger).toHaveFocus();
     expect(document.body.style.overflow).toBe('');
     expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('marks exactly one classes destination active for page and schedule hash', async () => {
+    navigation.pathname = '/classes';
+    window.history.replaceState({}, '', '/classes');
+    const view = render(<PublicHeader />);
+    expect(view.container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    const desktop = screen.getByRole('navigation', { name: 'Navigasi publik' });
+    expect(within(desktop).getByRole('link', { name: 'Kelas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(desktop).getByRole('link', { name: 'Jadwal' })).not.toHaveAttribute(
+      'aria-current',
+    );
+    window.location.hash = '#schedule';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await waitFor(() =>
+      expect(within(desktop).getByRole('link', { name: 'Jadwal' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      ),
+    );
+    expect(within(desktop).getByRole('link', { name: 'Kelas' })).not.toHaveAttribute(
+      'aria-current',
+    );
   });
 });

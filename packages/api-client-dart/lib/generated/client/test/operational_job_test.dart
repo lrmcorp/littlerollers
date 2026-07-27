@@ -12,7 +12,7 @@ void main() {
       // TODO
     });
 
-    // String type
+    // JsonObject type
     test('to test the property `type`', () async {
       // TODO
     });
@@ -37,11 +37,22 @@ void main() {
       // TODO
     });
 
+    // DateTime dueAt
+    test('to test the property `dueAt`', () async {
+      // TODO
+    });
+
+    // DateTime nextAttemptAt
+    test('to test the property `nextAttemptAt`', () async {
+      // TODO
+    });
+
     // DateTime leaseExpiresAt
     test('to test the property `leaseExpiresAt`', () async {
       // TODO
     });
 
+    // Safe code only; no provider or user data.
     // String lastErrorCode
     test('to test the property `lastErrorCode`', () async {
       // TODO

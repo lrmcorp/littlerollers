@@ -2,10 +2,12 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
+import { access } from 'node:fs/promises';
+import { constants } from 'node:fs';
 
 export type HealthStatus = 'READY' | 'DEGRADED' | 'NOT_READY';
 export interface DependencyHealth {
-  name: 'api' | 'database' | 'redis' | 'worker' | 'object-storage';
+  name: 'api' | 'database' | 'redis' | 'worker' | 'private-storage';
   status: HealthStatus;
   detailCode: 'TIMEOUT' | 'UNREACHABLE' | 'STALE_HEARTBEAT' | null;
 }
@@ -56,11 +58,7 @@ export class HealthService implements OnModuleDestroy {
         if (!heartbeat || Date.now() - Date.parse(heartbeat) > 30_000)
           throw new Error('STALE_HEARTBEAT');
       }),
-      this.probe('object-storage', async () => {
-        const endpoint = new URL('/minio/health/ready', this.config.value.objectStorage.endpoint);
-        const response = await fetch(endpoint, { signal: AbortSignal.timeout(milliseconds) });
-        if (!response.ok) throw new Error('UNREACHABLE');
-      }),
+      this.probe('private-storage', () => this.checkPrivateStorage()),
     ]);
     const dependencies: DependencyHealth[] = [
       { name: 'api', status: 'READY', detailCode: null },
@@ -76,6 +74,10 @@ export class HealthService implements OnModuleDestroy {
       checkedAt: new Date().toISOString(),
       dependencies,
     };
+  }
+
+  private async checkPrivateStorage(): Promise<void> {
+    await access(this.config.value.privateUploads.root, constants.R_OK | constants.W_OK);
   }
 
   private async probe(

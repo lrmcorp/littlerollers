@@ -60,10 +60,27 @@ describe('ClassSlotView', () => {
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
   });
 
-  it('requires an explicit authoritative branch before discovery', () => {
+  it('requires an explicit authoritative branch for a branch-scoped reader', () => {
     render(<ClassSlotView client={fake()} capabilitiesOverride={readCapabilities} />);
-    expect(screen.getByText('Cabang aktif wajib dipilih secara eksplisit.')).toBeVisible();
+    expect(
+      screen.getByText('Pilih cabang aktif untuk membuka timetable sesuai scope Anda.'),
+    ).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Muat timetable' })).not.toBeInTheDocument();
+  });
+
+  it('loads a Super Owner global overview without selecting a branch', async () => {
+    const client = fake();
+    render(
+      <ClassSlotView
+        client={client}
+        branchesOverride={[branch]}
+        capabilitiesOverride={['class-slot:read', 'class-slot:manage', 'branch:all']}
+      />,
+    );
+    expect(await screen.findByText('Semua cabang · ringkasan global')).toBeVisible();
+    expect(screen.getByText('Scope global')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
+    expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });
 
   it('discovers labels, renders seven days, and publishes authoritative slot accessibly', async () => {
@@ -76,7 +93,6 @@ describe('ClassSlotView', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
     const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
     expect(await within(calendar).findByText('Reformer')).toBeInTheDocument();
     expect(calendar).toBeVisible();
@@ -100,7 +116,7 @@ describe('ClassSlotView', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
+    await screen.findByText('Belum ada kelas pada minggu ini');
     await user.click(screen.getByRole('button', { name: 'Buat kelas' }));
     const dialog = screen.getByRole('dialog', { name: 'Buat kelas' });
     await user.selectOptions(within(dialog).getByLabelText('Class type'), 'type-1');
@@ -129,7 +145,6 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={manageCapabilities}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Muat timetable' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Konfigurasi quota atau capacity');
   });
 
@@ -143,7 +158,7 @@ describe('ClassSlotView', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat timetable' }));
+    await screen.findAllByText('Reformer');
     await user.click(
       within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
         'button',

@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // ReservationSummary reservations
+    test('to test the property `reservations`', () async {
+      // TODO
+    });
+
     // BuiltList<LedgerEntry> entries
     test('to test the property `entries`', () async {
       // TODO

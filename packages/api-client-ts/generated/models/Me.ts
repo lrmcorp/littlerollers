@@ -27,6 +27,13 @@ import {
     SessionBranchToJSON,
     SessionBranchToJSONTyped,
 } from './SessionBranch';
+import type { PreferredStudio } from './PreferredStudio';
+import {
+    PreferredStudioFromJSON,
+    PreferredStudioFromJSONTyped,
+    PreferredStudioToJSON,
+    PreferredStudioToJSONTyped,
+} from './PreferredStudio';
 
 /**
  * 
@@ -82,6 +89,12 @@ export interface Me {
      * @memberof Me
      */
     branches: Array<SessionBranch>;
+    /**
+     * 
+     * @type {PreferredStudio}
+     * @memberof Me
+     */
+    preferredBranch: PreferredStudio | null;
 }
 
 
@@ -109,6 +122,7 @@ export function instanceOfMe(value: object): value is Me {
     if (!('identityVerificationStatus' in value) || value['identityVerificationStatus'] === undefined) return false;
     if (!('sessionExpiresAt' in value) || value['sessionExpiresAt'] === undefined) return false;
     if (!('branches' in value) || value['branches'] === undefined) return false;
+    if (!('preferredBranch' in value) || value['preferredBranch'] === undefined) return false;
     return true;
 }
 
@@ -130,6 +144,7 @@ export function MeFromJSONTyped(json: any, ignoreDiscriminator: boolean): Me {
         'identityVerificationStatus': json['identityVerificationStatus'],
         'sessionExpiresAt': (new Date(json['sessionExpiresAt'])),
         'branches': ((json['branches'] as Array<any>).map(SessionBranchFromJSON)),
+        'preferredBranch': PreferredStudioFromJSON(json['preferredBranch']),
     };
 }
 
@@ -152,6 +167,7 @@ export function MeToJSONTyped(value?: Me | null, ignoreDiscriminator: boolean = 
         'identityVerificationStatus': value['identityVerificationStatus'],
         'sessionExpiresAt': ((value['sessionExpiresAt']).toISOString()),
         'branches': ((value['branches'] as Array<any>).map(SessionBranchToJSON)),
+        'preferredBranch': PreferredStudioToJSON(value['preferredBranch']),
     };
 }
 

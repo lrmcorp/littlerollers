@@ -7,6 +7,21 @@ void main() {
   // TODO add properties to the builder and call build()
 
   group(CreatePaymentProofUploadRequest, () {
+    // String orderId
+    test('to test the property `orderId`', () async {
+      // TODO
+    });
+
+    // String branchId
+    test('to test the property `branchId`', () async {
+      // TODO
+    });
+
+    // String packageId
+    test('to test the property `packageId`', () async {
+      // TODO
+    });
+
     // String fileName
     test('to test the property `fileName`', () async {
       // TODO

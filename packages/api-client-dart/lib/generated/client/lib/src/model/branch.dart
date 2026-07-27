@@ -15,6 +15,7 @@ part 'branch.g.dart';
 /// * [code] 
 /// * [name] 
 /// * [timezone] 
+/// * [supportWhatsappE164] 
 /// * [active] 
 /// * [version] 
 @BuiltValue()
@@ -30,6 +31,9 @@ abstract class Branch implements Built<Branch, BranchBuilder> {
 
   @BuiltValueField(wireName: r'timezone')
   String get timezone;
+
+  @BuiltValueField(wireName: r'supportWhatsappE164')
+  String? get supportWhatsappE164;
 
   @BuiltValueField(wireName: r'active')
   bool get active;
@@ -80,6 +84,13 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
       object.timezone,
       specifiedType: const FullType(String),
     );
+    if (object.supportWhatsappE164 != null) {
+      yield r'supportWhatsappE164';
+      yield serializers.serialize(
+        object.supportWhatsappE164,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     yield r'active';
     yield serializers.serialize(
       object.active,
@@ -140,6 +151,14 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
             specifiedType: const FullType(String),
           ) as String;
           result.timezone = valueDes;
+          break;
+        case r'supportWhatsappE164':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.supportWhatsappE164 = valueDes;
           break;
         case r'active':
           final valueDes = serializers.deserialize(

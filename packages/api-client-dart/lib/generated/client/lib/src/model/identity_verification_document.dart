@@ -9,7 +9,7 @@ import 'package:built_value/serializer.dart';
 
 part 'identity_verification_document.g.dart';
 
-/// Object keys, checksums, provider references and signed URLs are never exposed.
+/// Object keys, checksums, provider references and view authorization tokens are never exposed.
 ///
 /// Properties:
 /// * [id] 
@@ -36,7 +36,7 @@ abstract class IdentityVerificationDocument implements Built<IdentityVerificatio
 
   @BuiltValueField(wireName: r'status')
   IdentityVerificationDocumentStatusEnum get status;
-  // enum statusEnum {  PENDING,  APPROVED,  REJECTED,  DELETED,  };
+  // enum statusEnum {  PENDING,  APPROVED,  REJECTED,  PENDING_DELETION,  DELETE_FAILED,  DELETED,  };
 
   @BuiltValueField(wireName: r'uploadStatus')
   IdentityVerificationDocumentUploadStatusEnum get uploadStatus;
@@ -336,6 +336,10 @@ class IdentityVerificationDocumentStatusEnum extends EnumClass {
   static const IdentityVerificationDocumentStatusEnum APPROVED = _$identityVerificationDocumentStatusEnum_APPROVED;
   @BuiltValueEnumConst(wireName: r'REJECTED')
   static const IdentityVerificationDocumentStatusEnum REJECTED = _$identityVerificationDocumentStatusEnum_REJECTED;
+  @BuiltValueEnumConst(wireName: r'PENDING_DELETION')
+  static const IdentityVerificationDocumentStatusEnum PENDING_DELETION = _$identityVerificationDocumentStatusEnum_PENDING_DELETION;
+  @BuiltValueEnumConst(wireName: r'DELETE_FAILED')
+  static const IdentityVerificationDocumentStatusEnum DELETE_FAILED = _$identityVerificationDocumentStatusEnum_DELETE_FAILED;
   @BuiltValueEnumConst(wireName: r'DELETED')
   static const IdentityVerificationDocumentStatusEnum DELETED = _$identityVerificationDocumentStatusEnum_DELETED;
 

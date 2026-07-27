@@ -17,12 +17,19 @@ void main() {
       // TODO
     });
 
+    // Consumes a single-use, short-lived opaque download token.
+    //
+    //Future<String> downloadAuditExport(String id, String token) async
+    test('test downloadAuditExport', () async {
+      // TODO
+    });
+
     //Future<AuditExport> getAuditExportStatus(String id) async
     test('test getAuditExportStatus', () async {
       // TODO
     });
 
-    //Future<AuditLogPage> listAuditLogs({ String branchId, String cursor, String objectType, String actorId }) async
+    //Future<AuditLogPage> listAuditLogs({ String branchId, String cursor, String actorId, String targetUserId, String action, String correlationId, DateTime from, DateTime until }) async
     test('test listAuditLogs', () async {
       // TODO
     });

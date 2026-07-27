@@ -15,37 +15,143 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeactivateUserRequest,
+  DecideCorrectionRequest,
   ErrorEnvelope,
+  GetMyNotificationUnreadCount200Response,
+  MarkAllMyNotificationsRead200Response,
   NotificationAttempt,
   NotificationOccurrencePage,
+  UserNotification,
+  UserNotificationPage,
 } from '../models/index';
 import {
-    DeactivateUserRequestFromJSON,
-    DeactivateUserRequestToJSON,
+    DecideCorrectionRequestFromJSON,
+    DecideCorrectionRequestToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
+    GetMyNotificationUnreadCount200ResponseFromJSON,
+    GetMyNotificationUnreadCount200ResponseToJSON,
+    MarkAllMyNotificationsRead200ResponseFromJSON,
+    MarkAllMyNotificationsRead200ResponseToJSON,
     NotificationAttemptFromJSON,
     NotificationAttemptToJSON,
     NotificationOccurrencePageFromJSON,
     NotificationOccurrencePageToJSON,
+    UserNotificationFromJSON,
+    UserNotificationToJSON,
+    UserNotificationPageFromJSON,
+    UserNotificationPageToJSON,
 } from '../models/index';
+
+export interface ListMyNotificationsRequest {
+    cursor?: string;
+    limit?: number;
+    unreadOnly?: boolean;
+}
 
 export interface ListNotificationsRequest {
     cursor?: string;
     status?: string;
 }
 
+export interface MarkMyNotificationReadRequest {
+    id: string;
+}
+
 export interface RetryNotificationRequest {
     id: string;
     idempotencyKey: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    decideCorrectionRequest: DecideCorrectionRequest;
 }
 
 /**
  * 
  */
 export class NotificationsApi extends runtime.BaseAPI {
+
+    /**
+     */
+    async getMyNotificationUnreadCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMyNotificationUnreadCount200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/notifications/unread-count`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetMyNotificationUnreadCount200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getMyNotificationUnreadCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMyNotificationUnreadCount200Response> {
+        const response = await this.getMyNotificationUnreadCountRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Self-only persistent in-app notification feed.
+     */
+    async listMyNotificationsRaw(requestParameters: ListMyNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserNotificationPage>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['unreadOnly'] != null) {
+            queryParameters['unreadOnly'] = requestParameters['unreadOnly'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/notifications`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserNotificationPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Self-only persistent in-app notification feed.
+     */
+    async listMyNotifications(requestParameters: ListMyNotificationsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserNotificationPage> {
+        const response = await this.listMyNotificationsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      */
@@ -92,6 +198,84 @@ export class NotificationsApi extends runtime.BaseAPI {
 
     /**
      */
+    async markAllMyNotificationsReadRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MarkAllMyNotificationsRead200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/notifications/read-all`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MarkAllMyNotificationsRead200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async markAllMyNotificationsRead(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MarkAllMyNotificationsRead200Response> {
+        const response = await this.markAllMyNotificationsReadRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async markMyNotificationReadRaw(requestParameters: MarkMyNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserNotification>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling markMyNotificationRead().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/me/notifications/{id}/read`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserNotificationFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async markMyNotificationRead(requestParameters: MarkMyNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserNotification> {
+        const response = await this.markMyNotificationReadRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
     async receiveMetaWebhookRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
@@ -133,10 +317,10 @@ export class NotificationsApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['decideCorrectionRequest'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling retryNotification().'
+                'decideCorrectionRequest',
+                'Required parameter "decideCorrectionRequest" was null or undefined when calling retryNotification().'
             );
         }
 
@@ -167,7 +351,7 @@ export class NotificationsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: DecideCorrectionRequestToJSON(requestParameters['decideCorrectionRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => NotificationAttemptFromJSON(jsonValue));

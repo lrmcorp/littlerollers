@@ -11,6 +11,7 @@ import {
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
 import { ResendPasswordEmailProvider } from './email-provider';
+import { LocalPrivateFileStorage, PRIVATE_FILE_STORAGE } from './private-file-storage';
 
 @Module({
   imports: [DatabaseModule],
@@ -23,6 +24,8 @@ import { ResendPasswordEmailProvider } from './email-provider';
     ConfigGatedProofProvider,
     RateLimitService,
     ResendPasswordEmailProvider,
+    LocalPrivateFileStorage,
+    { provide: PRIVATE_FILE_STORAGE, useExisting: LocalPrivateFileStorage },
     AuthGuard,
   ],
   exports: [IdentityService, PolicyService, AuthGuard],

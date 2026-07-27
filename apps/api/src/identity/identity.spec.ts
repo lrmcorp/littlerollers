@@ -223,6 +223,212 @@ describe('identity security foundation', () => {
     expect(tx.userInvitation.findFirst).toHaveBeenCalled();
   });
 
+  it('updates permitted staff profile fields with versioning and without revoking sessions', async () => {
+    const role = {
+      role: 'ADMIN' as const,
+      branchId: 'branch-a',
+      sourceAssignmentId: null,
+      branch: { id: 'branch-a', code: 'JKT', name: 'Jakarta' },
+    };
+    const before = {
+      id: 'staff-1',
+      displayName: 'Staff Lama',
+      phoneE164: null,
+      status: 'ACTIVE' as const,
+      version: 2,
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-01'),
+      roles: [role],
+    };
+    const after = {
+      ...before,
+      displayName: 'Staff Baru',
+      phoneE164: '+628123456789',
+      version: 3,
+    };
+    const db = {
+      user: {
+        findUnique: jest.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+      userSession: { updateMany: jest.fn() },
+      $transaction: (callback: (client: unknown) => unknown) => callback(db),
+    };
+    const service = new IdentityService(
+      db as never,
+      new PolicyService(),
+      new ConfigGatedGoogleProvider(),
+      new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
+    );
+    const result = await service.updateUserProfile(
+      {
+        sessionId: 'session-1',
+        userId: 'owner-1',
+        roles: [{ role: 'SUPER_OWNER', branchId: null }],
+        capabilities: ['user:read', 'user:admin', 'branch:all'],
+        branchIds: [],
+      },
+      'staff-1',
+      {
+        displayName: ' Staff Baru ',
+        phoneE164: '0812 3456 789',
+        expectedVersion: 2,
+        reason: 'Koreksi profil',
+      },
+      'correlation-1',
+    );
+    expect(result).toMatchObject({
+      displayName: 'Staff Baru',
+      phoneE164: '+628123456789',
+      version: 3,
+    });
+    expect(db.user.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'staff-1', version: 2 } }),
+    );
+    expect(db.userSession.updateMany).not.toHaveBeenCalled();
+    expect(db.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'security.user_profile_updated' }),
+      }),
+    );
+  });
+
+  it('updates the signed-in customer profile and persists an active preferred studio', async () => {
+    const before = {
+      id: 'customer-1',
+      displayName: 'Customer Lama',
+      email: 'customer@example.test',
+      phoneE164: '+628123456789',
+      status: 'ACTIVE',
+      version: 4,
+      preferredBranch: null,
+    };
+    const after = {
+      ...before,
+      displayName: 'Customer Baru',
+      version: 5,
+      preferredBranch: {
+        id: 'branch-jkt',
+        code: 'JKT',
+        name: 'Daily Dose Jakarta',
+        timezone: 'Asia/Jakarta',
+        supportWhatsappE164: '+628111000001',
+        active: true,
+      },
+    };
+    const db = {
+      user: {
+        findUnique: jest.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      branch: { findFirst: jest.fn().mockResolvedValue({ id: 'branch-jkt' }) },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: (callback: (client: unknown) => unknown) => callback(db),
+    };
+    const service = new IdentityService(
+      db as never,
+      new PolicyService(),
+      new ConfigGatedGoogleProvider(),
+      new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
+    );
+    const result = await service.updateMyProfile(
+      {
+        sessionId: 'session-1',
+        userId: 'customer-1',
+        roles: [{ role: 'CUSTOMER', branchId: null }],
+        capabilities: ['customer:self'],
+        branchIds: [],
+      },
+      { displayName: ' Customer Baru ', preferredBranchId: 'branch-jkt', expectedVersion: 4 },
+      'correlation-1',
+    );
+    expect(result).toMatchObject({
+      displayName: 'Customer Baru',
+      emailMasked: 'cu******@example.test',
+      phoneMasked: '+628*****6789',
+      preferredBranch: { id: 'branch-jkt' },
+      version: 5,
+    });
+    expect(db.user.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'customer-1', version: 4, status: 'ACTIVE' },
+        data: expect.objectContaining({ preferredBranchId: 'branch-jkt' }),
+      }),
+    );
+    expect(db.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'security.my_profile_updated' }),
+      }),
+    );
+  });
+
+  it('issues a private one-time self-view authorization only for the customer document owner', async () => {
+    const db = {
+      identityVerificationDocument: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'document-1',
+          userId: 'customer-1',
+          kind: 'SELFIE',
+          objectKey: 'identity/customer-1/selfie/document-1',
+        }),
+      },
+      identityDocumentViewAuthorization: {
+        create: jest.fn().mockResolvedValue({ id: 'authorization-1' }),
+      },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const storage = { exists: jest.fn().mockResolvedValue(true) };
+    const service = new IdentityService(
+      db as never,
+      new PolicyService(),
+      new ConfigGatedGoogleProvider(),
+      new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
+      undefined,
+      storage as never,
+    );
+    const principal = {
+      sessionId: 'session-1',
+      userId: 'customer-1',
+      roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+      capabilities: ['customer:self'],
+      branchIds: [],
+    };
+    await expect(
+      service.authorizeMyIdentityDocument(principal, 'SELFIE', 'correlation-1'),
+    ).resolves.toEqual({
+      url: '/api/v1/identity-verification-files/authorization-1/content',
+      expiresAt: expect.any(String),
+    });
+    expect(db.identityVerificationDocument.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: 'customer-1' }) }),
+    );
+    expect(db.identityDocumentViewAuthorization.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          viewerId: 'customer-1',
+          purpose: 'SELF_VIEW',
+          documentId: 'document-1',
+        }),
+      }),
+    );
+    await expect(
+      service.authorizeMyIdentityDocument(
+        { ...principal, roles: [{ role: 'ADMIN', branchId: 'branch-jkt' }] },
+        'SELFIE',
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('rate limits only on hashed subject counters', async () => {
     const upsert = jest.fn().mockResolvedValue({ attempts: 6 });
     const limiter = new RateLimitService({ rateLimitCounter: { upsert } } as never);

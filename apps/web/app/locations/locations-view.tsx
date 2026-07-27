@@ -42,7 +42,7 @@ export function LocationsView() {
       <a className="skip-link" href="#studios-main">
         Langsung ke daftar studio
       </a>
-      <PublicHeader current="/locations" />
+      <PublicHeader />
 
       <main id="studios-main">
         <section

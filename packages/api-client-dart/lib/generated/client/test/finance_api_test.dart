@@ -17,8 +17,22 @@ void main() {
       // TODO
     });
 
-    //Future<CorrectionDecisionResult> decideCorrection(String id, String decision, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<CorrectionDecisionResult> decideCorrection(String id, String decision, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
     test('test decideCorrection', () async {
+      // TODO
+    });
+
+    // Actionable reconciliation anomalies without private proof contents.
+    //
+    //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until }) async
+    test('test getFinanceReconciliationAnomalies', () async {
+      // TODO
+    });
+
+    // Global Finance or Super Owner reconciliation aggregates from authoritative purchase and ledger records.
+    //
+    //Future<FinanceReconciliationOverview> getFinanceReconciliationOverview({ String branchId, Date from, Date until }) async
+    test('test getFinanceReconciliationOverview', () async {
       // TODO
     });
 

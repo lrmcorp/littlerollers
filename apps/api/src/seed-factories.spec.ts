@@ -5,7 +5,13 @@ import {
   resolveProfile,
 } from '../prisma/seed/context';
 import { demoUsers } from '../prisma/seed/identities';
-import { branchTemplates, validateMasterTemplates } from '../prisma/seed/master-data';
+import {
+  assertNonOverlappingPeriods,
+  branchTemplates,
+  validateMasterTemplates,
+} from '../prisma/seed/master-data';
+import { instructorKeysByBranch, validateAvailabilityPeriods } from '../prisma/seed/instructors';
+import { bsdQuotaJobFixture } from '../prisma/seed/scenarios';
 
 describe('seed factory foundation', () => {
   it('creates stable UUID-shaped IDs by namespace and key', () => {
@@ -45,6 +51,17 @@ describe('seed factory foundation', () => {
     expect(context.at(1, 2).toISOString()).toBe('2026-07-27T04:00:00.000Z');
   });
 
+  it('keeps required quota job scheduling fields non-null for every BSD state', () => {
+    const context = createSeedContext({} as never, 'demo', new Date('2026-07-26T19:30:00Z'));
+    const failed = bsdQuotaJobFixture(context, 'risk', 'FAILED');
+    const succeeded = bsdQuotaJobFixture(context, 'completed', 'SUCCEEDED');
+
+    expect(failed.nextAttemptAt).toBeInstanceOf(Date);
+    expect(failed.lastErrorCode).toBe('SEED_BSD_PROVIDER_TIMEOUT');
+    expect(succeeded.nextAttemptAt).toEqual(succeeded.dueAt);
+    expect(succeeded.lastErrorCode).toBeNull();
+  });
+
   it('validates branch overrides and rejects duplicate branch codes', () => {
     expect(() => validateMasterTemplates()).not.toThrow();
     expect(() =>
@@ -53,5 +70,37 @@ describe('seed factory foundation', () => {
         { ...branchTemplates[1]!, code: branchTemplates[0]!.code },
       ]),
     ).toThrow('Duplicate branch code');
+  });
+
+  it('provides at least two deterministic instructors per branch', () => {
+    for (const keys of Object.values(instructorKeysByBranch)) {
+      expect(keys.length).toBeGreaterThanOrEqual(2);
+      for (const key of keys) expect(demoUsers.some((user) => user.key === key)).toBe(true);
+    }
+  });
+
+  it('rejects overlapping effective and instructor availability periods', () => {
+    expect(() =>
+      assertNonOverlappingPeriods([
+        { key: 'projection', from: new Date('2026-01-01'), until: new Date('2026-06-01') },
+        { key: 'projection', from: new Date('2026-05-01'), until: null },
+      ]),
+    ).toThrow('Overlapping effective period');
+    expect(() =>
+      validateAvailabilityPeriods([
+        {
+          instructorUserId: 'instructor-1',
+          branchId: 'branch-jkt',
+          startAt: new Date('2026-01-01T06:00:00Z'),
+          endAt: new Date('2026-01-01T09:00:00Z'),
+        },
+        {
+          instructorUserId: 'instructor-1',
+          branchId: 'branch-bsd',
+          startAt: new Date('2026-01-01T08:00:00Z'),
+          endAt: new Date('2026-01-01T10:00:00Z'),
+        },
+      ]),
+    ).toThrow('cannot overlap');
   });
 });

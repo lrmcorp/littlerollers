@@ -37,10 +37,13 @@ const anonymousEntryPaths = new Set([
 
 const routeCapabilities: Array<[string, string[]]> = [
   ['/account/verification', ['customer:self']],
+  ['/account/profile', []],
+  ['/account/settings', []],
   ['/account/security', []],
   ['/account', ['customer:self']],
   ['/identity-verifications', ['identity-verification:review']],
   ['/audit', ['audit:read']],
+  ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
   ['/assignments', ['assignment:read']],
   ['/master', ['master:read']],

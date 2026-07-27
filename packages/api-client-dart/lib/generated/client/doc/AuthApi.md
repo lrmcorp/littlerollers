@@ -347,7 +347,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **registerCustomer**
-> Session registerCustomer(customerRegistrationCommand)
+> Session registerCustomer(displayName, phone, email, password, consent, selfie, ktp)
 
 
 
@@ -358,10 +358,16 @@ Creates an active CUSTOMER account with pending private selfie and KTP verificat
 import 'package:openapi/api.dart';
 
 final api = Openapi().getAuthApi();
-final CustomerRegistrationCommand customerRegistrationCommand = ; // CustomerRegistrationCommand | 
+final String displayName = displayName_example; // String | 
+final String phone = phone_example; // String | 
+final String email = email_example; // String | 
+final String password = password_example; // String | 
+final bool consent = true; // bool | 
+final MultipartFile selfie = BINARY_DATA_HERE; // MultipartFile | 
+final MultipartFile ktp = BINARY_DATA_HERE; // MultipartFile | 
 
 try {
-    final response = api.registerCustomer(customerRegistrationCommand);
+    final response = api.registerCustomer(displayName, phone, email, password, consent, selfie, ktp);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling AuthApi->registerCustomer: $e\n');
@@ -372,7 +378,13 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **customerRegistrationCommand** | [**CustomerRegistrationCommand**](CustomerRegistrationCommand.md)|  | 
+ **displayName** | **String**|  | 
+ **phone** | **String**|  | 
+ **email** | **String**|  | 
+ **password** | **String**|  | 
+ **consent** | **bool**|  | 
+ **selfie** | **MultipartFile**|  | 
+ **ktp** | **MultipartFile**|  | 
 
 ### Return type
 
@@ -384,7 +396,7 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: multipart/form-data
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

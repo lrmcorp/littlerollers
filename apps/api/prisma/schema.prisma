@@ -71,6 +71,33 @@ enum OutboxStatus {
   FAILED
 }
 
+enum NotificationCategory {
+  VERIFICATION
+  PAYMENT
+  PACKAGE
+  BOOKING
+  RESCHEDULE
+  CLASS
+  ATTENDANCE
+  ADJUSTMENT
+  OPERATIONS
+  APPROVAL
+  SYSTEM
+}
+
+enum NotificationTone {
+  SUCCESS
+  INFO
+  WARNING
+  DANGER
+}
+
+enum NotificationProjectionStatus {
+  SUCCEEDED
+  SKIPPED
+  FAILED
+}
+
 enum IdempotencyStatus {
   IN_PROGRESS
   COMPLETED
@@ -106,7 +133,21 @@ enum IdentityVerificationStatus {
   PENDING
   APPROVED
   REJECTED
+  PENDING_DELETION
+  DELETE_FAILED
   DELETED
+}
+
+enum IdentityDocumentDeletionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum IdentityDocumentViewPurpose {
+  SELF_VIEW
+  REVIEW
 }
 
 enum PurchaseStatus {
@@ -224,76 +265,119 @@ enum RescheduleDecisionReasonCode {
 }
 
 model User {
-  id                        String                         @id @db.Char(36)
-  displayName               String
-  phoneE164                 String?                        @unique
-  status                    UserStatus                     @default(ACTIVE)
-  version                   Int                            @default(0)
-  createdAt                 DateTime                       @default(now())
-  updatedAt                 DateTime                       @updatedAt
-  identities                Identity[]
-  assignments               Assignment[]
-  roles                     UserRole[]
-  sessions                  UserSession[]
-  challenges                AuthChallenge[]
-  passwordCredential        PasswordCredential?
-  passwordActions           PasswordActionToken[]
-  createdInvitations        UserInvitation[]               @relation("InvitationCreator")
-  activationInvitation      UserInvitation?                @relation("InvitationTarget")
-  paymentProofs             PaymentProof[]
-  purchases                 Purchase[]
-  decidedPurchases          Purchase[]                     @relation("PurchaseDecisionActor")
-  customerPackages          CustomerPackage[]
-  requestedAdjustments      SessionAdjustment[]            @relation("AdjustmentRequester")
-  decidedAdjustments        SessionAdjustment[]            @relation("AdjustmentDecider")
-  instructorAvailabilities  InstructorAvailability[]
-  instructedClassSlots      ClassSlot[]                    @relation("ClassSlotInstructor")
-  customerBookings          Booking[]                      @relation("BookingCustomer")
-  createdBookings           Booking[]                      @relation("BookingActor")
-  requestedReschedules      Reschedule[]                   @relation("RescheduleRequester")
-  decidedReschedules        Reschedule[]                   @relation("RescheduleDecider")
-  issuedCheckInTokens       CheckInToken[]                 @relation("CheckInTokenIssuer")
-  recordedAttendances       CustomerAttendance[]           @relation("AttendanceRecorder")
-  identityDocuments         IdentityVerificationDocument[] @relation("IdentityDocumentOwner")
-  reviewedIdentityDocuments IdentityVerificationDocument[] @relation("IdentityDocumentReviewer")
-  deletedIdentityDocuments  IdentityVerificationDocument[] @relation("IdentityDocumentDeleter")
+  id                                 String                              @id @db.Char(36)
+  displayName                        String
+  email                              String?                             @unique
+  phoneE164                          String?                             @unique
+  preferredBranchId                  String?                             @db.Char(36)
+  status                             UserStatus                          @default(ACTIVE)
+  version                            Int                                 @default(0)
+  createdAt                          DateTime                            @default(now())
+  updatedAt                          DateTime                            @updatedAt
+  identities                         Identity[]
+  assignments                        Assignment[]
+  roles                              UserRole[]
+  sessions                           UserSession[]
+  challenges                         AuthChallenge[]
+  passwordCredential                 PasswordCredential?
+  passwordActions                    PasswordActionToken[]
+  createdInvitations                 UserInvitation[]                    @relation("InvitationCreator")
+  activationInvitation               UserInvitation?                     @relation("InvitationTarget")
+  paymentProofs                      PaymentProof[]
+  purchases                          Purchase[]
+  decidedPurchases                   Purchase[]                          @relation("PurchaseDecisionActor")
+  customerPackages                   CustomerPackage[]
+  requestedAdjustments               SessionAdjustment[]                 @relation("AdjustmentRequester")
+  decidedAdjustments                 SessionAdjustment[]                 @relation("AdjustmentDecider")
+  instructorAvailabilities           InstructorAvailability[]
+  instructedClassSlots               ClassSlot[]                         @relation("ClassSlotInstructor")
+  customerBookings                   Booking[]                           @relation("BookingCustomer")
+  createdBookings                    Booking[]                           @relation("BookingActor")
+  requestedReschedules               Reschedule[]                        @relation("RescheduleRequester")
+  decidedReschedules                 Reschedule[]                        @relation("RescheduleDecider")
+  issuedCheckInTokens                CheckInToken[]                      @relation("CheckInTokenIssuer")
+  recordedAttendances                CustomerAttendance[]                @relation("AttendanceRecorder")
+  identityDocuments                  IdentityVerificationDocument[]      @relation("IdentityDocumentOwner")
+  reviewedIdentityDocuments          IdentityVerificationDocument[]      @relation("IdentityDocumentReviewer")
+  deletedIdentityDocuments           IdentityVerificationDocument[]      @relation("IdentityDocumentDeleter")
+  identityDocumentViewAuthorizations IdentityDocumentViewAuthorization[] @relation("IdentityDocumentViewer")
+  requestedIdentityDocumentDeletions IdentityDocumentDeletionJob[]       @relation("IdentityDocumentDeletionRequester")
+  preferredBranch                    Branch?                             @relation("PreferredBranchCustomers", fields: [preferredBranchId], references: [id], onDelete: SetNull)
+  notifications                      UserNotification[]
+
+  @@index([preferredBranchId])
 }
 
 model IdentityVerificationDocument {
-  id                    String                         @id @db.Char(36)
-  userId                String                         @db.Char(36)
+  id                    String                              @id @db.Char(36)
+  userId                String                              @db.Char(36)
   kind                  IdentityDocumentKind
-  status                IdentityVerificationStatus     @default(PENDING)
-  objectKey             String?                        @unique
+  status                IdentityVerificationStatus          @default(PENDING)
+  objectKey             String?                             @unique
   checksum              String
   fileName              String
   mimeType              String
   sizeBytes             Int
-  uploadStatus          PaymentProofUploadStatus       @default(ISSUED)
-  scanStatus            PaymentProofScanStatus         @default(PENDING)
+  uploadStatus          PaymentProofUploadStatus            @default(ISSUED)
+  scanStatus            PaymentProofScanStatus              @default(PENDING)
   providerReferenceHash String?
-  issuedAt              DateTime                       @default(now())
+  issuedAt              DateTime                            @default(now())
   uploadedAt            DateTime?
   finalizedAt           DateTime?
   reviewedAt            DateTime?
-  reviewedById          String?                        @db.Char(36)
+  reviewedById          String?                             @db.Char(36)
   rejectionReasonCode   String?
   rejectionNote         String?
-  replacedById          String?                        @db.Char(36)
+  replacedById          String?                             @db.Char(36)
   deletedAt             DateTime?
-  deletedById           String?                        @db.Char(36)
+  deletedById           String?                             @db.Char(36)
   deletionReason        String?
-  version               Int                            @default(0)
-  createdAt             DateTime                       @default(now())
-  updatedAt             DateTime                       @updatedAt
-  user                  User                           @relation("IdentityDocumentOwner", fields: [userId], references: [id], onDelete: Restrict)
-  reviewedBy            User?                          @relation("IdentityDocumentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
-  deletedBy             User?                          @relation("IdentityDocumentDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
-  replacedBy            IdentityVerificationDocument?  @relation("IdentityDocumentReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
-  replaces              IdentityVerificationDocument[] @relation("IdentityDocumentReplacement")
+  version               Int                                 @default(0)
+  createdAt             DateTime                            @default(now())
+  updatedAt             DateTime                            @updatedAt
+  user                  User                                @relation("IdentityDocumentOwner", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy            User?                               @relation("IdentityDocumentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  deletedBy             User?                               @relation("IdentityDocumentDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
+  replacedBy            IdentityVerificationDocument?       @relation("IdentityDocumentReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces              IdentityVerificationDocument[]      @relation("IdentityDocumentReplacement")
+  viewAuthorizations    IdentityDocumentViewAuthorization[]
+  deletionJob           IdentityDocumentDeletionJob?
 
   @@index([userId, kind, createdAt])
   @@index([status, kind, createdAt])
+}
+
+model IdentityDocumentViewAuthorization {
+  id         String                       @id @db.Char(36)
+  documentId String                       @db.Char(36)
+  viewerId   String                       @db.Char(36)
+  purpose    IdentityDocumentViewPurpose  @default(REVIEW)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime                     @default(now())
+  document   IdentityVerificationDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  viewer     User                         @relation("IdentityDocumentViewer", fields: [viewerId], references: [id], onDelete: Restrict)
+
+  @@index([viewerId, expiresAt])
+  @@index([documentId, expiresAt])
+}
+
+model IdentityDocumentDeletionJob {
+  id            String                         @id @db.Char(36)
+  documentId    String                         @unique @db.Char(36)
+  requestedById String                         @db.Char(36)
+  objectKey     String
+  status        IdentityDocumentDeletionStatus @default(QUEUED)
+  attempts      Int                            @default(0)
+  lastErrorCode String?
+  nextAttemptAt DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+  document      IdentityVerificationDocument   @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  requestedBy   User                           @relation("IdentityDocumentDeletionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
 }
 
 model Identity {
@@ -314,6 +398,7 @@ model Branch {
   code                     String                   @unique
   name                     String
   timezone                 String
+  supportWhatsappE164      String?
   active                   Boolean                  @default(true)
   version                  Int                      @default(0)
   createdAt                DateTime                 @default(now())
@@ -332,6 +417,8 @@ model Branch {
   bookings                 Booking[]
   reschedules              Reschedule[]
   customerAttendances      CustomerAttendance[]
+  preferredByUsers         User[]                   @relation("PreferredBranchCustomers")
+  userNotifications        UserNotification[]
 }
 
 model ClassType {
@@ -644,19 +731,57 @@ model IdempotencyRecord {
 }
 
 model OutboxEvent {
-  id            String       @id @db.Char(36)
-  eventType     String
-  aggregateType String
-  aggregateId   String
-  payload       Json
-  correlationId String
-  status        OutboxStatus @default(PENDING)
-  occurredAt    DateTime     @default(now())
-  publishedAt   DateTime?
-  attempts      Int          @default(0)
+  id                     String                  @id @db.Char(36)
+  eventType              String
+  aggregateType          String
+  aggregateId            String
+  payload                Json
+  correlationId          String
+  status                 OutboxStatus            @default(PENDING)
+  occurredAt             DateTime                @default(now())
+  publishedAt            DateTime?
+  attempts               Int                     @default(0)
+  notificationProjection NotificationProjection?
+  userNotifications      UserNotification[]
 
   @@index([status, occurredAt])
   @@index([aggregateType, aggregateId])
+}
+
+model NotificationProjection {
+  id            String                       @id @db.Char(36)
+  sourceEventId String                       @unique @db.Char(36)
+  status        NotificationProjectionStatus
+  errorCode     String?
+  projectedAt   DateTime                     @default(now())
+  sourceEvent   OutboxEvent                  @relation(fields: [sourceEventId], references: [id], onDelete: Cascade)
+
+  @@index([status, projectedAt])
+}
+
+model UserNotification {
+  id             String               @id @db.Char(36)
+  userId         String               @db.Char(36)
+  branchId       String?              @db.Char(36)
+  sourceEventId  String?              @db.Char(36)
+  eventKey       String
+  category       NotificationCategory
+  tone           NotificationTone
+  title          String
+  message        String
+  href           String?
+  metadataMasked Json?
+  readAt         DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime             @default(now())
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch         Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sourceEvent    OutboxEvent?         @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, eventKey])
+  @@index([userId, readAt, createdAt])
+  @@index([userId, expiresAt])
+  @@index([branchId, createdAt])
 }
 
 model Package {

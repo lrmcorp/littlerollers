@@ -12,6 +12,16 @@ void main() {
       // TODO
     });
 
+    // LedgerEntry ledgerEntry
+    test('to test the property `ledgerEntry`', () async {
+      // TODO
+    });
+
+    // int resultingBalance
+    test('to test the property `resultingBalance`', () async {
+      // TODO
+    });
+
     // bool idempotentReplay
     test('to test the property `idempotentReplay`', () async {
       // TODO

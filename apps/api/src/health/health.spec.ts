@@ -4,7 +4,7 @@ const config = {
   value: {
     redisUrl: 'redis://127.0.0.1:6379',
     healthProbeTimeoutMs: 10,
-    objectStorage: { endpoint: 'http://127.0.0.1:9000' },
+    privateUploads: { root: '/private/identity-files' },
   },
 };
 
@@ -44,7 +44,11 @@ describe('HealthService', () => {
       disconnect: jest.fn(),
     };
     (health as unknown as { redis: typeof redis }).redis = redis;
-    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: !options?.storageFails } as Response);
+    jest
+      .spyOn(health as unknown as { checkPrivateStorage(): Promise<void> }, 'checkPrivateStorage')
+      .mockImplementation(() =>
+        options?.storageFails ? Promise.reject(new Error('permission denied')) : Promise.resolve(),
+      );
     return health;
   }
 
@@ -71,11 +75,11 @@ describe('HealthService', () => {
     });
   });
 
-  it('reports DEGRADED when object storage is unreachable', async () => {
+  it('reports DEGRADED when private storage is unreachable', async () => {
     const result = await service({ storageFails: true }).check();
     expect(result.status).toBe('DEGRADED');
     expect(result.dependencies).toContainEqual({
-      name: 'object-storage',
+      name: 'private-storage',
       status: 'DEGRADED',
       detailCode: 'UNREACHABLE',
     });

@@ -16,7 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   DashboardOverview,
-  DeactivateUserRequest,
+  DecideCorrectionRequest,
   ErrorEnvelope,
   HealthResult,
   OperationalJobPage,
@@ -27,8 +27,8 @@ import type {
 import {
     DashboardOverviewFromJSON,
     DashboardOverviewToJSON,
-    DeactivateUserRequestFromJSON,
-    DeactivateUserRequestToJSON,
+    DecideCorrectionRequestFromJSON,
+    DecideCorrectionRequestToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
     HealthResultFromJSON,
@@ -46,7 +46,7 @@ import {
 export interface DeadLetterOperationalJobRequest {
     id: string;
     idempotencyKey: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    decideCorrectionRequest: DecideCorrectionRequest;
 }
 
 export interface GetDashboardOverviewRequest {
@@ -63,7 +63,7 @@ export interface ListJobsRequest {
 export interface RetryOperationalJobRequest {
     id: string;
     idempotencyKey: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    decideCorrectionRequest: DecideCorrectionRequest;
 }
 
 export interface RunQuotaEvaluationRequest {
@@ -94,10 +94,10 @@ export class OperationsApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['decideCorrectionRequest'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling deadLetterOperationalJob().'
+                'decideCorrectionRequest',
+                'Required parameter "decideCorrectionRequest" was null or undefined when calling deadLetterOperationalJob().'
             );
         }
 
@@ -128,7 +128,7 @@ export class OperationsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: DecideCorrectionRequestToJSON(requestParameters['decideCorrectionRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OperationalJobResultFromJSON(jsonValue));
@@ -285,10 +285,10 @@ export class OperationsApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['decideCorrectionRequest'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling retryOperationalJob().'
+                'decideCorrectionRequest',
+                'Required parameter "decideCorrectionRequest" was null or undefined when calling retryOperationalJob().'
             );
         }
 
@@ -319,7 +319,7 @@ export class OperationsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: DecideCorrectionRequestToJSON(requestParameters['decideCorrectionRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OperationalJobResultFromJSON(jsonValue));

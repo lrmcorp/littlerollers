@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
 **displayName** | **String** |  | 
+**phoneE164** | **String** |  | 
 **status** | **String** |  | 
 **version** | **int** |  | 
 **createdAt** | [**DateTime**](DateTime.md) |  | 

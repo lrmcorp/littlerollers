@@ -27,6 +27,7 @@ export interface UserRoleSummary {
 export interface UserSummary {
   id: string;
   displayName: string;
+  phoneE164: string | null;
   status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
   version: number;
   createdAt: string;
@@ -67,6 +68,13 @@ export interface UserFilters {
   role?: ApplicationRole;
 }
 
+export interface UserListSummary {
+  total: number;
+  active: number;
+  pendingActivation: number;
+  inactive: number;
+}
+
 export interface LookupOption {
   id: string;
   label: string;
@@ -98,6 +106,7 @@ export interface IdentityClient {
   listUsers(filters: UserFilters): Promise<{
     items: UserSummary[];
     page: { nextCursor: string | null; hasMore: boolean };
+    summary: UserListSummary;
   }>;
   lookupUsers(filters: {
     q?: string;
@@ -121,6 +130,15 @@ export interface IdentityClient {
   getAuditExport(id: string): Promise<AuditExportSummary>;
   authorizeAuditExport(id: string): Promise<{ url: string; expiresAt: string }>;
   getUser(id: string): Promise<UserSummary>;
+  updateProfile(
+    id: string,
+    input: {
+      displayName: string;
+      phoneE164: string | null;
+      expectedVersion: number;
+      reason: string;
+    },
+  ): Promise<UserSummary>;
   roleCatalog(): Promise<RoleCatalogItem[]>;
   listAudit(id: string): Promise<AuditSummary[]>;
   listAuditLogs(filters: {
@@ -145,8 +163,8 @@ export interface IdentityClient {
     expectedVersion: number,
     reason: string,
   ): Promise<UserSummary>;
-  deactivate(id: string, reason?: string): Promise<void>;
-  reactivate(id: string, reason: string): Promise<void>;
+  deactivate(id: string, expectedVersion: number, reason?: string): Promise<void>;
+  reactivate(id: string, expectedVersion: number, reason: string): Promise<void>;
 }
 
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
@@ -172,6 +190,7 @@ function mapUser(user: GeneratedUserSummary): UserSummary {
   const roles = user.roles as UserRoleSummary[];
   return {
     ...user,
+    phoneE164: mapped.phoneE164 ?? null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     roles,
@@ -262,21 +281,36 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async listUsers(filters) {
-    const result = await identity.listUsers({
+    const result = (await identity.listUsers({
       ...filters,
       role: filters.role as never,
       status: filters.status as never,
-    });
+    })) as Awaited<ReturnType<typeof identity.listUsers>> & { summary?: UserListSummary };
     return {
       items: result.items.map(mapUser),
       page: {
         nextCursor: result.page.nextCursor ?? null,
         hasMore: result.page.hasMore,
       },
+      summary: result.summary ?? {
+        total: result.items.length,
+        active: result.items.filter((item) => item.status === 'ACTIVE').length,
+        pendingActivation: result.items.filter((item) => item.status === 'PENDING_ACTIVATION')
+          .length,
+        inactive: result.items.filter((item) => item.status === 'INACTIVE').length,
+      },
     };
   },
   async getUser(id) {
     return mapUser(await identity.getUser({ id }));
+  },
+  async updateProfile(id, input) {
+    return mapUser(
+      (await request(`/users/${encodeURIComponent(id)}/profile`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      })) as GeneratedUserSummary,
+    );
   },
   async roleCatalog() {
     const result = await identity.getRoleCatalog();
@@ -325,6 +359,7 @@ export const browserIdentityClient: IdentityClient = {
       return mapUser(
         await identity.updateUserRoles({
           id,
+          idempotencyKey: crypto.randomUUID(),
           updateUserRolesCommand: {
             roles: roles.map((item) => ({ ...item, role: item.role as never })),
             expectedVersion,
@@ -347,11 +382,17 @@ export const browserIdentityClient: IdentityClient = {
       throw error;
     }
   },
-  async deactivate(id, reason = 'ADMIN_REQUEST') {
-    await identity.deactivateUser({ id, deactivateUserRequest: { reason } });
+  async deactivate(id, expectedVersion, reason = 'ADMIN_REQUEST') {
+    await request(`/users/${encodeURIComponent(id)}/deactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, expectedVersion }),
+    });
   },
-  async reactivate(id, reason) {
-    await identity.reactivateUser({ id, deactivateUserRequest: { reason } });
+  async reactivate(id, expectedVersion, reason) {
+    await request(`/users/${encodeURIComponent(id)}/reactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, expectedVersion }),
+    });
   },
 };
 

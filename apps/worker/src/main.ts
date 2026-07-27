@@ -5,6 +5,8 @@ import { NestFactory } from '@nestjs/core';
 import Redis from 'ioredis';
 import { PrismaClient } from '@prisma/client';
 import { QuotaWorker } from './quota-worker';
+import { IdentityDeletionWorker } from './identity-deletion-worker';
+import { NotificationProjectionWorker } from './notification-projection-worker';
 
 @Injectable()
 class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
@@ -12,17 +14,26 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
   private readonly redis = new Redis(this.config.redisUrl);
   private readonly database = new PrismaClient();
   private readonly quotaWorker = new QuotaWorker(this.database, this.config.quotaEvaluation);
+  private readonly identityDeletionWorker = new IdentityDeletionWorker(
+    this.database,
+    this.config.privateUploads,
+  );
+  private readonly notificationProjectionWorker = new NotificationProjectionWorker(this.database);
   private timer?: NodeJS.Timeout;
 
   async onModuleInit(): Promise<void> {
     await this.beat();
     this.quotaWorker.start();
+    this.identityDeletionWorker.start();
+    this.notificationProjectionWorker.start();
     this.timer = setInterval(() => void this.beat(), this.config.workerHeartbeatIntervalMs);
   }
 
   async onModuleDestroy(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.quotaWorker.stop();
+    this.identityDeletionWorker.stop();
+    this.notificationProjectionWorker.stop();
     await this.redis.quit();
     await this.database.$disconnect();
   }

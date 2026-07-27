@@ -31,6 +31,13 @@ void main() {
       // TODO
     });
 
+    // Creates the single active account for a branch. Requires Super Owner payment-account permission.
+    //
+    //Future<PaymentAccount> createPaymentAccount(PaymentAccountCommand paymentAccountCommand) async
+    test('test createPaymentAccount', () async {
+      // TODO
+    });
+
     //Future<Resource> createProjectionRate(ProjectionRateCommand projectionRateCommand) async
     test('test createProjectionRate', () async {
       // TODO
@@ -51,6 +58,13 @@ void main() {
       // TODO
     });
 
+    // Blocked while non-expired AWAITING_PAYMENT orders reference the account.
+    //
+    //Future<PaymentAccount> deactivatePaymentAccount(String id, ReasonedVersionCommand reasonedVersionCommand) async
+    test('test deactivatePaymentAccount', () async {
+      // TODO
+    });
+
     //Future<BranchPage> listBranches() async
     test('test listBranches', () async {
       // TODO
@@ -68,6 +82,13 @@ void main() {
 
     //Future<EffectiveSettingPage> listInstructorFees({ String branchId, String cursor }) async
     test('test listInstructorFees', () async {
+      // TODO
+    });
+
+    // Returns masked account metadata only. Requires payment-account:read.
+    //
+    //Future<ListPaymentAccounts200Response> listPaymentAccounts({ String branchId }) async
+    test('test listPaymentAccounts', () async {
       // TODO
     });
 

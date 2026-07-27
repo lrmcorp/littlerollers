@@ -120,6 +120,7 @@ Class | Method | HTTP request | Description
 [*FinanceApi*](doc/FinanceApi.md) | [**listPeriods**](doc/FinanceApi.md#listperiods) | **GET** /periods | 
 [*FinanceApi*](doc/FinanceApi.md) | [**requestCorrection**](doc/FinanceApi.md#requestcorrection) | **POST** /correction-journals | 
 [*IdentityApi*](doc/IdentityApi.md) | [**authorizeIdentityVerificationView**](doc/IdentityApi.md#authorizeidentityverificationview) | **POST** /identity-verifications/{id}/view-authorizations | 
+[*IdentityApi*](doc/IdentityApi.md) | [**authorizeMyIdentityDocumentView**](doc/IdentityApi.md#authorizemyidentitydocumentview) | **POST** /identity-verification/me/documents/{kind}/view-authorizations | 
 [*IdentityApi*](doc/IdentityApi.md) | [**createAssignment**](doc/IdentityApi.md#createassignment) | **POST** /assignments | 
 [*IdentityApi*](doc/IdentityApi.md) | [**deactivateUser**](doc/IdentityApi.md#deactivateuser) | **POST** /users/{id}/deactivate | 
 [*IdentityApi*](doc/IdentityApi.md) | [**decideIdentityVerification**](doc/IdentityApi.md#decideidentityverification) | **POST** /identity-verifications/{id}/decisions/{decision} | 
@@ -127,6 +128,8 @@ Class | Method | HTTP request | Description
 [*IdentityApi*](doc/IdentityApi.md) | [**endAssignment**](doc/IdentityApi.md#endassignment) | **POST** /assignments/{id}/end | 
 [*IdentityApi*](doc/IdentityApi.md) | [**getMe**](doc/IdentityApi.md#getme) | **GET** /me | 
 [*IdentityApi*](doc/IdentityApi.md) | [**getMyIdentityVerification**](doc/IdentityApi.md#getmyidentityverification) | **GET** /identity-verification/me | 
+[*IdentityApi*](doc/IdentityApi.md) | [**getMyProfile**](doc/IdentityApi.md#getmyprofile) | **GET** /me/profile | 
+[*IdentityApi*](doc/IdentityApi.md) | [**getPublicSiteConfig**](doc/IdentityApi.md#getpublicsiteconfig) | **GET** /public/site-config | 
 [*IdentityApi*](doc/IdentityApi.md) | [**getRoleCatalog**](doc/IdentityApi.md#getrolecatalog) | **GET** /users/role-catalog | 
 [*IdentityApi*](doc/IdentityApi.md) | [**getUser**](doc/IdentityApi.md#getuser) | **GET** /users/{id} | 
 [*IdentityApi*](doc/IdentityApi.md) | [**inviteUser**](doc/IdentityApi.md#inviteuser) | **POST** /users | 
@@ -137,8 +140,11 @@ Class | Method | HTTP request | Description
 [*IdentityApi*](doc/IdentityApi.md) | [**lookupInstructors**](doc/IdentityApi.md#lookupinstructors) | **GET** /lookups/instructors | 
 [*IdentityApi*](doc/IdentityApi.md) | [**lookupUsers**](doc/IdentityApi.md#lookupusers) | **GET** /lookups/users | 
 [*IdentityApi*](doc/IdentityApi.md) | [**reactivateUser**](doc/IdentityApi.md#reactivateuser) | **POST** /users/{id}/reactivate | 
+[*IdentityApi*](doc/IdentityApi.md) | [**readAuthorizedIdentityVerificationFile**](doc/IdentityApi.md#readauthorizedidentityverificationfile) | **GET** /identity-verification-files/{authorizationId}/content | 
 [*IdentityApi*](doc/IdentityApi.md) | [**replaceMyIdentityDocument**](doc/IdentityApi.md#replacemyidentitydocument) | **POST** /identity-verification/me/documents/{kind}/replacements | 
 [*IdentityApi*](doc/IdentityApi.md) | [**requestUserPasswordSetup**](doc/IdentityApi.md#requestuserpasswordsetup) | **POST** /users/{id}/password-setup-requests | 
+[*IdentityApi*](doc/IdentityApi.md) | [**updateMyProfile**](doc/IdentityApi.md#updatemyprofile) | **PATCH** /me/profile | 
+[*IdentityApi*](doc/IdentityApi.md) | [**updateUserProfile**](doc/IdentityApi.md#updateuserprofile) | **PATCH** /users/{id}/profile | 
 [*IdentityApi*](doc/IdentityApi.md) | [**updateUserRoles**](doc/IdentityApi.md#updateuserroles) | **POST** /users/{id}/roles | 
 [*LedgerApi*](doc/LedgerApi.md) | [**decideSessionAdjustment**](doc/LedgerApi.md#decidesessionadjustment) | **POST** /session-adjustments/{id}/{decision} | 
 [*LedgerApi*](doc/LedgerApi.md) | [**getPackageLedger**](doc/LedgerApi.md#getpackageledger) | **GET** /customer-packages/{id}/ledger | 
@@ -172,7 +178,11 @@ Class | Method | HTTP request | Description
 [*MigrationApi*](doc/MigrationApi.md) | [**rollbackMigrationBatch**](doc/MigrationApi.md#rollbackmigrationbatch) | **POST** /migration-batches/{id}/rollback | 
 [*MigrationApi*](doc/MigrationApi.md) | [**transitionMigrationBatch**](doc/MigrationApi.md#transitionmigrationbatch) | **POST** /migration-batches/{id}/{action} | 
 [*MigrationApi*](doc/MigrationApi.md) | [**validateMigrationBatch**](doc/MigrationApi.md#validatemigrationbatch) | **POST** /migration-batches/{id}/validate | 
+[*NotificationsApi*](doc/NotificationsApi.md) | [**getMyNotificationUnreadCount**](doc/NotificationsApi.md#getmynotificationunreadcount) | **GET** /me/notifications/unread-count | 
+[*NotificationsApi*](doc/NotificationsApi.md) | [**listMyNotifications**](doc/NotificationsApi.md#listmynotifications) | **GET** /me/notifications | 
 [*NotificationsApi*](doc/NotificationsApi.md) | [**listNotifications**](doc/NotificationsApi.md#listnotifications) | **GET** /notifications | 
+[*NotificationsApi*](doc/NotificationsApi.md) | [**markAllMyNotificationsRead**](doc/NotificationsApi.md#markallmynotificationsread) | **POST** /me/notifications/read-all | 
+[*NotificationsApi*](doc/NotificationsApi.md) | [**markMyNotificationRead**](doc/NotificationsApi.md#markmynotificationread) | **PATCH** /me/notifications/{id}/read | 
 [*NotificationsApi*](doc/NotificationsApi.md) | [**receiveMetaWebhook**](doc/NotificationsApi.md#receivemetawebhook) | **POST** /webhooks/meta | 
 [*NotificationsApi*](doc/NotificationsApi.md) | [**retryNotification**](doc/NotificationsApi.md#retrynotification) | **POST** /notifications/{id}/retry | 
 [*OperationsApi*](doc/OperationsApi.md) | [**deadLetterOperationalJob**](doc/OperationsApi.md#deadletteroperationaljob) | **POST** /operations/jobs/{id}/dead-letter | 
@@ -271,7 +281,6 @@ Class | Method | HTTP request | Description
  - [CustomerCheckInTokenStatus](doc/CustomerCheckInTokenStatus.md)
  - [CustomerPackageBalance](doc/CustomerPackageBalance.md)
  - [CustomerPackageBalancePage](doc/CustomerPackageBalancePage.md)
- - [CustomerRegistrationCommand](doc/CustomerRegistrationCommand.md)
  - [DashboardActivityItem](doc/DashboardActivityItem.md)
  - [DashboardBranchPerformance](doc/DashboardBranchPerformance.md)
  - [DashboardMetric](doc/DashboardMetric.md)
@@ -279,8 +288,9 @@ Class | Method | HTTP request | Description
  - [DashboardOverviewPeriod](doc/DashboardOverviewPeriod.md)
  - [DashboardQueueSummary](doc/DashboardQueueSummary.md)
  - [DashboardRiskItem](doc/DashboardRiskItem.md)
+ - [DashboardSections](doc/DashboardSections.md)
  - [DashboardTrendPoint](doc/DashboardTrendPoint.md)
- - [DeactivateUserRequest](doc/DeactivateUserRequest.md)
+ - [DecideCorrectionRequest](doc/DecideCorrectionRequest.md)
  - [DeleteIdentityVerificationFileRequest](doc/DeleteIdentityVerificationFileRequest.md)
  - [DownloadAuthorization](doc/DownloadAuthorization.md)
  - [EffectivePeriod](doc/EffectivePeriod.md)
@@ -301,9 +311,11 @@ Class | Method | HTTP request | Description
  - [FinancialReport](doc/FinancialReport.md)
  - [FinancialReportPage](doc/FinancialReportPage.md)
  - [GetFinanceReconciliationAnomalies200Response](doc/GetFinanceReconciliationAnomalies200Response.md)
+ - [GetMyNotificationUnreadCount200Response](doc/GetMyNotificationUnreadCount200Response.md)
  - [GoogleAuthRequest](doc/GoogleAuthRequest.md)
  - [HealthResult](doc/HealthResult.md)
  - [HealthResultDependenciesInner](doc/HealthResultDependenciesInner.md)
+ - [IdentityDocumentSelfViewAuthorization](doc/IdentityDocumentSelfViewAuthorization.md)
  - [IdentityVerificationDecisionCommand](doc/IdentityVerificationDecisionCommand.md)
  - [IdentityVerificationDocument](doc/IdentityVerificationDocument.md)
  - [IdentityVerificationSummary](doc/IdentityVerificationSummary.md)
@@ -316,6 +328,7 @@ Class | Method | HTTP request | Description
  - [LookupOption](doc/LookupOption.md)
  - [LookupOptionMetadata](doc/LookupOptionMetadata.md)
  - [LookupPage](doc/LookupPage.md)
+ - [MarkAllMyNotificationsRead200Response](doc/MarkAllMyNotificationsRead200Response.md)
  - [Me](doc/Me.md)
  - [MigrationBatchActionCommand](doc/MigrationBatchActionCommand.md)
  - [MigrationBatchCommand](doc/MigrationBatchCommand.md)
@@ -325,6 +338,7 @@ Class | Method | HTTP request | Description
  - [MigrationSourceUpload](doc/MigrationSourceUpload.md)
  - [MigrationSourceUploadCommand](doc/MigrationSourceUploadCommand.md)
  - [Money](doc/Money.md)
+ - [MyProfile](doc/MyProfile.md)
  - [NotificationAttempt](doc/NotificationAttempt.md)
  - [NotificationOccurrence](doc/NotificationOccurrence.md)
  - [NotificationOccurrencePage](doc/NotificationOccurrencePage.md)
@@ -354,8 +368,9 @@ Class | Method | HTTP request | Description
  - [PaymentAccountCommand](doc/PaymentAccountCommand.md)
  - [PaymentProof](doc/PaymentProof.md)
  - [PaymentProofUploadInstruction](doc/PaymentProofUploadInstruction.md)
- - [PrivateImageMetadata](doc/PrivateImageMetadata.md)
+ - [PreferredStudio](doc/PreferredStudio.md)
  - [ProjectionRateCommand](doc/ProjectionRateCommand.md)
+ - [PublicSiteConfig](doc/PublicSiteConfig.md)
  - [Purchase](doc/Purchase.md)
  - [PurchasePage](doc/PurchasePage.md)
  - [QuotaCapacityCommand](doc/QuotaCapacityCommand.md)
@@ -365,7 +380,6 @@ Class | Method | HTTP request | Description
  - [RecoveryRequestCommand](doc/RecoveryRequestCommand.md)
  - [RecoveryVerifyCommand](doc/RecoveryVerifyCommand.md)
  - [RecoveryVerifyCommandNewVerifiedIdentity](doc/RecoveryVerifyCommandNewVerifiedIdentity.md)
- - [ReplaceMyIdentityDocumentRequest](doc/ReplaceMyIdentityDocumentRequest.md)
  - [ReplacePaymentProofCommand](doc/ReplacePaymentProofCommand.md)
  - [Reschedule](doc/Reschedule.md)
  - [RescheduleDecisionCommand](doc/RescheduleDecisionCommand.md)
@@ -387,7 +401,12 @@ Class | Method | HTTP request | Description
  - [SubmitPurchaseRequest](doc/SubmitPurchaseRequest.md)
  - [TimeRangeCommand](doc/TimeRangeCommand.md)
  - [TokenCheckInCommand](doc/TokenCheckInCommand.md)
+ - [UpdateMyProfileCommand](doc/UpdateMyProfileCommand.md)
+ - [UpdateUserProfileRequest](doc/UpdateUserProfileRequest.md)
  - [UpdateUserRolesCommand](doc/UpdateUserRolesCommand.md)
+ - [UserListSummary](doc/UserListSummary.md)
+ - [UserNotification](doc/UserNotification.md)
+ - [UserNotificationPage](doc/UserNotificationPage.md)
  - [UserPage](doc/UserPage.md)
  - [UserRoleInput](doc/UserRoleInput.md)
  - [UserRoleSummary](doc/UserRoleSummary.md)

@@ -47,5 +47,10 @@ void main() {
       // TODO
     });
 
+    // bool idempotentReplay
+    test('to test the property `idempotentReplay`', () async {
+      // TODO
+    });
+
   });
 }

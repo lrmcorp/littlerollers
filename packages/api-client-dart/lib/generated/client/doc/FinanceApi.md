@@ -107,7 +107,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **decideCorrection**
-> CorrectionDecisionResult decideCorrection(id, decision, idempotencyKey, deactivateUserRequest)
+> CorrectionDecisionResult decideCorrection(id, decision, idempotencyKey, decideCorrectionRequest)
 
 
 
@@ -119,10 +119,10 @@ final api = Openapi().getFinanceApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String decision = decision_example; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DeactivateUserRequest deactivateUserRequest = ; // DeactivateUserRequest | 
+final DecideCorrectionRequest decideCorrectionRequest = ; // DecideCorrectionRequest | 
 
 try {
-    final response = api.decideCorrection(id, decision, idempotencyKey, deactivateUserRequest);
+    final response = api.decideCorrection(id, decision, idempotencyKey, decideCorrectionRequest);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling FinanceApi->decideCorrection: $e\n');
@@ -136,7 +136,7 @@ Name | Type | Description  | Notes
  **id** | **String**|  | 
  **decision** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **deactivateUserRequest** | [**DeactivateUserRequest**](DeactivateUserRequest.md)|  | 
+ **decideCorrectionRequest** | [**DecideCorrectionRequest**](DecideCorrectionRequest.md)|  | 
 
 ### Return type
 

@@ -17,6 +17,11 @@ void main() {
       // TODO
     });
 
+    // String phoneE164
+    test('to test the property `phoneE164`', () async {
+      // TODO
+    });
+
     // String status
     test('to test the property `status`', () async {
       // TODO
@@ -39,6 +44,21 @@ void main() {
 
     // BuiltList<UserRoleSummary> roles
     test('to test the property `roles`', () async {
+      // TODO
+    });
+
+    // BuiltList<UserRoleSummary> directRoles
+    test('to test the property `directRoles`', () async {
+      // TODO
+    });
+
+    // BuiltList<UserRoleSummary> assignmentRoles
+    test('to test the property `assignmentRoles`', () async {
+      // TODO
+    });
+
+    // BuiltList<String> effectiveCapabilities
+    test('to test the property `effectiveCapabilities`', () async {
       // TODO
     });
 

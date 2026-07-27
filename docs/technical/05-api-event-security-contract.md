@@ -134,9 +134,9 @@ Exact attempts/timeouts are operational configuration with owner and alert evide
 
 ## 6. Upload Contract
 
-- Server issues short-lived upload instruction after filename, allowlisted MIME, size and checksum validation. Object key is random/private and cannot be chosen by client.
+- Identity registration/replacement accepts multipart binary through the API; the server validates filename, MIME signature, image structure and size, computes the checksum, and chooses a random private object key. Other upload domains may use a short-lived upload instruction.
 - Storage event or controlled command runs MIME/signature validation and malware scan. Only `CLEAN` proof can be reviewed; `PENDING`, `REJECTED`, `INFECTED`, and `ERROR` are not downloadable by business users.
-- Downloads use short-lived authorized signed URL or API streaming after role/branch check; URL/token never enters analytics/log.
+- Downloads use short-lived authorized signed URL or private API streaming after reviewer/capability check; URL/token never enters analytics/log. Identity documents use reviewer-bound, single-use API streaming in v1.
 - Replacement does not overwrite history; each object has checksum, uploader, scan evidence and retention disposition.
 
 ## 7. Authorization and Security Controls

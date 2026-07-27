@@ -29,13 +29,19 @@ const number = new Intl.NumberFormat('id-ID');
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
 
 const roleCopy = {
-  OWNER: {
+  EXECUTIVE: {
     eyebrow: 'Executive overview',
-    title: 'Kinerja bisnis dalam satu pandangan',
+    title: 'Kinerja lintas cabang dalam satu pandangan',
+    description:
+      'Pantau pertumbuhan, ranking cabang, risiko, anomali, dan keputusan penting tingkat perusahaan.',
+  },
+  OWNER: {
+    eyebrow: 'Owner oversight',
+    title: 'Kinerja cabang dalam satu pandangan',
     description:
       'Pantau performa cabang, pendapatan, okupansi, dan pekerjaan yang membutuhkan keputusan Anda.',
   },
-  BRANCH: {
+  BRANCH_OPERATIONS: {
     eyebrow: 'Branch command center',
     title: 'Operasional cabang hari ini',
     description: 'Prioritaskan kelas, booking, customer, dan antrean keputusan untuk cabang aktif.',
@@ -45,13 +51,63 @@ const roleCopy = {
     title: 'Arus transaksi dan pekerjaan keuangan',
     description: 'Pantau pembayaran, ledger, dan antrean finansial dari satu ruang kerja.',
   },
-  OPS: {
+  OPERATIONS: {
     eyebrow: 'Operations control',
     title: 'Kesehatan operasional dan recovery',
     description:
       'Identifikasi job bermasalah, retry, dan kondisi sistem yang membutuhkan perhatian.',
   },
 } as const;
+
+function TrendChart({ points, finance }: { points: DashboardOverview['trend']; finance: boolean }) {
+  if (points.length < 2)
+    return <p className="py-12 text-center text-sm text-dd-muted">Belum cukup data untuk tren.</p>;
+  const values = points.map((point) => (finance ? point.revenue : point.bookings));
+  const maximum = Math.max(...values, 1);
+  const polyline = values
+    .map((value, index) => `${(index / (values.length - 1)) * 100},${92 - (value / maximum) * 76}`)
+    .join(' ');
+  return (
+    <figure className="mt-5">
+      <svg
+        role="img"
+        aria-labelledby="dashboard-trend-title dashboard-trend-description"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="h-52 w-full overflow-visible"
+      >
+        <title id="dashboard-trend-title">Tren {finance ? 'pendapatan' : 'booking'}</title>
+        <desc id="dashboard-trend-description">
+          {values.map((value, index) => `${points[index]!.date}: ${value}`).join(', ')}
+        </desc>
+        {[16, 41, 66, 91].map((y) => (
+          <line
+            key={y}
+            x1="0"
+            y1={y}
+            x2="100"
+            y2={y}
+            stroke="currentColor"
+            className="text-dd-line"
+            strokeWidth="0.4"
+          />
+        ))}
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke="currentColor"
+          className="text-dd-forest"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <figcaption className="mt-2 flex justify-between text-xs text-dd-muted">
+        <span>{String(points[0]!.date).slice(0, 10)}</span>
+        <span>{String(points.at(-1)!.date).slice(0, 10)}</span>
+      </figcaption>
+    </figure>
+  );
+}
 
 export function Dashboard({ client = browserDashboardClient }: { client?: DashboardClient }) {
   const context = useSessionContext();
@@ -102,12 +158,14 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const focus =
     overview?.roleFocus ??
     (session.roles.includes('SUPER_OWNER') || session.roles.includes('OWNER')
-      ? 'OWNER'
+      ? session.roles.includes('SUPER_OWNER')
+        ? 'EXECUTIVE'
+        : 'OWNER'
       : session.roles.includes('FINANCE')
         ? 'FINANCE'
         : session.roles.includes('OPS')
-          ? 'OPS'
-          : 'BRANCH');
+          ? 'OPERATIONS'
+          : 'BRANCH_OPERATIONS');
   const copy = roleCopy[focus];
 
   return (
@@ -182,6 +240,24 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       )}
 
+      {overview && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-dd-muted">
+          <span>
+            Scope:{' '}
+            <strong className="text-dd-ink">
+              {activeBranch?.name ?? 'Semua cabang yang diizinkan'}
+            </strong>
+          </span>
+          <time dateTime={String(overview.generatedAt)}>
+            Diperbarui{' '}
+            {new Date(overview.generatedAt).toLocaleString('id-ID', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+          </time>
+        </div>
+      )}
+
       <section aria-label="Indikator utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {(overview?.metrics ?? []).map((metric) => (
           <StatCard
@@ -210,41 +286,60 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           ))}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      {overview?.sections.trend && (
         <Panel className="p-5 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
-                Action queue
-              </p>
-              <h2 className="mt-1 text-xl font-semibold">Perlu perhatian Anda</h2>
-            </div>
-            <Badge tone="warning">
-              {overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0} item
-            </Badge>
-          </div>
-          <div className="mt-5 divide-y divide-dd-line">
-            {overview?.queues.length ? (
-              overview.queues.map((item) => (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className="group flex items-center gap-4 py-4 text-dd-ink no-underline"
-                >
-                  <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass">
-                    {item.count}
-                  </span>
-                  <span className="font-semibold">{item.label}</span>
-                  <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
-                </Link>
-              ))
-            ) : (
-              <p className="py-10 text-center text-sm text-dd-muted">
-                Tidak ada antrean yang membutuhkan tindakan.
-              </p>
-            )}
-          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+            Tren periode
+          </p>
+          <h2 className="mt-1 text-xl font-semibold">
+            {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
+              ? 'Pendapatan disetujui'
+              : 'Pergerakan booking'}
+          </h2>
+          <TrendChart
+            points={overview.trend}
+            finance={focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'}
+          />
         </Panel>
+      )}
+
+      <div className={`grid gap-6 ${overview?.sections.risk ? 'xl:grid-cols-[1.6fr_1fr]' : ''}`}>
+        {overview?.sections.risk && (
+          <Panel className="p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+                  Action queue
+                </p>
+                <h2 className="mt-1 text-xl font-semibold">Perlu perhatian Anda</h2>
+              </div>
+              <Badge tone="warning">
+                {overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0} item
+              </Badge>
+            </div>
+            <div className="mt-5 divide-y divide-dd-line">
+              {overview?.queues.length ? (
+                overview.queues.map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline"
+                  >
+                    <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass">
+                      {item.count}
+                    </span>
+                    <span className="font-semibold">{item.label}</span>
+                    <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
+                  </Link>
+                ))
+              ) : (
+                <p className="py-10 text-center text-sm text-dd-muted">
+                  Tidak ada antrean yang membutuhkan tindakan.
+                </p>
+              )}
+            </div>
+          </Panel>
+        )}
         <Panel className="p-5 sm:p-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
@@ -328,6 +423,46 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Panel>
       ) : null}
 
+      {overview?.sections.jobHealth && (
+        <Panel className="overflow-hidden">
+          <div className="border-b border-dd-line p-5 sm:px-6">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+              Job health
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">Aktivitas recovery terbaru</h2>
+          </div>
+          {overview.jobs.length ? (
+            <div className="divide-y divide-dd-line">
+              {overview.jobs.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/operations?job=${job.id}`}
+                  className="flex items-center gap-4 px-5 py-4 text-dd-ink no-underline hover:bg-dd-surface-muted sm:px-6"
+                >
+                  <Badge
+                    tone={
+                      job.status === 'FAILED'
+                        ? 'danger'
+                        : job.status === 'SUCCEEDED'
+                          ? 'success'
+                          : 'warning'
+                    }
+                  >
+                    {job.status}
+                  </Badge>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{job.type}</span>
+                  <span className="text-xs text-dd-muted">
+                    Percobaan {job.attemptCount}/{job.maxAttempts}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="p-10 text-center text-sm text-dd-muted">Belum ada job pada scope ini.</p>
+          )}
+        </Panel>
+      )}
+
       <section aria-labelledby="quick-work-title">
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -338,21 +473,16 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </div>
           <span className="text-sm text-dd-muted">{pages.length} area tersedia</span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {pages.slice(0, 8).map((page) => (
+        <div className="flex flex-wrap gap-2">
+          {pages.slice(0, 6).map((page) => (
             <Link
               href={page.href}
               key={page.href}
-              className="group rounded-dd-lg border border-dd-line bg-dd-surface p-4 text-dd-ink no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-dd-brass hover:shadow-dd-card"
+              className="group inline-flex min-h-10 items-center gap-2 rounded-dd-md border border-dd-line bg-dd-surface px-3 text-sm font-semibold text-dd-ink no-underline shadow-sm hover:border-dd-brass"
             >
-              <span className="flex items-center justify-between gap-3">
-                <CalendarClock className="size-4 text-dd-brass" />
-                <ArrowRight className="size-4 text-dd-muted transition group-hover:translate-x-1" />
-              </span>
-              <strong className="mt-5 block">{page.label}</strong>
-              <span className="mt-1 block line-clamp-2 text-sm leading-6 text-dd-muted">
-                {page.description}
-              </span>
+              <CalendarClock className="size-4 text-dd-brass" />
+              <span>{page.shortLabel}</span>
+              <ArrowRight className="size-4 text-dd-muted transition group-hover:translate-x-1" />
               <span className="sr-only">Buka {page.label}</span>
             </Link>
           ))}

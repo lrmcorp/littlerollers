@@ -6,6 +6,7 @@
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_overview_period.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
 import 'package:openapi/src/model/dashboard_risk_item.dart';
@@ -23,6 +24,7 @@ part 'dashboard_overview.g.dart';
 /// * [generatedAt] 
 /// * [period] 
 /// * [roleFocus] 
+/// * [sections] 
 /// * [metrics] 
 /// * [queues] 
 /// * [trend] 
@@ -40,7 +42,10 @@ abstract class DashboardOverview implements Built<DashboardOverview, DashboardOv
 
   @BuiltValueField(wireName: r'roleFocus')
   DashboardOverviewRoleFocusEnum get roleFocus;
-  // enum roleFocusEnum {  OWNER,  BRANCH,  FINANCE,  OPS,  };
+  // enum roleFocusEnum {  EXECUTIVE,  OWNER,  BRANCH_OPERATIONS,  FINANCE,  OPERATIONS,  };
+
+  @BuiltValueField(wireName: r'sections')
+  DashboardSections get sections;
 
   @BuiltValueField(wireName: r'metrics')
   BuiltList<DashboardMetric> get metrics;
@@ -100,6 +105,11 @@ class _$DashboardOverviewSerializer implements PrimitiveSerializer<DashboardOver
     yield serializers.serialize(
       object.roleFocus,
       specifiedType: const FullType(DashboardOverviewRoleFocusEnum),
+    );
+    yield r'sections';
+    yield serializers.serialize(
+      object.sections,
+      specifiedType: const FullType(DashboardSections),
     );
     yield r'metrics';
     yield serializers.serialize(
@@ -179,6 +189,13 @@ class _$DashboardOverviewSerializer implements PrimitiveSerializer<DashboardOver
             specifiedType: const FullType(DashboardOverviewRoleFocusEnum),
           ) as DashboardOverviewRoleFocusEnum;
           result.roleFocus = valueDes;
+          break;
+        case r'sections':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DashboardSections),
+          ) as DashboardSections;
+          result.sections.replace(valueDes);
           break;
         case r'metrics':
           final valueDes = serializers.deserialize(
@@ -260,14 +277,16 @@ class _$DashboardOverviewSerializer implements PrimitiveSerializer<DashboardOver
 
 class DashboardOverviewRoleFocusEnum extends EnumClass {
 
+  @BuiltValueEnumConst(wireName: r'EXECUTIVE')
+  static const DashboardOverviewRoleFocusEnum EXECUTIVE = _$dashboardOverviewRoleFocusEnum_EXECUTIVE;
   @BuiltValueEnumConst(wireName: r'OWNER')
   static const DashboardOverviewRoleFocusEnum OWNER = _$dashboardOverviewRoleFocusEnum_OWNER;
-  @BuiltValueEnumConst(wireName: r'BRANCH')
-  static const DashboardOverviewRoleFocusEnum BRANCH = _$dashboardOverviewRoleFocusEnum_BRANCH;
+  @BuiltValueEnumConst(wireName: r'BRANCH_OPERATIONS')
+  static const DashboardOverviewRoleFocusEnum BRANCH_OPERATIONS = _$dashboardOverviewRoleFocusEnum_BRANCH_OPERATIONS;
   @BuiltValueEnumConst(wireName: r'FINANCE')
   static const DashboardOverviewRoleFocusEnum FINANCE = _$dashboardOverviewRoleFocusEnum_FINANCE;
-  @BuiltValueEnumConst(wireName: r'OPS')
-  static const DashboardOverviewRoleFocusEnum OPS = _$dashboardOverviewRoleFocusEnum_OPS;
+  @BuiltValueEnumConst(wireName: r'OPERATIONS')
+  static const DashboardOverviewRoleFocusEnum OPERATIONS = _$dashboardOverviewRoleFocusEnum_OPERATIONS;
 
   static Serializer<DashboardOverviewRoleFocusEnum> get serializer => _$dashboardOverviewRoleFocusEnumSerializer;
 

@@ -27,6 +27,11 @@ void main() {
       // TODO
     });
 
+    // String supportWhatsappE164
+    test('to test the property `supportWhatsappE164`', () async {
+      // TODO
+    });
+
     // bool active
     test('to test the property `active`', () async {
       // TODO

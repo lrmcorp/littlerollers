@@ -7,13 +7,28 @@ void main() {
   final instance = Openapi().getAuthApi();
 
   group(AuthApi, () {
+    //Future<Session> activatePassword(PasswordTokenCommand passwordTokenCommand) async
+    test('test activatePassword', () async {
+      // TODO
+    });
+
     //Future<Session> authenticateGoogle(GoogleAuthRequest googleAuthRequest) async
     test('test authenticateGoogle', () async {
       // TODO
     });
 
-    //Future<MfaChallenge> createMfaChallenge(MfaChallengeCommand mfaChallengeCommand) async
-    test('test createMfaChallenge', () async {
+    //Future<Session> authenticatePassword(PasswordSessionRequest passwordSessionRequest) async
+    test('test authenticatePassword', () async {
+      // TODO
+    });
+
+    //Future<ChangedStatus> changePassword(PasswordChangeCommand passwordChangeCommand) async
+    test('test changePassword', () async {
+      // TODO
+    });
+
+    //Future<AuthSecurityStatus> getAuthSecurityStatus() async
+    test('test getAuthSecurityStatus', () async {
       // TODO
     });
 
@@ -34,6 +49,13 @@ void main() {
       // TODO
     });
 
+    // Creates an active CUSTOMER account with pending private selfie and KTP verification, then issues a web session.
+    //
+    //Future<Session> registerCustomer(String displayName, String phone, String email, String password, bool consent, MultipartFile selfie, MultipartFile ktp) async
+    test('test registerCustomer', () async {
+      // TODO
+    });
+
     //Future<ChallengeAccepted> requestAccountRecovery(RecoveryRequestCommand recoveryRequestCommand) async
     test('test requestAccountRecovery', () async {
       // TODO
@@ -44,6 +66,16 @@ void main() {
       // TODO
     });
 
+    //Future<AcceptedStatus> requestPasswordReset(PasswordResetRequest passwordResetRequest) async
+    test('test requestPasswordReset', () async {
+      // TODO
+    });
+
+    //Future<ChangedStatus> resetPassword(PasswordTokenCommand passwordTokenCommand) async
+    test('test resetPassword', () async {
+      // TODO
+    });
+
     //Future revokeAllSessions(RevokeSessionsCommand revokeSessionsCommand) async
     test('test revokeAllSessions', () async {
       // TODO
@@ -51,11 +83,6 @@ void main() {
 
     //Future<Session> verifyAccountRecovery(String id, String idempotencyKey, RecoveryVerifyCommand recoveryVerifyCommand) async
     test('test verifyAccountRecovery', () async {
-      // TODO
-    });
-
-    //Future<Session> verifyMfaChallenge(MfaVerifyCommand mfaVerifyCommand) async
-    test('test verifyMfaChallenge', () async {
       // TODO
     });
 

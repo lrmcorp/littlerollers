@@ -5,18 +5,32 @@ import {
   Headers,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   Req,
   Res,
+  StreamableFile,
+  UploadedFile,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import type { SessionChannel } from '@prisma/client';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { IdentityService } from './identity.service';
 import { ApiProblem } from './security';
 import { HttpStatus } from '@nestjs/common';
+
+interface MemoryUpload {
+  originalname: string;
+  mimetype: string;
+  buffer: Buffer;
+}
+
+const multipartLimits = { fileSize: 8_000_000, files: 2 };
 
 @Controller()
 export class IdentityController {
@@ -74,6 +88,15 @@ export class IdentityController {
   }
 
   @Post('auth/customer-registrations')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'selfie', maxCount: 1 },
+        { name: 'ktp', maxCount: 1 },
+      ],
+      { limits: multipartLimits },
+    ),
+  )
   async registerCustomer(
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
@@ -83,15 +106,30 @@ export class IdentityController {
       phone: string;
       email: string;
       password: string;
-      consent: boolean;
-      selfie: { fileName: string; mimeType: string; sizeBytes: number; sha256: string };
-      ktp: { fileName: string; mimeType: string; sizeBytes: number; sha256: string };
+      consent: string | boolean;
     },
+    @UploadedFiles() files: { selfie?: MemoryUpload[]; ktp?: MemoryUpload[] },
   ) {
+    const selfie = files?.selfie?.[0];
+    const ktp = files?.ktp?.[0];
+    if (!selfie || !ktp) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.deliverSession(
       response,
       await this.identities.registerCustomer(
-        body,
+        {
+          ...body,
+          consent: body.consent === true || body.consent === 'true',
+          selfie: {
+            originalName: selfie.originalname,
+            claimedMimeType: selfie.mimetype,
+            buffer: selfie.buffer,
+          },
+          ktp: {
+            originalName: ktp.originalname,
+            claimedMimeType: ktp.mimetype,
+            buffer: ktp.buffer,
+          },
+        },
         request.correlationId ?? 'unknown',
         `${request.ip}:${request.header('user-agent') ?? ''}`,
       ),
@@ -105,23 +143,64 @@ export class IdentityController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('me/profile')
+  myProfile(@Req() request: AuthenticatedRequest) {
+    return this.identities.myProfile(request.principal);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('me/profile')
+  updateMyProfile(
+    @Req() request: AuthenticatedRequest,
+    @Body()
+    body: { displayName: string; preferredBranchId?: string | null; expectedVersion: number },
+  ) {
+    return this.identities.updateMyProfile(
+      request.principal,
+      body,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @Get('public/site-config')
+  publicSiteConfig() {
+    return this.identities.publicSiteConfig();
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('identity-verification/me/documents/:kind/view-authorizations')
+  authorizeMyIdentityDocument(
+    @Req() request: AuthenticatedRequest,
+    @Param('kind') kind: import('@prisma/client').IdentityDocumentKind,
+  ) {
+    return this.identities.authorizeMyIdentityDocument(
+      request.principal,
+      kind,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Post('identity-verification/me/documents/:kind/replacements')
+  @UseInterceptors(FileInterceptor('replacement', { limits: { fileSize: 8_000_000, files: 1 } }))
   replaceIdentityDocument(
     @Req() request: AuthenticatedRequest,
     @Param('kind') kind: import('@prisma/client').IdentityDocumentKind,
-    @Body()
-    body: {
-      fileName: string;
-      mimeType: string;
-      sizeBytes: number;
-      sha256: string;
-      expectedVersion: number;
-    },
+    @Body() body: { expectedVersion: string | number },
+    @UploadedFile() replacement?: MemoryUpload,
   ) {
+    const expectedVersion = Number(body.expectedVersion);
+    if (!replacement || !Number.isInteger(expectedVersion))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.identities.replaceIdentityDocument(
       request.principal,
       kind,
-      body,
+      {
+        originalName: replacement.originalname,
+        claimedMimeType: replacement.mimetype,
+        buffer: replacement.buffer,
+      },
+      expectedVersion,
       request.correlationId ?? 'unknown',
     );
   }
@@ -135,7 +214,35 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Post('identity-verifications/:id/view-authorizations')
   authorizeIdentityDocument(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.identities.authorizeIdentityDocument(request.principal, id);
+    return this.identities.authorizeIdentityDocument(
+      request.principal,
+      id,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('identity-verification-files/:authorizationId/content')
+  async readIdentityDocument(
+    @Req() request: AuthenticatedRequest,
+    @Param('authorizationId') authorizationId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.identities.readAuthorizedIdentityDocument(
+      request.principal,
+      authorizationId,
+      request.correlationId ?? 'unknown',
+    );
+    const extension =
+      file.mimeType === 'image/png' ? 'png' : file.mimeType === 'image/webp' ? 'webp' : 'jpg';
+    response.set({
+      'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Disposition': `inline; filename="identity-document.${extension}"`,
+      'Content-Type': file.mimeType,
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return new StreamableFile(file.stream);
   }
 
   @UseGuards(AuthGuard)
@@ -421,6 +528,27 @@ export class IdentityController {
   }
 
   @UseGuards(AuthGuard)
+  @Patch('users/:id/profile')
+  updateUserProfile(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      displayName: string;
+      phoneE164?: string | null;
+      expectedVersion: number;
+      reason: string;
+    },
+  ) {
+    return this.identities.updateUserProfile(
+      request.principal,
+      id,
+      body,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Post('users')
   inviteUser(
     @Req() request: AuthenticatedRequest,
@@ -460,6 +588,7 @@ export class IdentityController {
   updateUserRoles(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
+    @Headers('idempotency-key') idempotencyKey: string,
     @Body()
     body: {
       roles: { role: import('@prisma/client').ApplicationRole; branchId?: string | null }[];
@@ -472,6 +601,7 @@ export class IdentityController {
       id,
       body,
       request.correlationId ?? 'unknown',
+      idempotencyKey,
     );
   }
 
@@ -480,12 +610,13 @@ export class IdentityController {
   deactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { reason: string },
+    @Body() body: { reason: string; expectedVersion: number },
   ) {
     return this.identities.deactivate(
       request.principal,
       id,
       body.reason,
+      body.expectedVersion,
       request.correlationId ?? 'unknown',
     );
   }
@@ -495,12 +626,13 @@ export class IdentityController {
   reactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { reason: string },
+    @Body() body: { reason: string; expectedVersion: number },
   ) {
     return this.identities.reactivate(
       request.principal,
       id,
       body.reason,
+      body.expectedVersion,
       request.correlationId ?? 'unknown',
     );
   }

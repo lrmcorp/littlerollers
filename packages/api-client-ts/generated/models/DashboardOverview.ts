@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DashboardSections } from './DashboardSections';
+import {
+    DashboardSectionsFromJSON,
+    DashboardSectionsFromJSONTyped,
+    DashboardSectionsToJSON,
+    DashboardSectionsToJSONTyped,
+} from './DashboardSections';
 import type { DashboardQueueSummary } from './DashboardQueueSummary';
 import {
     DashboardQueueSummaryFromJSON,
@@ -96,6 +103,12 @@ export interface DashboardOverview {
     roleFocus: DashboardOverviewRoleFocusEnum;
     /**
      * 
+     * @type {DashboardSections}
+     * @memberof DashboardOverview
+     */
+    sections: DashboardSections;
+    /**
+     * 
      * @type {Array<DashboardMetric>}
      * @memberof DashboardOverview
      */
@@ -143,10 +156,11 @@ export interface DashboardOverview {
  * @export
  */
 export const DashboardOverviewRoleFocusEnum = {
+    Executive: 'EXECUTIVE',
     Owner: 'OWNER',
-    Branch: 'BRANCH',
+    BranchOperations: 'BRANCH_OPERATIONS',
     Finance: 'FINANCE',
-    Ops: 'OPS'
+    Operations: 'OPERATIONS'
 } as const;
 export type DashboardOverviewRoleFocusEnum = typeof DashboardOverviewRoleFocusEnum[keyof typeof DashboardOverviewRoleFocusEnum];
 
@@ -158,6 +172,7 @@ export function instanceOfDashboardOverview(value: object): value is DashboardOv
     if (!('generatedAt' in value) || value['generatedAt'] === undefined) return false;
     if (!('period' in value) || value['period'] === undefined) return false;
     if (!('roleFocus' in value) || value['roleFocus'] === undefined) return false;
+    if (!('sections' in value) || value['sections'] === undefined) return false;
     if (!('metrics' in value) || value['metrics'] === undefined) return false;
     if (!('queues' in value) || value['queues'] === undefined) return false;
     if (!('trend' in value) || value['trend'] === undefined) return false;
@@ -181,6 +196,7 @@ export function DashboardOverviewFromJSONTyped(json: any, ignoreDiscriminator: b
         'generatedAt': (new Date(json['generatedAt'])),
         'period': DashboardOverviewPeriodFromJSON(json['period']),
         'roleFocus': json['roleFocus'],
+        'sections': DashboardSectionsFromJSON(json['sections']),
         'metrics': ((json['metrics'] as Array<any>).map(DashboardMetricFromJSON)),
         'queues': ((json['queues'] as Array<any>).map(DashboardQueueSummaryFromJSON)),
         'trend': ((json['trend'] as Array<any>).map(DashboardTrendPointFromJSON)),
@@ -205,6 +221,7 @@ export function DashboardOverviewToJSONTyped(value?: DashboardOverview | null, i
         'generatedAt': ((value['generatedAt']).toISOString()),
         'period': DashboardOverviewPeriodToJSON(value['period']),
         'roleFocus': value['roleFocus'],
+        'sections': DashboardSectionsToJSON(value['sections']),
         'metrics': ((value['metrics'] as Array<any>).map(DashboardMetricToJSON)),
         'queues': ((value['queues'] as Array<any>).map(DashboardQueueSummaryToJSON)),
         'trend': ((value['trend'] as Array<any>).map(DashboardTrendPointToJSON)),

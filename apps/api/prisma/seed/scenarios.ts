@@ -3,6 +3,20 @@ import { createHash } from 'node:crypto';
 import type { SeedContext } from './context';
 import type { SeedMasterResult } from './master-data';
 
+export function bsdQuotaJobFixture(
+  ctx: SeedContext,
+  key: 'risk' | 'completed',
+  status: 'FAILED' | 'SUCCEEDED',
+) {
+  const dueAt = ctx.at(key === 'risk' ? 0 : -3);
+  return {
+    dueAt,
+    nextAttemptAt: status === 'FAILED' ? ctx.at(0, 1) : dueAt,
+    attempts: status === 'FAILED' ? 3 : 1,
+    lastErrorCode: status === 'FAILED' ? 'SEED_BSD_PROVIDER_TIMEOUT' : null,
+  };
+}
+
 export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>) {
   const customerId = users.customer!; const financeId = users.finance!; const managerId = users.manager!; const instructorId = users.instructor!;
   const branchId = master.branches['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
@@ -169,6 +183,220 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     await ctx.db.quotaEvaluationJob.upsert({ where: { classSlotId: slotId }, update: { status }, create: { id: ctx.id('quota-job', status), classSlotId: slotId, evaluationKey: `seed-${status.toLowerCase()}`, dueAt: ctx.at(index - 1), status, attempts: index, maxAttempts: 5, nextAttemptAt: ctx.at(index - 1, 1), lastErrorCode: status === 'FAILED' ? 'SEED_PROVIDER_TIMEOUT' : null } });
   }
   for (let index = 0; index < 12; index++) await ctx.db.auditLog.upsert({ where: { id: ctx.id('audit', index) }, update: {}, create: { id: ctx.id('audit', index), occurredAt: ctx.at(-index), actorType: index % 3 ? 'USER' : 'SYSTEM', actorId: index % 3 ? managerId : null, branchId, action: `SEED_ACTIVITY_${index + 1}`, objectType: index % 2 ? 'Purchase' : 'ClassSlot', objectId: index % 2 ? purchases.pending! : slots.published!, correlationId: `seed-correlation-${index}` } });
+  await seedBsdOperationalScenarios(ctx, master, users);
+}
+
+async function seedBsdOperationalScenarios(
+  ctx: SeedContext,
+  master: SeedMasterResult,
+  users: Record<string, string>,
+) {
+  const branchId = master.branches['DD-BSD']!;
+  const classTypeId = master.classTypes['DD-BSD:REFORMER']!;
+  const packageId = master.packages['DD-BSD:REFORMER:10']!;
+  const customerId = users.customer!;
+  const managerId = users['manager-bsd']!;
+  const financeId = users.finance!;
+  const instructorId = users['instructor-bsd-2']!;
+  if (!managerId || !instructorId) throw new Error('BSD operational scenarios require manager and instructor fixtures.');
+  const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
+  const slots = [
+    { key: 'risk', status: 'PUBLISHED' as const, day: 1, bookedCount: 1 },
+    { key: 'published', status: 'PUBLISHED' as const, day: 2, bookedCount: 2 },
+    { key: 'confirmed', status: 'CONFIRMED' as const, day: 3, bookedCount: 4 },
+    { key: 'completed', status: 'COMPLETED' as const, day: -3, bookedCount: 5 },
+  ];
+  const slotIds: Record<string, string> = {};
+  for (const slot of slots) {
+    const id = ctx.id('class-slot', `bsd-${slot.key}`);
+    slotIds[slot.key] = id;
+    await ctx.db.classSlot.upsert({
+      where: { id },
+      update: { status: slot.status, bookedCount: slot.bookedCount },
+      create: {
+        id,
+        branchId,
+        classTypeId,
+        instructorUserId: instructorId,
+        startAt: ctx.at(slot.day, 10),
+        endAt: ctx.at(slot.day, 11),
+        timezone: 'Asia/Jakarta',
+        minimumQuota: 3,
+        capacity: 12,
+        bookedCount: slot.bookedCount,
+        status: slot.status,
+      },
+    });
+  }
+
+  const approvedPurchaseId = ctx.id('purchase', 'bsd-approved');
+  await ctx.db.purchase.upsert({
+    where: { id: approvedPurchaseId },
+    update: { status: 'APPROVED' },
+    create: {
+      id: approvedPurchaseId,
+      userId: customerId,
+      branchId,
+      packageId,
+      packageNameSnapshot: pkg.name,
+      priceRpSnapshot: pkg.priceRp,
+      sessionCountSnapshot: pkg.sessionCount,
+      durationDaysSnapshot: pkg.durationDays,
+      status: 'APPROVED',
+      idempotencyKeyHash: 'seed-bsd-approved',
+      submittedAt: ctx.at(-2),
+      decidedAt: ctx.at(-2, 1),
+      decidedById: financeId,
+      decisionReasonCode: 'PAYMENT_VERIFIED',
+    },
+  });
+  const pendingProofId = ctx.id('payment-proof', 'bsd-pending');
+  await ctx.db.paymentProof.upsert({
+    where: { id: pendingProofId },
+    update: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
+    create: {
+      id: pendingProofId,
+      userId: customerId,
+      branchId,
+      packageId,
+      objectKey: 'seed/proofs/bsd-pending',
+      checksum: 'seed-bsd-pending',
+      fileName: 'bsd-pending.png',
+      mimeType: 'image/png',
+      sizeBytes: 2048,
+      uploadStatus: 'FINALIZED',
+      scanStatus: 'CLEAN',
+      finalizedAt: ctx.at(-1),
+    },
+  });
+  await ctx.db.purchase.upsert({
+    where: { id: ctx.id('purchase', 'bsd-pending') },
+    update: { status: 'PENDING', paymentProofId: pendingProofId },
+    create: {
+      id: ctx.id('purchase', 'bsd-pending'),
+      userId: customerId,
+      branchId,
+      packageId,
+      paymentProofId: pendingProofId,
+      packageNameSnapshot: pkg.name,
+      priceRpSnapshot: pkg.priceRp,
+      sessionCountSnapshot: pkg.sessionCount,
+      durationDaysSnapshot: pkg.durationDays,
+      status: 'PENDING',
+      idempotencyKeyHash: 'seed-bsd-pending',
+      submittedAt: ctx.at(-1),
+    },
+  });
+
+  const customerPackageId = ctx.id('customer-package', 'bsd-approved');
+  await ctx.db.customerPackage.upsert({
+    where: { purchaseId: approvedPurchaseId },
+    update: { status: 'ACTIVE' },
+    create: {
+      id: customerPackageId,
+      purchaseId: approvedPurchaseId,
+      customerUserId: customerId,
+      branchId,
+      packageId,
+      classTypeId,
+      activationDate: ctx.anchor,
+      expiryAt: ctx.at(90),
+      salePriceRp: pkg.priceRp,
+      sessionCountSnapshot: pkg.sessionCount,
+      durationDaysSnapshot: pkg.durationDays,
+      projectionRateRp: 185_000,
+    },
+  });
+  await ctx.db.ledgerEntry.upsert({
+    where: {
+      type_referenceType_referenceId: {
+        type: 'PURCHASE',
+        referenceType: 'PURCHASE',
+        referenceId: approvedPurchaseId,
+      },
+    },
+    update: { quantity: pkg.sessionCount },
+    create: {
+      id: ctx.id('ledger', 'bsd-purchase'),
+      customerPackageId,
+      type: 'PURCHASE',
+      quantity: pkg.sessionCount,
+      referenceType: 'PURCHASE',
+      referenceId: approvedPurchaseId,
+    },
+  });
+  const reservationId = ctx.id('reservation', 'bsd-active');
+  await ctx.db.sessionReservation.upsert({
+    where: {
+      customerPackageId_referenceHash: {
+        customerPackageId,
+        referenceHash: 'seed-bsd-active',
+      },
+    },
+    update: { status: 'ACTIVE' },
+    create: {
+      id: reservationId,
+      customerPackageId,
+      classSlotId: slotIds.confirmed!,
+      referenceHash: 'seed-bsd-active',
+      quantity: 1,
+      status: 'ACTIVE',
+    },
+  });
+  await ctx.db.booking.upsert({
+    where: { id: ctx.id('booking', 'bsd-active') },
+    update: { status: 'BOOKED' },
+    create: {
+      id: ctx.id('booking', 'bsd-active'),
+      branchId,
+      classSlotId: slotIds.confirmed!,
+      customerUserId: customerId,
+      customerPackageId,
+      reservationId,
+      createdById: managerId,
+      source: 'ADMIN_ASSISTED',
+      status: 'BOOKED',
+    },
+  });
+  for (const [key, status] of [
+    ['risk', 'FAILED'],
+    ['completed', 'SUCCEEDED'],
+  ] as const) {
+    const fixture = bsdQuotaJobFixture(ctx, key, status);
+    await ctx.db.quotaEvaluationJob.upsert({
+      where: { classSlotId: slotIds[key]! },
+      update: {
+        status,
+        ...fixture,
+      },
+      create: {
+        id: ctx.id('quota-job', `bsd-${status.toLowerCase()}`),
+        classSlotId: slotIds[key]!,
+        evaluationKey: `seed-bsd-${status.toLowerCase()}`,
+        status,
+        maxAttempts: 5,
+        ...fixture,
+      },
+    });
+  }
+  for (let index = 0; index < 4; index++) {
+    await ctx.db.auditLog.upsert({
+      where: { id: ctx.id('audit', `bsd-${index}`) },
+      update: {},
+      create: {
+        id: ctx.id('audit', `bsd-${index}`),
+        occurredAt: ctx.at(-index),
+        actorType: 'USER',
+        actorId: managerId,
+        branchId,
+        targetUserId: customerId,
+        action: `SEED_BSD_ACTIVITY_${index + 1}`,
+        objectType: index % 2 ? 'Purchase' : 'ClassSlot',
+        objectId: index % 2 ? approvedPurchaseId : slotIds.published!,
+        correlationId: `seed-bsd-correlation-${index}`,
+      },
+    });
+  }
 }
 
 export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>, count = 500) {

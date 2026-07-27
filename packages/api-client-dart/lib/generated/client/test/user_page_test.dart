@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // UserListSummary summary
+    test('to test the property `summary`', () async {
+      // TODO
+    });
+
   });
 }

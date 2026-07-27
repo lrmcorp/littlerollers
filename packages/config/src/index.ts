@@ -23,13 +23,14 @@ export interface RuntimeConfig {
     syntheticEnabled: boolean;
     cutoffHours: number | null;
   };
-  objectStorage: {
-    endpoint: string;
-    accessKey: string;
-    secretKey: string;
-    bucket: string;
-    useSsl: boolean;
+  privateUploads: {
+    driver: 'local';
+    root: string;
+    maxBytes: number;
+    viewAuthorizationTtlSeconds: number;
+    retentionDays: number;
   };
+  publicSupportWhatsappE164: string | null;
 }
 
 const required = (env: NodeJS.ProcessEnv, key: string): string => {
@@ -68,6 +69,27 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     (!Number.isInteger(rescheduleCutoffHours) || rescheduleCutoffHours < 1)
   )
     throw new Error('CONFIGURATION_INVALID:RESCHEDULE_SYNTHETIC_CUTOFF_HOURS');
+  const privateUploadDriver = env.PRIVATE_UPLOAD_DRIVER?.trim() || 'local';
+  if (privateUploadDriver !== 'local')
+    throw new Error('CONFIGURATION_INVALID:PRIVATE_UPLOAD_DRIVER');
+  const privateUploadRoot =
+    env.PRIVATE_UPLOAD_ROOT?.trim() ||
+    (environment === 'production'
+      ? required(env, 'PRIVATE_UPLOAD_ROOT')
+      : 'apps/api/.local-data/private');
+  const configuredPositiveInteger = (key: string, fallback: number): number => {
+    const raw = env[key]?.trim();
+    if (!raw) return fallback;
+    const value = Number(raw);
+    if (!Number.isInteger(value) || value < 1) throw new Error(`CONFIGURATION_INVALID:${key}`);
+    return value;
+  };
+  const privateUploadMaxBytes = configuredPositiveInteger('PRIVATE_UPLOAD_MAX_BYTES', 8_000_000);
+  if (privateUploadMaxBytes > 8_000_000)
+    throw new Error('CONFIGURATION_INVALID:PRIVATE_UPLOAD_MAX_BYTES');
+  const publicSupportWhatsappE164 = env.PUBLIC_SUPPORT_WHATSAPP_E164?.trim() || null;
+  if (publicSupportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(publicSupportWhatsappE164))
+    throw new Error('CONFIGURATION_INVALID:PUBLIC_SUPPORT_WHATSAPP_E164');
   return {
     environment,
     port,
@@ -92,12 +114,13 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
       syntheticEnabled: rescheduleSyntheticEnabled,
       cutoffHours: rescheduleCutoffHours,
     },
-    objectStorage: {
-      endpoint: required(env, 'OBJECT_STORAGE_ENDPOINT'),
-      accessKey: required(env, 'OBJECT_STORAGE_ACCESS_KEY'),
-      secretKey: required(env, 'OBJECT_STORAGE_SECRET_KEY'),
-      bucket: required(env, 'OBJECT_STORAGE_BUCKET'),
-      useSsl: env.OBJECT_STORAGE_USE_SSL === 'true',
+    privateUploads: {
+      driver: 'local',
+      root: privateUploadRoot,
+      maxBytes: privateUploadMaxBytes,
+      viewAuthorizationTtlSeconds: configuredPositiveInteger('PRIVATE_VIEW_AUTH_TTL_SECONDS', 300),
+      retentionDays: configuredPositiveInteger('IDENTITY_DOCUMENT_RETENTION_DAYS', 30),
     },
+    publicSupportWhatsappE164,
   };
 }

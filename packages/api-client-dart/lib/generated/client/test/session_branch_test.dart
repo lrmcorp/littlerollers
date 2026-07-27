@@ -3,7 +3,7 @@ import 'package:openapi/openapi.dart';
 
 // tests for SessionBranch
 void main() {
-  final instance = SessionBranchBuilder();
+  //final instance = SessionBranchBuilder();
   // TODO add properties to the builder and call build()
 
   group(SessionBranch, () {

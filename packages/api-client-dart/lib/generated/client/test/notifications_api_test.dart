@@ -7,8 +7,30 @@ void main() {
   final instance = Openapi().getNotificationsApi();
 
   group(NotificationsApi, () {
+    //Future<GetMyNotificationUnreadCount200Response> getMyNotificationUnreadCount() async
+    test('test getMyNotificationUnreadCount', () async {
+      // TODO
+    });
+
+    // Self-only persistent in-app notification feed.
+    //
+    //Future<UserNotificationPage> listMyNotifications({ String cursor, int limit, bool unreadOnly }) async
+    test('test listMyNotifications', () async {
+      // TODO
+    });
+
     //Future<NotificationOccurrencePage> listNotifications({ String cursor, String status }) async
     test('test listNotifications', () async {
+      // TODO
+    });
+
+    //Future<MarkAllMyNotificationsRead200Response> markAllMyNotificationsRead() async
+    test('test markAllMyNotificationsRead', () async {
+      // TODO
+    });
+
+    //Future<UserNotification> markMyNotificationRead(String id) async
+    test('test markMyNotificationRead', () async {
       // TODO
     });
 
@@ -17,7 +39,7 @@ void main() {
       // TODO
     });
 
-    //Future<NotificationAttempt> retryNotification(String id, String idempotencyKey, DeactivateUserRequest deactivateUserRequest) async
+    //Future<NotificationAttempt> retryNotification(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
     test('test retryNotification', () async {
       // TODO
     });

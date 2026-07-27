@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Object keys, checksums, provider references and signed URLs are never exposed.
+ * Object keys, checksums, provider references and view authorization tokens are never exposed.
  * @export
  * @interface IdentityVerificationDocument
  */
@@ -116,6 +116,8 @@ export const IdentityVerificationDocumentStatusEnum = {
     Pending: 'PENDING',
     Approved: 'APPROVED',
     Rejected: 'REJECTED',
+    PendingDeletion: 'PENDING_DELETION',
+    DeleteFailed: 'DELETE_FAILED',
     Deleted: 'DELETED'
 } as const;
 export type IdentityVerificationDocumentStatusEnum = typeof IdentityVerificationDocumentStatusEnum[keyof typeof IdentityVerificationDocumentStatusEnum];

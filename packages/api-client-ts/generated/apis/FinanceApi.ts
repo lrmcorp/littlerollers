@@ -21,7 +21,7 @@ import type {
   Correction,
   CorrectionCommand,
   CorrectionDecisionResult,
-  DeactivateUserRequest,
+  DecideCorrectionRequest,
   ErrorEnvelope,
   FinanceReconciliationOverview,
   FinancialReportPage,
@@ -43,8 +43,8 @@ import {
     CorrectionCommandToJSON,
     CorrectionDecisionResultFromJSON,
     CorrectionDecisionResultToJSON,
-    DeactivateUserRequestFromJSON,
-    DeactivateUserRequestToJSON,
+    DecideCorrectionRequestFromJSON,
+    DecideCorrectionRequestToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
     FinanceReconciliationOverviewFromJSON,
@@ -71,11 +71,11 @@ export interface CreateOtherCostRequest {
     otherCostCommand: OtherCostCommand;
 }
 
-export interface DecideCorrectionRequest {
+export interface DecideCorrectionOperationRequest {
     id: string;
-    decision: DecideCorrectionDecisionEnum;
+    decision: DecideCorrectionOperationDecisionEnum;
     idempotencyKey: string;
-    deactivateUserRequest: DeactivateUserRequest;
+    decideCorrectionRequest: DecideCorrectionRequest;
 }
 
 export interface GetFinanceReconciliationAnomaliesRequest {
@@ -232,7 +232,7 @@ export class FinanceApi extends runtime.BaseAPI {
 
     /**
      */
-    async decideCorrectionRaw(requestParameters: DecideCorrectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CorrectionDecisionResult>> {
+    async decideCorrectionRaw(requestParameters: DecideCorrectionOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CorrectionDecisionResult>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -254,10 +254,10 @@ export class FinanceApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['deactivateUserRequest'] == null) {
+        if (requestParameters['decideCorrectionRequest'] == null) {
             throw new runtime.RequiredError(
-                'deactivateUserRequest',
-                'Required parameter "deactivateUserRequest" was null or undefined when calling decideCorrection().'
+                'decideCorrectionRequest',
+                'Required parameter "decideCorrectionRequest" was null or undefined when calling decideCorrection().'
             );
         }
 
@@ -289,7 +289,7 @@ export class FinanceApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DeactivateUserRequestToJSON(requestParameters['deactivateUserRequest']),
+            body: DecideCorrectionRequestToJSON(requestParameters['decideCorrectionRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CorrectionDecisionResultFromJSON(jsonValue));
@@ -297,7 +297,7 @@ export class FinanceApi extends runtime.BaseAPI {
 
     /**
      */
-    async decideCorrection(requestParameters: DecideCorrectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CorrectionDecisionResult> {
+    async decideCorrection(requestParameters: DecideCorrectionOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CorrectionDecisionResult> {
         const response = await this.decideCorrectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -620,11 +620,11 @@ export class FinanceApi extends runtime.BaseAPI {
 /**
  * @export
  */
-export const DecideCorrectionDecisionEnum = {
+export const DecideCorrectionOperationDecisionEnum = {
     Approve: 'approve',
     Reject: 'reject'
 } as const;
-export type DecideCorrectionDecisionEnum = typeof DecideCorrectionDecisionEnum[keyof typeof DecideCorrectionDecisionEnum];
+export type DecideCorrectionOperationDecisionEnum = typeof DecideCorrectionOperationDecisionEnum[keyof typeof DecideCorrectionOperationDecisionEnum];
 /**
  * @export
  */

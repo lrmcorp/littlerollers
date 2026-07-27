@@ -43,6 +43,7 @@ test('super owner manages users while permissions remain read-only', async ({ pa
   const user = () => ({
     id: 'user-1',
     displayName: 'Admin Green Garden',
+    phoneE164: '+628111222333',
     status,
     version,
     createdAt: '2026-07-23T00:00:00.000Z',
@@ -55,6 +56,16 @@ test('super owner manages users while permissions remain read-only', async ({ pa
         source: 'DIRECT',
       },
     ],
+    directRoles: [
+      {
+        role,
+        branchId: 'branch-1',
+        branch: { id: 'branch-1', code: 'JKT', name: 'Jakarta' },
+        source: 'DIRECT',
+      },
+    ],
+    assignmentRoles: [],
+    effectiveCapabilities: ['user:read'],
   });
   await page.route('**/api/v1/users**', async (route) => {
     const request = route.request();
@@ -152,20 +163,29 @@ test('super owner manages users while permissions remain read-only', async ({ pa
       body: JSON.stringify({
         items: [user()],
         page: { nextCursor: null, hasMore: false },
+        summary: {
+          total: 1,
+          active: status === 'ACTIVE' ? 1 : 0,
+          pendingActivation: 0,
+          inactive: status === 'INACTIVE' ? 1 : 0,
+        },
       }),
     });
   });
 
   await page.goto('/users');
   await expect(page.getByText('Admin Green Garden')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Matrix permission role' })).toBeVisible();
-  await page.getByRole('button', { name: 'Lihat detail' }).click();
+  await page.getByRole('link', { name: 'Admin Green Garden' }).first().click();
+  await expect(page).toHaveURL('/users/user-1');
   await expect(page.getByText('security.user_invited')).toBeVisible();
-  await page.getByRole('button', { name: 'Ubah role dan scope' }).click();
-  await page.getByLabel('Role baru').selectOption('MANAGER');
+  await page.getByRole('button', { name: 'Kelola role' }).click();
+  await page.getByRole('checkbox', { name: /Admin cabang/ }).uncheck();
+  await page.getByRole('checkbox', { name: /Manager cabang/ }).check();
+  await page.getByLabel('Cabang untuk Manager cabang').selectOption('branch-1');
   await page.getByLabel('Alasan perubahan').fill('promosi operasional');
   await page.getByRole('button', { name: 'Simpan role dan cabut sesi' }).click();
   await expect(page.getByText(/Role dan scope berhasil diperbarui/)).toBeVisible();
+  await page.getByRole('button', { name: 'Nonaktifkan' }).click();
   await page.getByLabel('Alasan deaktivasi').fill('akses sementara dihentikan');
   await page.getByRole('button', { name: 'Konfirmasi nonaktifkan' }).click();
   await expect(page.getByText(/Pengguna dinonaktifkan dan seluruh sesi dicabut/)).toBeVisible();
@@ -214,6 +234,7 @@ test('admin sees only a read-only scoped user workspace', async ({ page }) => {
           {
             id: 'branch-user',
             displayName: 'Branch User',
+            phoneE164: null,
             status: 'ACTIVE',
             version: 0,
             createdAt: '2026-07-23T00:00:00.000Z',
@@ -226,18 +247,30 @@ test('admin sees only a read-only scoped user workspace', async ({ page }) => {
                 source: 'DIRECT',
               },
             ],
+            directRoles: [
+              {
+                role: 'ADMIN',
+                branchId: 'branch-1',
+                branch: { id: 'branch-1', code: 'JKT', name: 'Jakarta' },
+                source: 'DIRECT',
+              },
+            ],
+            assignmentRoles: [],
+            effectiveCapabilities: ['user:read'],
           },
         ],
         page: { nextCursor: null, hasMore: false },
+        summary: { total: 1, active: 1, pendingActivation: 0, inactive: 0 },
       }),
     });
   });
 
   await page.goto('/users');
   await expect(page.getByText('Branch User')).toBeVisible();
-  await expect(page.getByText('READ ONLY')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Undang pengguna' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Ubah role dan scope' })).toHaveCount(0);
+  await expect(page.getByText('Read only')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Buat pengguna internal' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Branch User' }).first().click();
+  await expect(page.getByRole('button', { name: 'Kelola role' })).toHaveCount(0);
 });
 
 test('public catalog requires a studio then shows authoritative availability', async ({ page }) => {
@@ -281,6 +314,8 @@ test('public catalog requires a studio then shows authoritative availability', a
 test('public package catalog requires a studio and uses authoritative commercial data', async ({
   page,
 }) => {
+  await page.route('**/api/v1/me', (route) => route.fulfill({ status: 401, body: '{}' }));
+  await page.route('**/api/v1/auth/refresh', (route) => route.fulfill({ status: 401, body: '{}' }));
   await page.route('**/api/v1/public/package-catalog**', (route) => {
     const selected = new URL(route.request().url()).searchParams.has('branchId');
     return route.fulfill({
@@ -306,13 +341,13 @@ test('public package catalog requires a studio and uses authoritative commercial
     });
   });
   await page.goto('/packages');
-  await expect(page.getByText('Pilih studio untuk memulai.')).toBeVisible();
-  await page.getByLabel('Studio', { exact: true }).selectOption('branch-1');
+  await expect(page.getByText('Pilih studio untuk melihat paket')).toBeVisible();
+  await page.getByRole('button', { name: /Green Garden/ }).click();
   await expect(page.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
   await expect(page.getByText(/Rp\s*1\.200\.000/)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Pilih paket' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Masuk untuk memilih' })).toHaveAttribute(
     'href',
-    '/sign-in?returnTo=%2Fpurchases%3Fpackage%3Dpackage-1',
+    '/sign-in?returnTo=%2Fcheckout%3Fpackage%3Dpackage-1%26branch%3Dbranch-1',
   );
 });
 

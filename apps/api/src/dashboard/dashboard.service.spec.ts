@@ -58,8 +58,8 @@ describe('DashboardService', () => {
       until: '2026-07-07',
     });
 
-    expect(result.roleFocus).toBe('BRANCH');
-    expect(result.metrics.map((metric) => metric.value)).toEqual([0, 0, 0, 0, 0]);
+    expect(result.roleFocus).toBe('BRANCH_OPERATIONS');
+    expect(result.metrics.map((metric) => metric.value)).toEqual([0, 0, 0, 0]);
     expect(result.queues.map((queue) => queue.key)).toEqual(['payments', 'reschedules']);
     expect(result.jobs).toEqual([]);
     expect(db.purchase.aggregate).toHaveBeenCalledWith(
@@ -67,6 +67,23 @@ describe('DashboardService', () => {
         where: expect.objectContaining({ branchId: { in: ['branch-1'] } }),
       }),
     );
+  });
+
+  it('uses deterministic role precedence and removes irrelevant sections', async () => {
+    const result = await new DashboardService(database() as never).overview(
+      principal({
+        roles: [
+          { role: 'FINANCE', branchId: null },
+          { role: 'SUPER_OWNER', branchId: null },
+        ],
+        capabilities: ['branch:all', 'finance:read', 'operations:read'],
+        branchIds: [],
+      }),
+      {},
+    );
+    expect(result.roleFocus).toBe('EXECUTIVE');
+    expect(result.sections.executive).toBe(true);
+    expect(result.sections.branchOperations).toBe(false);
   });
 
   it('validates date order before querying the database', async () => {

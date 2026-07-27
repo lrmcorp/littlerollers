@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // String branchId
+    test('to test the property `branchId`', () async {
+      // TODO
+    });
+
     // String bookingId
     test('to test the property `bookingId`', () async {
       // TODO
@@ -27,8 +32,38 @@ void main() {
       // TODO
     });
 
+    // String requestedById
+    test('to test the property `requestedById`', () async {
+      // TODO
+    });
+
+    // String decidedById
+    test('to test the property `decidedById`', () async {
+      // TODO
+    });
+
+    // String requestReasonCode
+    test('to test the property `requestReasonCode`', () async {
+      // TODO
+    });
+
+    // String decisionReasonCode
+    test('to test the property `decisionReasonCode`', () async {
+      // TODO
+    });
+
     // String status
     test('to test the property `status`', () async {
+      // TODO
+    });
+
+    // DateTime entitlementCutoffAt
+    test('to test the property `entitlementCutoffAt`', () async {
+      // TODO
+    });
+
+    // bool entitledAtRequest
+    test('to test the property `entitledAtRequest`', () async {
       // TODO
     });
 
@@ -44,6 +79,11 @@ void main() {
 
     // int version
     test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // bool idempotentReplay
+    test('to test the property `idempotentReplay`', () async {
       // TODO
     });
 

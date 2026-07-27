@@ -47,6 +47,11 @@ void main() {
       // TODO
     });
 
+    // int minimumQuota
+    test('to test the property `minimumQuota`', () async {
+      // TODO
+    });
+
     // int capacity
     test('to test the property `capacity`', () async {
       // TODO
@@ -57,8 +62,18 @@ void main() {
       // TODO
     });
 
+    // String cancellationReasonCode
+    test('to test the property `cancellationReasonCode`', () async {
+      // TODO
+    });
+
     // int version
     test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // bool idempotentReplay
+    test('to test the property `idempotentReplay`', () async {
       // TODO
     });
 

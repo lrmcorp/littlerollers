@@ -16,10 +16,24 @@ const reasons = [
   'OTHER_REQUIRES_NOTE',
 ];
 
+const statusLabels: Record<string, string> = {
+  PENDING: 'Menunggu pemeriksaan',
+  APPROVED: 'Disetujui',
+  REJECTED: 'Perlu diperbaiki',
+  PENDING_DELETION: 'Sedang dihapus',
+  DELETE_FAILED: 'Penghapusan gagal',
+  DELETED: 'Telah dihapus',
+};
+
 export function IdentityReviewView() {
   const [items, setItems] = useState<VerificationDocument[]>([]);
   const [status, setStatus] = useState('PENDING');
   const [message, setMessage] = useState('');
+  const [previewAuthorization, setPreviewAuthorization] = useState<{
+    documentId: string;
+    url: string;
+    expiresAt: string;
+  }>();
   const session = useSessionContext();
   const load = () =>
     verificationClient
@@ -57,8 +71,17 @@ export function IdentityReviewView() {
         <label className="filter-field">
           Status
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            {['PENDING', 'APPROVED', 'REJECTED', 'DELETED'].map((value) => (
-              <option key={value}>{value}</option>
+            {[
+              'PENDING',
+              'APPROVED',
+              'REJECTED',
+              'PENDING_DELETION',
+              'DELETE_FAILED',
+              'DELETED',
+            ].map((value) => (
+              <option key={value} value={value}>
+                {statusLabels[value]}
+              </option>
             ))}
           </select>
         </label>
@@ -73,9 +96,7 @@ export function IdentityReviewView() {
               <br />
               {document.user?.phoneE164}
             </p>
-            <p>
-              {document.fileName} · {(document.sizeBytes / 1024).toFixed(0)} KB
-            </p>
+            <p>Gambar privat · {(document.sizeBytes / 1024).toFixed(0)} KB</p>
             <Badge
               tone={
                 document.status === 'APPROVED'
@@ -85,22 +106,32 @@ export function IdentityReviewView() {
                     : 'neutral'
               }
             >
-              {document.status}
+              {statusLabels[document.status] ?? 'Status tidak tersedia'}
             </Badge>
-            {document.status !== 'DELETED' && (
+            {!['DELETED', 'PENDING_DELETION', 'DELETE_FAILED'].includes(document.status) && (
               <Button
                 variant="secondary"
                 onClick={async () => {
                   try {
                     const authorization = await verificationClient.authorizeView(document.id);
-                    window.open(authorization.url, '_blank', 'noopener,noreferrer');
+                    setPreviewAuthorization({ documentId: document.id, ...authorization });
                   } catch {
                     setMessage('Preview privat tidak dapat diotorisasi.');
                   }
                 }}
               >
-                Lihat bukti privat
+                Otorisasi preview privat
               </Button>
+            )}
+            {previewAuthorization?.documentId === document.id && (
+              <a
+                href={previewAuthorization.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-dd-md bg-dd-forest px-4 text-sm font-bold text-white no-underline"
+              >
+                Buka preview sekali pakai
+              </a>
             )}
             {document.status === 'PENDING' && (
               <form

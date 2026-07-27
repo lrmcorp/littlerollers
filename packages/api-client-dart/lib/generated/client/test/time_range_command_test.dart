@@ -12,11 +12,13 @@ void main() {
       // TODO
     });
 
+    // RFC3339 with numeric offset or Z
     // DateTime startAt
     test('to test the property `startAt`', () async {
       // TODO
     });
 
+    // RFC3339 exclusive boundary with numeric offset or Z
     // DateTime endAt
     test('to test the property `endAt`', () async {
       // TODO

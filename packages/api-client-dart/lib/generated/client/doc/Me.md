@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **identityVerificationStatus** | **String** |  | 
 **sessionExpiresAt** | [**DateTime**](DateTime.md) |  | 
 **branches** | [**BuiltList&lt;SessionBranch&gt;**](SessionBranch.md) |  | 
+**preferredBranch** | [**PreferredStudio**](PreferredStudio.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

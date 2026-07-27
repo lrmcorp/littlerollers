@@ -136,6 +136,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'neutral',
   },
   {
+    href: '/users/roles-permissions',
+    label: 'Roles & Permissions',
+    shortLabel: 'Roles & Permissions',
+    description: 'Matrix capability tetap dan jalur pengelolaan role staf.',
+    group: 'Administrasi',
+    capabilities: ['user:admin'],
+    priority: 5,
+    accent: 'info',
+    icon: 'shield-check',
+    roleRelevance: ['SUPER_OWNER'],
+  },
+  {
     href: '/identity-verifications',
     label: 'Verifikasi customer',
     shortLabel: 'Verifikasi ID',

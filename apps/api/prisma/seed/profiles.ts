@@ -1,13 +1,23 @@
 import type { SeedContext } from './context';
 import { seedIdentities } from './identities';
-import { seedMasterData } from './master-data';
+import { seedBranchCatalog, seedCommercialMaster } from './master-data';
 import { seedOperationalScenarios, seedVolume } from './scenarios';
+import { seedIdentityVerificationFixtures } from './verification';
+import { seedNotifications } from './notifications';
+import {
+  resolveInstructorIdsByBranch,
+  seedInstructorAvailability,
+} from './instructors';
 
 export async function runSeedProfile(ctx: SeedContext) {
-  const instructorId = ctx.id('user', 'instructor');
-  const master = await seedMasterData(ctx, instructorId);
-  const users = await seedIdentities(ctx, master.branches);
+  const catalog = await seedBranchCatalog(ctx);
+  const users = await seedIdentities(ctx, catalog.branches);
+  const instructorsByBranch = resolveInstructorIdsByBranch(users);
+  await seedInstructorAvailability(ctx, users, catalog.branches);
+  const master = await seedCommercialMaster(ctx, catalog, instructorsByBranch);
+  if (ctx.profile !== 'minimal') await seedIdentityVerificationFixtures(ctx, users);
   if (ctx.profile !== 'minimal') await seedOperationalScenarios(ctx, master, users);
+  if (ctx.profile !== 'minimal') await seedNotifications(ctx, users, master.branches);
   if (ctx.profile === 'volume') await seedVolume(ctx, master, users, 500);
   return {
     profile: ctx.profile,

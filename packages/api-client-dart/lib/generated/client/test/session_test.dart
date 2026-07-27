@@ -24,9 +24,6 @@ void main() {
       // TODO
     });
 
-      // TODO
-    });
-
     // String channel
     test('to test the property `channel`', () async {
       // TODO

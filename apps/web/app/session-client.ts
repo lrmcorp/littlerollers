@@ -10,6 +10,10 @@ export interface SessionBranch {
   timezone: string;
 }
 
+export interface PreferredStudio extends SessionBranch {
+  supportWhatsappE164: string | null;
+}
+
 export interface WebSession {
   id: string;
   displayName: string;
@@ -19,6 +23,7 @@ export interface WebSession {
   identityVerificationStatus?: 'NOT_REQUIRED' | 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
   sessionExpiresAt: Date;
   branches: SessionBranch[];
+  preferredBranch?: PreferredStudio | null;
 }
 
 export interface SessionClient {

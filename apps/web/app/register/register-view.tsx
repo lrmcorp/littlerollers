@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Feedback } from '../ui';
-import { fileMetadata, verificationClient } from '../identity-verification-client';
+import { verificationClient } from '../identity-verification-client';
 import { useSessionContext } from '../session-context';
 
 function PasswordField({
@@ -114,8 +114,8 @@ export function RegisterView() {
               email: String(form.get('email')),
               password,
               consent: form.get('consent') === 'on',
-              selfie: await fileMetadata(selfie),
-              ktp: await fileMetadata(ktp),
+              selfie,
+              ktp,
             });
             const completed = await session?.completeSignIn('/account/verification');
             if (!completed) throw new Error('session');

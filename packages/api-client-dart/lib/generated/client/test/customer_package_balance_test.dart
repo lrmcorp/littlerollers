@@ -27,6 +27,26 @@ void main() {
       // TODO
     });
 
+    // String classTypeId
+    test('to test the property `classTypeId`', () async {
+      // TODO
+    });
+
+    // String packageName
+    test('to test the property `packageName`', () async {
+      // TODO
+    });
+
+    // String branchName
+    test('to test the property `branchName`', () async {
+      // TODO
+    });
+
+    // String classTypeName
+    test('to test the property `classTypeName`', () async {
+      // TODO
+    });
+
     // String status
     test('to test the property `status`', () async {
       // TODO
@@ -74,6 +94,11 @@ void main() {
 
     // int projectionRateRp
     test('to test the property `projectionRateRp`', () async {
+      // TODO
+    });
+
+    // int version
+    test('to test the property `version`', () async {
       // TODO
     });
 

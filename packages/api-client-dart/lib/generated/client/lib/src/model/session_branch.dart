@@ -15,8 +15,8 @@ part 'session_branch.g.dart';
 /// * [code] 
 /// * [name] 
 /// * [timezone] 
-@BuiltValue()
-abstract class SessionBranch implements Built<SessionBranch, SessionBranchBuilder> {
+@BuiltValue(instantiable: false)
+abstract class SessionBranch  {
   @BuiltValueField(wireName: r'id')
   String get id;
 
@@ -29,20 +29,13 @@ abstract class SessionBranch implements Built<SessionBranch, SessionBranchBuilde
   @BuiltValueField(wireName: r'timezone')
   String get timezone;
 
-  SessionBranch._();
-
-  factory SessionBranch([void updates(SessionBranchBuilder b)]) = _$SessionBranch;
-
-  @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(SessionBranchBuilder b) => b;
-
   @BuiltValueSerializer(custom: true)
   static Serializer<SessionBranch> get serializer => _$SessionBranchSerializer();
 }
 
 class _$SessionBranchSerializer implements PrimitiveSerializer<SessionBranch> {
   @override
-  final Iterable<Type> types = const [SessionBranch, _$SessionBranch];
+  final Iterable<Type> types = const [SessionBranch];
 
   @override
   final String wireName = r'SessionBranch';
@@ -81,6 +74,46 @@ class _$SessionBranchSerializer implements PrimitiveSerializer<SessionBranch> {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+  }
+
+  @override
+  SessionBranch deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.deserialize(serialized, specifiedType: FullType($SessionBranch)) as $SessionBranch;
+  }
+}
+
+/// a concrete implementation of [SessionBranch], since [SessionBranch] is not instantiable
+@BuiltValue(instantiable: true)
+abstract class $SessionBranch implements SessionBranch, Built<$SessionBranch, $SessionBranchBuilder> {
+  $SessionBranch._();
+
+  factory $SessionBranch([void Function($SessionBranchBuilder)? updates]) = _$$SessionBranch;
+
+  @BuiltValueHook(initializeBuilder: true)
+  static void _defaults($SessionBranchBuilder b) => b;
+
+  @BuiltValueSerializer(custom: true)
+  static Serializer<$SessionBranch> get serializer => _$$SessionBranchSerializer();
+}
+
+class _$$SessionBranchSerializer implements PrimitiveSerializer<$SessionBranch> {
+  @override
+  final Iterable<Type> types = const [$SessionBranch, _$$SessionBranch];
+
+  @override
+  final String wireName = r'$SessionBranch';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    $SessionBranch object, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.serialize(object, specifiedType: FullType(SessionBranch))!;
   }
 
   void _deserializeProperties(
@@ -132,12 +165,12 @@ class _$SessionBranchSerializer implements PrimitiveSerializer<SessionBranch> {
   }
 
   @override
-  SessionBranch deserialize(
+  $SessionBranch deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = SessionBranchBuilder();
+    final result = $SessionBranchBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

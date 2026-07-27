@@ -32,6 +32,21 @@ void main() {
       // TODO
     });
 
+    // String reservationId
+    test('to test the property `reservationId`', () async {
+      // TODO
+    });
+
+    // String createdById
+    test('to test the property `createdById`', () async {
+      // TODO
+    });
+
+    // String source_
+    test('to test the property `source_`', () async {
+      // TODO
+    });
+
     // String status
     test('to test the property `status`', () async {
       // TODO
@@ -39,6 +54,11 @@ void main() {
 
     // int reservedQuantity
     test('to test the property `reservedQuantity`', () async {
+      // TODO
+    });
+
+    // DateTime createdAt
+    test('to test the property `createdAt`', () async {
       // TODO
     });
 

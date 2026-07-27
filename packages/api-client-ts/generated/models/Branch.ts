@@ -45,6 +45,12 @@ export interface Branch {
     timezone: string;
     /**
      * 
+     * @type {string}
+     * @memberof Branch
+     */
+    supportWhatsappE164?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof Branch
      */
@@ -84,6 +90,7 @@ export function BranchFromJSONTyped(json: any, ignoreDiscriminator: boolean): Br
         'code': json['code'],
         'name': json['name'],
         'timezone': json['timezone'],
+        'supportWhatsappE164': json['supportWhatsappE164'] == null ? undefined : json['supportWhatsappE164'],
         'active': json['active'],
         'version': json['version'],
     };
@@ -104,6 +111,7 @@ export function BranchToJSONTyped(value?: Branch | null, ignoreDiscriminator: bo
         'code': value['code'],
         'name': value['name'],
         'timezone': value['timezone'],
+        'supportWhatsappE164': value['supportWhatsappE164'],
         'active': value['active'],
         'version': value['version'],
     };

@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/role.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/preferred_studio.dart';
 import 'package:openapi/src/model/session_branch.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -22,6 +23,7 @@ part 'me.g.dart';
 /// * [identityVerificationStatus] 
 /// * [sessionExpiresAt] 
 /// * [branches] 
+/// * [preferredBranch] 
 @BuiltValue()
 abstract class Me implements Built<Me, MeBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -48,6 +50,9 @@ abstract class Me implements Built<Me, MeBuilder> {
 
   @BuiltValueField(wireName: r'branches')
   BuiltList<SessionBranch> get branches;
+
+  @BuiltValueField(wireName: r'preferredBranch')
+  PreferredStudio? get preferredBranch;
 
   Me._();
 
@@ -111,6 +116,11 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
     yield serializers.serialize(
       object.branches,
       specifiedType: const FullType(BuiltList, [FullType(SessionBranch)]),
+    );
+    yield r'preferredBranch';
+    yield object.preferredBranch == null ? null : serializers.serialize(
+      object.preferredBranch,
+      specifiedType: const FullType.nullable(PreferredStudio),
     );
   }
 
@@ -190,6 +200,14 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
             specifiedType: const FullType(BuiltList, [FullType(SessionBranch)]),
           ) as BuiltList<SessionBranch>;
           result.branches.replace(valueDes);
+          break;
+        case r'preferredBranch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PreferredStudio),
+          ) as PreferredStudio?;
+          if (valueDes == null) continue;
+          result.preferredBranch.replace(valueDes);
           break;
         default:
           unhandled.add(key);

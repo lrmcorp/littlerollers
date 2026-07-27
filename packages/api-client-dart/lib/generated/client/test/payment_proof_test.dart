@@ -37,13 +37,13 @@ void main() {
       // TODO
     });
 
-    // String sha256
-    test('to test the property `sha256`', () async {
+    // String replacedById
+    test('to test the property `replacedById`', () async {
       // TODO
     });
 
-    // String replacedById
-    test('to test the property `replacedById`', () async {
+    // int version
+    test('to test the property `version`', () async {
       // TODO
     });
 

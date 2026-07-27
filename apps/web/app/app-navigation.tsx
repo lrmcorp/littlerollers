@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -36,6 +36,7 @@ const pageIcons: Record<string, LucideIcon> = {
   '/finance': Landmark,
   '/ledger': CircleDollarSign,
   '/users': Users,
+  '/users/roles-permissions': ShieldCheck,
   '/identity-verifications': ShieldCheck,
   '/audit': ScrollText,
   '/assignments': ClipboardCheck,
@@ -58,6 +59,13 @@ export function AppNavigation({
   const pathname = usePathname();
   const context = useSessionContext();
   const session = context?.session;
+  const activeHref = [...frontendPages]
+    .sort((left, right) => right.href.length - left.href.length)
+    .find(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== '/workspace' && pathname.startsWith(`${item.href}/`)),
+    )?.href;
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const customerOnly =
     session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
@@ -74,11 +82,44 @@ export function AppNavigation({
         ]
       : []),
     { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
+    { href: '/account/profile', label: 'Profil Saya', icon: Users },
+    { href: '/account/settings', label: 'Pengaturan', icon: Database },
     { href: '/account', label: 'Akun Saya', icon: Users },
   ];
-  const navClass = customerOnly
-    ? 'nav'
-    : `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+  const navigationRef = useRef<HTMLElement>(null);
+  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const navigation = navigationRef.current;
+    const focusable = navigation?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.[0]?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose?.();
+        return;
+      }
+      if (event.key !== 'Tab' || !focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    window.addEventListener('keydown', trap);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', trap);
+    };
+  }, [mobileOpen, onClose]);
 
   useEffect(() => {
     if (!session || customerOnly) return;
@@ -102,14 +143,19 @@ export function AppNavigation({
 
   return (
     <>
-      {!customerOnly && mobileOpen && (
+      {mobileOpen && (
         <button
           aria-label="Tutup navigasi"
           className="fixed inset-0 z-40 min-h-0 w-full rounded-none border-0 bg-dd-sidebar/55 p-0 lg:hidden"
           onClick={onClose}
         />
       )}
-      <nav className={navClass} aria-label="Navigasi utama">
+      <nav
+        ref={navigationRef}
+        id={customerOnly ? 'customer-navigation' : 'workspace-navigation'}
+        className={navClass}
+        aria-label="Navigasi utama"
+      >
         <div
           className={`flex min-h-24 items-center border-b border-white/10 px-5 ${collapsed ? 'lg:justify-center lg:px-2' : 'justify-between'}`}
         >
@@ -120,13 +166,13 @@ export function AppNavigation({
               href={customerOnly ? '/account' : '/workspace'}
               priority
             />
-            {!collapsed && (
+            {!collapsed && !customerOnly && (
               <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-white/48">
                 Studio operations
               </span>
             )}
           </div>
-          {!customerOnly && (
+          {
             <button
               type="button"
               aria-label="Tutup navigasi"
@@ -135,7 +181,7 @@ export function AppNavigation({
             >
               <X className="size-4" />
             </button>
-          )}
+          }
         </div>
         <div className="nav-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5">
           {customerOnly ? (
@@ -156,6 +202,7 @@ export function AppNavigation({
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
                     key={item.href}
+                    onClick={onClose}
                     className={linkClass(active)}
                   >
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -183,10 +230,7 @@ export function AppNavigation({
                       context?.hasCapability(...item.capabilities),
                   )
                   .map((item) => {
-                    const active =
-                      item.href === '/workspace'
-                        ? pathname === item.href
-                        : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const active = item.href === activeHref;
                     const Icon = pageIcons[item.href] ?? ListChecks;
                     return (
                       <Link

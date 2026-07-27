@@ -214,55 +214,144 @@ export class DashboardService {
     );
 
     const roles = principal.roles.map((item) => item.role);
-    const roleFocus =
-      roles.includes('SUPER_OWNER') || roles.includes('OWNER')
+    const roleFocus = roles.includes('SUPER_OWNER')
+      ? 'EXECUTIVE'
+      : roles.includes('OWNER')
         ? 'OWNER'
         : roles.includes('FINANCE')
           ? 'FINANCE'
           : roles.includes('OPS')
-            ? 'OPS'
-            : 'BRANCH';
+            ? 'OPERATIONS'
+            : 'BRANCH_OPERATIONS';
+    const allMetrics = [
+      {
+        key: 'revenue',
+        label: 'Pendapatan disetujui',
+        value: revenue,
+        unit: 'IDR',
+        changePercent: percentChange(revenue, previousRevenueValue),
+      },
+      {
+        key: 'bookings',
+        label: 'Booking aktif',
+        value: currentBookings,
+        unit: 'COUNT',
+        changePercent: percentChange(currentBookings, previousBookings),
+      },
+      {
+        key: 'occupancy',
+        label: 'Okupansi kelas',
+        value: capacity ? Math.round((booked / capacity) * 1000) / 10 : 0,
+        unit: 'PERCENT',
+        changePercent: null,
+      },
+      {
+        key: 'customers',
+        label: 'Customer aktif',
+        value: activeCustomers.length,
+        unit: 'COUNT',
+        changePercent: null,
+      },
+      {
+        key: 'classes',
+        label: 'Kelas periode ini',
+        value: slots.length,
+        unit: 'COUNT',
+        changePercent: null,
+      },
+    ];
+    const metricKeys: Record<typeof roleFocus, string[]> = {
+      EXECUTIVE: ['revenue', 'bookings', 'occupancy', 'customers', 'classes'],
+      OWNER: ['revenue', 'bookings', 'occupancy', 'customers', 'classes'],
+      BRANCH_OPERATIONS: ['bookings', 'occupancy', 'customers', 'classes'],
+      FINANCE: ['revenue', 'bookings'],
+      OPERATIONS: [],
+    };
+    const mappedJobs = principal.capabilities.includes('operations:read')
+      ? jobs.map((job) => ({
+          id: job.id,
+          type: 'H24_QUOTA_EVALUATION',
+          status: job.status,
+          attemptCount: job.attempts,
+          maxAttempts: job.maxAttempts,
+          progress: job.status === 'SUCCEEDED' ? 100 : 0,
+          dueAt: job.dueAt,
+          nextAttemptAt: job.nextAttemptAt,
+          lastErrorCode: job.lastErrorCode,
+          createdAt: job.createdAt,
+          version: job.version,
+        }))
+      : [];
+    const operationMetrics = [
+      {
+        key: 'jobs-attention',
+        label: 'Job perlu perhatian',
+        value: failedJobs,
+        unit: 'COUNT',
+        changePercent: null,
+      },
+      {
+        key: 'jobs-succeeded',
+        label: 'Job berhasil terbaru',
+        value: mappedJobs.filter((job) => job.status === 'SUCCEEDED').length,
+        unit: 'COUNT',
+        changePercent: null,
+      },
+      {
+        key: 'recovery-rate',
+        label: 'Recovery rate',
+        value: mappedJobs.length
+          ? Math.round(
+              (mappedJobs.filter((job) => job.status === 'SUCCEEDED').length / mappedJobs.length) *
+                1000,
+            ) / 10
+          : 100,
+        unit: 'PERCENT',
+        changePercent: null,
+      },
+    ];
+    const allowedSections = {
+      executive: roleFocus === 'EXECUTIVE',
+      owner: roleFocus === 'OWNER',
+      branchOperations: roleFocus === 'BRANCH_OPERATIONS',
+      finance: roleFocus === 'FINANCE',
+      operations: roleFocus === 'OPERATIONS',
+      trend: roleFocus !== 'OPERATIONS',
+      queue: true,
+      risk: ['EXECUTIVE', 'OWNER', 'BRANCH_OPERATIONS'].includes(roleFocus),
+      branchComparison: ['EXECUTIVE', 'OWNER', 'FINANCE'].includes(roleFocus),
+      auditActivity: ['EXECUTIVE', 'OWNER'].includes(roleFocus),
+      jobHealth: ['EXECUTIVE', 'OPERATIONS'].includes(roleFocus),
+    };
     return {
       generatedAt: now,
       period: { from, until, previousFrom, previousUntil: from },
       roleFocus,
-      metrics: [
-        {
-          key: 'revenue',
-          label: 'Pendapatan disetujui',
-          value: revenue,
-          unit: 'IDR',
-          changePercent: percentChange(revenue, previousRevenueValue),
-        },
-        {
-          key: 'bookings',
-          label: 'Booking aktif',
-          value: currentBookings,
-          unit: 'COUNT',
-          changePercent: percentChange(currentBookings, previousBookings),
-        },
-        {
-          key: 'occupancy',
-          label: 'Okupansi kelas',
-          value: capacity ? Math.round((booked / capacity) * 1000) / 10 : 0,
-          unit: 'PERCENT',
-          changePercent: null,
-        },
-        {
-          key: 'customers',
-          label: 'Customer aktif',
-          value: activeCustomers.length,
-          unit: 'COUNT',
-          changePercent: null,
-        },
-        {
-          key: 'classes',
-          label: 'Kelas periode ini',
-          value: slots.length,
-          unit: 'COUNT',
-          changePercent: null,
-        },
-      ],
+      sections: allowedSections,
+      metrics:
+        roleFocus === 'OPERATIONS'
+          ? operationMetrics
+          : [
+              ...allMetrics.filter((metric) => metricKeys[roleFocus].includes(metric.key)),
+              ...(roleFocus === 'FINANCE'
+                ? [
+                    {
+                      key: 'pending-payments',
+                      label: 'Pembayaran pending',
+                      value: pendingPurchases,
+                      unit: 'COUNT',
+                      changePercent: null,
+                    },
+                    {
+                      key: 'pending-adjustments',
+                      label: 'Adjustment pending',
+                      value: pendingAdjustments,
+                      unit: 'COUNT',
+                      changePercent: null,
+                    },
+                  ]
+                : []),
+            ],
       queues: [
         {
           key: 'payments',
@@ -304,9 +393,15 @@ export class DashboardService {
           item.capabilities.some((capability) => principal.capabilities.includes(capability)),
         )
         .map(({ capabilities: _capabilities, ...item }) => item),
-      trend: [...trend.entries()].map(([date, values]) => ({ date, ...values })),
-      branches: branchPerformance,
-      risks: risks
+      trend: allowedSections.trend
+        ? [...trend.entries()].map(([date, values]) => ({
+            date,
+            revenue: roleFocus === 'BRANCH_OPERATIONS' ? 0 : values.revenue,
+            bookings: values.bookings,
+          }))
+        : [],
+      branches: allowedSections.branchComparison ? branchPerformance : [],
+      risks: (allowedSections.risk ? risks : [])
         .filter((item) => item.bookedCount < item.minimumQuota)
         .map((item) => ({
           id: item.id,
@@ -319,22 +414,8 @@ export class DashboardService {
           capacity: item.capacity,
           href: `/workspace/classes?slot=${item.id}`,
         })),
-      activities,
-      jobs: principal.capabilities.includes('operations:read')
-        ? jobs.map((job) => ({
-            id: job.id,
-            type: 'H24_QUOTA_EVALUATION',
-            status: job.status,
-            attemptCount: job.attempts,
-            maxAttempts: job.maxAttempts,
-            progress: job.status === 'SUCCEEDED' ? 100 : 0,
-            dueAt: job.dueAt,
-            nextAttemptAt: job.nextAttemptAt,
-            lastErrorCode: job.lastErrorCode,
-            createdAt: job.createdAt,
-            version: job.version,
-          }))
-        : [],
+      activities: allowedSections.auditActivity ? activities : [],
+      jobs: allowedSections.jobHealth ? mappedJobs : [],
     };
   }
 }

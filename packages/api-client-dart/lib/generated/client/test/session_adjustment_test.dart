@@ -22,18 +22,23 @@ void main() {
       // TODO
     });
 
-    // String reason
-    test('to test the property `reason`', () async {
+    // String reasonCode
+    test('to test the property `reasonCode`', () async {
       // TODO
     });
 
-    // String requestedBy
-    test('to test the property `requestedBy`', () async {
+    // String requestedById
+    test('to test the property `requestedById`', () async {
       // TODO
     });
 
-    // String approvedBy
-    test('to test the property `approvedBy`', () async {
+    // String decidedById
+    test('to test the property `decidedById`', () async {
+      // TODO
+    });
+
+    // String decisionCode
+    test('to test the property `decisionCode`', () async {
       // TODO
     });
 
@@ -42,8 +47,13 @@ void main() {
       // TODO
     });
 
-    // LedgerEntry ledgerEntry
-    test('to test the property `ledgerEntry`', () async {
+    // int version
+    test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // DateTime createdAt
+    test('to test the property `createdAt`', () async {
       // TODO
     });
 

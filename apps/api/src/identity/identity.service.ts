@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import {
   type ApplicationRole,
   type AssignmentType,
@@ -7,6 +7,13 @@ import {
   type SessionChannel,
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { IdempotencyService } from '../foundation/idempotency.service';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
+import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
+import {
+  type IdentityDocumentUpload,
+  validateIdentityDocumentUpload,
+} from './identity-document-upload';
 import {
   ConfigGatedGoogleProvider,
   ConfigGatedOtpProvider,
@@ -41,14 +48,6 @@ export interface SessionPrincipal {
   sessionExpiresAt?: Date;
 }
 
-interface IdentityDocumentInput {
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-  sha256: string;
-}
-
-const IDENTITY_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const IDENTITY_REJECTION_REASONS = new Set([
   'BLURRY',
   'GLARE',
@@ -69,6 +68,9 @@ export class IdentityService {
     private readonly proof: ConfigGatedProofProvider,
     private readonly rateLimit: RateLimitService,
     private readonly passwordEmail: ResendPasswordEmailProvider,
+    @Optional() private readonly idempotency?: IdempotencyService,
+    @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateFiles?: PrivateFileStorage,
+    @Optional() private readonly runtimeConfig?: RuntimeConfigService,
   ) {}
 
   private audit(
@@ -118,21 +120,29 @@ export class IdentityService {
     return normalized;
   }
 
-  private validateIdentityDocument(input: IdentityDocumentInput): void {
-    if (
-      !input.fileName?.trim() ||
-      input.fileName.length > 160 ||
-      !IDENTITY_MIME_TYPES.has(input.mimeType) ||
-      !Number.isInteger(input.sizeBytes) ||
-      input.sizeBytes < 1 ||
-      input.sizeBytes > 8_000_000 ||
-      !/^[a-f0-9]{64}$/iu.test(input.sha256)
-    )
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (process.env.NODE_ENV === 'production' || process.env.AUTH_SYNTHETIC_ENABLED !== 'true')
-      configurationRequired();
-    if (process.env.IDENTITY_DOCUMENT_SYNTHETIC_SCAN_RESULT === 'UNSAFE')
-      throw new ApiProblem('UPLOAD_REJECTED', HttpStatus.UNPROCESSABLE_ENTITY);
+  private maskEmail(value: string | null | undefined) {
+    if (!value) return null;
+    const [local, domain] = value.split('@');
+    if (!local || !domain) return null;
+    return `${local.slice(0, 2)}${'*'.repeat(Math.max(2, local.length - 2))}@${domain}`;
+  }
+
+  private maskPhone(value: string | null | undefined) {
+    if (!value) return null;
+    return `${value.slice(0, Math.min(4, value.length))}${'*'.repeat(Math.max(2, value.length - 8))}${value.slice(-4)}`;
+  }
+
+  private identityStorage(): PrivateFileStorage {
+    if (!this.privateFiles) configurationRequired();
+    return this.privateFiles!;
+  }
+
+  private uploadLimit(): number {
+    return this.runtimeConfig?.value.privateUploads.maxBytes ?? 8_000_000;
+  }
+
+  private safeOriginalName(value: string): string {
+    return value.split(/[\\/]/u).at(-1)?.trim().slice(0, 160) || 'identity-document';
   }
 
   private documentView(document: {
@@ -156,7 +166,7 @@ export class IdentityService {
       status: document.status,
       uploadStatus: document.uploadStatus,
       scanStatus: document.scanStatus,
-      fileName: document.fileName,
+      fileName: document.kind === 'SELFIE' ? 'selfie' : 'ktp-front',
       mimeType: document.mimeType,
       sizeBytes: document.sizeBytes,
       rejectionReasonCode: document.rejectionReasonCode,
@@ -198,7 +208,19 @@ export class IdentityService {
   async me(userId: string, at = new Date()) {
     const user = await this.db.user.findUnique({
       where: { id: userId },
-      include: { roles: { where: this.activeRoleWhere(at) } },
+      include: {
+        roles: { where: this.activeRoleWhere(at) },
+        preferredBranch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            timezone: true,
+            supportWhatsappE164: true,
+            active: true,
+          },
+        },
+      },
     });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
@@ -208,6 +230,7 @@ export class IdentityService {
       roles: [...new Set(user.roles.map(({ role }) => role))],
       branchIds: this.policy.branches(user.roles),
       capabilities: this.policy.capabilities(user.roles),
+      preferredBranch: user.preferredBranch?.active ? user.preferredBranch : null,
     };
   }
 
@@ -561,39 +584,49 @@ export class IdentityService {
       ...(role ? { role } : {}),
       ...(branchId ? { OR: [{ branchId }, { branchId: null }] } : {}),
     };
-    const users = await this.db.user.findMany({
-      where: {
-        ...(status ? { status } : {}),
-        ...(search?.trim() ? { displayName: { contains: search.trim() } } : {}),
-        ...(principal.capabilities.includes('branch:all')
-          ? role || branchId
-            ? { roles: { some: roleWhere } }
-            : {}
-          : {
-              roles: {
-                some: {
-                  ...roleWhere,
-                  branchId: { in: allowedBranches },
-                },
+    const scopedWhere: Prisma.UserWhereInput = {
+      ...(search?.trim() ? { displayName: { contains: search.trim() } } : {}),
+      ...(principal.capabilities.includes('branch:all')
+        ? role || branchId
+          ? { roles: { some: roleWhere } }
+          : {}
+        : {
+            roles: {
+              some: {
+                ...roleWhere,
+                branchId: { in: allowedBranches },
               },
-            }),
-        ...(cursor ? { id: { gt: cursor } } : {}),
-      },
-      include: {
-        roles: {
-          where: this.activeRoleWhere(),
-          include: { branch: { select: { id: true, code: true, name: true } } },
-          orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+            },
+          }),
+    };
+    const [users, total, active, pendingActivation, inactive] = await Promise.all([
+      this.db.user.findMany({
+        where: {
+          ...scopedWhere,
+          ...(status ? { status } : {}),
+          ...(cursor ? { id: { gt: cursor } } : {}),
         },
-      },
-      take: 21,
-      orderBy: { id: 'asc' },
-    });
+        include: {
+          roles: {
+            where: this.activeRoleWhere(),
+            include: { branch: { select: { id: true, code: true, name: true } } },
+            orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+          },
+        },
+        take: 21,
+        orderBy: { id: 'asc' },
+      }),
+      this.db.user.count({ where: scopedWhere }),
+      this.db.user.count({ where: { ...scopedWhere, status: 'ACTIVE' } }),
+      this.db.user.count({ where: { ...scopedWhere, status: 'PENDING_ACTIVATION' } }),
+      this.db.user.count({ where: { ...scopedWhere, status: 'INACTIVE' } }),
+    ]);
     const hasMore = users.length > 20;
     const page = users.slice(0, 20);
     return {
       items: page.map((user) => this.userView(user)),
       page: { nextCursor: hasMore ? page.at(-1)?.id : null, hasMore },
+      summary: { total, active, pendingActivation, inactive },
     };
   }
 
@@ -695,6 +728,74 @@ export class IdentityService {
     return this.userView(user);
   }
 
+  async updateUserProfile(
+    principal: SessionPrincipal,
+    targetId: string,
+    input: {
+      displayName: string;
+      phoneE164?: string | null;
+      expectedVersion: number;
+      reason: string;
+    },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    const visible = await this.getUser(principal, targetId);
+    const displayName = input.displayName?.trim();
+    const reason = input.reason?.trim();
+    const phoneE164 = input.phoneE164?.trim() ? this.normalizePhone(input.phoneE164) : null;
+    if (
+      !displayName ||
+      displayName.length < 2 ||
+      displayName.length > 160 ||
+      !reason ||
+      reason.length < 3 ||
+      !Number.isInteger(input.expectedVersion)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (visible.roles.every(({ role }) => role === 'CUSTOMER'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    return this.db.$transaction(async (tx) => {
+      const changed = await tx.user.updateMany({
+        where: { id: targetId, version: input.expectedVersion },
+        data: { displayName, phoneE164, version: { increment: 1 } },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.user_profile_updated',
+        objectType: 'User',
+        objectId: targetId,
+        targetUserId: targetId,
+        correlationId,
+        before: {
+          displayName: visible.displayName,
+          phoneConfigured: Boolean(visible.phoneE164),
+          version: visible.version,
+        },
+        after: {
+          displayName,
+          phoneConfigured: Boolean(phoneE164),
+          reasonPresent: true,
+          version: visible.version + 1,
+          sessionsRevoked: false,
+        },
+      });
+      const updated = await tx.user.findUnique({
+        where: { id: targetId },
+        include: {
+          roles: {
+            where: this.activeRoleWhere(),
+            include: { branch: { select: { id: true, code: true, name: true } } },
+            orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+          },
+        },
+      });
+      if (!updated) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      return this.userView(updated);
+    });
+  }
+
   async inviteUser(
     principal: SessionPrincipal,
     input: {
@@ -780,6 +881,7 @@ export class IdentityService {
           data: {
             id: newId(),
             displayName: input.displayName?.trim() || 'Internal user',
+            email: normalizedEmail,
             status: 'PENDING_ACTIVATION',
           },
         });
@@ -1139,8 +1241,11 @@ export class IdentityService {
       reason: string;
     },
     correlationId: string,
+    idempotencyKey?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (!idempotencyKey?.trim())
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     if (targetId === principal.userId)
       throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
     if (!Number.isInteger(input.expectedVersion) || !input.reason.trim())
@@ -1164,8 +1269,8 @@ export class IdentityService {
     });
     if (branches !== new Set(branchIds).size)
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const now = new Date();
-    await this.db.$transaction(async (tx) => {
+    const perform = async (tx: Prisma.TransactionClient) => {
+      const now = new Date();
       const before = await tx.user.findUnique({
         where: { id: targetId },
         include: { roles: { where: this.activeRoleWhere(now) } },
@@ -1210,8 +1315,36 @@ export class IdentityService {
         },
         after: { roles: input.roles, reasonPresent: true, version: before.version + 1 },
       });
-    });
-    return this.getUser(principal, targetId);
+      const after = await tx.user.findUnique({
+        where: { id: targetId },
+        include: {
+          roles: {
+            where: this.activeRoleWhere(now),
+            include: { branch: { select: { id: true, code: true, name: true } } },
+            orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
+          },
+        },
+      });
+      if (!after) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      return this.userView(after);
+    };
+
+    if (!this.idempotency) return this.db.$transaction((tx) => perform(tx));
+
+    const result = await this.idempotency.execute(
+      {
+        scope: `identity.user-roles:${principal.userId}:${targetId}`,
+        key: idempotencyKey,
+        payload: input,
+        ttlMs: 24 * 60 * 60 * 1000,
+        leaseMs: 30_000,
+      },
+      async (tx) => ({
+        status: 200,
+        body: (await perform(tx)) as unknown as Prisma.InputJsonObject,
+      }),
+    );
+    return result.body as unknown as Awaited<ReturnType<typeof perform>>;
   }
 
   async requestRecovery(
@@ -1353,18 +1486,23 @@ export class IdentityService {
     principal: SessionPrincipal,
     targetId: string,
     reason: string,
+    expectedVersion: number,
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     if (targetId === principal.userId)
       throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    if (!reason.trim() || !Number.isInteger(expectedVersion))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(async (tx) => {
       const before = await tx.user.findUnique({ where: { id: targetId } });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      const user = await tx.user.update({
-        where: { id: targetId },
+      const changed = await tx.user.updateMany({
+        where: { id: targetId, version: expectedVersion, status: { not: 'INACTIVE' } },
         data: { status: 'INACTIVE', version: { increment: 1 } },
       });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      const user = { ...before, status: 'INACTIVE' as const, version: before.version + 1 };
       await tx.userSession.updateMany({
         where: { userId: targetId, revokedAt: null },
         data: { revokedAt: new Date(), revocationReason: 'USER_DEACTIVATED' },
@@ -1391,20 +1529,25 @@ export class IdentityService {
     principal: SessionPrincipal,
     targetId: string,
     reason: string,
+    expectedVersion: number,
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     if (targetId === principal.userId)
       throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    if (!reason.trim() || !Number.isInteger(expectedVersion))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(async (tx) => {
       const before = await tx.user.findUnique({ where: { id: targetId } });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       if (before.status === 'ACTIVE')
         throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
-      const user = await tx.user.update({
-        where: { id: targetId },
+      const changed = await tx.user.updateMany({
+        where: { id: targetId, version: expectedVersion, status: { not: 'ACTIVE' } },
         data: { status: 'ACTIVE', version: { increment: 1 } },
       });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      const user = { ...before, status: 'ACTIVE' as const, version: before.version + 1 };
       await this.audit(tx, {
         actorId: principal.userId,
         action: 'security.user_reactivated',
@@ -1703,8 +1846,8 @@ export class IdentityService {
       email: string;
       password: string;
       consent: boolean;
-      selfie: IdentityDocumentInput;
-      ktp: IdentityDocumentInput;
+      selfie: IdentityDocumentUpload;
+      ktp: IdentityDocumentUpload;
     },
     correlationId: string,
     requestFingerprint: string,
@@ -1716,16 +1859,30 @@ export class IdentityService {
     const phoneE164 = this.normalizePhone(input.phone);
     if (!input.consent || !displayName || displayName.length > 160)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    this.validateIdentityDocument(input.selfie);
-    this.validateIdentityDocument(input.ktp);
+    const selfie = validateIdentityDocumentUpload(input.selfie, this.uploadLimit());
+    const ktp = validateIdentityDocumentUpload(input.ktp, this.uploadLimit());
     await Promise.all([
       this.rateLimit.consume('CUSTOMER_REGISTER_SUBJECT', emailHash, 3, 3600),
       this.rateLimit.consume('CUSTOMER_REGISTER_ORIGIN', digest(requestFingerprint), 20, 3600),
     ]);
     const passwordHash = await hashPassword(input.password);
+    const userId = newId();
+    const prepared = [
+      { id: newId(), kind: 'SELFIE' as const, document: selfie },
+      { id: newId(), kind: 'KTP_FRONT' as const, document: ktp },
+    ].map((item) => ({
+      ...item,
+      objectKey: `identity/${userId}/${item.kind.toLowerCase()}/${item.id}`,
+    }));
+    const storedKeys: string[] = [];
+    let committed = false;
     try {
-      const userId = await this.db.$transaction(async (tx) => {
-        const user = await tx.user.create({ data: { id: newId(), displayName, phoneE164 } });
+      for (const item of prepared) {
+        await this.identityStorage().put({ key: item.objectKey, content: item.document.buffer });
+        storedKeys.push(item.objectKey);
+      }
+      await this.db.$transaction(async (tx) => {
+        const user = await tx.user.create({ data: { id: userId, displayName, email, phoneE164 } });
         await tx.userRole.create({
           data: { userId: user.id, role: 'CUSTOMER', branchId: null, activeFrom: new Date() },
         });
@@ -1747,19 +1904,15 @@ export class IdentityService {
             verifiedAt: new Date(),
           },
         });
-        for (const [kind, document] of [
-          ['SELFIE', input.selfie],
-          ['KTP_FRONT', input.ktp],
-        ] as const) {
-          const objectKey = opaqueToken();
+        for (const { id, kind, document, objectKey } of prepared) {
           await tx.identityVerificationDocument.create({
             data: {
-              id: newId(),
+              id,
               userId: user.id,
               kind,
               objectKey,
-              checksum: document.sha256.toLowerCase(),
-              fileName: document.fileName.trim(),
+              checksum: document.checksum,
+              fileName: this.safeOriginalName(document.originalName),
               mimeType: document.mimeType,
               sizeBytes: document.sizeBytes,
               uploadStatus: 'FINALIZED',
@@ -1778,69 +1931,211 @@ export class IdentityService {
           correlationId,
           after: { role: 'CUSTOMER', documentKinds: ['SELFIE', 'KTP_FRONT'], consent: true },
         });
-        return user.id;
       });
-      return this.issueSession(userId, 'WEB');
+      committed = true;
     } catch (error) {
+      if (!committed)
+        await Promise.allSettled(storedKeys.map((key) => this.identityStorage().delete(key)));
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
         throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
       throw error;
     }
+    return this.issueSession(userId, 'WEB');
   }
 
   async myVerification(principal: SessionPrincipal) {
     return this.verificationStatus(principal.userId);
   }
 
+  async myProfile(principal: SessionPrincipal) {
+    const user = await this.db.user.findUnique({
+      where: { id: principal.userId },
+      include: {
+        preferredBranch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            timezone: true,
+            supportWhatsappE164: true,
+            active: true,
+          },
+        },
+      },
+    });
+    if (!user || user.status !== 'ACTIVE')
+      throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    const preferredBranch = user.preferredBranch?.active ? user.preferredBranch : null;
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      emailMasked: this.maskEmail(user.email),
+      phoneMasked: this.maskPhone(user.phoneE164),
+      preferredBranch,
+      version: user.version,
+    };
+  }
+
+  async updateMyProfile(
+    principal: SessionPrincipal,
+    input: { displayName: string; preferredBranchId?: string | null; expectedVersion: number },
+    correlationId: string,
+  ) {
+    const displayName = input.displayName?.trim();
+    if (
+      !displayName ||
+      displayName.length < 2 ||
+      displayName.length > 160 ||
+      !Number.isInteger(input.expectedVersion)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
+    if (!isCustomer && input.preferredBranchId)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const branch = input.preferredBranchId
+      ? await this.db.branch.findFirst({
+          where: { id: input.preferredBranchId, active: true },
+          select: { id: true },
+        })
+      : null;
+    if (input.preferredBranchId && !branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (isCustomer && input.preferredBranchId === null)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const before = await this.myProfile(principal);
+    await this.db.$transaction(async (tx) => {
+      const changed = await tx.user.updateMany({
+        where: { id: principal.userId, version: input.expectedVersion, status: 'ACTIVE' },
+        data: {
+          displayName,
+          ...(input.preferredBranchId !== undefined
+            ? { preferredBranchId: input.preferredBranchId }
+            : {}),
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.my_profile_updated',
+        objectType: 'User',
+        objectId: principal.userId,
+        targetUserId: principal.userId,
+        correlationId,
+        before: {
+          displayName: before.displayName,
+          preferredBranchId: before.preferredBranch?.id ?? null,
+          version: before.version,
+        },
+        after: {
+          displayName,
+          preferredBranchId:
+            input.preferredBranchId !== undefined
+              ? input.preferredBranchId
+              : (before.preferredBranch?.id ?? null),
+          version: before.version + 1,
+        },
+      });
+    });
+    return this.myProfile(principal);
+  }
+
+  async publicSiteConfig() {
+    const branches = await this.db.branch.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        timezone: true,
+        supportWhatsappE164: true,
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+    return {
+      branches,
+      fallbackWhatsappE164: this.runtimeConfig?.value.publicSupportWhatsappE164 ?? null,
+    };
+  }
+
   async replaceIdentityDocument(
     principal: SessionPrincipal,
     kind: IdentityDocumentKind,
-    input: IdentityDocumentInput & { expectedVersion: number },
+    upload: IdentityDocumentUpload,
+    expectedVersion: number,
     correlationId: string,
   ) {
     if (!['SELFIE', 'KTP_FRONT'].includes(kind))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    this.validateIdentityDocument(input);
+    const input = validateIdentityDocumentUpload(upload, this.uploadLimit());
     const current = await this.db.identityVerificationDocument.findFirst({
       where: { userId: principal.userId, kind, replacedById: null },
       orderBy: { createdAt: 'desc' },
     });
-    if (!current || current.status !== 'REJECTED' || current.version !== input.expectedVersion)
+    if (!current || current.status !== 'REJECTED' || current.version !== expectedVersion)
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    return this.db.$transaction(async (tx) => {
-      const objectKey = opaqueToken();
-      const replacement = await tx.identityVerificationDocument.create({
-        data: {
-          id: newId(),
-          userId: principal.userId,
-          kind,
-          objectKey,
-          checksum: input.sha256.toLowerCase(),
-          fileName: input.fileName.trim(),
-          mimeType: input.mimeType,
-          sizeBytes: input.sizeBytes,
-          uploadStatus: 'FINALIZED',
-          scanStatus: 'CLEAN',
-          providerReferenceHash: digest(objectKey),
-          uploadedAt: new Date(),
-          finalizedAt: new Date(),
-        },
+    const replacementId = newId();
+    const objectKey = `identity/${principal.userId}/${kind.toLowerCase()}/${replacementId}`;
+    await this.identityStorage().put({ key: objectKey, content: input.buffer });
+    try {
+      return await this.db.$transaction(async (tx) => {
+        const replacement = await tx.identityVerificationDocument.create({
+          data: {
+            id: replacementId,
+            userId: principal.userId,
+            kind,
+            objectKey,
+            checksum: input.checksum,
+            fileName: this.safeOriginalName(input.originalName),
+            mimeType: input.mimeType,
+            sizeBytes: input.sizeBytes,
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+            providerReferenceHash: digest(objectKey),
+            uploadedAt: new Date(),
+            finalizedAt: new Date(),
+          },
+        });
+        const claimed = await tx.identityVerificationDocument.updateMany({
+          where: { id: current.id, version: expectedVersion, replacedById: null },
+          data: {
+            replacedById: replacement.id,
+            ...(current.objectKey ? { status: 'PENDING_DELETION' as const } : {}),
+            version: { increment: 1 },
+          },
+        });
+        if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        if (current.objectKey) {
+          const retentionDays = this.runtimeConfig?.value.privateUploads.retentionDays ?? 30;
+          await tx.identityDocumentDeletionJob.create({
+            data: {
+              id: newId(),
+              documentId: current.id,
+              requestedById: principal.userId,
+              objectKey: current.objectKey,
+              status: 'QUEUED',
+              nextAttemptAt: new Date(Date.now() + retentionDays * 86_400_000),
+            },
+          });
+        }
+        await this.audit(tx, {
+          actorId: principal.userId,
+          action: 'security.identity_document_replaced',
+          objectType: 'IdentityVerificationDocument',
+          objectId: replacement.id,
+          correlationId,
+          after: {
+            kind,
+            priorFileRetentionDays: this.runtimeConfig?.value.privateUploads.retentionDays ?? 30,
+          },
+        });
+        return this.documentView(replacement);
       });
-      const claimed = await tx.identityVerificationDocument.updateMany({
-        where: { id: current.id, version: input.expectedVersion, replacedById: null },
-        data: { replacedById: replacement.id, version: { increment: 1 } },
-      });
-      if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      await this.audit(tx, {
-        actorId: principal.userId,
-        action: 'security.identity_document_replaced',
-        objectType: 'IdentityVerificationDocument',
-        objectId: replacement.id,
-        correlationId,
-        after: { kind },
-      });
-      return this.documentView(replacement);
-    });
+    } catch (error) {
+      await this.identityStorage()
+        .delete(objectKey)
+        .catch(() => undefined);
+      throw error;
+    }
   }
 
   async listIdentityReview(principal: SessionPrincipal, status?: string) {
@@ -1857,14 +2152,135 @@ export class IdentityService {
     return { items: documents.map((item) => ({ ...this.documentView(item), user: item.user })) };
   }
 
-  async authorizeIdentityDocument(principal: SessionPrincipal, id: string) {
+  async authorizeIdentityDocument(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId = 'unknown',
+  ) {
     this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
     const document = await this.db.identityVerificationDocument.findUnique({ where: { id } });
-    if (!document?.objectKey || document.status === 'DELETED')
+    if (!document?.objectKey || ['DELETED', 'PENDING_DELETION'].includes(document.status))
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!(await this.identityStorage().exists(document.objectKey)))
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const expiresAt = new Date(
+      Date.now() +
+        (this.runtimeConfig?.value.privateUploads.viewAuthorizationTtlSeconds ?? 300) * 1000,
+    );
+    const authorization = await this.db.identityDocumentViewAuthorization.create({
+      data: {
+        id: newId(),
+        documentId: id,
+        viewerId: principal.userId,
+        purpose: 'REVIEW',
+        expiresAt,
+      },
+    });
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.identity_document_view_authorized',
+      objectType: 'IdentityVerificationDocument',
+      objectId: id,
+      targetUserId: document.userId,
+      correlationId,
+      after: { expiresAt: expiresAt.toISOString() },
+    });
     return {
-      url: `/synthetic-private-identity/${digest(`${document.objectKey}:${opaqueToken()}`)}`,
-      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+      url: `/api/v1/identity-verification-files/${authorization.id}/content`,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  async authorizeMyIdentityDocument(
+    principal: SessionPrincipal,
+    kind: IdentityDocumentKind,
+    correlationId = 'unknown',
+  ) {
+    if (!principal.roles.some(({ role }) => role === 'CUSTOMER'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    if (!['SELFIE', 'KTP_FRONT'].includes(kind))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const document = await this.db.identityVerificationDocument.findFirst({
+      where: {
+        userId: principal.userId,
+        kind,
+        replacedById: null,
+        status: { notIn: ['DELETED', 'PENDING_DELETION'] },
+        objectKey: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!document?.objectKey || !(await this.identityStorage().exists(document.objectKey)))
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const expiresAt = new Date(
+      Date.now() +
+        (this.runtimeConfig?.value.privateUploads.viewAuthorizationTtlSeconds ?? 300) * 1000,
+    );
+    const authorization = await this.db.identityDocumentViewAuthorization.create({
+      data: {
+        id: newId(),
+        documentId: document.id,
+        viewerId: principal.userId,
+        purpose: 'SELF_VIEW',
+        expiresAt,
+      },
+    });
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.identity_document_self_view_authorized',
+      objectType: 'IdentityVerificationDocument',
+      objectId: document.id,
+      targetUserId: principal.userId,
+      correlationId,
+      after: { kind, expiresAt: expiresAt.toISOString() },
+    });
+    return {
+      url: `/api/v1/identity-verification-files/${authorization.id}/content`,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  async readAuthorizedIdentityDocument(
+    principal: SessionPrincipal,
+    authorizationId: string,
+    correlationId = 'unknown',
+  ) {
+    const authorization = await this.db.identityDocumentViewAuthorization.findUnique({
+      where: { id: authorizationId },
+      include: { document: true },
+    });
+    if (
+      !authorization ||
+      authorization.viewerId !== principal.userId ||
+      authorization.consumedAt ||
+      authorization.expiresAt <= new Date() ||
+      !authorization.document.objectKey ||
+      ['DELETED', 'PENDING_DELETION'].includes(authorization.document.status)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (
+      (authorization.purpose === 'REVIEW' &&
+        !principal.capabilities.includes('identity-verification:review')) ||
+      (authorization.purpose === 'SELF_VIEW' && authorization.document.userId !== principal.userId)
+    )
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const claimed = await this.db.identityDocumentViewAuthorization.updateMany({
+      where: { id: authorizationId, consumedAt: null, expiresAt: { gt: new Date() } },
+      data: { consumedAt: new Date() },
+    });
+    if (claimed.count !== 1) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const stream = await this.identityStorage().read(authorization.document.objectKey);
+    await this.audit(this.db, {
+      actorId: principal.userId,
+      action: 'security.identity_document_viewed',
+      objectType: 'IdentityVerificationDocument',
+      objectId: authorization.document.id,
+      targetUserId: authorization.document.userId,
+      correlationId,
+    });
+    return {
+      stream,
+      mimeType: authorization.document.mimeType,
     };
   }
 
@@ -1883,32 +2299,47 @@ export class IdentityService {
         (input.reasonCode === 'OTHER_REQUIRES_NOTE' && !input.note?.trim()))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const changed = await this.db.identityVerificationDocument.updateMany({
-      where: {
-        id,
-        status: 'PENDING',
-        version: input.expectedVersion,
-        replacedById: null,
-        scanStatus: 'CLEAN',
-        uploadStatus: 'FINALIZED',
-      },
-      data: {
-        status: decision,
-        reviewedAt: new Date(),
-        reviewedById: principal.userId,
-        rejectionReasonCode: decision === 'REJECTED' ? input.reasonCode : null,
-        rejectionNote: decision === 'REJECTED' ? input.note?.trim() || null : null,
-        version: { increment: 1 },
-      },
-    });
-    if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    await this.audit(this.db, {
-      actorId: principal.userId,
-      action: `security.identity_document_${decision.toLowerCase()}`,
-      objectType: 'IdentityVerificationDocument',
-      objectId: id,
-      correlationId,
-      after: { decision, reasonCode: input.reasonCode ?? null },
+    await this.db.$transaction(async (tx) => {
+      const changed = await tx.identityVerificationDocument.updateMany({
+        where: {
+          id,
+          status: 'PENDING',
+          version: input.expectedVersion,
+          replacedById: null,
+          scanStatus: 'CLEAN',
+          uploadStatus: 'FINALIZED',
+        },
+        data: {
+          status: decision,
+          reviewedAt: new Date(),
+          reviewedById: principal.userId,
+          rejectionReasonCode: decision === 'REJECTED' ? input.reasonCode : null,
+          rejectionNote: decision === 'REJECTED' ? input.note?.trim() || null : null,
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: `security.identity_document_${decision.toLowerCase()}`,
+        objectType: 'IdentityVerificationDocument',
+        objectId: id,
+        correlationId,
+        after: { decision, reasonCode: input.reasonCode ?? null },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          id: newId(),
+          eventType:
+            decision === 'APPROVED'
+              ? 'identity.verification.approved.v1'
+              : 'identity.verification.rejected.v1',
+          aggregateType: 'IdentityVerificationDocument',
+          aggregateId: id,
+          payload: { documentId: id, decision },
+          correlationId,
+        },
+      });
     });
     return this.documentView(
       (await this.db.identityVerificationDocument.findUnique({ where: { id } }))!,
@@ -1924,28 +2355,115 @@ export class IdentityService {
     this.policy.requireCapability(principal.capabilities, 'identity-verification:delete');
     if (!input.reason?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const changed = await this.db.identityVerificationDocument.updateMany({
-      where: { id, version: input.expectedVersion, replacedById: null, status: { not: 'DELETED' } },
-      data: {
-        status: 'DELETED',
-        objectKey: null,
-        providerReferenceHash: null,
-        deletedAt: new Date(),
-        deletedById: principal.userId,
-        deletionReason: input.reason.trim(),
-        version: { increment: 1 },
-      },
+    const document = await this.db.identityVerificationDocument.findUnique({ where: { id } });
+    if (!document || document.replacedById || document.status === 'DELETED')
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (document.version !== input.expectedVersion)
+      throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    if (!document.objectKey) {
+      const changed = await this.db.identityVerificationDocument.updateMany({
+        where: { id, version: input.expectedVersion },
+        data: {
+          status: 'DELETED',
+          providerReferenceHash: null,
+          deletedAt: new Date(),
+          deletedById: principal.userId,
+          deletionReason: input.reason.trim(),
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      return { id, status: 'DELETED', version: input.expectedVersion + 1 };
+    }
+    const jobId = newId();
+    await this.db.$transaction(async (tx) => {
+      const changed = await tx.identityVerificationDocument.updateMany({
+        where: { id, version: input.expectedVersion, status: { not: 'DELETED' } },
+        data: {
+          status: 'PENDING_DELETION',
+          deletedById: principal.userId,
+          deletionReason: input.reason.trim(),
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await tx.identityDocumentDeletionJob.upsert({
+        where: { documentId: id },
+        update: {
+          requestedById: principal.userId,
+          objectKey: document.objectKey!,
+          status: 'RUNNING',
+          attempts: { increment: 1 },
+          lastErrorCode: null,
+          nextAttemptAt: null,
+        },
+        create: {
+          id: jobId,
+          documentId: id,
+          requestedById: principal.userId,
+          objectKey: document.objectKey!,
+          status: 'RUNNING',
+          attempts: 1,
+        },
+      });
+      await this.audit(tx, {
+        actorId: principal.userId,
+        action: 'security.identity_document_deletion_requested',
+        objectType: 'IdentityVerificationDocument',
+        objectId: id,
+        correlationId,
+        after: { reasonPresent: true },
+      });
     });
-    if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    await this.audit(this.db, {
-      actorId: principal.userId,
-      action: 'security.identity_document_deleted',
-      objectType: 'IdentityVerificationDocument',
-      objectId: id,
-      correlationId,
-      after: { reasonPresent: true },
-    });
-    return { id, status: 'DELETED', version: input.expectedVersion + 1 };
+    try {
+      await this.identityStorage().delete(document.objectKey);
+      await this.db.$transaction(async (tx) => {
+        await tx.identityVerificationDocument.update({
+          where: { id },
+          data: {
+            status: 'DELETED',
+            objectKey: null,
+            providerReferenceHash: null,
+            deletedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        await tx.identityDocumentDeletionJob.update({
+          where: { documentId: id },
+          data: { status: 'SUCCEEDED', completedAt: new Date(), lastErrorCode: null },
+        });
+        await this.audit(tx, {
+          actorId: principal.userId,
+          action: 'security.identity_document_deleted',
+          objectType: 'IdentityVerificationDocument',
+          objectId: id,
+          correlationId,
+          after: { reasonPresent: true },
+        });
+      });
+      return { id, status: 'DELETED', version: input.expectedVersion + 2 };
+    } catch {
+      const nextAttemptAt = new Date(Date.now() + 5 * 60_000);
+      await this.db.$transaction(async (tx) => {
+        await tx.identityVerificationDocument.update({
+          where: { id },
+          data: { status: 'DELETE_FAILED', version: { increment: 1 } },
+        });
+        await tx.identityDocumentDeletionJob.update({
+          where: { documentId: id },
+          data: { status: 'FAILED', lastErrorCode: 'PRIVATE_STORAGE_DELETE_FAILED', nextAttemptAt },
+        });
+        await this.audit(tx, {
+          actorId: principal.userId,
+          action: 'security.identity_document_deletion_failed',
+          objectType: 'IdentityVerificationDocument',
+          objectId: id,
+          correlationId,
+          after: { retryable: true },
+        });
+      });
+      return { id, status: 'DELETE_FAILED', version: input.expectedVersion + 2, nextAttemptAt };
+    }
   }
 
   private assignmentView(assignment: {
@@ -1971,6 +2489,7 @@ export class IdentityService {
   private userView(user: {
     id: string;
     displayName: string;
+    phoneE164?: string | null;
     status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
     version: number;
     createdAt: Date;
@@ -1991,6 +2510,7 @@ export class IdentityService {
     return {
       id: user.id,
       displayName: user.displayName,
+      phoneE164: user.phoneE164 ?? null,
       status: user.status,
       version: user.version,
       createdAt: user.createdAt.toISOString(),

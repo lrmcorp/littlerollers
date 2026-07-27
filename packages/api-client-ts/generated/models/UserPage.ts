@@ -27,6 +27,13 @@ import {
     UserSummaryToJSON,
     UserSummaryToJSONTyped,
 } from './UserSummary';
+import type { UserListSummary } from './UserListSummary';
+import {
+    UserListSummaryFromJSON,
+    UserListSummaryFromJSONTyped,
+    UserListSummaryToJSON,
+    UserListSummaryToJSONTyped,
+} from './UserListSummary';
 
 /**
  * 
@@ -46,6 +53,12 @@ export interface UserPage {
      * @memberof UserPage
      */
     page: CursorPageMeta;
+    /**
+     * 
+     * @type {UserListSummary}
+     * @memberof UserPage
+     */
+    summary: UserListSummary;
 }
 
 /**
@@ -54,6 +67,7 @@ export interface UserPage {
 export function instanceOfUserPage(value: object): value is UserPage {
     if (!('items' in value) || value['items'] === undefined) return false;
     if (!('page' in value) || value['page'] === undefined) return false;
+    if (!('summary' in value) || value['summary'] === undefined) return false;
     return true;
 }
 
@@ -69,6 +83,7 @@ export function UserPageFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         
         'items': ((json['items'] as Array<any>).map(UserSummaryFromJSON)),
         'page': CursorPageMetaFromJSON(json['page']),
+        'summary': UserListSummaryFromJSON(json['summary']),
     };
 }
 
@@ -85,6 +100,7 @@ export function UserPageToJSONTyped(value?: UserPage | null, ignoreDiscriminator
         
         'items': ((value['items'] as Array<any>).map(UserSummaryToJSON)),
         'page': CursorPageMetaToJSON(value['page']),
+        'summary': UserListSummaryToJSON(value['summary']),
     };
 }
 

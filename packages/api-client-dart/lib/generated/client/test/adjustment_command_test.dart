@@ -17,8 +17,8 @@ void main() {
       // TODO
     });
 
-    // String reason
-    test('to test the property `reason`', () async {
+    // String reasonCode
+    test('to test the property `reasonCode`', () async {
       // TODO
     });
 

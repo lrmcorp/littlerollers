@@ -32,6 +32,11 @@ void main() {
       // TODO
     });
 
+    // String targetUserId
+    test('to test the property `targetUserId`', () async {
+      // TODO
+    });
+
     // String action
     test('to test the property `action`', () async {
       // TODO
