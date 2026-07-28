@@ -13,6 +13,7 @@ import 'package:openapi/src/model/booking.dart';
 import 'package:openapi/src/model/booking_command.dart';
 import 'package:openapi/src/model/booking_page.dart';
 import 'package:openapi/src/model/customer_booking_options.dart';
+import 'package:openapi/src/model/customer_reschedule_options.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/reschedule.dart';
 import 'package:openapi/src/model/reschedule_decision_command.dart';
@@ -133,7 +134,7 @@ class BookingsApi {
   }
 
   /// decideReschedule
-  /// Permission-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
+  /// Permission-gated Admin/Super Owner decision with separation-of-duties. Approval revalidates duplicate customer booking and atomically moves the reservation and slot counts; rejection preserves the source reservation.
   ///
   /// Parameters:
   /// * [id] 
@@ -402,13 +403,101 @@ class BookingsApi {
     );
   }
 
+  /// getCustomerRescheduleOptions
+  /// Returns the authenticated customer own reschedule eligibility, inclusive H-24 cutoff, latest request, and backend-filtered eligible targets.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CustomerRescheduleOptions] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CustomerRescheduleOptions>> getCustomerRescheduleOptions({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/bookings/{id}/reschedule-options'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CustomerRescheduleOptions? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(CustomerRescheduleOptions),
+      ) as CustomerRescheduleOptions;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CustomerRescheduleOptions>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// listBookings
-  /// Customer self history or branch-scoped internal booking list, ordered by createdAt and id descending.
+  /// Customer booking timeline or capability-scoped internal management list with masked projection, summary, and cursor pagination.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
   /// * [cursor] 
   /// * [status] 
+  /// * [timeline] 
+  /// * [q] 
+  /// * [from] 
+  /// * [until] 
+  /// * [classSlotId] 
+  /// * [customerId] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -422,6 +511,13 @@ class BookingsApi {
     String? branchId,
     String? cursor,
     String? status,
+    String? timeline,
+    String? q,
+    DateTime? from,
+    DateTime? until,
+    String? classSlotId,
+    String? customerId,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -452,6 +548,13 @@ class BookingsApi {
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (timeline != null) r'timeline': encodeQueryParameter(_serializers, timeline, const FullType(String)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
+      if (classSlotId != null) r'classSlotId': encodeQueryParameter(_serializers, classSlotId, const FullType(String)),
+      if (customerId != null) r'customerId': encodeQueryParameter(_serializers, customerId, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(
@@ -587,7 +690,7 @@ class BookingsApi {
   }
 
   /// requestReschedule
-  /// Customer-owned request before the explicit synthetic H-24 boundary. Request marks booking pending without moving its reservation.
+  /// Customer-owned request before or exactly at the configured H-24 boundary. Request marks booking pending without moving its reservation and emits one staff in-app notification event.
   ///
   /// Parameters:
   /// * [idempotencyKey] 

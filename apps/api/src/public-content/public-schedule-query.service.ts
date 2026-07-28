@@ -44,6 +44,7 @@ export class PublicScheduleQueryService {
             capacity: true,
             bookedCount: true,
             classType: { select: { id: true, code: true, name: true } },
+            instructor: { select: { displayName: true } },
           },
           orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
           take: 100,
@@ -81,6 +82,7 @@ export class PublicScheduleQueryService {
         capacity: true,
         bookedCount: true,
         classType: { select: { id: true, code: true, name: true } },
+        instructor: { select: { displayName: true } },
         branch: {
           select: {
             id: true,

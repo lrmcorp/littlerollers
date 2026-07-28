@@ -19,6 +19,29 @@ import { OperationsService } from './operations.service';
 export class OperationsController {
   constructor(private readonly operations: OperationsService) {}
 
+  @Get('email-deliveries')
+  listEmailDeliveries(
+    @Req() req: AuthenticatedRequest,
+    @Query('status') status?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.operations.listEmailDeliveries(req.principal, status, cursor);
+  }
+
+  @Post('email-deliveries/:id/retry')
+  retryEmailDelivery(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.operations.retryEmailDelivery(
+      req.principal,
+      id,
+      body.reason,
+      req.correlationId ?? 'unknown',
+    );
+  }
+
   @Get('jobs')
   list(
     @Req() req: AuthenticatedRequest,

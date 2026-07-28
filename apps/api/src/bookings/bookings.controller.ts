@@ -13,11 +13,15 @@ import {
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { BookingsService, type BookingCommand } from './bookings.service';
+import { ReschedulesService } from './reschedules.service';
 
 @Controller('bookings')
 @UseGuards(AuthGuard)
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly reschedules: ReschedulesService,
+  ) {}
 
   @Get('options/:classSlotId')
   options(@Req() request: AuthenticatedRequest, @Param('classSlotId') classSlotId: string) {
@@ -30,8 +34,31 @@ export class BookingsController {
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
     @Query('cursor') cursor?: string,
+    @Query('timeline') timeline?: string,
+    @Query('q') q?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('classSlotId') classSlotId?: string,
+    @Query('customerId') customerId?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.bookings.list(request.principal, { branchId, status, cursor });
+    return this.bookings.list(request.principal, {
+      branchId,
+      status,
+      cursor,
+      timeline,
+      q,
+      from,
+      until,
+      classSlotId,
+      customerId,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get(':id/reschedule-options')
+  rescheduleOptions(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.reschedules.options(request.principal, id);
   }
 
   @Get(':id')

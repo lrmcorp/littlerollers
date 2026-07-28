@@ -9,6 +9,8 @@ import { IdentityDeletionWorker } from './identity-deletion-worker';
 import { NotificationProjectionWorker } from './notification-projection-worker';
 import { PaymentExpirationWorker } from './payment-expiration-worker';
 import { PaymentProofCleanupWorker } from './payment-proof-cleanup-worker';
+import { EmailDeliveryWorker } from './email-delivery-worker';
+import { PackageReminderWorker } from './package-reminder-worker';
 
 @Injectable()
 class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
@@ -20,12 +22,21 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.database,
     this.config.privateUploads,
   );
-  private readonly notificationProjectionWorker = new NotificationProjectionWorker(this.database);
+  private readonly notificationProjectionWorker = new NotificationProjectionWorker(
+    this.database,
+    5_000,
+    this.config.email,
+  );
   private readonly paymentExpirationWorker = new PaymentExpirationWorker(this.database);
   private readonly paymentProofCleanupWorker = new PaymentProofCleanupWorker(this.database, {
     privateUploadRoot: this.config.privateUploads.root,
     abandonedUploadTtlMinutes: this.config.paymentProof.abandonedUploadTtlMinutes,
   });
+  private readonly emailDeliveryWorker = new EmailDeliveryWorker(this.database, this.config.email);
+  private readonly packageReminderWorker = new PackageReminderWorker(
+    this.database,
+    this.config.email,
+  );
   private timer?: NodeJS.Timeout;
 
   async onModuleInit(): Promise<void> {
@@ -35,6 +46,8 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.notificationProjectionWorker.start();
     this.paymentExpirationWorker.start();
     this.paymentProofCleanupWorker.start();
+    this.emailDeliveryWorker.start();
+    this.packageReminderWorker.start();
     this.timer = setInterval(() => void this.beat(), this.config.workerHeartbeatIntervalMs);
   }
 
@@ -45,6 +58,8 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.notificationProjectionWorker.stop();
     this.paymentExpirationWorker.stop();
     this.paymentProofCleanupWorker.stop();
+    this.emailDeliveryWorker.stop();
+    this.packageReminderWorker.stop();
     await this.redis.quit();
     await this.database.$disconnect();
   }

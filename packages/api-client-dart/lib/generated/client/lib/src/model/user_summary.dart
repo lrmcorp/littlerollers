@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/user_role_summary.dart';
+import 'package:openapi/src/model/user_verification_summary.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -24,6 +25,8 @@ part 'user_summary.g.dart';
 /// * [directRoles] 
 /// * [assignmentRoles] 
 /// * [effectiveCapabilities] 
+/// * [audience] 
+/// * [identityVerification] 
 @BuiltValue()
 abstract class UserSummary implements Built<UserSummary, UserSummaryBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -59,6 +62,13 @@ abstract class UserSummary implements Built<UserSummary, UserSummaryBuilder> {
 
   @BuiltValueField(wireName: r'effectiveCapabilities')
   BuiltList<String> get effectiveCapabilities;
+
+  @BuiltValueField(wireName: r'audience')
+  UserSummaryAudienceEnum get audience;
+  // enum audienceEnum {  STAFF,  CUSTOMER,  };
+
+  @BuiltValueField(wireName: r'identityVerification')
+  UserVerificationSummary? get identityVerification;
 
   UserSummary._();
 
@@ -138,6 +148,18 @@ class _$UserSummarySerializer implements PrimitiveSerializer<UserSummary> {
       object.effectiveCapabilities,
       specifiedType: const FullType(BuiltList, [FullType(String)]),
     );
+    yield r'audience';
+    yield serializers.serialize(
+      object.audience,
+      specifiedType: const FullType(UserSummaryAudienceEnum),
+    );
+    if (object.identityVerification != null) {
+      yield r'identityVerification';
+      yield serializers.serialize(
+        object.identityVerification,
+        specifiedType: const FullType(UserVerificationSummary),
+      );
+    }
   }
 
   @override
@@ -239,6 +261,20 @@ class _$UserSummarySerializer implements PrimitiveSerializer<UserSummary> {
           ) as BuiltList<String>;
           result.effectiveCapabilities.replace(valueDes);
           break;
+        case r'audience':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(UserSummaryAudienceEnum),
+          ) as UserSummaryAudienceEnum;
+          result.audience = valueDes;
+          break;
+        case r'identityVerification':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(UserVerificationSummary),
+          ) as UserVerificationSummary;
+          result.identityVerification.replace(valueDes);
+          break;
         default:
           unhandled.add(key);
           unhandled.add(value);
@@ -283,5 +319,20 @@ class UserSummaryStatusEnum extends EnumClass {
 
   static BuiltSet<UserSummaryStatusEnum> get values => _$userSummaryStatusEnumValues;
   static UserSummaryStatusEnum valueOf(String name) => _$userSummaryStatusEnumValueOf(name);
+}
+
+class UserSummaryAudienceEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'STAFF')
+  static const UserSummaryAudienceEnum STAFF = _$userSummaryAudienceEnum_STAFF;
+  @BuiltValueEnumConst(wireName: r'CUSTOMER')
+  static const UserSummaryAudienceEnum CUSTOMER = _$userSummaryAudienceEnum_CUSTOMER;
+
+  static Serializer<UserSummaryAudienceEnum> get serializer => _$userSummaryAudienceEnumSerializer;
+
+  const UserSummaryAudienceEnum._(String name): super(name);
+
+  static BuiltSet<UserSummaryAudienceEnum> get values => _$userSummaryAudienceEnumValues;
+  static UserSummaryAudienceEnum valueOf(String name) => _$userSummaryAudienceEnumValueOf(name);
 }
 

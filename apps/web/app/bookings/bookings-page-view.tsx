@@ -1,12 +1,21 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useTrackedRouter } from '../components/app-loading';
 import { useSessionContext } from '../session-context';
-import { BookingView } from './booking-view';
 import { CustomerBookingsView } from './customer-bookings-view';
+import { Skeleton } from '../ui';
 
 export function BookingsPageView() {
-  const session = useSessionContext()?.session;
+  const context = useSessionContext();
+  const router = useTrackedRouter();
+  const session = context?.session;
   const customerOnly =
     session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
-  return customerOnly ? <CustomerBookingsView /> : <BookingView />;
+  useEffect(() => {
+    if (context?.status === 'authenticated' && session && !customerOnly)
+      router.replace('/workspace/bookings');
+  }, [context?.status, customerOnly, router, session]);
+  if (!customerOnly) return <Skeleton label="Membuka manajemen booking" />;
+  return <CustomerBookingsView />;
 }

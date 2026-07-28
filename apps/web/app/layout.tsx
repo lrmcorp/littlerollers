@@ -5,6 +5,8 @@ import './legacy-compatibility.css';
 import { ApplicationShell } from './application-shell';
 import { SessionProvider } from './session-context';
 import { AppFeedbackProvider } from './components/app-feedback';
+import { AppLoadingProvider } from './components/app-loading';
+import { PublicExperience } from './components/public/public-experience';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 
@@ -49,11 +51,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" className={poppins.variable} data-scroll-behavior="smooth">
       <body suppressHydrationWarning>
-        <AppFeedbackProvider>
-          <SessionProvider>
-            <ApplicationShell>{children}</ApplicationShell>
-          </SessionProvider>
-        </AppFeedbackProvider>
+        <AppLoadingProvider>
+          <AppFeedbackProvider>
+            <SessionProvider>
+              <PublicExperience>
+                <ApplicationShell>{children}</ApplicationShell>
+              </PublicExperience>
+            </SessionProvider>
+          </AppFeedbackProvider>
+        </AppLoadingProvider>
       </body>
     </html>
   );

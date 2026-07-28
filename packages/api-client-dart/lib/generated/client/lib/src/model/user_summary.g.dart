@@ -33,8 +33,32 @@ final BuiltSet<UserSummaryStatusEnum> _$userSummaryStatusEnumValues =
       _$userSummaryStatusEnum_INACTIVE,
     ]);
 
+const UserSummaryAudienceEnum _$userSummaryAudienceEnum_STAFF =
+    const UserSummaryAudienceEnum._('STAFF');
+const UserSummaryAudienceEnum _$userSummaryAudienceEnum_CUSTOMER =
+    const UserSummaryAudienceEnum._('CUSTOMER');
+
+UserSummaryAudienceEnum _$userSummaryAudienceEnumValueOf(String name) {
+  switch (name) {
+    case 'STAFF':
+      return _$userSummaryAudienceEnum_STAFF;
+    case 'CUSTOMER':
+      return _$userSummaryAudienceEnum_CUSTOMER;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<UserSummaryAudienceEnum> _$userSummaryAudienceEnumValues =
+    BuiltSet<UserSummaryAudienceEnum>(const <UserSummaryAudienceEnum>[
+      _$userSummaryAudienceEnum_STAFF,
+      _$userSummaryAudienceEnum_CUSTOMER,
+    ]);
+
 Serializer<UserSummaryStatusEnum> _$userSummaryStatusEnumSerializer =
     _$UserSummaryStatusEnumSerializer();
+Serializer<UserSummaryAudienceEnum> _$userSummaryAudienceEnumSerializer =
+    _$UserSummaryAudienceEnumSerializer();
 
 class _$UserSummaryStatusEnumSerializer
     implements PrimitiveSerializer<UserSummaryStatusEnum> {
@@ -71,11 +95,46 @@ class _$UserSummaryStatusEnumSerializer
   );
 }
 
+class _$UserSummaryAudienceEnumSerializer
+    implements PrimitiveSerializer<UserSummaryAudienceEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'STAFF': 'STAFF',
+    'CUSTOMER': 'CUSTOMER',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'STAFF': 'STAFF',
+    'CUSTOMER': 'CUSTOMER',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[UserSummaryAudienceEnum];
+  @override
+  final String wireName = 'UserSummaryAudienceEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    UserSummaryAudienceEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  UserSummaryAudienceEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => UserSummaryAudienceEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$UserSummary extends UserSummary {
   @override
   final String id;
   @override
   final String displayName;
+  @override
+  final String? phoneE164;
   @override
   final UserSummaryStatusEnum status;
   @override
@@ -92,6 +151,10 @@ class _$UserSummary extends UserSummary {
   final BuiltList<UserRoleSummary> assignmentRoles;
   @override
   final BuiltList<String> effectiveCapabilities;
+  @override
+  final UserSummaryAudienceEnum audience;
+  @override
+  final UserVerificationSummary? identityVerification;
 
   factory _$UserSummary([void Function(UserSummaryBuilder)? updates]) =>
       (UserSummaryBuilder()..update(updates))._build();
@@ -99,6 +162,7 @@ class _$UserSummary extends UserSummary {
   _$UserSummary._({
     required this.id,
     required this.displayName,
+    this.phoneE164,
     required this.status,
     required this.version,
     required this.createdAt,
@@ -107,6 +171,8 @@ class _$UserSummary extends UserSummary {
     required this.directRoles,
     required this.assignmentRoles,
     required this.effectiveCapabilities,
+    required this.audience,
+    this.identityVerification,
   }) : super._();
   @override
   UserSummary rebuild(void Function(UserSummaryBuilder) updates) =>
@@ -121,6 +187,7 @@ class _$UserSummary extends UserSummary {
     return other is UserSummary &&
         id == other.id &&
         displayName == other.displayName &&
+        phoneE164 == other.phoneE164 &&
         status == other.status &&
         version == other.version &&
         createdAt == other.createdAt &&
@@ -128,7 +195,9 @@ class _$UserSummary extends UserSummary {
         roles == other.roles &&
         directRoles == other.directRoles &&
         assignmentRoles == other.assignmentRoles &&
-        effectiveCapabilities == other.effectiveCapabilities;
+        effectiveCapabilities == other.effectiveCapabilities &&
+        audience == other.audience &&
+        identityVerification == other.identityVerification;
   }
 
   @override
@@ -136,6 +205,7 @@ class _$UserSummary extends UserSummary {
     var _$hash = 0;
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, displayName.hashCode);
+    _$hash = $jc(_$hash, phoneE164.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
@@ -144,6 +214,8 @@ class _$UserSummary extends UserSummary {
     _$hash = $jc(_$hash, directRoles.hashCode);
     _$hash = $jc(_$hash, assignmentRoles.hashCode);
     _$hash = $jc(_$hash, effectiveCapabilities.hashCode);
+    _$hash = $jc(_$hash, audience.hashCode);
+    _$hash = $jc(_$hash, identityVerification.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -153,6 +225,7 @@ class _$UserSummary extends UserSummary {
     return (newBuiltValueToStringHelper(r'UserSummary')
           ..add('id', id)
           ..add('displayName', displayName)
+          ..add('phoneE164', phoneE164)
           ..add('status', status)
           ..add('version', version)
           ..add('createdAt', createdAt)
@@ -160,7 +233,9 @@ class _$UserSummary extends UserSummary {
           ..add('roles', roles)
           ..add('directRoles', directRoles)
           ..add('assignmentRoles', assignmentRoles)
-          ..add('effectiveCapabilities', effectiveCapabilities))
+          ..add('effectiveCapabilities', effectiveCapabilities)
+          ..add('audience', audience)
+          ..add('identityVerification', identityVerification))
         .toString();
   }
 }
@@ -175,6 +250,10 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
   String? _displayName;
   String? get displayName => _$this._displayName;
   set displayName(String? displayName) => _$this._displayName = displayName;
+
+  String? _phoneE164;
+  String? get phoneE164 => _$this._phoneE164;
+  set phoneE164(String? phoneE164) => _$this._phoneE164 = phoneE164;
 
   UserSummaryStatusEnum? _status;
   UserSummaryStatusEnum? get status => _$this._status;
@@ -215,6 +294,18 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
   set effectiveCapabilities(ListBuilder<String>? effectiveCapabilities) =>
       _$this._effectiveCapabilities = effectiveCapabilities;
 
+  UserSummaryAudienceEnum? _audience;
+  UserSummaryAudienceEnum? get audience => _$this._audience;
+  set audience(UserSummaryAudienceEnum? audience) =>
+      _$this._audience = audience;
+
+  UserVerificationSummaryBuilder? _identityVerification;
+  UserVerificationSummaryBuilder get identityVerification =>
+      _$this._identityVerification ??= UserVerificationSummaryBuilder();
+  set identityVerification(
+    UserVerificationSummaryBuilder? identityVerification,
+  ) => _$this._identityVerification = identityVerification;
+
   UserSummaryBuilder() {
     UserSummary._defaults(this);
   }
@@ -224,6 +315,7 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
     if ($v != null) {
       _id = $v.id;
       _displayName = $v.displayName;
+      _phoneE164 = $v.phoneE164;
       _status = $v.status;
       _version = $v.version;
       _createdAt = $v.createdAt;
@@ -232,6 +324,8 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
       _directRoles = $v.directRoles.toBuilder();
       _assignmentRoles = $v.assignmentRoles.toBuilder();
       _effectiveCapabilities = $v.effectiveCapabilities.toBuilder();
+      _audience = $v.audience;
+      _identityVerification = $v.identityVerification?.toBuilder();
       _$v = null;
     }
     return this;
@@ -262,6 +356,7 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
               r'UserSummary',
               'displayName',
             ),
+            phoneE164: phoneE164,
             status: BuiltValueNullFieldError.checkNotNull(
               status,
               r'UserSummary',
@@ -286,6 +381,12 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
             directRoles: directRoles.build(),
             assignmentRoles: assignmentRoles.build(),
             effectiveCapabilities: effectiveCapabilities.build(),
+            audience: BuiltValueNullFieldError.checkNotNull(
+              audience,
+              r'UserSummary',
+              'audience',
+            ),
+            identityVerification: _identityVerification?.build(),
           );
     } catch (_) {
       late String _$failedField;
@@ -298,6 +399,9 @@ class UserSummaryBuilder implements Builder<UserSummary, UserSummaryBuilder> {
         assignmentRoles.build();
         _$failedField = 'effectiveCapabilities';
         effectiveCapabilities.build();
+
+        _$failedField = 'identityVerification';
+        _identityVerification?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'UserSummary',

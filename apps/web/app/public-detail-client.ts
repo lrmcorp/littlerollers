@@ -11,11 +11,15 @@ import type {
   PublicStudioDetail as GeneratedPublicStudioDetail,
   PublicStudioDetailAllOfClasses,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
 export type PublicProfileBranch = PublicBranch;
 
-export type RelatedSchedule = Omit<PublicScheduleSummary, 'startAt' | 'endAt'> & {
+export type RelatedSchedule = Pick<
+  PublicScheduleSummary,
+  'id' | 'branchId' | 'timezone' | 'status' | 'capacity' | 'available' | 'branch' | 'classType'
+> & {
   startAt: string;
   endAt: string;
 };
@@ -130,7 +134,10 @@ function studioDetailView(item: GeneratedPublicStudioDetail): PublicStudioDetail
 
 export const publicDetailClient = {
   async package(id: string): Promise<PublicPackageDetail> {
-    const item = await publicGeneratedApi.packages.getPublicPackageDetail({ id });
+    const item = await appLoading.track(
+      publicGeneratedApi.packages.getPublicPackageDetail({ id }),
+      { label: 'Memuat detail paket…' },
+    );
     return {
       ...item,
       effectiveFrom: item.effectiveFrom.toISOString(),
@@ -139,7 +146,10 @@ export const publicDetailClient = {
     };
   },
   async schedule(id: string): Promise<PublicScheduleDetail> {
-    const item = await publicGeneratedApi.classes.getPublicScheduleDetail({ id });
+    const item = await appLoading.track(
+      publicGeneratedApi.classes.getPublicScheduleDetail({ id }),
+      { label: 'Memuat detail jadwal…' },
+    );
     return {
       ...item,
       startAt: item.startAt.toISOString(),
@@ -147,10 +157,18 @@ export const publicDetailClient = {
     };
   },
   async classType(slug: string): Promise<PublicClassDetail> {
-    return classDetailView(await publicGeneratedApi.classes.getPublicClassDetail({ slug }));
+    return classDetailView(
+      await appLoading.track(publicGeneratedApi.classes.getPublicClassDetail({ slug }), {
+        label: 'Memuat detail kelas…',
+      }),
+    );
   },
   async studio(slug: string): Promise<PublicStudioDetail> {
-    return studioDetailView(await publicGeneratedApi.master.getPublicStudioDetail({ slug }));
+    return studioDetailView(
+      await appLoading.track(publicGeneratedApi.master.getPublicStudioDetail({ slug }), {
+        label: 'Memuat detail studio…',
+      }),
+    );
   },
 };
 

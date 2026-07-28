@@ -207,7 +207,7 @@ test('staff is redirected from customer verification to the reviewer queue', asy
         displayName: 'Super Owner',
         roles: ['SUPER_OWNER'],
         branchIds: [],
-        capabilities: ['identity-verification:review', 'branch:all'],
+        capabilities: ['identity-verification:read', 'identity-verification:decide', 'branch:all'],
         identityVerificationStatus: 'NOT_REQUIRED',
         sessionExpiresAt: '2099-07-27T02:00:00.000Z',
         branches: [],

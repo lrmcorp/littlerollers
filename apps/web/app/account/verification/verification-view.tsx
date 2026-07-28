@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
@@ -13,6 +12,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
+import { useTrackedRouter } from '../../components/app-loading';
 import {
   verificationClient,
   type DocumentKind,
@@ -355,7 +355,7 @@ export function VerificationView() {
   const [viewing, setViewing] = useState<VerificationDocument | null>(null);
   const [highlightedKind, setHighlightedKind] = useState<DocumentKind | null>(null);
   const session = useSessionContext();
-  const router = useRouter();
+  const router = useTrackedRouter();
   const feedback = useAppFeedback();
   const approvedHandled = useRef(false);
   const invalidContinuation = useRef(false);

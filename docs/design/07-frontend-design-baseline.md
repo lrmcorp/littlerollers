@@ -100,7 +100,7 @@ Sembilan route tersebut sengaja direkonsiliasi menjadi delapan screen groups kar
 ## Authoritative Session dan Capability Context
 
 - `GET /me` adalah satu-satunya sumber Web untuk display name, role, capability, assurance, masa berlaku sesi, serta branch aktif yang boleh dipilih.
-- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/`, `/classes`, `/packages`, `/locations`, `/contact`, `/sign-in`, dan `/health` tetap publik; dashboard internal berada di `/workspace` dan timetable operator di `/workspace/classes`.
+- Route internal menahan render sampai sesi tervalidasi; 401 mengarahkan ke `/sign-in` dengan `returnTo` relatif yang telah disanitasi. `/`, `/classes`, `/packages`, `/locations`, `/contact`, dan `/sign-in` tetap publik. `/health` memerlukan global `operations:read`; dashboard internal berada di `/workspace` dan timetable operator di `/workspace/classes`.
 - Navigation disaring berdasarkan capability untuk usability. Direct URL, query branch, dan setiap mutation tetap diverifikasi backend.
 - Branch dipilih eksplisit, disimpan per tab melalui `sessionStorage`, dan dihapus bila tidak lagi terdapat pada branch context `/me`. Tidak ada fallback branch pertama atau `all branches`.
 - Step-up MFA wajib memuat ulang `/me`; badge assurance tidak boleh dinaikkan hanya dari state frontend.

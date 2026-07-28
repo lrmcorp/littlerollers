@@ -31,11 +31,18 @@ export class EffectiveSettingsService {
   async list(principal: SessionPrincipal, kind: SettingKind, branchId?: string) {
     this.access.authorize(principal);
     if (branchId) this.access.ensureBranchScope(principal, branchId);
-    const branchIds = principal.capabilities.includes('branch:all')
-      ? undefined
-      : principal.branchIds;
+    const scope = this.access.branchScope(principal);
     const items = await this.db.effectiveConfiguration.findMany({
-      where: { kind, branchId: branchId ?? (branchIds ? { in: branchIds } : undefined) },
+      where: {
+        kind,
+        branchId:
+          branchId ??
+          (scope.all
+            ? scope.excluded.length
+              ? { notIn: scope.excluded }
+              : undefined
+            : { in: scope.included }),
+      },
       orderBy: [{ effectiveFrom: 'desc' }, { businessKey: 'asc' }],
     });
     return { items: items.map(settingView), page: { nextCursor: null, hasMore: false } };
@@ -43,7 +50,7 @@ export class EffectiveSettingsService {
 
   async create(principal: SessionPrincipal, input: SettingInput, correlationId: string) {
     this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, input.branchId);
+    this.access.ensureBranchScope(principal, input.branchId, true);
     if (
       (input.kind === 'INSTRUCTOR_FEE' || input.kind === 'PROJECTION_RATE') &&
       !principal.capabilities.includes('finance:manage')

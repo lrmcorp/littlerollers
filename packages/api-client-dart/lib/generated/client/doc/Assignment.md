@@ -14,6 +14,9 @@ Name | Type | Description | Notes
 **assignmentType** | **String** |  | 
 **activeFrom** | [**Date**](Date.md) |  | 
 **activeUntil** | [**Date**](Date.md) |  | 
+**status** | **String** |  | 
+**user** | [**AssignmentManagementUser**](AssignmentManagementUser.md) |  | 
+**branch** | [**AssignmentManagementBranch**](AssignmentManagementBranch.md) |  | 
 **version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

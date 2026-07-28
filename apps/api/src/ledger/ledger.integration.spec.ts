@@ -204,9 +204,32 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
 
   it('lists customer-owned and branch-scoped balances without foreign leakage', async () => {
     const own = await service.list(customer, branchId);
-    const scoped = await service.list(manager, branchId);
+    const scoped = await service.list(
+      manager,
+      branchId,
+      undefined,
+      'Ledger customer',
+      'ACTIVE',
+      customerId,
+    );
     expect(own.items).toHaveLength(1);
+    expect(own.items[0]).not.toHaveProperty('customer');
     expect(scoped.items).toHaveLength(1);
+    expect(scoped.summary).toEqual({
+      packageCount: 1,
+      ledgerBalance: 10,
+      reserved: 2,
+      available: 8,
+    });
+    expect(scoped.items[0]).toMatchObject({
+      customer: { id: customerId, displayName: 'Ledger customer', phoneMasked: null },
+    });
+    const byPackage = await service.list(manager, branchId, undefined, 'Ten sessions', 'ACTIVE');
+    expect(byPackage.items).toHaveLength(1);
+    expect(byPackage.summary.packageCount).toBe(1);
+    await expect(
+      service.list(customer, branchId, undefined, undefined, undefined, managerId),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
     await expect(
       service.detail({ ...manager, branchIds: [] }, customerPackageId),
     ).rejects.toMatchObject({
@@ -266,6 +289,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     expect(replay.replay).toBe(true);
     expect(await db.ledgerEntry.count({ where: { customerPackageId } })).toBe(before);
     const id = (requested.body as { id: string }).id;
+    expect(requested.body).toMatchObject({ ledgerBalanceAtRequest: 10, reservedAtRequest: 2 });
     const decided = await service.decideAdjustment(
       manager,
       id,
@@ -303,6 +327,11 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         namespace,
       ),
     ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
+    expect(
+      await db.auditLog.count({
+        where: { objectId: id, action: 'session.adjustment.self_approval_denied' },
+      }),
+    ).toBe(1);
     await expect(
       service.decideAdjustment(
         manager,
@@ -322,5 +351,58 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
       namespace,
     );
     expect(await db.ledgerEntry.count({ where: { sessionAdjustmentId: id } })).toBe(0);
+  });
+
+  it('allows only one concurrent pending request and one concurrent ledger post', async () => {
+    const requests = await Promise.allSettled([
+      service.requestAdjustment(
+        admin,
+        { customerPackageId, quantity: 1, reasonCode: 'PACKAGE_COMPENSATION' },
+        `${namespace}-concurrent-request-a`,
+        namespace,
+      ),
+      service.requestAdjustment(
+        admin,
+        { customerPackageId, quantity: 1, reasonCode: 'PACKAGE_COMPENSATION' },
+        `${namespace}-concurrent-request-b`,
+        namespace,
+      ),
+    ]);
+    expect(requests.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    const fulfilled = requests.find(({ status }) => status === 'fulfilled');
+    if (!fulfilled || fulfilled.status !== 'fulfilled') throw new Error('missing request');
+    const id = (fulfilled.value.body as { id: string }).id;
+    expect(
+      await db.sessionAdjustment.count({ where: { customerPackageId, status: 'PENDING' } }),
+    ).toBe(1);
+
+    const decisions = await Promise.allSettled([
+      service.decideAdjustment(
+        manager,
+        id,
+        'approve',
+        { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
+        `${namespace}-concurrent-decision-a`,
+        namespace,
+      ),
+      service.decideAdjustment(
+        manager,
+        id,
+        'approve',
+        { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
+        `${namespace}-concurrent-decision-b`,
+        namespace,
+      ),
+    ]);
+    expect(decisions.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(await db.ledgerEntry.count({ where: { sessionAdjustmentId: id } })).toBe(1);
+    expect(
+      await db.auditLog.count({ where: { objectId: id, action: 'session.adjustment.posted' } }),
+    ).toBe(1);
+    expect(
+      await db.outboxEvent.count({
+        where: { aggregateId: id, aggregateType: 'SessionAdjustment' },
+      }),
+    ).toBe(3);
   });
 });

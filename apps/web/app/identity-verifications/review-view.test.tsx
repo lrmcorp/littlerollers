@@ -87,7 +87,11 @@ function renderReview(client = createClient()) {
     <AppFeedbackProvider>
       <IdentityReviewView
         client={client}
-        capabilitiesOverride={['identity-verification:review', 'identity-verification:delete']}
+        capabilitiesOverride={[
+          'identity-verification:read',
+          'identity-verification:decide',
+          'identity-verification:delete',
+        ]}
       />
     </AppFeedbackProvider>,
   );

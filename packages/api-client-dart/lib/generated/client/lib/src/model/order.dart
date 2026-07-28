@@ -5,18 +5,21 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/order_payment_account.dart';
 import 'package:openapi/src/model/order_payment_proof_status.dart';
+import 'package:openapi/src/model/customer_order_activation.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/customer_order_timeline_page.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'order.g.dart';
 
-/// Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail. Legacy orders can have null paymentUniqueCode.
+/// Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail. Legacy orders can have null paymentUniqueCode and an incomplete derived timeline.
 ///
 /// Properties:
 /// * [id] 
 /// * [branchId] 
 /// * [branchName] 
+/// * [branchTimezone] 
 /// * [packageId] 
 /// * [packageName] 
 /// * [priceRp] 
@@ -27,11 +30,15 @@ part 'order.g.dart';
 /// * [durationDays] 
 /// * [status] 
 /// * [submittedAt] 
+/// * [decidedAt] 
 /// * [expiresAt] 
 /// * [continuationSlotId] 
 /// * [paymentProofId] 
 /// * [paymentProofStatus] 
 /// * [decisionReasonCode] 
+/// * [timelineComplete] 
+/// * [activation] 
+/// * [timeline] 
 /// * [version] 
 /// * [paymentAccount] 
 @BuiltValue()
@@ -44,6 +51,9 @@ abstract class Order implements Built<Order, OrderBuilder> {
 
   @BuiltValueField(wireName: r'branchName')
   String? get branchName;
+
+  @BuiltValueField(wireName: r'branchTimezone')
+  String? get branchTimezone;
 
   @BuiltValueField(wireName: r'packageId')
   String get packageId;
@@ -76,6 +86,9 @@ abstract class Order implements Built<Order, OrderBuilder> {
   @BuiltValueField(wireName: r'submittedAt')
   DateTime get submittedAt;
 
+  @BuiltValueField(wireName: r'decidedAt')
+  DateTime? get decidedAt;
+
   @BuiltValueField(wireName: r'expiresAt')
   DateTime? get expiresAt;
 
@@ -90,6 +103,15 @@ abstract class Order implements Built<Order, OrderBuilder> {
 
   @BuiltValueField(wireName: r'decisionReasonCode')
   String? get decisionReasonCode;
+
+  @BuiltValueField(wireName: r'timelineComplete')
+  bool get timelineComplete;
+
+  @BuiltValueField(wireName: r'activation')
+  CustomerOrderActivation? get activation;
+
+  @BuiltValueField(wireName: r'timeline')
+  CustomerOrderTimelinePage? get timeline;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -134,6 +156,13 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
       yield r'branchName';
       yield serializers.serialize(
         object.branchName,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.branchTimezone != null) {
+      yield r'branchTimezone';
+      yield serializers.serialize(
+        object.branchTimezone,
         specifiedType: const FullType(String),
       );
     }
@@ -189,6 +218,13 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
       object.submittedAt,
       specifiedType: const FullType(DateTime),
     );
+    if (object.decidedAt != null) {
+      yield r'decidedAt';
+      yield serializers.serialize(
+        object.decidedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
     if (object.expiresAt != null) {
       yield r'expiresAt';
       yield serializers.serialize(
@@ -222,6 +258,25 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
       yield serializers.serialize(
         object.decisionReasonCode,
         specifiedType: const FullType.nullable(String),
+      );
+    }
+    yield r'timelineComplete';
+    yield serializers.serialize(
+      object.timelineComplete,
+      specifiedType: const FullType(bool),
+    );
+    if (object.activation != null) {
+      yield r'activation';
+      yield serializers.serialize(
+        object.activation,
+        specifiedType: const FullType.nullable(CustomerOrderActivation),
+      );
+    }
+    if (object.timeline != null) {
+      yield r'timeline';
+      yield serializers.serialize(
+        object.timeline,
+        specifiedType: const FullType(CustomerOrderTimelinePage),
       );
     }
     yield r'version';
@@ -279,6 +334,13 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
             specifiedType: const FullType(String),
           ) as String;
           result.branchName = valueDes;
+          break;
+        case r'branchTimezone':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.branchTimezone = valueDes;
           break;
         case r'packageId':
           final valueDes = serializers.deserialize(
@@ -351,6 +413,14 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
           ) as DateTime;
           result.submittedAt = valueDes;
           break;
+        case r'decidedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.decidedAt = valueDes;
+          break;
         case r'expiresAt':
           final valueDes = serializers.deserialize(
             value,
@@ -389,6 +459,28 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
           ) as String?;
           if (valueDes == null) continue;
           result.decisionReasonCode = valueDes;
+          break;
+        case r'timelineComplete':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.timelineComplete = valueDes;
+          break;
+        case r'activation':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(CustomerOrderActivation),
+          ) as CustomerOrderActivation?;
+          if (valueDes == null) continue;
+          result.activation.replace(valueDes);
+          break;
+        case r'timeline':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CustomerOrderTimelinePage),
+          ) as CustomerOrderTimelinePage;
+          result.timeline.replace(valueDes);
           break;
         case r'version':
           final valueDes = serializers.deserialize(

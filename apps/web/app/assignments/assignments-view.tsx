@@ -1,197 +1,561 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Plus, RefreshCw, UserRoundCheck } from 'lucide-react';
 import {
   assignmentFailure,
   browserAssignmentClient,
   type AssignmentClient,
   type AssignmentFailure,
-  type AssignmentSummary,
+  type AssignmentFilters,
+  type AssignmentManagementItem,
+  type AssignmentManagementSummary,
+  type AssignmentStatus,
+  type AssignmentType,
 } from '../assignment-client';
-import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { PageHeader } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
+import {
+  Button,
+  DataTable,
+  DestructiveActionDialog,
+  DetailDrawer,
+  FilterBar,
+  Pagination,
+  Panel,
+  SearchableLookup,
+  StatCard,
+  Badge,
+  AdminPageState,
+} from '../components/admin/admin-ui';
+import { DateInput, SearchInput, SelectInput, Textarea, TextInput } from '../components/forms';
+import { useOptionalAppFeedback } from '../components/app-feedback';
+
+const emptySummary: AssignmentManagementSummary = { total: 0, active: 0, ended: 0 };
+
+const failureCopy: Record<AssignmentFailure, string> = {
+  EFFECTIVE_PERIOD_OVERLAP: 'Periode assignment bertabrakan dengan assignment yang sudah ada.',
+  STALE_VERSION: 'Assignment telah berubah. Muat ulang sebelum melanjutkan.',
+  RESOURCE_NOT_FOUND: 'Assignment tidak ditemukan atau berada di luar scope cabang Anda.',
+  FORBIDDEN: 'Akun ini tidak memiliki izin untuk mengelola assignment.',
+  VALIDATION_ERROR: 'Periksa kembali pengguna, periode, dan alasan tindakan.',
+  API_UNAVAILABLE: 'Layanan assignment belum dapat dijangkau. Silakan coba kembali.',
+};
+
+const typeLabel: Record<AssignmentType, string> = {
+  OWNER: 'Owner cabang',
+  INSTRUCTOR: 'Instruktur',
+};
 
 export function AssignmentsView({
   client = browserAssignmentClient,
   branchOptions,
+  activeBranchId,
+  access,
 }: {
   client?: AssignmentClient;
   branchOptions?: { id: string; code: string; name: string }[];
+  activeBranchId?: string;
+  access?: { canRead: boolean; canManage: boolean };
 }) {
-  const [branchId, setBranchId] = useActiveBranchState();
+  const [contextBranchId] = useActiveBranchState();
+  const branchId = activeBranchId ?? contextBranchId;
   const sessionContext = useSessionContext();
-  const canManage = !sessionContext || sessionContext.hasCapability('assignment:manage');
-  const [items, setItems] = useState<AssignmentSummary[]>([]);
-  const [users, setUsers] = useState<{ id: string; displayName: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string>();
+  const feedback = useOptionalAppFeedback();
+  const branches = branchOptions ?? sessionContext?.session?.branches ?? [];
+  const canManage =
+    access?.canManage ??
+    (sessionContext?.status === 'authenticated' &&
+      sessionContext.hasCapability('assignment:manage'));
+  const canRead =
+    access?.canRead ??
+    (!sessionContext ||
+      (sessionContext.status === 'authenticated' &&
+        sessionContext.hasCapability('assignment:read')));
+  const [items, setItems] = useState<AssignmentManagementItem[]>([]);
+  const [summary, setSummary] = useState(emptySummary);
+  const [filters, setFilters] = useState<Omit<AssignmentFilters, 'branchId' | 'cursor'>>({});
+  const [cursor, setCursor] = useState<string>();
+  const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [failure, setFailure] = useState<AssignmentFailure>();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [ending, setEnding] = useState<AssignmentManagementItem>();
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    label: string;
+    description?: string;
+  }>();
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    if (!canRead) return;
     setLoading(true);
     setFailure(undefined);
     try {
-      const [assignments, scopedUsers] = await Promise.all([
-        client.list(branchId),
-        client.listUsers(branchId),
-      ]);
-      setItems(assignments);
-      setUsers(scopedUsers);
+      const result = await client.list({ ...filters, branchId: branchId || undefined, cursor });
+      setItems(result.items);
+      setSummary(result.summary ?? emptySummary);
+      setNextCursor(result.page?.nextCursor ?? null);
     } catch (error) {
       setFailure(assignmentFailure(error));
     } finally {
       setLoading(false);
     }
+  }, [branchId, canRead, client, cursor, filters]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), filters.q ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [load, filters.q]);
+
+  const scopeLabel = branchId
+    ? (branches.find((branch) => branch.id === branchId)?.name ?? 'Cabang aktif')
+    : 'Semua cabang yang diizinkan';
+
+  const resetPage = (next: Omit<AssignmentFilters, 'branchId' | 'cursor'>) => {
+    setFilters(next);
+    setCursor(undefined);
+    setCursorHistory([]);
   };
 
+  const columns = useMemo(
+    () => [
+      {
+        id: 'user',
+        header: 'Pengguna',
+        cell: (item: AssignmentManagementItem) => (
+          <div>
+            <strong className="block">{item.user.displayName}</strong>
+            {item.user.phoneMasked && (
+              <span className="text-xs text-dd-muted">{item.user.phoneMasked}</span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'branch',
+        header: 'Cabang',
+        cell: (item: AssignmentManagementItem) => <span>{item.branch.name}</span>,
+      },
+      {
+        id: 'type',
+        header: 'Assignment',
+        cell: (item: AssignmentManagementItem) => typeLabel[item.assignmentType],
+      },
+      {
+        id: 'period',
+        header: 'Periode',
+        cell: (item: AssignmentManagementItem) => (
+          <span className="whitespace-nowrap">
+            {formatDate(item.activeFrom)} –{' '}
+            {item.activeUntil ? formatDate(item.activeUntil) : 'Tanpa akhir'}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: (item: AssignmentManagementItem) => (
+          <Badge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+            {item.status === 'ACTIVE' ? 'Aktif' : 'Berakhir'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'action',
+        header: <span className="sr-only">Tindakan</span>,
+        className: 'text-right',
+        cell: (item: AssignmentManagementItem) =>
+          item.status === 'ACTIVE' && canManage ? (
+            <Button
+              type="button"
+              variant="quiet"
+              onClick={(event) => {
+                event.stopPropagation();
+                setEnding(item);
+              }}
+            >
+              Akhiri
+            </Button>
+          ) : null,
+      },
+    ],
+    [canManage],
+  );
+
+  if (sessionContext && sessionContext.status === 'loading')
+    return (
+      <AdminPageState
+        kind="error"
+        title="Memuat konteks akses"
+        description="Capability dan scope cabang sedang diperiksa."
+      />
+    );
+  if (!canRead) return <AdminPageState kind="forbidden" />;
+
   return (
-    <section className="card" aria-labelledby="assignment-title">
+    <div className="grid gap-5">
       <PageHeader
-        eyebrow="Role dan cabang"
-        title="Assignment Owner dan Instructor"
+        eyebrow="Role dan scope"
+        title="Assignment"
         titleId="assignment-title"
-        description="Periode memakai interval [mulai, selesai) pada timezone cabang. Backend tetap menjadi batas otorisasi."
+        description="Kelola periode Owner dan Instruktur. Pembacaan dapat lintas cabang; mutasi selalu mengikuti cabang aktif di topbar."
         context={
           <>
-            <StatusBadge tone="info">SUPER OWNER</StatusBadge>
+            <Badge tone={branchId ? 'info' : 'neutral'}>{scopeLabel}</Badge>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw className="size-4" /> Segarkan
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              disabled={!canManage || !branchId}
+              title={
+                !branchId ? 'Pilih cabang aktif di topbar untuk membuat assignment' : undefined
+              }
+            >
+              <Plus className="size-4" /> Buat assignment
+            </Button>
           </>
         }
       />
-      <label>
-        Cabang aktif
-        <select
-          aria-describedby="branch-help"
-          value={branchId}
-          onChange={(event) => setBranchId(event.target.value)}
-          required
-        >
-          <option value="">Pilih cabang</option>
-          {(branchOptions ?? sessionContext?.session?.branches ?? []).map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.code} · {branch.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <small id="branch-help">
-        Mutation selalu memakai satu cabang; tidak ada pilihan semua cabang.
-      </small>
-      <button disabled={!branchId || loading} onClick={load}>
-        {loading ? 'Memuat…' : 'Muat assignment'}
-      </button>
 
+      {!branchId && canManage && (
+        <Panel className="border-dd-brass/40 bg-dd-brass-soft/35 p-4 text-sm text-dd-warning">
+          Mode semua cabang bersifat baca saja. Pilih cabang dari topbar untuk membuat atau
+          mengakhiri assignment.
+        </Panel>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Total assignment" value={summary.total.toLocaleString('id-ID')} />
+        <StatCard label="Aktif" value={summary.active.toLocaleString('id-ID')} tone="success" />
+        <StatCard label="Berakhir" value={summary.ended.toLocaleString('id-ID')} />
+      </div>
+
+      <FilterBar>
+        <SearchInput
+          label="Cari pengguna atau cabang"
+          placeholder="Nama, telepon, atau cabang"
+          value={filters.q ?? ''}
+          onChange={(event) => resetPage({ ...filters, q: event.target.value || undefined })}
+          wrapperClassName="min-w-64 flex-1"
+        />
+        <SelectInput
+          label="Tipe assignment"
+          value={filters.type ?? ''}
+          onChange={(event) =>
+            resetPage({
+              ...filters,
+              type: (event.target.value || undefined) as AssignmentType | undefined,
+            })
+          }
+          wrapperClassName="min-w-44"
+        >
+          <option value="">Semua tipe</option>
+          <option value="OWNER">Owner cabang</option>
+          <option value="INSTRUCTOR">Instruktur</option>
+        </SelectInput>
+        <SelectInput
+          label="Status"
+          value={filters.status ?? ''}
+          onChange={(event) =>
+            resetPage({
+              ...filters,
+              status: (event.target.value || undefined) as AssignmentStatus | undefined,
+            })
+          }
+          wrapperClassName="min-w-40"
+        >
+          <option value="">Semua status</option>
+          <option value="ACTIVE">Aktif</option>
+          <option value="ENDED">Berakhir</option>
+        </SelectInput>
+        {(filters.q || filters.type || filters.status) && (
+          <Button type="button" variant="quiet" onClick={() => resetPage({})}>
+            Reset filter
+          </Button>
+        )}
+      </FilterBar>
+
+      {failure ? (
+        <AdminPageState
+          kind={
+            failure === 'FORBIDDEN' ? 'forbidden' : failure === 'STALE_VERSION' ? 'stale' : 'error'
+          }
+          description={failureCopy[failure]}
+          action={<Button onClick={() => void load()}>Coba lagi</Button>}
+        />
+      ) : (
+        <>
+          <DataTable
+            items={items}
+            columns={columns}
+            rowKey={(item) => item.id}
+            loading={loading}
+            emptyTitle="Belum ada assignment"
+            emptyDescription="Tidak ada assignment yang sesuai dengan scope dan filter saat ini."
+            mobileCard={(item) => (
+              <div className="grid gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <strong className="block">{item.user.displayName}</strong>
+                    <span className="text-sm text-dd-muted">{item.branch.name}</span>
+                  </div>
+                  <Badge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                    {item.status === 'ACTIVE' ? 'Aktif' : 'Berakhir'}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <span>
+                    <span className="block text-xs text-dd-muted">Tipe</span>
+                    {typeLabel[item.assignmentType]}
+                  </span>
+                  <span>
+                    <span className="block text-xs text-dd-muted">Periode</span>
+                    {formatDate(item.activeFrom)} –{' '}
+                    {item.activeUntil ? formatDate(item.activeUntil) : 'Tanpa akhir'}
+                  </span>
+                </div>
+                {item.status === 'ACTIVE' && canManage && (
+                  <Button type="button" variant="secondary" onClick={() => setEnding(item)}>
+                    Akhiri assignment
+                  </Button>
+                )}
+              </div>
+            )}
+          />
+          <Pagination
+            hasPrevious={cursorHistory.length > 0}
+            hasNext={Boolean(nextCursor)}
+            totalLabel={`${summary.total.toLocaleString('id-ID')} assignment`}
+            onPrevious={() => {
+              const previous = cursorHistory.at(-1);
+              setCursorHistory((current) => current.slice(0, -1));
+              setCursor(previous);
+            }}
+            onNext={() => {
+              if (!nextCursor) return;
+              setCursorHistory((current) => [...current, cursor]);
+              setCursor(nextCursor);
+            }}
+          />
+        </>
+      )}
+
+      <CreateAssignmentDrawer
+        open={createOpen}
+        branchId={branchId}
+        branchName={scopeLabel}
+        client={client}
+        selectedUser={selectedUser}
+        onSelectedUser={setSelectedUser}
+        onClose={() => {
+          setCreateOpen(false);
+          setSelectedUser(undefined);
+        }}
+        onCreated={async () => {
+          setCreateOpen(false);
+          setSelectedUser(undefined);
+          feedback?.showToast({
+            tone: 'success',
+            title: 'Assignment dibuat',
+            message: 'Assignment baru telah dicatat dan diaudit.',
+          });
+          await load();
+        }}
+        onFailure={setFailure}
+      />
+
+      <EndAssignmentDialog
+        item={ending}
+        client={client}
+        feedback={feedback}
+        onClose={() => setEnding(undefined)}
+        onEnded={async () => {
+          setEnding(undefined);
+          feedback?.showToast({
+            tone: 'success',
+            title: 'Assignment diakhiri',
+            message: 'Perubahan periode telah dicatat dalam audit.',
+          });
+          await load();
+        }}
+        onFailure={setFailure}
+      />
+    </div>
+  );
+}
+
+function CreateAssignmentDrawer({
+  open,
+  branchId,
+  branchName,
+  client,
+  selectedUser,
+  onSelectedUser,
+  onClose,
+  onCreated,
+  onFailure,
+}: {
+  open: boolean;
+  branchId: string;
+  branchName: string;
+  client: AssignmentClient;
+  selectedUser?: { id: string; label: string; description?: string };
+  onSelectedUser(value?: { id: string; label: string; description?: string }): void;
+  onClose(): void;
+  onCreated(): Promise<void>;
+  onFailure(value: AssignmentFailure): void;
+}) {
+  const feedback = useOptionalAppFeedback();
+  const lookup = useCallback(
+    async (query: string) =>
+      (await client.listUsers(branchId, query)).map((user) => ({
+        id: user.id,
+        label: user.displayName,
+        description: user.phoneMasked ?? undefined,
+      })),
+    [branchId, client],
+  );
+  return (
+    <DetailDrawer open={open} title="Buat assignment" onClose={onClose}>
       <form
-        aria-label="Buat assignment"
+        className="grid gap-4"
         onSubmit={async (event) => {
           event.preventDefault();
-          setFailure(undefined);
+          if (!selectedUser || !branchId) return;
           const data = new FormData(event.currentTarget);
+          const assignmentType = String(data.get('assignmentType')) as AssignmentType;
+          const confirmed =
+            (await feedback?.confirm({
+              title: 'Buat assignment?',
+              message: `${selectedUser.label} akan memperoleh assignment ${typeLabel[assignmentType]} pada ${branchName}.`,
+              confirmLabel: 'Buat assignment',
+            })) ?? true;
+          if (!confirmed) return;
           try {
             await client.create({
-              userId: String(data.get('userId')),
+              userId: selectedUser.id,
               branchId,
-              assignmentType: String(data.get('assignmentType')) as 'OWNER' | 'INSTRUCTOR',
+              assignmentType,
               activeFrom: String(data.get('activeFrom')),
               activeUntil: String(data.get('activeUntil')) || null,
               reason: String(data.get('reason')),
             });
-            setMessage('Assignment berhasil dibuat.');
-            await load();
+            await onCreated();
           } catch (error) {
-            setFailure(assignmentFailure(error));
+            onFailure(assignmentFailure(error));
           }
         }}
       >
-        <h2>Buat assignment</h2>
-        <label>
-          Pengguna
-          <select name="userId" defaultValue="" required>
-            <option value="">Pilih pengguna</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tipe
-          <select name="assignmentType" defaultValue="INSTRUCTOR">
-            <option>INSTRUCTOR</option>
-            <option>OWNER</option>
-          </select>
-        </label>
-        <label>
-          Aktif mulai
-          <input name="activeFrom" type="date" required />
-        </label>
-        <label>
-          Aktif sampai (eksklusif)
-          <input name="activeUntil" type="date" />
-        </label>
-        <label>
-          Alasan
-          <input name="reason" minLength={3} required />
-        </label>
-        <button disabled={!branchId || !canManage} type="submit">
-          Buat assignment
-        </button>
-      </form>
-
-      <h2>Daftar scoped</h2>
-      {loading && <Skeleton label="Memuat assignment" />}
-      {!loading && items.length === 0 && (
-        <EmptyState
-          title="Belum ada assignment"
-          description="Pilih cabang dan muat data, atau buat assignment baru."
+        <Panel className="bg-dd-surface-muted p-4 text-sm text-dd-muted">
+          Scope cabang: <strong className="text-dd-ink">{branchName}</strong>
+        </Panel>
+        <SearchableLookup
+          label="Pengguna"
+          value={selectedUser}
+          load={lookup}
+          onChange={onSelectedUser}
+          placeholder="Ketik minimal 2 karakter"
         />
-      )}
-      <ul>
-        {items.map((item) => (
-          <li key={item.id}>
-            <strong>{item.assignmentType}</strong> · {item.userId} · {item.activeFrom} sampai{' '}
-            {item.activeUntil ?? 'tanpa akhir'}
-            {!item.activeUntil && (
-              <form
-                aria-label={`Akhiri assignment ${item.id}`}
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const data = new FormData(event.currentTarget);
-                  try {
-                    await client.end(
-                      item.id,
-                      String(data.get('effectiveAt')),
-                      item.version,
-                      String(data.get('reason')),
-                    );
-                    setMessage('Assignment berhasil diakhiri.');
-                    await load();
-                  } catch (error) {
-                    setFailure(assignmentFailure(error));
-                  }
-                }}
-              >
-                <ConfirmationPanel title="Akhiri assignment">
-                  Role projection berhenti pada awal tanggal efektif di timezone cabang.
-                </ConfirmationPanel>
-                <label>
-                  Efektif berakhir
-                  <input name="effectiveAt" type="datetime-local" required />
-                </label>
-                <label>
-                  Alasan akhir
-                  <input name="reason" minLength={3} required />
-                </label>
-                <button disabled={!canManage} type="submit">
-                  Konfirmasi akhiri
-                </button>
-              </form>
-            )}
-          </li>
-        ))}
-      </ul>
-      {message && !loading && <Feedback kind="status">{message}</Feedback>}
-      {failure && <Feedback kind="error">{failure}</Feedback>}
-    </section>
+        <SelectInput label="Tipe assignment" name="assignmentType" defaultValue="INSTRUCTOR">
+          <option value="INSTRUCTOR">Instruktur</option>
+          <option value="OWNER">Owner cabang</option>
+        </SelectInput>
+        <DateInput label="Aktif mulai" name="activeFrom" required />
+        <DateInput
+          label="Aktif sampai"
+          description="Opsional. Tanggal akhir bersifat eksklusif."
+          name="activeUntil"
+        />
+        <Textarea label="Alasan" name="reason" minLength={3} maxLength={500} required />
+        <div className="flex justify-end gap-3 border-t border-dd-line pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
+          <Button type="submit" disabled={!selectedUser || !branchId}>
+            <UserRoundCheck className="size-4" /> Buat assignment
+          </Button>
+        </div>
+      </form>
+    </DetailDrawer>
+  );
+}
+
+function EndAssignmentDialog({
+  item,
+  client,
+  feedback,
+  onClose,
+  onEnded,
+  onFailure,
+}: {
+  item?: AssignmentManagementItem;
+  client: AssignmentClient;
+  feedback: ReturnType<typeof useOptionalAppFeedback>;
+  onClose(): void;
+  onEnded(): Promise<void>;
+  onFailure(value: AssignmentFailure): void;
+}) {
+  return (
+    <DestructiveActionDialog
+      open={Boolean(item)}
+      title="Akhiri assignment"
+      impact={`Akses ${item ? typeLabel[item.assignmentType] : ''} berhenti pada awal tanggal efektif.`}
+      scope={item?.branch.name}
+      onClose={onClose}
+    >
+      <form
+        className="grid gap-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!item) return;
+          const data = new FormData(event.currentTarget);
+          const confirmed =
+            (await feedback?.confirm({
+              tone: 'danger',
+              title: 'Konfirmasi akhir assignment',
+              message: `Assignment ${item.user.displayName} pada ${item.branch.name} akan diakhiri dan dicatat dalam audit.`,
+              confirmLabel: 'Akhiri assignment',
+            })) ?? true;
+          if (!confirmed) return;
+          try {
+            await client.end(
+              item.id,
+              String(data.get('effectiveAt')),
+              item.version,
+              String(data.get('reason')),
+            );
+            await onEnded();
+          } catch (error) {
+            onFailure(assignmentFailure(error));
+          }
+        }}
+      >
+        <TextInput label="Efektif berakhir" name="effectiveAt" type="datetime-local" required />
+        <Textarea label="Alasan" name="reason" minLength={3} maxLength={500} required />
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
+          <Button type="submit" variant="danger">
+            Akhiri assignment
+          </Button>
+        </div>
+      </form>
+    </DestructiveActionDialog>
+  );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${value}T00:00:00Z`),
   );
 }

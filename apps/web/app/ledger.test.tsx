@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,15 +14,22 @@ const balance = {
   ledgerBalance: 10,
   reserved: 2,
   available: 8,
+  packageName: 'Ten sessions',
+  branchName: 'Jakarta',
+  customer: { id: 'customer-1', displayName: 'Nadia Customer', phoneMasked: '+628*****01' },
 };
 const fake = (overrides: Partial<LedgerClient> = {}): LedgerClient => ({
-  list: vi.fn().mockResolvedValue({ items: [balance], nextCursor: null }),
+  list: vi.fn().mockResolvedValue({
+    items: [balance],
+    summary: { packageCount: 1, ledgerBalance: 10, reserved: 2, available: 8 },
+    nextCursor: null,
+  }),
   detail: vi.fn().mockResolvedValue({
     balance,
     entries: [{ id: 'entry-1', type: 'PURCHASE', quantity: 10, occurredAt: new Date() }],
     nextCursor: null,
   }),
-  listAdjustments: vi.fn().mockResolvedValue([]),
+  listAdjustments: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
   requestAdjustment: vi.fn(),
   decideAdjustment: vi.fn(),
   ...overrides,
@@ -31,13 +38,10 @@ const fake = (overrides: Partial<LedgerClient> = {}): LedgerClient => ({
 describe('synthetic ledger UI', () => {
   it('is accessible and shows total, reserved, available and history', async () => {
     const view = render(<LedgerView client={fake()} />);
+    expect((await screen.findAllByText('Nadia Customer')).length).toBeGreaterThan(0);
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await userEvent.type(screen.getByLabelText('Cabang ledger'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat saldo' }));
-    await userEvent.click(
-      await screen.findByRole('button', { name: /total 10.*reserved 2.*tersedia 8/ }),
-    );
-    expect(await screen.findByText('PURCHASE 10')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('button', { name: /Lihat histori/ })[0]!);
+    expect(await screen.findByText('Aktivasi paket')).toBeInTheDocument();
   });
   it('shows safe invariant and expired states', async () => {
     render(
@@ -45,24 +49,32 @@ describe('synthetic ledger UI', () => {
         client={fake({ list: vi.fn().mockRejectedValue({ response: { status: 409 } }) })}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Muat saldo' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('LEDGER_INVARIANT_VIOLATION');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Data berubah');
     const expired = { ...balance, status: 'EXPIRED' as const, available: 0 };
-    render(<LedgerView client={fake({ list: vi.fn().mockResolvedValue({ items: [expired] }) })} />);
-    const buttons = screen.getAllByRole('button', { name: 'Muat saldo' });
-    await userEvent.click(buttons.at(-1)!);
-    expect(await screen.findByRole('button', { name: /EXPIRED.*tersedia 0/ })).toBeVisible();
+    render(
+      <LedgerView
+        client={fake({
+          list: vi.fn().mockResolvedValue({
+            items: [expired],
+            summary: { packageCount: 1, ledgerBalance: 10, reserved: 2, available: 0 },
+          }),
+        })}
+      />,
+    );
+    expect((await screen.findAllByText('Berakhir')).length).toBeGreaterThan(0);
   });
   it('creates a controlled pending request without free text', async () => {
     const requestAdjustment = vi.fn().mockResolvedValue({ id: 'adj-1' });
     const view = render(<LedgerView client={fake({ requestAdjustment })} />);
-    await userEvent.type(screen.getByLabelText('Paket customer'), 'cp-1');
-    await userEvent.type(screen.getByLabelText('Delta sesi'), '-2');
-    await userEvent.selectOptions(
-      screen.getByLabelText('Alasan terkontrol'),
-      'ATTENDANCE_CORRECTION',
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Buat request adjustment' }));
+    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    const lookup = screen.getByLabelText('Cari customer atau paket aktif');
+    await userEvent.type(lookup, 'Nadia');
+    await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(screen.getByLabelText('Perubahan sesi'), '-2');
+    await userEvent.selectOptions(screen.getByLabelText('Alasan'), 'ATTENDANCE_CORRECTION');
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
     expect(requestAdjustment).toHaveBeenCalledWith(
       expect.objectContaining({
         customerPackageId: 'cp-1',
@@ -71,15 +83,14 @@ describe('synthetic ledger UI', () => {
       }),
       expect.any(String),
     );
-    expect(await screen.findByText(/PENDING dibuat tanpa mutasi saldo/)).toBeVisible();
+    expect(await screen.findByText(/menunggu keputusan tanpa mengubah saldo/)).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
   it('reviews pending adjustment with explicit controlled decisions', async () => {
     const decideAdjustment = vi.fn().mockResolvedValue({});
-    const listAdjustments = vi
-      .fn()
-      .mockResolvedValueOnce([
+    const listAdjustments = vi.fn().mockResolvedValue({
+      items: [
         {
           id: 'adj-1',
           customerPackageId: 'cp-1',
@@ -87,17 +98,42 @@ describe('synthetic ledger UI', () => {
           reasonCode: 'PACKAGE_COMPENSATION',
           status: 'PENDING',
           version: 0,
+          eligibleForApproval: true,
         },
-      ])
-      .mockResolvedValue([]);
+      ],
+      nextCursor: null,
+    });
     render(<LedgerView client={fake({ listAdjustments, decideAdjustment })} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Muat antrean adjustment' }));
+    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Setujui' }));
-    expect(decideAdjustment).toHaveBeenCalledWith(
-      'adj-1',
-      'approve',
-      { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
-      expect.any(String),
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi keputusan' }));
+    await waitFor(() =>
+      expect(decideAdjustment).toHaveBeenCalledWith(
+        'adj-1',
+        'approve',
+        { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
+        expect.any(String),
+      ),
     );
+  });
+
+  it('reuses the same idempotency key after an uncertain request failure', async () => {
+    const requestAdjustment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network timeout'))
+      .mockResolvedValueOnce({ id: 'adj-1' });
+    render(<LedgerView client={fake({ requestAdjustment })} />);
+    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    const lookup = screen.getByLabelText('Cari customer atau paket aktif');
+    await userEvent.type(lookup, 'Nadia');
+    await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(screen.getByLabelText('Perubahan sesi'), '2');
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Layanan belum dapat dijangkau');
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
+    await waitFor(() => expect(requestAdjustment).toHaveBeenCalledTimes(2));
+    expect(requestAdjustment.mock.calls[0]?.[1]).toBe(requestAdjustment.mock.calls[1]?.[1]);
   });
 });

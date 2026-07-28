@@ -1,10 +1,15 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PurchaseClient, PurchaseReviewClient } from './purchase-client';
 import { PurchaseView } from './purchases/purchase-view';
-import { PurchaseReviewView } from './purchases/purchase-review-view';
+import { paymentRowState, PurchaseReviewView } from './purchases/purchase-review-view';
+import { PaymentReviewDetailView } from './workspace/payments/[id]/payment-review-detail-view';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 const branch = { id: 'branch-1', name: 'Jakarta', timezone: 'Asia/Jakarta' };
 const purchase = {
@@ -58,23 +63,101 @@ const submissionFake = (overrides: Partial<PurchaseClient> = {}): PurchaseClient
   ...overrides,
 });
 
-const reviewPurchase = { ...purchase, customerName: 'Pelanggan Synthetic' };
+const reviewPurchase = {
+  ...purchase,
+  auditReference: null,
+  customer: {
+    id: 'customer-1',
+    displayName: 'Pelanggan Synthetic',
+    phoneMasked: '+62••••1234',
+  },
+  branch: { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
+  paymentProof: {
+    id: 'proof-1',
+    uploadStatus: 'FINALIZED' as const,
+    scanStatus: 'CLEAN' as const,
+    mimeType: 'image/png',
+    sizeBytes: 1024,
+  },
+  activationSummary: null,
+};
 const reviewFake = (overrides: Partial<PurchaseReviewClient> = {}): PurchaseReviewClient => ({
-  list: vi.fn().mockResolvedValue({ items: [reviewPurchase], nextCursor: null }),
-  authorizeProof: vi
-    .fn()
-    .mockResolvedValue({ url: '/private/opaque', expiresAt: new Date('2026-07-23T12:00:00Z') }),
+  list: vi.fn().mockResolvedValue({
+    items: [reviewPurchase],
+    summary: {
+      pending: 1,
+      actionRequired: 0,
+      approved: 0,
+      rejected: 0,
+      expired: 0,
+      totalAmountRp: 2_000_000,
+      agingOver24Hours: 0,
+    },
+    generatedAt: new Date('2026-07-23T03:00:00Z'),
+    page: { nextCursor: null, hasMore: false },
+  }),
+  detail: vi.fn().mockResolvedValue({
+    purchase: reviewPurchase,
+    timeline: {
+      submittedAt: reviewPurchase.submittedAt,
+      proofFinalizedAt: new Date('2026-07-23T02:05:00Z'),
+      decidedAt: null,
+    },
+    decisionActorMasked: null,
+    activation: null,
+    balance: null,
+    usageHistory: { items: [], page: { nextCursor: null, hasMore: false } },
+  }),
+  loadProof: vi.fn().mockResolvedValue(new Blob(['proof'], { type: 'image/png' })),
   approve: vi.fn().mockResolvedValue({
-    ...reviewPurchase,
-    status: 'APPROVED',
-    version: 1,
+    purchase: {
+      ...purchase,
+      status: 'APPROVED',
+      version: 1,
+      auditReference: 'audit-approval',
+    },
+    customerPackage: {
+      id: 'customer-package-1',
+      branchId: 'branch-1',
+      customerUserId: 'customer-1',
+      packageId: 'package-1',
+      classTypeId: 'class-1',
+      packageName: 'Ten Sessions',
+      branchName: 'Jakarta',
+      status: 'ACTIVE',
+      activationDate: new Date('2026-07-23'),
+      expiryAt: new Date('2026-08-22T00:00:00Z'),
+      ledgerBalance: 10,
+      reserved: 0,
+      available: 10,
+      salePriceRp: 2_000_000,
+      sessionCountSnapshot: 10,
+      durationDaysSnapshot: 30,
+      projectionRateRp: 200_000,
+      version: 0,
+    },
+    ledgerEntry: {
+      id: 'ledger-1',
+      customerPackageId: 'customer-package-1',
+      type: 'PURCHASE',
+      quantity: 10,
+      referenceType: 'PURCHASE',
+      referenceId: 'purchase-1',
+      occurredAt: new Date('2026-07-23T03:00:00Z'),
+    },
+    idempotentReplay: false,
   }),
   reject: vi.fn().mockResolvedValue({
-    ...reviewPurchase,
+    ...purchase,
     status: 'REJECTED',
     version: 1,
+    auditReference: 'audit-rejection',
   }),
   ...overrides,
+});
+
+beforeEach(() => {
+  window.history.replaceState({}, '', '/workspace/payments');
 });
 
 describe('purchase submission workspace', () => {
@@ -133,44 +216,98 @@ describe('purchase submission workspace', () => {
 });
 
 describe('purchase internal review workspace', () => {
-  it('loads queue, authorizes proof and applies authoritative approval with expected version', async () => {
+  it('links queue rows to dedicated detail and supports private preview plus quick approval', async () => {
     const client = reviewFake();
-    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const createObjectURL = vi.fn().mockReturnValue('blob:proof');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
     const view = render(<PurchaseReviewView client={client} branchOverride={branch} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await user.click((await screen.findAllByRole('button', { name: 'Review' }))[0]!);
-    const dialog = screen.getByRole('dialog', { name: 'Detail review' });
-    await user.click(within(dialog).getByRole('button', { name: 'Buka bukti privat' }));
-    expect(open).toHaveBeenCalledWith('/private/opaque', '_blank', 'noopener,noreferrer');
-    await user.click(within(dialog).getByRole('button', { name: 'Setujui purchase' }));
+    const detailLinks = await screen.findAllByRole('link', { name: 'Periksa detail' });
+    expect(detailLinks[0]).toHaveAttribute(
+      'href',
+      expect.stringContaining('/workspace/payments/purchase-1?returnTo='),
+    );
+    await user.click((await screen.findAllByRole('button', { name: 'Preview bukti' }))[0]!);
+    expect(client.loadProof).toHaveBeenCalledWith('proof-1');
+    const dialog = screen.getByRole('dialog', { name: 'Bukti pembayaran Pelanggan Synthetic' });
+    expect(
+      await within(dialog).findByRole('img', { name: 'Bukti pembayaran Pelanggan Synthetic' }),
+    ).toBeVisible();
+    await user.click((await screen.findAllByRole('button', { name: 'Setujui' }))[0]!);
     expect(client.approve).toHaveBeenCalledWith('purchase-1', 0, expect.any(String));
-    expect(await within(dialog).findByText('Disetujui')).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
-    open.mockRestore();
+    expect(createObjectURL).toHaveBeenCalled();
   });
 
-  it('rejects with only a controlled code and renders safe configuration failure', async () => {
+  it('uses authoritative package state for semantic row color precedence', () => {
+    const active = {
+      ...reviewPurchase,
+      status: 'APPROVED' as const,
+      activationSummary: {
+        customerPackageId: 'customer-package-1',
+        status: 'ACTIVE' as const,
+        activationDate: new Date('2026-07-01'),
+        expiryAt: new Date('2026-08-01T00:00:00Z'),
+        sessionCount: 10,
+        ledgerBalance: 0,
+        reserved: 0,
+        available: 0,
+        used: 10,
+      },
+    };
+    expect(paymentRowState(active, new Date('2026-07-20T00:00:00Z'))).toBe('success');
+    expect(
+      paymentRowState(
+        { ...active, activationSummary: { ...active.activationSummary, status: 'EXPIRED' } },
+        new Date('2026-08-02T00:00:00Z'),
+      ),
+    ).toBe('danger');
+    expect(paymentRowState(reviewPurchase, new Date('2026-07-20T00:00:00Z'))).toBe('warning');
+    expect(
+      paymentRowState(
+        { ...reviewPurchase, status: 'AWAITING_PAYMENT' },
+        new Date('2026-07-20T00:00:00Z'),
+      ),
+    ).toBe('neutral');
+  });
+
+  it('renders a dedicated decision page with system timeline and controlled rejection', async () => {
     const client = reviewFake();
-    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    render(
+      <PaymentReviewDetailView
+        id="purchase-1"
+        returnTo="/workspace/payments?status=PENDING"
+        client={client}
+        authorityOverride={{ canReview: true, canDecide: true }}
+      />,
+    );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat queue' }));
-    await user.click((await screen.findAllByRole('button', { name: 'Review' }))[0]!);
-    const dialog = screen.getByRole('dialog', { name: 'Detail review' });
-    await user.selectOptions(within(dialog).getByLabelText('Alasan penolakan'), 'AMOUNT_MISMATCH');
-    await user.click(within(dialog).getByRole('button', { name: 'Tolak purchase' }));
+    expect(await screen.findByRole('heading', { name: 'Detail pembayaran' })).toBeVisible();
+    expect(screen.getByText('Bukti dikirim')).toBeVisible();
+    expect(screen.getByText('Pemeriksaan file selesai')).toBeVisible();
+    expect(screen.queryByText('Tanggal pembayaran')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kembali ke antrean' })).toHaveAttribute(
+      'href',
+      '/workspace/payments?status=PENDING',
+    );
+    await user.selectOptions(screen.getByLabelText('Alasan perbaikan'), 'AMOUNT_MISMATCH');
+    await user.click(screen.getByRole('button', { name: 'Minta perbaikan bukti' }));
     expect(client.reject).toHaveBeenCalledWith(
       'purchase-1',
       0,
       'AMOUNT_MISMATCH',
       expect.any(String),
+      undefined,
     );
+  });
 
+  it('renders a safe configuration failure for the queue', async () => {
     const failing = reviewFake({
       list: vi.fn().mockRejectedValue({ response: { status: 503 } }),
     });
     render(<PurchaseReviewView client={failing} branchOverride={branch} />);
-    await user.click(screen.getAllByRole('button', { name: 'Muat queue' }).at(-1)!);
     expect(
       await screen.findByText('Layanan penyimpanan atau pemindaian belum dikonfigurasi.'),
     ).toBeVisible();

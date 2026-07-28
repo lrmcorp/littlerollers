@@ -20,6 +20,7 @@ import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { CreatePanel, DetailPanel } from './class-slot-panels';
 import { classStatusTone, statusLabels } from './class-slot-presenters';
+import { controlClassName } from '../components/forms';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
@@ -279,7 +280,11 @@ export function ClassSlotView({
       <div className="calendar-filters" aria-label="Filter timetable">
         <label>
           Status
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <select
+            className={controlClassName}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
             {statuses.map((status) => (
               <option value={status} key={status}>
                 {status === 'ALL' ? 'Semua status' : statusLabels[status]}
@@ -290,6 +295,7 @@ export function ClassSlotView({
         <label>
           Class type
           <select
+            className={controlClassName}
             value={classTypeFilter}
             onChange={(event) => setClassTypeFilter(event.target.value)}
           >
@@ -305,6 +311,7 @@ export function ClassSlotView({
         <label>
           Instructor
           <select
+            className={controlClassName}
             value={instructorFilter}
             onChange={(event) => setInstructorFilter(event.target.value)}
           >

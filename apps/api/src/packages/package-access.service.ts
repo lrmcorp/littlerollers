@@ -33,13 +33,19 @@ export class PackageAccessService {
       this.policy.requireCapability(principal.capabilities, current);
   }
 
-  scope(principal: SessionPrincipal, branchId: string) {
+  scope(principal: SessionPrincipal, branchId: string, capabilities: string[]) {
     if (
-      !principal.capabilities.includes('branch:all') &&
-      !principal.capabilities.includes('finance:reconcile') &&
-      !principal.branchIds.includes(branchId)
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, 'finance:reconcile', branchId) &&
+      !capabilities.some((capability) =>
+        this.policy.hasCapability(principal, capability, branchId),
+      )
     )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  branchScope(principal: SessionPrincipal, capability: string) {
+    return this.policy.capabilityBranchScope(principal, capability);
   }
 
   async requireVerifiedCustomer(principal: SessionPrincipal) {
@@ -60,6 +66,7 @@ export class PackageAccessService {
     id: string,
     branchId: string,
     correlationId: string,
+    evidence?: Prisma.InputJsonObject,
   ) {
     return tx.auditLog.create({
       data: {
@@ -71,7 +78,7 @@ export class PackageAccessService {
         objectId: id,
         branchId,
         correlationId,
-        afterMasked: { status: 'masked' },
+        afterMasked: { status: 'masked', ...(evidence ?? {}) },
       },
     });
   }

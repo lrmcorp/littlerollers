@@ -36,8 +36,8 @@ describe('public class catalog', () => {
     expect(screen.queryByText('Private Class')).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Studio'), branch.id);
     expect(await screen.findByRole('heading', { name: 'Private Class' })).toBeVisible();
-    expect(screen.getByText('2 tempat')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Pilih kelas' })).toHaveAttribute(
+    expect(screen.getByText('2/4 tempat')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Lanjutkan booking' })).toHaveAttribute(
       'href',
       '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1',
     );

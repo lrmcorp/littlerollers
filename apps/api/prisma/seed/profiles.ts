@@ -8,8 +8,10 @@ import {
   resolveInstructorIdsByBranch,
   seedInstructorAvailability,
 } from './instructors';
+import { seedAccessControl } from './access-control';
 
 export async function runSeedProfile(ctx: SeedContext) {
+  await seedAccessControl(ctx);
   const catalog = await seedBranchCatalog(ctx);
   const users = await seedIdentities(ctx, catalog.branches);
   const instructorsByBranch = resolveInstructorIdsByBranch(users);

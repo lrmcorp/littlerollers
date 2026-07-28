@@ -12,7 +12,12 @@ void main() {
       // TODO
     });
 
-    // PagePage page
+    // AssignmentManagementSummary summary
+    test('to test the property `summary`', () async {
+      // TODO
+    });
+
+    // AssignmentPagePage page
     test('to test the property `page`', () async {
       // TODO
     });

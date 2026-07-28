@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/notification_delivery_metrics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:openapi/src/model/notification_occurrence.dart';
@@ -15,11 +16,15 @@ part 'notification_occurrence_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [metrics] 
 /// * [page] 
 @BuiltValue()
 abstract class NotificationOccurrencePage implements Built<NotificationOccurrencePage, NotificationOccurrencePageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<NotificationOccurrence> get items;
+
+  @BuiltValueField(wireName: r'metrics')
+  NotificationDeliveryMetrics get metrics;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -51,6 +56,11 @@ class _$NotificationOccurrencePageSerializer implements PrimitiveSerializer<Noti
     yield serializers.serialize(
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(NotificationOccurrence)]),
+    );
+    yield r'metrics';
+    yield serializers.serialize(
+      object.metrics,
+      specifiedType: const FullType(NotificationDeliveryMetrics),
     );
     yield r'page';
     yield serializers.serialize(
@@ -86,6 +96,13 @@ class _$NotificationOccurrencePageSerializer implements PrimitiveSerializer<Noti
             specifiedType: const FullType(BuiltList, [FullType(NotificationOccurrence)]),
           ) as BuiltList<NotificationOccurrence>;
           result.items.replace(valueDes);
+          break;
+        case r'metrics':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(NotificationDeliveryMetrics),
+          ) as NotificationDeliveryMetrics;
+          result.metrics.replace(valueDes);
           break;
         case r'page':
           final valueDes = serializers.deserialize(

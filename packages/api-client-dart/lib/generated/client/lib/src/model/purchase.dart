@@ -25,12 +25,14 @@ part 'purchase.g.dart';
 /// * [durationDaysSnapshot] 
 /// * [status] 
 /// * [submittedAt] 
+/// * [paymentExpiresAt] 
 /// * [decidedAt] 
 /// * [decidedById] 
 /// * [decisionReasonCode] 
+/// * [auditReference] 
 /// * [version] 
-@BuiltValue()
-abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
+@BuiltValue(instantiable: false)
+abstract class Purchase  {
   @BuiltValueField(wireName: r'id')
   String get id;
 
@@ -71,6 +73,9 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   @BuiltValueField(wireName: r'submittedAt')
   DateTime get submittedAt;
 
+  @BuiltValueField(wireName: r'paymentExpiresAt')
+  DateTime? get paymentExpiresAt;
+
   @BuiltValueField(wireName: r'decidedAt')
   DateTime? get decidedAt;
 
@@ -80,15 +85,11 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
   @BuiltValueField(wireName: r'decisionReasonCode')
   String? get decisionReasonCode;
 
+  @BuiltValueField(wireName: r'auditReference')
+  String? get auditReference;
+
   @BuiltValueField(wireName: r'version')
   int get version;
-
-  Purchase._();
-
-  factory Purchase([void updates(PurchaseBuilder b)]) = _$Purchase;
-
-  @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(PurchaseBuilder b) => b;
 
   @BuiltValueSerializer(custom: true)
   static Serializer<Purchase> get serializer => _$PurchaseSerializer();
@@ -96,7 +97,7 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
 
 class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
   @override
-  final Iterable<Type> types = const [Purchase, _$Purchase];
+  final Iterable<Type> types = const [Purchase];
 
   @override
   final String wireName = r'Purchase';
@@ -177,6 +178,13 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.submittedAt,
       specifiedType: const FullType(DateTime),
     );
+    if (object.paymentExpiresAt != null) {
+      yield r'paymentExpiresAt';
+      yield serializers.serialize(
+        object.paymentExpiresAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
     if (object.decidedAt != null) {
       yield r'decidedAt';
       yield serializers.serialize(
@@ -198,6 +206,13 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
         specifiedType: const FullType.nullable(String),
       );
     }
+    if (object.auditReference != null) {
+      yield r'auditReference';
+      yield serializers.serialize(
+        object.auditReference,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     yield r'version';
     yield serializers.serialize(
       object.version,
@@ -212,6 +227,46 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+  }
+
+  @override
+  Purchase deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.deserialize(serialized, specifiedType: FullType($Purchase)) as $Purchase;
+  }
+}
+
+/// a concrete implementation of [Purchase], since [Purchase] is not instantiable
+@BuiltValue(instantiable: true)
+abstract class $Purchase implements Purchase, Built<$Purchase, $PurchaseBuilder> {
+  $Purchase._();
+
+  factory $Purchase([void Function($PurchaseBuilder)? updates]) = _$$Purchase;
+
+  @BuiltValueHook(initializeBuilder: true)
+  static void _defaults($PurchaseBuilder b) => b;
+
+  @BuiltValueSerializer(custom: true)
+  static Serializer<$Purchase> get serializer => _$$PurchaseSerializer();
+}
+
+class _$$PurchaseSerializer implements PrimitiveSerializer<$Purchase> {
+  @override
+  final Iterable<Type> types = const [$Purchase, _$$Purchase];
+
+  @override
+  final String wireName = r'$Purchase';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    $Purchase object, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.serialize(object, specifiedType: FullType(Purchase))!;
   }
 
   void _deserializeProperties(
@@ -320,6 +375,14 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
           ) as DateTime;
           result.submittedAt = valueDes;
           break;
+        case r'paymentExpiresAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.paymentExpiresAt = valueDes;
+          break;
         case r'decidedAt':
           final valueDes = serializers.deserialize(
             value,
@@ -344,6 +407,14 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
           if (valueDes == null) continue;
           result.decisionReasonCode = valueDes;
           break;
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.auditReference = valueDes;
+          break;
         case r'version':
           final valueDes = serializers.deserialize(
             value,
@@ -360,12 +431,12 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
   }
 
   @override
-  Purchase deserialize(
+  $Purchase deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = PurchaseBuilder();
+    final result = $PurchaseBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

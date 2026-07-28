@@ -3,9 +3,10 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/assignment_page_page.dart';
+import 'package:openapi/src/model/assignment_management_summary.dart';
 import 'package:openapi/src/model/assignment.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:openapi/src/model/page_page.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -15,14 +16,18 @@ part 'assignment_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [summary] 
 /// * [page] 
 @BuiltValue()
 abstract class AssignmentPage implements Built<AssignmentPage, AssignmentPageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<Assignment> get items;
 
+  @BuiltValueField(wireName: r'summary')
+  AssignmentManagementSummary get summary;
+
   @BuiltValueField(wireName: r'page')
-  PagePage get page;
+  AssignmentPagePage get page;
 
   AssignmentPage._();
 
@@ -52,10 +57,15 @@ class _$AssignmentPageSerializer implements PrimitiveSerializer<AssignmentPage> 
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(Assignment)]),
     );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(AssignmentManagementSummary),
+    );
     yield r'page';
     yield serializers.serialize(
       object.page,
-      specifiedType: const FullType(PagePage),
+      specifiedType: const FullType(AssignmentPagePage),
     );
   }
 
@@ -87,11 +97,18 @@ class _$AssignmentPageSerializer implements PrimitiveSerializer<AssignmentPage> 
           ) as BuiltList<Assignment>;
           result.items.replace(valueDes);
           break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AssignmentManagementSummary),
+          ) as AssignmentManagementSummary;
+          result.summary.replace(valueDes);
+          break;
         case r'page':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(PagePage),
-          ) as PagePage;
+            specifiedType: const FullType(AssignmentPagePage),
+          ) as AssignmentPagePage;
           result.page.replace(valueDes);
           break;
         default:

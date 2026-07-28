@@ -12,6 +12,7 @@ import {
   type RescheduleDecisionCommand,
   type RescheduleRequestCommand,
 } from '@dailydose/api-client-ts/generated';
+import { foregroundFetch } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 
 export type { Booking, ClassSlot, CustomerPackageBalance, Reschedule };
@@ -29,8 +30,33 @@ export type BookingDiscovery = {
 
 export type BookingPage = {
   items: CustomerBookingRecord[];
+  summary?: {
+    total: number;
+    booked: number;
+    reschedulePending: number;
+    attended: number;
+    cancelled: number;
+    noShow: number;
+  };
   nextCursor?: string | null;
 };
+
+export type BookingListFilters = {
+  tab?: 'bookings' | 'reschedules' | 'attendance';
+  q?: string;
+  status?: string;
+  from?: string;
+  until?: string;
+  branch?: string;
+  cursor?: string;
+};
+
+export type BookingRosterItem = CustomerBookingRecord;
+export type BookingRosterPage = BookingPage;
+export type BookingRosterSummary = NonNullable<BookingPage['summary']>;
+export type BulkCheckInIssueResult = Awaited<
+  ReturnType<NonNullable<BookingClient['issueBulkCheckIns']>>
+>;
 
 export type CustomerBookingRecord = Omit<
   Booking,
@@ -47,6 +73,39 @@ export type CustomerBookingRecord = Omit<
   };
   package?: { id: string; name: string };
   attendance?: { checkedInAt: Date; source: 'QR' | 'BACKFILL' };
+  customer?: { id: string; displayName: string; phoneMasked: string | null };
+  createdBy?: { id: string; displayName: string };
+  sessionBalance?: { ledgerBalance: number; reserved: number; available: number };
+  reschedules?: Array<{
+    id: string;
+    status: string;
+    requestReasonCode: string;
+    decisionReasonCode: string | null;
+    requestedAt: Date;
+    decidedAt: Date | null;
+    version: number;
+    sourceClassSlot: {
+      id: string;
+      startAt: Date;
+      endAt: Date;
+      timezone: string;
+    };
+    targetClassSlot: {
+      id: string;
+      startAt: Date;
+      endAt: Date;
+      timezone: string;
+    };
+  }>;
+  checkInToken?: {
+    id: string;
+    status: 'ACTIVE' | 'USED' | 'REVOKED';
+    notBeforeAt: Date;
+    expiresAt: Date;
+    usedAt: Date | null;
+    revokedAt: Date | null;
+    version: number;
+  } | null;
 };
 
 export type CustomerBookingOptions = {
@@ -57,7 +116,7 @@ export type CustomerBookingOptions = {
     startAt: Date;
     endAt: Date;
     timezone: string;
-    status: 'PUBLISHED' | 'CONFIRMED';
+    status: 'DRAFT' | 'PUBLISHED' | 'CONFIRMED' | 'AUTO_CANCELLED' | 'CANCELLED' | 'COMPLETED';
     capacity: number;
     bookedCount: number;
     available: number;
@@ -69,13 +128,79 @@ export type CustomerBookingOptions = {
     packageId: string;
     name: string;
     available: number;
+    projectedAvailable: number;
     expiryAt: Date;
   }>;
+  eligibility: {
+    canBook: boolean;
+    reasonCode:
+      | 'IDENTITY_VERIFICATION_REQUIRED'
+      | 'MATCHING_PACKAGE_REQUIRED'
+      | 'INSUFFICIENT_AVAILABLE_SESSION'
+      | 'SLOT_FULL'
+      | 'SLOT_UNAVAILABLE'
+      | 'BOOKING_CUTOFF_PASSED'
+      | null;
+    requiredAction:
+      'COMPLETE_IDENTITY_VERIFICATION' | 'BUY_MATCHING_PACKAGE' | 'CONTACT_STUDIO' | null;
+    cutoffAt: Date;
+  };
 };
 
 export type ReschedulePage = {
-  items: Reschedule[];
+  items: ManagementReschedule[];
   nextCursor?: string | null;
+};
+
+export type ManagementReschedule = Reschedule & {
+  branch?: { id: string; name: string; timezone: string };
+  customer?: { id: string; displayName: string; phoneMasked: string | null };
+  package?: { id: string; name: string };
+  sourceClassSlot?: {
+    id: string;
+    startAt: Date;
+    endAt: Date;
+    timezone: string;
+    capacity: number;
+    bookedCount: number;
+    classType: { id: string; name: string };
+  };
+  targetClassSlot?: {
+    id: string;
+    startAt: Date;
+    endAt: Date;
+    timezone: string;
+    capacity: number;
+    bookedCount: number;
+    classType: { id: string; name: string };
+  };
+};
+
+export type CustomerRescheduleOptions = {
+  bookingId: string;
+  bookingVersion: number;
+  sourceClassSlotId: string;
+  cutoffAt: Date;
+  canRequest: boolean;
+  unavailableReason:
+    | 'NO_ELIGIBLE_TARGET'
+    | 'RESCHEDULE_PENDING'
+    | 'BOOKING_NOT_ACTIVE'
+    | 'RESCHEDULE_CUTOFF_PASSED'
+    | 'PACKAGE_INELIGIBLE'
+    | null;
+  supportAction: 'CONTACT_STUDIO' | null;
+  latestRequest: Reschedule | null;
+  targets: Array<{
+    id: string;
+    startAt: Date;
+    endAt: Date;
+    timezone: string;
+    status: string;
+    availableCapacity: number;
+    branch: { id: string; name: string; timezone: string };
+    classType: { id: string; name: string };
+  }>;
 };
 
 export type CheckInIssue = {
@@ -111,11 +236,23 @@ export type CheckInResult = {
 export interface BookingClient {
   discover(branchId: string): Promise<BookingDiscovery>;
   options(classSlotId: string): Promise<CustomerBookingOptions>;
-  list(input: { branchId?: string; status?: string; cursor?: string }): Promise<BookingPage>;
+  list(input: {
+    branchId?: string;
+    status?: string;
+    cursor?: string;
+    timeline?: 'UPCOMING' | 'HISTORY';
+    q?: string;
+    from?: string;
+    until?: string;
+    classSlotId?: string;
+    customerId?: string;
+    limit?: number;
+  }): Promise<BookingPage>;
   detail(id: string): Promise<CustomerBookingRecord>;
+  rescheduleOptions(id: string): Promise<CustomerRescheduleOptions>;
   create(input: BookingCommand, idempotencyKey: string): Promise<Booking>;
   listReschedules(input: {
-    branchId: string;
+    branchId?: string;
     status?: string;
     cursor?: string;
   }): Promise<ReschedulePage>;
@@ -129,6 +266,12 @@ export interface BookingClient {
   issueCheckIn?(
     bookingId: string,
     expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CheckInIssue>;
+  revokeCheckIn?(
+    tokenId: string,
+    expectedVersion: number,
+    reason: string,
     idempotencyKey: string,
   ): Promise<CheckInIssue>;
   issueBulkCheckIns?(
@@ -150,9 +293,11 @@ const ledger = new LedgerApi(configuration);
 
 export const browserBookingClient: BookingClient = {
   async options(classSlotId) {
-    const response = await fetch(`/api/v1/bookings/options/${encodeURIComponent(classSlotId)}`, {
-      credentials: 'include',
-    });
+    const response = await foregroundFetch(
+      `/api/v1/bookings/options/${encodeURIComponent(classSlotId)}`,
+      { credentials: 'include' },
+      'Memuat pilihan booking…',
+    );
     if (!response.ok) throw { response };
     const value = (await response.json()) as Omit<CustomerBookingOptions, 'slot' | 'packages'> & {
       slot: Omit<CustomerBookingOptions['slot'], 'startAt' | 'endAt'> & {
@@ -172,6 +317,10 @@ export const browserBookingClient: BookingClient = {
         endAt: new Date(value.slot.endAt),
       },
       packages: value.packages.map((item) => ({ ...item, expiryAt: new Date(item.expiryAt) })),
+      eligibility: {
+        ...value.eligibility,
+        cutoffAt: new Date(value.eligibility.cutoffAt),
+      },
     };
   },
   async discover(branchId) {
@@ -211,9 +360,18 @@ export const browserBookingClient: BookingClient = {
     if (input.branchId) query.set('branchId', input.branchId);
     if (input.status) query.set('status', input.status);
     if (input.cursor) query.set('cursor', input.cursor);
-    const response = await fetch(`/api/v1/bookings?${query.toString()}`, {
-      credentials: 'include',
-    });
+    if (input.timeline) query.set('timeline', input.timeline);
+    if (input.q) query.set('q', input.q);
+    if (input.from) query.set('from', input.from);
+    if (input.until) query.set('until', input.until);
+    if (input.classSlotId) query.set('classSlotId', input.classSlotId);
+    if (input.customerId) query.set('customerId', input.customerId);
+    if (input.limit) query.set('limit', String(input.limit));
+    const response = await foregroundFetch(
+      `/api/v1/bookings?${query.toString()}`,
+      { credentials: 'include' },
+      'Memuat booking…',
+    );
     if (!response.ok) throw { response };
     const result = (await response.json()) as {
       items: Array<
@@ -227,6 +385,7 @@ export const browserBookingClient: BookingClient = {
         }
       >;
       page: { nextCursor?: string | null };
+      summary?: BookingPage['summary'];
     };
     return {
       items: result.items.map((item) => ({
@@ -243,13 +402,16 @@ export const browserBookingClient: BookingClient = {
           ? { ...item.attendance, checkedInAt: new Date(item.attendance.checkedInAt) }
           : undefined,
       })),
+      summary: result.summary,
       nextCursor: result.page.nextCursor,
     };
   },
   async detail(id) {
-    const response = await fetch(`/api/v1/bookings/${encodeURIComponent(id)}`, {
-      credentials: 'include',
-    });
+    const response = await foregroundFetch(
+      `/api/v1/bookings/${encodeURIComponent(id)}`,
+      { credentials: 'include' },
+      'Memuat detail booking…',
+    );
     if (!response.ok) throw { response };
     const item = (await response.json()) as any;
     return {
@@ -265,6 +427,58 @@ export const browserBookingClient: BookingClient = {
       attendance: item.attendance
         ? { ...item.attendance, checkedInAt: new Date(item.attendance.checkedInAt) }
         : undefined,
+      reschedules: item.reschedules?.map((reschedule: any) => ({
+        ...reschedule,
+        requestedAt: new Date(reschedule.requestedAt),
+        decidedAt: reschedule.decidedAt ? new Date(reschedule.decidedAt) : null,
+        sourceClassSlot: {
+          ...reschedule.sourceClassSlot,
+          startAt: new Date(reschedule.sourceClassSlot.startAt),
+          endAt: new Date(reschedule.sourceClassSlot.endAt),
+        },
+        targetClassSlot: {
+          ...reschedule.targetClassSlot,
+          startAt: new Date(reschedule.targetClassSlot.startAt),
+          endAt: new Date(reschedule.targetClassSlot.endAt),
+        },
+      })),
+      checkInToken: item.checkInToken
+        ? {
+            ...item.checkInToken,
+            notBeforeAt: new Date(item.checkInToken.notBeforeAt),
+            expiresAt: new Date(item.checkInToken.expiresAt),
+            usedAt: item.checkInToken.usedAt ? new Date(item.checkInToken.usedAt) : null,
+            revokedAt: item.checkInToken.revokedAt ? new Date(item.checkInToken.revokedAt) : null,
+          }
+        : null,
+    };
+  },
+  async rescheduleOptions(id) {
+    const response = await foregroundFetch(
+      `/api/v1/bookings/${encodeURIComponent(id)}/reschedule-options`,
+      { credentials: 'include' },
+      'Memuat pilihan jadwal…',
+    );
+    if (!response.ok) throw { response };
+    const value = (await response.json()) as any;
+    return {
+      ...value,
+      cutoffAt: new Date(value.cutoffAt),
+      latestRequest: value.latestRequest
+        ? {
+            ...value.latestRequest,
+            entitlementCutoffAt: new Date(value.latestRequest.entitlementCutoffAt),
+            requestedAt: new Date(value.latestRequest.requestedAt),
+            decidedAt: value.latestRequest.decidedAt
+              ? new Date(value.latestRequest.decidedAt)
+              : null,
+          }
+        : null,
+      targets: value.targets.map((target: any) => ({
+        ...target,
+        startAt: new Date(target.startAt),
+        endAt: new Date(target.endAt),
+      })),
     };
   },
   create(input, idempotencyKey) {
@@ -272,7 +486,29 @@ export const browserBookingClient: BookingClient = {
   },
   async listReschedules(input) {
     const result = await bookings.listReschedules(input);
-    return { items: result.items, nextCursor: result.page.nextCursor };
+    return {
+      items: result.items.map((item: any) => ({
+        ...item,
+        requestedAt: new Date(item.requestedAt),
+        entitlementCutoffAt: new Date(item.entitlementCutoffAt),
+        decidedAt: item.decidedAt ? new Date(item.decidedAt) : null,
+        sourceClassSlot: item.sourceClassSlot
+          ? {
+              ...item.sourceClassSlot,
+              startAt: new Date(item.sourceClassSlot.startAt),
+              endAt: new Date(item.sourceClassSlot.endAt),
+            }
+          : undefined,
+        targetClassSlot: item.targetClassSlot
+          ? {
+              ...item.targetClassSlot,
+              startAt: new Date(item.targetClassSlot.startAt),
+              endAt: new Date(item.targetClassSlot.endAt),
+            }
+          : undefined,
+      })),
+      nextCursor: result.page.nextCursor,
+    };
   },
   requestReschedule(input, idempotencyKey) {
     return bookings.requestReschedule({ idempotencyKey, rescheduleRequestCommand: input });
@@ -286,7 +522,7 @@ export const browserBookingClient: BookingClient = {
     });
   },
   async issueCheckIn(bookingId, expectedVersion, idempotencyKey) {
-    const response = await fetch(
+    const response = await foregroundFetch(
       `/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`,
       {
         method: 'POST',
@@ -294,12 +530,13 @@ export const browserBookingClient: BookingClient = {
         headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
         body: JSON.stringify({ expectedVersion }),
       },
+      'Menerbitkan QR check-in…',
     );
     if (!response.ok) throw { response };
     return response.json() as Promise<CheckInIssue>;
   },
   async issueBulkCheckIns(classSlotId, bookingIds, idempotencyKey) {
-    const response = await fetch(
+    const response = await foregroundFetch(
       `/api/v1/class-slots/${encodeURIComponent(classSlotId)}/customer-check-in-links/bulk`,
       {
         method: 'POST',
@@ -307,17 +544,36 @@ export const browserBookingClient: BookingClient = {
         headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
         body: JSON.stringify({ bookingIds }),
       },
+      'Menerbitkan QR check-in…',
     );
     if (!response.ok) throw { response };
     return response.json();
   },
+  async revokeCheckIn(tokenId, expectedVersion, reason, idempotencyKey) {
+    const response = await foregroundFetch(
+      `/api/v1/check-in-tokens/${encodeURIComponent(tokenId)}/revoke`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ expectedVersion, reason }),
+      },
+      'Mencabut QR check-in…',
+    );
+    if (!response.ok) throw { response };
+    return response.json() as Promise<CheckInIssue>;
+  },
   async consumeCheckIn(token, idempotencyKey) {
-    const response = await fetch('/api/v1/check-ins/customers', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
-      body: JSON.stringify({ token }),
-    });
+    const response = await foregroundFetch(
+      '/api/v1/check-ins/customers',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ token }),
+      },
+      'Memproses check-in…',
+    );
     if (!response.ok) throw { response };
     return response.json() as Promise<CheckInResult>;
   },
@@ -341,6 +597,7 @@ const messages: Record<string, string> = {
   TARGET_CLASS_FULL: 'Kelas tujuan sudah penuh.',
   TARGET_CLASS_INELIGIBLE: 'Kelas tujuan tidak lagi memenuhi syarat.',
   RESCHEDULE_ALREADY_DECIDED: 'Reschedule ini sudah diputuskan.',
+  SELF_APPROVAL_FORBIDDEN: 'Permintaan reschedule tidak boleh disetujui oleh pemohon yang sama.',
   STALE_VERSION: 'Data berubah sejak terakhir dimuat. Muat ulang sebelum melanjutkan.',
   CHECK_IN_TOO_EARLY: 'QR belum aktif. Check-in dibuka 30 menit sebelum kelas.',
   CHECK_IN_WINDOW_CLOSED: 'QR sudah kedaluwarsa karena jadwal kelas telah selesai.',
@@ -358,8 +615,11 @@ export async function bookingFailure(error: unknown): Promise<string> {
   let code = typed.code;
   if (!code && typed.response?.clone) {
     try {
-      const problem = (await typed.response.clone().json()) as { code?: string };
-      code = problem.code;
+      const problem = (await typed.response.clone().json()) as {
+        code?: string;
+        error?: { code?: string };
+      };
+      code = problem.code ?? problem.error?.code;
     } catch {
       // A response without problem-details is mapped by status below.
     }

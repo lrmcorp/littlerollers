@@ -7,7 +7,7 @@ void main() {
   final instance = Openapi().getLedgerApi();
 
   group(LedgerApi, () {
-    // Permission-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
+    // Session-authenticated, capability and branch-scoped decision by a different Manager or Super Owner. No MFA is used. Approval atomically revalidates and posts one ADJUST_MANUAL entry.
     //
     //Future<AdjustmentDecisionResult> decideSessionAdjustment(String id, String decision, String idempotencyKey, SessionAdjustmentDecisionCommand sessionAdjustmentDecisionCommand) async
     test('test decideSessionAdjustment', () async {
@@ -21,9 +21,9 @@ void main() {
       // TODO
     });
 
-    // Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Invalid cursor is rejected; invariant mismatch is never silently clamped.
+    // Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Internal callers may search active customer packages without entering technical IDs.
     //
-    //Future<CustomerPackageBalancePage> listCustomerPackages({ String branchId, String cursor }) async
+    //Future<CustomerPackageBalancePage> listCustomerPackages({ String branchId, String cursor, String search, String status, String customerUserId }) async
     test('test listCustomerPackages', () async {
       // TODO
     });
@@ -35,6 +35,8 @@ void main() {
       // TODO
     });
 
+    // Branch-scoped Admin request. Stores immutable balance/reservation snapshots and does not mutate the ledger.
+    //
     //Future<SessionAdjustment> requestSessionAdjustment(String idempotencyKey, AdjustmentCommand adjustmentCommand) async
     test('test requestSessionAdjustment', () async {
       // TODO

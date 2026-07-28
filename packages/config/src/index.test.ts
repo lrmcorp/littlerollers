@@ -25,8 +25,10 @@ test('loads a complete synthetic local configuration', () => {
   assert.equal(config.environment, 'test');
   assert.equal(config.redisUrl, 'redis://127.0.0.1:6379');
   assert.equal(config.quotaEvaluation.syntheticEnabled, true);
-  assert.deepEqual(config.booking, { syntheticEnabled: true, cutoffHours: 2 });
-  assert.deepEqual(config.reschedule, { syntheticEnabled: true, cutoffHours: 24 });
+  assert.deepEqual(config.booking, { enabled: true, cutoffHours: 2 });
+  assert.deepEqual(config.reschedule, { enabled: true, cutoffHours: 24 });
+  assert.deepEqual(config.sessionAdjustment, { enabled: true });
+  assert.deepEqual(config.rbac, { policySource: 'static', managementEnabled: false });
   assert.deepEqual(config.privateUploads, {
     driver: 'local',
     root: 'apps/api/.local-data/private',
@@ -43,6 +45,35 @@ test('loads a complete synthetic local configuration', () => {
     scanTimeoutMs: 15_000,
     abandonedUploadTtlMinutes: 60,
   });
+});
+
+test('validates RBAC rollout source and management gate', () => {
+  assert.deepEqual(
+    loadRuntimeConfig({
+      ...validEnvironment,
+      RBAC_POLICY_SOURCE: 'shadow',
+      RBAC_MANAGEMENT_ENABLED: 'false',
+    }).rbac,
+    { policySource: 'shadow', managementEnabled: false },
+  );
+  assert.deepEqual(
+    loadRuntimeConfig({
+      ...validEnvironment,
+      RBAC_POLICY_SOURCE: 'database',
+      RBAC_MANAGEMENT_ENABLED: 'true',
+    }).rbac,
+    { policySource: 'database', managementEnabled: true },
+  );
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      RBAC_POLICY_SOURCE: 'shadow',
+      RBAC_MANAGEMENT_ENABLED: 'true',
+    }),
+  );
+  assert.throws(() =>
+    loadRuntimeConfig({ ...validEnvironment, RBAC_POLICY_SOURCE: 'unsupported' }),
+  );
 });
 
 test('does not require object storage credentials for local private uploads', () => {
@@ -64,7 +95,7 @@ test('loads and validates the public WhatsApp fallback as E.164', () => {
   );
 });
 
-test('never enables synthetic booking in production', () => {
+test('uses only production policy variables in production', () => {
   const config = loadRuntimeConfig({
     ...validEnvironment,
     NODE_ENV: 'production',
@@ -72,8 +103,37 @@ test('never enables synthetic booking in production', () => {
     PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
     PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
   });
-  assert.deepEqual(config.booking, { syntheticEnabled: false, cutoffHours: 2 });
-  assert.deepEqual(config.reschedule, { syntheticEnabled: false, cutoffHours: 24 });
+  assert.deepEqual(config.booking, { enabled: false, cutoffHours: null });
+  assert.deepEqual(config.reschedule, { enabled: false, cutoffHours: null });
+  assert.deepEqual(config.sessionAdjustment, { enabled: false });
+  assert.deepEqual(config.identityReview, { enabled: false });
+  const enabled = loadRuntimeConfig({
+    ...validEnvironment,
+    NODE_ENV: 'production',
+    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+    PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
+    PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
+    BOOKING_ENABLED: 'true',
+    BOOKING_CUTOFF_HOURS: '2',
+    RESCHEDULE_ENABLED: 'true',
+    RESCHEDULE_CUTOFF_HOURS: '24',
+    SESSION_ADJUSTMENT_ENABLED: 'true',
+    IDENTITY_REVIEW_ENABLED: 'true',
+  });
+  assert.deepEqual(enabled.booking, { enabled: true, cutoffHours: 2 });
+  assert.deepEqual(enabled.reschedule, { enabled: true, cutoffHours: 24 });
+  assert.deepEqual(enabled.sessionAdjustment, { enabled: true });
+  assert.deepEqual(enabled.identityReview, { enabled: true });
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      NODE_ENV: 'production',
+      PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+      PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
+      PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
+      RESCHEDULE_ENABLED: 'true',
+    }),
+  );
 });
 
 test('rejects synthetic payment scanning in production and validates scanner settings', () => {
@@ -112,4 +172,28 @@ test('requires private upload root in production and validates limits', () => {
   assert.throws(() =>
     loadRuntimeConfig({ ...validEnvironment, PRIVATE_UPLOAD_MAX_BYTES: '8000001' }),
   );
+});
+
+test('validates production SMTP and rejects recipient override', () => {
+  const production = {
+    ...validEnvironment,
+    NODE_ENV: 'production',
+    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+    PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
+    PAYMENT_PROOF_CLAMAV_HOST: 'clamav',
+    EMAIL_DELIVERY_ENABLED: 'true',
+    SMTP_HOST: 'smtp.hostinger.com',
+    SMTP_USER: 'noreply@dailydosepilates.com',
+    SMTP_PASSWORD: 'secret',
+    SMTP_FROM_EMAIL: 'noreply@dailydosepilates.com',
+    NOTIFICATION_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
+  };
+  assert.equal(loadRuntimeConfig(production).email.smtpPort, 465);
+  assert.throws(() => loadRuntimeConfig({ ...production, EMAIL_RECIPIENT_OVERRIDE: 'sink@test' }));
+  assert.throws(() => loadRuntimeConfig({ ...production, SMTP_PASSWORD: '' }));
+  assert.throws(() => loadRuntimeConfig({ ...production, NOTIFICATION_ENCRYPTION_KEY: 'short' }));
+  assert.throws(() =>
+    loadRuntimeConfig({ ...production, SMTP_FROM_NAME: 'Daily Dose\r\nBcc: leak@example.test' }),
+  );
+  assert.throws(() => loadRuntimeConfig({ ...production, SMTP_FROM_EMAIL: 'not-an-email' }));
 });

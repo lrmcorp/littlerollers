@@ -44,6 +44,12 @@ const IdentityVerificationDocumentStatusEnum
 _$identityVerificationDocumentStatusEnum_REJECTED =
     const IdentityVerificationDocumentStatusEnum._('REJECTED');
 const IdentityVerificationDocumentStatusEnum
+_$identityVerificationDocumentStatusEnum_PENDING_DELETION =
+    const IdentityVerificationDocumentStatusEnum._('PENDING_DELETION');
+const IdentityVerificationDocumentStatusEnum
+_$identityVerificationDocumentStatusEnum_DELETE_FAILED =
+    const IdentityVerificationDocumentStatusEnum._('DELETE_FAILED');
+const IdentityVerificationDocumentStatusEnum
 _$identityVerificationDocumentStatusEnum_DELETED =
     const IdentityVerificationDocumentStatusEnum._('DELETED');
 
@@ -56,6 +62,10 @@ _$identityVerificationDocumentStatusEnumValueOf(String name) {
       return _$identityVerificationDocumentStatusEnum_APPROVED;
     case 'REJECTED':
       return _$identityVerificationDocumentStatusEnum_REJECTED;
+    case 'PENDING_DELETION':
+      return _$identityVerificationDocumentStatusEnum_PENDING_DELETION;
+    case 'DELETE_FAILED':
+      return _$identityVerificationDocumentStatusEnum_DELETE_FAILED;
     case 'DELETED':
       return _$identityVerificationDocumentStatusEnum_DELETED;
     default:
@@ -70,6 +80,8 @@ _$identityVerificationDocumentStatusEnumValues =
         _$identityVerificationDocumentStatusEnum_PENDING,
         _$identityVerificationDocumentStatusEnum_APPROVED,
         _$identityVerificationDocumentStatusEnum_REJECTED,
+        _$identityVerificationDocumentStatusEnum_PENDING_DELETION,
+        _$identityVerificationDocumentStatusEnum_DELETE_FAILED,
         _$identityVerificationDocumentStatusEnum_DELETED,
       ],
     );
@@ -214,12 +226,16 @@ class _$IdentityVerificationDocumentStatusEnumSerializer
     'PENDING': 'PENDING',
     'APPROVED': 'APPROVED',
     'REJECTED': 'REJECTED',
+    'PENDING_DELETION': 'PENDING_DELETION',
+    'DELETE_FAILED': 'DELETE_FAILED',
     'DELETED': 'DELETED',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
     'PENDING': 'PENDING',
     'APPROVED': 'APPROVED',
     'REJECTED': 'REJECTED',
+    'PENDING_DELETION': 'PENDING_DELETION',
+    'DELETE_FAILED': 'DELETE_FAILED',
     'DELETED': 'DELETED',
   };
 
@@ -350,11 +366,21 @@ class _$IdentityVerificationDocument extends IdentityVerificationDocument {
   @override
   final String? rejectionNote;
   @override
+  final DateTime? issuedAt;
+  @override
+  final DateTime? uploadedAt;
+  @override
+  final DateTime? finalizedAt;
+  @override
+  final DateTime? createdAt;
+  @override
   final DateTime? reviewedAt;
   @override
   final DateTime? deletedAt;
   @override
   final int version;
+  @override
+  final String? auditReference;
 
   factory _$IdentityVerificationDocument([
     void Function(IdentityVerificationDocumentBuilder)? updates,
@@ -371,9 +397,14 @@ class _$IdentityVerificationDocument extends IdentityVerificationDocument {
     required this.sizeBytes,
     this.rejectionReasonCode,
     this.rejectionNote,
+    this.issuedAt,
+    this.uploadedAt,
+    this.finalizedAt,
+    this.createdAt,
     this.reviewedAt,
     this.deletedAt,
     required this.version,
+    this.auditReference,
   }) : super._();
   @override
   IdentityVerificationDocument rebuild(
@@ -398,9 +429,14 @@ class _$IdentityVerificationDocument extends IdentityVerificationDocument {
         sizeBytes == other.sizeBytes &&
         rejectionReasonCode == other.rejectionReasonCode &&
         rejectionNote == other.rejectionNote &&
+        issuedAt == other.issuedAt &&
+        uploadedAt == other.uploadedAt &&
+        finalizedAt == other.finalizedAt &&
+        createdAt == other.createdAt &&
         reviewedAt == other.reviewedAt &&
         deletedAt == other.deletedAt &&
-        version == other.version;
+        version == other.version &&
+        auditReference == other.auditReference;
   }
 
   @override
@@ -416,9 +452,14 @@ class _$IdentityVerificationDocument extends IdentityVerificationDocument {
     _$hash = $jc(_$hash, sizeBytes.hashCode);
     _$hash = $jc(_$hash, rejectionReasonCode.hashCode);
     _$hash = $jc(_$hash, rejectionNote.hashCode);
+    _$hash = $jc(_$hash, issuedAt.hashCode);
+    _$hash = $jc(_$hash, uploadedAt.hashCode);
+    _$hash = $jc(_$hash, finalizedAt.hashCode);
+    _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, reviewedAt.hashCode);
     _$hash = $jc(_$hash, deletedAt.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
+    _$hash = $jc(_$hash, auditReference.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -436,9 +477,14 @@ class _$IdentityVerificationDocument extends IdentityVerificationDocument {
           ..add('sizeBytes', sizeBytes)
           ..add('rejectionReasonCode', rejectionReasonCode)
           ..add('rejectionNote', rejectionNote)
+          ..add('issuedAt', issuedAt)
+          ..add('uploadedAt', uploadedAt)
+          ..add('finalizedAt', finalizedAt)
+          ..add('createdAt', createdAt)
           ..add('reviewedAt', reviewedAt)
           ..add('deletedAt', deletedAt)
-          ..add('version', version))
+          ..add('version', version)
+          ..add('auditReference', auditReference))
         .toString();
   }
 }
@@ -499,6 +545,22 @@ class IdentityVerificationDocumentBuilder
   set rejectionNote(String? rejectionNote) =>
       _$this._rejectionNote = rejectionNote;
 
+  DateTime? _issuedAt;
+  DateTime? get issuedAt => _$this._issuedAt;
+  set issuedAt(DateTime? issuedAt) => _$this._issuedAt = issuedAt;
+
+  DateTime? _uploadedAt;
+  DateTime? get uploadedAt => _$this._uploadedAt;
+  set uploadedAt(DateTime? uploadedAt) => _$this._uploadedAt = uploadedAt;
+
+  DateTime? _finalizedAt;
+  DateTime? get finalizedAt => _$this._finalizedAt;
+  set finalizedAt(DateTime? finalizedAt) => _$this._finalizedAt = finalizedAt;
+
+  DateTime? _createdAt;
+  DateTime? get createdAt => _$this._createdAt;
+  set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
+
   DateTime? _reviewedAt;
   DateTime? get reviewedAt => _$this._reviewedAt;
   set reviewedAt(DateTime? reviewedAt) => _$this._reviewedAt = reviewedAt;
@@ -510,6 +572,11 @@ class IdentityVerificationDocumentBuilder
   int? _version;
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
+
+  String? _auditReference;
+  String? get auditReference => _$this._auditReference;
+  set auditReference(String? auditReference) =>
+      _$this._auditReference = auditReference;
 
   IdentityVerificationDocumentBuilder() {
     IdentityVerificationDocument._defaults(this);
@@ -528,9 +595,14 @@ class IdentityVerificationDocumentBuilder
       _sizeBytes = $v.sizeBytes;
       _rejectionReasonCode = $v.rejectionReasonCode;
       _rejectionNote = $v.rejectionNote;
+      _issuedAt = $v.issuedAt;
+      _uploadedAt = $v.uploadedAt;
+      _finalizedAt = $v.finalizedAt;
+      _createdAt = $v.createdAt;
       _reviewedAt = $v.reviewedAt;
       _deletedAt = $v.deletedAt;
       _version = $v.version;
+      _auditReference = $v.auditReference;
       _$v = null;
     }
     return this;
@@ -595,6 +667,10 @@ class IdentityVerificationDocumentBuilder
           ),
           rejectionReasonCode: rejectionReasonCode,
           rejectionNote: rejectionNote,
+          issuedAt: issuedAt,
+          uploadedAt: uploadedAt,
+          finalizedAt: finalizedAt,
+          createdAt: createdAt,
           reviewedAt: reviewedAt,
           deletedAt: deletedAt,
           version: BuiltValueNullFieldError.checkNotNull(
@@ -602,6 +678,7 @@ class IdentityVerificationDocumentBuilder
             r'IdentityVerificationDocument',
             'version',
           ),
+          auditReference: auditReference,
         );
     replace(_$result);
     return _$result;

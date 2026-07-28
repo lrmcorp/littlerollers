@@ -62,5 +62,15 @@ void main() {
       // TODO
     });
 
+    // String audience
+    test('to test the property `audience`', () async {
+      // TODO
+    });
+
+    // UserVerificationSummary identityVerification
+    test('to test the property `identityVerification`', () async {
+      // TODO
+    });
+
   });
 }

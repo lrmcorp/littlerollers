@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@dailydose/config": "workspace:*",
+    "@dailydose/notification-core": "workspace:*",
     "@dailydose/quota-evaluator": "workspace:*",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",

@@ -41,6 +41,16 @@ enum ApplicationRole {
   OPS
 }
 
+enum AccessRoleScope {
+  GLOBAL
+  BRANCH
+}
+
+enum CapabilityOverrideEffect {
+  GRANT
+  DENY
+}
+
 enum SessionChannel {
   WEB
   MOBILE
@@ -96,6 +106,20 @@ enum NotificationProjectionStatus {
   SUCCEEDED
   SKIPPED
   FAILED
+}
+
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENDING
+  ACCEPTED_BY_SMTP
+  FAILED_RETRYABLE
+  FAILED_TERMINAL
+  EXPIRED
+  FALLBACK_IN_APP
 }
 
 enum IdempotencyStatus {
@@ -157,6 +181,18 @@ enum PurchaseStatus {
   APPROVED
   REJECTED
   EXPIRED
+}
+
+enum PurchaseTimelineEventType {
+  ORDER_CREATED
+  PAYMENT_DEADLINE_SET
+  PROOF_SUBMITTED
+  PROOF_SCAN_COMPLETED
+  ACTION_REQUIRED
+  PAYMENT_APPROVED
+  PAYMENT_REJECTED
+  ORDER_EXPIRED
+  PACKAGE_ACTIVATED
 }
 
 enum LedgerEntryType {
@@ -301,9 +337,15 @@ model User {
   reviewedIdentityDocuments          IdentityVerificationDocument[]      @relation("IdentityDocumentReviewer")
   deletedIdentityDocuments           IdentityVerificationDocument[]      @relation("IdentityDocumentDeleter")
   identityDocumentViewAuthorizations IdentityDocumentViewAuthorization[] @relation("IdentityDocumentViewer")
+  paymentProofViewAuthorizations     PaymentProofViewAuthorization[]     @relation("PaymentProofViewer")
   requestedIdentityDocumentDeletions IdentityDocumentDeletionJob[]       @relation("IdentityDocumentDeletionRequester")
   preferredBranch                    Branch?                             @relation("PreferredBranchCustomers", fields: [preferredBranchId], references: [id], onDelete: SetNull)
   notifications                      UserNotification[]
+  notificationOccurrences            NotificationOccurrence[]
+  accessRoleAssignments              AccessRoleAssignment[]
+  capabilityOverrides                UserCapabilityOverride[]            @relation("CapabilityOverrideTarget")
+  createdCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideCreator")
+  revokedCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideRevoker")
 
   @@index([preferredBranchId])
 }
@@ -420,27 +462,29 @@ model Branch {
   preferredByUsers         User[]                   @relation("PreferredBranchCustomers")
   userNotifications        UserNotification[]
   publicProfile            BranchPublicProfile?
+  accessRoleAssignments    AccessRoleAssignment[]
+  capabilityOverrides      UserCapabilityOverride[]
 }
 
 model BranchPublicProfile {
-  branchId          String   @id @db.Char(36)
-  slug              String   @unique
-  area              String
-  city              String
-  address           String
-  latitude          Float?
-  longitude         Float?
-  openingHours      Json
-  description       String   @db.Text
-  arrivalInformation String? @db.Text
-  parkingInformation String? @db.Text
-  amenities         Json
-  heroImageKey      String
-  galleryImageKeys  Json
-  version           Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  branch            Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  branchId           String   @id @db.Char(36)
+  slug               String   @unique
+  area               String
+  city               String
+  address            String
+  latitude           Float?
+  longitude          Float?
+  openingHours       Json
+  description        String   @db.Text
+  arrivalInformation String?  @db.Text
+  parkingInformation String?  @db.Text
+  amenities          Json
+  heroImageKey       String
+  galleryImageKeys   Json
+  version            Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  branch             Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([city, area])
 }
@@ -585,6 +629,95 @@ model UserRole {
 
   @@index([userId, activeFrom, activeUntil])
   @@index([branchId, role, activeFrom, activeUntil])
+}
+
+model CapabilityDefinition {
+  key              String                   @id @db.VarChar(96)
+  label            String                   @db.VarChar(160)
+  description      String                   @db.VarChar(500)
+  category         String                   @db.VarChar(64)
+  sensitive        Boolean                  @default(false)
+  active           Boolean                  @default(true)
+  systemOnly       Boolean                  @default(false)
+  globalOnly       Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  roleCapabilities RoleCapability[]
+  userOverrides    UserCapabilityOverride[]
+}
+
+model RoleDefinition {
+  id           String                 @id @db.Char(36)
+  code         String                 @unique @db.VarChar(64)
+  displayName  String                 @db.VarChar(160)
+  description  String                 @db.VarChar(500)
+  scope        AccessRoleScope
+  systemRole   ApplicationRole?       @unique
+  system       Boolean                @default(false)
+  protected    Boolean                @default(false)
+  active       Boolean                @default(true)
+  version      Int                    @default(0)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  capabilities RoleCapability[]
+  assignments  AccessRoleAssignment[]
+
+  @@index([active, scope, code])
+}
+
+model RoleCapability {
+  roleId        String               @db.Char(36)
+  capabilityKey String               @db.VarChar(96)
+  createdAt     DateTime             @default(now())
+  role          RoleDefinition       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  capability    CapabilityDefinition @relation(fields: [capabilityKey], references: [key], onDelete: Restrict)
+
+  @@id([roleId, capabilityKey])
+  @@index([capabilityKey])
+}
+
+model AccessRoleAssignment {
+  id          String         @id @default(uuid()) @db.Char(36)
+  userId      String         @db.Char(36)
+  roleId      String         @db.Char(36)
+  branchId    String?        @db.Char(36)
+  activeFrom  DateTime
+  activeUntil DateTime?
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  role        RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  branch      Branch?        @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId, activeFrom, activeUntil])
+  @@index([roleId, branchId, activeFrom, activeUntil])
+  @@index([branchId])
+}
+
+model UserCapabilityOverride {
+  id            String                   @id @default(uuid()) @db.Char(36)
+  userId        String                   @db.Char(36)
+  capabilityKey String                   @db.VarChar(96)
+  branchId      String?                  @db.Char(36)
+  effect        CapabilityOverrideEffect
+  reasonCode    String                   @db.VarChar(64)
+  note          String?                  @db.VarChar(500)
+  createdById   String                   @db.Char(36)
+  revokedAt     DateTime?
+  revokedById   String?                  @db.Char(36)
+  revokeReason  String?                  @db.VarChar(64)
+  version       Int                      @default(0)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  user          User                     @relation("CapabilityOverrideTarget", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  capability    CapabilityDefinition     @relation(fields: [capabilityKey], references: [key], onDelete: Restrict, onUpdate: Restrict)
+  branch        Branch?                  @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy     User                     @relation("CapabilityOverrideCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revokedBy     User?                    @relation("CapabilityOverrideRevoker", fields: [revokedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId, revokedAt, capabilityKey])
+  @@index([branchId, capabilityKey, revokedAt])
+  @@index([createdById])
+  @@index([revokedById])
 }
 
 model UserSession {
@@ -771,21 +904,73 @@ model IdempotencyRecord {
 }
 
 model OutboxEvent {
-  id                     String                  @id @db.Char(36)
-  eventType              String
-  aggregateType          String
-  aggregateId            String
-  payload                Json
-  correlationId          String
-  status                 OutboxStatus            @default(PENDING)
-  occurredAt             DateTime                @default(now())
-  publishedAt            DateTime?
-  attempts               Int                     @default(0)
-  notificationProjection NotificationProjection?
-  userNotifications      UserNotification[]
+  id                      String                   @id @db.Char(36)
+  eventType               String
+  aggregateType           String
+  aggregateId             String
+  payload                 Json
+  correlationId           String
+  status                  OutboxStatus             @default(PENDING)
+  occurredAt              DateTime                 @default(now())
+  publishedAt             DateTime?
+  attempts                Int                      @default(0)
+  notificationProjection  NotificationProjection?
+  userNotifications       UserNotification[]
+  notificationOccurrences NotificationOccurrence[]
 
   @@index([status, occurredAt])
   @@index([aggregateType, aggregateId])
+}
+
+model NotificationOccurrence {
+  id                 String                     @id @db.Char(36)
+  occurrenceKey      String                     @unique
+  sourceEventId      String?                    @db.Char(36)
+  userId             String?                    @db.Char(36)
+  branchId           String?                    @db.Char(36)
+  channel            NotificationChannel        @default(EMAIL)
+  eventType          String
+  templateKey        String
+  templateVersion    Int                        @default(1)
+  recipientHash      String
+  recipientMasked    String
+  envelopeEncrypted  String?                    @db.LongText
+  status             NotificationDeliveryStatus @default(PENDING)
+  attemptCount       Int                        @default(0)
+  rateLimitWaitCount Int                        @default(0)
+  maxAttempts        Int                        @default(5)
+  nextAttemptAt      DateTime                   @default(now())
+  leaseExpiresAt     DateTime?
+  lastErrorCode      String?
+  correlationId      String
+  expiresAt          DateTime?
+  acceptedAt         DateTime?
+  fallbackCreatedAt  DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  sourceEvent        OutboxEvent?               @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  user               User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  attempts           NotificationAttempt[]
+
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt])
+  @@index([sourceEventId])
+  @@index([branchId, createdAt])
+}
+
+model NotificationAttempt {
+  id            String                     @id @db.Char(36)
+  occurrenceId  String                     @db.Char(36)
+  attemptNumber Int
+  status        NotificationDeliveryStatus
+  providerCode  String?
+  errorCode     String?
+  startedAt     DateTime                   @default(now())
+  completedAt   DateTime?
+  occurrence    NotificationOccurrence     @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@unique([occurrenceId, attemptNumber])
+  @@index([status, startedAt])
 }
 
 model NotificationProjection {
@@ -825,22 +1010,22 @@ model UserNotification {
 }
 
 model Package {
-  id               String            @id @db.Char(36)
-  branchId         String            @db.Char(36)
-  classTypeId      String            @db.Char(36)
+  id               String                @id @db.Char(36)
+  branchId         String                @db.Char(36)
+  classTypeId      String                @db.Char(36)
   businessKey      String
   name             String
   sessionCount     Int
   durationDays     Int
   priceRp          Int
-  effectiveFrom    DateTime          @db.Date
-  effectiveUntil   DateTime?         @db.Date
-  status           PackageStatus     @default(ACTIVE)
-  version          Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  branch           Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType         @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  effectiveFrom    DateTime              @db.Date
+  effectiveUntil   DateTime?             @db.Date
+  status           PackageStatus         @default(ACTIVE)
+  version          Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  branch           Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType        ClassType             @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   proofs           PaymentProof[]
   purchases        Purchase[]
   customerPackages CustomerPackage[]
@@ -851,61 +1036,77 @@ model Package {
 }
 
 model PackagePublicProfile {
-  packageId       String   @id @db.Char(36)
-  summary         String
-  description     String   @db.Text
-  highlights      Json
-  usageGuidance   String   @db.Text
-  terms           Json
-  version         Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  package         Package  @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  packageId     String   @id @db.Char(36)
+  summary       String
+  description   String   @db.Text
+  highlights    Json
+  usageGuidance String   @db.Text
+  terms         Json
+  version       Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  package       Package  @relation(fields: [packageId], references: [id], onDelete: Restrict)
 }
 
 model PaymentProof {
-  id                    String                   @id @db.Char(36)
-  userId                String                   @db.Char(36)
-  branchId              String                   @db.Char(36)
-  packageId             String?                  @db.Char(36)
-  objectKey             String                   @unique
+  id                    String                          @id @db.Char(36)
+  userId                String                          @db.Char(36)
+  branchId              String                          @db.Char(36)
+  packageId             String?                         @db.Char(36)
+  objectKey             String                          @unique
   checksum              String
   fileName              String
   mimeType              String
   sizeBytes             Int
-  uploadStatus          PaymentProofUploadStatus @default(ISSUED)
-  scanStatus            PaymentProofScanStatus   @default(PENDING)
+  uploadStatus          PaymentProofUploadStatus        @default(ISSUED)
+  scanStatus            PaymentProofScanStatus          @default(PENDING)
   providerReferenceHash String?
-  issuedAt              DateTime                 @default(now())
+  issuedAt              DateTime                        @default(now())
   uploadedAt            DateTime?
   finalizedAt           DateTime?
-  replacedById          String?                  @db.Char(36)
-  version               Int                      @default(0)
-  user                  User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch                Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package               Package?                 @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  replacedById          String?                         @db.Char(36)
+  version               Int                             @default(0)
+  user                  User                            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                Branch                          @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package               Package?                        @relation(fields: [packageId], references: [id], onDelete: Restrict)
   purchase              Purchase?
-  replacedBy            PaymentProof?            @relation("PaymentProofReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
-  replaces              PaymentProof[]           @relation("PaymentProofReplacement")
+  replacedBy            PaymentProof?                   @relation("PaymentProofReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces              PaymentProof[]                  @relation("PaymentProofReplacement")
+  viewAuthorizations    PaymentProofViewAuthorization[]
 
   @@index([userId, branchId, scanStatus])
 }
 
+model PaymentProofViewAuthorization {
+  id         String       @id @db.Char(36)
+  proofId    String       @db.Char(36)
+  viewerId   String       @db.Char(36)
+  purpose    String       @default("REVIEW") @db.VarChar(24)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime     @default(now())
+  proof      PaymentProof @relation(fields: [proofId], references: [id], onDelete: Restrict)
+  viewer     User         @relation("PaymentProofViewer", fields: [viewerId], references: [id], onDelete: Restrict)
+
+  @@index([viewerId, expiresAt])
+  @@index([proofId, expiresAt])
+}
+
 model PaymentAccount {
-  id                     String     @id @db.Char(36)
-  branchId               String     @db.Char(36)
-  activeBranchKey        String?    @unique @db.Char(36)
+  id                     String                         @id @db.Char(36)
+  branchId               String                         @db.Char(36)
+  activeBranchKey        String?                        @unique @db.Char(36)
   bankCode               String
   bankName               String
-  accountNumberEncrypted String     @db.Text
-  accountNumberLast4     String     @db.VarChar(4)
+  accountNumberEncrypted String                         @db.Text
+  accountNumberLast4     String                         @db.VarChar(4)
   accountHolderName      String
-  paymentWindowHours     Int        @default(24)
-  active                 Boolean    @default(true)
-  version                Int        @default(0)
-  createdAt              DateTime   @default(now())
-  updatedAt              DateTime   @updatedAt
-  branch                 Branch     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  paymentWindowHours     Int                            @default(24)
+  active                 Boolean                        @default(true)
+  version                Int                            @default(0)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  branch                 Branch                         @relation(fields: [branchId], references: [id], onDelete: Restrict)
   purchases              Purchase[]
   uniqueCodeReservations PaymentUniqueCodeReservation[]
 
@@ -913,45 +1114,61 @@ model PaymentAccount {
 }
 
 model Purchase {
-  id                                    String           @id @db.Char(36)
-  userId                                String           @db.Char(36)
-  branchId                              String           @db.Char(36)
-  packageId                             String           @db.Char(36)
-  paymentProofId                        String?          @unique @db.Char(36)
-  paymentAccountId                      String?          @db.Char(36)
+  id                                    String                        @id @db.Char(36)
+  userId                                String                        @db.Char(36)
+  branchId                              String                        @db.Char(36)
+  packageId                             String                        @db.Char(36)
+  paymentProofId                        String?                       @unique @db.Char(36)
+  paymentAccountId                      String?                       @db.Char(36)
   paymentBankNameSnapshot               String?
-  paymentAccountNumberSnapshotEncrypted String?          @db.Text
-  paymentAccountLast4Snapshot           String?          @db.VarChar(4)
+  paymentAccountNumberSnapshotEncrypted String?                       @db.Text
+  paymentAccountLast4Snapshot           String?                       @db.VarChar(4)
   paymentAccountHolderSnapshot          String?
   paymentExpiresAt                      DateTime?
-  continuationClassSlotId               String?          @db.Char(36)
+  continuationClassSlotId               String?                       @db.Char(36)
   packageNameSnapshot                   String
   priceRpSnapshot                       Int
   paymentUniqueCode                     Int?
   payableAmountRpSnapshot               Int?
   sessionCountSnapshot                  Int
   durationDaysSnapshot                  Int
-  status                                PurchaseStatus   @default(PENDING)
+  status                                PurchaseStatus                @default(PENDING)
   idempotencyKeyHash                    String
-  submittedAt                           DateTime         @default(now())
+  submittedAt                           DateTime                      @default(now())
   decidedAt                             DateTime?
-  decidedById                           String?          @db.Char(36)
+  decidedById                           String?                       @db.Char(36)
   decisionReasonCode                    String?
-  version                               Int              @default(0)
-  user                                  User             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch                                Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package                               Package          @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  paymentProof                          PaymentProof?    @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
-  paymentAccount                        PaymentAccount?  @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict)
-  continuationClassSlot                 ClassSlot?       @relation("PurchaseContinuationSlot", fields: [continuationClassSlotId], references: [id], onDelete: Restrict)
-  decidedBy                             User?            @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
+  timelineComplete                      Boolean                       @default(false)
+  version                               Int                           @default(0)
+  user                                  User                          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                                Branch                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package                               Package                       @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  paymentProof                          PaymentProof?                 @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
+  paymentAccount                        PaymentAccount?               @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict)
+  continuationClassSlot                 ClassSlot?                    @relation("PurchaseContinuationSlot", fields: [continuationClassSlotId], references: [id], onDelete: Restrict)
+  decidedBy                             User?                         @relation("PurchaseDecisionActor", fields: [decidedById], references: [id], onDelete: Restrict)
   customerPackage                       CustomerPackage?
   paymentUniqueCodeReservation          PaymentUniqueCodeReservation?
+  timelineEvents                        PurchaseTimelineEvent[]
 
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
   @@index([paymentAccountId, status, paymentExpiresAt])
+}
+
+model PurchaseTimelineEvent {
+  id         String                    @id @db.Char(36)
+  purchaseId String                    @db.Char(36)
+  eventType  PurchaseTimelineEventType
+  reasonCode String?                   @db.VarChar(64)
+  sourceKey  String                    @unique @db.VarChar(191)
+  derived    Boolean                   @default(false)
+  occurredAt DateTime
+  createdAt  DateTime                  @default(now())
+  purchase   Purchase                  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId, occurredAt, id])
 }
 
 model PaymentUniqueCodeReservation {
@@ -1136,22 +1353,24 @@ model LedgerEntry {
 }
 
 model SessionAdjustment {
-  id                String                         @id @db.Char(36)
-  customerPackageId String                         @db.Char(36)
-  quantity          Int
-  reasonCode        SessionAdjustmentReasonCode
-  requestedById     String                         @db.Char(36)
-  decidedById       String?                        @db.Char(36)
-  decisionCode      SessionAdjustmentDecisionCode?
-  status            SessionAdjustmentStatus        @default(PENDING)
-  decidedAt         DateTime?
-  version           Int                            @default(0)
-  createdAt         DateTime                       @default(now())
-  updatedAt         DateTime                       @updatedAt
-  customerPackage   CustomerPackage                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  requestedBy       User                           @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  decidedBy         User?                          @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
-  ledgerEntry       LedgerEntry?
+  id                     String                         @id @db.Char(36)
+  customerPackageId      String                         @db.Char(36)
+  quantity               Int
+  ledgerBalanceAtRequest Int?
+  reservedAtRequest      Int?
+  reasonCode             SessionAdjustmentReasonCode
+  requestedById          String                         @db.Char(36)
+  decidedById            String?                        @db.Char(36)
+  decisionCode           SessionAdjustmentDecisionCode?
+  status                 SessionAdjustmentStatus        @default(PENDING)
+  decidedAt              DateTime?
+  version                Int                            @default(0)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  customerPackage        CustomerPackage                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  requestedBy            User                           @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy              User?                          @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  ledgerEntry            LedgerEntry?
 
   @@index([customerPackageId, createdAt])
   @@index([status, createdAt])

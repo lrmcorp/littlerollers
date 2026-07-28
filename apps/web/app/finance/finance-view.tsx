@@ -14,6 +14,7 @@ import {
   StatCard,
 } from '../components/admin/admin-ui';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
+import { controlClassName } from '../components/forms';
 
 const money = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -118,6 +119,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         <label className="grid gap-1 text-xs font-bold text-dd-muted">
           Dari
           <input
+            className={controlClassName}
             type="date"
             value={from}
             max={until}
@@ -127,6 +129,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         <label className="grid gap-1 text-xs font-bold text-dd-muted">
           Sampai
           <input
+            className={controlClassName}
             type="date"
             value={until}
             min={from}

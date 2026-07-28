@@ -16,12 +16,22 @@ export interface RuntimeConfig {
     backoffMs: number;
   };
   booking: {
-    syntheticEnabled: boolean;
+    enabled: boolean;
     cutoffHours: number | null;
   };
   reschedule: {
-    syntheticEnabled: boolean;
+    enabled: boolean;
     cutoffHours: number | null;
+  };
+  sessionAdjustment: {
+    enabled: boolean;
+  };
+  rbac: {
+    policySource: 'static' | 'shadow' | 'database';
+    managementEnabled: boolean;
+  };
+  identityReview: {
+    enabled: boolean;
   };
   privateUploads: {
     driver: 'local';
@@ -40,6 +50,24 @@ export interface RuntimeConfig {
     abandonedUploadTtlMinutes: number;
   };
   publicSupportWhatsappE164: string | null;
+  email: {
+    driver: 'smtp' | 'resend';
+    deliveryEnabled: boolean;
+    smtpHost: string | null;
+    smtpPort: number;
+    smtpSecure: boolean;
+    smtpUser: string | null;
+    smtpPassword: string | null;
+    fromName: string;
+    fromEmail: string | null;
+    connectionTimeoutMs: number;
+    maxAttempts: number;
+    rateLimitPerMinute: number;
+    rateLimitPerHour: number;
+    encryptionKey: string | null;
+    resendApiKey: string | null;
+    recipientOverride: string | null;
+  };
 }
 
 const required = (env: NodeJS.ProcessEnv, key: string): string => {
@@ -60,24 +88,40 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     if (!Number.isInteger(value) || value < 1) throw new Error(`CONFIGURATION_INVALID:${key}`);
     return value;
   };
-  const bookingSyntheticEnabled =
-    environment !== 'production' && env.BOOKING_SYNTHETIC_ENABLED === 'true';
-  const bookingCutoffValue = env.BOOKING_SYNTHETIC_CUTOFF_HOURS?.trim();
+  const bookingEnabled =
+    env.BOOKING_ENABLED?.trim() === 'true' ||
+    (environment !== 'production' && env.BOOKING_SYNTHETIC_ENABLED === 'true');
+  const bookingCutoffValue =
+    env.BOOKING_CUTOFF_HOURS?.trim() ||
+    (environment !== 'production' ? env.BOOKING_SYNTHETIC_CUTOFF_HOURS?.trim() : undefined);
   const bookingCutoffHours = bookingCutoffValue ? Number(bookingCutoffValue) : null;
   if (
     bookingCutoffHours !== null &&
     (!Number.isInteger(bookingCutoffHours) || bookingCutoffHours < 1)
   )
-    throw new Error('CONFIGURATION_INVALID:BOOKING_SYNTHETIC_CUTOFF_HOURS');
-  const rescheduleSyntheticEnabled =
-    environment !== 'production' && env.RESCHEDULE_SYNTHETIC_ENABLED === 'true';
-  const rescheduleCutoffValue = env.RESCHEDULE_SYNTHETIC_CUTOFF_HOURS?.trim();
+    throw new Error('CONFIGURATION_INVALID:BOOKING_CUTOFF_HOURS');
+  const rescheduleEnabled =
+    env.RESCHEDULE_ENABLED?.trim() === 'true' ||
+    (environment !== 'production' && env.RESCHEDULE_SYNTHETIC_ENABLED === 'true');
+  const rescheduleCutoffValue =
+    env.RESCHEDULE_CUTOFF_HOURS?.trim() ||
+    (environment !== 'production' ? env.RESCHEDULE_SYNTHETIC_CUTOFF_HOURS?.trim() : undefined);
   const rescheduleCutoffHours = rescheduleCutoffValue ? Number(rescheduleCutoffValue) : null;
   if (
     rescheduleCutoffHours !== null &&
     (!Number.isInteger(rescheduleCutoffHours) || rescheduleCutoffHours < 1)
   )
-    throw new Error('CONFIGURATION_INVALID:RESCHEDULE_SYNTHETIC_CUTOFF_HOURS');
+    throw new Error('CONFIGURATION_INVALID:RESCHEDULE_CUTOFF_HOURS');
+  if (bookingEnabled && bookingCutoffHours === null)
+    throw new Error('CONFIGURATION_MISSING:BOOKING_CUTOFF_HOURS');
+  if (rescheduleEnabled && rescheduleCutoffHours === null)
+    throw new Error('CONFIGURATION_MISSING:RESCHEDULE_CUTOFF_HOURS');
+  const rbacPolicySource = env.RBAC_POLICY_SOURCE?.trim() || 'static';
+  if (!['static', 'shadow', 'database'].includes(rbacPolicySource))
+    throw new Error('CONFIGURATION_INVALID:RBAC_POLICY_SOURCE');
+  const rbacManagementEnabled = env.RBAC_MANAGEMENT_ENABLED === 'true';
+  if (rbacManagementEnabled && rbacPolicySource !== 'database')
+    throw new Error('CONFIGURATION_INVALID:RBAC_MANAGEMENT_ENABLED');
   const privateUploadDriver = env.PRIVATE_UPLOAD_DRIVER?.trim() || 'local';
   if (privateUploadDriver !== 'local')
     throw new Error('CONFIGURATION_INVALID:PRIVATE_UPLOAD_DRIVER');
@@ -112,6 +156,47 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   const paymentProofClamAvHost = env.PAYMENT_PROOF_CLAMAV_HOST?.trim() || null;
   if (paymentProofScanDriver === 'clamav' && !paymentProofClamAvHost)
     throw new Error('CONFIGURATION_MISSING:PAYMENT_PROOF_CLAMAV_HOST');
+  const emailDriver = env.EMAIL_DRIVER?.trim() || 'smtp';
+  if (!['smtp', 'resend'].includes(emailDriver))
+    throw new Error('CONFIGURATION_INVALID:EMAIL_DRIVER');
+  const emailDeliveryEnabled = env.EMAIL_DELIVERY_ENABLED === 'true';
+  const emailRecipientOverride = env.EMAIL_RECIPIENT_OVERRIDE?.trim() || null;
+  if (environment === 'production' && emailRecipientOverride)
+    throw new Error('CONFIGURATION_INVALID:EMAIL_RECIPIENT_OVERRIDE');
+  const notificationEncryptionKey = env.NOTIFICATION_ENCRYPTION_KEY?.trim() || null;
+  if (notificationEncryptionKey) {
+    let bytes: Buffer;
+    try {
+      bytes = Buffer.from(notificationEncryptionKey, 'base64');
+    } catch {
+      throw new Error('CONFIGURATION_INVALID:NOTIFICATION_ENCRYPTION_KEY');
+    }
+    if (bytes.length !== 32) throw new Error('CONFIGURATION_INVALID:NOTIFICATION_ENCRYPTION_KEY');
+  }
+  const smtpHost = env.SMTP_HOST?.trim() || null;
+  const smtpUser = env.SMTP_USER?.trim() || null;
+  const smtpPassword = env.SMTP_PASSWORD?.trim() || null;
+  const smtpFromEmail = env.SMTP_FROM_EMAIL?.trim() || null;
+  const smtpFromName = env.SMTP_FROM_NAME?.trim() || 'Daily Dose Pilates';
+  const resendApiKey = env.RESEND_API_KEY?.trim() || null;
+  const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+  if (
+    [smtpFromEmail, emailRecipientOverride].some(
+      (value) => value && (!emailPattern.test(value) || /[\r\n]/.test(value)),
+    ) ||
+    (smtpHost && /[\r\n]/.test(smtpHost)) ||
+    /[\r\n]/.test(smtpFromName)
+  )
+    throw new Error('CONFIGURATION_INVALID:EMAIL_HEADER');
+  if (emailDeliveryEnabled) {
+    if (!notificationEncryptionKey)
+      throw new Error('CONFIGURATION_MISSING:NOTIFICATION_ENCRYPTION_KEY');
+    if (!smtpFromEmail) throw new Error('CONFIGURATION_MISSING:SMTP_FROM_EMAIL');
+    if (emailDriver === 'smtp' && (!smtpHost || !smtpUser || !smtpPassword))
+      throw new Error('CONFIGURATION_MISSING:SMTP');
+    if (emailDriver === 'resend' && !resendApiKey)
+      throw new Error('CONFIGURATION_MISSING:RESEND_API_KEY');
+  }
   return {
     environment,
     port,
@@ -129,12 +214,26 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
       backoffMs: positiveInteger('QUOTA_EVALUATION_BACKOFF_MS'),
     },
     booking: {
-      syntheticEnabled: bookingSyntheticEnabled,
+      enabled: bookingEnabled,
       cutoffHours: bookingCutoffHours,
     },
     reschedule: {
-      syntheticEnabled: rescheduleSyntheticEnabled,
+      enabled: rescheduleEnabled,
       cutoffHours: rescheduleCutoffHours,
+    },
+    sessionAdjustment: {
+      enabled:
+        env.SESSION_ADJUSTMENT_ENABLED?.trim() !== 'false' &&
+        (environment !== 'production' || env.SESSION_ADJUSTMENT_ENABLED?.trim() === 'true'),
+    },
+    rbac: {
+      policySource: rbacPolicySource as 'static' | 'shadow' | 'database',
+      managementEnabled: rbacManagementEnabled,
+    },
+    identityReview: {
+      enabled:
+        env.IDENTITY_REVIEW_ENABLED?.trim() !== 'false' &&
+        (environment !== 'production' || env.IDENTITY_REVIEW_ENABLED?.trim() === 'true'),
     },
     privateUploads: {
       driver: 'local',
@@ -156,5 +255,23 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
       ),
     },
     publicSupportWhatsappE164,
+    email: {
+      driver: emailDriver as 'smtp' | 'resend',
+      deliveryEnabled: emailDeliveryEnabled,
+      smtpHost,
+      smtpPort: configuredPositiveInteger('SMTP_PORT', 465),
+      smtpSecure: env.SMTP_SECURE?.trim() !== 'false',
+      smtpUser,
+      smtpPassword,
+      fromName: smtpFromName,
+      fromEmail: smtpFromEmail,
+      connectionTimeoutMs: configuredPositiveInteger('SMTP_CONNECTION_TIMEOUT_MS', 15_000),
+      maxAttempts: configuredPositiveInteger('SMTP_MAX_ATTEMPTS', 5),
+      rateLimitPerMinute: configuredPositiveInteger('SMTP_RATE_LIMIT_PER_MINUTE', 3),
+      rateLimitPerHour: configuredPositiveInteger('SMTP_RATE_LIMIT_PER_HOUR', 150),
+      encryptionKey: notificationEncryptionKey,
+      resendApiKey,
+      recipientOverride: emailRecipientOverride,
+    },
   };
 }

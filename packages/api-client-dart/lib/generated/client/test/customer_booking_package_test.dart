@@ -27,6 +27,11 @@ void main() {
       // TODO
     });
 
+    // int projectedAvailable
+    test('to test the property `projectedAvailable`', () async {
+      // TODO
+    });
+
     // DateTime expiryAt
     test('to test the property `expiryAt`', () async {
       // TODO

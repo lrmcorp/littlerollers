@@ -7,6 +7,15 @@ import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/s
 import { PackageAccessService } from './package-access.service';
 import { decryptAccountNumber } from './payment-account-security';
 
+const orderStatuses = [
+  'AWAITING_PAYMENT',
+  'PENDING',
+  'ACTION_REQUIRED',
+  'APPROVED',
+  'REJECTED',
+  'EXPIRED',
+] as const;
+
 @Injectable()
 export class CustomerOrderService {
   constructor(
@@ -64,17 +73,27 @@ export class CustomerOrderService {
         status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED'] },
         paymentExpiresAt: { lte: new Date() },
       },
-      select: { id: true },
+      select: { id: true, paymentExpiresAt: true },
     });
     if (!expired.length) return;
     const ids = expired.map(({ id }) => id);
-    await this.db.$transaction([
-      this.db.purchase.updateMany({
+    await this.db.$transaction(async (tx) => {
+      await tx.purchase.updateMany({
         where: { id: { in: ids } },
         data: { status: 'EXPIRED', version: { increment: 1 } },
-      }),
-      this.db.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: { in: ids } } }),
-    ]);
+      });
+      await tx.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: { in: ids } } });
+      await tx.purchaseTimelineEvent.createMany({
+        data: expired.map((item) => ({
+          id: newId(),
+          purchaseId: item.id,
+          eventType: 'ORDER_EXPIRED',
+          sourceKey: `${item.id}:expired:${item.paymentExpiresAt?.toISOString() ?? 'unknown'}`,
+          occurredAt: item.paymentExpiresAt ?? new Date(),
+        })),
+        skipDuplicates: true,
+      });
+    });
   }
 
   private orderView(order: any, revealAccount = false) {
@@ -83,6 +102,7 @@ export class CustomerOrderService {
       id: order.id,
       branchId: order.branchId,
       branchName: order.branch?.name,
+      branchTimezone: order.branch?.timezone,
       packageId: order.packageId,
       packageName: order.packageNameSnapshot,
       priceRp: order.priceRpSnapshot,
@@ -93,6 +113,7 @@ export class CustomerOrderService {
       durationDays: order.durationDaysSnapshot,
       status: order.status,
       submittedAt: order.submittedAt,
+      decidedAt: order.decidedAt ?? null,
       expiresAt: order.paymentExpiresAt,
       continuationSlotId: order.continuationClassSlotId,
       paymentProofId: order.paymentProofId,
@@ -103,7 +124,29 @@ export class CustomerOrderService {
           }
         : null,
       decisionReasonCode: order.decisionReasonCode,
+      timelineComplete: Boolean(order.timelineComplete),
       version: order.version,
+      activation: order.customerPackage
+        ? {
+            customerPackageId: order.customerPackage.id,
+            status: order.customerPackage.status,
+            activationDate: order.customerPackage.activationDate,
+            expiryAt: order.customerPackage.expiryAt,
+            sessionCount: order.customerPackage.sessionCountSnapshot,
+          }
+        : null,
+      timeline: order.timelineEvents
+        ? {
+            items: order.timelineEvents.map((event: any) => ({
+              id: event.id,
+              type: event.eventType,
+              reasonCode: event.reasonCode ?? null,
+              occurredAt: event.occurredAt,
+              derived: event.derived,
+            })),
+            page: { hasMore: false, nextCursor: null },
+          }
+        : undefined,
       paymentAccount: order.paymentBankNameSnapshot
         ? {
             bankName: order.paymentBankNameSnapshot,
@@ -211,6 +254,7 @@ export class CustomerOrderService {
             sessionCountSnapshot: pkg.sessionCount,
             durationDaysSnapshot: pkg.durationDays,
             status: 'AWAITING_PAYMENT',
+            timelineComplete: true,
             idempotencyKeyHash: digest(key),
           },
         });
@@ -227,6 +271,24 @@ export class CustomerOrderService {
             payableAmountRpSnapshot: uniquePayment.payableAmountRp,
           },
           include: { branch: true, paymentProof: true },
+        });
+        await tx.purchaseTimelineEvent.createMany({
+          data: [
+            {
+              id: newId(),
+              purchaseId: purchase.id,
+              eventType: 'ORDER_CREATED',
+              sourceKey: `${purchase.id}:created`,
+              occurredAt: purchase.submittedAt,
+            },
+            {
+              id: newId(),
+              purchaseId: purchase.id,
+              eventType: 'PAYMENT_DEADLINE_SET',
+              sourceKey: `${purchase.id}:deadline`,
+              occurredAt: purchase.submittedAt,
+            },
+          ],
         });
         await tx.outboxEvent.create({
           data: {
@@ -252,27 +314,102 @@ export class CustomerOrderService {
     );
   }
 
-  async listOrders(p: SessionPrincipal, status?: string) {
+  async listOrders(
+    p: SessionPrincipal,
+    filters: {
+      status?: string;
+      q?: string;
+      from?: string;
+      until?: string;
+      cursor?: string;
+      limit?: string;
+    } = {},
+  ) {
     this.access.catalog(p);
     await this.expireOwnOrders(p.userId);
-    const allowed = [
-      'AWAITING_PAYMENT',
-      'PENDING',
-      'ACTION_REQUIRED',
-      'APPROVED',
-      'REJECTED',
-      'EXPIRED',
-    ];
-    if (status && !allowed.includes(status))
+    if (filters.status && !orderStatuses.includes(filters.status as (typeof orderStatuses)[number]))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const items = await this.db.purchase.findMany({
-      where: { userId: p.userId, ...(status ? { status: status as any } : {}) },
-      include: { branch: true, paymentProof: true },
-      orderBy: { submittedAt: 'desc' },
-    });
+    const q = filters.q?.trim();
+    if (q && q.length > 120) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const from = filters.from ? new Date(filters.from) : undefined;
+    const until = filters.until ? new Date(filters.until) : undefined;
+    if (until && /^\d{4}-\d{2}-\d{2}$/.test(filters.until ?? '')) {
+      until.setUTCDate(until.getUTCDate() + 1);
+    }
+    if (
+      (from && Number.isNaN(from.getTime())) ||
+      (until && Number.isNaN(until.getTime())) ||
+      (from && until && from >= until)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const limit = filters.limit ? Number(filters.limit) : 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const cursor = filters.cursor
+      ? await this.db.purchase.findFirst({
+          where: { id: filters.cursor, userId: p.userId },
+          select: { id: true, submittedAt: true },
+        })
+      : null;
+    if (filters.cursor && !cursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const baseWhere: Prisma.PurchaseWhereInput = {
+      userId: p.userId,
+      ...(q
+        ? {
+            OR: [{ packageNameSnapshot: { contains: q } }, { branch: { name: { contains: q } } }],
+          }
+        : {}),
+      ...(from || until
+        ? { submittedAt: { ...(from ? { gte: from } : {}), ...(until ? { lt: until } : {}) } }
+        : {}),
+    };
+    const cursorWhere: Prisma.PurchaseWhereInput | undefined = cursor
+      ? {
+          OR: [
+            { submittedAt: { lt: cursor.submittedAt } },
+            { submittedAt: cursor.submittedAt, id: { lt: cursor.id } },
+          ],
+        }
+      : undefined;
+    const where: Prisma.PurchaseWhereInput = {
+      AND: [
+        baseWhere,
+        ...(filters.status ? [{ status: filters.status as any }] : []),
+        ...(cursorWhere ? [cursorWhere] : []),
+      ],
+    };
+    const [records, grouped, total] = await Promise.all([
+      this.db.purchase.findMany({
+        where,
+        include: { branch: true, paymentProof: true },
+        orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+      }),
+      this.db.purchase.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { _all: true },
+      }),
+      this.db.purchase.count({ where: baseWhere }),
+    ]);
+    const hasMore = records.length > limit;
+    const items = records.slice(0, limit);
+    const counts = Object.fromEntries(grouped.map((item) => [item.status, item._count._all]));
     return {
       items: items.map((item) => this.orderView(item, false)),
-      page: { hasMore: false, nextCursor: null },
+      summary: {
+        total,
+        awaitingPayment: counts.AWAITING_PAYMENT ?? 0,
+        pending: counts.PENDING ?? 0,
+        actionRequired: counts.ACTION_REQUIRED ?? 0,
+        approved: counts.APPROVED ?? 0,
+        rejected: counts.REJECTED ?? 0,
+        expired: counts.EXPIRED ?? 0,
+      },
+      page: {
+        hasMore,
+        nextCursor: hasMore ? (items[items.length - 1]?.id ?? null) : null,
+      },
     };
   }
 
@@ -281,7 +418,12 @@ export class CustomerOrderService {
     await this.expireOwnOrders(p.userId);
     const order = await this.db.purchase.findFirst({
       where: { id, userId: p.userId },
-      include: { branch: true, paymentProof: true },
+      include: {
+        branch: true,
+        paymentProof: true,
+        customerPackage: true,
+        timelineEvents: { orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }] },
+      },
     });
     if (!order) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.orderView(order, true);
@@ -306,9 +448,21 @@ export class CustomerOrderService {
     )
       throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
     if (!order.paymentExpiresAt || order.paymentExpiresAt <= new Date()) {
-      await this.db.purchase.updateMany({
-        where: { id: order.id, version: order.version },
-        data: { status: 'EXPIRED', version: { increment: 1 } },
+      await this.db.$transaction(async (tx) => {
+        const changed = await tx.purchase.updateMany({
+          where: { id: order.id, version: order.version },
+          data: { status: 'EXPIRED', version: { increment: 1 } },
+        });
+        if (changed.count)
+          await tx.purchaseTimelineEvent.create({
+            data: {
+              id: newId(),
+              purchaseId: order.id,
+              eventType: 'ORDER_EXPIRED',
+              sourceKey: `${order.id}:expired:${order.paymentExpiresAt!.toISOString()}`,
+              occurredAt: order.paymentExpiresAt!,
+            },
+          });
       });
       throw new ApiProblem('ORDER_EXPIRED', HttpStatus.CONFLICT);
     }
@@ -338,6 +492,25 @@ export class CustomerOrderService {
           where: { id: order.paymentProofId },
           data: { replacedById: proof.id },
         });
+      await tx.purchaseTimelineEvent.createMany({
+        data: [
+          {
+            id: newId(),
+            purchaseId: order.id,
+            eventType: 'PROOF_SUBMITTED',
+            sourceKey: `${order.id}:proof:${proof.id}:submitted`,
+            occurredAt: proof.uploadedAt ?? proof.finalizedAt ?? new Date(),
+          },
+          {
+            id: newId(),
+            purchaseId: order.id,
+            eventType: 'PROOF_SCAN_COMPLETED',
+            sourceKey: `${order.id}:proof:${proof.id}:scan`,
+            occurredAt: proof.finalizedAt ?? new Date(),
+          },
+        ],
+        skipDuplicates: true,
+      });
       await tx.outboxEvent.create({
         data: {
           id: newId(),
@@ -398,8 +571,34 @@ export class CustomerOrderService {
             priceRpSnapshot: pkg.priceRp,
             sessionCountSnapshot: pkg.sessionCount,
             durationDaysSnapshot: pkg.durationDays,
+            timelineComplete: true,
             idempotencyKeyHash: digest(key),
           },
+        });
+        await tx.purchaseTimelineEvent.createMany({
+          data: [
+            {
+              id: newId(),
+              purchaseId: purchase.id,
+              eventType: 'ORDER_CREATED',
+              sourceKey: `${purchase.id}:created`,
+              occurredAt: purchase.submittedAt,
+            },
+            {
+              id: newId(),
+              purchaseId: purchase.id,
+              eventType: 'PROOF_SUBMITTED',
+              sourceKey: `${purchase.id}:proof:${proof.id}:submitted`,
+              occurredAt: proof.uploadedAt ?? proof.finalizedAt ?? purchase.submittedAt,
+            },
+            {
+              id: newId(),
+              purchaseId: purchase.id,
+              eventType: 'PROOF_SCAN_COMPLETED',
+              sourceKey: `${purchase.id}:proof:${proof.id}:scan`,
+              occurredAt: proof.finalizedAt ?? purchase.submittedAt,
+            },
+          ],
         });
         await tx.outboxEvent.create({
           data: {

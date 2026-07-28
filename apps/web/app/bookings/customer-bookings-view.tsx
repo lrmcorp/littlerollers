@@ -9,6 +9,7 @@ import {
   type BookingClient,
 } from '../booking-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { ButtonLink } from '../components/actions';
 
 const statusLabels: Record<string, string> = {
   BOOKED: 'Terjadwal',
@@ -18,22 +19,33 @@ const statusLabels: Record<string, string> = {
   NO_SHOW: 'Tidak hadir',
 };
 
+const statusTones = {
+  BOOKED: 'success',
+  RESCHEDULE_PENDING: 'warning',
+  CANCELLED: 'danger',
+  ATTENDED: 'success',
+  NO_SHOW: 'danger',
+} as const;
+
 export function CustomerBookingsView({
   client = browserBookingClient,
 }: {
   client?: BookingClient;
 }) {
   const [items, setItems] = useState<CustomerBookingRecord[]>([]);
+  const [timeline, setTimeline] = useState<'UPCOMING' | 'HISTORY'>('UPCOMING');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    setLoading(true);
+    setMessage('');
     client
-      .list({})
+      .list({ timeline })
       .then(({ items: result }) => setItems(result))
       .catch(async (error) => setMessage(await bookingFailure(error)))
       .finally(() => setLoading(false));
-  }, [client]);
+  }, [client, timeline]);
 
   return (
     <section aria-labelledby="customer-bookings-title">
@@ -42,14 +54,42 @@ export function CustomerBookingsView({
         title="Jadwal latihan Anda"
         titleId="customer-bookings-title"
         description="Lihat booking aktif dan riwayat kelas yang dibuat menggunakan akun Anda."
-        context={<Link href="/classes#schedule">Booking kelas baru</Link>}
+        context={<ButtonLink href="/classes#schedule">Booking kelas baru</ButtonLink>}
       />
+      <div
+        className="my-5 inline-flex rounded-dd-md border border-dd-line bg-white p-1"
+        role="tablist"
+        aria-label="Linimasa booking"
+      >
+        {(['UPCOMING', 'HISTORY'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={timeline === value}
+            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition ${
+              timeline === value
+                ? 'bg-dd-forest text-white'
+                : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
+            }`}
+            onClick={() => setTimeline(value)}
+          >
+            {value === 'UPCOMING' ? 'Mendatang' : 'Riwayat'}
+          </button>
+        ))}
+      </div>
       {loading ? (
         <Skeleton label="Memuat booking customer" />
       ) : items.length === 0 ? (
         <EmptyState
-          title="Belum ada booking"
-          description="Pilih kelas dari jadwal untuk membuat booking pertama Anda."
+          title={
+            timeline === 'UPCOMING' ? 'Belum ada jadwal mendatang' : 'Belum ada riwayat booking'
+          }
+          description={
+            timeline === 'UPCOMING'
+              ? 'Pilih kelas dari jadwal untuk membuat booking berikutnya.'
+              : 'Booking yang selesai atau dibatalkan akan tampil di sini.'
+          }
         />
       ) : (
         <div className="customer-booking-list">
@@ -68,8 +108,14 @@ export function CustomerBookingsView({
                     {item.branch?.name ?? 'Studio Daily Dose'}
                   </span>
                 </div>
-                <StatusBadge tone={item.status === 'BOOKED' ? 'success' : 'neutral'}>
-                  {statusLabels[item.status] ?? 'Status booking'}
+                <StatusBadge
+                  tone={statusTones[item.status as keyof typeof statusTones] ?? 'neutral'}
+                >
+                  {item.status === 'BOOKED' &&
+                  item.classSlot &&
+                  item.classSlot.endAt.getTime() < Date.now()
+                    ? 'Status kehadiran sedang diproses'
+                    : (statusLabels[item.status] ?? 'Status booking')}
                 </StatusBadge>
               </div>
               <time className="mt-5 block text-sm font-semibold text-dd-forest">

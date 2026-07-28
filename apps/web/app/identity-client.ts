@@ -5,6 +5,8 @@ import {
   type UserSummary as GeneratedUserSummary,
 } from '@dailydose/api-client-ts/generated';
 import { notifySessionFailure } from './session-client';
+import { appLoading, foregroundFetch } from './components/app-loading';
+import type { IdentityVerificationReviewCase } from './identity-verification-client';
 
 export type UiFailure =
   | 'CONFIGURATION_REQUIRED'
@@ -36,6 +38,20 @@ export interface UserSummary {
   directRoles: UserRoleSummary[];
   assignmentRoles: UserRoleSummary[];
   effectiveCapabilities: string[];
+  audience: 'STAFF' | 'CUSTOMER';
+  identityVerification?: {
+    status: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
+    documents: Array<{
+      kind: 'SELFIE' | 'KTP_FRONT';
+      status: string;
+      uploadStatus: string;
+      scanStatus: string;
+      rejectionReasonCode: string | null;
+      uploadedAt: string | null;
+      reviewedAt: string | null;
+      updatedAt: string;
+    }>;
+  };
 }
 
 export interface RoleCatalogItem {
@@ -66,6 +82,8 @@ export interface UserFilters {
   search?: string;
   status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
   role?: ApplicationRole;
+  audience?: 'STAFF' | 'CUSTOMER';
+  verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
 }
 
 export interface UserListSummary {
@@ -130,6 +148,7 @@ export interface IdentityClient {
   getAuditExport(id: string): Promise<AuditExportSummary>;
   authorizeAuditExport(id: string): Promise<{ url: string; expiresAt: string }>;
   getUser(id: string): Promise<UserSummary>;
+  getUserIdentityVerification(id: string): Promise<IdentityVerificationReviewCase>;
   updateProfile(
     id: string,
     input: {
@@ -172,14 +191,18 @@ const auth = new AuthApi(configuration);
 const identity = new IdentityApi(configuration);
 
 async function request(path: string, init: RequestInit = {}) {
-  const response = await fetch(`/api/v1${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      'content-type': 'application/json',
-      ...init.headers,
+  const response = await foregroundFetch(
+    `/api/v1${path}`,
+    {
+      ...init,
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/json',
+        ...init.headers,
+      },
     },
-  });
+    init.method && init.method !== 'GET' ? 'Menyimpan perubahan…' : 'Memuat data…',
+  );
   if (!response.ok) throw { response };
   if (response.status === 204) return undefined;
   return response.json();
@@ -198,6 +221,19 @@ function mapUser(user: GeneratedUserSummary): UserSummary {
     assignmentRoles:
       mapped.assignmentRoles ?? roles.filter(({ source }) => source === 'ASSIGNMENT'),
     effectiveCapabilities: mapped.effectiveCapabilities ?? [],
+    audience:
+      mapped.audience ?? (roles.some(({ role }) => role === 'CUSTOMER') ? 'CUSTOMER' : 'STAFF'),
+    identityVerification: user.identityVerification
+      ? {
+          status: user.identityVerification.status,
+          documents: user.identityVerification.documents.map((document) => ({
+            ...document,
+            uploadedAt: document.uploadedAt?.toISOString() ?? null,
+            reviewedAt: document.reviewedAt?.toISOString() ?? null,
+            updatedAt: document.updatedAt.toISOString(),
+          })),
+        }
+      : undefined,
   };
 }
 
@@ -210,13 +246,16 @@ export const browserIdentityClient: IdentityClient = {
       throw { response: { status: 503 } };
     const identity = syntheticEmail?.trim().toLowerCase();
     if (!identity) throw { response: { status: 503 } };
-    await auth.authenticateGoogle({
-      googleAuthRequest: {
-        idToken: identity,
-        nonce: crypto.randomUUID(),
-        channel: 'WEB',
-      },
-    });
+    await appLoading.track(
+      auth.authenticateGoogle({
+        googleAuthRequest: {
+          idToken: identity,
+          nonce: crypto.randomUUID(),
+          channel: 'WEB',
+        },
+      }),
+      { label: 'Memproses masuk…' },
+    );
   },
   async signInWithPassword(email, password) {
     await request('/auth/password/sessions', {
@@ -225,9 +264,12 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async signInWithGoogleToken(idToken, nonce) {
-    await auth.authenticateGoogle({
-      googleAuthRequest: { idToken, nonce, channel: 'WEB' },
-    });
+    await appLoading.track(
+      auth.authenticateGoogle({
+        googleAuthRequest: { idToken, nonce, channel: 'WEB' },
+      }),
+      { label: 'Memproses masuk…' },
+    );
   },
   async lookupUsers(filters) {
     const params = new URLSearchParams();
@@ -281,11 +323,14 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async listUsers(filters) {
-    const result = (await identity.listUsers({
-      ...filters,
-      role: filters.role as never,
-      status: filters.status as never,
-    })) as Awaited<ReturnType<typeof identity.listUsers>> & { summary?: UserListSummary };
+    const result = (await appLoading.track(
+      identity.listUsers({
+        ...filters,
+        role: filters.role as never,
+        status: filters.status as never,
+      }),
+      { label: 'Memuat pengguna…' },
+    )) as Awaited<ReturnType<typeof identity.listUsers>> & { summary?: UserListSummary };
     return {
       items: result.items.map(mapUser),
       page: {
@@ -302,7 +347,10 @@ export const browserIdentityClient: IdentityClient = {
     };
   },
   async getUser(id) {
-    return mapUser(await identity.getUser({ id }));
+    return mapUser(await appLoading.track(identity.getUser({ id }), { label: 'Memuat pengguna…' }));
+  },
+  async getUserIdentityVerification(id) {
+    return request(`/users/${id}/identity-verification`);
   },
   async updateProfile(id, input) {
     return mapUser(

@@ -10,12 +10,18 @@ class _$AssignmentPage extends AssignmentPage {
   @override
   final BuiltList<Assignment> items;
   @override
-  final PagePage page;
+  final AssignmentManagementSummary summary;
+  @override
+  final AssignmentPagePage page;
 
   factory _$AssignmentPage([void Function(AssignmentPageBuilder)? updates]) =>
       (AssignmentPageBuilder()..update(updates))._build();
 
-  _$AssignmentPage._({required this.items, required this.page}) : super._();
+  _$AssignmentPage._({
+    required this.items,
+    required this.summary,
+    required this.page,
+  }) : super._();
   @override
   AssignmentPage rebuild(void Function(AssignmentPageBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -28,6 +34,7 @@ class _$AssignmentPage extends AssignmentPage {
     if (identical(other, this)) return true;
     return other is AssignmentPage &&
         items == other.items &&
+        summary == other.summary &&
         page == other.page;
   }
 
@@ -35,6 +42,7 @@ class _$AssignmentPage extends AssignmentPage {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
+    _$hash = $jc(_$hash, summary.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -44,6 +52,7 @@ class _$AssignmentPage extends AssignmentPage {
   String toString() {
     return (newBuiltValueToStringHelper(r'AssignmentPage')
           ..add('items', items)
+          ..add('summary', summary)
           ..add('page', page))
         .toString();
   }
@@ -58,9 +67,16 @@ class AssignmentPageBuilder
       _$this._items ??= ListBuilder<Assignment>();
   set items(ListBuilder<Assignment>? items) => _$this._items = items;
 
-  PagePageBuilder? _page;
-  PagePageBuilder get page => _$this._page ??= PagePageBuilder();
-  set page(PagePageBuilder? page) => _$this._page = page;
+  AssignmentManagementSummaryBuilder? _summary;
+  AssignmentManagementSummaryBuilder get summary =>
+      _$this._summary ??= AssignmentManagementSummaryBuilder();
+  set summary(AssignmentManagementSummaryBuilder? summary) =>
+      _$this._summary = summary;
+
+  AssignmentPagePageBuilder? _page;
+  AssignmentPagePageBuilder get page =>
+      _$this._page ??= AssignmentPagePageBuilder();
+  set page(AssignmentPagePageBuilder? page) => _$this._page = page;
 
   AssignmentPageBuilder() {
     AssignmentPage._defaults(this);
@@ -70,6 +86,7 @@ class AssignmentPageBuilder
     final $v = _$v;
     if ($v != null) {
       _items = $v.items.toBuilder();
+      _summary = $v.summary.toBuilder();
       _page = $v.page.toBuilder();
       _$v = null;
     }
@@ -93,12 +110,19 @@ class AssignmentPageBuilder
     _$AssignmentPage _$result;
     try {
       _$result =
-          _$v ?? _$AssignmentPage._(items: items.build(), page: page.build());
+          _$v ??
+          _$AssignmentPage._(
+            items: items.build(),
+            summary: summary.build(),
+            page: page.build(),
+          );
     } catch (_) {
       late String _$failedField;
       try {
         _$failedField = 'items';
         items.build();
+        _$failedField = 'summary';
+        summary.build();
         _$failedField = 'page';
         page.build();
       } catch (e) {

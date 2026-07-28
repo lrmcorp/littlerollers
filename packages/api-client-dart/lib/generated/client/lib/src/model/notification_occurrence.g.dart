@@ -6,55 +6,27 @@ part of 'notification_occurrence.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-const NotificationOccurrenceChannelEnum
-_$notificationOccurrenceChannelEnum_WHATSAPP =
-    const NotificationOccurrenceChannelEnum._('WHATSAPP');
-const NotificationOccurrenceChannelEnum
-_$notificationOccurrenceChannelEnum_IN_APP =
-    const NotificationOccurrenceChannelEnum._('IN_APP');
-const NotificationOccurrenceChannelEnum
-_$notificationOccurrenceChannelEnum_EMAIL =
-    const NotificationOccurrenceChannelEnum._('EMAIL');
-
-NotificationOccurrenceChannelEnum _$notificationOccurrenceChannelEnumValueOf(
-  String name,
-) {
-  switch (name) {
-    case 'WHATSAPP':
-      return _$notificationOccurrenceChannelEnum_WHATSAPP;
-    case 'IN_APP':
-      return _$notificationOccurrenceChannelEnum_IN_APP;
-    case 'EMAIL':
-      return _$notificationOccurrenceChannelEnum_EMAIL;
-    default:
-      throw ArgumentError(name);
-  }
-}
-
-final BuiltSet<NotificationOccurrenceChannelEnum>
-_$notificationOccurrenceChannelEnumValues =
-    BuiltSet<NotificationOccurrenceChannelEnum>(
-      const <NotificationOccurrenceChannelEnum>[
-        _$notificationOccurrenceChannelEnum_WHATSAPP,
-        _$notificationOccurrenceChannelEnum_IN_APP,
-        _$notificationOccurrenceChannelEnum_EMAIL,
-      ],
-    );
-
 const NotificationOccurrenceStatusEnum
 _$notificationOccurrenceStatusEnum_PENDING =
     const NotificationOccurrenceStatusEnum._('PENDING');
-const NotificationOccurrenceStatusEnum _$notificationOccurrenceStatusEnum_SENT =
-    const NotificationOccurrenceStatusEnum._('SENT');
 const NotificationOccurrenceStatusEnum
-_$notificationOccurrenceStatusEnum_DELIVERED =
-    const NotificationOccurrenceStatusEnum._('DELIVERED');
+_$notificationOccurrenceStatusEnum_SENDING =
+    const NotificationOccurrenceStatusEnum._('SENDING');
 const NotificationOccurrenceStatusEnum
-_$notificationOccurrenceStatusEnum_FAILED =
-    const NotificationOccurrenceStatusEnum._('FAILED');
+_$notificationOccurrenceStatusEnum_ACCEPTED_BY_SMTP =
+    const NotificationOccurrenceStatusEnum._('ACCEPTED_BY_SMTP');
 const NotificationOccurrenceStatusEnum
-_$notificationOccurrenceStatusEnum_DEAD_LETTER =
-    const NotificationOccurrenceStatusEnum._('DEAD_LETTER');
+_$notificationOccurrenceStatusEnum_FAILED_RETRYABLE =
+    const NotificationOccurrenceStatusEnum._('FAILED_RETRYABLE');
+const NotificationOccurrenceStatusEnum
+_$notificationOccurrenceStatusEnum_FAILED_TERMINAL =
+    const NotificationOccurrenceStatusEnum._('FAILED_TERMINAL');
+const NotificationOccurrenceStatusEnum
+_$notificationOccurrenceStatusEnum_EXPIRED =
+    const NotificationOccurrenceStatusEnum._('EXPIRED');
+const NotificationOccurrenceStatusEnum
+_$notificationOccurrenceStatusEnum_FALLBACK_IN_APP =
+    const NotificationOccurrenceStatusEnum._('FALLBACK_IN_APP');
 
 NotificationOccurrenceStatusEnum _$notificationOccurrenceStatusEnumValueOf(
   String name,
@@ -62,14 +34,18 @@ NotificationOccurrenceStatusEnum _$notificationOccurrenceStatusEnumValueOf(
   switch (name) {
     case 'PENDING':
       return _$notificationOccurrenceStatusEnum_PENDING;
-    case 'SENT':
-      return _$notificationOccurrenceStatusEnum_SENT;
-    case 'DELIVERED':
-      return _$notificationOccurrenceStatusEnum_DELIVERED;
-    case 'FAILED':
-      return _$notificationOccurrenceStatusEnum_FAILED;
-    case 'DEAD_LETTER':
-      return _$notificationOccurrenceStatusEnum_DEAD_LETTER;
+    case 'SENDING':
+      return _$notificationOccurrenceStatusEnum_SENDING;
+    case 'ACCEPTED_BY_SMTP':
+      return _$notificationOccurrenceStatusEnum_ACCEPTED_BY_SMTP;
+    case 'FAILED_RETRYABLE':
+      return _$notificationOccurrenceStatusEnum_FAILED_RETRYABLE;
+    case 'FAILED_TERMINAL':
+      return _$notificationOccurrenceStatusEnum_FAILED_TERMINAL;
+    case 'EXPIRED':
+      return _$notificationOccurrenceStatusEnum_EXPIRED;
+    case 'FALLBACK_IN_APP':
+      return _$notificationOccurrenceStatusEnum_FALLBACK_IN_APP;
     default:
       throw ArgumentError(name);
   }
@@ -80,70 +56,38 @@ _$notificationOccurrenceStatusEnumValues =
     BuiltSet<NotificationOccurrenceStatusEnum>(
       const <NotificationOccurrenceStatusEnum>[
         _$notificationOccurrenceStatusEnum_PENDING,
-        _$notificationOccurrenceStatusEnum_SENT,
-        _$notificationOccurrenceStatusEnum_DELIVERED,
-        _$notificationOccurrenceStatusEnum_FAILED,
-        _$notificationOccurrenceStatusEnum_DEAD_LETTER,
+        _$notificationOccurrenceStatusEnum_SENDING,
+        _$notificationOccurrenceStatusEnum_ACCEPTED_BY_SMTP,
+        _$notificationOccurrenceStatusEnum_FAILED_RETRYABLE,
+        _$notificationOccurrenceStatusEnum_FAILED_TERMINAL,
+        _$notificationOccurrenceStatusEnum_EXPIRED,
+        _$notificationOccurrenceStatusEnum_FALLBACK_IN_APP,
       ],
     );
 
-Serializer<NotificationOccurrenceChannelEnum>
-_$notificationOccurrenceChannelEnumSerializer =
-    _$NotificationOccurrenceChannelEnumSerializer();
 Serializer<NotificationOccurrenceStatusEnum>
 _$notificationOccurrenceStatusEnumSerializer =
     _$NotificationOccurrenceStatusEnumSerializer();
-
-class _$NotificationOccurrenceChannelEnumSerializer
-    implements PrimitiveSerializer<NotificationOccurrenceChannelEnum> {
-  static const Map<String, Object> _toWire = const <String, Object>{
-    'WHATSAPP': 'WHATSAPP',
-    'IN_APP': 'IN_APP',
-    'EMAIL': 'EMAIL',
-  };
-  static const Map<Object, String> _fromWire = const <Object, String>{
-    'WHATSAPP': 'WHATSAPP',
-    'IN_APP': 'IN_APP',
-    'EMAIL': 'EMAIL',
-  };
-
-  @override
-  final Iterable<Type> types = const <Type>[NotificationOccurrenceChannelEnum];
-  @override
-  final String wireName = 'NotificationOccurrenceChannelEnum';
-
-  @override
-  Object serialize(
-    Serializers serializers,
-    NotificationOccurrenceChannelEnum object, {
-    FullType specifiedType = FullType.unspecified,
-  }) => _toWire[object.name] ?? object.name;
-
-  @override
-  NotificationOccurrenceChannelEnum deserialize(
-    Serializers serializers,
-    Object serialized, {
-    FullType specifiedType = FullType.unspecified,
-  }) => NotificationOccurrenceChannelEnum.valueOf(
-    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
-  );
-}
 
 class _$NotificationOccurrenceStatusEnumSerializer
     implements PrimitiveSerializer<NotificationOccurrenceStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
     'PENDING': 'PENDING',
-    'SENT': 'SENT',
-    'DELIVERED': 'DELIVERED',
-    'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
+    'SENDING': 'SENDING',
+    'ACCEPTED_BY_SMTP': 'ACCEPTED_BY_SMTP',
+    'FAILED_RETRYABLE': 'FAILED_RETRYABLE',
+    'FAILED_TERMINAL': 'FAILED_TERMINAL',
+    'EXPIRED': 'EXPIRED',
+    'FALLBACK_IN_APP': 'FALLBACK_IN_APP',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
     'PENDING': 'PENDING',
-    'SENT': 'SENT',
-    'DELIVERED': 'DELIVERED',
-    'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
+    'SENDING': 'SENDING',
+    'ACCEPTED_BY_SMTP': 'ACCEPTED_BY_SMTP',
+    'FAILED_RETRYABLE': 'FAILED_RETRYABLE',
+    'FAILED_TERMINAL': 'FAILED_TERMINAL',
+    'EXPIRED': 'EXPIRED',
+    'FALLBACK_IN_APP': 'FALLBACK_IN_APP',
   };
 
   @override
@@ -174,17 +118,31 @@ class _$NotificationOccurrence extends NotificationOccurrence {
   @override
   final String eventType;
   @override
-  final String recipientType;
+  final String templateKey;
   @override
-  final String? maskedRecipient;
+  final String recipientMasked;
   @override
-  final NotificationOccurrenceChannelEnum channel;
+  final JsonObject? channel;
   @override
   final NotificationOccurrenceStatusEnum status;
   @override
+  final int attemptCount;
+  @override
+  final int rateLimitWaitCount;
+  @override
+  final int maxAttempts;
+  @override
+  final DateTime? nextAttemptAt;
+  @override
+  final String? lastErrorCode;
+  @override
+  final String correlationId;
+  @override
   final DateTime createdAt;
   @override
-  final BuiltList<NotificationAttempt> attempts;
+  final DateTime? acceptedAt;
+  @override
+  final NotificationAttempt? lastAttempt;
 
   factory _$NotificationOccurrence([
     void Function(NotificationOccurrenceBuilder)? updates,
@@ -193,12 +151,19 @@ class _$NotificationOccurrence extends NotificationOccurrence {
   _$NotificationOccurrence._({
     required this.id,
     required this.eventType,
-    required this.recipientType,
-    this.maskedRecipient,
-    required this.channel,
+    required this.templateKey,
+    required this.recipientMasked,
+    this.channel,
     required this.status,
+    required this.attemptCount,
+    required this.rateLimitWaitCount,
+    required this.maxAttempts,
+    this.nextAttemptAt,
+    this.lastErrorCode,
+    required this.correlationId,
     required this.createdAt,
-    required this.attempts,
+    this.acceptedAt,
+    this.lastAttempt,
   }) : super._();
   @override
   NotificationOccurrence rebuild(
@@ -215,12 +180,19 @@ class _$NotificationOccurrence extends NotificationOccurrence {
     return other is NotificationOccurrence &&
         id == other.id &&
         eventType == other.eventType &&
-        recipientType == other.recipientType &&
-        maskedRecipient == other.maskedRecipient &&
+        templateKey == other.templateKey &&
+        recipientMasked == other.recipientMasked &&
         channel == other.channel &&
         status == other.status &&
+        attemptCount == other.attemptCount &&
+        rateLimitWaitCount == other.rateLimitWaitCount &&
+        maxAttempts == other.maxAttempts &&
+        nextAttemptAt == other.nextAttemptAt &&
+        lastErrorCode == other.lastErrorCode &&
+        correlationId == other.correlationId &&
         createdAt == other.createdAt &&
-        attempts == other.attempts;
+        acceptedAt == other.acceptedAt &&
+        lastAttempt == other.lastAttempt;
   }
 
   @override
@@ -228,12 +200,19 @@ class _$NotificationOccurrence extends NotificationOccurrence {
     var _$hash = 0;
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, eventType.hashCode);
-    _$hash = $jc(_$hash, recipientType.hashCode);
-    _$hash = $jc(_$hash, maskedRecipient.hashCode);
+    _$hash = $jc(_$hash, templateKey.hashCode);
+    _$hash = $jc(_$hash, recipientMasked.hashCode);
     _$hash = $jc(_$hash, channel.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, attemptCount.hashCode);
+    _$hash = $jc(_$hash, rateLimitWaitCount.hashCode);
+    _$hash = $jc(_$hash, maxAttempts.hashCode);
+    _$hash = $jc(_$hash, nextAttemptAt.hashCode);
+    _$hash = $jc(_$hash, lastErrorCode.hashCode);
+    _$hash = $jc(_$hash, correlationId.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
-    _$hash = $jc(_$hash, attempts.hashCode);
+    _$hash = $jc(_$hash, acceptedAt.hashCode);
+    _$hash = $jc(_$hash, lastAttempt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -243,12 +222,19 @@ class _$NotificationOccurrence extends NotificationOccurrence {
     return (newBuiltValueToStringHelper(r'NotificationOccurrence')
           ..add('id', id)
           ..add('eventType', eventType)
-          ..add('recipientType', recipientType)
-          ..add('maskedRecipient', maskedRecipient)
+          ..add('templateKey', templateKey)
+          ..add('recipientMasked', recipientMasked)
           ..add('channel', channel)
           ..add('status', status)
+          ..add('attemptCount', attemptCount)
+          ..add('rateLimitWaitCount', rateLimitWaitCount)
+          ..add('maxAttempts', maxAttempts)
+          ..add('nextAttemptAt', nextAttemptAt)
+          ..add('lastErrorCode', lastErrorCode)
+          ..add('correlationId', correlationId)
           ..add('createdAt', createdAt)
-          ..add('attempts', attempts))
+          ..add('acceptedAt', acceptedAt)
+          ..add('lastAttempt', lastAttempt))
         .toString();
   }
 }
@@ -265,35 +251,65 @@ class NotificationOccurrenceBuilder
   String? get eventType => _$this._eventType;
   set eventType(String? eventType) => _$this._eventType = eventType;
 
-  String? _recipientType;
-  String? get recipientType => _$this._recipientType;
-  set recipientType(String? recipientType) =>
-      _$this._recipientType = recipientType;
+  String? _templateKey;
+  String? get templateKey => _$this._templateKey;
+  set templateKey(String? templateKey) => _$this._templateKey = templateKey;
 
-  String? _maskedRecipient;
-  String? get maskedRecipient => _$this._maskedRecipient;
-  set maskedRecipient(String? maskedRecipient) =>
-      _$this._maskedRecipient = maskedRecipient;
+  String? _recipientMasked;
+  String? get recipientMasked => _$this._recipientMasked;
+  set recipientMasked(String? recipientMasked) =>
+      _$this._recipientMasked = recipientMasked;
 
-  NotificationOccurrenceChannelEnum? _channel;
-  NotificationOccurrenceChannelEnum? get channel => _$this._channel;
-  set channel(NotificationOccurrenceChannelEnum? channel) =>
-      _$this._channel = channel;
+  JsonObject? _channel;
+  JsonObject? get channel => _$this._channel;
+  set channel(JsonObject? channel) => _$this._channel = channel;
 
   NotificationOccurrenceStatusEnum? _status;
   NotificationOccurrenceStatusEnum? get status => _$this._status;
   set status(NotificationOccurrenceStatusEnum? status) =>
       _$this._status = status;
 
+  int? _attemptCount;
+  int? get attemptCount => _$this._attemptCount;
+  set attemptCount(int? attemptCount) => _$this._attemptCount = attemptCount;
+
+  int? _rateLimitWaitCount;
+  int? get rateLimitWaitCount => _$this._rateLimitWaitCount;
+  set rateLimitWaitCount(int? rateLimitWaitCount) =>
+      _$this._rateLimitWaitCount = rateLimitWaitCount;
+
+  int? _maxAttempts;
+  int? get maxAttempts => _$this._maxAttempts;
+  set maxAttempts(int? maxAttempts) => _$this._maxAttempts = maxAttempts;
+
+  DateTime? _nextAttemptAt;
+  DateTime? get nextAttemptAt => _$this._nextAttemptAt;
+  set nextAttemptAt(DateTime? nextAttemptAt) =>
+      _$this._nextAttemptAt = nextAttemptAt;
+
+  String? _lastErrorCode;
+  String? get lastErrorCode => _$this._lastErrorCode;
+  set lastErrorCode(String? lastErrorCode) =>
+      _$this._lastErrorCode = lastErrorCode;
+
+  String? _correlationId;
+  String? get correlationId => _$this._correlationId;
+  set correlationId(String? correlationId) =>
+      _$this._correlationId = correlationId;
+
   DateTime? _createdAt;
   DateTime? get createdAt => _$this._createdAt;
   set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
 
-  ListBuilder<NotificationAttempt>? _attempts;
-  ListBuilder<NotificationAttempt> get attempts =>
-      _$this._attempts ??= ListBuilder<NotificationAttempt>();
-  set attempts(ListBuilder<NotificationAttempt>? attempts) =>
-      _$this._attempts = attempts;
+  DateTime? _acceptedAt;
+  DateTime? get acceptedAt => _$this._acceptedAt;
+  set acceptedAt(DateTime? acceptedAt) => _$this._acceptedAt = acceptedAt;
+
+  NotificationAttemptBuilder? _lastAttempt;
+  NotificationAttemptBuilder get lastAttempt =>
+      _$this._lastAttempt ??= NotificationAttemptBuilder();
+  set lastAttempt(NotificationAttemptBuilder? lastAttempt) =>
+      _$this._lastAttempt = lastAttempt;
 
   NotificationOccurrenceBuilder() {
     NotificationOccurrence._defaults(this);
@@ -304,12 +320,19 @@ class NotificationOccurrenceBuilder
     if ($v != null) {
       _id = $v.id;
       _eventType = $v.eventType;
-      _recipientType = $v.recipientType;
-      _maskedRecipient = $v.maskedRecipient;
+      _templateKey = $v.templateKey;
+      _recipientMasked = $v.recipientMasked;
       _channel = $v.channel;
       _status = $v.status;
+      _attemptCount = $v.attemptCount;
+      _rateLimitWaitCount = $v.rateLimitWaitCount;
+      _maxAttempts = $v.maxAttempts;
+      _nextAttemptAt = $v.nextAttemptAt;
+      _lastErrorCode = $v.lastErrorCode;
+      _correlationId = $v.correlationId;
       _createdAt = $v.createdAt;
-      _attempts = $v.attempts.toBuilder();
+      _acceptedAt = $v.acceptedAt;
+      _lastAttempt = $v.lastAttempt?.toBuilder();
       _$v = null;
     }
     return this;
@@ -344,34 +367,57 @@ class NotificationOccurrenceBuilder
               r'NotificationOccurrence',
               'eventType',
             ),
-            recipientType: BuiltValueNullFieldError.checkNotNull(
-              recipientType,
+            templateKey: BuiltValueNullFieldError.checkNotNull(
+              templateKey,
               r'NotificationOccurrence',
-              'recipientType',
+              'templateKey',
             ),
-            maskedRecipient: maskedRecipient,
-            channel: BuiltValueNullFieldError.checkNotNull(
-              channel,
+            recipientMasked: BuiltValueNullFieldError.checkNotNull(
+              recipientMasked,
               r'NotificationOccurrence',
-              'channel',
+              'recipientMasked',
             ),
+            channel: channel,
             status: BuiltValueNullFieldError.checkNotNull(
               status,
               r'NotificationOccurrence',
               'status',
+            ),
+            attemptCount: BuiltValueNullFieldError.checkNotNull(
+              attemptCount,
+              r'NotificationOccurrence',
+              'attemptCount',
+            ),
+            rateLimitWaitCount: BuiltValueNullFieldError.checkNotNull(
+              rateLimitWaitCount,
+              r'NotificationOccurrence',
+              'rateLimitWaitCount',
+            ),
+            maxAttempts: BuiltValueNullFieldError.checkNotNull(
+              maxAttempts,
+              r'NotificationOccurrence',
+              'maxAttempts',
+            ),
+            nextAttemptAt: nextAttemptAt,
+            lastErrorCode: lastErrorCode,
+            correlationId: BuiltValueNullFieldError.checkNotNull(
+              correlationId,
+              r'NotificationOccurrence',
+              'correlationId',
             ),
             createdAt: BuiltValueNullFieldError.checkNotNull(
               createdAt,
               r'NotificationOccurrence',
               'createdAt',
             ),
-            attempts: attempts.build(),
+            acceptedAt: acceptedAt,
+            lastAttempt: _lastAttempt?.build(),
           );
     } catch (_) {
       late String _$failedField;
       try {
-        _$failedField = 'attempts';
-        attempts.build();
+        _$failedField = 'lastAttempt';
+        _lastAttempt?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'NotificationOccurrence',

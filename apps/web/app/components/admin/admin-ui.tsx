@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useState,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
@@ -17,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { Drawer as GlobalDrawer, Modal as GlobalModal } from '../app-feedback';
+import { TextInput } from '../forms';
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -291,6 +293,9 @@ export function DataTable<T>({
   emptyTitle = 'Belum ada data',
   emptyDescription = 'Data akan muncul di sini setelah tersedia.',
   onRowClick,
+  rowClassName,
+  mobileCardClassName,
+  rowDescription,
 }: {
   items: T[];
   columns: DataTableColumn<T>[];
@@ -300,6 +305,9 @@ export function DataTable<T>({
   emptyTitle?: string;
   emptyDescription?: string;
   onRowClick?(item: T): void;
+  rowClassName?(item: T): string;
+  mobileCardClassName?(item: T): string;
+  rowDescription?(item: T): string;
 }) {
   if (loading) return <AdminSkeleton rows={5} />;
   if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} />;
@@ -325,11 +333,12 @@ export function DataTable<T>({
               <tr
                 key={rowKey(item)}
                 onClick={() => onRowClick?.(item)}
-                className={
+                aria-label={rowDescription?.(item)}
+                className={`${rowClassName?.(item) ?? ''} ${
                   onRowClick
-                    ? 'cursor-pointer transition hover:bg-dd-surface-muted focus-within:bg-dd-surface-muted'
+                    ? 'cursor-pointer transition hover:brightness-[0.98] focus-within:ring-2 focus-within:ring-inset focus-within:ring-dd-forest'
                     : ''
-                }
+                }`}
               >
                 {columns.map((column) => (
                   <td
@@ -350,7 +359,8 @@ export function DataTable<T>({
             <div
               key={rowKey(item)}
               onClick={() => onRowClick?.(item)}
-              className={`p-4 ${onRowClick ? 'cursor-pointer active:bg-dd-surface-muted' : ''}`}
+              aria-label={rowDescription?.(item)}
+              className={`p-4 ${mobileCardClassName?.(item) ?? ''} ${onRowClick ? 'cursor-pointer active:brightness-[0.98]' : ''}`}
             >
               {mobileCard(item)}
             </div>
@@ -521,12 +531,15 @@ export function SearchableLookup<T extends { id: string; label: string; descript
   const [query, setQuery] = useState(value?.label ?? '');
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const listId = useId();
   useEffect(() => {
     setQuery(value?.label ?? '');
   }, [value]);
   useEffect(() => {
     if (query.trim().length < 2 || query === value?.label) {
       setItems([]);
+      setActiveIndex(-1);
       return;
     }
     let active = true;
@@ -534,7 +547,10 @@ export function SearchableLookup<T extends { id: string; label: string; descript
       setLoading(true);
       void load(query)
         .then((result) => {
-          if (active) setItems(result);
+          if (active) {
+            setItems(result);
+            setActiveIndex(result.length ? 0 : -1);
+          }
         })
         .finally(() => {
           if (active) setLoading(false);
@@ -546,12 +562,13 @@ export function SearchableLookup<T extends { id: string; label: string; descript
     };
   }, [load, query, value?.label]);
   return (
-    <label className="relative grid min-w-56 gap-1.5 text-sm font-semibold text-dd-ink">
-      {label}
-      <input
+    <div className="relative min-w-56">
+      <TextInput
+        label={label}
         role="combobox"
         aria-expanded={items.length > 0}
-        aria-controls={`${label.replace(/\s+/g, '-').toLowerCase()}-options`}
+        aria-controls={listId}
+        aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
         aria-autocomplete="list"
         value={query}
         placeholder={placeholder}
@@ -559,22 +576,45 @@ export function SearchableLookup<T extends { id: string; label: string; descript
           setQuery(event.target.value);
           onChange(undefined);
         }}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' && items.length) {
+            event.preventDefault();
+            setActiveIndex((current) => Math.min(items.length - 1, current + 1));
+          } else if (event.key === 'ArrowUp' && items.length) {
+            event.preventDefault();
+            setActiveIndex((current) => Math.max(0, current - 1));
+          } else if (event.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) {
+            event.preventDefault();
+            onChange(items[activeIndex]);
+            setQuery(items[activeIndex].label);
+            setItems([]);
+          } else if (event.key === 'Escape') {
+            setItems([]);
+            setActiveIndex(-1);
+          }
+        }}
       />
       {loading && <span className="absolute right-3 top-9 text-xs text-dd-muted">Memuat…</span>}
       {items.length > 0 && (
         <ul
-          id={`${label.replace(/\s+/g, '-').toLowerCase()}-options`}
+          id={listId}
           role="listbox"
           className="absolute inset-x-0 top-full z-40 mt-1 max-h-64 overflow-auto rounded-dd-md border border-dd-line bg-white p-1 shadow-dd-float"
         >
-          {items.map((item) => (
-            <li key={item.id} role="option" aria-selected={item.id === value?.id}>
+          {items.map((item, index) => (
+            <li
+              id={`${listId}-${index}`}
+              key={item.id}
+              role="option"
+              aria-selected={index === activeIndex}
+            >
               <button
                 type="button"
                 className="w-full rounded-dd-sm border-0 bg-transparent px-3 py-2 text-left hover:bg-dd-surface-muted"
                 onClick={() => {
                   onChange(item);
                   setItems([]);
+                  setActiveIndex(-1);
                   setQuery(item.label);
                 }}
               >
@@ -587,6 +627,6 @@ export function SearchableLookup<T extends { id: string; label: string; descript
           ))}
         </ul>
       )}
-    </label>
+    </div>
   );
 }

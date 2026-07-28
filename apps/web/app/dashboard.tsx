@@ -14,6 +14,7 @@ import { canReadPage, frontendPages } from './frontend-pages';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
 import { Badge, Button, Panel, StatCard } from './components/admin/admin-ui';
+import { DateInput } from './components/forms';
 import {
   browserDashboardClient,
   type DashboardClient,
@@ -27,6 +28,18 @@ const rupiah = new Intl.NumberFormat('id-ID', {
 });
 const number = new Intl.NumberFormat('id-ID');
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
+
+const jobStatusLabel: Record<string, string> = {
+  QUEUED: 'Menunggu',
+  RUNNING: 'Berjalan',
+  RETRYING: 'Mencoba kembali',
+  SUCCEEDED: 'Berhasil',
+  FAILED: 'Gagal',
+};
+
+const jobTypeLabel: Record<string, string> = {
+  H24_QUOTA_EVALUATION: 'Evaluasi kuota H-24',
+};
 
 const roleCopy = {
   EXECUTIVE: {
@@ -188,26 +201,22 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2 rounded-dd-lg border border-dd-line bg-dd-surface p-3 shadow-sm">
-          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-dd-muted">
-            Dari
-            <input
-              type="date"
-              value={from}
-              max={until}
-              onChange={(event) => setFrom(event.target.value)}
-              className="min-h-9 rounded-dd-md border-dd-line bg-white py-1.5 text-sm font-semibold normal-case"
-            />
-          </label>
-          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-dd-muted">
-            Sampai
-            <input
-              type="date"
-              value={until}
-              min={from}
-              onChange={(event) => setUntil(event.target.value)}
-              className="min-h-9 rounded-dd-md border-dd-line bg-white py-1.5 text-sm font-semibold normal-case"
-            />
-          </label>
+          <DateInput
+            label="Dari"
+            value={from}
+            max={until}
+            compact
+            onChange={(event) => setFrom(event.target.value)}
+            wrapperClassName="min-w-36"
+          />
+          <DateInput
+            label="Sampai"
+            value={until}
+            min={from}
+            compact
+            onChange={(event) => setUntil(event.target.value)}
+            wrapperClassName="min-w-36"
+          />
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -258,7 +267,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       )}
 
-      <section aria-label="Indikator utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section aria-label="Indikator utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(overview?.metrics ?? []).map((metric) => (
           <StatCard
             key={metric.key}
@@ -448,9 +457,11 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                           : 'warning'
                     }
                   >
-                    {job.status}
+                    {jobStatusLabel[job.status] ?? 'Status operasional'}
                   </Badge>
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{job.type}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                    {jobTypeLabel[job.type] ?? 'Proses operasional'}
+                  </span>
                   <span className="text-xs text-dd-muted">
                     Percobaan {job.attemptCount}/{job.maxAttempts}
                   </span>

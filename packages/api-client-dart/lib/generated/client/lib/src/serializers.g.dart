@@ -8,15 +8,31 @@ part of 'serializers.dart';
 
 Serializers _$serializers =
     (Serializers().toBuilder()
+          ..add($AccessReason.serializer)
+          ..add($CustomerRescheduleSlot.serializer)
           ..add($EffectivePeriod.serializer)
-          ..add($PrivateImageMetadata.serializer)
+          ..add($PublicBranch.serializer)
+          ..add($PublicClassProfile.serializer)
+          ..add($PublicPackageSummary.serializer)
+          ..add($PublicScheduleSummary.serializer)
+          ..add($Purchase.serializer)
+          ..add($SessionBranch.serializer)
           ..add(AcceptedStatus.serializer)
+          ..add(AccessReasonCode.serializer)
+          ..add(AccessRoleAssignmentInput.serializer)
+          ..add(AccessRoleCapability.serializer)
+          ..add(AccessRoleDefinition.serializer)
+          ..add(AccessRolePage.serializer)
+          ..add(AccessRoleScope.serializer)
           ..add(AccountLinkCommand.serializer)
           ..add(AccountLinkCommandProviderEnum.serializer)
           ..add(ActionCommand.serializer)
+          ..add(AdjustmentActor.serializer)
           ..add(AdjustmentCommand.serializer)
           ..add(AdjustmentCommandReasonCodeEnum.serializer)
+          ..add(AdjustmentCustomer.serializer)
           ..add(AdjustmentDecisionResult.serializer)
+          ..add(AdjustmentNamedReference.serializer)
           ..add(ApprovalResult.serializer)
           ..add(ApprovePurchaseRequest.serializer)
           ..add(ApprovePurchaseRequestReasonCodeEnum.serializer)
@@ -25,7 +41,12 @@ Serializers _$serializers =
           ..add(AssignmentAssignmentTypeEnum.serializer)
           ..add(AssignmentCommand.serializer)
           ..add(AssignmentCommandAssignmentTypeEnum.serializer)
+          ..add(AssignmentManagementBranch.serializer)
+          ..add(AssignmentManagementSummary.serializer)
+          ..add(AssignmentManagementUser.serializer)
           ..add(AssignmentPage.serializer)
+          ..add(AssignmentPagePage.serializer)
+          ..add(AssignmentStatusEnum.serializer)
           ..add(AttachOrderProofCommand.serializer)
           ..add(AuditExport.serializer)
           ..add(AuditExportCommand.serializer)
@@ -41,10 +62,18 @@ Serializers _$serializers =
           ..add(AvailabilityStatusEnum.serializer)
           ..add(BackfillCustomerCheckInRequest.serializer)
           ..add(Booking.serializer)
+          ..add(BookingAttendance.serializer)
+          ..add(BookingAttendanceSource_Enum.serializer)
+          ..add(BookingBranch.serializer)
+          ..add(BookingClassSlot.serializer)
+          ..add(BookingClassSlotClassType.serializer)
           ..add(BookingCommand.serializer)
           ..add(BookingCommandSource_Enum.serializer)
+          ..add(BookingCustomer.serializer)
+          ..add(BookingManagementSummary.serializer)
           ..add(BookingPage.serializer)
           ..add(BookingReservedQuantityEnum.serializer)
+          ..add(BookingSessionBalance.serializer)
           ..add(BookingSource_Enum.serializer)
           ..add(BookingStatusEnum.serializer)
           ..add(Branch.serializer)
@@ -53,10 +82,16 @@ Serializers _$serializers =
           ..add(BranchPeriod.serializer)
           ..add(BranchPeriodPage.serializer)
           ..add(BranchPeriodStatusEnum.serializer)
+          ..add(BulkCustomerCheckInLinkCommand.serializer)
+          ..add(BulkCustomerCheckInLinkItem.serializer)
+          ..add(BulkCustomerCheckInLinkResult.serializer)
+          ..add(CapabilityDefinition.serializer)
+          ..add(CapabilityDefinitionPage.serializer)
           ..add(ChallengeAccepted.serializer)
           ..add(ChallengeExpiry.serializer)
           ..add(ChangedStatus.serializer)
           ..add(CheckInResult.serializer)
+          ..add(CheckInResultBranch.serializer)
           ..add(CheckInResultPurposeEnum.serializer)
           ..add(CheckInToken.serializer)
           ..add(CheckInTokenAudienceTypeEnum.serializer)
@@ -89,23 +124,69 @@ Serializers _$serializers =
           ..add(CorrectionCommand.serializer)
           ..add(CorrectionDecisionResult.serializer)
           ..add(CorrectionStatusEnum.serializer)
+          ..add(CreateAccessRoleCommand.serializer)
           ..add(CreateOrderCommand.serializer)
           ..add(CreatePaymentProofUploadRequest.serializer)
+          ..add(CreatePermissionOverrideCommand.serializer)
+          ..add(CreatePermissionOverrideCommandEffectEnum.serializer)
           ..add(CursorPageMeta.serializer)
+          ..add(CustomerBookingEligibility.serializer)
+          ..add(CustomerBookingEligibilityReasonCodeEnum.serializer)
+          ..add(CustomerBookingEligibilityRequiredActionEnum.serializer)
           ..add(CustomerBookingOptions.serializer)
           ..add(CustomerBookingPackage.serializer)
           ..add(CustomerBookingSlot.serializer)
           ..add(CustomerBookingSlotBranch.serializer)
           ..add(CustomerBookingSlotClassType.serializer)
           ..add(CustomerBookingSlotStatusEnum.serializer)
+          ..add(CustomerCheckInIssue.serializer)
+          ..add(CustomerCheckInIssueStatusEnum.serializer)
+          ..add(CustomerCheckInTokenStatus.serializer)
+          ..add(CustomerCheckInTokenStatusStatusEnum.serializer)
+          ..add(CustomerDashboardOverview.serializer)
+          ..add(CustomerDashboardOverviewActionableOrdersInner.serializer)
+          ..add(
+            CustomerDashboardOverviewActionableOrdersInnerStatusEnum.serializer,
+          )
+          ..add(CustomerDashboardOverviewPackagesInner.serializer)
+          ..add(CustomerDashboardOverviewUpcomingBookingsInner.serializer)
+          ..add(CustomerDashboardOverviewVerification.serializer)
+          ..add(CustomerDashboardOverviewVerificationDocumentsInner.serializer)
+          ..add(
+            CustomerDashboardOverviewVerificationDocumentsInnerKindEnum
+                .serializer,
+          )
+          ..add(CustomerDashboardOverviewVerificationStatusEnum.serializer)
+          ..add(CustomerOrderActivation.serializer)
+          ..add(CustomerOrderSummary.serializer)
+          ..add(CustomerOrderTimelineItem.serializer)
+          ..add(CustomerOrderTimelineItemTypeEnum.serializer)
+          ..add(CustomerOrderTimelinePage.serializer)
           ..add(CustomerPackageBalance.serializer)
           ..add(CustomerPackageBalancePage.serializer)
           ..add(CustomerPackageBalanceStatusEnum.serializer)
-          ..add(CustomerRegistrationCommand.serializer)
-          ..add(CustomerRegistrationCommandConsentEnum.serializer)
-          ..add(DeactivateUserRequest.serializer)
+          ..add(CustomerRescheduleOptions.serializer)
+          ..add(CustomerRescheduleOptionsSupportActionEnum.serializer)
+          ..add(CustomerRescheduleOptionsUnavailableReasonEnum.serializer)
+          ..add(CustomerRescheduleSlotStatusEnum.serializer)
+          ..add(CustomerRescheduleTarget.serializer)
+          ..add(DashboardActivityItem.serializer)
+          ..add(DashboardBranchPerformance.serializer)
+          ..add(DashboardMetric.serializer)
+          ..add(DashboardMetricUnitEnum.serializer)
+          ..add(DashboardOverview.serializer)
+          ..add(DashboardOverviewPeriod.serializer)
+          ..add(DashboardOverviewRoleFocusEnum.serializer)
+          ..add(DashboardQueueSummary.serializer)
+          ..add(DashboardRiskItem.serializer)
+          ..add(DashboardSections.serializer)
+          ..add(DashboardTrendPoint.serializer)
+          ..add(DecideCorrectionRequest.serializer)
           ..add(DeleteIdentityVerificationFileRequest.serializer)
           ..add(DownloadAuthorization.serializer)
+          ..add(EffectiveCapabilityDenial.serializer)
+          ..add(EffectiveCapabilityGrant.serializer)
+          ..add(EffectiveCapabilityGrantSource_Enum.serializer)
           ..add(EffectiveSetting.serializer)
           ..add(EffectiveSettingCommand.serializer)
           ..add(EffectiveSettingKindEnum.serializer)
@@ -116,30 +197,52 @@ Serializers _$serializers =
           ..add(ErrorEnvelopeError.serializer)
           ..add(ErrorEnvelopeErrorDetailsInner.serializer)
           ..add(FinalizeUploadCommand.serializer)
+          ..add(FinanceAnomaly.serializer)
+          ..add(FinanceAnomalyCodeEnum.serializer)
+          ..add(FinanceAnomalySeverityEnum.serializer)
+          ..add(FinanceBranchReconciliation.serializer)
+          ..add(FinanceReconciliationMetric.serializer)
+          ..add(FinanceReconciliationOverview.serializer)
+          ..add(FinanceReconciliationOverviewPeriod.serializer)
           ..add(FinancialReport.serializer)
           ..add(FinancialReportPage.serializer)
           ..add(FinancialReportReportTypeEnum.serializer)
+          ..add(GetFinanceReconciliationAnomalies200Response.serializer)
+          ..add(GetMyNotificationUnreadCount200Response.serializer)
           ..add(GoogleAuthRequest.serializer)
           ..add(GoogleAuthRequestChannelEnum.serializer)
           ..add(HealthResult.serializer)
           ..add(HealthResultDependenciesInner.serializer)
           ..add(HealthResultDependenciesInnerStatusEnum.serializer)
           ..add(HealthResultStatusEnum.serializer)
+          ..add(IdentityDocumentSelfViewAuthorization.serializer)
           ..add(IdentityVerificationDecisionCommand.serializer)
           ..add(IdentityVerificationDecisionCommandReasonCodeEnum.serializer)
+          ..add(IdentityVerificationDeletionResult.serializer)
+          ..add(IdentityVerificationDeletionResultStatusEnum.serializer)
           ..add(IdentityVerificationDocument.serializer)
           ..add(IdentityVerificationDocumentKindEnum.serializer)
           ..add(IdentityVerificationDocumentScanStatusEnum.serializer)
           ..add(IdentityVerificationDocumentStatusEnum.serializer)
           ..add(IdentityVerificationDocumentUploadStatusEnum.serializer)
+          ..add(IdentityVerificationReviewCase.serializer)
+          ..add(IdentityVerificationReviewCaseVerificationStatusEnum.serializer)
+          ..add(IdentityVerificationReviewPage.serializer)
+          ..add(IdentityVerificationReviewSummary.serializer)
+          ..add(IdentityVerificationReviewUser.serializer)
+          ..add(IdentityVerificationReviewUserStatusEnum.serializer)
           ..add(IdentityVerificationSummary.serializer)
           ..add(IdentityVerificationSummaryStatusEnum.serializer)
           ..add(InstructorFeeCommand.serializer)
           ..add(InviteUserRequest.serializer)
+          ..add(IssueCustomerCheckInLinkCommand.serializer)
           ..add(LedgerEntry.serializer)
           ..add(LedgerEntryTypeEnum.serializer)
-          ..add(ListIdentityVerifications200Response.serializer)
           ..add(ListPaymentAccounts200Response.serializer)
+          ..add(LookupOption.serializer)
+          ..add(LookupOptionMetadata.serializer)
+          ..add(LookupPage.serializer)
+          ..add(MarkAllMyNotificationsRead200Response.serializer)
           ..add(Me.serializer)
           ..add(MeIdentityVerificationStatusEnum.serializer)
           ..add(MigrationBatchActionCommand.serializer)
@@ -155,12 +258,14 @@ Serializers _$serializers =
           ..add(MigrationSourceUploadScanStatusEnum.serializer)
           ..add(MigrationSourceUploadStatusEnum.serializer)
           ..add(Money.serializer)
+          ..add(MyProfile.serializer)
           ..add(NotificationAttempt.serializer)
           ..add(NotificationAttemptStatusEnum.serializer)
+          ..add(NotificationDeliveryMetrics.serializer)
           ..add(NotificationOccurrence.serializer)
-          ..add(NotificationOccurrenceChannelEnum.serializer)
           ..add(NotificationOccurrencePage.serializer)
           ..add(NotificationOccurrenceStatusEnum.serializer)
+          ..add(NotificationRetryResult.serializer)
           ..add(OperationalJob.serializer)
           ..add(OperationalJobPage.serializer)
           ..add(OperationalJobResult.serializer)
@@ -169,6 +274,9 @@ Serializers _$serializers =
           ..add(Order.serializer)
           ..add(OrderPage.serializer)
           ..add(OrderPaymentAccount.serializer)
+          ..add(OrderPaymentProofStatus.serializer)
+          ..add(OrderPaymentProofStatusScanStatusEnum.serializer)
+          ..add(OrderPaymentProofStatusUploadStatusEnum.serializer)
           ..add(OrderStatusEnum.serializer)
           ..add(OtherCost.serializer)
           ..add(OtherCostCommand.serializer)
@@ -191,13 +299,46 @@ Serializers _$serializers =
           ..add(PasswordTokenCommand.serializer)
           ..add(PaymentAccount.serializer)
           ..add(PaymentAccountCommand.serializer)
+          ..add(PaymentActivationResult.serializer)
+          ..add(PaymentActivationResultStatusEnum.serializer)
+          ..add(PaymentActivationSummary.serializer)
+          ..add(PaymentActivationSummaryStatusEnum.serializer)
           ..add(PaymentProof.serializer)
           ..add(PaymentProofScanStatusEnum.serializer)
           ..add(PaymentProofUploadInstruction.serializer)
           ..add(PaymentProofUploadStatusEnum.serializer)
-          ..add(PrivateImageMetadataMimeTypeEnum.serializer)
+          ..add(PaymentProofViewAuthorization.serializer)
+          ..add(PaymentReviewBranch.serializer)
+          ..add(PaymentReviewCustomer.serializer)
+          ..add(PaymentReviewDetail.serializer)
+          ..add(PaymentReviewItem.serializer)
+          ..add(PaymentReviewPage.serializer)
+          ..add(PaymentReviewProof.serializer)
+          ..add(PaymentReviewProofScanStatusEnum.serializer)
+          ..add(PaymentReviewProofUploadStatusEnum.serializer)
+          ..add(PaymentReviewSummary.serializer)
+          ..add(PaymentReviewTimeline.serializer)
+          ..add(PaymentUsageHistoryItem.serializer)
+          ..add(PaymentUsageHistoryItemTypeEnum.serializer)
+          ..add(PaymentUsageHistoryPage.serializer)
+          ..add(PreferredStudio.serializer)
           ..add(ProjectionRateCommand.serializer)
-          ..add(Purchase.serializer)
+          ..add(PublicBranchProfile.serializer)
+          ..add(PublicBranchProfileOpeningHoursInner.serializer)
+          ..add(PublicCatalogRange.serializer)
+          ..add(PublicClassCatalog.serializer)
+          ..add(PublicClassDetail.serializer)
+          ..add(PublicClassMarketingSummary.serializer)
+          ..add(PublicClassTypeRef.serializer)
+          ..add(PublicPackageCatalog.serializer)
+          ..add(PublicPackageDetail.serializer)
+          ..add(PublicPackageProfile.serializer)
+          ..add(PublicScheduleDetail.serializer)
+          ..add(PublicScheduleSummaryInstructor.serializer)
+          ..add(PublicScheduleSummaryStatusEnum.serializer)
+          ..add(PublicSiteConfig.serializer)
+          ..add(PublicStudioDetail.serializer)
+          ..add(PublicStudioDetailAllOfClasses.serializer)
           ..add(PurchasePage.serializer)
           ..add(PurchaseStatusEnum.serializer)
           ..add(QuotaCapacityCommand.serializer)
@@ -209,8 +350,9 @@ Serializers _$serializers =
           ..add(RecoveryRequestCommandRequestedChannelEnum.serializer)
           ..add(RecoveryVerifyCommand.serializer)
           ..add(RecoveryVerifyCommandNewVerifiedIdentity.serializer)
-          ..add(ReplaceMyIdentityDocumentRequest.serializer)
           ..add(ReplacePaymentProofCommand.serializer)
+          ..add(ReplaceRoleCapabilitiesCommand.serializer)
+          ..add(ReplaceUserAccessRolesCommand.serializer)
           ..add(Reschedule.serializer)
           ..add(RescheduleDecisionCommand.serializer)
           ..add(RescheduleDecisionCommandReasonCodeEnum.serializer)
@@ -224,6 +366,7 @@ Serializers _$serializers =
           ..add(RescheduleStatusEnum.serializer)
           ..add(ReservationSummary.serializer)
           ..add(Resource.serializer)
+          ..add(RevokeCustomerCheckInTokenCommand.serializer)
           ..add(RevokeSessionsCommand.serializer)
           ..add(Role.serializer)
           ..add(RoleCatalog.serializer)
@@ -237,21 +380,54 @@ Serializers _$serializers =
           ..add(SessionAdjustmentPage.serializer)
           ..add(SessionAdjustmentReasonCodeEnum.serializer)
           ..add(SessionAdjustmentStatusEnum.serializer)
-          ..add(SessionBranch.serializer)
           ..add(SessionChannelEnum.serializer)
           ..add(SubmitPurchaseRequest.serializer)
           ..add(TimeRangeCommand.serializer)
           ..add(TokenCheckInCommand.serializer)
+          ..add(UpdateAccessRoleCommand.serializer)
+          ..add(UpdateMyProfileCommand.serializer)
+          ..add(UpdateUserProfileRequest.serializer)
           ..add(UpdateUserRolesCommand.serializer)
+          ..add(UserAccess.serializer)
+          ..add(UserAccessEffective.serializer)
+          ..add(UserAccessRoleAssignment.serializer)
+          ..add(UserAccessRoleAssignmentBranch.serializer)
+          ..add(UserAccessRoleAssignmentSource_Enum.serializer)
+          ..add(UserAccessUser.serializer)
+          ..add(UserAccessUserStatusEnum.serializer)
           ..add(UserListSummary.serializer)
+          ..add(UserNotification.serializer)
+          ..add(UserNotificationCategoryEnum.serializer)
+          ..add(UserNotificationPage.serializer)
+          ..add(UserNotificationToneEnum.serializer)
           ..add(UserPage.serializer)
+          ..add(UserPermissionOverride.serializer)
+          ..add(UserPermissionOverrideEffectEnum.serializer)
           ..add(UserRoleInput.serializer)
           ..add(UserRoleSummary.serializer)
           ..add(UserRoleSummaryBranch.serializer)
           ..add(UserRoleSummarySource_Enum.serializer)
           ..add(UserSummary.serializer)
+          ..add(UserSummaryAudienceEnum.serializer)
           ..add(UserSummaryStatusEnum.serializer)
+          ..add(UserVerificationDocumentSummary.serializer)
+          ..add(UserVerificationDocumentSummaryKindEnum.serializer)
+          ..add(UserVerificationSummary.serializer)
+          ..add(UserVerificationSummaryStatusEnum.serializer)
           ..add(VersionCommand.serializer)
+          ..add(VersionedAccessReason.serializer)
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(AccessRoleCapability),
+            ]),
+            () => ListBuilder<AccessRoleCapability>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(AccessRoleDefinition),
+            ]),
+            () => ListBuilder<AccessRoleDefinition>(),
+          )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Assignment)]),
             () => ListBuilder<Assignment>(),
@@ -277,6 +453,18 @@ Serializers _$serializers =
             () => ListBuilder<BranchPeriod>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(BulkCustomerCheckInLinkItem),
+            ]),
+            () => ListBuilder<BulkCustomerCheckInLinkItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(CapabilityDefinition),
+            ]),
+            () => ListBuilder<CapabilityDefinition>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(ClassSlot)]),
             () => ListBuilder<ClassSlot>(),
           )
@@ -292,9 +480,88 @@ Serializers _$serializers =
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
+              const FullType(CustomerDashboardOverviewUpcomingBookingsInner),
+            ]),
+            () => ListBuilder<CustomerDashboardOverviewUpcomingBookingsInner>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(CustomerDashboardOverviewPackagesInner),
+            ]),
+            () => ListBuilder<CustomerDashboardOverviewPackagesInner>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(CustomerDashboardOverviewActionableOrdersInner),
+            ]),
+            () => ListBuilder<CustomerDashboardOverviewActionableOrdersInner>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(
+                CustomerDashboardOverviewVerificationDocumentsInner,
+              ),
+            ]),
+            () =>
+                ListBuilder<
+                  CustomerDashboardOverviewVerificationDocumentsInner
+                >(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(CustomerOrderTimelineItem),
+            ]),
+            () => ListBuilder<CustomerOrderTimelineItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
               const FullType(CustomerPackageBalance),
             ]),
             () => ListBuilder<CustomerPackageBalance>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(CustomerRescheduleTarget),
+            ]),
+            () => ListBuilder<CustomerRescheduleTarget>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(DashboardMetric)]),
+            () => ListBuilder<DashboardMetric>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(DashboardQueueSummary),
+            ]),
+            () => ListBuilder<DashboardQueueSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(DashboardTrendPoint),
+            ]),
+            () => ListBuilder<DashboardTrendPoint>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(DashboardBranchPerformance),
+            ]),
+            () => ListBuilder<DashboardBranchPerformance>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(DashboardRiskItem),
+            ]),
+            () => ListBuilder<DashboardRiskItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(DashboardActivityItem),
+            ]),
+            () => ListBuilder<DashboardActivityItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(OperationalJob)]),
+            () => ListBuilder<OperationalJob>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(EffectiveSetting)]),
@@ -305,6 +572,16 @@ Serializers _$serializers =
               const FullType(ErrorEnvelopeErrorDetailsInner),
             ]),
             () => ListBuilder<ErrorEnvelopeErrorDetailsInner>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(FinanceAnomaly)]),
+            () => ListBuilder<FinanceAnomaly>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(FinanceBranchReconciliation),
+            ]),
+            () => ListBuilder<FinanceBranchReconciliation>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -325,6 +602,12 @@ Serializers _$serializers =
             () => ListBuilder<IdentityVerificationDocument>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(IdentityVerificationReviewCase),
+            ]),
+            () => ListBuilder<IdentityVerificationReviewCase>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(JsonObject)]),
             () => ListBuilder<JsonObject>(),
           )
@@ -333,16 +616,14 @@ Serializers _$serializers =
             () => ListBuilder<LedgerEntry>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(LookupOption)]),
+            () => ListBuilder<LookupOption>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [
               const FullType(MigrationBatchResult),
             ]),
             () => ListBuilder<MigrationBatchResult>(),
-          )
-          ..addBuilderFactory(
-            const FullType(BuiltList, const [
-              const FullType(NotificationAttempt),
-            ]),
-            () => ListBuilder<NotificationAttempt>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -371,6 +652,102 @@ Serializers _$serializers =
             () => ListBuilder<PaymentAccount>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PaymentReviewItem),
+            ]),
+            () => ListBuilder<PaymentReviewItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PaymentUsageHistoryItem),
+            ]),
+            () => ListBuilder<PaymentUsageHistoryItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PublicBranch)]),
+            () => ListBuilder<PublicBranch>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicClassMarketingSummary),
+            ]),
+            () => ListBuilder<PublicClassMarketingSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PublicBranch)]),
+            () => ListBuilder<PublicBranch>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicPackageSummary),
+            ]),
+            () => ListBuilder<PublicPackageSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PublicBranch)]),
+            () => ListBuilder<PublicBranch>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicPackageSummary),
+            ]),
+            () => ListBuilder<PublicPackageSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicScheduleSummary),
+            ]),
+            () => ListBuilder<PublicScheduleSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PublicBranch)]),
+            () => ListBuilder<PublicBranch>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicScheduleSummary),
+            ]),
+            () => ListBuilder<PublicScheduleSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicBranchProfileOpeningHoursInner),
+            ]),
+            () => ListBuilder<PublicBranchProfileOpeningHoursInner>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicScheduleSummary),
+            ]),
+            () => ListBuilder<PublicScheduleSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicStudioDetailAllOfClasses),
+            ]),
+            () => ListBuilder<PublicStudioDetailAllOfClasses>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicScheduleSummary),
+            ]),
+            () => ListBuilder<PublicScheduleSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PublicPackageSummary),
+            ]),
+            () => ListBuilder<PublicPackageSummary>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Purchase)]),
             () => ListBuilder<Purchase>(),
           )
@@ -385,6 +762,22 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Role)]),
             () => ListBuilder<Role>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Role)]),
+            () => ListBuilder<Role>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(String)]),
@@ -449,6 +842,66 @@ Serializers _$serializers =
             () => ListBuilder<String>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(EffectiveCapabilityGrant),
+            ]),
+            () => ListBuilder<EffectiveCapabilityGrant>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(EffectiveCapabilityDenial),
+            ]),
+            () => ListBuilder<EffectiveCapabilityDenial>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(UserAccessRoleAssignment),
+            ]),
+            () => ListBuilder<UserAccessRoleAssignment>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(UserPermissionOverride),
+            ]),
+            () => ListBuilder<UserPermissionOverride>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(UserNotification)]),
+            () => ListBuilder<UserNotification>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(UserRoleInput)]),
             () => ListBuilder<UserRoleInput>(),
           )
@@ -485,11 +938,42 @@ Serializers _$serializers =
             () => ListBuilder<UserSummary>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(UserVerificationDocumentSummary),
+            ]),
+            () => ListBuilder<UserVerificationDocumentSummary>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltMap, const [
               const FullType(String),
               const FullType(Money),
             ]),
             () => MapBuilder<String, Money>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltMap, const [
+              const FullType(String),
+              const FullType(int),
+            ]),
+            () => MapBuilder<String, int>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [
+              const FullType(AccessRoleAssignmentInput),
+            ]),
+            () => SetBuilder<AccessRoleAssignmentInput>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
           ))
         .build();
 

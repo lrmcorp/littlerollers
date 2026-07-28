@@ -5,10 +5,12 @@ import {
   CalendarDays,
   CreditCard,
   Gauge,
+  House,
   ListChecks,
   LockKeyhole,
+  LogOut,
+  MapPin,
   PackageCheck,
-  Settings,
   ShieldCheck,
   UserRound,
   X,
@@ -19,6 +21,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { IconButton } from '../actions';
 import { BrandMark } from '../public/brand-mark';
+import { useStudioPreference } from '../public/public-experience';
 
 export type CustomerNavigationItem = {
   href: string;
@@ -28,7 +31,7 @@ export type CustomerNavigationItem = {
 };
 
 export const CUSTOMER_PRIMARY_NAVIGATION: CustomerNavigationItem[] = [
-  { href: '/account', label: 'Beranda', icon: Gauge },
+  { href: '/account', label: 'Dashboard', icon: Gauge },
   { href: '/classes', label: 'Jadwal', icon: CalendarDays },
   { href: '/packages', label: 'Paket', icon: ListChecks },
   { href: '/bookings', label: 'Booking', icon: BookOpenCheck, requiresApproval: true },
@@ -44,7 +47,6 @@ export const CUSTOMER_ACCOUNT_NAVIGATION: CustomerNavigationItem[] = [
   },
   { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
   { href: '/account/profile', label: 'Profil', icon: UserRound },
-  { href: '/account/settings', label: 'Pengaturan', icon: Settings },
   { href: '/account/security', label: 'Keamanan', icon: LockKeyhole },
 ];
 
@@ -64,12 +66,15 @@ export function CustomerNavigation({
   open,
   approved,
   onClose,
+  onLogout,
 }: {
   open: boolean;
   approved: boolean;
   onClose(): void;
+  onLogout(): void | Promise<void>;
 }) {
   const pathname = usePathname();
+  const studioPreference = useStudioPreference();
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -124,7 +129,11 @@ export function CustomerNavigation({
         }`}
       >
         <div className="mb-7 flex items-center justify-between">
-          <BrandMark className="w-40 brightness-0 invert" href="/account" />
+          <BrandMark
+            className="w-40 brightness-0 invert"
+            href="/"
+            ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
+          />
           <IconButton
             label="Tutup navigasi akun"
             variant="ghost"
@@ -152,7 +161,7 @@ export function CustomerNavigation({
                     <Link
                       key={item.href}
                       href={navigationHref(item, approved)}
-                      aria-current={selected ? 'page' : undefined}
+                      aria-current={open && selected ? 'page' : undefined}
                       aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
                       onClick={onClose}
                       className={`flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold no-underline ${
@@ -181,6 +190,38 @@ export function CustomerNavigation({
             Selesaikan verifikasi untuk membuka booking dan transaksi.
           </div>
         )}
+        <div className="mt-5 grid gap-1 border-t border-white/10 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              studioPreference?.openStudioPreference();
+            }}
+            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <MapPin className="size-[18px] shrink-0" aria-hidden="true" />
+            Ganti studio
+          </button>
+          <Link
+            href="/"
+            onClick={onClose}
+            className="flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold text-white/70 no-underline hover:bg-white/10 hover:text-white"
+          >
+            <House className="size-[18px] shrink-0" aria-hidden="true" />
+            Kunjungi situs utama
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              void onLogout();
+            }}
+            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="size-[18px] shrink-0" aria-hidden="true" />
+            Keluar
+          </button>
+        </div>
       </nav>
     </>
   );

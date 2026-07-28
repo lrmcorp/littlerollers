@@ -41,6 +41,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [BG-2 Package Decision Evidence](delivery/15-bg-2-package-decision-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Ledger Read Evidence](delivery/16-bg-2-ledger-read-evidence.md) | AI Backend/Web/Flutter/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Session Adjustment Evidence](delivery/17-bg-2-session-adjustment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
+| Operations | [Session Adjustment Runbook](operations/session-adjustment-runbook.md) | Ops | PO/TL/QA/Ops |
 | Delivery | [BG-2 Instructor Availability Evidence](delivery/18-bg-2-instructor-availability-evidence.md) | AI Backend/Flutter/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 Class Slot Lifecycle Evidence](delivery/19-bg-2-class-slot-lifecycle-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
 | Delivery | [BG-2 H-24 Quota Evaluation Evidence](delivery/20-bg-2-quota-evaluation-evidence.md) | AI Backend/Web/Ops/Data | AI QA/Security/Peer Reviewer |
@@ -69,6 +70,17 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Technical | [OpenAPI v1](technical/openapi-v1.yaml) | Technical Lead | Technical Lead |
 | Technical | [MVP Proposed Contract Manifest](technical/06-sprint-2-3-contract-manifest.md) | Technical Lead | Technical Lead |
 | Technical | [Technical Contract Review Workbook](technical/07-technical-contract-review-workbook.md) | Technical Lead | Technical Lead |
+| Technical | [Dynamic Role & Permission Reference](technical/07-rbac-role-capability-reference.md) | Technical Lead | PO + TL + Security |
+| Delivery | [Dynamic RBAC Implementation & UAT Evidence](delivery/23-dynamic-rbac-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
+| Delivery | [Identity User Management Implementation & UAT Evidence](delivery/24-identity-user-management-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
+| Technical | [SMTP Email Delivery Contract](technical/11-smtp-email-delivery.md) | Technical Lead | PO + TL + Ops |
+| Product | [Transactional Email Matrix](product/08-transactional-email-matrix.md) | PM/BA | Product Owner |
+| Operations | [SMTP Email Runbook](operations/01-smtp-email-runbook.md) | Operations | Technical Lead |
+| Operations | [Customer Reschedule Runbook](operations/reschedule-runbook.md) | Operations | Product Owner + Technical Lead |
+| Operations | [Dynamic RBAC & Access Recovery Runbook](operations/02-rbac-access-recovery-runbook.md) | Operations | Technical Lead + Security |
+| Operations | [Identity Review Runbook](operations/03-identity-review-runbook.md) | Operations | PO + TL + QA + Ops |
+| Governance | [CR-SMTP-001](governance/11-cr-smtp-001.md) | Product Owner | PO + TL |
+| Template | [Email Template Register](templates/email-template-register.md) | PM/BA | PO + TL |
 | Quality | [Test Strategy, UAT & Release](quality/01-test-uat-and-release.md) | QA Engineer | PM/BA + Technical Lead |
 | Quality | [Detailed Tests, Data & UAT](quality/02-detailed-tests-data-and-uat.md) | QA Engineer | PM/BA + Technical Lead |
 | Quality | [Sprint 2–3 Interface & Test Readiness](quality/03-sprint-2-3-interface-and-test-readiness.md) | QA Engineer | Technical Lead + QA |

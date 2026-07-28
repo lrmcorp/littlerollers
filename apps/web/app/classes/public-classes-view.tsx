@@ -47,6 +47,14 @@ function timeLabel(value: string, timezone: string) {
   }).format(new Date(value));
 }
 
+function durationLabel(startAt: string, endAt: string) {
+  const minutes = Math.max(
+    0,
+    Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000),
+  );
+  return `${minutes} menit`;
+}
+
 export function PublicClassesView({
   client = browserPublicClassCatalogClient,
 }: {
@@ -74,6 +82,8 @@ export function PublicClassesView({
         setBranches(result.branches);
         setStatus('ready');
         const query = new URLSearchParams(window.location.search);
+        setDay(query.get('date') ?? '');
+        setClassType(query.get('classType') ?? '');
         const requestedBranchId = query.get('branch');
         const requestedStudio = query.get('studio');
         const requestedBranch = result.branches.find(
@@ -131,6 +141,21 @@ export function PublicClassesView({
     groups[key] = [...(groups[key] ?? []), slot];
     return groups;
   }, {});
+  const availableDays = [
+    ...new Set(slots.map((slot) => dayKey(slot.startAt, slot.timezone))),
+  ].slice(0, 14);
+  const updateQuery = (updates: Record<string, string>) => {
+    const query = new URLSearchParams(window.location.search);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) query.set(key, value);
+      else query.delete(key);
+    });
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${query.size ? `?${query}` : ''}${window.location.hash}`,
+    );
+  };
 
   return (
     <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
@@ -144,8 +169,13 @@ export function PublicClassesView({
           eyebrow="Jadwal Daily Dose"
           title="Bergerak sesuai ritme Anda."
           description="Pilih studio dan temukan kelas aktif untuk dua minggu ke depan. Waktu dan kapasitas ditampilkan langsung dari sistem."
+          variant={inCustomerShell ? 'compact' : 'default'}
         />
-        <section className="py-12 sm:py-16" id="schedule" aria-labelledby="catalog-filter-title">
+        <section
+          className={inCustomerShell ? 'py-7 sm:py-10' : 'py-12 sm:py-16'}
+          id="schedule"
+          aria-labelledby="catalog-filter-title"
+        >
           <div className={publicContainer}>
             <PublicSectionHeading
               eyebrow="01 — Pilih jadwal"
@@ -153,7 +183,7 @@ export function PublicClassesView({
               titleId="catalog-filter-title"
               description="Temukan kelas berdasarkan studio, tanggal, dan tipe latihan."
               aside={
-                branch ? (
+                inCustomerShell ? undefined : branch ? (
                   <p className="rounded-dd-md border border-dd-line bg-white px-4 py-3 text-sm shadow-sm">
                     <strong className="block">{branch.name}</strong>
                     <span className="text-dd-muted">{branch.timezone}</span>
@@ -163,6 +193,41 @@ export function PublicClassesView({
                 )
               }
             />
+
+            {branchId && availableDays.length > 0 && (
+              <div
+                className="mb-4 flex gap-2 overflow-x-auto pb-1"
+                role="group"
+                aria-label="Pilih tanggal cepat"
+              >
+                <button
+                  type="button"
+                  className={`${!day ? 'border-dd-forest bg-dd-forest text-white' : 'border-dd-line bg-white text-dd-ink'} min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold`}
+                  onClick={() => {
+                    setDay('');
+                    updateQuery({ date: '' });
+                  }}
+                >
+                  Semua
+                </button>
+                {availableDays.map((date) => (
+                  <button
+                    type="button"
+                    key={date}
+                    className={`${day === date ? 'border-dd-forest bg-dd-forest text-white' : 'border-dd-line bg-white text-dd-ink'} min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold`}
+                    onClick={() => {
+                      setDay(date);
+                      updateQuery({ date });
+                    }}
+                  >
+                    {dateLabel(
+                      slots.find((slot) => dayKey(slot.startAt, slot.timezone) === date)!.startAt,
+                      branch?.timezone ?? 'Asia/Jakarta',
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
               <label className="grid gap-2 text-sm font-semibold">
@@ -177,15 +242,7 @@ export function PublicClassesView({
                     setSlots([]);
                     setDay('');
                     setClassType('');
-                    const query = new URLSearchParams(window.location.search);
-                    if (value) query.set('branch', value);
-                    else query.delete('branch');
-                    query.delete('studio');
-                    window.history.replaceState(
-                      window.history.state,
-                      '',
-                      `${window.location.pathname}${query.size ? `?${query}` : ''}${window.location.hash}`,
-                    );
+                    updateQuery({ branch: value, studio: '', date: '', classType: '' });
                     if (value) void load(value);
                   }}
                 >
@@ -205,7 +262,10 @@ export function PublicClassesView({
                   type="date"
                   value={day}
                   disabled={!branchId}
-                  onChange={(event) => setDay(event.target.value)}
+                  onChange={(event) => {
+                    setDay(event.target.value);
+                    updateQuery({ date: event.target.value });
+                  }}
                 />
               </label>
               <label className="grid gap-2 text-sm font-semibold">
@@ -215,7 +275,10 @@ export function PublicClassesView({
                   aria-label="Tipe kelas"
                   value={classType}
                   disabled={!branchId}
-                  onChange={(event) => setClassType(event.target.value)}
+                  onChange={(event) => {
+                    setClassType(event.target.value);
+                    updateQuery({ classType: event.target.value });
+                  }}
                 >
                   <option value="">Semua tipe</option>
                   {classTypes.map((item) => (
@@ -232,6 +295,7 @@ export function PublicClassesView({
                 onClick={() => {
                   setDay('');
                   setClassType('');
+                  updateQuery({ date: '', classType: '' });
                 }}
               >
                 Reset filter
@@ -307,7 +371,8 @@ export function PublicClassesView({
                               {timeLabel(slot.startAt, slot.timezone)}
                             </strong>
                             <span className="text-sm text-dd-muted">
-                              sampai {timeLabel(slot.endAt, slot.timezone)}
+                              sampai {timeLabel(slot.endAt, slot.timezone)} ·{' '}
+                              {durationLabel(slot.startAt, slot.endAt)}
                             </span>
                           </div>
                           <div>
@@ -322,6 +387,11 @@ export function PublicClassesView({
                                 ? 'Kelas dikonfirmasi'
                                 : 'Terbuka untuk booking'}
                             </p>
+                            {slot.instructor?.displayName && (
+                              <p className="mt-1 text-xs font-semibold text-dd-muted">
+                                Instruktur · {slot.instructor.displayName}
+                              </p>
+                            )}
                             <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
                               <Link
                                 href={`/schedule/${slot.id}`}
@@ -346,7 +416,9 @@ export function PublicClassesView({
                           <div>
                             <span className="block text-xs text-dd-muted">Ketersediaan</span>
                             <strong className="mt-1 block">
-                              {slot.available > 0 ? `${slot.available} tempat` : 'Penuh'}
+                              {slot.available > 0
+                                ? `${slot.available}/${slot.capacity} tempat`
+                                : `Penuh · 0/${slot.capacity}`}
                             </strong>
                           </div>
                           <a
@@ -364,7 +436,13 @@ export function PublicClassesView({
                                 : undefined
                             }
                           >
-                            {slot.available > 0 ? 'Pilih kelas' : 'Penuh'}
+                            {slot.available < 1
+                              ? 'Penuh'
+                              : session?.roles.some((role) => role !== 'CUSTOMER')
+                                ? 'Buka workspace kelas'
+                                : session && session.identityVerificationStatus !== 'APPROVED'
+                                  ? 'Selesaikan verifikasi'
+                                  : 'Lanjutkan booking'}
                           </a>
                         </article>
                       ))}

@@ -24,6 +24,7 @@ import {
 import { Feedback, PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { InviteUserDrawer, roleLabels, roleSummary, statusLabels } from './user-admin-controls';
+import { controlClassName } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
   CONFIGURATION_REQUIRED: 'Layanan identitas belum dapat dihubungi.',
@@ -51,8 +52,14 @@ export function UsersView({
 }) {
   const context = useSessionContext();
   const capabilities = capabilitiesOverride ?? context?.session?.capabilities ?? [];
+  const globalCapabilities =
+    capabilitiesOverride ??
+    context?.session?.globalCapabilities ??
+    (capabilities.includes('branch:all') ? capabilities : []);
   const sessionReady = Boolean(capabilitiesOverride || context?.session);
   const canAdmin = sessionReady && capabilities.includes('user:admin');
+  const canViewCustomers = sessionReady && globalCapabilities.includes('user:read');
+  const canReadIdentity = sessionReady && globalCapabilities.includes('identity-verification:read');
   const branches = context?.session?.branches ?? [];
   const [items, setItems] = useState<UserSummary[]>([]);
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
@@ -66,6 +73,12 @@ export function UsersView({
   const [status, setStatus] = useState(() => queryValue('status'));
   const [role, setRole] = useState(() => queryValue('role'));
   const [branchId, setBranchId] = useState(() => queryValue('branchId'));
+  const [audience, setAudience] = useState<'STAFF' | 'CUSTOMER'>(() =>
+    queryValue('audience') === 'CUSTOMER' ? 'CUSTOMER' : 'STAFF',
+  );
+  const [verificationStatus, setVerificationStatus] = useState(() =>
+    queryValue('verificationStatus'),
+  );
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string>();
   const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
@@ -82,6 +95,11 @@ export function UsersView({
           search: search || undefined,
           status: (status || undefined) as UserSummary['status'] | undefined,
           role: (role || undefined) as ApplicationRole | undefined,
+          audience,
+          verificationStatus:
+            audience === 'CUSTOMER' && canReadIdentity
+              ? (verificationStatus as 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED') || undefined
+              : undefined,
         }),
         client.roleCatalog(),
       ]);
@@ -94,9 +112,23 @@ export function UsersView({
     } finally {
       setLoading(false);
     }
-  }, [branchId, client, cursor, role, search, status]);
+  }, [
+    audience,
+    branchId,
+    canReadIdentity,
+    client,
+    cursor,
+    role,
+    search,
+    status,
+    verificationStatus,
+  ]);
 
   useEffect(() => void load(), [load]);
+
+  useEffect(() => {
+    if (sessionReady && audience === 'CUSTOMER' && !canViewCustomers) setAudience('STAFF');
+  }, [audience, canViewCustomers, sessionReady]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -105,9 +137,12 @@ export function UsersView({
     if (status) params.set('status', status);
     if (role) params.set('role', role);
     if (branchId) params.set('branchId', branchId);
+    if (audience === 'CUSTOMER') params.set('audience', audience);
+    if (verificationStatus && audience === 'CUSTOMER')
+      params.set('verificationStatus', verificationStatus);
     const query = params.toString();
     window.history.replaceState(window.history.state, '', `/users${query ? `?${query}` : ''}`);
-  }, [branchId, role, search, status]);
+  }, [audience, branchId, role, search, status, verificationStatus]);
 
   const assignable = useMemo(() => catalog.filter((item) => item.assignable), [catalog]);
   const resetPage = () => {
@@ -155,6 +190,42 @@ export function UsersView({
         </div>
       </div>
 
+      <div
+        className="flex gap-2 border-b border-dd-line"
+        role="tablist"
+        aria-label="Jenis pengguna"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={audience === 'STAFF'}
+          className={`border-b-2 px-4 py-3 text-sm font-bold ${audience === 'STAFF' ? 'border-dd-forest text-dd-forest' : 'border-transparent text-dd-muted'}`}
+          onClick={() => {
+            setAudience('STAFF');
+            setVerificationStatus('');
+            resetPage();
+          }}
+        >
+          Staf
+        </button>
+        {canViewCustomers && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={audience === 'CUSTOMER'}
+            className={`border-b-2 px-4 py-3 text-sm font-bold ${audience === 'CUSTOMER' ? 'border-dd-forest text-dd-forest' : 'border-transparent text-dd-muted'}`}
+            onClick={() => {
+              setAudience('CUSTOMER');
+              setRole('');
+              setBranchId('');
+              resetPage();
+            }}
+          >
+            Customer
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Ringkasan pengguna">
         <SummaryFilterCard
           label="Total pengguna"
@@ -192,6 +263,7 @@ export function UsersView({
         <label className="text-sm font-bold text-dd-ink">
           Cari nama
           <input
+            className={controlClassName}
             value={draftSearch}
             onChange={(event) => setDraftSearch(event.target.value)}
             placeholder="Nama pengguna"
@@ -200,6 +272,7 @@ export function UsersView({
         <label className="text-sm font-bold text-dd-ink">
           Status
           <select
+            className={controlClassName}
             value={status}
             onChange={(event) => {
               setStatus(event.target.value);
@@ -212,27 +285,31 @@ export function UsersView({
             <option value="INACTIVE">Nonaktif</option>
           </select>
         </label>
-        <label className="text-sm font-bold text-dd-ink">
-          Role
-          <select
-            value={role}
-            onChange={(event) => {
-              setRole(event.target.value);
-              resetPage();
-            }}
-          >
-            <option value="">Semua role</option>
-            {catalog.map((item) => (
-              <option key={item.role} value={item.role}>
-                {roleLabels[item.role]}
-              </option>
-            ))}
-          </select>
-        </label>
-        {branches.length > 0 && (
+        {audience === 'STAFF' && (
+          <label className="text-sm font-bold text-dd-ink">
+            Role
+            <select
+              className={controlClassName}
+              value={role}
+              onChange={(event) => {
+                setRole(event.target.value);
+                resetPage();
+              }}
+            >
+              <option value="">Semua role</option>
+              {catalog.map((item) => (
+                <option key={item.role} value={item.role}>
+                  {roleLabels[item.role]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {audience === 'STAFF' && branches.length > 0 && (
           <label className="text-sm font-bold text-dd-ink">
             Cabang
             <select
+              className={controlClassName}
               value={branchId}
               onChange={(event) => {
                 setBranchId(event.target.value);
@@ -248,6 +325,24 @@ export function UsersView({
             </select>
           </label>
         )}
+        {audience === 'CUSTOMER' && canReadIdentity && (
+          <label className="text-sm font-bold text-dd-ink">
+            Status verifikasi
+            <select
+              className={controlClassName}
+              value={verificationStatus}
+              onChange={(event) => {
+                setVerificationStatus(event.target.value);
+                resetPage();
+              }}
+            >
+              <option value="">Semua status</option>
+              <option value="PENDING">Menunggu pemeriksaan</option>
+              <option value="ACTION_REQUIRED">Perlu perbaikan</option>
+              <option value="APPROVED">Terverifikasi</option>
+            </select>
+          </label>
+        )}
         <Button
           onClick={() => {
             setSearch(draftSearch.trim());
@@ -256,7 +351,7 @@ export function UsersView({
         >
           Terapkan filter
         </Button>
-        {(search || status || role || branchId) && (
+        {(search || status || role || branchId || verificationStatus) && (
           <Button
             variant="quiet"
             onClick={() => {
@@ -265,6 +360,7 @@ export function UsersView({
               setStatus('');
               setRole('');
               setBranchId('');
+              setVerificationStatus('');
               resetPage();
             }}
           >
@@ -287,7 +383,11 @@ export function UsersView({
           loading={loading}
           rowKey={(user) => user.id}
           emptyTitle={
-            search || status || role || branchId ? 'Tidak ada hasil filter' : 'Belum ada pengguna'
+            search || status || role || branchId || verificationStatus
+              ? 'Tidak ada hasil filter'
+              : audience === 'CUSTOMER'
+                ? 'Belum ada customer'
+                : 'Belum ada staf'
           }
           emptyDescription="Ubah filter atau buat pengguna internal sesuai scope yang tersedia."
           columns={[
@@ -327,16 +427,23 @@ export function UsersView({
             },
             {
               id: 'role',
-              header: 'Role',
-              cell: (user) => roleSummary(user.roles).join(', ') || 'Belum ada role',
+              header: audience === 'CUSTOMER' ? 'Verifikasi' : 'Role',
+              cell: (user) =>
+                audience === 'CUSTOMER'
+                  ? verificationLabel(user.identityVerification?.status)
+                  : roleSummary(user.roles).join(', ') || 'Belum ada role',
             },
             {
               id: 'scope',
-              header: 'Scope',
+              header: audience === 'CUSTOMER' ? 'Dokumen' : 'Scope',
               cell: (user) =>
-                [...new Set(user.roles.map((item) => item.branch?.name).filter(Boolean))].join(
-                  ', ',
-                ) || 'Global',
+                audience === 'CUSTOMER'
+                  ? user.identityVerification
+                    ? `${user.identityVerification.documents.length}/2 tersedia`
+                    : 'Status privat'
+                  : [...new Set(user.roles.map((item) => item.branch?.name).filter(Boolean))].join(
+                      ', ',
+                    ) || 'Global',
             },
             {
               id: 'action',
@@ -352,7 +459,9 @@ export function UsersView({
                   {user.displayName}
                 </Link>
                 <p className="mt-1 text-sm text-dd-muted">
-                  {roleSummary(user.roles).join(', ') || 'Belum ada role'}
+                  {audience === 'CUSTOMER'
+                    ? verificationLabel(user.identityVerification?.status)
+                    : roleSummary(user.roles).join(', ') || 'Belum ada role'}
                 </p>
                 <div className="mt-3">
                   <Badge
@@ -472,7 +581,7 @@ function UserActions({ user, canAdmin }: { user: UserSummary; canAdmin: boolean 
         >
           Lihat detail
         </Link>
-        {canAdmin && (
+        {canAdmin && user.audience === 'STAFF' && (
           <>
             <Link
               className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
@@ -507,4 +616,11 @@ function UserActions({ user, canAdmin }: { user: UserSummary; canAdmin: boolean 
       </div>
     </details>
   );
+}
+
+function verificationLabel(status?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED') {
+  if (status === 'APPROVED') return 'Terverifikasi';
+  if (status === 'ACTION_REQUIRED') return 'Perlu perbaikan';
+  if (status === 'PENDING') return 'Menunggu pemeriksaan';
+  return 'Tidak dapat dilihat';
 }

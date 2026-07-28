@@ -10,6 +10,7 @@ export interface ObjectStorageProvider {
   issuePrivateUpload(): { objectKey: string; uploadReference: string };
   storePrivateObject(objectKey: string, bytes: Buffer): Promise<void>;
   readPrivateObject(objectKey: string): Promise<Buffer>;
+  existsPrivateObject(objectKey: string): Promise<boolean>;
   deletePrivateObject(objectKey: string): Promise<void>;
   authorizePrivateDownload(objectKey: string): { url: string; expiresAt: string };
 }
@@ -57,6 +58,15 @@ export class ConfigGatedObjectStorageProvider implements ObjectStorageProvider {
     for await (const chunk of stream)
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     return Buffer.concat(chunks);
+  }
+  async existsPrivateObject(objectKey: string) {
+    if (this.privateFiles) return this.storage().exists(objectKey);
+    try {
+      await readFile(resolve(this.fallbackDirectory(), digest(objectKey)));
+      return true;
+    } catch {
+      return false;
+    }
   }
   async deletePrivateObject(objectKey: string) {
     if (this.privateFiles) {

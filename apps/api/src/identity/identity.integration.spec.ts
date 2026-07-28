@@ -44,8 +44,11 @@ databaseDescribe('identity MySQL integration', () => {
   let reviewQueries: IdentityReviewQueryService;
   let assignments: AssignmentService;
   let users: UserAdministrationService;
+  let previousRbacPolicySource: string | undefined;
 
   beforeAll(async () => {
+    previousRbacPolicySource = process.env.RBAC_POLICY_SOURCE;
+    process.env.RBAC_POLICY_SOURCE = 'static';
     process.env.NODE_ENV = 'test';
     process.env.AUTH_SYNTHETIC_ENABLED = 'true';
     process.env.AUTH_SYNTHETIC_OTP_CODE = '123456';
@@ -173,6 +176,8 @@ databaseDescribe('identity MySQL integration', () => {
       },
     });
     await db.$disconnect();
+    if (previousRbacPolicySource === undefined) delete process.env.RBAC_POLICY_SOURCE;
+    else process.env.RBAC_POLICY_SOURCE = previousRbacPolicySource;
   });
 
   const principal = {
@@ -186,7 +191,8 @@ databaseDescribe('identity MySQL integration', () => {
       'branch:all',
       'assignment:read',
       'assignment:manage',
-      'identity-verification:review',
+      'identity-verification:read',
+      'identity-verification:decide',
     ],
     branchIds: [branchId],
   };
@@ -560,7 +566,7 @@ databaseDescribe('identity MySQL integration', () => {
         }),
       ),
     ).not.toContain('raw operational reason');
-    expect((await assignments.list(principal, branchId)).items).toHaveLength(1);
+    expect((await assignments.list(principal, { branchId })).items).toHaveLength(1);
   });
 
   it('rejects overlap and permits only one concurrent create without partial projection', async () => {

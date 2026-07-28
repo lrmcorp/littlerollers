@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // NotificationDeliveryMetrics metrics
+    test('to test the property `metrics`', () async {
+      // TODO
+    });
+
     // CursorPageMeta page
     test('to test the property `page`', () async {
       // TODO

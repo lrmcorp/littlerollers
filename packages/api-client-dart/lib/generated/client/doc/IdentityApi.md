@@ -22,6 +22,7 @@ Method | HTTP request | Description
 [**getPublicSiteConfig**](IdentityApi.md#getpublicsiteconfig) | **GET** /public/site-config | 
 [**getRoleCatalog**](IdentityApi.md#getrolecatalog) | **GET** /users/role-catalog | 
 [**getUser**](IdentityApi.md#getuser) | **GET** /users/{id} | 
+[**getUserIdentityVerification**](IdentityApi.md#getuseridentityverification) | **GET** /users/{id}/identity-verification | 
 [**inviteUser**](IdentityApi.md#inviteuser) | **POST** /users | 
 [**listAssignments**](IdentityApi.md#listassignments) | **GET** /assignments | 
 [**listIdentityVerifications**](IdentityApi.md#listidentityverifications) | **GET** /identity-verifications | 
@@ -494,6 +495,8 @@ No authorization required
 
 
 
+Compatibility projection of active system roles from the database-managed catalog.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';
@@ -567,6 +570,49 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getUserIdentityVerification**
+> IdentityVerificationReviewCase getUserIdentityVerification(id)
+
+
+
+Global reviewer-only identity summary for one customer. File content remains behind single-use authorization.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getUserIdentityVerification(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->getUserIdentityVerification: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**IdentityVerificationReviewCase**](IdentityVerificationReviewCase.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **inviteUser**
 > Resource inviteUser(inviteUserRequest)
 
@@ -609,11 +655,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listAssignments**
-> AssignmentPage listAssignments(branchId, cursor)
+> AssignmentPage listAssignments(branchId, q, type, status, cursor, limit)
 
 
 
-Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
+Returns a capability-scoped assignment management projection. Omitted branchId means all authorized branches.
 
 ### Example
 ```dart
@@ -621,10 +667,14 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String q = q_example; // String | 
+final String type = type_example; // String | 
+final String status = status_example; // String | 
 final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listAssignments(branchId, cursor);
+    final response = api.listAssignments(branchId, q, type, status, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->listAssignments: $e\n');
@@ -636,7 +686,11 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **q** | **String**|  | [optional] 
+ **type** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
  **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
@@ -654,7 +708,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listIdentityVerifications**
-> IdentityVerificationReviewPage listIdentityVerifications(q, status, kind, scanStatus, from, until, cursor, limit)
+> IdentityVerificationReviewPage listIdentityVerifications(q, customerUserId, status, kind, scanStatus, from, until, cursor, limit)
 
 
 
@@ -664,6 +718,7 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
 final String q = q_example; // String | 
+final String customerUserId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String status = status_example; // String | 
 final String kind = kind_example; // String | 
 final String scanStatus = scanStatus_example; // String | 
@@ -673,7 +728,7 @@ final String cursor = cursor_example; // String |
 final int limit = 56; // int | 
 
 try {
-    final response = api.listIdentityVerifications(q, status, kind, scanStatus, from, until, cursor, limit);
+    final response = api.listIdentityVerifications(q, customerUserId, status, kind, scanStatus, from, until, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->listIdentityVerifications: $e\n');
@@ -685,6 +740,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **q** | **String**|  | [optional] 
+ **customerUserId** | **String**|  | [optional] 
  **status** | **String**|  | [optional] 
  **kind** | **String**|  | [optional] 
  **scanStatus** | **String**|  | [optional] 
@@ -752,7 +808,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listUsers**
-> UserPage listUsers(cursor, branchId, search, status, role)
+> UserPage listUsers(cursor, branchId, search, status, role, audience, verificationStatus)
 
 
 
@@ -766,9 +822,11 @@ final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter
 final String search = search_example; // String | 
 final String status = status_example; // String | 
 final Role role = ; // Role | 
+final String audience = audience_example; // String | 
+final String verificationStatus = verificationStatus_example; // String | 
 
 try {
-    final response = api.listUsers(cursor, branchId, search, status, role);
+    final response = api.listUsers(cursor, branchId, search, status, role, audience, verificationStatus);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->listUsers: $e\n');
@@ -784,6 +842,8 @@ Name | Type | Description  | Notes
  **search** | **String**|  | [optional] 
  **status** | **String**|  | [optional] 
  **role** | [**Role**](.md)|  | [optional] 
+ **audience** | **String**|  | [optional] [default to 'STAFF']
+ **verificationStatus** | **String**|  | [optional] 
 
 ### Return type
 

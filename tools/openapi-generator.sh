@@ -38,6 +38,14 @@ if [ -n "${OPENAPI_GENERATOR_JAR:-}" ]; then
     -i docs/technical/openapi-v1.yaml -g dart-dio \
     -o "$LOCAL_DART_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
 else
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "OpenAPI generator belum dikonfigurasi: set OPENAPI_GENERATOR_JAR ke openapi-generator-cli v7.15.0 atau pasang Docker." >&2
+    exit 2
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "OpenAPI generator lokal tidak dapat mengakses Docker. Set OPENAPI_GENERATOR_JAR dan OPENAPI_GENERATOR_JAVA untuk workflow tanpa Docker." >&2
+    exit 2
+  fi
   docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/local" "$IMAGE" generate \
     -i /local/docs/technical/openapi-v1.yaml -g typescript-fetch \
     -o "$TS_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
@@ -51,6 +59,14 @@ fi
 # outputs use a different language version from their source libraries.
 sed -i.bak "s/sdk: '>=2.18.0 <4.0.0'/sdk: '>=3.10.4 <4.0.0'/" "$DART_PUBSPEC"
 rm -f "$DART_PUBSPEC.bak"
+
+# OpenAPI Generator 7.15 emits a direct assignment for this nested built_value
+# builder. Normalize it for Dart 3.10 in both sync and drift-generation modes.
+CUSTOMER_BOOKING_OPTIONS="$LOCAL_DART_OUTPUT/lib/src/model/customer_booking_options.dart"
+if [ -f "$CUSTOMER_BOOKING_OPTIONS" ]; then
+  sed -i.bak 's/result\.slot = valueDes;/result.slot.replace(valueDes);/' "$CUSTOMER_BOOKING_OPTIONS"
+  rm -f "$CUSTOMER_BOOKING_OPTIONS.bak"
+fi
 
 if [ "$MODE" = sync ]; then
   # Publish only after both generators complete successfully. OpenAPI Generator

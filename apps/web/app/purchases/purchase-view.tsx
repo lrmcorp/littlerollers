@@ -11,6 +11,7 @@ import {
 import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import type { PaymentProof, Purchase } from '@dailydose/api-client-ts/generated';
+import { controlClassName } from '../components/forms';
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
 const scanLabels: Record<string, string> = {
@@ -155,6 +156,7 @@ export function PurchaseView({
               key={item.id}
             >
               <input
+                className={controlClassName}
                 type="radio"
                 name="package"
                 value={item.id}
@@ -229,6 +231,7 @@ export function PurchaseView({
           <label>
             {purchase ? 'Bukti pengganti' : 'Bukti pembayaran'}
             <input
+              className={controlClassName}
               name="proof"
               type="file"
               accept="image/png,image/jpeg,application/pdf"

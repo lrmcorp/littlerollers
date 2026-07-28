@@ -3,7 +3,7 @@ import { type ApplicationRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { canonicalEmailHash, normalizeEmail } from './credential-security';
-import { ResendPasswordEmailProvider } from './email-provider';
+import { QueuedPasswordEmailProvider } from './email-provider';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { RateLimitService } from './rate-limit.service';
@@ -15,7 +15,7 @@ export class UserAdministrationService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly rateLimit: RateLimitService,
-    private readonly passwordEmail: ResendPasswordEmailProvider,
+    private readonly passwordEmail: QueuedPasswordEmailProvider,
     @Optional() private readonly idempotency?: IdempotencyService,
   ) {}
 
@@ -74,10 +74,22 @@ export class UserAdministrationService {
       search?: string;
       status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
       role?: ApplicationRole;
+      audience?: 'STAFF' | 'CUSTOMER';
+      verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
     },
   ) {
-    this.policy.requireCapability(principal.capabilities, 'user:read');
-    const { branchId, cursor, search, status, role } = filters;
+    const audience = filters.audience ?? 'STAFF';
+    const canReadVerification = this.policy.hasGlobalCapability(
+      principal,
+      'identity-verification:read',
+    );
+    if (audience === 'CUSTOMER') this.policy.requireGlobalCapability(principal, 'user:read');
+    else this.policy.requireCapability(principal.capabilities, 'user:read');
+    const { branchId, cursor, search, status, role, verificationStatus } = filters;
+    if (audience === 'CUSTOMER' && (branchId || (role && role !== 'CUSTOMER')))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (verificationStatus && (audience !== 'CUSTOMER' || !canReadVerification))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     if (
       branchId &&
       !principal.capabilities.includes('branch:all') &&
@@ -92,17 +104,26 @@ export class UserAdministrationService {
     };
     const scopedWhere: Prisma.UserWhereInput = {
       ...(search?.trim() ? { displayName: { contains: search.trim() } } : {}),
-      ...(principal.capabilities.includes('branch:all')
-        ? role || branchId
-          ? { roles: { some: roleWhere } }
-          : {}
+      ...(audience === 'CUSTOMER'
+        ? {
+            roles: { some: { ...this.activeRoleWhere(), role: 'CUSTOMER' } },
+            ...verificationWhere(verificationStatus),
+          }
         : {
-            roles: {
-              some: {
-                ...roleWhere,
-                branchId: { in: allowedBranches },
-              },
-            },
+            roles: principal.capabilities.includes('branch:all')
+              ? {
+                  some: {
+                    ...roleWhere,
+                    ...(role ? {} : { role: { not: 'CUSTOMER' as const } }),
+                  },
+                }
+              : {
+                  some: {
+                    ...roleWhere,
+                    role: role ?? { not: 'CUSTOMER' as const },
+                    branchId: { in: allowedBranches },
+                  },
+                },
           }),
     };
     const [users, total, active, pendingActivation, inactive] = await Promise.all([
@@ -118,6 +139,10 @@ export class UserAdministrationService {
             include: { branch: { select: { id: true, code: true, name: true } } },
             orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
           },
+          identityDocuments: {
+            where: { replacedById: null },
+            orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }],
+          },
         },
         take: 21,
         orderBy: { id: 'asc' },
@@ -130,7 +155,7 @@ export class UserAdministrationService {
     const hasMore = users.length > 20;
     const page = users.slice(0, 20);
     return {
-      items: page.map((user) => this.userView(user)),
+      items: page.map((user) => this.userView(user, canReadVerification)),
       page: { nextCursor: hasMore ? page.at(-1)?.id : null, hasMore },
       summary: { total, active, pendingActivation, inactive },
     };
@@ -223,15 +248,25 @@ export class UserAdministrationService {
           include: { branch: { select: { id: true, code: true, name: true } } },
           orderBy: [{ role: 'asc' }, { branchId: 'asc' }],
         },
+        identityDocuments: {
+          where: { replacedById: null },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
       },
     });
+    const customerAudience = user?.roles.some(({ role }) => role === 'CUSTOMER') ?? false;
     if (
       !user ||
-      (!principal.capabilities.includes('branch:all') &&
-        !user.roles.some(({ branchId }) => branchId && principal.branchIds.includes(branchId)))
+      (customerAudience
+        ? !this.policy.hasGlobalCapability(principal, 'user:read')
+        : !principal.capabilities.includes('branch:all') &&
+          !user.roles.some(({ branchId }) => branchId && principal.branchIds.includes(branchId)))
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    return this.userView(user);
+    return this.userView(
+      user,
+      customerAudience && this.policy.hasGlobalCapability(principal, 'identity-verification:read'),
+    );
   }
 
   async updateUserProfile(
@@ -314,6 +349,8 @@ export class UserAdministrationService {
     correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (process.env.RBAC_POLICY_SOURCE === 'database')
+      this.policy.requireScopedCapability(principal, 'role-permission:manage');
     const legacyBranchIds = [...new Set(input.branchIds ?? [])];
     const roleAssignments = input.roleAssignments?.length
       ? input.roleAssignments.map(({ role, branchId }) => ({ role, branchId: branchId ?? null }))
@@ -473,6 +510,10 @@ export class UserAdministrationService {
     correlationId: string,
     idempotencyKey?: string,
   ) {
+    if (process.env.RBAC_POLICY_SOURCE === 'database') {
+      this.policy.requireScopedCapability(principal, 'role-permission:manage');
+      throw new ApiProblem('PROTECTED_ROLE_CHANGE', HttpStatus.CONFLICT);
+    }
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     if (!idempotencyKey?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -590,8 +631,34 @@ export class UserAdministrationService {
     if (!reason.trim() || !Number.isInteger(expectedVersion))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(async (tx) => {
-      const before = await tx.user.findUnique({ where: { id: targetId } });
+      const before = await tx.user.findUnique({
+        where: { id: targetId },
+        include: {
+          roles: {
+            where: {
+              role: 'SUPER_OWNER',
+              activeFrom: { lte: new Date() },
+              OR: [{ activeUntil: null }, { activeUntil: { gt: new Date() } }],
+            },
+          },
+        },
+      });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      if (before.roles.length) {
+        const otherActiveSuperOwners = await tx.userRole.findMany({
+          where: {
+            userId: { not: targetId },
+            role: 'SUPER_OWNER',
+            activeFrom: { lte: new Date() },
+            OR: [{ activeUntil: null }, { activeUntil: { gt: new Date() } }],
+            user: { status: 'ACTIVE' },
+          },
+          distinct: ['userId'],
+          select: { userId: true },
+        });
+        if (!otherActiveSuperOwners.length)
+          throw new ApiProblem('LAST_SUPER_OWNER', HttpStatus.CONFLICT);
+      }
       const changed = await tx.user.updateMany({
         where: { id: targetId, version: expectedVersion, status: { not: 'INACTIVE' } },
         data: { status: 'INACTIVE', version: { increment: 1 } },
@@ -737,27 +804,41 @@ export class UserAdministrationService {
     };
   }
 
-  private userView(user: {
-    id: string;
-    displayName: string;
-    phoneE164?: string | null;
-    status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
-    version: number;
-    createdAt: Date;
-    updatedAt: Date;
-    roles: {
-      role: ApplicationRole;
-      branchId: string | null;
-      sourceAssignmentId: string | null;
-      branch: { id: string; code: string; name: string } | null;
-    }[];
-  }) {
+  private userView(
+    user: {
+      id: string;
+      displayName: string;
+      phoneE164?: string | null;
+      status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+      version: number;
+      createdAt: Date;
+      updatedAt: Date;
+      roles: {
+        role: ApplicationRole;
+        branchId: string | null;
+        sourceAssignmentId: string | null;
+        branch: { id: string; code: string; name: string } | null;
+      }[];
+      identityDocuments?: Array<{
+        kind: 'SELFIE' | 'KTP_FRONT';
+        status: string;
+        uploadStatus: string;
+        scanStatus: string;
+        rejectionReasonCode: string | null;
+        uploadedAt: Date | null;
+        reviewedAt: Date | null;
+        updatedAt: Date;
+      }>;
+    },
+    includeVerification = false,
+  ) {
     const roles = user.roles.map(({ role, branchId, sourceAssignmentId, branch }) => ({
       role,
       branchId,
       branch,
       source: sourceAssignmentId ? ('ASSIGNMENT' as const) : ('DIRECT' as const),
     }));
+    const audience = roles.some(({ role }) => role === 'CUSTOMER') ? 'CUSTOMER' : 'STAFF';
     return {
       id: user.id,
       displayName: user.displayName,
@@ -770,6 +851,74 @@ export class UserAdministrationService {
       directRoles: roles.filter(({ source }) => source === 'DIRECT'),
       assignmentRoles: roles.filter(({ source }) => source === 'ASSIGNMENT'),
       effectiveCapabilities: this.policy.capabilities(user.roles),
+      audience,
+      ...(includeVerification && audience === 'CUSTOMER'
+        ? { identityVerification: identityVerificationSummary(user.identityDocuments ?? []) }
+        : {}),
     };
   }
+}
+
+function verificationWhere(status?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED') {
+  if (!status) return {};
+  const approved = {
+    AND: [
+      {
+        identityDocuments: {
+          some: { replacedById: null, kind: 'SELFIE' as const, status: 'APPROVED' as const },
+        },
+      },
+      {
+        identityDocuments: {
+          some: { replacedById: null, kind: 'KTP_FRONT' as const, status: 'APPROVED' as const },
+        },
+      },
+    ],
+  };
+  if (status === 'APPROVED') return approved;
+  if (status === 'ACTION_REQUIRED')
+    return {
+      identityDocuments: { some: { replacedById: null, status: 'REJECTED' as const } },
+    };
+  return {
+    AND: [
+      { identityDocuments: { none: { replacedById: null, status: 'REJECTED' as const } } },
+      { NOT: approved },
+    ],
+  };
+}
+
+function identityVerificationSummary(
+  documents: Array<{
+    kind: 'SELFIE' | 'KTP_FRONT';
+    status: string;
+    uploadStatus: string;
+    scanStatus: string;
+    rejectionReasonCode: string | null;
+    uploadedAt: Date | null;
+    reviewedAt: Date | null;
+    updatedAt: Date;
+  }>,
+) {
+  const active = [...new Map(documents.map((item) => [item.kind, item])).values()];
+  const status = ['SELFIE', 'KTP_FRONT'].every((kind) =>
+    active.some((document) => document.kind === kind && document.status === 'APPROVED'),
+  )
+    ? 'APPROVED'
+    : active.some((document) => document.status === 'REJECTED')
+      ? 'ACTION_REQUIRED'
+      : 'PENDING';
+  return {
+    status,
+    documents: active.map((document) => ({
+      kind: document.kind,
+      status: document.status,
+      uploadStatus: document.uploadStatus,
+      scanStatus: document.scanStatus,
+      rejectionReasonCode: document.rejectionReasonCode,
+      uploadedAt: document.uploadedAt?.toISOString() ?? null,
+      reviewedAt: document.reviewedAt?.toISOString() ?? null,
+      updatedAt: document.updatedAt.toISOString(),
+    })),
+  };
 }

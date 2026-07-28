@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/adjustment_customer.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
@@ -10,7 +11,7 @@ import 'package:built_value/serializer.dart';
 
 part 'customer_package_balance.g.dart';
 
-/// Authoritative balance. Safe customer labels may accompany identifiers.
+/// Authoritative balance. Internal scoped responses include a safe customer projection.
 ///
 /// Properties:
 /// * [id] 
@@ -18,6 +19,7 @@ part 'customer_package_balance.g.dart';
 /// * [customerUserId] 
 /// * [packageId] 
 /// * [classTypeId] 
+/// * [customer] 
 /// * [packageName] 
 /// * [branchName] 
 /// * [classTypeName] 
@@ -48,6 +50,9 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'customer')
+  AdjustmentCustomer? get customer;
 
   @BuiltValueField(wireName: r'packageName')
   String? get packageName;
@@ -140,6 +145,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    if (object.customer != null) {
+      yield r'customer';
+      yield serializers.serialize(
+        object.customer,
+        specifiedType: const FullType(AdjustmentCustomer),
+      );
+    }
     if (object.packageName != null) {
       yield r'packageName';
       yield serializers.serialize(
@@ -273,6 +285,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(String),
           ) as String;
           result.classTypeId = valueDes;
+          break;
+        case r'customer':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentCustomer),
+          ) as AdjustmentCustomer;
+          result.customer.replace(valueDes);
           break;
         case r'packageName':
           final valueDes = serializers.deserialize(

@@ -85,7 +85,19 @@ class _$CheckInResult extends CheckInResult {
   @override
   final String auditLogId;
   @override
+  final String auditReference;
+  @override
   final bool idempotentReplay;
+  @override
+  final String? customerName;
+  @override
+  final String? className;
+  @override
+  final CheckInResultBranch? branch;
+  @override
+  final DateTime? startAt;
+  @override
+  final DateTime? endAt;
 
   factory _$CheckInResult([void Function(CheckInResultBuilder)? updates]) =>
       (CheckInResultBuilder()..update(updates))._build();
@@ -97,7 +109,13 @@ class _$CheckInResult extends CheckInResult {
     this.status,
     required this.checkedInAt,
     required this.auditLogId,
+    required this.auditReference,
     required this.idempotentReplay,
+    this.customerName,
+    this.className,
+    this.branch,
+    this.startAt,
+    this.endAt,
   }) : super._();
   @override
   CheckInResult rebuild(void Function(CheckInResultBuilder) updates) =>
@@ -116,7 +134,13 @@ class _$CheckInResult extends CheckInResult {
         status == other.status &&
         checkedInAt == other.checkedInAt &&
         auditLogId == other.auditLogId &&
-        idempotentReplay == other.idempotentReplay;
+        auditReference == other.auditReference &&
+        idempotentReplay == other.idempotentReplay &&
+        customerName == other.customerName &&
+        className == other.className &&
+        branch == other.branch &&
+        startAt == other.startAt &&
+        endAt == other.endAt;
   }
 
   @override
@@ -128,7 +152,13 @@ class _$CheckInResult extends CheckInResult {
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, checkedInAt.hashCode);
     _$hash = $jc(_$hash, auditLogId.hashCode);
+    _$hash = $jc(_$hash, auditReference.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
+    _$hash = $jc(_$hash, customerName.hashCode);
+    _$hash = $jc(_$hash, className.hashCode);
+    _$hash = $jc(_$hash, branch.hashCode);
+    _$hash = $jc(_$hash, startAt.hashCode);
+    _$hash = $jc(_$hash, endAt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -142,7 +172,13 @@ class _$CheckInResult extends CheckInResult {
           ..add('status', status)
           ..add('checkedInAt', checkedInAt)
           ..add('auditLogId', auditLogId)
-          ..add('idempotentReplay', idempotentReplay))
+          ..add('auditReference', auditReference)
+          ..add('idempotentReplay', idempotentReplay)
+          ..add('customerName', customerName)
+          ..add('className', className)
+          ..add('branch', branch)
+          ..add('startAt', startAt)
+          ..add('endAt', endAt))
         .toString();
   }
 }
@@ -175,10 +211,36 @@ class CheckInResultBuilder
   String? get auditLogId => _$this._auditLogId;
   set auditLogId(String? auditLogId) => _$this._auditLogId = auditLogId;
 
+  String? _auditReference;
+  String? get auditReference => _$this._auditReference;
+  set auditReference(String? auditReference) =>
+      _$this._auditReference = auditReference;
+
   bool? _idempotentReplay;
   bool? get idempotentReplay => _$this._idempotentReplay;
   set idempotentReplay(bool? idempotentReplay) =>
       _$this._idempotentReplay = idempotentReplay;
+
+  String? _customerName;
+  String? get customerName => _$this._customerName;
+  set customerName(String? customerName) => _$this._customerName = customerName;
+
+  String? _className;
+  String? get className => _$this._className;
+  set className(String? className) => _$this._className = className;
+
+  CheckInResultBranchBuilder? _branch;
+  CheckInResultBranchBuilder get branch =>
+      _$this._branch ??= CheckInResultBranchBuilder();
+  set branch(CheckInResultBranchBuilder? branch) => _$this._branch = branch;
+
+  DateTime? _startAt;
+  DateTime? get startAt => _$this._startAt;
+  set startAt(DateTime? startAt) => _$this._startAt = startAt;
+
+  DateTime? _endAt;
+  DateTime? get endAt => _$this._endAt;
+  set endAt(DateTime? endAt) => _$this._endAt = endAt;
 
   CheckInResultBuilder() {
     CheckInResult._defaults(this);
@@ -193,7 +255,13 @@ class CheckInResultBuilder
       _status = $v.status;
       _checkedInAt = $v.checkedInAt;
       _auditLogId = $v.auditLogId;
+      _auditReference = $v.auditReference;
       _idempotentReplay = $v.idempotentReplay;
+      _customerName = $v.customerName;
+      _className = $v.className;
+      _branch = $v.branch?.toBuilder();
+      _startAt = $v.startAt;
+      _endAt = $v.endAt;
       _$v = null;
     }
     return this;
@@ -213,37 +281,67 @@ class CheckInResultBuilder
   CheckInResult build() => _build();
 
   _$CheckInResult _build() {
-    final _$result =
-        _$v ??
-        _$CheckInResult._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'CheckInResult', 'id'),
-          purpose: BuiltValueNullFieldError.checkNotNull(
-            purpose,
-            r'CheckInResult',
-            'purpose',
-          ),
-          resourceId: BuiltValueNullFieldError.checkNotNull(
-            resourceId,
-            r'CheckInResult',
-            'resourceId',
-          ),
-          status: status,
-          checkedInAt: BuiltValueNullFieldError.checkNotNull(
-            checkedInAt,
-            r'CheckInResult',
-            'checkedInAt',
-          ),
-          auditLogId: BuiltValueNullFieldError.checkNotNull(
-            auditLogId,
-            r'CheckInResult',
-            'auditLogId',
-          ),
-          idempotentReplay: BuiltValueNullFieldError.checkNotNull(
-            idempotentReplay,
-            r'CheckInResult',
-            'idempotentReplay',
-          ),
+    _$CheckInResult _$result;
+    try {
+      _$result =
+          _$v ??
+          _$CheckInResult._(
+            id: BuiltValueNullFieldError.checkNotNull(
+              id,
+              r'CheckInResult',
+              'id',
+            ),
+            purpose: BuiltValueNullFieldError.checkNotNull(
+              purpose,
+              r'CheckInResult',
+              'purpose',
+            ),
+            resourceId: BuiltValueNullFieldError.checkNotNull(
+              resourceId,
+              r'CheckInResult',
+              'resourceId',
+            ),
+            status: status,
+            checkedInAt: BuiltValueNullFieldError.checkNotNull(
+              checkedInAt,
+              r'CheckInResult',
+              'checkedInAt',
+            ),
+            auditLogId: BuiltValueNullFieldError.checkNotNull(
+              auditLogId,
+              r'CheckInResult',
+              'auditLogId',
+            ),
+            auditReference: BuiltValueNullFieldError.checkNotNull(
+              auditReference,
+              r'CheckInResult',
+              'auditReference',
+            ),
+            idempotentReplay: BuiltValueNullFieldError.checkNotNull(
+              idempotentReplay,
+              r'CheckInResult',
+              'idempotentReplay',
+            ),
+            customerName: customerName,
+            className: className,
+            branch: _branch?.build(),
+            startAt: startAt,
+            endAt: endAt,
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'branch';
+        _branch?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'CheckInResult',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

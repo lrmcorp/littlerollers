@@ -1,5 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { ApplicationRole, Prisma, PrismaClient, type OutboxEvent } from '@prisma/client';
+import type { RuntimeConfig } from '@dailydose/config';
+import {
+  deterministicKey,
+  encryptEnvelope,
+  hashEmail,
+  maskEmail,
+  type EmailTemplateKey,
+} from '@dailydose/notification-core';
 
 type NotificationSpec = {
   userId: string;
@@ -34,7 +42,27 @@ export class NotificationProjectionWorker {
   constructor(
     private readonly db: PrismaClient,
     private readonly pollIntervalMs = 5_000,
+    private readonly emailConfig?: RuntimeConfig['email'],
   ) {}
+
+  private templateFor(eventType: string): EmailTemplateKey | null {
+    const templates: Record<string, EmailTemplateKey> = {
+      'order.created.v1': 'ORDER_CREATED_V1',
+      'order.action-required.v1': 'ORDER_ACTION_REQUIRED_V1',
+      'purchase.approved.v1': 'ORDER_APPROVED_V1',
+      'purchase.rejected.v1': 'ORDER_REJECTED_V1',
+      'booking.created.v1': 'BOOKING_CONFIRMED_V1',
+      'booking.rescheduled.v1': 'RESCHEDULE_APPROVED_V1',
+      'booking.reschedule_rejected.v1': 'RESCHEDULE_REJECTED_V1',
+      'class.manual_cancelled.v1': 'CLASS_CANCELLED_V1',
+      'identity.verification.approved.v1': 'IDENTITY_APPROVED_V1',
+      'identity.verification.rejected.v1': 'IDENTITY_ACTION_REQUIRED_V1',
+      'session.adjustment_posted.v1': 'SESSION_ADJUSTMENT_POSTED_V1',
+      'session.adjustment_rejected.v1': 'SESSION_ADJUSTMENT_REJECTED_V1',
+      'operations.job_failed.v1': 'OPERATIONS_JOB_FAILED_V1',
+    };
+    return templates[eventType] ?? null;
+  }
 
   start(): void {
     this.timer = setInterval(() => void this.poll(), this.pollIntervalMs);
@@ -73,28 +101,36 @@ export class NotificationProjectionWorker {
       });
       if (!purchase) return [];
       if (
-        ['purchase.approved.v1', 'purchase.rejected.v1', 'order.action-required.v1'].includes(
-          event.eventType,
-        )
+        [
+          'order.created.v1',
+          'purchase.approved.v1',
+          'purchase.rejected.v1',
+          'order.action-required.v1',
+        ].includes(event.eventType)
       ) {
         const approved = event.eventType === 'purchase.approved.v1';
         const actionRequired = event.eventType === 'order.action-required.v1';
+        const created = event.eventType === 'order.created.v1';
         return [
           {
             userId: purchase.userId,
             branchId: purchase.branchId,
             category: approved ? 'PACKAGE' : 'PAYMENT',
-            tone: approved ? 'SUCCESS' : actionRequired ? 'WARNING' : 'DANGER',
-            title: approved
-              ? 'Pembayaran disetujui'
-              : actionRequired
-                ? 'Pembayaran perlu diperbaiki'
-                : 'Pembayaran ditolak',
-            message: approved
-              ? 'Paket Anda telah aktif dan siap digunakan.'
-              : actionRequired
-                ? 'Buka pesanan untuk melihat tindakan yang diperlukan.'
-                : 'Buka pesanan untuk melihat hasil pemeriksaan.',
+            tone: approved || created ? 'SUCCESS' : actionRequired ? 'WARNING' : 'DANGER',
+            title: created
+              ? 'Pesanan berhasil dibuat'
+              : approved
+                ? 'Pembayaran disetujui'
+                : actionRequired
+                  ? 'Pembayaran perlu diperbaiki'
+                  : 'Pembayaran ditolak',
+            message: created
+              ? 'Selesaikan pembayaran sebelum batas waktu pesanan.'
+              : approved
+                ? 'Paket Anda telah aktif dan siap digunakan.'
+                : actionRequired
+                  ? 'Buka pesanan untuk melihat tindakan yang diperlukan.'
+                  : 'Buka pesanan untuk melihat hasil pemeriksaan.',
             href: `/orders/${event.aggregateId}`,
           },
         ];
@@ -119,9 +155,22 @@ export class NotificationProjectionWorker {
     if (event.aggregateType === 'Booking') {
       const booking = await this.db.booking.findUnique({
         where: { id: event.aggregateId },
-        select: { customerUserId: true, branchId: true, classSlotId: true },
+        select: { id: true, customerUserId: true, branchId: true, classSlotId: true },
       });
       if (!booking) return [];
+      if (event.eventType === 'booking.reschedule_requested.v1') {
+        const recipients = await this.staffRecipients(['ADMIN', 'SUPER_OWNER'], booking.branchId);
+        return recipients.map(({ id }) => ({
+          userId: id,
+          branchId: booking.branchId,
+          category: 'APPROVAL',
+          tone: 'WARNING',
+          title: 'Reschedule menunggu keputusan',
+          message: 'Permintaan perubahan jadwal baru membutuhkan pemeriksaan.',
+          href: '/bookings?rescheduleStatus=PENDING',
+          metadataMasked: { bookingId: booking.id },
+        }));
+      }
       const copy: Record<
         string,
         [NotificationSpec['category'], NotificationSpec['tone'], string, string]
@@ -305,6 +354,55 @@ export class NotificationProjectionWorker {
             })),
             skipDuplicates: true,
           });
+          const templateKey = this.templateFor(event.eventType);
+          const encryptionKey = this.emailConfig?.encryptionKey;
+          const baseUrl = process.env.PUBLIC_WEB_BASE_URL?.trim();
+          if (templateKey && encryptionKey && baseUrl) {
+            const recipients = await tx.user.findMany({
+              where: { id: { in: specs.map(({ userId }) => userId) }, email: { not: null } },
+              select: { id: true, email: true },
+            });
+            for (const spec of specs) {
+              const user = recipients.find(({ id }) => id === spec.userId);
+              if (!user?.email) continue;
+              const recipient = this.emailConfig?.recipientOverride || user.email;
+              const occurrenceKey = deterministicKey(
+                'email',
+                event.id,
+                spec.userId,
+                templateKey,
+                1,
+              );
+              await tx.notificationOccurrence.upsert({
+                where: { occurrenceKey },
+                create: {
+                  id: randomUUID(),
+                  occurrenceKey,
+                  sourceEventId: event.id,
+                  userId: spec.userId,
+                  branchId: spec.branchId,
+                  eventType: event.eventType,
+                  templateKey,
+                  templateVersion: 1,
+                  recipientHash: hashEmail(recipient),
+                  recipientMasked: maskEmail(recipient),
+                  envelopeEncrypted: encryptEnvelope(
+                    {
+                      to: recipient,
+                      variables: {
+                        href: new URL(spec.href || '/', baseUrl).toString(),
+                        detail: spec.message,
+                      },
+                    },
+                    encryptionKey,
+                  ),
+                  maxAttempts: this.emailConfig?.maxAttempts ?? 5,
+                  correlationId: event.correlationId,
+                },
+                update: {},
+              });
+            }
+          }
         }
       });
       return true;

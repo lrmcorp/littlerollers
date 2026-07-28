@@ -82,8 +82,23 @@ export class PackagesController {
     response.setHeader('Idempotency-Replayed', String(result.replay));
     return result.body;
   }
-  @Get('orders') orders(@Req() r: AuthenticatedRequest, @Query('status') status?: string) {
-    return this.customerOrders.listOrders(r.principal, status);
+  @Get('orders') orders(
+    @Req() r: AuthenticatedRequest,
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.customerOrders.listOrders(r.principal, {
+      status,
+      q,
+      from,
+      until,
+      cursor,
+      limit,
+    });
   }
   @Get('orders/:id') order(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.customerOrders.orderDetail(r.principal, id);
@@ -99,6 +114,12 @@ export class PackagesController {
       body,
       r.correlationId ?? 'unknown',
     );
+  }
+  @Post('orders/:id/payment-proof/view-authorizations') authorizeOwnOrderProof(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.paymentReview.authorizeOwnOrderProof(r.principal, id, r.correlationId ?? 'unknown');
   }
   @Post('uploads/payment-proofs') issue(@Req() r: AuthenticatedRequest, @Body() b: any) {
     return this.paymentProof.issue(r.principal, b, r.correlationId ?? 'unknown');
@@ -126,8 +147,31 @@ export class PackagesController {
   @Get('purchases') listPurchases(
     @Req() r: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('status') status?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Query('q') q?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('purchaseId') purchaseId?: string,
   ) {
-    return this.paymentReview.list(r.principal, branchId);
+    return this.paymentReview.list(r.principal, {
+      branchId,
+      status,
+      cursor,
+      limit,
+      q,
+      from,
+      until,
+      purchaseId,
+    });
+  }
+  @Get('purchases/:id') getPurchaseReview(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('usageCursor') usageCursor?: string,
+  ) {
+    return this.paymentReview.get(r.principal, id, usageCursor);
   }
   @Post('purchases') async submit(
     @Req() r: AuthenticatedRequest,
@@ -156,24 +200,30 @@ export class PackagesController {
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.paymentReview.authorizeProofDownload(r.principal, id);
+    return this.paymentReview.authorizeProofDownload(r.principal, id, r.correlationId ?? 'unknown');
   }
-  @Get('uploads/payment-proofs/:id/content-view') async viewProof(
+  @Get('uploads/payment-proofs/view-authorizations/:id/content') async viewProof(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Res() response: Response,
   ) {
-    const result = await this.paymentReview.viewProofContent(r.principal, id);
+    const result = await this.paymentReview.viewProofContent(
+      r.principal,
+      id,
+      r.correlationId ?? 'unknown',
+    );
     response.setHeader('Content-Type', result.mimeType);
     response.setHeader('Cache-Control', 'private, no-store');
     response.setHeader('Content-Disposition', 'inline');
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('Referrer-Policy', 'no-referrer');
     response.send(result.bytes);
   }
   @Post('purchases/:id/approve') async approve(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
-    @Body() body: { reasonCode?: string; expectedVersion?: number },
+    @Body() body: { reasonCode?: string; expectedVersion?: number; note?: string },
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.paymentReview.decide(
@@ -191,7 +241,7 @@ export class PackagesController {
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
-    @Body() body: { reasonCode?: string; expectedVersion?: number },
+    @Body() body: { reasonCode?: string; expectedVersion?: number; note?: string },
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.paymentReview.decide(

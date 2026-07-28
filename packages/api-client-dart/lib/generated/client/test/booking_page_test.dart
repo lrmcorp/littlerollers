@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // BookingManagementSummary summary
+    test('to test the property `summary`', () async {
+      // TODO
+    });
+
     // CursorPageMeta page
     test('to test the property `page`', () async {
       // TODO

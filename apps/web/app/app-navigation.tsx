@@ -29,7 +29,7 @@ import { browserDashboardClient } from './dashboard-client';
 
 const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
-  '/bookings': BookOpenCheck,
+  '/workspace/bookings': BookOpenCheck,
   '/check-in-scanner': ClipboardCheck,
   '/workspace/classes': CalendarDays,
   '/workspace/payments': CreditCard,
@@ -83,7 +83,6 @@ export function AppNavigation({
       : []),
     { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
     { href: '/account/profile', label: 'Profil Saya', icon: Users },
-    { href: '/account/settings', label: 'Pengaturan', icon: Database },
     { href: '/account', label: 'Akun Saya', icon: Users },
   ];
   const navigationRef = useRef<HTMLElement>(null);

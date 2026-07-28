@@ -14,10 +14,13 @@ export class MasterCatalogService {
 
   async listBranches(principal: SessionPrincipal) {
     this.access.authorize(principal);
+    const scope = this.access.branchScope(principal);
     const items = await this.db.branch.findMany({
-      where: principal.capabilities.includes('branch:all')
-        ? {}
-        : { id: { in: principal.branchIds } },
+      where: scope.all
+        ? scope.excluded.length
+          ? { id: { notIn: scope.excluded } }
+          : {}
+        : { id: { in: scope.included } },
       orderBy: { code: 'asc' },
     });
     return { items, page: { nextCursor: null, hasMore: false } };
@@ -69,7 +72,7 @@ export class MasterCatalogService {
     correlationId: string,
   ) {
     this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, id);
+    this.access.ensureBranchScope(principal, id, true);
     return this.db.$transaction(async (tx) => {
       const current = await tx.branch.findUnique({ where: { id } });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -101,11 +104,17 @@ export class MasterCatalogService {
   async listClassTypes(principal: SessionPrincipal, branchId?: string) {
     this.access.authorize(principal);
     if (branchId) this.access.ensureBranchScope(principal, branchId);
-    const branchIds = principal.capabilities.includes('branch:all')
-      ? undefined
-      : principal.branchIds;
+    const scope = this.access.branchScope(principal);
     const items = await this.db.classType.findMany({
-      where: { branchId: branchId ?? (branchIds ? { in: branchIds } : undefined) },
+      where: {
+        branchId:
+          branchId ??
+          (scope.all
+            ? scope.excluded.length
+              ? { notIn: scope.excluded }
+              : undefined
+            : { in: scope.included }),
+      },
       orderBy: { code: 'asc' },
     });
     return { items, page: { nextCursor: null, hasMore: false } };
@@ -117,7 +126,7 @@ export class MasterCatalogService {
     correlationId: string,
   ) {
     this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, input.branchId);
+    this.access.ensureBranchScope(principal, input.branchId, true);
     const code = input.code.trim().toUpperCase();
     const name = input.name.trim();
     if (!/^[A-Z0-9_-]{2,30}$/.test(code) || name.length < 2 || name.length > 120)
@@ -158,7 +167,7 @@ export class MasterCatalogService {
     return this.db.$transaction(async (tx) => {
       const item = await tx.classType.findUnique({ where: { id } });
       if (!item) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      this.access.ensureBranchScope(principal, item.branchId);
+      this.access.ensureBranchScope(principal, item.branchId, true);
       if (!item.active || item.version !== expectedVersion)
         throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
       const activeSettings = await tx.effectiveConfiguration.count({

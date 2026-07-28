@@ -462,20 +462,20 @@ export class DashboardService {
           label: 'Verifikasi identitas',
           count: pendingVerifications,
           href: '/identity-verifications?status=PENDING',
-          capabilities: ['identity-verification:review'],
+          capabilities: ['identity-verification:read'],
         },
         {
           key: 'reschedules',
           label: 'Reschedule menunggu',
           count: pendingReschedules,
-          href: '/bookings?rescheduleStatus=PENDING',
+          href: '/workspace/bookings?tab=reschedules&status=PENDING',
           capabilities: ['reschedule:read'],
         },
         {
           key: 'adjustments',
           label: 'Adjustment menunggu',
           count: pendingAdjustments,
-          href: '/ledger?status=PENDING',
+          href: '/ledger?tab=adjustments&status=PENDING',
           capabilities: ['ledger:adjust:read'],
         },
         {

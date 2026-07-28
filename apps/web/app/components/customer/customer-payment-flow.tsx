@@ -2,8 +2,19 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Check, Clipboard, Clock3, UploadCloud } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  Check,
+  Clipboard,
+  Clock3,
+  Eye,
+  FileCheck2,
+  FileClock,
+  FileQuestion,
+  UploadCloud,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   browserOrderClient,
   orderErrorDetails,
@@ -55,6 +66,11 @@ export function CustomerPaymentFlow({
   const [uploadSession, setUploadSession] = useState<PaymentProofUploadSession>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ReturnType<typeof orderErrorDetails>>();
+  const [proofPreviewUrl, setProofPreviewUrl] = useState('');
+  const [proofPreviewType, setProofPreviewType] = useState('');
+  const [proofPreviewLoading, setProofPreviewLoading] = useState(false);
+  const [proofPreviewError, setProofPreviewError] = useState('');
+  const proofPreviewRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const step = currentStep(order, file, uploadSession);
 
@@ -73,12 +89,35 @@ export function CustomerPaymentFlow({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  useEffect(
+    () => () => {
+      if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    },
+    [proofPreviewUrl],
+  );
+  useEffect(() => {
+    if (proofPreviewUrl) proofPreviewRef.current?.focus();
+  }, [proofPreviewUrl]);
+
   const remaining = useMemo(
     () => (order.expiresAt ? Math.max(0, order.expiresAt.getTime() - now) : 0),
     [now, order.expiresAt],
   );
-  const canUpload = ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) && remaining > 0;
+  const paymentAccountAvailable = Boolean(
+    order.paymentAccount?.bankName &&
+    order.paymentAccount.accountNumber &&
+    order.paymentAccount.accountHolderName,
+  );
+  const canUpload =
+    ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) &&
+    remaining > 0 &&
+    paymentAccountAvailable;
   const paymentCode = formatPaymentCode(order.paymentUniqueCode);
+  const proofReady =
+    order.paymentProofStatus?.uploadStatus === 'FINALIZED' &&
+    order.paymentProofStatus.scanStatus === 'CLEAN';
+  const proofVisual = proofStatusVisual(order.paymentProofStatus);
+  const ProofIcon = proofVisual.icon;
   const duration = {
     hours: Math.floor(remaining / 3_600_000),
     minutes: Math.floor((remaining % 3_600_000) / 60_000),
@@ -94,6 +133,35 @@ export function CustomerPaymentFlow({
   const copy = async (value: string, label: string) => {
     await navigator.clipboard.writeText(value);
     feedback.showToast({ tone: 'success', title: `${label} disalin` });
+  };
+
+  const closeProofPreview = () => {
+    setProofPreviewUrl('');
+    setProofPreviewType('');
+    setProofPreviewError('');
+  };
+
+  const loadProofPreview = async () => {
+    if (!proofReady) return;
+    setProofPreviewLoading(true);
+    setProofPreviewError('');
+    setProofPreviewUrl('');
+    setProofPreviewType('');
+    try {
+      const blob = await browserOrderClient.loadProof(order.id);
+      if (!['image/jpeg', 'image/png', 'application/pdf'].includes(blob.type)) {
+        setProofPreviewUrl('');
+        setProofPreviewType(blob.type);
+        setProofPreviewError('Format bukti pembayaran tidak didukung untuk preview.');
+        return;
+      }
+      setProofPreviewType(blob.type);
+      setProofPreviewUrl(URL.createObjectURL(blob));
+    } catch (cause) {
+      setProofPreviewError(orderErrorDetails(cause).message);
+    } finally {
+      setProofPreviewLoading(false);
+    }
   };
 
   return (
@@ -221,32 +289,163 @@ export function CustomerPaymentFlow({
           </p>
         </section>
 
-        <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
-            Tujuan transfer
-          </p>
-          <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount?.bankName}</h2>
-          <p className="mt-1 text-sm text-white/70">
-            a.n. {order.paymentAccount?.accountHolderName}
-          </p>
-          <div className="mt-5 space-y-3">
-            <CopyRow
-              label="Nomor rekening"
-              value={order.paymentAccount?.accountNumber ?? ''}
-              onCopy={() => copy(order.paymentAccount?.accountNumber ?? '', 'Nomor rekening')}
-            />
-            <CopyRow
-              label="Nominal transfer"
-              value={rupiah.format(order.payableAmountRp)}
-              onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
-            />
-          </div>
-          <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
-            <Clock3 className="size-4 shrink-0" />
-            <span>{remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}</span>
-          </div>
-        </section>
+        {paymentAccountAvailable ? (
+          <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
+              Tujuan transfer
+            </p>
+            <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount!.bankName}</h2>
+            <p className="mt-1 text-sm text-white/70">
+              a.n. {order.paymentAccount!.accountHolderName}
+            </p>
+            <div className="mt-5 space-y-3">
+              <CopyRow
+                label="Nomor rekening"
+                value={order.paymentAccount!.accountNumber}
+                onCopy={() => copy(order.paymentAccount!.accountNumber, 'Nomor rekening')}
+              />
+              <CopyRow
+                label="Nominal transfer"
+                value={rupiah.format(order.payableAmountRp)}
+                onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
+              />
+            </div>
+            <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
+              <Clock3 className="size-4 shrink-0" />
+              <span>
+                {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
+              </span>
+            </div>
+          </section>
+        ) : (
+          <section
+            className={`rounded-dd-xl border border-dd-line bg-dd-surface-muted ${
+              ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
+                ? 'p-5 shadow-dd-card sm:p-6'
+                : 'p-4'
+            }`}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+              Informasi rekening
+            </p>
+            <h2
+              className={`mt-2 font-semibold ${
+                ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
+                  ? 'text-xl'
+                  : 'text-base'
+              }`}
+            >
+              Rekening tidak tersedia
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-dd-muted">
+              {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
+                ? 'Pesanan ini tidak memiliki snapshot rekening yang aman untuk digunakan. Jangan melakukan transfer untuk pesanan ini.'
+                : 'Informasi rekening tidak tersimpan pada pesanan lama ini. Status dan histori transaksi tetap dapat dilihat.'}
+            </p>
+            {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) && (
+              <ButtonLink href="/packages" className="mt-4">
+                Buat pesanan baru
+              </ButtonLink>
+            )}
+          </section>
+        )}
       </div>
+
+      {order.paymentProofId && (
+        <section
+          className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+          aria-labelledby="payment-proof-title"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span
+                className={`grid size-11 shrink-0 place-items-center rounded-dd-lg ${proofVisual.classes}`}
+              >
+                <ProofIcon className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="payment-proof-title" className="text-lg font-semibold">
+                  Bukti pembayaran yang dikirim
+                </h2>
+                <p className="mt-1 text-sm text-dd-muted">
+                  {proofStatusLabel(order.paymentProofStatus)}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {proofPreviewUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  leadingIcon={<X className="size-4" aria-hidden="true" />}
+                  onClick={closeProofPreview}
+                >
+                  Tutup preview
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!proofReady || proofPreviewLoading}
+                loading={proofPreviewLoading}
+                loadingLabel="Memuat bukti…"
+                onClick={() => void loadProofPreview()}
+                leadingIcon={<Eye className="size-4" aria-hidden="true" />}
+              >
+                {proofPreviewUrl ? 'Terbitkan ulang preview' : 'Lihat bukti pembayaran'}
+              </Button>
+            </div>
+          </div>
+
+          {proofPreviewError && (
+            <div className="mt-5">
+              <AlertBanner
+                tone="danger"
+                title="Bukti belum dapat ditampilkan"
+                message={proofPreviewError}
+              />
+            </div>
+          )}
+          {proofPreviewUrl ? (
+            <div
+              ref={proofPreviewRef}
+              tabIndex={-1}
+              className="mt-5 outline-none focus-visible:ring-2 focus-visible:ring-dd-forest"
+              role="region"
+              aria-label="Preview bukti pembayaran"
+            >
+              {proofPreviewType.startsWith('image/') ? (
+                <img
+                  src={proofPreviewUrl}
+                  alt="Bukti pembayaran yang dikirim"
+                  className="max-h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white object-contain"
+                />
+              ) : (
+                <object
+                  data={proofPreviewUrl}
+                  type={proofPreviewType}
+                  title="Bukti pembayaran yang dikirim"
+                  className="h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white"
+                >
+                  <p>Preview PDF tidak didukung browser ini.</p>
+                </object>
+              )}
+            </div>
+          ) : (
+            !proofPreviewError && (
+              <div
+                className="mt-5 rounded-dd-lg border border-dashed border-dd-forest/25 bg-dd-surface-muted px-5 py-4 text-sm leading-6 text-dd-muted"
+                role="status"
+                aria-live="polite"
+              >
+                {proofReady
+                  ? 'Pilih “Lihat bukti pembayaran” untuk membuka file privat Anda.'
+                  : proofUnavailableLabel(order.paymentProofStatus)}
+              </div>
+            )
+          )}
+        </section>
+      )}
 
       {canUpload && (
         <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
@@ -383,11 +582,8 @@ export function CustomerPaymentFlow({
         </section>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/orders" className="text-sm font-semibold text-dd-forest">
-          Semua pesanan
-        </Link>
-        <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           {order.status === 'APPROVED' && (
             <>
               <ButtonLink href="/account/packages" variant="secondary">
@@ -415,6 +611,53 @@ export function CustomerPaymentFlow({
       </div>
     </div>
   );
+}
+
+function proofStatusLabel(status: CustomerOrder['paymentProofStatus']) {
+  if (!status) return 'Status bukti belum tersedia.';
+  if (status.uploadStatus !== 'FINALIZED') return 'Upload bukti belum selesai.';
+  if (status.scanStatus === 'CLEAN') return 'Upload selesai · pemeriksaan keamanan bersih.';
+  if (status.scanStatus === 'PENDING') return 'Upload selesai · pemeriksaan keamanan berlangsung.';
+  if (status.scanStatus === 'REJECTED' || status.scanStatus === 'INFECTED')
+    return 'Bukti ditolak oleh pemeriksaan keamanan.';
+  return 'Pemeriksaan keamanan bukti mengalami kendala.';
+}
+
+function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
+  if (!status)
+    return {
+      icon: FileQuestion,
+      classes: 'bg-stone-100 text-stone-600',
+    };
+  if (status.uploadStatus !== 'FINALIZED' || status.scanStatus === 'PENDING')
+    return {
+      icon: status.uploadStatus === 'FINALIZED' ? FileClock : UploadCloud,
+      classes: 'bg-dd-info-soft text-dd-info',
+    };
+  if (status.scanStatus === 'CLEAN')
+    return {
+      icon: FileCheck2,
+      classes: 'bg-dd-success-soft text-dd-success',
+    };
+  if (['REJECTED', 'INFECTED', 'ERROR'].includes(status.scanStatus))
+    return {
+      icon: AlertTriangle,
+      classes: 'bg-dd-danger-soft text-dd-danger',
+    };
+  return {
+    icon: FileQuestion,
+    classes: 'bg-stone-100 text-stone-600',
+  };
+}
+
+function proofUnavailableLabel(status: CustomerOrder['paymentProofStatus']) {
+  if (!status || status.uploadStatus !== 'FINALIZED')
+    return 'Preview tersedia setelah upload selesai.';
+  if (status.scanStatus === 'PENDING')
+    return 'Preview tersedia setelah pemeriksaan keamanan selesai.';
+  if (status.scanStatus === 'REJECTED' || status.scanStatus === 'INFECTED')
+    return 'File yang ditolak oleh pemeriksaan keamanan tidak dapat dibuka.';
+  return 'Bukti belum dapat dipreview. Coba kembali setelah status pemeriksaan diperbarui.';
 }
 
 function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy(): void }) {

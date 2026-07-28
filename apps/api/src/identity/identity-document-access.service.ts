@@ -21,13 +21,18 @@ export class IdentityDocumentAccessService {
     documentId: string,
     correlationId = 'unknown',
   ) {
-    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+    this.policy.requireGlobalCapability(principal, 'identity-verification:read');
     const document = await this.db.identityVerificationDocument.findUnique({
       where: { id: documentId },
     });
     if (
       !document?.objectKey ||
       ['DELETED', 'PENDING_DELETION'].includes(document.status) ||
+      document.uploadStatus !== 'FINALIZED' ||
+      document.scanStatus !== 'CLEAN' ||
+      document.replacedById !== null ||
       !(await this.storage.exists(document.objectKey))
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -54,6 +59,8 @@ export class IdentityDocumentAccessService {
         kind,
         replacedById: null,
         status: { notIn: ['DELETED', 'PENDING_DELETION'] },
+        uploadStatus: 'FINALIZED',
+        scanStatus: 'CLEAN',
         objectKey: { not: null },
       },
       orderBy: { createdAt: 'desc' },
@@ -80,12 +87,15 @@ export class IdentityDocumentAccessService {
       authorization.consumedAt ||
       authorization.expiresAt <= new Date() ||
       !authorization.document.objectKey ||
-      ['DELETED', 'PENDING_DELETION'].includes(authorization.document.status)
+      ['DELETED', 'PENDING_DELETION'].includes(authorization.document.status) ||
+      authorization.document.uploadStatus !== 'FINALIZED' ||
+      authorization.document.scanStatus !== 'CLEAN' ||
+      authorization.document.replacedById !== null
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     if (
       (authorization.purpose === 'REVIEW' &&
-        !principal.capabilities.includes('identity-verification:review')) ||
+        !this.policy.hasGlobalCapability(principal, 'identity-verification:read')) ||
       (authorization.purpose === 'SELF_VIEW' && authorization.document.userId !== principal.userId)
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);

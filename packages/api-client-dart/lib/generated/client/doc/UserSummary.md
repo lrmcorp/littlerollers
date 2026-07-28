@@ -19,6 +19,8 @@ Name | Type | Description | Notes
 **directRoles** | [**BuiltList&lt;UserRoleSummary&gt;**](UserRoleSummary.md) |  | 
 **assignmentRoles** | [**BuiltList&lt;UserRoleSummary&gt;**](UserRoleSummary.md) |  | 
 **effectiveCapabilities** | **BuiltList&lt;String&gt;** |  | 
+**audience** | **String** |  | 
+**identityVerification** | [**UserVerificationSummary**](UserVerificationSummary.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

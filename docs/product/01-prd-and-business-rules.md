@@ -10,7 +10,7 @@ Daily Dose menyediakan satu platform multi-cabang untuk customer journey, operas
 
 | Role aplikasi | Kanal MVP | Tujuan utama |
 |---|---|---|
-| Customer | Flutter | Beli paket, timetable, booking/reschedule, check-in, saldo/expiry |
+| Customer | Web v1; Flutter follow-up | Beli paket, timetable, booking/reschedule, check-in, saldo/expiry |
 | Instructor | Flutter | Availability, assignment, QR check-in, kelas |
 | Admin | Web responsif | Jadwal, booking assistance, check-in backfill, request adjustment |
 | Manager | Web responsif | Approval paket/adjustment, expiry follow-up, stopped customer |
@@ -62,6 +62,17 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 - **BR-003:** Tindakan sensitif wajib memeriksa permission efektif, scope cabang, status user, optimistic locking, audit, dan separation-of-duties pada backend.
 - **BR-004:** Authorization ditentukan backend berdasarkan role, assignment cabang, status user, dan action; UI bukan enforcement boundary.
 - **BR-005:** Owner hanya melihat cabang pada OwnerBranch; Instructor hanya beroperasi pada InstructorBranch; Super Owner dan Finance memiliki akses lintas cabang sesuai permission.
+- **BR-006:** Review identitas customer berscope global. Admin cabang tidak memiliki akses default;
+  reviewer custom wajib memakai role `GLOBAL`.
+- **BR-007:** Akses verifikasi dipisahkan menjadi `identity-verification:read`,
+  `identity-verification:decide`, dan `identity-verification:delete`; capability legacy
+  `identity-verification:review` tidak memberi akses.
+- **BR-008:** Preview Selfie/KTP hanya diterbitkan setelah tindakan eksplisit actor berizin, terikat
+  pada viewer, sekali pakai, kedaluwarsa singkat, dan wajib memvalidasi ulang file
+  `FINALIZED`, `CLEAN`, aktif, serta belum diganti/dihapus.
+- **BR-009:** Profil customer umum tidak memuat gambar, object key, token preview, atau PII identitas.
+  Authorization, view, decision, dan deletion dokumen wajib diaudit. Tidak ada MFA pada workflow
+  ini.
 
 ### Paket, Pembayaran, dan Expiry
 
@@ -110,7 +121,7 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 
 - **BR-050:** Reschedule diajukan Customer dan disetujui Admin/Super Owner sesuai permission.
 - **BR-051:** Request pada atau sebelum H-24 melepaskan reservation lama dan membuat booking/reservation baru secara atomik jika target valid.
-- **BR-052:** Request kurang dari H-24 tidak otomatis mengembalikan hak sesi; pengembalian memerlukan SessionAdjustRequest oleh Admin dan approval Manager/Super Owner.
+- **BR-052:** Request kurang dari H-24 ditolak tanpa mutasi booking/reservation; UI mengarahkan Customer menghubungi studio. Pengembalian hak hanya melalui SessionAdjustRequest oleh Admin dan approval Manager/Super Owner.
 - **BR-053:** Approved manual adjustment membuat entry append-only `ADJUST_MANUAL` dengan alasan, requestor, approver, dan reference.
 - **BR-054:** Requestor tidak boleh approve request-nya sendiri apabila memiliki lebih dari satu role.
 
@@ -133,6 +144,10 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 - **BR-073:** Audit wajib mencatat actor, action, object, branch, before/after yang aman, reason, timestamp, correlation ID, dan source.
 - **BR-074:** Data transaksi, ledger, audit, close, dan correction tidak dihapus secara hard delete.
 - **BR-075:** Semua waktu disimpan UTC; rule waktu dihitung memakai IANA timezone Branch.
+- **BR-076:** Email transaksional memakai occurrence/attempt idempotent; SMTP acceptance tidak disebut delivered.
+- **BR-077:** Failure terminal email bisnis membuat persisted in-app fallback dan operational evidence tanpa silent success.
+- **BR-078:** Reminder saldo dibuat sekali per CustomerPackage pada available 3, 1, dan 0; reminder expiry sekali pada branch-local H-7, H-3, dan H-1.
+- **BR-079:** Recipient dan template variables sensitif diantrikan terenkripsi; API/log/audit hanya memakai recipient masked/hash dan safe error category.
 
 ## 5. Permission Matrix MVP
 
@@ -147,6 +162,8 @@ otomatis; authorization tetap berasal dari backend permission dan assignment yan
 | Availability/Instructor check-in | - | Y | - | - | - | - | - |
 | Assign instructor to slot | - | - | Y | - | - | Y | - |
 | Assign owner/instructor to branch | - | - | - | - | - | Y | - |
+| View identity verification | Own submission | - | - | - | - | Y / global reviewer | - |
+| Decide/delete identity verification | - | - | - | - | - | Sesuai capability global | - |
 | Set master fee/rate/quota | - | - | - | - | - | Y | - |
 | View financial report | - | - | - | - | Own branch | All | All |
 | Input OtherCost | - | - | - | - | - | Y | Y |

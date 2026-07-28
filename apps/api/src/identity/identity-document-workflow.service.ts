@@ -195,7 +195,9 @@ export class IdentityDocumentWorkflowService {
     input: { expectedVersion: number; reasonCode?: string; note?: string },
     correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+    this.policy.requireGlobalCapability(principal, 'identity-verification:decide');
     if (
       decision === 'REJECTED' &&
       (!input.reasonCode ||
@@ -267,7 +269,9 @@ export class IdentityDocumentWorkflowService {
     input: { expectedVersion: number; reason: string },
     correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'identity-verification:delete');
+    if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+    this.policy.requireGlobalCapability(principal, 'identity-verification:delete');
     if (!input.reason?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const document = await this.db.identityVerificationDocument.findUnique({ where: { id } });

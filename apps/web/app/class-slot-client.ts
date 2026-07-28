@@ -5,6 +5,7 @@ import {
   MasterApi,
   type ClassSlot,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 export type { ClassSlot };
 export interface ClassTypeOption {
@@ -59,24 +60,27 @@ export const browserClassSlotClient: ClassSlotClient = {
     const scopedBranches = input.branchId
       ? [{ id: input.branchId, timezone: input.timezone }]
       : (input.branches ?? []);
-    const [slots, branchWorkspaces] = await Promise.all([
-      api.listClassSlots({
-        branchId: input.branchId,
-        from: input.from,
-        until: input.until,
-        status: input.status,
-      }),
-      Promise.all(
-        scopedBranches.map(async (branch) => {
-          const [classTypes, users, assignments] = await Promise.all([
-            master.listClassTypes({ branchId: branch.id }),
-            identity.listUsers({ branchId: branch.id }),
-            identity.listAssignments({ branchId: branch.id }),
-          ]);
-          return { branch, classTypes, users, assignments };
+    const [slots, branchWorkspaces] = await appLoading.track(
+      Promise.all([
+        api.listClassSlots({
+          branchId: input.branchId,
+          from: input.from,
+          until: input.until,
+          status: input.status,
         }),
-      ),
-    ]);
+        Promise.all(
+          scopedBranches.map(async (branch) => {
+            const [classTypes, users, assignments] = await Promise.all([
+              master.listClassTypes({ branchId: branch.id }),
+              identity.listUsers({ branchId: branch.id }),
+              identity.listAssignments({ branchId: branch.id }),
+            ]);
+            return { branch, classTypes, users, assignments };
+          }),
+        ),
+      ]),
+      { label: 'Memuat jadwal kelas…' },
+    );
     const branchDate = (value: Date) =>
       new Intl.DateTimeFormat('en-CA', {
         timeZone: input.timezone,
@@ -120,28 +124,40 @@ export const browserClassSlotClient: ClassSlotClient = {
     };
   },
   create(input) {
-    return api.createClassSlot({ idempotencyKey: key(), classSlotCommand: input });
+    return appLoading.track(
+      api.createClassSlot({ idempotencyKey: key(), classSlotCommand: input }),
+      { label: 'Membuat kelas…' },
+    );
   },
   assign(id, instructorUserId, expectedVersion) {
-    return api.assignClassSlotInstructor({
-      id,
-      idempotencyKey: key(),
-      assignInstructorCommand: { instructorUserId, expectedVersion },
-    });
+    return appLoading.track(
+      api.assignClassSlotInstructor({
+        id,
+        idempotencyKey: key(),
+        assignInstructorCommand: { instructorUserId, expectedVersion },
+      }),
+      { label: 'Menetapkan instruktur…' },
+    );
   },
   publish(id, expectedVersion) {
-    return api.publishClassSlot({
-      id,
-      idempotencyKey: key(),
-      classSlotVersionCommand: { expectedVersion },
-    });
+    return appLoading.track(
+      api.publishClassSlot({
+        id,
+        idempotencyKey: key(),
+        classSlotVersionCommand: { expectedVersion },
+      }),
+      { label: 'Menerbitkan kelas…' },
+    );
   },
   cancel(id, reasonCode, expectedVersion) {
-    return api.cancelClassSlot({
-      id,
-      idempotencyKey: key(),
-      classSlotCancellationCommand: { reasonCode, expectedVersion },
-    });
+    return appLoading.track(
+      api.cancelClassSlot({
+        id,
+        idempotencyKey: key(),
+        classSlotCancellationCommand: { reasonCode, expectedVersion },
+      }),
+      { label: 'Membatalkan kelas…' },
+    );
   },
 };
 export function classSlotFailure(error: unknown) {

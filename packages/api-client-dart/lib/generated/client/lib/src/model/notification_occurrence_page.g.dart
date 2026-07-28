@@ -10,14 +10,19 @@ class _$NotificationOccurrencePage extends NotificationOccurrencePage {
   @override
   final BuiltList<NotificationOccurrence> items;
   @override
+  final NotificationDeliveryMetrics metrics;
+  @override
   final CursorPageMeta page;
 
   factory _$NotificationOccurrencePage([
     void Function(NotificationOccurrencePageBuilder)? updates,
   ]) => (NotificationOccurrencePageBuilder()..update(updates))._build();
 
-  _$NotificationOccurrencePage._({required this.items, required this.page})
-    : super._();
+  _$NotificationOccurrencePage._({
+    required this.items,
+    required this.metrics,
+    required this.page,
+  }) : super._();
   @override
   NotificationOccurrencePage rebuild(
     void Function(NotificationOccurrencePageBuilder) updates,
@@ -32,6 +37,7 @@ class _$NotificationOccurrencePage extends NotificationOccurrencePage {
     if (identical(other, this)) return true;
     return other is NotificationOccurrencePage &&
         items == other.items &&
+        metrics == other.metrics &&
         page == other.page;
   }
 
@@ -39,6 +45,7 @@ class _$NotificationOccurrencePage extends NotificationOccurrencePage {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
+    _$hash = $jc(_$hash, metrics.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -48,6 +55,7 @@ class _$NotificationOccurrencePage extends NotificationOccurrencePage {
   String toString() {
     return (newBuiltValueToStringHelper(r'NotificationOccurrencePage')
           ..add('items', items)
+          ..add('metrics', metrics)
           ..add('page', page))
         .toString();
   }
@@ -64,6 +72,12 @@ class NotificationOccurrencePageBuilder
   set items(ListBuilder<NotificationOccurrence>? items) =>
       _$this._items = items;
 
+  NotificationDeliveryMetricsBuilder? _metrics;
+  NotificationDeliveryMetricsBuilder get metrics =>
+      _$this._metrics ??= NotificationDeliveryMetricsBuilder();
+  set metrics(NotificationDeliveryMetricsBuilder? metrics) =>
+      _$this._metrics = metrics;
+
   CursorPageMetaBuilder? _page;
   CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
   set page(CursorPageMetaBuilder? page) => _$this._page = page;
@@ -76,6 +90,7 @@ class NotificationOccurrencePageBuilder
     final $v = _$v;
     if ($v != null) {
       _items = $v.items.toBuilder();
+      _metrics = $v.metrics.toBuilder();
       _page = $v.page.toBuilder();
       _$v = null;
     }
@@ -102,6 +117,7 @@ class NotificationOccurrencePageBuilder
           _$v ??
           _$NotificationOccurrencePage._(
             items: items.build(),
+            metrics: metrics.build(),
             page: page.build(),
           );
     } catch (_) {
@@ -109,6 +125,8 @@ class NotificationOccurrencePageBuilder
       try {
         _$failedField = 'items';
         items.build();
+        _$failedField = 'metrics';
+        metrics.build();
         _$failedField = 'page';
         page.build();
       } catch (e) {

@@ -24,8 +24,11 @@ export class LedgerController {
     @Req() request: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
     @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE',
+    @Query('customerUserId') customerUserId?: string,
   ) {
-    return this.ledger.list(request.principal, branchId, cursor);
+    return this.ledger.list(request.principal, branchId, cursor, search, status, customerUserId);
   }
 
   @Get('customer-packages/:id/ledger')
@@ -41,7 +44,7 @@ export class LedgerController {
   listAdjustments(
     @Req() request: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
-    @Query('status') status?: 'PENDING' | 'POSTED' | 'REJECTED',
+    @Query('status') status?: 'PENDING' | 'POSTED' | 'REJECTED' | 'HISTORY',
     @Query('cursor') cursor?: string,
   ) {
     return this.ledger.listAdjustments(request.principal, branchId, status, cursor);

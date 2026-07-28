@@ -1,4 +1,5 @@
 import { Configuration, MasterApi } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 
 export type MasterKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
@@ -50,29 +51,53 @@ const api = new MasterApi(new Configuration({ basePath: '/api/v1', credentials: 
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
 export const browserMasterClient: MasterClient = {
   async listBranches() {
-    return (await api.listBranches()).items;
+    return (await appLoading.track(api.listBranches(), { label: 'Memuat cabang…' })).items;
   },
   async listClassTypes(branchId) {
-    return (await api.listClassTypes({ branchId })).items;
+    return (
+      await appLoading.track(api.listClassTypes({ branchId }), {
+        label: 'Memuat tipe kelas…',
+      })
+    ).items;
   },
   async createBranch(input) {
-    await api.createBranch({ branchCommand: input });
+    await appLoading.track(api.createBranch({ branchCommand: input }), {
+      label: 'Membuat cabang…',
+    });
   },
   async createClassType(input) {
-    await api.createClassType({ classTypeCommand: input });
+    await appLoading.track(api.createClassType({ classTypeCommand: input }), {
+      label: 'Membuat tipe kelas…',
+    });
   },
   async deactivateBranch(id, expectedVersion) {
-    await api.deactivateBranch({ id, versionCommand: { expectedVersion } });
+    await appLoading.track(api.deactivateBranch({ id, versionCommand: { expectedVersion } }), {
+      label: 'Menonaktifkan cabang…',
+    });
   },
   async deactivateClassType(id, expectedVersion) {
-    await api.deactivateClassType({ id, versionCommand: { expectedVersion } });
+    await appLoading.track(api.deactivateClassType({ id, versionCommand: { expectedVersion } }), {
+      label: 'Menonaktifkan tipe kelas…',
+    });
   },
   async listSettings(kind, branchId) {
     if (kind === 'INSTRUCTOR_FEE')
-      return (await api.listInstructorFees({ branchId })).items as MasterSetting[];
+      return (
+        await appLoading.track(api.listInstructorFees({ branchId }), {
+          label: 'Memuat honor instruktur…',
+        })
+      ).items as MasterSetting[];
     if (kind === 'PROJECTION_RATE')
-      return (await api.listProjectionRates({ branchId })).items as MasterSetting[];
-    return (await api.listQuotaCapacitySettings({ branchId })).items as MasterSetting[];
+      return (
+        await appLoading.track(api.listProjectionRates({ branchId }), {
+          label: 'Memuat proyeksi…',
+        })
+      ).items as MasterSetting[];
+    return (
+      await appLoading.track(api.listQuotaCapacitySettings({ branchId }), {
+        label: 'Memuat kuota dan kapasitas…',
+      })
+    ).items as MasterSetting[];
   },
   async createSetting(input) {
     const period = {
@@ -80,40 +105,49 @@ export const browserMasterClient: MasterClient = {
       effectiveUntil: date(input.effectiveUntil),
     };
     if (input.kind === 'INSTRUCTOR_FEE') {
-      await api.createInstructorFee({
-        instructorFeeCommand: {
-          ...period,
-          kind: 'INSTRUCTOR_FEE',
-          branchId: input.branchId,
-          classTypeId: input.classTypeId,
-          instructorUserId: input.instructorUserId!,
-          feeRp: input.value,
-          reason: input.reason,
-        },
-      });
+      await appLoading.track(
+        api.createInstructorFee({
+          instructorFeeCommand: {
+            ...period,
+            kind: 'INSTRUCTOR_FEE',
+            branchId: input.branchId,
+            classTypeId: input.classTypeId,
+            instructorUserId: input.instructorUserId!,
+            feeRp: input.value,
+            reason: input.reason,
+          },
+        }),
+        { label: 'Menyimpan honor instruktur…' },
+      );
     } else if (input.kind === 'PROJECTION_RATE') {
-      await api.createProjectionRate({
-        projectionRateCommand: {
-          ...period,
-          kind: 'PROJECTION_RATE',
-          branchId: input.branchId,
-          classTypeId: input.classTypeId,
-          rateRp: input.value,
-          reason: input.reason,
-        },
-      });
+      await appLoading.track(
+        api.createProjectionRate({
+          projectionRateCommand: {
+            ...period,
+            kind: 'PROJECTION_RATE',
+            branchId: input.branchId,
+            classTypeId: input.classTypeId,
+            rateRp: input.value,
+            reason: input.reason,
+          },
+        }),
+        { label: 'Menyimpan proyeksi…' },
+      );
     } else {
-      await api.createQuotaCapacitySetting({
-        quotaCapacityCommand: {
-          ...period,
-          kind: 'QUOTA_CAPACITY',
-          branchId: input.branchId,
-          classTypeId: input.classTypeId,
-          minimumQuota: input.value,
-          defaultCapacity: input.capacity!,
-          reason: input.reason,
-        },
-      });
+      await appLoading.track(
+        api.createQuotaCapacitySetting({
+          quotaCapacityCommand: {
+            ...period,
+            kind: 'QUOTA_CAPACITY',
+            branchId: input.branchId,
+            classTypeId: input.classTypeId,
+            minimumQuota: input.value,
+            defaultCapacity: input.capacity!,
+            reason: input.reason,
+          },
+        }),
+        { label: 'Menyimpan kuota dan kapasitas…' },
+      );
     }
   },
 };

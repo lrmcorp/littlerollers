@@ -12,7 +12,9 @@ Method | HTTP request | Description
 [**deadLetterOperationalJob**](OperationsApi.md#deadletteroperationaljob) | **POST** /operations/jobs/{id}/dead-letter | 
 [**getDashboardOverview**](OperationsApi.md#getdashboardoverview) | **GET** /dashboard/overview | 
 [**getHealth**](OperationsApi.md#gethealth) | **GET** /operations/health | 
+[**listEmailDeliveries**](OperationsApi.md#listemaildeliveries) | **GET** /operations/email-deliveries | 
 [**listJobs**](OperationsApi.md#listjobs) | **GET** /operations/jobs | 
+[**retryEmailDelivery**](OperationsApi.md#retryemaildelivery) | **POST** /operations/email-deliveries/{id}/retry | 
 [**retryOperationalJob**](OperationsApi.md#retryoperationaljob) | **POST** /operations/jobs/{id}/retry | 
 [**runQuotaEvaluation**](OperationsApi.md#runquotaevaluation) | **POST** /operations/quota-evaluations/{id}/run | 
 
@@ -146,6 +148,49 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listEmailDeliveries**
+> NotificationOccurrencePage listEmailDeliveries(cursor, status)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getOperationsApi();
+final String cursor = cursor_example; // String | 
+final String status = status_example; // String | 
+
+try {
+    final response = api.listEmailDeliveries(cursor, status);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling OperationsApi->listEmailDeliveries: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **cursor** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
+
+### Return type
+
+[**NotificationOccurrencePage**](NotificationOccurrencePage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listJobs**
 > OperationalJobPage listJobs(cursor, status)
 
@@ -185,6 +230,49 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **retryEmailDelivery**
+> NotificationRetryResult retryEmailDelivery(id, decideCorrectionRequest)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getOperationsApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final DecideCorrectionRequest decideCorrectionRequest = ; // DecideCorrectionRequest | 
+
+try {
+    final response = api.retryEmailDelivery(id, decideCorrectionRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling OperationsApi->retryEmailDelivery: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **decideCorrectionRequest** | [**DecideCorrectionRequest**](DecideCorrectionRequest.md)|  | 
+
+### Return type
+
+[**NotificationRetryResult**](NotificationRetryResult.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

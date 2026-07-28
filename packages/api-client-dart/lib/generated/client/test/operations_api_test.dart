@@ -24,8 +24,18 @@ void main() {
       // TODO
     });
 
+    //Future<NotificationOccurrencePage> listEmailDeliveries({ String cursor, String status }) async
+    test('test listEmailDeliveries', () async {
+      // TODO
+    });
+
     //Future<OperationalJobPage> listJobs({ String cursor, String status }) async
     test('test listJobs', () async {
+      // TODO
+    });
+
+    //Future<NotificationRetryResult> retryEmailDelivery(String id, DecideCorrectionRequest decideCorrectionRequest) async
+    test('test retryEmailDelivery', () async {
       // TODO
     });
 

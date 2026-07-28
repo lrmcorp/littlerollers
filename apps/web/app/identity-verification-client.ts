@@ -1,5 +1,7 @@
 'use client';
 
+import { foregroundFetch } from './components/app-loading';
+
 export type VerificationStatus = 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
 export type DocumentKind = 'SELFIE' | 'KTP_FRONT';
 export type DocumentReviewStatus =
@@ -64,6 +66,7 @@ export interface IdentityVerificationReviewFilters {
   until?: string;
   cursor?: string;
   limit?: number;
+  customerUserId?: string;
 }
 
 export interface VerificationSummary {
@@ -73,14 +76,18 @@ export interface VerificationSummary {
 
 async function request(path: string, init?: RequestInit) {
   const isMultipart = init?.body instanceof FormData;
-  const response = await fetch(`/api/v1${path}`, {
-    credentials: 'include',
-    ...init,
-    headers: {
-      ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
-      ...(init?.headers ?? {}),
+  const response = await foregroundFetch(
+    `/api/v1${path}`,
+    {
+      credentials: 'include',
+      ...init,
+      headers: {
+        ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
+        ...(init?.headers ?? {}),
+      },
     },
-  });
+    init?.method && init.method !== 'GET' ? 'Memproses verifikasi…' : 'Memuat verifikasi…',
+  );
   if (!response.ok) {
     const body = await response.json().catch(() => undefined);
     throw {
@@ -123,11 +130,15 @@ export const verificationClient = {
     });
   },
   async readPrivateFile(url: string): Promise<Blob> {
-    const response = await fetch(url, {
-      credentials: 'include',
-      cache: 'no-store',
-      referrerPolicy: 'no-referrer',
-    });
+    const response = await foregroundFetch(
+      url,
+      {
+        credentials: 'include',
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer',
+      },
+      'Memuat dokumen…',
+    );
     if (!response.ok) throw { response: { status: response.status } };
     return response.blob();
   },

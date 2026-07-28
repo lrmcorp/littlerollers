@@ -55,8 +55,14 @@ Expected controls:
 | TC-BOOK-001 | Two customers request last seat S-2 concurrently | One booking/seat; other CLASS_CAPACITY_FULL |
 | TC-BOOK-002 | Retry same booking key with changed slot/package | IDEMPOTENCY_KEY_REUSED; original result unchanged |
 | TC-BOOK-003 | Request exactly before and at H-2 using frozen clock | Before succeeds; at cutoff rejected per inclusive rule |
-| TC-RES-001 | Approve ≥H-24 reschedule while target becomes full | Entire transaction fails; old booking/reservation remains active |
-| TC-RES-002 | Request <H-24 | No automatic entitlement return; adjustment path displayed/available |
+| TC-RES-001 | Approve request while target becomes full | Entire transaction fails; old booking/reservation remains active |
+| TC-RES-002 | Request tepat H-24 lalu sesudah H-24 | Tepat boundary diterima; sesudahnya ditolak dengan CONTACT_STUDIO dan tanpa mutasi |
+| TC-RES-003 | Multi-role requester mencoba approve request sendiri | `SELF_APPROVAL_FORBIDDEN`; request tetap PENDING dan tidak ada decision audit/event |
+| TC-RES-004 | Customer booking target lain saat request pending | Approval `DUPLICATE_ACTIVE_BOOKING`; source reservation tetap aktif |
+| TC-RES-005 | Wrong owner/cross-branch/stale version | Resource disembunyikan atau conflict; tidak ada partial write |
+| TC-RES-006 | Dua request/decision konkuren dan replay key | Satu effect; replay authoritative; changed payload ditolak |
+| TC-RES-007 | Request → staff in-app; approve/reject → customer in-app/email | Satu projection/occurrence per event; tidak ada email internal untuk request |
+| TC-RES-008 | Customer Web eligible/pending/approved/rejected/cutoff/no target | Copy, confirmation, keyboard, responsive dan axe sesuai acceptance |
 | TC-ATT-001 | Valid instructor token then replay/wrong slot/instructor | First one matched/hour; subsequent attempts no duplicate |
 | TC-ATT-002 | Customer token before/within/after approved window | Boundary behavior matches DEC-007; one check-in max |
 | TC-ATT-003 | Admin backfill just before/at/after H+2 | Before allowed; at/after matches documented inclusive rule; reason/audit required |
@@ -72,6 +78,11 @@ Expected controls:
 | TC-MIG-001 | Import identical batch twice with valid + invalid rows | No duplicate entities/opening ledger; same reject reasons/control totals |
 | TC-MIG-002 | Session total source/target differs by 1 | Reconciliation FAIL; cutover blocked regardless of row count match |
 | TC-REC-001 | Restore point-in-time backup to isolated environment | RPO≤1h/RTO≤4h evidence; integrity and smoke pass |
+| TC-IDV-001 | Admin cabang mencoba list, detail, preview, decide, dan delete identitas | Semua ditolak/disembunyikan; metadata dan file tidak bocor |
+| TC-IDV-002 | Super Owner/global reviewer authorize lalu read preview | Viewer-bound, single-use, expiring; audit authorize dan view tepat satu |
+| TC-IDV-003 | File PENDING scan, non-FINALIZED, replaced/deleted, atau berubah setelah authorization | Authorization/read ditolak tanpa object key atau payload file |
+| TC-IDV-004 | Role/override cabang diberi capability identitas global-only | Mutation ditolak atau grant tidak efektif; tidak ada cross-branch/global leakage |
+| TC-IDV-005 | Approve/reject dengan retry dan keputusan konkuren | Satu keputusan, audit, event, in-app, dan deterministic email occurrence |
 
 Boundary inclusivity for DEC-007, H-2 and H+2 must be represented explicitly in approved BR/API copy; test clock cannot use wall-clock sleeps.
 
@@ -95,12 +106,14 @@ Exact OS/device versions are selected no later than UAT entry based on customer/
 |---|---|---|---|
 | UAT-AUTH-01 | Customer/Internal roles | Login/recovery; permission and branch navigation with denied access | Correct access and no data leak |
 | UAT-PKG-01 | Customer, Manager | Purchase upload → review → approve/reject → balance/expiry | Commercial values and evidence correct |
+| UAT-LED-01 | Admin, Manager, Super Owner, Customer | Cari customer/paket → request adjustment → review actor/saldo/proyeksi → approve/reject oleh actor berbeda → ledger/in-app/email | Scope cabang, SoD tanpa MFA, snapshot, exactly-one post dan komunikasi customer benar |
 | UAT-CLASS-01 | Instructor, Admin | Availability → assignment → publish → H-24 result | Conflict/quota/status clear |
-| UAT-BOOK-01 | Customer, Admin | Timetable → booking → reschedule paths | Session/capacity/cutoff correct |
+| UAT-BOOK-01 | Customer, Admin | Web detail booking → pilih target/alasan → confirm → queue Admin → approve/reject → refresh/notifikasi/email | Inclusive H-24, SoD, capacity, status, reservation dan komunikasi customer benar; bukti screenshot/log ID ditandatangani |
 | UAT-ATT-01 | Instructor, Customer, Admin | QR/link → backfill → completion | Hour/attendance/ledger correct |
 | UAT-FIN-01 | Owner, Finance, Super Owner | Reports → cost → reconcile → close → correction | DD-QA-001 totals; lock/SoD correct |
 | UAT-NOTIF-01 | All recipients/support | Transaction notification and simulated failure/fallback | No duplicate; status/support action clear |
 | UAT-MIG-01 | Data Owner, Finance | Trial import → exception → rerun → reconcile | Zero material mismatch and signed controls |
+| UAT-IDV-01 | Customer, Admin, Super Owner/global reviewer | Upload Selfie/KTP → tab Customer → detail → preview privat → approve/reject → status/in-app/email | Admin ditolak; reviewer global berhasil; preview sekali pakai dan seluruh audit/notification tepat satu |
 
 Each script includes screenshots/copy from approved Figma, role credentials in secure test vault, expected records/totals, failure variation, executor and sign-off. P1/P2 must be zero; P3 requires owner, target and explicit accepted disposition.
 

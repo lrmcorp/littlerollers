@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // CustomerBookingEligibility eligibility
+    test('to test the property `eligibility`', () async {
+      // TODO
+    });
+
   });
 }

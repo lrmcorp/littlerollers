@@ -40,4 +40,60 @@ describe('OperationsView', () => {
     expect(client.run).toHaveBeenCalledWith(job);
     expect(await screen.findByText('Evaluasi selesai.')).toBeInTheDocument();
   });
+
+  it('shows masked SMTP metrics and requires a reason for manual retry', async () => {
+    const delivery = {
+      id: '00000000-0000-4000-8000-000000000201',
+      eventType: 'purchase.approved.v1',
+      templateKey: 'ORDER_APPROVED_V1',
+      recipientMasked: 'cu*****@example.test',
+      channel: 'EMAIL',
+      status: 'FAILED_TERMINAL' as const,
+      attemptCount: 5,
+      rateLimitWaitCount: 1,
+      maxAttempts: 5,
+      correlationId: 'correlation-safe',
+      createdAt: new Date('2026-07-28T00:00:00Z'),
+    };
+    const client = {
+      list: vi.fn().mockResolvedValue([]),
+      run: vi.fn(),
+      listEmails: vi.fn().mockResolvedValue({
+        items: [delivery],
+        metrics: {
+          totalCount: 1,
+          pendingCount: 0,
+          acceptedCount: 0,
+          terminalFailureCount: 1,
+          deadLetterCount: 1,
+          retryCount: 4,
+          rateLimitWaitCount: 1,
+          queueAgeSeconds: 0,
+          acceptedRateBasisPoints: 0,
+          failureRateBasisPoints: 10_000,
+          byStatus: { FAILED_TERMINAL: 1 },
+        },
+        page: { hasMore: false, nextCursor: null },
+      }),
+      retryEmail: vi.fn().mockResolvedValue({
+        id: delivery.id,
+        status: 'PENDING',
+        nextAttemptAt: new Date('2026-07-28T01:00:00Z'),
+      }),
+    };
+    render(<OperationsView client={client} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Muat email' }));
+    expect((await screen.findAllByText('cu*****@example.test'))[0]).toBeVisible();
+    expect(screen.queryByText('customer@example.test')).not.toBeInTheDocument();
+    const retry = screen.getAllByRole('button', { name: 'Retry email' })[0]!;
+    expect(retry).toBeDisabled();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Alasan retry email' }),
+      'Credential SMTP sudah diperbaiki',
+    );
+    expect(retry).toBeEnabled();
+    await user.click(retry);
+    expect(client.retryEmail).toHaveBeenCalledWith(delivery.id, 'Credential SMTP sudah diperbaiki');
+  });
 });

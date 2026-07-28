@@ -43,7 +43,8 @@ describe('identity security foundation', () => {
         'user:admin',
         'finance:manage',
         'operations:recover',
-        'identity-verification:review',
+        'identity-verification:read',
+        'identity-verification:decide',
         'identity-verification:delete',
       ]),
     );
@@ -52,14 +53,19 @@ describe('identity security foundation', () => {
     ]);
   });
 
-  it('allows Admin to review identity evidence but reserves permanent deletion for Super Owner', () => {
+  it('reserves global identity review and deletion for Super Owner', () => {
     const policy = new PolicyService();
     const admin = policy.capabilities([{ role: 'ADMIN', branchId: 'branch-a' }]);
     const superOwner = policy.capabilities([{ role: 'SUPER_OWNER', branchId: null }]);
-    expect(admin).toContain('identity-verification:review');
+    expect(admin).not.toContain('identity-verification:read');
+    expect(admin).not.toContain('identity-verification:decide');
     expect(admin).not.toContain('identity-verification:delete');
     expect(superOwner).toEqual(
-      expect.arrayContaining(['identity-verification:review', 'identity-verification:delete']),
+      expect.arrayContaining([
+        'identity-verification:read',
+        'identity-verification:decide',
+        'identity-verification:delete',
+      ]),
     );
   });
 
@@ -74,13 +80,13 @@ describe('identity security foundation', () => {
           { role: 'CUSTOMER', branchId: null },
           { role: 'ADMIN', branchId: 'branch-a' },
         ],
-        ['customer:self', 'identity-verification:review'],
+        ['customer:self', 'identity-verification:read'],
       ),
     ).toThrow(ApiProblem);
     expect(() =>
       policy.requireCustomerSelf(
         [{ role: 'SUPER_OWNER', branchId: null }],
-        ['identity-verification:review'],
+        ['identity-verification:read'],
       ),
     ).toThrow(ApiProblem);
   });
@@ -437,6 +443,98 @@ describe('identity security foundation', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('refuses reviewer authorization unless the active file is finalized and clean', async () => {
+    const findUnique = jest.fn();
+    const db = {
+      identityVerificationDocument: { findUnique },
+      identityDocumentViewAuthorization: { create: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    const storage = { exists: jest.fn().mockResolvedValue(true) };
+    const service = new IdentityDocumentAccessService(
+      db as never,
+      new PolicyService(),
+      storage as never,
+    );
+    const principal = {
+      sessionId: 'review-session',
+      userId: 'reviewer-1',
+      roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+      capabilities: ['branch:all', 'identity-verification:read'],
+      branchIds: [],
+    };
+    const baseline = {
+      id: 'document-1',
+      userId: 'customer-1',
+      objectKey: 'identity/customer-1/document-1',
+      status: 'PENDING',
+      uploadStatus: 'FINALIZED',
+      scanStatus: 'CLEAN',
+      replacedById: null,
+    };
+    for (const unsafe of [
+      { uploadStatus: 'PENDING' },
+      { scanStatus: 'PENDING' },
+      { scanStatus: 'INFECTED' },
+      { status: 'DELETED' },
+      { replacedById: 'document-2' },
+    ]) {
+      findUnique.mockResolvedValueOnce({ ...baseline, ...unsafe });
+      await expect(
+        service.authorizeReview(principal, baseline.id, 'correlation-1'),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    }
+    expect(db.identityDocumentViewAuthorization.create).not.toHaveBeenCalled();
+  });
+
+  it('revalidates document lifecycle when a one-time reviewer authorization is consumed', async () => {
+    const db = {
+      identityVerificationDocument: { findUnique: jest.fn() },
+      identityDocumentViewAuthorization: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'authorization-1',
+          viewerId: 'reviewer-1',
+          purpose: 'REVIEW',
+          consumedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+          document: {
+            id: 'document-1',
+            userId: 'customer-1',
+            objectKey: 'identity/customer-1/document-1',
+            status: 'PENDING',
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'ERROR',
+            replacedById: null,
+          },
+        }),
+        updateMany: jest.fn(),
+      },
+      auditLog: { create: jest.fn() },
+    };
+    const storage = { read: jest.fn() };
+    const service = new IdentityDocumentAccessService(
+      db as never,
+      new PolicyService(),
+      storage as never,
+    );
+    await expect(
+      service.read(
+        {
+          sessionId: 'review-session',
+          userId: 'reviewer-1',
+          roles: [{ role: 'SUPER_OWNER', branchId: null }],
+          capabilities: ['branch:all', 'identity-verification:read'],
+          branchIds: [],
+        },
+        'authorization-1',
+        'correlation-1',
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(db.identityDocumentViewAuthorization.updateMany).not.toHaveBeenCalled();
+    expect(storage.read).not.toHaveBeenCalled();
+    expect(db.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it('groups the review queue by customer with masked contact, summary and all lifecycle statuses', async () => {
     const createdAt = new Date('2026-07-20T02:00:00.000Z');
     const groupBy = jest
@@ -492,7 +590,7 @@ describe('identity security foundation', () => {
         sessionId: 'review-session',
         userId: 'reviewer-1',
         roles: [{ role: 'SUPER_OWNER', branchId: null }],
-        capabilities: ['identity-verification:review'],
+        capabilities: ['identity-verification:read', 'branch:all'],
         branchIds: [],
       },
       { q: 'Ayu', status: 'DELETE_FAILED', limit: 20 },
@@ -541,9 +639,9 @@ describe('identity security foundation', () => {
         {
           sessionId: 'review-session',
           userId: 'reviewer-1',
-          roles: [{ role: 'ADMIN', branchId: 'branch-1' }],
-          capabilities: ['identity-verification:review'],
-          branchIds: ['branch-1'],
+          roles: [{ role: 'SUPER_OWNER', branchId: null }],
+          capabilities: ['identity-verification:decide', 'branch:all'],
+          branchIds: [],
         },
         'document-1',
         'APPROVED',

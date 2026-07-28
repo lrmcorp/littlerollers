@@ -3,7 +3,10 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/adjustment_customer.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/adjustment_actor.dart';
+import 'package:openapi/src/model/adjustment_named_reference.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -17,11 +20,28 @@ part 'session_adjustment.g.dart';
 /// * [quantity] 
 /// * [reasonCode] 
 /// * [requestedById] 
+/// * [requestedBy] 
 /// * [decidedById] 
+/// * [decidedBy] 
 /// * [decisionCode] 
 /// * [status] 
+/// * [ledgerBalanceAtRequest] 
+/// * [reservedAtRequest] 
+/// * [customer] 
+/// * [branch] 
+/// * [package] 
+/// * [classType] 
+/// * [currentBalance] 
+/// * [currentReserved] 
+/// * [currentAvailable] 
+/// * [projectedLedgerBalance] 
+/// * [projectedAvailable] 
+/// * [eligibleForApproval] 
+/// * [eligibilityReason] 
+/// * [ledgerEntryId] 
 /// * [version] 
 /// * [createdAt] 
+/// * [decidedAt] 
 @BuiltValue()
 abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdjustmentBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -40,8 +60,14 @@ abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdju
   @BuiltValueField(wireName: r'requestedById')
   String get requestedById;
 
+  @BuiltValueField(wireName: r'requestedBy')
+  AdjustmentActor? get requestedBy;
+
   @BuiltValueField(wireName: r'decidedById')
   String? get decidedById;
+
+  @BuiltValueField(wireName: r'decidedBy')
+  AdjustmentActor? get decidedBy;
 
   @BuiltValueField(wireName: r'decisionCode')
   SessionAdjustmentDecisionCodeEnum? get decisionCode;
@@ -51,11 +77,56 @@ abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdju
   SessionAdjustmentStatusEnum get status;
   // enum statusEnum {  PENDING,  POSTED,  REJECTED,  };
 
+  @BuiltValueField(wireName: r'ledgerBalanceAtRequest')
+  int? get ledgerBalanceAtRequest;
+
+  @BuiltValueField(wireName: r'reservedAtRequest')
+  int? get reservedAtRequest;
+
+  @BuiltValueField(wireName: r'customer')
+  AdjustmentCustomer? get customer;
+
+  @BuiltValueField(wireName: r'branch')
+  AdjustmentNamedReference? get branch;
+
+  @BuiltValueField(wireName: r'package')
+  AdjustmentNamedReference? get package;
+
+  @BuiltValueField(wireName: r'classType')
+  AdjustmentNamedReference? get classType;
+
+  @BuiltValueField(wireName: r'currentBalance')
+  int? get currentBalance;
+
+  @BuiltValueField(wireName: r'currentReserved')
+  int? get currentReserved;
+
+  @BuiltValueField(wireName: r'currentAvailable')
+  int? get currentAvailable;
+
+  @BuiltValueField(wireName: r'projectedLedgerBalance')
+  int? get projectedLedgerBalance;
+
+  @BuiltValueField(wireName: r'projectedAvailable')
+  int? get projectedAvailable;
+
+  @BuiltValueField(wireName: r'eligibleForApproval')
+  bool? get eligibleForApproval;
+
+  @BuiltValueField(wireName: r'eligibilityReason')
+  String? get eligibilityReason;
+
+  @BuiltValueField(wireName: r'ledgerEntryId')
+  String? get ledgerEntryId;
+
   @BuiltValueField(wireName: r'version')
   int get version;
 
   @BuiltValueField(wireName: r'createdAt')
   DateTime get createdAt;
+
+  @BuiltValueField(wireName: r'decidedAt')
+  DateTime? get decidedAt;
 
   SessionAdjustment._();
 
@@ -105,11 +176,25 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       object.requestedById,
       specifiedType: const FullType(String),
     );
+    if (object.requestedBy != null) {
+      yield r'requestedBy';
+      yield serializers.serialize(
+        object.requestedBy,
+        specifiedType: const FullType(AdjustmentActor),
+      );
+    }
     if (object.decidedById != null) {
       yield r'decidedById';
       yield serializers.serialize(
         object.decidedById,
         specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.decidedBy != null) {
+      yield r'decidedBy';
+      yield serializers.serialize(
+        object.decidedBy,
+        specifiedType: const FullType.nullable(AdjustmentActor),
       );
     }
     if (object.decisionCode != null) {
@@ -124,6 +209,104 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       object.status,
       specifiedType: const FullType(SessionAdjustmentStatusEnum),
     );
+    if (object.ledgerBalanceAtRequest != null) {
+      yield r'ledgerBalanceAtRequest';
+      yield serializers.serialize(
+        object.ledgerBalanceAtRequest,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.reservedAtRequest != null) {
+      yield r'reservedAtRequest';
+      yield serializers.serialize(
+        object.reservedAtRequest,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.customer != null) {
+      yield r'customer';
+      yield serializers.serialize(
+        object.customer,
+        specifiedType: const FullType(AdjustmentCustomer),
+      );
+    }
+    if (object.branch != null) {
+      yield r'branch';
+      yield serializers.serialize(
+        object.branch,
+        specifiedType: const FullType(AdjustmentNamedReference),
+      );
+    }
+    if (object.package != null) {
+      yield r'package';
+      yield serializers.serialize(
+        object.package,
+        specifiedType: const FullType(AdjustmentNamedReference),
+      );
+    }
+    if (object.classType != null) {
+      yield r'classType';
+      yield serializers.serialize(
+        object.classType,
+        specifiedType: const FullType(AdjustmentNamedReference),
+      );
+    }
+    if (object.currentBalance != null) {
+      yield r'currentBalance';
+      yield serializers.serialize(
+        object.currentBalance,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.currentReserved != null) {
+      yield r'currentReserved';
+      yield serializers.serialize(
+        object.currentReserved,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.currentAvailable != null) {
+      yield r'currentAvailable';
+      yield serializers.serialize(
+        object.currentAvailable,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.projectedLedgerBalance != null) {
+      yield r'projectedLedgerBalance';
+      yield serializers.serialize(
+        object.projectedLedgerBalance,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.projectedAvailable != null) {
+      yield r'projectedAvailable';
+      yield serializers.serialize(
+        object.projectedAvailable,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.eligibleForApproval != null) {
+      yield r'eligibleForApproval';
+      yield serializers.serialize(
+        object.eligibleForApproval,
+        specifiedType: const FullType(bool),
+      );
+    }
+    if (object.eligibilityReason != null) {
+      yield r'eligibilityReason';
+      yield serializers.serialize(
+        object.eligibilityReason,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.ledgerEntryId != null) {
+      yield r'ledgerEntryId';
+      yield serializers.serialize(
+        object.ledgerEntryId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     yield r'version';
     yield serializers.serialize(
       object.version,
@@ -134,6 +317,13 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       object.createdAt,
       specifiedType: const FullType(DateTime),
     );
+    if (object.decidedAt != null) {
+      yield r'decidedAt';
+      yield serializers.serialize(
+        object.decidedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
   }
 
   @override
@@ -192,6 +382,13 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as String;
           result.requestedById = valueDes;
           break;
+        case r'requestedBy':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentActor),
+          ) as AdjustmentActor;
+          result.requestedBy.replace(valueDes);
+          break;
         case r'decidedById':
           final valueDes = serializers.deserialize(
             value,
@@ -199,6 +396,14 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as String?;
           if (valueDes == null) continue;
           result.decidedById = valueDes;
+          break;
+        case r'decidedBy':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(AdjustmentActor),
+          ) as AdjustmentActor?;
+          if (valueDes == null) continue;
+          result.decidedBy.replace(valueDes);
           break;
         case r'decisionCode':
           final valueDes = serializers.deserialize(
@@ -215,6 +420,108 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as SessionAdjustmentStatusEnum;
           result.status = valueDes;
           break;
+        case r'ledgerBalanceAtRequest':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.ledgerBalanceAtRequest = valueDes;
+          break;
+        case r'reservedAtRequest':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.reservedAtRequest = valueDes;
+          break;
+        case r'customer':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentCustomer),
+          ) as AdjustmentCustomer;
+          result.customer.replace(valueDes);
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentNamedReference),
+          ) as AdjustmentNamedReference;
+          result.branch.replace(valueDes);
+          break;
+        case r'package':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentNamedReference),
+          ) as AdjustmentNamedReference;
+          result.package.replace(valueDes);
+          break;
+        case r'classType':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AdjustmentNamedReference),
+          ) as AdjustmentNamedReference;
+          result.classType.replace(valueDes);
+          break;
+        case r'currentBalance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.currentBalance = valueDes;
+          break;
+        case r'currentReserved':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.currentReserved = valueDes;
+          break;
+        case r'currentAvailable':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.currentAvailable = valueDes;
+          break;
+        case r'projectedLedgerBalance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.projectedLedgerBalance = valueDes;
+          break;
+        case r'projectedAvailable':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.projectedAvailable = valueDes;
+          break;
+        case r'eligibleForApproval':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.eligibleForApproval = valueDes;
+          break;
+        case r'eligibilityReason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.eligibilityReason = valueDes;
+          break;
+        case r'ledgerEntryId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.ledgerEntryId = valueDes;
+          break;
         case r'version':
           final valueDes = serializers.deserialize(
             value,
@@ -228,6 +535,14 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
             specifiedType: const FullType(DateTime),
           ) as DateTime;
           result.createdAt = valueDes;
+          break;
+        case r'decidedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.decidedAt = valueDes;
           break;
         default:
           unhandled.add(key);

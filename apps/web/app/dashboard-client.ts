@@ -9,6 +9,7 @@ import {
   type DashboardRiskItem,
   type DashboardTrendPoint,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 
 export type {
   DashboardActivityItem,
@@ -50,10 +51,13 @@ const operations = new OperationsApi(
 
 export const browserDashboardClient: DashboardClient = {
   overview(input) {
-    return operations.getDashboardOverview({
-      branchId: input.branchId,
-      from: input.from ? new Date(`${input.from}T00:00:00.000Z`) : undefined,
-      until: input.until ? new Date(`${input.until}T00:00:00.000Z`) : undefined,
-    }) as Promise<DashboardOverview>;
+    return appLoading.track(
+      operations.getDashboardOverview({
+        branchId: input.branchId,
+        from: input.from ? new Date(`${input.from}T00:00:00.000Z`) : undefined,
+        until: input.until ? new Date(`${input.until}T00:00:00.000Z`) : undefined,
+      }) as Promise<DashboardOverview>,
+      { label: 'Memuat dashboard…' },
+    );
   },
 };

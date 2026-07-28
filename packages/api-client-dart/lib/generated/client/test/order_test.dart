@@ -22,6 +22,11 @@ void main() {
       // TODO
     });
 
+    // String branchTimezone
+    test('to test the property `branchTimezone`', () async {
+      // TODO
+    });
+
     // String packageId
     test('to test the property `packageId`', () async {
       // TODO
@@ -72,6 +77,11 @@ void main() {
       // TODO
     });
 
+    // DateTime decidedAt
+    test('to test the property `decidedAt`', () async {
+      // TODO
+    });
+
     // DateTime expiresAt
     test('to test the property `expiresAt`', () async {
       // TODO
@@ -94,6 +104,21 @@ void main() {
 
     // String decisionReasonCode
     test('to test the property `decisionReasonCode`', () async {
+      // TODO
+    });
+
+    // bool timelineComplete
+    test('to test the property `timelineComplete`', () async {
+      // TODO
+    });
+
+    // CustomerOrderActivation activation
+    test('to test the property `activation`', () async {
+      // TODO
+    });
+
+    // CustomerOrderTimelinePage timeline
+    test('to test the property `timeline`', () async {
       // TODO
     });
 

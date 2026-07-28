@@ -92,6 +92,8 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
   @override
   final String classTypeId;
   @override
+  final AdjustmentCustomer? customer;
+  @override
   final String? packageName;
   @override
   final String? branchName;
@@ -130,6 +132,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     required this.customerUserId,
     required this.packageId,
     required this.classTypeId,
+    this.customer,
     this.packageName,
     this.branchName,
     this.classTypeName,
@@ -163,6 +166,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
         customerUserId == other.customerUserId &&
         packageId == other.packageId &&
         classTypeId == other.classTypeId &&
+        customer == other.customer &&
         packageName == other.packageName &&
         branchName == other.branchName &&
         classTypeName == other.classTypeName &&
@@ -187,6 +191,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     _$hash = $jc(_$hash, customerUserId.hashCode);
     _$hash = $jc(_$hash, packageId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, customer.hashCode);
     _$hash = $jc(_$hash, packageName.hashCode);
     _$hash = $jc(_$hash, branchName.hashCode);
     _$hash = $jc(_$hash, classTypeName.hashCode);
@@ -213,6 +218,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
           ..add('customerUserId', customerUserId)
           ..add('packageId', packageId)
           ..add('classTypeId', classTypeId)
+          ..add('customer', customer)
           ..add('packageName', packageName)
           ..add('branchName', branchName)
           ..add('classTypeName', classTypeName)
@@ -255,6 +261,12 @@ class CustomerPackageBalanceBuilder
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+
+  AdjustmentCustomerBuilder? _customer;
+  AdjustmentCustomerBuilder get customer =>
+      _$this._customer ??= AdjustmentCustomerBuilder();
+  set customer(AdjustmentCustomerBuilder? customer) =>
+      _$this._customer = customer;
 
   String? _packageName;
   String? get packageName => _$this._packageName;
@@ -331,6 +343,7 @@ class CustomerPackageBalanceBuilder
       _customerUserId = $v.customerUserId;
       _packageId = $v.packageId;
       _classTypeId = $v.classTypeId;
+      _customer = $v.customer?.toBuilder();
       _packageName = $v.packageName;
       _branchName = $v.branchName;
       _classTypeName = $v.classTypeName;
@@ -364,93 +377,110 @@ class CustomerPackageBalanceBuilder
   CustomerPackageBalance build() => _build();
 
   _$CustomerPackageBalance _build() {
-    final _$result =
-        _$v ??
-        _$CustomerPackageBalance._(
-          id: BuiltValueNullFieldError.checkNotNull(
-            id,
-            r'CustomerPackageBalance',
-            'id',
-          ),
-          branchId: BuiltValueNullFieldError.checkNotNull(
-            branchId,
-            r'CustomerPackageBalance',
-            'branchId',
-          ),
-          customerUserId: BuiltValueNullFieldError.checkNotNull(
-            customerUserId,
-            r'CustomerPackageBalance',
-            'customerUserId',
-          ),
-          packageId: BuiltValueNullFieldError.checkNotNull(
-            packageId,
-            r'CustomerPackageBalance',
-            'packageId',
-          ),
-          classTypeId: BuiltValueNullFieldError.checkNotNull(
-            classTypeId,
-            r'CustomerPackageBalance',
-            'classTypeId',
-          ),
-          packageName: packageName,
-          branchName: branchName,
-          classTypeName: classTypeName,
-          status: BuiltValueNullFieldError.checkNotNull(
-            status,
-            r'CustomerPackageBalance',
-            'status',
-          ),
-          activationDate: BuiltValueNullFieldError.checkNotNull(
-            activationDate,
-            r'CustomerPackageBalance',
-            'activationDate',
-          ),
-          expiryAt: BuiltValueNullFieldError.checkNotNull(
-            expiryAt,
-            r'CustomerPackageBalance',
-            'expiryAt',
-          ),
-          ledgerBalance: BuiltValueNullFieldError.checkNotNull(
-            ledgerBalance,
-            r'CustomerPackageBalance',
-            'ledgerBalance',
-          ),
-          reserved: BuiltValueNullFieldError.checkNotNull(
-            reserved,
-            r'CustomerPackageBalance',
-            'reserved',
-          ),
-          available: BuiltValueNullFieldError.checkNotNull(
-            available,
-            r'CustomerPackageBalance',
-            'available',
-          ),
-          salePriceRp: BuiltValueNullFieldError.checkNotNull(
-            salePriceRp,
-            r'CustomerPackageBalance',
-            'salePriceRp',
-          ),
-          sessionCountSnapshot: BuiltValueNullFieldError.checkNotNull(
-            sessionCountSnapshot,
-            r'CustomerPackageBalance',
-            'sessionCountSnapshot',
-          ),
-          durationDaysSnapshot: BuiltValueNullFieldError.checkNotNull(
-            durationDaysSnapshot,
-            r'CustomerPackageBalance',
-            'durationDaysSnapshot',
-          ),
-          projectionRateRp: BuiltValueNullFieldError.checkNotNull(
-            projectionRateRp,
-            r'CustomerPackageBalance',
-            'projectionRateRp',
-          ),
-          version: BuiltValueNullFieldError.checkNotNull(
-            version,
-            r'CustomerPackageBalance',
-            'version',
-          ),
+    _$CustomerPackageBalance _$result;
+    try {
+      _$result =
+          _$v ??
+          _$CustomerPackageBalance._(
+            id: BuiltValueNullFieldError.checkNotNull(
+              id,
+              r'CustomerPackageBalance',
+              'id',
+            ),
+            branchId: BuiltValueNullFieldError.checkNotNull(
+              branchId,
+              r'CustomerPackageBalance',
+              'branchId',
+            ),
+            customerUserId: BuiltValueNullFieldError.checkNotNull(
+              customerUserId,
+              r'CustomerPackageBalance',
+              'customerUserId',
+            ),
+            packageId: BuiltValueNullFieldError.checkNotNull(
+              packageId,
+              r'CustomerPackageBalance',
+              'packageId',
+            ),
+            classTypeId: BuiltValueNullFieldError.checkNotNull(
+              classTypeId,
+              r'CustomerPackageBalance',
+              'classTypeId',
+            ),
+            customer: _customer?.build(),
+            packageName: packageName,
+            branchName: branchName,
+            classTypeName: classTypeName,
+            status: BuiltValueNullFieldError.checkNotNull(
+              status,
+              r'CustomerPackageBalance',
+              'status',
+            ),
+            activationDate: BuiltValueNullFieldError.checkNotNull(
+              activationDate,
+              r'CustomerPackageBalance',
+              'activationDate',
+            ),
+            expiryAt: BuiltValueNullFieldError.checkNotNull(
+              expiryAt,
+              r'CustomerPackageBalance',
+              'expiryAt',
+            ),
+            ledgerBalance: BuiltValueNullFieldError.checkNotNull(
+              ledgerBalance,
+              r'CustomerPackageBalance',
+              'ledgerBalance',
+            ),
+            reserved: BuiltValueNullFieldError.checkNotNull(
+              reserved,
+              r'CustomerPackageBalance',
+              'reserved',
+            ),
+            available: BuiltValueNullFieldError.checkNotNull(
+              available,
+              r'CustomerPackageBalance',
+              'available',
+            ),
+            salePriceRp: BuiltValueNullFieldError.checkNotNull(
+              salePriceRp,
+              r'CustomerPackageBalance',
+              'salePriceRp',
+            ),
+            sessionCountSnapshot: BuiltValueNullFieldError.checkNotNull(
+              sessionCountSnapshot,
+              r'CustomerPackageBalance',
+              'sessionCountSnapshot',
+            ),
+            durationDaysSnapshot: BuiltValueNullFieldError.checkNotNull(
+              durationDaysSnapshot,
+              r'CustomerPackageBalance',
+              'durationDaysSnapshot',
+            ),
+            projectionRateRp: BuiltValueNullFieldError.checkNotNull(
+              projectionRateRp,
+              r'CustomerPackageBalance',
+              'projectionRateRp',
+            ),
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'CustomerPackageBalance',
+              'version',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'customer';
+        _customer?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'CustomerPackageBalance',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

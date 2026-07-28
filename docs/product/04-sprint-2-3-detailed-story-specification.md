@@ -174,7 +174,7 @@ Flow: authentication entry → provider/OTP verification → identity resolution
 
 | Contract | Specification |
 |---|---|
-| Actor/permission | Branch-scoped Admin requests; different MFA-satisfied Manager/Super Owner approves/rejects |
+| Actor/permission | Branch-scoped Admin requests; different authenticated Manager/Super Owner with `ledger:adjust:decide` approves/rejects; MFA is not used |
 | Objective/trigger | Correct session balance through reviewed request and one referenced append-only adjustment |
 | Preconditions | Visible active customer package; signed non-zero delta/reason; requester/approver capabilities; period/state permits posting |
 | Main flow | View balance → request adjustment → list/review request → enforce SoD → approve/reject → show decision, ledger reference and resulting balance |
@@ -189,7 +189,7 @@ Flow: authentication entry → provider/OTP verification → identity resolution
 | Dependencies/status | LED-01, ID-02/RBAC, CTG-008/010/011/012, UX-09 Figma, Finance/QA review, G1–G5; `BLOCKED` |
 
 - **AC-US-LED-02-01:** Given authorized Admin, valid package, non-zero delta and reason, when request is submitted idempotently, then one PENDING adjustment request and requested audit/event are created without changing ledger balance.
-- **AC-US-LED-02-02:** Given requester equals approver or approver lacks branch/MFA capability, when decision is attempted, then SEPARATION_OF_DUTIES_VIOLATION/forbidden is returned and request/ledger remain unchanged.
+- **AC-US-LED-02-02:** Given requester equals approver or approver lacks branch/decision capability, when decision is attempted, then SEPARATION_OF_DUTIES_VIOLATION/forbidden is returned, a safe denied-action audit is recorded for self-approval, and request/ledger remain unchanged.
 - **AC-US-LED-02-03:** Given valid PENDING request and different authorized approver, when approval commits, then one referenced append-only adjustment, decision/audit/outbox and resulting balance commit atomically.
 - **AC-US-LED-02-04:** Given concurrent/retried or stale decisions, when processed, then at most one decision/post succeeds, duplicate intent returns the authoritative result, and conflicting intent cannot create a second ledger entry.
 

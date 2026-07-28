@@ -21,7 +21,14 @@ void main() {
       // TODO
     });
 
-    //Future<DownloadAuthorization> authorizePaymentProofDownload(String id) async
+    // Issues a short-lived one-time authorization for the authenticated customer to view the CLEAN proof currently attached to their own order.
+    //
+    //Future<PaymentProofViewAuthorization> authorizeOwnOrderPaymentProofView(String id) async
+    test('test authorizeOwnOrderPaymentProofView', () async {
+      // TODO
+    });
+
+    //Future<PaymentProofViewAuthorization> authorizePaymentProofDownload(String id) async
     test('test authorizePaymentProofDownload', () async {
       // TODO
     });
@@ -67,12 +74,19 @@ void main() {
       // TODO
     });
 
+    // Capability and branch-scoped reviewer detail with masked customer, private-proof metadata, authoritative balance, usage history, timeline, and persisted activation result.
+    //
+    //Future<PaymentReviewDetail> getPaymentReviewDetail(String id, { String usageCursor }) async
+    test('test getPaymentReviewDetail', () async {
+      // TODO
+    });
+
     //Future<PublicPackageDetail> getPublicPackageDetail(String id) async
     test('test getPublicPackageDetail', () async {
       // TODO
     });
 
-    //Future<OrderPage> listOrders({ String status, String cursor }) async
+    //Future<OrderPage> listOrders({ String status, String cursor, String q, Date from, Date until, int limit }) async
     test('test listOrders', () async {
       // TODO
     });
@@ -89,7 +103,9 @@ void main() {
       // TODO
     });
 
-    //Future<PurchasePage> listPurchases({ String branchId, String cursor, String status }) async
+    // Capability-scoped payment review queue. Omitted branchId means every authorized branch, including global scope for Super Owner and Finance.
+    //
+    //Future<PaymentReviewPage> listPurchases({ String branchId, String cursor, String status, int limit, String q, DateTime from, DateTime until, String purchaseId }) async
     test('test listPurchases', () async {
       // TODO
     });
@@ -115,6 +131,13 @@ void main() {
     //
     //Future<PaymentProof> uploadPaymentProofContent(String id, MultipartFile body) async
     test('test uploadPaymentProofContent', () async {
+      // TODO
+    });
+
+    // Consumes a one-time viewer-bound payment proof authorization issued for Finance review or customer self-view.
+    //
+    //Future<Uint8List> viewAuthorizedPaymentProofContent(String id) async
+    test('test viewAuthorizedPaymentProofContent', () async {
       // TODO
     });
 

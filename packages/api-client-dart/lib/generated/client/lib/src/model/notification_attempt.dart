@@ -16,10 +16,10 @@ part 'notification_attempt.g.dart';
 /// * [occurrenceId] 
 /// * [attemptNumber] 
 /// * [status] 
-/// * [queuedAt] 
-/// * [providerReference] 
-/// * [failureCode] 
-/// * [idempotentReplay] 
+/// * [startedAt] 
+/// * [completedAt] 
+/// * [providerCode] 
+/// * [errorCode] 
 @BuiltValue()
 abstract class NotificationAttempt implements Built<NotificationAttempt, NotificationAttemptBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -33,19 +33,19 @@ abstract class NotificationAttempt implements Built<NotificationAttempt, Notific
 
   @BuiltValueField(wireName: r'status')
   NotificationAttemptStatusEnum get status;
-  // enum statusEnum {  QUEUED,  SENT,  DELIVERED,  FAILED,  DEAD_LETTER,  };
+  // enum statusEnum {  SENDING,  ACCEPTED_BY_SMTP,  FAILED_RETRYABLE,  FAILED_TERMINAL,  };
 
-  @BuiltValueField(wireName: r'queuedAt')
-  DateTime get queuedAt;
+  @BuiltValueField(wireName: r'startedAt')
+  DateTime get startedAt;
 
-  @BuiltValueField(wireName: r'providerReference')
-  String? get providerReference;
+  @BuiltValueField(wireName: r'completedAt')
+  DateTime? get completedAt;
 
-  @BuiltValueField(wireName: r'failureCode')
-  String? get failureCode;
+  @BuiltValueField(wireName: r'providerCode')
+  String? get providerCode;
 
-  @BuiltValueField(wireName: r'idempotentReplay')
-  bool get idempotentReplay;
+  @BuiltValueField(wireName: r'errorCode')
+  String? get errorCode;
 
   NotificationAttempt._();
 
@@ -90,30 +90,32 @@ class _$NotificationAttemptSerializer implements PrimitiveSerializer<Notificatio
       object.status,
       specifiedType: const FullType(NotificationAttemptStatusEnum),
     );
-    yield r'queuedAt';
+    yield r'startedAt';
     yield serializers.serialize(
-      object.queuedAt,
+      object.startedAt,
       specifiedType: const FullType(DateTime),
     );
-    if (object.providerReference != null) {
-      yield r'providerReference';
+    if (object.completedAt != null) {
+      yield r'completedAt';
       yield serializers.serialize(
-        object.providerReference,
+        object.completedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
+    if (object.providerCode != null) {
+      yield r'providerCode';
+      yield serializers.serialize(
+        object.providerCode,
         specifiedType: const FullType.nullable(String),
       );
     }
-    if (object.failureCode != null) {
-      yield r'failureCode';
+    if (object.errorCode != null) {
+      yield r'errorCode';
       yield serializers.serialize(
-        object.failureCode,
+        object.errorCode,
         specifiedType: const FullType.nullable(String),
       );
     }
-    yield r'idempotentReplay';
-    yield serializers.serialize(
-      object.idempotentReplay,
-      specifiedType: const FullType(bool),
-    );
   }
 
   @override
@@ -165,35 +167,36 @@ class _$NotificationAttemptSerializer implements PrimitiveSerializer<Notificatio
           ) as NotificationAttemptStatusEnum;
           result.status = valueDes;
           break;
-        case r'queuedAt':
+        case r'startedAt':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(DateTime),
           ) as DateTime;
-          result.queuedAt = valueDes;
+          result.startedAt = valueDes;
           break;
-        case r'providerReference':
+        case r'completedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.completedAt = valueDes;
+          break;
+        case r'providerCode':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType.nullable(String),
           ) as String?;
           if (valueDes == null) continue;
-          result.providerReference = valueDes;
+          result.providerCode = valueDes;
           break;
-        case r'failureCode':
+        case r'errorCode':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType.nullable(String),
           ) as String?;
           if (valueDes == null) continue;
-          result.failureCode = valueDes;
-          break;
-        case r'idempotentReplay':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(bool),
-          ) as bool;
-          result.idempotentReplay = valueDes;
+          result.errorCode = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -226,16 +229,14 @@ class _$NotificationAttemptSerializer implements PrimitiveSerializer<Notificatio
 
 class NotificationAttemptStatusEnum extends EnumClass {
 
-  @BuiltValueEnumConst(wireName: r'QUEUED')
-  static const NotificationAttemptStatusEnum QUEUED = _$notificationAttemptStatusEnum_QUEUED;
-  @BuiltValueEnumConst(wireName: r'SENT')
-  static const NotificationAttemptStatusEnum SENT = _$notificationAttemptStatusEnum_SENT;
-  @BuiltValueEnumConst(wireName: r'DELIVERED')
-  static const NotificationAttemptStatusEnum DELIVERED = _$notificationAttemptStatusEnum_DELIVERED;
-  @BuiltValueEnumConst(wireName: r'FAILED')
-  static const NotificationAttemptStatusEnum FAILED = _$notificationAttemptStatusEnum_FAILED;
-  @BuiltValueEnumConst(wireName: r'DEAD_LETTER')
-  static const NotificationAttemptStatusEnum DEAD_LETTER = _$notificationAttemptStatusEnum_DEAD_LETTER;
+  @BuiltValueEnumConst(wireName: r'SENDING')
+  static const NotificationAttemptStatusEnum SENDING = _$notificationAttemptStatusEnum_SENDING;
+  @BuiltValueEnumConst(wireName: r'ACCEPTED_BY_SMTP')
+  static const NotificationAttemptStatusEnum ACCEPTED_BY_SMTP = _$notificationAttemptStatusEnum_ACCEPTED_BY_SMTP;
+  @BuiltValueEnumConst(wireName: r'FAILED_RETRYABLE')
+  static const NotificationAttemptStatusEnum FAILED_RETRYABLE = _$notificationAttemptStatusEnum_FAILED_RETRYABLE;
+  @BuiltValueEnumConst(wireName: r'FAILED_TERMINAL')
+  static const NotificationAttemptStatusEnum FAILED_TERMINAL = _$notificationAttemptStatusEnum_FAILED_TERMINAL;
 
   static Serializer<NotificationAttemptStatusEnum> get serializer => _$notificationAttemptStatusEnumSerializer;
 

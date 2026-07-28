@@ -1,36 +1,33 @@
 # BG-2 Reschedule Evidence — US-BKG-02
 
-**Status:** `IN_PROGRESS — WEB/BACKEND LOCAL PASS FOR SYNTHETIC NON-PRODUCTION`  
-**Date:** 2026-07-23  
-**Git:** working tree unstaged; commit/push menunggu perintah eksplisit pengguna
+**Status:** `IMPLEMENTED LOCALLY — PRODUCTION/UAT AND MYSQL INTEGRATION RE-RUN BLOCKED`
+**Updated:** 2026-07-28
 
-## Implemented Boundary
+## Implemented boundary
 
-- Customer-owner dapat membuat satu request pending sebelum cutoff synthetic H-24; booking berubah menjadi `RESCHEDULE_PENDING` tanpa memindahkan reservation.
-- Admin branch-scoped dan Super Owner global dapat approve/reject dengan MFA. Manager tidak memperoleh capability baru.
-- Approval memindahkan booking dan reservation, serta memperbarui booked count sumber/target secara atomik. Rejection mempertahankan reservation sumber.
-- Target wajib berbeda, satu branch/class type, `PUBLISHED/CONFIRMED`, memiliki kapasitas, memenuhi cutoff booking H-2, dan package tetap eligible.
-- Production tanpa konfigurasi reschedule yang disetujui tetap `CONFIGURATION_REQUIRED`.
+- Customer Web memperoleh options backend-authoritative, controlled reason, explicit confirmation, pending/result state dan arahan studio setelah cutoff.
+- Request sebelum atau tepat H-24 membuat satu pending request tanpa memindahkan reservation. Request setelah boundary ditolak tanpa mutasi.
+- Admin cabang/Super Owner dapat approve/reject; approval requester sendiri ditolak. Approval merevalidasi target, capacity, package, reservation dan duplicate customer booking di bawah lock.
+- MySQL generated active-key dan unique index mencegah dua booking aktif untuk Customer/ClassSlot yang sama.
+- Request menghasilkan staff in-app notification. Approved/rejected menghasilkan customer in-app dan email occurrence melalui notification worker.
+- Production memakai `BOOKING_ENABLED`/`RESCHEDULE_ENABLED`; contoh production tetap `false` sampai approval dan UAT.
 
-## Executable Evidence
+## Evidence lokal terkini
 
-| Pemeriksaan | Hasil lokal |
-| --- | --- |
-| OpenAPI | `1.7.0-draft`, SHA-256 `ce7e0dbd82486dba917b0b38eb83a94be11e0a26554dc477b2f26ad00acb169a`, 98 operation IDs |
-| Generated clients | 143 TypeScript + 150 Dart source byte-for-byte; Dart `build_runner` PASS |
-| PostgreSQL | 17 migrations pada database kosong; double seed idempotent |
-| API | 17 suites / 72 tests PASS pada PostgreSQL nyata, termasuk boundary dan concurrency reschedule |
-| Web component/a11y | 35 tests PASS, termasuk queue decision dan axe |
-| Playwright | 26 tests PASS, termasuk MFA approval dan controlled decision |
+| Pemeriksaan | Hasil |
+|---|---|
+| OpenAPI | PASS — `1.12.0-draft`, checksum `7f0b0cd5...1f4793`, 152 operation IDs |
+| Generated clients | PASS drift — 265 TypeScript dan 272 Dart files byte-for-byte; generator dijalankan melalui local Java/JAR, tanpa container |
+| Workspace typecheck | PASS — 12/12 tasks |
+| API non-database | PASS — 23 suites / 86 tests |
+| Worker | PASS — 7 suites / 13 tests termasuk staff projection request |
+| Web | PASS — 26 files / 100 tests termasuk customer reschedule dan axe |
+| Prisma schema | PASS validate |
+| MySQL integration/migration | PENDING — MySQL lokal `127.0.0.1:3306` tidak berjalan dan Docker tidak dinyalakan sesuai instruksi |
 
-## Review Disposition
+## Remaining blockers
 
-- **AI QA/a11y:** PASS WITH ACTION — executable Web/backend evidence hijau; Flutter regression dan hosted closure masih ditunda.
-- **AI Security:** PASS FOR SYNTHETIC BOUNDARY — ownership/scope/MFA ditegakkan backend, foreign resource hidden, audit/event masked, controlled reason only.
-- **AI Peer Reviewer:** PASS WITH ACTION — lock order dan transaksi mempertahankan reservation sumber pada kegagalan; cancellation, refund, ledger mutation dan notification tidak masuk scope.
-
-## Remaining Blockers
-
-- Flutter customer UI dan full Flutter/Dart regression belum dibuka kembali.
-- Hosted `typescript`, `flutter`, dan `secrets` belum dijalankan untuk evidence commit ini.
-- DEC-008 production, Figma, browser/device UAT, notification policy, Gate 3 dan PG-1 tetap blocked.
+- Jalankan migrasi pada database staging kosong dan salinan data yang sudah diperiksa duplicate active booking; kemudian jalankan seluruh MySQL integration/concurrency suite.
+- Selesaikan browser/device UAT customer Web → queue Admin → approve/reject → in-app/email dan simpan evidence/correlation ID.
+- Dapatkan sign-off PO/TL/QA/Ops sebelum mengubah `RESCHEDULE_ENABLED=true` pada VPS.
+- Flutter customer UI merupakan follow-up dan tidak memblokir rilis Web v1.

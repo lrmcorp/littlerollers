@@ -6,19 +6,36 @@ part of 'customer_booking_slot.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnum_DRAFT =
+    const CustomerBookingSlotStatusEnum._('DRAFT');
 const CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnum_PUBLISHED =
     const CustomerBookingSlotStatusEnum._('PUBLISHED');
 const CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnum_CONFIRMED =
     const CustomerBookingSlotStatusEnum._('CONFIRMED');
+const CustomerBookingSlotStatusEnum
+_$customerBookingSlotStatusEnum_AUTO_CANCELLED =
+    const CustomerBookingSlotStatusEnum._('AUTO_CANCELLED');
+const CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnum_CANCELLED =
+    const CustomerBookingSlotStatusEnum._('CANCELLED');
+const CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnum_COMPLETED =
+    const CustomerBookingSlotStatusEnum._('COMPLETED');
 
 CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnumValueOf(
   String name,
 ) {
   switch (name) {
+    case 'DRAFT':
+      return _$customerBookingSlotStatusEnum_DRAFT;
     case 'PUBLISHED':
       return _$customerBookingSlotStatusEnum_PUBLISHED;
     case 'CONFIRMED':
       return _$customerBookingSlotStatusEnum_CONFIRMED;
+    case 'AUTO_CANCELLED':
+      return _$customerBookingSlotStatusEnum_AUTO_CANCELLED;
+    case 'CANCELLED':
+      return _$customerBookingSlotStatusEnum_CANCELLED;
+    case 'COMPLETED':
+      return _$customerBookingSlotStatusEnum_COMPLETED;
     default:
       throw ArgumentError(name);
   }
@@ -27,8 +44,12 @@ CustomerBookingSlotStatusEnum _$customerBookingSlotStatusEnumValueOf(
 final BuiltSet<CustomerBookingSlotStatusEnum>
 _$customerBookingSlotStatusEnumValues = BuiltSet<CustomerBookingSlotStatusEnum>(
   const <CustomerBookingSlotStatusEnum>[
+    _$customerBookingSlotStatusEnum_DRAFT,
     _$customerBookingSlotStatusEnum_PUBLISHED,
     _$customerBookingSlotStatusEnum_CONFIRMED,
+    _$customerBookingSlotStatusEnum_AUTO_CANCELLED,
+    _$customerBookingSlotStatusEnum_CANCELLED,
+    _$customerBookingSlotStatusEnum_COMPLETED,
   ],
 );
 
@@ -39,12 +60,20 @@ _$customerBookingSlotStatusEnumSerializer =
 class _$CustomerBookingSlotStatusEnumSerializer
     implements PrimitiveSerializer<CustomerBookingSlotStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
+    'DRAFT': 'DRAFT',
     'PUBLISHED': 'PUBLISHED',
     'CONFIRMED': 'CONFIRMED',
+    'AUTO_CANCELLED': 'AUTO_CANCELLED',
+    'CANCELLED': 'CANCELLED',
+    'COMPLETED': 'COMPLETED',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
+    'DRAFT': 'DRAFT',
     'PUBLISHED': 'PUBLISHED',
     'CONFIRMED': 'CONFIRMED',
+    'AUTO_CANCELLED': 'AUTO_CANCELLED',
+    'CANCELLED': 'CANCELLED',
+    'COMPLETED': 'COMPLETED',
   };
 
   @override

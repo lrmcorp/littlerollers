@@ -15,16 +15,30 @@ import 'package:openapi/src/date_serializer.dart';
 import 'package:openapi/src/model/date.dart';
 
 import 'package:openapi/src/model/accepted_status.dart';
+import 'package:openapi/src/model/access_reason.dart';
+import 'package:openapi/src/model/access_reason_code.dart';
+import 'package:openapi/src/model/access_role_assignment_input.dart';
+import 'package:openapi/src/model/access_role_capability.dart';
+import 'package:openapi/src/model/access_role_definition.dart';
+import 'package:openapi/src/model/access_role_page.dart';
+import 'package:openapi/src/model/access_role_scope.dart';
 import 'package:openapi/src/model/account_link_command.dart';
 import 'package:openapi/src/model/action_command.dart';
+import 'package:openapi/src/model/adjustment_actor.dart';
 import 'package:openapi/src/model/adjustment_command.dart';
+import 'package:openapi/src/model/adjustment_customer.dart';
 import 'package:openapi/src/model/adjustment_decision_result.dart';
+import 'package:openapi/src/model/adjustment_named_reference.dart';
 import 'package:openapi/src/model/approval_result.dart';
 import 'package:openapi/src/model/approve_purchase_request.dart';
 import 'package:openapi/src/model/assign_instructor_command.dart';
 import 'package:openapi/src/model/assignment.dart';
 import 'package:openapi/src/model/assignment_command.dart';
+import 'package:openapi/src/model/assignment_management_branch.dart';
+import 'package:openapi/src/model/assignment_management_summary.dart';
+import 'package:openapi/src/model/assignment_management_user.dart';
 import 'package:openapi/src/model/assignment_page.dart';
+import 'package:openapi/src/model/assignment_page_page.dart';
 import 'package:openapi/src/model/attach_order_proof_command.dart';
 import 'package:openapi/src/model/audit_export.dart';
 import 'package:openapi/src/model/audit_export_command.dart';
@@ -41,7 +55,10 @@ import 'package:openapi/src/model/booking_branch.dart';
 import 'package:openapi/src/model/booking_class_slot.dart';
 import 'package:openapi/src/model/booking_class_slot_class_type.dart';
 import 'package:openapi/src/model/booking_command.dart';
+import 'package:openapi/src/model/booking_customer.dart';
+import 'package:openapi/src/model/booking_management_summary.dart';
 import 'package:openapi/src/model/booking_page.dart';
+import 'package:openapi/src/model/booking_session_balance.dart';
 import 'package:openapi/src/model/branch.dart';
 import 'package:openapi/src/model/branch_command.dart';
 import 'package:openapi/src/model/branch_page.dart';
@@ -50,6 +67,8 @@ import 'package:openapi/src/model/branch_period_page.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_item.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_result.dart';
+import 'package:openapi/src/model/capability_definition.dart';
+import 'package:openapi/src/model/capability_definition_page.dart';
 import 'package:openapi/src/model/challenge_accepted.dart';
 import 'package:openapi/src/model/challenge_expiry.dart';
 import 'package:openapi/src/model/changed_status.dart';
@@ -75,9 +94,12 @@ import 'package:openapi/src/model/completion_result.dart';
 import 'package:openapi/src/model/correction.dart';
 import 'package:openapi/src/model/correction_command.dart';
 import 'package:openapi/src/model/correction_decision_result.dart';
+import 'package:openapi/src/model/create_access_role_command.dart';
 import 'package:openapi/src/model/create_order_command.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
+import 'package:openapi/src/model/create_permission_override_command.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
+import 'package:openapi/src/model/customer_booking_eligibility.dart';
 import 'package:openapi/src/model/customer_booking_options.dart';
 import 'package:openapi/src/model/customer_booking_package.dart';
 import 'package:openapi/src/model/customer_booking_slot.dart';
@@ -91,8 +113,15 @@ import 'package:openapi/src/model/customer_dashboard_overview_packages_inner.dar
 import 'package:openapi/src/model/customer_dashboard_overview_upcoming_bookings_inner.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_verification.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_verification_documents_inner.dart';
+import 'package:openapi/src/model/customer_order_activation.dart';
+import 'package:openapi/src/model/customer_order_summary.dart';
+import 'package:openapi/src/model/customer_order_timeline_item.dart';
+import 'package:openapi/src/model/customer_order_timeline_page.dart';
 import 'package:openapi/src/model/customer_package_balance.dart';
 import 'package:openapi/src/model/customer_package_balance_page.dart';
+import 'package:openapi/src/model/customer_reschedule_options.dart';
+import 'package:openapi/src/model/customer_reschedule_slot.dart';
+import 'package:openapi/src/model/customer_reschedule_target.dart';
 import 'package:openapi/src/model/dashboard_activity_item.dart';
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
@@ -105,6 +134,8 @@ import 'package:openapi/src/model/dashboard_trend_point.dart';
 import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
+import 'package:openapi/src/model/effective_capability_denial.dart';
+import 'package:openapi/src/model/effective_capability_grant.dart';
 import 'package:openapi/src/model/effective_period.dart';
 import 'package:openapi/src/model/effective_setting.dart';
 import 'package:openapi/src/model/effective_setting_command.dart';
@@ -156,8 +187,10 @@ import 'package:openapi/src/model/migration_source_upload_command.dart';
 import 'package:openapi/src/model/money.dart';
 import 'package:openapi/src/model/my_profile.dart';
 import 'package:openapi/src/model/notification_attempt.dart';
+import 'package:openapi/src/model/notification_delivery_metrics.dart';
 import 'package:openapi/src/model/notification_occurrence.dart';
 import 'package:openapi/src/model/notification_occurrence_page.dart';
+import 'package:openapi/src/model/notification_retry_result.dart';
 import 'package:openapi/src/model/operational_job.dart';
 import 'package:openapi/src/model/operational_job_page.dart';
 import 'package:openapi/src/model/operational_job_result.dart';
@@ -183,8 +216,21 @@ import 'package:openapi/src/model/password_setup_request.dart';
 import 'package:openapi/src/model/password_token_command.dart';
 import 'package:openapi/src/model/payment_account.dart';
 import 'package:openapi/src/model/payment_account_command.dart';
+import 'package:openapi/src/model/payment_activation_result.dart';
+import 'package:openapi/src/model/payment_activation_summary.dart';
 import 'package:openapi/src/model/payment_proof.dart';
 import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
+import 'package:openapi/src/model/payment_proof_view_authorization.dart';
+import 'package:openapi/src/model/payment_review_branch.dart';
+import 'package:openapi/src/model/payment_review_customer.dart';
+import 'package:openapi/src/model/payment_review_detail.dart';
+import 'package:openapi/src/model/payment_review_item.dart';
+import 'package:openapi/src/model/payment_review_page.dart';
+import 'package:openapi/src/model/payment_review_proof.dart';
+import 'package:openapi/src/model/payment_review_summary.dart';
+import 'package:openapi/src/model/payment_review_timeline.dart';
+import 'package:openapi/src/model/payment_usage_history_item.dart';
+import 'package:openapi/src/model/payment_usage_history_page.dart';
 import 'package:openapi/src/model/preferred_studio.dart';
 import 'package:openapi/src/model/projection_rate_command.dart';
 import 'package:openapi/src/model/public_branch.dart';
@@ -202,6 +248,7 @@ import 'package:openapi/src/model/public_package_profile.dart';
 import 'package:openapi/src/model/public_package_summary.dart';
 import 'package:openapi/src/model/public_schedule_detail.dart';
 import 'package:openapi/src/model/public_schedule_summary.dart';
+import 'package:openapi/src/model/public_schedule_summary_instructor.dart';
 import 'package:openapi/src/model/public_site_config.dart';
 import 'package:openapi/src/model/public_studio_detail.dart';
 import 'package:openapi/src/model/public_studio_detail_all_of_classes.dart';
@@ -215,6 +262,8 @@ import 'package:openapi/src/model/recovery_request_command.dart';
 import 'package:openapi/src/model/recovery_verify_command.dart';
 import 'package:openapi/src/model/recovery_verify_command_new_verified_identity.dart';
 import 'package:openapi/src/model/replace_payment_proof_command.dart';
+import 'package:openapi/src/model/replace_role_capabilities_command.dart';
+import 'package:openapi/src/model/replace_user_access_roles_command.dart';
 import 'package:openapi/src/model/reschedule.dart';
 import 'package:openapi/src/model/reschedule_decision_command.dart';
 import 'package:openapi/src/model/reschedule_decision_result.dart';
@@ -235,33 +284,57 @@ import 'package:openapi/src/model/session_branch.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
+import 'package:openapi/src/model/update_access_role_command.dart';
 import 'package:openapi/src/model/update_my_profile_command.dart';
 import 'package:openapi/src/model/update_user_profile_request.dart';
 import 'package:openapi/src/model/update_user_roles_command.dart';
+import 'package:openapi/src/model/user_access.dart';
+import 'package:openapi/src/model/user_access_effective.dart';
+import 'package:openapi/src/model/user_access_role_assignment.dart';
+import 'package:openapi/src/model/user_access_role_assignment_branch.dart';
+import 'package:openapi/src/model/user_access_user.dart';
 import 'package:openapi/src/model/user_list_summary.dart';
 import 'package:openapi/src/model/user_notification.dart';
 import 'package:openapi/src/model/user_notification_page.dart';
 import 'package:openapi/src/model/user_page.dart';
+import 'package:openapi/src/model/user_permission_override.dart';
 import 'package:openapi/src/model/user_role_input.dart';
 import 'package:openapi/src/model/user_role_summary.dart';
 import 'package:openapi/src/model/user_role_summary_branch.dart';
 import 'package:openapi/src/model/user_summary.dart';
+import 'package:openapi/src/model/user_verification_document_summary.dart';
+import 'package:openapi/src/model/user_verification_summary.dart';
 import 'package:openapi/src/model/version_command.dart';
+import 'package:openapi/src/model/versioned_access_reason.dart';
 
 part 'serializers.g.dart';
 
 @SerializersFor([
   AcceptedStatus,
+  AccessReason,$AccessReason,
+  AccessReasonCode,
+  AccessRoleAssignmentInput,
+  AccessRoleCapability,
+  AccessRoleDefinition,
+  AccessRolePage,
+  AccessRoleScope,
   AccountLinkCommand,
   ActionCommand,
+  AdjustmentActor,
   AdjustmentCommand,
+  AdjustmentCustomer,
   AdjustmentDecisionResult,
+  AdjustmentNamedReference,
   ApprovalResult,
   ApprovePurchaseRequest,
   AssignInstructorCommand,
   Assignment,
   AssignmentCommand,
+  AssignmentManagementBranch,
+  AssignmentManagementSummary,
+  AssignmentManagementUser,
   AssignmentPage,
+  AssignmentPagePage,
   AttachOrderProofCommand,
   AuditExport,
   AuditExportCommand,
@@ -278,7 +351,10 @@ part 'serializers.g.dart';
   BookingClassSlot,
   BookingClassSlotClassType,
   BookingCommand,
+  BookingCustomer,
+  BookingManagementSummary,
   BookingPage,
+  BookingSessionBalance,
   Branch,
   BranchCommand,
   BranchPage,
@@ -287,6 +363,8 @@ part 'serializers.g.dart';
   BulkCustomerCheckInLinkCommand,
   BulkCustomerCheckInLinkItem,
   BulkCustomerCheckInLinkResult,
+  CapabilityDefinition,
+  CapabilityDefinitionPage,
   ChallengeAccepted,
   ChallengeExpiry,
   ChangedStatus,
@@ -312,9 +390,12 @@ part 'serializers.g.dart';
   Correction,
   CorrectionCommand,
   CorrectionDecisionResult,
+  CreateAccessRoleCommand,
   CreateOrderCommand,
   CreatePaymentProofUploadRequest,
+  CreatePermissionOverrideCommand,
   CursorPageMeta,
+  CustomerBookingEligibility,
   CustomerBookingOptions,
   CustomerBookingPackage,
   CustomerBookingSlot,
@@ -328,8 +409,15 @@ part 'serializers.g.dart';
   CustomerDashboardOverviewUpcomingBookingsInner,
   CustomerDashboardOverviewVerification,
   CustomerDashboardOverviewVerificationDocumentsInner,
+  CustomerOrderActivation,
+  CustomerOrderSummary,
+  CustomerOrderTimelineItem,
+  CustomerOrderTimelinePage,
   CustomerPackageBalance,
   CustomerPackageBalancePage,
+  CustomerRescheduleOptions,
+  CustomerRescheduleSlot,$CustomerRescheduleSlot,
+  CustomerRescheduleTarget,
   DashboardActivityItem,
   DashboardBranchPerformance,
   DashboardMetric,
@@ -342,6 +430,8 @@ part 'serializers.g.dart';
   DecideCorrectionRequest,
   DeleteIdentityVerificationFileRequest,
   DownloadAuthorization,
+  EffectiveCapabilityDenial,
+  EffectiveCapabilityGrant,
   EffectivePeriod,$EffectivePeriod,
   EffectiveSetting,
   EffectiveSettingCommand,
@@ -393,8 +483,10 @@ part 'serializers.g.dart';
   Money,
   MyProfile,
   NotificationAttempt,
+  NotificationDeliveryMetrics,
   NotificationOccurrence,
   NotificationOccurrencePage,
+  NotificationRetryResult,
   OperationalJob,
   OperationalJobPage,
   OperationalJobResult,
@@ -420,8 +512,21 @@ part 'serializers.g.dart';
   PasswordTokenCommand,
   PaymentAccount,
   PaymentAccountCommand,
+  PaymentActivationResult,
+  PaymentActivationSummary,
   PaymentProof,
   PaymentProofUploadInstruction,
+  PaymentProofViewAuthorization,
+  PaymentReviewBranch,
+  PaymentReviewCustomer,
+  PaymentReviewDetail,
+  PaymentReviewItem,
+  PaymentReviewPage,
+  PaymentReviewProof,
+  PaymentReviewSummary,
+  PaymentReviewTimeline,
+  PaymentUsageHistoryItem,
+  PaymentUsageHistoryPage,
   PreferredStudio,
   ProjectionRateCommand,
   PublicBranch,$PublicBranch,
@@ -439,10 +544,11 @@ part 'serializers.g.dart';
   PublicPackageSummary,$PublicPackageSummary,
   PublicScheduleDetail,
   PublicScheduleSummary,$PublicScheduleSummary,
+  PublicScheduleSummaryInstructor,
   PublicSiteConfig,
   PublicStudioDetail,
   PublicStudioDetailAllOfClasses,
-  Purchase,
+  Purchase,$Purchase,
   PurchasePage,
   QuotaCapacityCommand,
   QuotaEvaluationCommand,
@@ -452,6 +558,8 @@ part 'serializers.g.dart';
   RecoveryVerifyCommand,
   RecoveryVerifyCommandNewVerifiedIdentity,
   ReplacePaymentProofCommand,
+  ReplaceRoleCapabilitiesCommand,
+  ReplaceUserAccessRolesCommand,
   Reschedule,
   RescheduleDecisionCommand,
   RescheduleDecisionResult,
@@ -472,25 +580,38 @@ part 'serializers.g.dart';
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,
+  UpdateAccessRoleCommand,
   UpdateMyProfileCommand,
   UpdateUserProfileRequest,
   UpdateUserRolesCommand,
+  UserAccess,
+  UserAccessEffective,
+  UserAccessRoleAssignment,
+  UserAccessRoleAssignmentBranch,
+  UserAccessUser,
   UserListSummary,
   UserNotification,
   UserNotificationPage,
   UserPage,
+  UserPermissionOverride,
   UserRoleInput,
   UserRoleSummary,
   UserRoleSummaryBranch,
   UserSummary,
+  UserVerificationDocumentSummary,
+  UserVerificationSummary,
   VersionCommand,
+  VersionedAccessReason,
 ])
 Serializers serializers = (_$serializers.toBuilder()
+      ..add(AccessReason.serializer)
+      ..add(CustomerRescheduleSlot.serializer)
       ..add(EffectivePeriod.serializer)
       ..add(PublicBranch.serializer)
       ..add(PublicClassProfile.serializer)
       ..add(PublicPackageSummary.serializer)
       ..add(PublicScheduleSummary.serializer)
+      ..add(Purchase.serializer)
       ..add(SessionBranch.serializer)
       ..add(const OneOfSerializer())
       ..add(const AnyOfSerializer())

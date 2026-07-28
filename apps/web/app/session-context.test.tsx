@@ -1,10 +1,13 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationShell } from './application-shell';
 import { Dashboard } from './dashboard';
+import { PublicHeader } from './components/public/public-header';
+import { AppFeedbackProvider } from './components/app-feedback';
 import {
   defaultSessionDestination,
   forbiddenSessionDestination,
+  canAccessSessionPath,
   resolveSessionDestination,
   safeReturnTo,
   SessionProvider,
@@ -115,7 +118,7 @@ describe('capability-aware session shell', () => {
     const reviewer = {
       ...adminSession,
       roles: ['SUPER_OWNER'],
-      capabilities: [...adminSession.capabilities, 'identity-verification:review'],
+      capabilities: [...adminSession.capabilities, 'identity-verification:read'],
     };
     const client: SessionClient = { me: vi.fn().mockResolvedValue(reviewer), logout: vi.fn() };
     render(
@@ -143,6 +146,15 @@ describe('capability-aware session shell', () => {
   });
 
   it('resolves role-aware defaults and verification-gated return targets', () => {
+    expect(canAccessSessionPath(customerSession, '/ledger')).toBe(false);
+    expect(canAccessSessionPath(adminSession, '/ledger')).toBe(true);
+    expect(canAccessSessionPath(adminSession, '/health')).toBe(false);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, capabilities: [...adminSession.capabilities, 'operations:read'] },
+        '/health',
+      ),
+    ).toBe(true);
     expect(defaultSessionDestination(customerSession)).toBe('/account/verification');
     expect(
       defaultSessionDestination({
@@ -156,7 +168,7 @@ describe('capability-aware session shell', () => {
         {
           ...adminSession,
           roles: ['SUPER_OWNER'],
-          capabilities: [...adminSession.capabilities, 'identity-verification:review'],
+          capabilities: [...adminSession.capabilities, 'identity-verification:read'],
         },
         '/account/verification',
       ),
@@ -167,7 +179,7 @@ describe('capability-aware session shell', () => {
         {
           ...customerSession,
           roles: ['CUSTOMER', 'ADMIN'],
-          capabilities: [...customerSession.capabilities, 'identity-verification:review'],
+          capabilities: [...customerSession.capabilities, 'identity-verification:read'],
         },
         '/account/verification',
       ),
@@ -241,5 +253,95 @@ describe('capability-aware session shell', () => {
     expect(screen.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
     expect(view.container.querySelector('[data-customer-shell]')).toBeInTheDocument();
     expect(view.container.querySelector('[data-admin-shell]')).not.toBeInTheDocument();
+  });
+
+  it('separates the customer dashboard from the public landing destination', async () => {
+    navigation.pathname = '/account';
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue({
+        ...customerSession,
+        identityVerificationStatus: 'APPROVED',
+      }),
+      logout: vi.fn(),
+    };
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Dashboard customer</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+
+    const customerNav = await screen.findByRole('navigation', { name: 'Navigasi customer' });
+    expect(
+      customerNav.querySelector<HTMLAnchorElement>('a[aria-current="page"]'),
+    ).toHaveTextContent('Dashboard');
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/account');
+    expect(
+      screen.getByRole('link', { name: 'Daily Dose Pilates — Kembali ke situs utama' }),
+    ).toHaveAttribute('href', '/');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menu profil Nadia Customer' }));
+    expect(
+      screen.getByRole('region', { name: 'Menu akun customer' }).querySelector('a[href="/"]'),
+    ).toHaveTextContent('Kunjungi situs utama');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buka navigasi akun' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Navigasi akun' });
+    expect(mobileNav).toHaveAttribute('aria-hidden', 'false');
+    expect(within(mobileNav).getByRole('link', { name: 'Kunjungi situs utama' })).toHaveAttribute(
+      'href',
+      '/',
+    );
+    expect(within(mobileNav).getByRole('button', { name: 'Keluar' })).toBeVisible();
+  });
+
+  it('keeps the public landing header aware of an authenticated customer', async () => {
+    navigation.pathname = '/';
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue(customerSession),
+      logout: vi.fn(),
+    };
+    render(
+      <SessionProvider client={client}>
+        <PublicHeader />
+      </SessionProvider>,
+    );
+
+    expect(await screen.findByRole('link', { name: 'Buka akun saya' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
+    expect(screen.queryByRole('link', { name: 'Masuk ke akun' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the session active and uses global feedback when logout fails', async () => {
+    navigation.pathname = '/account';
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue(customerSession),
+      logout: vi.fn().mockRejectedValue(new Error('network unavailable')),
+    };
+    render(
+      <AppFeedbackProvider>
+        <SessionProvider client={client}>
+          <ApplicationShell>
+            <div>Dashboard customer</div>
+          </ApplicationShell>
+        </SessionProvider>
+      </AppFeedbackProvider>,
+    );
+
+    await screen.findByRole('navigation', { name: 'Navigasi customer' });
+    fireEvent.click(screen.getByRole('button', { name: 'Menu profil Nadia Customer' }));
+    fireEvent.click(
+      within(screen.getByRole('region', { name: 'Menu akun customer' })).getByRole('button', {
+        name: 'Keluar',
+      }),
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Keluar belum berhasil' })).toBeVisible();
+    expect(client.logout).toHaveBeenCalledOnce();
+    expect(navigation.replace).not.toHaveBeenCalledWith('/sign-in');
+    expect(screen.getByText('Dashboard customer')).toBeVisible();
   });
 });

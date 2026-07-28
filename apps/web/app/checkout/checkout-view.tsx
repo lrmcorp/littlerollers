@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CustomerPaymentFlow } from '../components/customer/customer-payment-flow';
 import { AlertBanner, useAppFeedback } from '../components/app-feedback';
+import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
 import {
   browserOrderClient,
@@ -23,7 +24,7 @@ const rupiah = new Intl.NumberFormat('id-ID', {
 
 export function CheckoutView() {
   const params = useSearchParams();
-  const router = useRouter();
+  const router = useTrackedRouter();
   const feedback = useAppFeedback();
   const packageId = params.get('package') ?? '';
   const branchId = params.get('branch');

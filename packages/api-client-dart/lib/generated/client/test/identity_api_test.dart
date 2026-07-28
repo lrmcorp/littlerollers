@@ -66,6 +66,8 @@ void main() {
       // TODO
     });
 
+    // Compatibility projection of active system roles from the database-managed catalog.
+    //
     //Future<RoleCatalog> getRoleCatalog() async
     test('test getRoleCatalog', () async {
       // TODO
@@ -76,19 +78,26 @@ void main() {
       // TODO
     });
 
+    // Global reviewer-only identity summary for one customer. File content remains behind single-use authorization.
+    //
+    //Future<IdentityVerificationReviewCase> getUserIdentityVerification(String id) async
+    test('test getUserIdentityVerification', () async {
+      // TODO
+    });
+
     //Future<Resource> inviteUser(InviteUserRequest inviteUserRequest) async
     test('test inviteUser', () async {
       // TODO
     });
 
-    // Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
+    // Returns a capability-scoped assignment management projection. Omitted branchId means all authorized branches.
     //
-    //Future<AssignmentPage> listAssignments({ String branchId, String cursor }) async
+    //Future<AssignmentPage> listAssignments({ String branchId, String q, String type, String status, String cursor, int limit }) async
     test('test listAssignments', () async {
       // TODO
     });
 
-    //Future<IdentityVerificationReviewPage> listIdentityVerifications({ String q, String status, String kind, String scanStatus, DateTime from, DateTime until, String cursor, int limit }) async
+    //Future<IdentityVerificationReviewPage> listIdentityVerifications({ String q, String customerUserId, String status, String kind, String scanStatus, DateTime from, DateTime until, String cursor, int limit }) async
     test('test listIdentityVerifications', () async {
       // TODO
     });
@@ -98,7 +107,7 @@ void main() {
       // TODO
     });
 
-    //Future<UserPage> listUsers({ String cursor, String branchId, String search, String status, Role role }) async
+    //Future<UserPage> listUsers({ String cursor, String branchId, String search, String status, Role role, String audience, String verificationStatus }) async
     test('test listUsers', () async {
       // TODO
     });

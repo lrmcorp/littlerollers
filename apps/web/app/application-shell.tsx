@@ -7,7 +7,9 @@ import {
   ChevronDown,
   ChevronRight,
   CircleHelp,
+  House,
   LockKeyhole,
+  MapPin,
   Menu,
   Search,
   ShieldCheck,
@@ -17,8 +19,9 @@ import { AppNavigation } from './app-navigation';
 import { useSessionContext } from './session-context';
 import { routes } from './routes';
 import { canReadPage, frontendPages } from './frontend-pages';
-import { PublicExperience } from './components/public/public-experience';
+import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
+import { SelectInput } from './components/forms';
 import {
   CUSTOMER_ACCOUNT_NAVIGATION,
   CUSTOMER_PRIMARY_NAVIGATION,
@@ -44,14 +47,23 @@ const roleLabels: Record<string, string> = {
 };
 
 const accountPageLabels: Record<string, string> = {
+  '/account': 'Dashboard',
   '/account/profile': 'Profil Saya',
-  '/account/settings': 'Pengaturan',
   '/account/security': 'Keamanan akun',
   '/account/verification': 'Verifikasi identitas',
   '/checkout': 'Checkout',
   '/orders': 'Pesanan',
   '/bookings': 'Booking',
+  '/workspace/bookings': 'Booking',
 };
+
+function accountPageLabelForPath(pathname: string) {
+  return Object.entries(accountPageLabels)
+    .sort(([left], [right]) => right.length - left.length)
+    .find(
+      ([href]) => pathname === href || (href !== '/account' && pathname.startsWith(`${href}/`)),
+    )?.[1];
+}
 
 function pageForPath(pathname: string) {
   return [...frontendPages]
@@ -66,6 +78,7 @@ function pageForPath(pathname: string) {
 export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const context = useSessionContext();
+  const studioPreference = useStudioPreference();
   const session = context?.session;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -75,8 +88,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const profileRoot = useRef<HTMLDivElement>(null);
   const profileTrigger = useRef<HTMLButtonElement>(null);
   const currentPage = pageForPath(pathname);
-  const currentPageLabel = currentPage?.shortLabel ?? accountPageLabels[pathname];
+  const currentPageLabel = accountPageLabelForPath(pathname) ?? currentPage?.shortLabel;
   const canViewAllBranches = Boolean(session?.capabilities.includes('branch:all'));
+  const primaryRole = session?.roles.find((role) => role !== 'CUSTOMER');
+  const activeScopeLabel = context?.activeBranch
+    ? context.activeBranch.name
+    : canViewAllBranches
+      ? 'Semua cabang'
+      : session?.branches.length
+        ? 'Cabang assignment'
+        : 'Scope belum tersedia';
   const commandPages = useMemo(
     () =>
       session
@@ -116,13 +137,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   }, [profileOpen]);
   const customerOnly = isCustomerOnlySession(session);
   const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
-  if (isPublicExperiencePath(pathname) && !customerCatalog)
-    return (
-      <>
-        {children}
-        <PublicExperience />
-      </>
-    );
+  if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
   if (customerOnly) {
     const approved = session?.identityVerificationStatus === 'APPROVED';
     return (
@@ -134,6 +149,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           open={mobileOpen}
           approved={approved}
           onClose={() => setMobileOpen(false)}
+          onLogout={() => context?.logout()}
         />
         <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 backdrop-blur-xl">
           <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
@@ -147,10 +163,10 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               <Menu className="size-5" />
             </button>
             <BrandMark
-              href="/account"
+              href="/"
               priority
               className="hidden w-40 shrink-0 lg:inline-flex xl:w-44"
-              ariaLabel="Daily Dose Pilates — Beranda customer"
+              ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
             />
             <nav
               aria-label="Navigasi customer"
@@ -166,7 +182,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={href}
-                    aria-current={selected ? 'page' : undefined}
+                    aria-current={!mobileOpen && selected ? 'page' : undefined}
                     aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
                     className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
                       selected
@@ -190,12 +206,14 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {session?.preferredBranch && (
-                <Link
-                  href="/account/settings"
-                  className="hidden max-w-48 truncate rounded-dd-md border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-ink no-underline xl:block"
+                <button
+                  type="button"
+                  onClick={() => studioPreference?.openStudioPreference()}
+                  className="hidden min-h-10 max-w-48 items-center gap-2 truncate rounded-dd-md border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-ink xl:flex"
                 >
+                  <MapPin className="size-4 shrink-0 text-dd-forest" aria-hidden="true" />
                   Studio: {session.preferredBranch.name}
-                </Link>
+                </button>
               )}
               <Link
                 href="/contact"
@@ -254,6 +272,27 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       );
                     })}
                     <button
+                      type="button"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        studioPreference?.openStudioPreference();
+                      }}
+                      className="flex min-h-10 w-full items-center gap-2 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                    >
+                      <MapPin className="size-4" aria-hidden="true" />
+                      Ganti studio
+                    </button>
+                    <div className="mt-1 border-t border-dd-line pt-1">
+                      <Link
+                        href="/"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        <House className="size-4" aria-hidden="true" />
+                        Kunjungi situs utama
+                      </Link>
+                    </div>
+                    <button
                       className="mt-1 flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                       onClick={() => void context?.logout()}
                     >
@@ -265,9 +304,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           {session?.preferredBranch && (
-            <div className="border-t border-dd-line px-4 py-2 text-xs text-dd-muted sm:px-6 xl:hidden">
-              Studio aktif: <strong className="text-dd-ink">{session.preferredBranch.name}</strong>
-            </div>
+            <button
+              type="button"
+              onClick={() => studioPreference?.openStudioPreference()}
+              className="flex min-h-9 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-line bg-transparent px-4 py-2 text-left text-xs text-dd-muted sm:px-6 xl:hidden"
+            >
+              <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
+              Studio aktif:{' '}
+              <strong className="truncate text-dd-ink">{session.preferredBranch.name}</strong>
+              <span className="ml-auto font-semibold text-dd-forest">Ganti</span>
+            </button>
           )}
         </header>
         <div
@@ -280,7 +326,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </div>
-        <PublicExperience />
       </div>
     );
   }
@@ -349,13 +394,14 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <Search className="size-[18px]" />
               </button>
               {session && (
-                <label className="!hidden max-w-[210px] gap-1 text-[10px] font-bold uppercase tracking-wider text-dd-muted md:!grid">
-                  <span className="sr-only">Cabang aktif</span>
-                  <select
+                <div className="!hidden max-w-[220px] md:!block">
+                  <SelectInput
+                    compact
                     aria-label="Cabang aktif"
+                    title={`${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`}
                     value={context?.activeBranchId ?? ''}
                     onChange={(event) => context?.setActiveBranchId(event.target.value)}
-                    className="min-h-10 w-[clamp(150px,17vw,210px)] rounded-dd-md border-dd-line bg-white py-1.5 text-sm font-semibold normal-case tracking-normal text-dd-ink"
+                    className="w-[clamp(160px,18vw,220px)] font-semibold"
                   >
                     <option value="">{canViewAllBranches ? 'Semua cabang' : 'Pilih cabang'}</option>
                     {session.branches.map((branch) => (
@@ -363,8 +409,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                         {branch.code} · {branch.name}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </SelectInput>
+                </div>
               )}
               <Link
                 href="/health"
@@ -406,6 +452,13 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       <span className="mt-1 block text-xs text-dd-muted">
                         {session?.roles.map((role) => roleLabels[role] ?? role).join(' · ')}
                       </span>
+                      <span className="mt-2 inline-flex rounded-full bg-dd-surface-muted px-2.5 py-1 text-[11px] font-semibold text-dd-forest">
+                        {context?.activeBranch
+                          ? `Operasional cabang · ${context.activeBranch.name}`
+                          : canViewAllBranches
+                            ? 'Baca global · Semua cabang'
+                            : `Scope assignment · ${session?.branches.length ?? 0} cabang`}
+                      </span>
                     </div>
                     <Link
                       href="/account/profile"
@@ -414,14 +467,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     >
                       <UserRound className="size-4" />
                       Profil Saya
-                    </Link>
-                    <Link
-                      href="/account/settings"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                    >
-                      <CircleHelp className="size-4" />
-                      Pengaturan
                     </Link>
                     <Link
                       href={routes.security}
@@ -444,15 +489,13 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           </div>
           {session && (
             <div className="border-t border-dd-line px-4 py-2 md:hidden">
-              <label className="sr-only" htmlFor="mobile-branch">
-                Cabang aktif mobile
-              </label>
-              <select
+              <SelectInput
+                compact
                 id="mobile-branch"
                 aria-label="Cabang aktif mobile"
                 value={context?.activeBranchId ?? ''}
                 onChange={(event) => context?.setActiveBranchId(event.target.value)}
-                className="min-h-10 w-full rounded-dd-md border-dd-line bg-white text-sm font-semibold"
+                className="w-full font-semibold"
               >
                 <option value="">
                   {canViewAllBranches ? 'Semua cabang' : 'Pilih cabang aktif'}
@@ -462,7 +505,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     {branch.code} · {branch.name}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
             </div>
           )}
         </header>

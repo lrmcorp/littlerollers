@@ -72,6 +72,16 @@ void main() {
       // TODO
     });
 
+    // BookingCustomer customer
+    test('to test the property `customer`', () async {
+      // TODO
+    });
+
+    // BookingSessionBalance sessionBalance
+    test('to test the property `sessionBalance`', () async {
+      // TODO
+    });
+
     // BookingBranch branch
     test('to test the property `branch`', () async {
       // TODO

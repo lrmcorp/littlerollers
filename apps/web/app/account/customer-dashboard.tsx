@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarDays, CreditCard, PackageCheck, ShieldCheck } from 'lucide-react';
+import { CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
@@ -92,7 +92,16 @@ export function CustomerDashboard() {
         <ButtonLink href="/classes#schedule">Booking kelas</ButtonLink>
       </header>
 
-      {error && <AlertBanner tone="danger" title="Dashboard belum lengkap" message={error} />}
+      {error && (
+        <div className="grid gap-3">
+          <AlertBanner tone="danger" title="Dashboard belum lengkap" message={error} />
+          <div>
+            <ButtonLink href="/" variant="secondary" leadingIcon={<House className="size-4" />}>
+              Kunjungi situs utama
+            </ButtonLink>
+          </div>
+        </div>
+      )}
       {verificationStatus !== 'APPROVED' && (
         <AlertBanner
           tone={verificationStatus === 'ACTION_REQUIRED' ? 'warning' : 'info'}

@@ -14,7 +14,7 @@ void main() {
       // TODO
     });
 
-    // Permission-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
+    // Permission-gated Admin/Super Owner decision with separation-of-duties. Approval revalidates duplicate customer booking and atomically moves the reservation and slot counts; rejection preserves the source reservation.
     //
     //Future<RescheduleDecisionResult> decideReschedule(String id, String decision, String idempotencyKey, RescheduleDecisionCommand rescheduleDecisionCommand) async
     test('test decideReschedule', () async {
@@ -35,9 +35,16 @@ void main() {
       // TODO
     });
 
-    // Customer self history or branch-scoped internal booking list, ordered by createdAt and id descending.
+    // Returns the authenticated customer own reschedule eligibility, inclusive H-24 cutoff, latest request, and backend-filtered eligible targets.
     //
-    //Future<BookingPage> listBookings({ String branchId, String cursor, String status }) async
+    //Future<CustomerRescheduleOptions> getCustomerRescheduleOptions(String id) async
+    test('test getCustomerRescheduleOptions', () async {
+      // TODO
+    });
+
+    // Customer booking timeline or capability-scoped internal management list with masked projection, summary, and cursor pagination.
+    //
+    //Future<BookingPage> listBookings({ String branchId, String cursor, String status, String timeline, String q, DateTime from, DateTime until, String classSlotId, String customerId, int limit }) async
     test('test listBookings', () async {
       // TODO
     });
@@ -49,7 +56,7 @@ void main() {
       // TODO
     });
 
-    // Customer-owned request before the explicit synthetic H-24 boundary. Request marks booking pending without moving its reservation.
+    // Customer-owned request before or exactly at the configured H-24 boundary. Request marks booking pending without moving its reservation and emits one staff in-app notification event.
     //
     //Future<Reschedule> requestReschedule(String idempotencyKey, RescheduleRequestCommand rescheduleRequestCommand) async
     test('test requestReschedule', () async {

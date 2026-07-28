@@ -13,6 +13,7 @@ Method | HTTP request | Description
 [**decideReschedule**](BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
 [**getBooking**](BookingsApi.md#getbooking) | **GET** /bookings/{id} | 
 [**getCustomerBookingOptions**](BookingsApi.md#getcustomerbookingoptions) | **GET** /bookings/options/{classSlotId} | 
+[**getCustomerRescheduleOptions**](BookingsApi.md#getcustomerrescheduleoptions) | **GET** /bookings/{id}/reschedule-options | 
 [**listBookings**](BookingsApi.md#listbookings) | **GET** /bookings | 
 [**listReschedules**](BookingsApi.md#listreschedules) | **GET** /reschedules | 
 [**requestReschedule**](BookingsApi.md#requestreschedule) | **POST** /reschedules | 
@@ -68,7 +69,7 @@ Name | Type | Description  | Notes
 
 
 
-Permission-gated Admin/Super Owner decision. Approval atomically moves the existing booking reservation and both slot counts; rejection preserves the source reservation.
+Permission-gated Admin/Super Owner decision with separation-of-duties. Approval revalidates duplicate customer booking and atomically moves the reservation and slot counts; rejection preserves the source reservation.
 
 ### Example
 ```dart
@@ -198,12 +199,55 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getCustomerRescheduleOptions**
+> CustomerRescheduleOptions getCustomerRescheduleOptions(id)
+
+
+
+Returns the authenticated customer own reschedule eligibility, inclusive H-24 cutoff, latest request, and backend-filtered eligible targets.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getCustomerRescheduleOptions(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->getCustomerRescheduleOptions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**CustomerRescheduleOptions**](CustomerRescheduleOptions.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listBookings**
-> BookingPage listBookings(branchId, cursor, status)
+> BookingPage listBookings(branchId, cursor, status, timeline, q, from, until, classSlotId, customerId, limit)
 
 
 
-Customer self history or branch-scoped internal booking list, ordered by createdAt and id descending.
+Customer booking timeline or capability-scoped internal management list with masked projection, summary, and cursor pagination.
 
 ### Example
 ```dart
@@ -213,9 +257,16 @@ final api = Openapi().getBookingsApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final String cursor = cursor_example; // String | 
 final String status = status_example; // String | 
+final String timeline = timeline_example; // String | 
+final String q = q_example; // String | 
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | 
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | 
+final String classSlotId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String customerId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listBookings(branchId, cursor, status);
+    final response = api.listBookings(branchId, cursor, status, timeline, q, from, until, classSlotId, customerId, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling BookingsApi->listBookings: $e\n');
@@ -229,6 +280,13 @@ Name | Type | Description  | Notes
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **cursor** | **String**|  | [optional] 
  **status** | **String**|  | [optional] 
+ **timeline** | **String**|  | [optional] 
+ **q** | **String**|  | [optional] 
+ **from** | **DateTime**|  | [optional] 
+ **until** | **DateTime**|  | [optional] 
+ **classSlotId** | **String**|  | [optional] 
+ **customerId** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
@@ -297,7 +355,7 @@ Name | Type | Description  | Notes
 
 
 
-Customer-owned request before the explicit synthetic H-24 boundary. Request marks booking pending without moving its reservation.
+Customer-owned request before or exactly at the configured H-24 boundary. Request marks booking pending without moving its reservation and emits one staff in-app notification event.
 
 ### Example
 ```dart

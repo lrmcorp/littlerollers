@@ -1,7 +1,49 @@
-import type { ClassSlotStatus, PurchaseStatus, RescheduleStatus, SessionAdjustmentStatus } from '@prisma/client';
+import type {
+  ClassSlotStatus,
+  PurchaseStatus,
+  PurchaseTimelineEventType,
+  RescheduleStatus,
+  SessionAdjustmentStatus,
+} from '@prisma/client';
 import { createHash } from 'node:crypto';
 import type { SeedContext } from './context';
 import type { SeedMasterResult } from './master-data';
+import { ensurePrivatePngFixture } from './private-fixture';
+
+async function seedPurchaseTimeline(
+  ctx: SeedContext,
+  purchaseId: string,
+  events: Array<{
+    key: string;
+    type: PurchaseTimelineEventType;
+    occurredAt: Date;
+    reasonCode?: string | null;
+    derived?: boolean;
+  }>,
+) {
+  await ctx.db.purchaseTimelineEvent.deleteMany({ where: { purchaseId, derived: true } });
+  for (const event of events) {
+    const sourceKey = `${purchaseId}:seed:${event.key}`;
+    await ctx.db.purchaseTimelineEvent.upsert({
+      where: { sourceKey },
+      update: {
+        eventType: event.type,
+        occurredAt: event.occurredAt,
+        reasonCode: event.reasonCode ?? null,
+        derived: event.derived ?? false,
+      },
+      create: {
+        id: ctx.id('purchase-timeline', sourceKey),
+        purchaseId,
+        eventType: event.type,
+        sourceKey,
+        occurredAt: event.occurredAt,
+        reasonCode: event.reasonCode,
+        derived: event.derived,
+      },
+    });
+  }
+}
 
 export function bsdQuotaJobFixture(
   ctx: SeedContext,
@@ -39,10 +81,50 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   for (const [index, status] of purchaseStatuses.entries()) {
     const key = status.toLowerCase(); const id = ctx.id('purchase', key); purchases[key] = id;
     const hasProof = status !== 'AWAITING_PAYMENT' && status !== 'EXPIRED'; const proofId = hasProof ? ctx.id('payment-proof', key) : null;
-    if (proofId) await ctx.db.paymentProof.upsert({ where: { id: proofId }, update: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' }, create: { id: proofId, userId: customerId, branchId, packageId, objectKey: `seed/proofs/${key}`, checksum: `seed-${key}`, fileName: `${key}.png`, mimeType: 'image/png', sizeBytes: 2048, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN', finalizedAt: ctx.at(-index) } });
+    if (proofId) {
+      const objectKey = `seed/proofs/${key}`;
+      const file = await ensurePrivatePngFixture(objectKey);
+      await ctx.db.paymentProof.upsert({ where: { id: proofId }, update: { objectKey, checksum: file.checksum, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' }, create: { id: proofId, userId: customerId, branchId, packageId, objectKey, checksum: file.checksum, fileName: `${key}.png`, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN', finalizedAt: ctx.at(-index) } });
+    }
     const code = 101 + index;
     const expiresAt = status === 'EXPIRED' ? ctx.at(-1) : ctx.at(1);
-    await ctx.db.purchase.upsert({ where: { id }, update: { status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt }, create: { id, userId: customerId, branchId, packageId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    await ctx.db.purchase.upsert({ where: { id }, update: { status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt, timelineComplete: status !== 'EXPIRED' }, create: { id, userId: customerId, branchId, packageId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, timelineComplete: status !== 'EXPIRED', idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    const decisionType =
+      status === 'APPROVED'
+        ? 'PAYMENT_APPROVED'
+        : status === 'ACTION_REQUIRED'
+          ? 'ACTION_REQUIRED'
+          : status === 'REJECTED'
+            ? 'PAYMENT_REJECTED'
+            : null;
+    await seedPurchaseTimeline(ctx, id, [
+      { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-index), derived: status === 'EXPIRED' },
+      { key: 'deadline', type: 'PAYMENT_DEADLINE_SET', occurredAt: ctx.at(-index), derived: status === 'EXPIRED' },
+      ...(proofId
+        ? [
+            { key: 'proof', type: 'PROOF_SUBMITTED' as const, occurredAt: ctx.at(-index) },
+            { key: 'scan', type: 'PROOF_SCAN_COMPLETED' as const, occurredAt: ctx.at(-index) },
+          ]
+        : []),
+      ...(decisionType
+        ? [
+            {
+              key: 'decision',
+              type: decisionType as PurchaseTimelineEventType,
+              occurredAt: ctx.at(-index, 1),
+              reasonCode:
+                status === 'APPROVED'
+                  ? 'PAYMENT_VERIFIED'
+                  : status === 'REJECTED'
+                    ? 'DUPLICATE_PURCHASE'
+                    : 'PROOF_INVALID',
+            },
+          ]
+        : []),
+      ...(status === 'EXPIRED'
+        ? [{ key: 'expired', type: 'ORDER_EXPIRED' as const, occurredAt: expiresAt, derived: true }]
+        : []),
+    ]);
     if (['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED'].includes(status)) {
       await ctx.db.paymentUniqueCodeReservation.upsert({
         where: { purchaseId: id },
@@ -55,6 +137,9 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   }
   const customerPackageId = ctx.id('customer-package', 'approved');
   await ctx.db.customerPackage.upsert({ where: { purchaseId: purchases.approved! }, update: { status: 'ACTIVE' }, create: { id: customerPackageId, purchaseId: purchases.approved!, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 175_000 } });
+  await seedPurchaseTimeline(ctx, purchases.approved!, [
+    { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.anchor },
+  ]);
   await ctx.db.ledgerEntry.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchases.approved! } }, update: { quantity: pkg.sessionCount }, create: { id: ctx.id('ledger', 'purchase'), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchases.approved! } });
   const bookingStates = [
     { key: 'active', status: 'BOOKED' as const, slot: 'published' },
@@ -247,19 +332,63 @@ async function seedBsdOperationalScenarios(
   }
 
   const approvedPurchaseId = ctx.id('purchase', 'bsd-approved');
+  const approvedProofId = ctx.id('payment-proof', 'bsd-approved');
+  const bsdApprovedProof = await ensurePrivatePngFixture('seed/proofs/bsd-approved');
+  await ctx.db.paymentProof.upsert({
+    where: { id: approvedProofId },
+    update: {
+      checksum: bsdApprovedProof.checksum,
+      mimeType: bsdApprovedProof.mimeType,
+      sizeBytes: bsdApprovedProof.sizeBytes,
+      uploadStatus: 'FINALIZED',
+      scanStatus: 'CLEAN',
+      finalizedAt: ctx.at(-2, 0.75),
+    },
+    create: {
+      id: approvedProofId,
+      userId: customerId,
+      branchId,
+      packageId,
+      objectKey: 'seed/proofs/bsd-approved',
+      checksum: bsdApprovedProof.checksum,
+      fileName: 'bsd-approved.png',
+      mimeType: 'image/png',
+      sizeBytes: bsdApprovedProof.sizeBytes,
+      uploadStatus: 'FINALIZED',
+      scanStatus: 'CLEAN',
+      finalizedAt: ctx.at(-2, 0.75),
+    },
+  });
   await ctx.db.purchase.upsert({
     where: { id: approvedPurchaseId },
-    update: { status: 'APPROVED' },
+    update: {
+      status: 'APPROVED',
+      paymentProofId: approvedProofId,
+      paymentAccountId: paymentAccount.id,
+      paymentUniqueCode: 400,
+      payableAmountRpSnapshot: pkg.priceRp + 400,
+      timelineComplete: true,
+    },
     create: {
       id: approvedPurchaseId,
       userId: customerId,
       branchId,
       packageId,
+      paymentProofId: approvedProofId,
+      paymentAccountId: paymentAccount.id,
+      paymentBankNameSnapshot: paymentAccount.bankName,
+      paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted,
+      paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4,
+      paymentAccountHolderSnapshot: paymentAccount.accountHolderName,
+      paymentExpiresAt: ctx.at(-1),
       packageNameSnapshot: pkg.name,
       priceRpSnapshot: pkg.priceRp,
+      paymentUniqueCode: 400,
+      payableAmountRpSnapshot: pkg.priceRp + 400,
       sessionCountSnapshot: pkg.sessionCount,
       durationDaysSnapshot: pkg.durationDays,
       status: 'APPROVED',
+      timelineComplete: true,
       idempotencyKeyHash: 'seed-bsd-approved',
       submittedAt: ctx.at(-2),
       decidedAt: ctx.at(-2, 1),
@@ -267,20 +396,28 @@ async function seedBsdOperationalScenarios(
       decisionReasonCode: 'PAYMENT_VERIFIED',
     },
   });
+  await seedPurchaseTimeline(ctx, approvedPurchaseId, [
+    { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-2) },
+    { key: 'deadline', type: 'PAYMENT_DEADLINE_SET', occurredAt: ctx.at(-2, 0.1) },
+    { key: 'proof', type: 'PROOF_SUBMITTED', occurredAt: ctx.at(-2, 0.5) },
+    { key: 'scan', type: 'PROOF_SCAN_COMPLETED', occurredAt: ctx.at(-2, 0.75) },
+    { key: 'approved', type: 'PAYMENT_APPROVED', occurredAt: ctx.at(-2, 1), reasonCode: 'PAYMENT_VERIFIED' },
+  ]);
   const pendingProofId = ctx.id('payment-proof', 'bsd-pending');
+  const bsdProof = await ensurePrivatePngFixture('seed/proofs/bsd-pending');
   await ctx.db.paymentProof.upsert({
     where: { id: pendingProofId },
-    update: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
+    update: { checksum: bsdProof.checksum, mimeType: bsdProof.mimeType, sizeBytes: bsdProof.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
     create: {
       id: pendingProofId,
       userId: customerId,
       branchId,
       packageId,
       objectKey: 'seed/proofs/bsd-pending',
-      checksum: 'seed-bsd-pending',
+      checksum: bsdProof.checksum,
       fileName: 'bsd-pending.png',
       mimeType: 'image/png',
-      sizeBytes: 2048,
+      sizeBytes: bsdProof.sizeBytes,
       uploadStatus: 'FINALIZED',
       scanStatus: 'CLEAN',
       finalizedAt: ctx.at(-1),
@@ -288,7 +425,7 @@ async function seedBsdOperationalScenarios(
   });
   await ctx.db.purchase.upsert({
     where: { id: ctx.id('purchase', 'bsd-pending') },
-    update: { status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1) },
+    update: { status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1), timelineComplete: true },
     create: {
       id: ctx.id('purchase', 'bsd-pending'),
       userId: customerId,
@@ -308,10 +445,17 @@ async function seedBsdOperationalScenarios(
       sessionCountSnapshot: pkg.sessionCount,
       durationDaysSnapshot: pkg.durationDays,
       status: 'PENDING',
+      timelineComplete: true,
       idempotencyKeyHash: 'seed-bsd-pending',
       submittedAt: ctx.at(-1),
     },
   });
+  await seedPurchaseTimeline(ctx, ctx.id('purchase', 'bsd-pending'), [
+    { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-1) },
+    { key: 'deadline', type: 'PAYMENT_DEADLINE_SET', occurredAt: ctx.at(-1) },
+    { key: 'proof', type: 'PROOF_SUBMITTED', occurredAt: ctx.at(-1) },
+    { key: 'scan', type: 'PROOF_SCAN_COMPLETED', occurredAt: ctx.at(-1) },
+  ]);
   await ctx.db.paymentUniqueCodeReservation.upsert({
     where: { purchaseId: ctx.id('purchase', 'bsd-pending') },
     update: { paymentAccountId: paymentAccount.id, code: 401, expiresAt: ctx.at(1) },
@@ -343,6 +487,9 @@ async function seedBsdOperationalScenarios(
       projectionRateRp: 185_000,
     },
   });
+  await seedPurchaseTimeline(ctx, approvedPurchaseId, [
+    { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.anchor },
+  ]);
   await ctx.db.ledgerEntry.upsert({
     where: {
       type_referenceType_referenceId: {
@@ -444,7 +591,12 @@ export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, use
     await ctx.db.user.upsert({ where: { id: customerId }, update: { displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}` }, create: { id: customerId, displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}`, status: 'ACTIVE' } });
     await ctx.db.userRole.upsert({ where: { id: ctx.id('volume-role', index) }, update: { userId: customerId, role: 'CUSTOMER' }, create: { id: ctx.id('volume-role', index), userId: customerId, role: 'CUSTOMER', activeFrom: new Date('2026-01-01') } });
     await ctx.db.classSlot.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
-    await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: {}, create: { id: purchaseId, userId: customerId, branchId, packageId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
+    await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: { timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
+    await seedPurchaseTimeline(ctx, purchaseId, [
+      { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-(index % 90), index % 12) },
+      { key: 'approved', type: 'PAYMENT_APPROVED', occurredAt: ctx.at(-(index % 90), (index % 12) + 1), reasonCode: 'PAYMENT_VERIFIED' },
+      { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.at(-(index % 90), (index % 12) + 1) },
+    ]);
     await ctx.db.customerPackage.upsert({ where: { purchaseId }, update: {}, create: { id: customerPackageId, purchaseId, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 125_000 } });
     await ctx.db.ledgerEntry.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchaseId } }, update: {}, create: { id: ctx.id('volume-ledger', index), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchaseId } });
     await ctx.db.sessionReservation.upsert({ where: { customerPackageId_referenceHash: { customerPackageId, referenceHash: `volume-${index}` } }, update: {}, create: { id: reservationId, customerPackageId, classSlotId: slotId, referenceHash: `volume-${index}`, quantity: 1, status: 'ACTIVE' } });

@@ -72,7 +72,7 @@ services:
       clamav:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:32121/api/v1/operations/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "const socket=require('node:net').connect(32121,'127.0.0.1');socket.setTimeout(3000);socket.once('connect',()=>{socket.end();process.exit(0)});socket.once('timeout',()=>{socket.destroy();process.exit(1)});socket.once('error',()=>process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 10

@@ -3,7 +3,7 @@ import 'package:openapi/openapi.dart';
 
 // tests for Purchase
 void main() {
-  final instance = PurchaseBuilder();
+  //final instance = PurchaseBuilder();
   // TODO add properties to the builder and call build()
 
   group(Purchase, () {
@@ -72,6 +72,11 @@ void main() {
       // TODO
     });
 
+    // DateTime paymentExpiresAt
+    test('to test the property `paymentExpiresAt`', () async {
+      // TODO
+    });
+
     // DateTime decidedAt
     test('to test the property `decidedAt`', () async {
       // TODO
@@ -84,6 +89,11 @@ void main() {
 
     // String decisionReasonCode
     test('to test the property `decisionReasonCode`', () async {
+      // TODO
+    });
+
+    // String auditReference
+    test('to test the property `auditReference`', () async {
       // TODO
     });
 

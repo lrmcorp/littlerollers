@@ -22,6 +22,7 @@ import 'package:openapi/src/model/identity_document_self_view_authorization.dart
 import 'package:openapi/src/model/identity_verification_decision_command.dart';
 import 'package:openapi/src/model/identity_verification_deletion_result.dart';
 import 'package:openapi/src/model/identity_verification_document.dart';
+import 'package:openapi/src/model/identity_verification_review_case.dart';
 import 'package:openapi/src/model/identity_verification_review_page.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
@@ -1039,7 +1040,7 @@ class IdentityApi {
   }
 
   /// getRoleCatalog
-  /// 
+  /// Compatibility projection of active system roles from the database-managed catalog.
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -1198,6 +1199,87 @@ class IdentityApi {
     );
   }
 
+  /// getUserIdentityVerification
+  /// Global reviewer-only identity summary for one customer. File content remains behind single-use authorization.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [IdentityVerificationReviewCase] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<IdentityVerificationReviewCase>> getUserIdentityVerification({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/users/{id}/identity-verification'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    IdentityVerificationReviewCase? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(IdentityVerificationReviewCase),
+      ) as IdentityVerificationReviewCase;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<IdentityVerificationReviewCase>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// inviteUser
   /// 
   ///
@@ -1300,11 +1382,15 @@ class IdentityApi {
   }
 
   /// listAssignments
-  /// Returns assignment intervals visible to the authenticated actor. Foreign branch scope is hidden as RESOURCE_NOT_FOUND.
+  /// Returns a capability-scoped assignment management projection. Omitted branchId means all authorized branches.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
+  /// * [q] 
+  /// * [type] 
+  /// * [status] 
   /// * [cursor] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1316,7 +1402,11 @@ class IdentityApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<AssignmentPage>> listAssignments({ 
     String? branchId,
+    String? q,
+    String? type,
+    String? status,
     String? cursor,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1345,7 +1435,11 @@ class IdentityApi {
 
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (type != null) r'type': encodeQueryParameter(_serializers, type, const FullType(String)),
+      if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(
@@ -1393,6 +1487,7 @@ class IdentityApi {
   ///
   /// Parameters:
   /// * [q] 
+  /// * [customerUserId] 
   /// * [status] 
   /// * [kind] 
   /// * [scanStatus] 
@@ -1411,6 +1506,7 @@ class IdentityApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<IdentityVerificationReviewPage>> listIdentityVerifications({ 
     String? q,
+    String? customerUserId,
     String? status,
     String? kind,
     String? scanStatus,
@@ -1446,6 +1542,7 @@ class IdentityApi {
 
     final _queryParameters = <String, dynamic>{
       if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (customerUserId != null) r'customerUserId': encodeQueryParameter(_serializers, customerUserId, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
       if (kind != null) r'kind': encodeQueryParameter(_serializers, kind, const FullType(String)),
       if (scanStatus != null) r'scanStatus': encodeQueryParameter(_serializers, scanStatus, const FullType(String)),
@@ -1592,6 +1689,8 @@ class IdentityApi {
   /// * [search] 
   /// * [status] 
   /// * [role] 
+  /// * [audience] 
+  /// * [verificationStatus] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1607,6 +1706,8 @@ class IdentityApi {
     String? search,
     String? status,
     Role? role,
+    String? audience = 'STAFF',
+    String? verificationStatus,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1639,6 +1740,8 @@ class IdentityApi {
       if (search != null) r'search': encodeQueryParameter(_serializers, search, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
       if (role != null) r'role': encodeQueryParameter(_serializers, role, const FullType(Role)),
+      if (audience != null) r'audience': encodeQueryParameter(_serializers, audience, const FullType(String)),
+      if (verificationStatus != null) r'verificationStatus': encodeQueryParameter(_serializers, verificationStatus, const FullType(String)),
     };
 
     final _response = await _dio.request<Object>(

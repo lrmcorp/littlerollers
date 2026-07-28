@@ -21,12 +21,15 @@ const order: CustomerOrder = {
   durationDays: 90,
   status: 'AWAITING_PAYMENT',
   submittedAt: new Date('2026-07-28T00:00:00Z'),
+  decidedAt: null,
   expiresAt: new Date('2026-07-29T00:00:00Z'),
   continuationSlotId: null,
   paymentProofId: null,
   paymentProofStatus: null,
   decisionReasonCode: null,
+  timelineComplete: true,
   version: 0,
+  activation: null,
   paymentAccount: null,
 };
 
@@ -38,6 +41,49 @@ const json = (body: unknown, status = 200, headers?: HeadersInit) =>
 
 describe('payment-proof upload client', () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it('preserves customer order filters and parses the authoritative history page', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      json({
+        items: [
+          {
+            ...order,
+            submittedAt: order.submittedAt.toISOString(),
+            decidedAt: null,
+            expiresAt: order.expiresAt?.toISOString(),
+            activation: null,
+          },
+        ],
+        summary: {
+          total: 4,
+          awaitingPayment: 1,
+          pending: 1,
+          actionRequired: 0,
+          approved: 2,
+          rejected: 0,
+          expired: 0,
+        },
+        page: { hasMore: true, nextCursor: 'order-1' },
+      }),
+    );
+
+    const page = await browserOrderClient.list({
+      status: 'PENDING',
+      q: 'reformer',
+      from: '2026-07-01',
+      until: '2026-07-28',
+      cursor: 'cursor-1',
+      limit: 20,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/orders?status=PENDING&q=reformer&from=2026-07-01&until=2026-07-28&cursor=cursor-1&limit=20',
+      expect.objectContaining({ credentials: 'include' }),
+    );
+    expect(page.summary.total).toBe(4);
+    expect(page.page).toEqual({ hasMore: true, nextCursor: 'order-1' });
+    expect(page.items[0]?.submittedAt).toBeInstanceOf(Date);
+  });
 
   it('resumes at attaching without issuing or uploading a duplicate proof', async () => {
     const fetchMock = vi
@@ -105,6 +151,38 @@ describe('payment-proof upload client', () => {
       '/api/v1/orders/order-1/payment-proof',
       '/api/v1/orders/order-1/payment-proof',
     ]);
+  });
+
+  it('authorizes and loads the customer-owned payment proof as a private blob', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        json({
+          url: '/api/v1/uploads/payment-proofs/view-authorizations/authorization-1/content',
+          expiresAt: '2026-07-28T01:00:00.000Z',
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('proof-bytes', { status: 200, headers: { 'Content-Type': 'image/png' } }),
+      );
+
+    const result = await browserOrderClient.loadProof('order/with unsafe characters');
+
+    expect(result.type).toBe('image/png');
+    expect(await result.text()).toBe('proof-bytes');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/orders/order%2Fwith%20unsafe%20characters/payment-proof/view-authorizations',
+      expect.objectContaining({ credentials: 'include', method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/uploads/payment-proofs/view-authorizations/authorization-1/content',
+      expect.objectContaining({
+        credentials: 'include',
+        headers: { Accept: 'image/jpeg,image/png,application/pdf' },
+      }),
+    );
   });
 
   it('maps scanner failures to actionable safe feedback', () => {

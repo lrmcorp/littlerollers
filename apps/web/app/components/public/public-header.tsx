@@ -9,6 +9,7 @@ import { BrandMark } from './brand-mark';
 import { publicNavigation, routes } from '../../routes';
 import { isCustomerOnlySession } from '../../session-audience';
 import { useSessionContext } from '../../session-context';
+import { useStudioPreference } from './public-experience';
 
 function isCurrent(pathname: string, hash: string, href: string) {
   if (href === '/classes#schedule')
@@ -28,6 +29,7 @@ export function PublicHeader() {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
   const customerOnly = isCustomerOnlySession(session);
+  const studioPreference = useStudioPreference();
   const [open, setOpen] = useState(false);
   const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -149,12 +151,13 @@ export function PublicHeader() {
                     Profil Saya
                   </Link>
                   {customerOnly && (
-                    <Link
-                      href="/account/settings"
-                      className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                    <button
+                      type="button"
+                      onClick={() => studioPreference?.openStudioPreference()}
+                      className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
                     >
-                      Pengaturan
-                    </Link>
+                      Ganti studio
+                    </button>
                   )}
                   <button
                     type="button"
@@ -243,6 +246,18 @@ export function PublicHeader() {
                 >
                   {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
                 </Link>
+              )}
+              {customerOnly && (
+                <button
+                  type="button"
+                  className="min-h-12 rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest"
+                  onClick={() => {
+                    close();
+                    studioPreference?.openStudioPreference();
+                  }}
+                >
+                  Ganti studio
+                </button>
               )}
               <Link
                 className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline"

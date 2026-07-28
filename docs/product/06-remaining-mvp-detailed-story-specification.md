@@ -88,14 +88,16 @@ Every story below requires Gate 1/2/4/5, applicable Gate 3, decisions, assignees
 | Alternate/postcondition | Target invalid/full, cutoff, stale booking, self/wrong scope, concurrent decision; one immutable request/decision and consistent reservations |
 | BR/NFR/DEC | BR-050–054; NFR-001/002/007; policy baseline pending Gate 2 approval |
 | API/schema/data | `listBookings`, `requestReschedule`, `decideReschedule`; RescheduleCommand/Resource; Reschedule/Booking/Reservation/IdempotencyRecord |
-| Error/event/audit/notification | validation/conflict/forbidden; `booking.rescheduled.v1`; request/decision audit and notification |
+| Error/event/audit/notification | validation/conflict/forbidden; `booking.reschedule_requested.v1`, `booking.rescheduled.v1`, `booking.reschedule_rejected.v1`; request/decision audit; staff in-app request notification dan customer in-app/email decision notification |
 | Concurrency/migration | Target revalidated under lock; one decision; old release/new claim atomic; migrated booking retains stable key |
 | UX/test/dependency/status | UX-04, SCR-C-04/SCR-W-04; TC-RES-001..004; UAT-RES-01; BKG-01/Figma/explicit schemas gap; BLOCKED |
 
 - **AC-US-BKG-02-01:** Given eligible request at or before approved entitlement boundary and valid target, when approval commits, then old release and new booking/reservation plus audit/event commit atomically.
-- **AC-US-BKG-02-02:** Given request inside non-entitled window, when submitted/reviewed, then the UI/API states the consequence and no automatic session return occurs beyond approved rule.
+- **AC-US-BKG-02-02:** Given request tepat H-24, request diterima; given request setelah boundary, UI/API menolak tanpa record/mutasi dan mengarahkan Customer menghubungi studio.
 - **AC-US-BKG-02-03:** Given target becomes full/invalid or scope/state is stale, when decision executes, then no old reservation is lost and no partial target booking exists.
 - **AC-US-BKG-02-04:** Given concurrent/retried decisions, when processed, then exactly one decision/effect exists and subsequent attempts return result/conflict without duplicate notification.
+- **AC-US-BKG-02-05:** Given requester juga memiliki role approver, approval request miliknya sendiri ditolak; rejection/approval pihak lain tetap mengikuti scope dan audit.
+- **AC-US-BKG-02-06:** Given Customer memperoleh booking aktif pada target saat request pending, approval ditolak dan reservation sumber tidak berubah.
 
 ## 6. US-ATT-01 — Instructor Check-in and Matched Hour
 
@@ -168,6 +170,14 @@ Every story below requires Gate 1/2/4/5, applicable Gate 3, decisions, assignees
 - **AC-US-NOT-01-02:** Given provider accepted/delivered/failed webhook, when signature-valid duplicate payload arrives, then status transition is idempotent and ordered without raw provider secret exposure.
 - **AC-US-NOT-01-03:** Given terminal primary failure, when retry budget ends, then fallback/dead-letter alert and operator action are visible according to DEC-013 with no silent success.
 - **AC-US-NOT-01-04:** Given authorized manual retry with reason, when executed, then a new attempt attaches to the same occurrence and audit records actor/reason/result once.
+
+### US-NOT-02 — SMTP Transactional Email Amendment
+
+- **AC-US-NOT-02-01:** Given one supported event and eligible recipient, when projection runs concurrently, then one encrypted EMAIL occurrence exists for the exact template version.
+- **AC-US-NOT-02-02:** Given SMTP temporary failure, when retry runs, then the same occurrence receives bounded attempts and never sends concurrently under an active lease.
+- **AC-US-NOT-02-03:** Given SMTP acceptance, when persisted, then status is `ACCEPTED_BY_SMTP`, sensitive envelope is purged, and the system never claims inbox delivery.
+- **AC-US-NOT-02-04:** Given terminal business-email failure, when handling completes, then in-app fallback, safe operations evidence, and auditable manual retry are available.
+- **AC-US-NOT-02-05:** Given package balance/expiry polling repeats, when threshold 3/1/0 or H-7/H-3/H-1 is due, then one reminder exists per package/threshold or package/offset.
 
 ## 10. US-FIN-01 — Reconciliable Financial Reports
 

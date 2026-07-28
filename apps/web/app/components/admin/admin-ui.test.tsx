@@ -13,11 +13,16 @@ describe('admin UI primitives', () => {
         columns={[{ id: 'name', header: 'Cabang', cell: (item) => item.name }]}
         mobileCard={(item) => <strong>{item.name}</strong>}
         onRowClick={onRowClick}
+        rowClassName={() => 'bg-emerald-50'}
+        mobileCardClassName={() => 'border-l-4'}
+        rowDescription={(item) => `${item.name}, aktif`}
       />,
     );
     expect(getAllByText('Jakarta')).toHaveLength(2);
     fireEvent.click(getAllByText('Jakarta')[0]!);
     expect(onRowClick).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('tbody tr')).toHaveClass('bg-emerald-50');
+    expect(container.querySelector('tbody tr')).toHaveAttribute('aria-label', 'Jakarta, aktif');
     expect((await axe(container)).violations).toHaveLength(0);
   });
 

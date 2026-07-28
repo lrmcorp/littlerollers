@@ -5,10 +5,12 @@ import { accountClient, type MyProfile } from '../../account-client';
 import { useSessionContext } from '../../session-context';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
+import { useStudioPreference } from '../../components/public/public-experience';
 
 export function ProfileView() {
   const session = useSessionContext();
   const feedback = useAppFeedback();
+  const studioPreference = useStudioPreference();
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'error' | 'stale'>('loading');
   const [message, setMessage] = useState('');
@@ -128,6 +130,25 @@ export function ProfileView() {
           </ButtonLink>
         </div>
       </form>
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-brass-dark">
+          Preferensi latihan
+        </p>
+        <h2 className="mt-2 text-xl font-semibold">Studio utama</h2>
+        <p className="mt-2 text-sm leading-6 text-dd-muted">
+          {profile.preferredBranch
+            ? `${profile.preferredBranch.name} menjadi default untuk jadwal, paket baru, checkout baru, dan bantuan WhatsApp.`
+            : 'Pilih studio yang paling sering Anda gunakan.'}
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-4"
+          onClick={() => studioPreference?.openStudioPreference()}
+        >
+          Ganti studio
+        </Button>
+      </section>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { foregroundFetch } from './components/app-loading';
+
 export type OrderStatus =
   'AWAITING_PAYMENT' | 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 
@@ -26,6 +28,7 @@ export interface CustomerOrder {
   id: string;
   branchId: string;
   branchName?: string;
+  branchTimezone?: string;
   packageId: string;
   packageName: string;
   priceRp: number;
@@ -36,6 +39,7 @@ export interface CustomerOrder {
   durationDays: number;
   status: OrderStatus;
   submittedAt: Date;
+  decidedAt: Date | null;
   expiresAt: Date | null;
   continuationSlotId: string | null;
   paymentProofId: string | null;
@@ -44,13 +48,73 @@ export interface CustomerOrder {
     scanStatus: string;
   };
   decisionReasonCode: string | null;
+  timelineComplete: boolean;
   version: number;
+  activation: CustomerOrderActivation | null;
+  timeline?: CustomerOrderTimelinePage;
   paymentAccount: null | {
     bankName: string;
     accountNumber: string;
     accountHolderName: string;
   };
   correlationReference?: string;
+}
+
+export interface CustomerOrderSummary {
+  total: number;
+  awaitingPayment: number;
+  pending: number;
+  actionRequired: number;
+  approved: number;
+  rejected: number;
+  expired: number;
+}
+
+export interface CustomerOrderActivation {
+  customerPackageId: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
+  activationDate: Date;
+  expiryAt: Date;
+  sessionCount: number;
+}
+
+export type CustomerOrderTimelineType =
+  | 'ORDER_CREATED'
+  | 'PAYMENT_DEADLINE_SET'
+  | 'PROOF_SUBMITTED'
+  | 'PROOF_SCAN_COMPLETED'
+  | 'ACTION_REQUIRED'
+  | 'PAYMENT_APPROVED'
+  | 'PAYMENT_REJECTED'
+  | 'ORDER_EXPIRED'
+  | 'PACKAGE_ACTIVATED';
+
+export interface CustomerOrderTimelineItem {
+  id: string;
+  type: CustomerOrderTimelineType;
+  reasonCode: string | null;
+  occurredAt: Date;
+  derived: boolean;
+}
+
+export interface CustomerOrderTimelinePage {
+  items: CustomerOrderTimelineItem[];
+  page: { hasMore: boolean; nextCursor: string | null };
+}
+
+export interface CustomerOrderPage {
+  items: CustomerOrder[];
+  summary: CustomerOrderSummary;
+  page: { hasMore: boolean; nextCursor: string | null };
+}
+
+export interface CustomerOrderFilters {
+  status?: string;
+  q?: string;
+  from?: string;
+  until?: string;
+  cursor?: string;
+  limit?: number;
 }
 
 export type PaymentProofUploadStage =
@@ -82,7 +146,11 @@ async function requestResult<T>(
 ): Promise<{ body: T; correlationReference?: string }> {
   let response: Response;
   try {
-    response = await fetch(`/api/v1${path}`, { credentials: 'include', ...init });
+    response = await foregroundFetch(
+      `/api/v1${path}`,
+      { credentials: 'include', ...init },
+      stage ? 'Memproses bukti pembayaran…' : 'Memuat pesanan…',
+    );
   } catch {
     throw new OrderClientError('API_UNAVAILABLE', undefined, true, stage);
   }
@@ -113,14 +181,45 @@ async function request<T>(
 }
 
 const orderDates = (
-  order: Omit<CustomerOrder, 'submittedAt' | 'expiresAt'> & {
+  order: Omit<
+    CustomerOrder,
+    'submittedAt' | 'decidedAt' | 'expiresAt' | 'activation' | 'timeline'
+  > & {
     submittedAt: string;
+    decidedAt: string | null;
     expiresAt: string | null;
+    activation:
+      | (Omit<CustomerOrderActivation, 'activationDate' | 'expiryAt'> & {
+          activationDate: string;
+          expiryAt: string;
+        })
+      | null;
+    timeline?: {
+      items: Array<Omit<CustomerOrderTimelineItem, 'occurredAt'> & { occurredAt: string }>;
+      page: { hasMore: boolean; nextCursor: string | null };
+    };
   },
 ): CustomerOrder => ({
   ...order,
   submittedAt: new Date(order.submittedAt),
+  decidedAt: order.decidedAt ? new Date(order.decidedAt) : null,
   expiresAt: order.expiresAt ? new Date(order.expiresAt) : null,
+  activation: order.activation
+    ? {
+        ...order.activation,
+        activationDate: new Date(order.activation.activationDate),
+        expiryAt: new Date(order.activation.expiryAt),
+      }
+    : null,
+  timeline: order.timeline
+    ? {
+        ...order.timeline,
+        items: order.timeline.items.map((item) => ({
+          ...item,
+          occurredAt: new Date(item.occurredAt),
+        })),
+      }
+    : undefined,
 });
 
 export const browserOrderClient = {
@@ -141,12 +240,68 @@ export const browserOrderClient = {
     });
     return orderDates(value);
   },
-  async list(status?: string) {
-    const value = await request<{ items: any[] }>(`/orders${status ? `?status=${status}` : ''}`);
-    return value.items.map(orderDates);
+  async list(filters: CustomerOrderFilters = {}): Promise<CustomerOrderPage> {
+    const query = new URLSearchParams();
+    if (filters.status) query.set('status', filters.status);
+    if (filters.q) query.set('q', filters.q);
+    if (filters.from) query.set('from', filters.from);
+    if (filters.until) query.set('until', filters.until);
+    if (filters.cursor) query.set('cursor', filters.cursor);
+    if (filters.limit) query.set('limit', String(filters.limit));
+    const value = await request<{
+      items: any[];
+      summary: CustomerOrderSummary;
+      page: { hasMore: boolean; nextCursor: string | null };
+    }>(`/orders${query.size ? `?${query.toString()}` : ''}`);
+    return { ...value, items: value.items.map(orderDates) };
   },
   async detail(id: string) {
     return orderDates(await request<any>(`/orders/${encodeURIComponent(id)}`));
+  },
+  async loadProof(orderId: string) {
+    let authorization: { url: string; expiresAt: string };
+    try {
+      authorization = await request<{ url: string; expiresAt: string }>(
+        `/orders/${encodeURIComponent(orderId)}/payment-proof/view-authorizations`,
+        { method: 'POST' },
+      );
+    } catch (cause) {
+      if (cause instanceof OrderClientError && cause.code === 'RESOURCE_NOT_FOUND')
+        throw new OrderClientError(
+          'PAYMENT_PROOF_PREVIEW_NOT_FOUND',
+          cause.correlationReference,
+          false,
+        );
+      throw cause;
+    }
+    let response: Response;
+    try {
+      response = await foregroundFetch(
+        authorization.url,
+        {
+          credentials: 'include',
+          headers: { Accept: 'image/jpeg,image/png,application/pdf' },
+        },
+        'Memuat bukti pembayaran…',
+      );
+    } catch {
+      throw new OrderClientError('API_UNAVAILABLE', undefined, true);
+    }
+    if (!response.ok) {
+      const problem = (await response.json().catch(() => ({}))) as {
+        code?: string;
+        error?: { code?: string; correlationId?: string; retryable?: boolean };
+      };
+      const code = problem.error?.code || problem.code || `HTTP_${response.status}`;
+      throw new OrderClientError(
+        code === 'RESOURCE_NOT_FOUND' || code === 'HTTP_404'
+          ? 'PAYMENT_PROOF_PREVIEW_NOT_FOUND'
+          : code,
+        problem.error?.correlationId ?? response.headers.get('x-correlation-id') ?? undefined,
+        problem.error?.retryable ?? response.status >= 500,
+      );
+    }
+    return response.blob();
   },
   async uploadProof(
     order: CustomerOrder,
@@ -267,6 +422,12 @@ export function orderErrorDetails(error: unknown) {
       'Pemeriksaan keamanan file sedang tidak tersedia. Bukti Anda tetap dapat dicoba kembali.',
     PAYMENT_PROOF_STORAGE_UNAVAILABLE:
       'Penyimpanan bukti pembayaran sedang tidak tersedia. File tetap tersimpan pada halaman ini.',
+    PAYMENT_PROOF_PREVIEW_NOT_FOUND:
+      'Bukti pembayaran tidak ditemukan atau akses preview sudah kedaluwarsa. Coba buka kembali.',
+    UNAUTHORIZED: 'Sesi telah berakhir. Silakan masuk kembali untuk melihat bukti pembayaran.',
+    FORBIDDEN: 'Akun ini tidak memiliki akses untuk melihat bukti pembayaran.',
+    HTTP_401: 'Sesi telah berakhir. Silakan masuk kembali untuk melihat bukti pembayaran.',
+    HTTP_403: 'Akun ini tidak memiliki akses untuk melihat bukti pembayaran.',
     INTERNAL_ERROR:
       'API atau database belum dapat menyelesaikan permintaan. Gunakan referensi bantuan lalu coba lagi.',
     HTTP_502: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',

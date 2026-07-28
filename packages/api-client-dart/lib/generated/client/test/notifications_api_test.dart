@@ -19,11 +19,6 @@ void main() {
       // TODO
     });
 
-    //Future<NotificationOccurrencePage> listNotifications({ String cursor, String status }) async
-    test('test listNotifications', () async {
-      // TODO
-    });
-
     //Future<MarkAllMyNotificationsRead200Response> markAllMyNotificationsRead() async
     test('test markAllMyNotificationsRead', () async {
       // TODO
@@ -36,11 +31,6 @@ void main() {
 
     //Future receiveMetaWebhook() async
     test('test receiveMetaWebhook', () async {
-      // TODO
-    });
-
-    //Future<NotificationAttempt> retryNotification(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
-    test('test retryNotification', () async {
       // TODO
     });
 

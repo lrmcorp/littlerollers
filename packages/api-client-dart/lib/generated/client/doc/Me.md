@@ -11,8 +11,10 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **displayName** | **String** |  | 
 **roles** | [**BuiltList&lt;Role&gt;**](Role.md) |  | 
+**customRoleCodes** | **BuiltList&lt;String&gt;** | Active custom role codes resolved from database-managed RBAC. | 
 **branchIds** | **BuiltList&lt;String&gt;** |  | 
 **capabilities** | **BuiltList&lt;String&gt;** |  | 
+**globalCapabilities** | **BuiltList&lt;String&gt;** | Capabilities with an effective global grant after deny precedence. | 
 **identityVerificationStatus** | **String** |  | 
 **sessionExpiresAt** | [**DateTime**](DateTime.md) |  | 
 **branches** | [**BuiltList&lt;SessionBranch&gt;**](SessionBranch.md) |  | 

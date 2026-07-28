@@ -226,6 +226,7 @@ export class IdentityController {
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') rawLimit?: string,
+    @Query('customerUserId') customerUserId?: string,
   ) {
     const limit = rawLimit == null ? undefined : Number(rawLimit);
     return this.identityReviews.list(request.principal, {
@@ -237,6 +238,7 @@ export class IdentityController {
       until,
       cursor,
       limit,
+      customerUserId,
     });
   }
 
@@ -499,6 +501,8 @@ export class IdentityController {
     @Query('search') search?: string,
     @Query('status') status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE',
     @Query('role') role?: import('@prisma/client').ApplicationRole,
+    @Query('audience') audience?: 'STAFF' | 'CUSTOMER',
+    @Query('verificationStatus') verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED',
   ) {
     return this.users.listUsers(request.principal, {
       branchId,
@@ -506,6 +510,8 @@ export class IdentityController {
       search,
       status,
       role,
+      audience,
+      verificationStatus,
     });
   }
 
@@ -554,6 +560,13 @@ export class IdentityController {
   @Get('users/:id')
   getUser(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.users.getUser(request.principal, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('users/:id/identity-verification')
+  async getUserIdentityVerification(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    await this.users.getUser(request.principal, id);
+    return this.identityReviews.getByUser(request.principal, id);
   }
 
   @UseGuards(AuthGuard)
@@ -703,8 +716,23 @@ export class IdentityController {
 
   @UseGuards(AuthGuard)
   @Get('assignments')
-  listAssignments(@Req() request: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    return this.assignments.list(request.principal, branchId);
+  listAssignments(
+    @Req() request: AuthenticatedRequest,
+    @Query('branchId') branchId?: string,
+    @Query('q') q?: string,
+    @Query('type') type?: import('@prisma/client').AssignmentType,
+    @Query('status') status?: 'ACTIVE' | 'ENDED',
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.assignments.list(request.principal, {
+      branchId,
+      q,
+      type,
+      status,
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @UseGuards(AuthGuard)

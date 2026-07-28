@@ -19,21 +19,24 @@ export class PackageCatalogService {
       !principal.capabilities.includes('branch:all') &&
       !principal.capabilities.includes('branch:operate') &&
       !principal.capabilities.includes('branch:manage');
-    if (branchId && !customer) this.access.scope(principal, branchId);
+    if (branchId && !customer) this.access.scope(principal, branchId, ['package:read']);
     if (branchId && customer) {
       const branch = await this.db.branch.findUnique({ where: { id: branchId } });
       if (!branch?.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
     const now = new Date();
+    const scope = this.access.branchScope(principal, 'package:read');
     const items = await this.db.package.findMany({
       where: {
         ...(branchId
           ? { branchId }
           : customer
             ? {}
-            : principal.capabilities.includes('branch:all')
-              ? {}
-              : { branchId: { in: principal.branchIds } }),
+            : scope.all
+              ? scope.excluded.length
+                ? { branchId: { notIn: scope.excluded } }
+                : {}
+              : { branchId: { in: scope.included } }),
         status: 'ACTIVE',
         effectiveFrom: { lte: now },
         OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
@@ -45,7 +48,7 @@ export class PackageCatalogService {
 
   async create(principal: SessionPrincipal, input: any, correlationId: string) {
     this.access.catalog(principal, true);
-    this.access.scope(principal, input.branchId);
+    this.access.scope(principal, input.branchId, ['master:manage']);
     if (
       !input.name ||
       !Number.isInteger(input.sessionCount) ||

@@ -4,6 +4,7 @@ import {
   type FinanceAnomaly,
   type FinanceReconciliationOverview,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from '../components/app-loading';
 
 export type FinanceData = { overview: FinanceReconciliationOverview; anomalies: FinanceAnomaly[] };
 export interface FinanceClient {
@@ -18,10 +19,13 @@ export const browserFinanceClient: FinanceClient = {
       from: new Date(`${input.from}T00:00:00.000Z`),
       until: new Date(`${input.until}T00:00:00.000Z`),
     };
-    const [overview, anomalies] = await Promise.all([
-      api.getFinanceReconciliationOverview(request),
-      api.getFinanceReconciliationAnomalies(request),
-    ]);
+    const [overview, anomalies] = await appLoading.track(
+      Promise.all([
+        api.getFinanceReconciliationOverview(request),
+        api.getFinanceReconciliationAnomalies(request),
+      ]),
+      { label: 'Memuat rekonsiliasi…' },
+    );
     return { overview, anomalies: anomalies.items };
   },
 };

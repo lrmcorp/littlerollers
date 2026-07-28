@@ -3,6 +3,7 @@ import type {
   PublicClassTypeRef,
   PublicScheduleSummary,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
 export type PublicBranch = Pick<GeneratedPublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
@@ -14,6 +15,7 @@ export type PublicClassSlot = Omit<
 > & {
   branchId: string;
   classType: PublicClassTypeRef;
+  instructor?: { displayName: string } | null;
   startAt: string;
   endAt: string;
 };
@@ -30,7 +32,10 @@ export interface PublicClassCatalogClient {
 
 export const browserPublicClassCatalogClient: PublicClassCatalogClient = {
   async list(input) {
-    const result = await publicGeneratedApi.classes.listPublicClassSchedule(input);
+    const result = await appLoading.track(
+      publicGeneratedApi.classes.listPublicClassSchedule(input),
+      { label: 'Memuat jadwal…' },
+    );
     return {
       branches: result.branches,
       items: result.items.map((item) => ({

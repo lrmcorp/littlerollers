@@ -3,12 +3,15 @@ import { useState } from 'react';
 import {
   browserOperationsClient,
   operationsFailure,
+  type NotificationOccurrence,
+  type NotificationOccurrencePage,
   type OperationalJob,
   type OperationsClient,
 } from '../operations-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { Badge, Button, DataTable, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
+import { controlClassName } from '../components/forms';
 
 export function OperationsView({
   client = browserOperationsClient,
@@ -20,6 +23,9 @@ export function OperationsView({
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [statusFilter, setStatusFilter] = useState('');
+  const [emailPage, setEmailPage] = useState<NotificationOccurrencePage>();
+  const [emailStatusFilter, setEmailStatusFilter] = useState('');
+  const [emailRetryReason, setEmailRetryReason] = useState('');
   const sessionContext = useSessionContext();
   const canRecover = !sessionContext || sessionContext.hasCapability('operations:recover');
   const run = async (action: () => Promise<void>, success: string) => {
@@ -84,6 +90,7 @@ export function OperationsView({
         <label>
           Filter status
           <select
+            className={controlClassName}
             aria-label="Filter status job"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
@@ -203,6 +210,182 @@ export function OperationsView({
           )}
         />
       )}
+      <Panel className="p-6 sm:p-8">
+        <PageHeader
+          eyebrow="Transactional email"
+          title="SMTP delivery dashboard"
+          description="Status tertinggi adalah ACCEPTED_BY_SMTP. Recipient tetap dimasking dan retry manual masuk audit."
+          context={
+            <>
+              <StatusBadge tone="info">NIAGAHOSTER SMTP</StatusBadge>
+              <StatusBadge tone="warning">Dead-letter terlihat</StatusBadge>
+            </>
+          }
+        />
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="Pending" value={String(emailPage?.metrics.pendingCount ?? 0)} />
+          <StatCard
+            label="Accepted"
+            value={`${((emailPage?.metrics.acceptedRateBasisPoints ?? 0) / 100).toFixed(2)}%`}
+            tone="success"
+          />
+          <StatCard
+            label="Terminal"
+            value={String(emailPage?.metrics.terminalFailureCount ?? 0)}
+            tone="warning"
+          />
+          <StatCard label="Retry" value={String(emailPage?.metrics.retryCount ?? 0)} />
+          <StatCard
+            label="Queue age"
+            value={`${emailPage?.metrics.queueAgeSeconds ?? 0}s`}
+            helper={`Rate-limit waits: ${emailPage?.metrics.rateLimitWaitCount ?? 0}`}
+          />
+        </div>
+      </Panel>
+      <FilterBar>
+        <Button
+          disabled={busy || !client.listEmails}
+          onClick={() =>
+            void run(async () => {
+              if (!client.listEmails) return;
+              setEmailPage(await client.listEmails(emailStatusFilter || undefined));
+            }, 'Status email diperbarui.')
+          }
+        >
+          Muat email
+        </Button>
+        <label>
+          Filter status email
+          <select
+            className={controlClassName}
+            aria-label="Filter status email"
+            value={emailStatusFilter}
+            onChange={(event) => setEmailStatusFilter(event.target.value)}
+          >
+            <option value="">Semua status</option>
+            {[
+              'PENDING',
+              'SENDING',
+              'ACCEPTED_BY_SMTP',
+              'FAILED_RETRYABLE',
+              'FAILED_TERMINAL',
+              'EXPIRED',
+              'FALLBACK_IN_APP',
+            ].map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Alasan retry
+          <input
+            className={controlClassName}
+            aria-label="Alasan retry email"
+            value={emailRetryReason}
+            onChange={(event) => setEmailRetryReason(event.target.value)}
+            placeholder="Contoh: credential SMTP sudah diperbaiki"
+          />
+        </label>
+      </FilterBar>
+      {emailPage && emailPage.items.length === 0 ? (
+        <EmptyState
+          title="Belum ada delivery email"
+          description="Ubah filter atau muat ulang antrean."
+        />
+      ) : emailPage ? (
+        <DataTable
+          items={emailPage.items}
+          rowKey={(item) => item.id}
+          columns={[
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (item) => (
+                <Badge
+                  tone={
+                    item.status === 'ACCEPTED_BY_SMTP'
+                      ? 'success'
+                      : ['FAILED_TERMINAL', 'FALLBACK_IN_APP', 'EXPIRED'].includes(item.status)
+                        ? 'danger'
+                        : 'warning'
+                  }
+                >
+                  {item.status}
+                </Badge>
+              ),
+            },
+            {
+              id: 'recipient',
+              header: 'Recipient',
+              cell: (item) => item.recipientMasked,
+            },
+            { id: 'event', header: 'Event', cell: (item) => item.eventType },
+            {
+              id: 'attempt',
+              header: 'Attempt',
+              cell: (item) => `${item.attemptCount}/${item.maxAttempts}`,
+            },
+            {
+              id: 'action',
+              header: 'Recovery',
+              cell: (item) => (
+                <Button
+                  variant="secondary"
+                  disabled={
+                    busy ||
+                    !canRecover ||
+                    !client.retryEmail ||
+                    emailRetryReason.trim().length < 3 ||
+                    !['FAILED_TERMINAL', 'FAILED_RETRYABLE', 'FALLBACK_IN_APP'].includes(
+                      item.status,
+                    )
+                  }
+                  onClick={() =>
+                    void run(async () => {
+                      if (!client.retryEmail) return;
+                      const result = await client.retryEmail(item.id, emailRetryReason.trim());
+                      setEmailPage((current) =>
+                        current
+                          ? {
+                              ...current,
+                              items: current.items.map((delivery) =>
+                                delivery.id === item.id
+                                  ? ({
+                                      ...delivery,
+                                      status: result.status,
+                                      nextAttemptAt: result.nextAttemptAt,
+                                    } as NotificationOccurrence)
+                                  : delivery,
+                              ),
+                            }
+                          : current,
+                      );
+                    }, 'Retry email dijadwalkan.')
+                  }
+                >
+                  Retry email
+                </Button>
+              ),
+            },
+          ]}
+          mobileCard={(item) => (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <Badge tone={item.status === 'ACCEPTED_BY_SMTP' ? 'success' : 'warning'}>
+                  {item.status}
+                </Badge>
+                <span className="text-xs text-dd-muted">{item.recipientMasked}</span>
+              </div>
+              <p className="mt-3 break-all text-sm">{item.eventType}</p>
+              <p className="mt-1 text-xs text-dd-muted">
+                {item.attemptCount}/{item.maxAttempts} attempt · {item.rateLimitWaitCount} wait
+              </p>
+            </div>
+          )}
+        />
+      ) : null}
     </section>
   );
 }

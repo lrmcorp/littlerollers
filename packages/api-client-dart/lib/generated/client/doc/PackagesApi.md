@@ -11,6 +11,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**approvePurchase**](PackagesApi.md#approvepurchase) | **POST** /purchases/{id}/approve | 
 [**attachOrderPaymentProof**](PackagesApi.md#attachorderpaymentproof) | **POST** /orders/{id}/payment-proof | 
+[**authorizeOwnOrderPaymentProofView**](PackagesApi.md#authorizeownorderpaymentproofview) | **POST** /orders/{id}/payment-proof/view-authorizations | 
 [**authorizePaymentProofDownload**](PackagesApi.md#authorizepaymentproofdownload) | **POST** /uploads/payment-proofs/{id}/download-authorizations | 
 [**createOrder**](PackagesApi.md#createorder) | **POST** /orders | 
 [**createPackage**](PackagesApi.md#createpackage) | **POST** /packages | 
@@ -19,6 +20,7 @@ Method | HTTP request | Description
 [**getCheckoutOptions**](PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
 [**getOrder**](PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [**getPaymentProofStatus**](PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
+[**getPaymentReviewDetail**](PackagesApi.md#getpaymentreviewdetail) | **GET** /purchases/{id} | 
 [**getPublicPackageDetail**](PackagesApi.md#getpublicpackagedetail) | **GET** /public/package-catalog/{id} | 
 [**listOrders**](PackagesApi.md#listorders) | **GET** /orders | 
 [**listPackages**](PackagesApi.md#listpackages) | **GET** /packages | 
@@ -28,6 +30,7 @@ Method | HTTP request | Description
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
 [**uploadPaymentProofContent**](PackagesApi.md#uploadpaymentproofcontent) | **PUT** /uploads/payment-proofs/{id}/content | 
+[**viewAuthorizedPaymentProofContent**](PackagesApi.md#viewauthorizedpaymentproofcontent) | **GET** /uploads/payment-proofs/view-authorizations/{id}/content | 
 
 
 # **approvePurchase**
@@ -122,8 +125,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **authorizeOwnOrderPaymentProofView**
+> PaymentProofViewAuthorization authorizeOwnOrderPaymentProofView(id)
+
+
+
+Issues a short-lived one-time authorization for the authenticated customer to view the CLEAN proof currently attached to their own order.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.authorizeOwnOrderPaymentProofView(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->authorizeOwnOrderPaymentProofView: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**PaymentProofViewAuthorization**](PaymentProofViewAuthorization.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **authorizePaymentProofDownload**
-> DownloadAuthorization authorizePaymentProofDownload(id)
+> PaymentProofViewAuthorization authorizePaymentProofDownload(id)
 
 
 
@@ -150,7 +196,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**DownloadAuthorization**](DownloadAuthorization.md)
+[**PaymentProofViewAuthorization**](PaymentProofViewAuthorization.md)
 
 ### Authorization
 
@@ -464,6 +510,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getPaymentReviewDetail**
+> PaymentReviewDetail getPaymentReviewDetail(id, usageCursor)
+
+
+
+Capability and branch-scoped reviewer detail with masked customer, private-proof metadata, authoritative balance, usage history, timeline, and persisted activation result.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String usageCursor = usageCursor_example; // String | 
+
+try {
+    final response = api.getPaymentReviewDetail(id, usageCursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getPaymentReviewDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **usageCursor** | **String**|  | [optional] 
+
+### Return type
+
+[**PaymentReviewDetail**](PaymentReviewDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getPublicPackageDetail**
 > PublicPackageDetail getPublicPackageDetail(id)
 
@@ -506,7 +597,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listOrders**
-> OrderPage listOrders(status, cursor)
+> OrderPage listOrders(status, cursor, q, from, until, limit)
 
 
 
@@ -517,9 +608,13 @@ import 'package:openapi/api.dart';
 final api = Openapi().getPackagesApi();
 final String status = status_example; // String | 
 final String cursor = cursor_example; // String | 
+final String q = q_example; // String | 
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listOrders(status, cursor);
+    final response = api.listOrders(status, cursor, q, from, until, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->listOrders: $e\n');
@@ -532,6 +627,10 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **status** | **String**|  | [optional] 
  **cursor** | **String**|  | [optional] 
+ **q** | **String**|  | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
@@ -635,9 +734,11 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listPurchases**
-> PurchasePage listPurchases(branchId, cursor, status)
+> PaymentReviewPage listPurchases(branchId, cursor, status, limit, q, from, until, purchaseId)
 
 
+
+Capability-scoped payment review queue. Omitted branchId means every authorized branch, including global scope for Super Owner and Finance.
 
 ### Example
 ```dart
@@ -647,9 +748,14 @@ final api = Openapi().getPackagesApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final String cursor = cursor_example; // String | 
 final String status = status_example; // String | 
+final int limit = 56; // int | 
+final String q = q_example; // String | 
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | 
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | 
+final String purchaseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 
 try {
-    final response = api.listPurchases(branchId, cursor, status);
+    final response = api.listPurchases(branchId, cursor, status, limit, q, from, until, purchaseId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->listPurchases: $e\n');
@@ -663,10 +769,15 @@ Name | Type | Description  | Notes
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **cursor** | **String**|  | [optional] 
  **status** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
+ **q** | **String**|  | [optional] 
+ **from** | **DateTime**|  | [optional] 
+ **until** | **DateTime**|  | [optional] 
+ **purchaseId** | **String**|  | [optional] 
 
 ### Return type
 
-[**PurchasePage**](PurchasePage.md)
+[**PaymentReviewPage**](PaymentReviewPage.md)
 
 ### Authorization
 
@@ -675,7 +786,7 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -856,6 +967,49 @@ Name | Type | Description  | Notes
 
  - **Content-Type**: application/octet-stream
  - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **viewAuthorizedPaymentProofContent**
+> Uint8List viewAuthorizedPaymentProofContent(id)
+
+
+
+Consumes a one-time viewer-bound payment proof authorization issued for Finance review or customer self-view.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.viewAuthorizedPaymentProofContent(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->viewAuthorizedPaymentProofContent: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**Uint8List**](Uint8List.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: image/jpeg, image/png, application/pdf, application/problem+json, application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

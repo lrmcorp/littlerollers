@@ -1,15 +1,34 @@
 import {
   Configuration,
-  IdentityApi,
   PackagesApi,
+  type ApprovalResult,
   type Package,
+  type PaymentReviewDetail,
+  type PaymentReviewItem,
+  type PaymentReviewPage,
+  type PaymentReviewSummary,
   type PaymentProof,
   type Purchase,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading, foregroundFetch } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 
 export type PurchasePackage = Package;
-export type ReviewPurchase = Purchase & { customerName: string };
+export type ReviewPurchase = PaymentReviewItem;
+export type ReviewSummary = PaymentReviewSummary;
+export type ReviewDetail = PaymentReviewDetail;
+export type ReviewApprovalResult = ApprovalResult;
+
+export interface PaymentReviewFilters {
+  branchId?: string;
+  status?: string;
+  cursor?: string;
+  limit?: number;
+  q?: string;
+  from?: Date;
+  until?: Date;
+  purchaseId?: string;
+}
 
 export interface PurchaseDiscovery {
   items: PurchasePackage[];
@@ -32,27 +51,23 @@ export interface PurchaseClient {
   submit(packageId: string, proofId: string, key: string): Promise<Purchase>;
 }
 
-export interface ReviewDiscovery {
-  items: ReviewPurchase[];
-  nextCursor?: string | null;
-}
-
 export interface PurchaseReviewClient {
-  list(branchId: string, status?: string, cursor?: string): Promise<ReviewDiscovery>;
-  authorizeProof(proofId: string): Promise<{ url: string; expiresAt: Date }>;
-  approve(id: string, expectedVersion: number, key: string): Promise<ReviewPurchase>;
+  list(filters?: PaymentReviewFilters): Promise<PaymentReviewPage>;
+  detail(id: string, usageCursor?: string): Promise<PaymentReviewDetail>;
+  loadProof(proofId: string): Promise<Blob>;
+  approve(id: string, expectedVersion: number, key: string, note?: string): Promise<ApprovalResult>;
   reject(
     id: string,
     expectedVersion: number,
     reasonCode:
       'PROOF_INVALID' | 'AMOUNT_MISMATCH' | 'DUPLICATE_PURCHASE' | 'OTHER_REVIEW_REQUIRED',
     key: string,
-  ): Promise<ReviewPurchase>;
+    note?: string,
+  ): Promise<Purchase>;
 }
 
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
 const api = new PackagesApi(configuration);
-const identity = new IdentityApi(configuration);
 
 const proofFromInstruction = (value: { id: string; status: unknown; scanStatus: unknown }) => ({
   id: value.id,
@@ -103,51 +118,49 @@ export const browserPurchaseClient: PurchaseClient = {
   },
 };
 
-const customerLabel = (attributes: object | undefined, id: string) => {
-  if (
-    attributes &&
-    'displayName' in attributes &&
-    typeof (attributes as { displayName?: unknown }).displayName === 'string'
-  )
-    return (attributes as { displayName: string }).displayName;
-  return `Pelanggan •${id.slice(-6)}`;
-};
-
 export const browserPurchaseReviewClient: PurchaseReviewClient = {
-  async list(branchId, status, cursor) {
-    const [purchases, users] = await Promise.all([
-      api.listPurchases({ branchId, status, cursor }),
-      identity.listUsers({ branchId }),
-    ]);
-    const labels = new Map(
-      users.items.map((user) => [user.id, user.displayName || customerLabel(undefined, user.id)]),
+  list(filters = {}) {
+    return appLoading.track(api.listPurchases(filters), { label: 'Memuat pembayaran…' });
+  },
+  detail(id, usageCursor) {
+    return appLoading.track(api.getPaymentReviewDetail({ id, usageCursor }), {
+      label: 'Memuat detail pembayaran…',
+    });
+  },
+  async loadProof(id) {
+    const authorization = await appLoading.track(api.authorizePaymentProofDownload({ id }), {
+      label: 'Menyiapkan bukti pembayaran…',
+    });
+    const response = await foregroundFetch(
+      authorization.url,
+      {
+        credentials: 'include',
+        headers: { Accept: 'image/*,application/pdf' },
+      },
+      'Memuat bukti pembayaran…',
     );
-    return {
-      items: purchases.items.map((purchase) => ({
-        ...purchase,
-        customerName: labels.get(purchase.userId) ?? customerLabel(undefined, purchase.userId),
-      })),
-      nextCursor: purchases.page.nextCursor,
-    };
+    if (!response.ok) throw { response: { status: response.status } };
+    return response.blob();
   },
-  authorizeProof(id) {
-    return api.authorizePaymentProofDownload({ id });
+  async approve(id, expectedVersion, idempotencyKey, note) {
+    return appLoading.track(
+      api.approvePurchase({
+        id,
+        idempotencyKey,
+        approvePurchaseRequest: { reasonCode: 'PAYMENT_VERIFIED', expectedVersion, note },
+      }),
+      { label: 'Menyetujui pembayaran…' },
+    );
   },
-  async approve(id, expectedVersion, idempotencyKey) {
-    const result = await api.approvePurchase({
-      id,
-      idempotencyKey,
-      approvePurchaseRequest: { reasonCode: 'PAYMENT_VERIFIED', expectedVersion },
-    });
-    return { ...result.purchase, customerName: customerLabel(undefined, result.purchase.userId) };
-  },
-  async reject(id, expectedVersion, reasonCode, idempotencyKey) {
-    const purchase = await api.rejectPurchase({
-      id,
-      idempotencyKey,
-      approvePurchaseRequest: { reasonCode, expectedVersion },
-    });
-    return { ...purchase, customerName: customerLabel(undefined, purchase.userId) };
+  reject(id, expectedVersion, reasonCode, idempotencyKey, note) {
+    return appLoading.track(
+      api.rejectPurchase({
+        id,
+        idempotencyKey,
+        approvePurchaseRequest: { reasonCode, expectedVersion, note },
+      }),
+      { label: 'Memproses keputusan pembayaran…' },
+    );
   },
 };
 
@@ -169,6 +182,9 @@ export function purchaseFailure(error: unknown): string {
     CONFIGURATION_REQUIRED: 'Layanan penyimpanan atau pemindaian belum dikonfigurasi.',
     PAYMENT_PROOF_NOT_CLEAN: 'Bukti belum dinyatakan bersih dan belum dapat digunakan.',
     PAYMENT_PROOF_UNSAFE: 'Bukti ditolak karena hasil pemeriksaan keamanan.',
+    PAYMENT_PROOF_SCAN_UNAVAILABLE:
+      'Pemindai bukti sedang tidak tersedia. Coba kembali beberapa saat lagi.',
+    PRIVATE_STORAGE_UNAVAILABLE: 'File bukti tidak ditemukan pada penyimpanan privat.',
     VALIDATION_ERROR: 'File atau data purchase belum valid.',
     IDEMPOTENCY_KEY_REUSED: 'Intent yang sama sudah digunakan dengan data berbeda.',
     IDEMPOTENCY_IN_PROGRESS: 'Permintaan sebelumnya masih diproses. Coba lagi tanpa mengubah data.',

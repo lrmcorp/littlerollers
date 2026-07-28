@@ -21,6 +21,8 @@ Name | Type | Description | Notes
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 **version** | **int** |  | 
 **idempotentReplay** | **bool** |  | 
+**customer** | [**BookingCustomer**](BookingCustomer.md) |  | [optional] 
+**sessionBalance** | [**BookingSessionBalance**](BookingSessionBalance.md) |  | [optional] 
 **branch** | [**BookingBranch**](BookingBranch.md) |  | [optional] 
 **classSlot** | [**BookingClassSlot**](BookingClassSlot.md) |  | [optional] 
 **package** | [**BookingClassSlotClassType**](BookingClassSlotClassType.md) |  | [optional] 

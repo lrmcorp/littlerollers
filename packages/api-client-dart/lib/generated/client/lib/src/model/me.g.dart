@@ -96,15 +96,21 @@ class _$Me extends Me {
   @override
   final BuiltList<Role> roles;
   @override
+  final BuiltList<String> customRoleCodes;
+  @override
   final BuiltList<String> branchIds;
   @override
   final BuiltList<String> capabilities;
+  @override
+  final BuiltList<String> globalCapabilities;
   @override
   final MeIdentityVerificationStatusEnum identityVerificationStatus;
   @override
   final DateTime sessionExpiresAt;
   @override
   final BuiltList<SessionBranch> branches;
+  @override
+  final PreferredStudio? preferredBranch;
 
   factory _$Me([void Function(MeBuilder)? updates]) =>
       (MeBuilder()..update(updates))._build();
@@ -113,11 +119,14 @@ class _$Me extends Me {
     required this.id,
     required this.displayName,
     required this.roles,
+    required this.customRoleCodes,
     required this.branchIds,
     required this.capabilities,
+    required this.globalCapabilities,
     required this.identityVerificationStatus,
     required this.sessionExpiresAt,
     required this.branches,
+    this.preferredBranch,
   }) : super._();
   @override
   Me rebuild(void Function(MeBuilder) updates) =>
@@ -133,11 +142,14 @@ class _$Me extends Me {
         id == other.id &&
         displayName == other.displayName &&
         roles == other.roles &&
+        customRoleCodes == other.customRoleCodes &&
         branchIds == other.branchIds &&
         capabilities == other.capabilities &&
+        globalCapabilities == other.globalCapabilities &&
         identityVerificationStatus == other.identityVerificationStatus &&
         sessionExpiresAt == other.sessionExpiresAt &&
-        branches == other.branches;
+        branches == other.branches &&
+        preferredBranch == other.preferredBranch;
   }
 
   @override
@@ -146,11 +158,14 @@ class _$Me extends Me {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, displayName.hashCode);
     _$hash = $jc(_$hash, roles.hashCode);
+    _$hash = $jc(_$hash, customRoleCodes.hashCode);
     _$hash = $jc(_$hash, branchIds.hashCode);
     _$hash = $jc(_$hash, capabilities.hashCode);
+    _$hash = $jc(_$hash, globalCapabilities.hashCode);
     _$hash = $jc(_$hash, identityVerificationStatus.hashCode);
     _$hash = $jc(_$hash, sessionExpiresAt.hashCode);
     _$hash = $jc(_$hash, branches.hashCode);
+    _$hash = $jc(_$hash, preferredBranch.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -161,11 +176,14 @@ class _$Me extends Me {
           ..add('id', id)
           ..add('displayName', displayName)
           ..add('roles', roles)
+          ..add('customRoleCodes', customRoleCodes)
           ..add('branchIds', branchIds)
           ..add('capabilities', capabilities)
+          ..add('globalCapabilities', globalCapabilities)
           ..add('identityVerificationStatus', identityVerificationStatus)
           ..add('sessionExpiresAt', sessionExpiresAt)
-          ..add('branches', branches))
+          ..add('branches', branches)
+          ..add('preferredBranch', preferredBranch))
         .toString();
   }
 }
@@ -185,6 +203,12 @@ class MeBuilder implements Builder<Me, MeBuilder> {
   ListBuilder<Role> get roles => _$this._roles ??= ListBuilder<Role>();
   set roles(ListBuilder<Role>? roles) => _$this._roles = roles;
 
+  ListBuilder<String>? _customRoleCodes;
+  ListBuilder<String> get customRoleCodes =>
+      _$this._customRoleCodes ??= ListBuilder<String>();
+  set customRoleCodes(ListBuilder<String>? customRoleCodes) =>
+      _$this._customRoleCodes = customRoleCodes;
+
   ListBuilder<String>? _branchIds;
   ListBuilder<String> get branchIds =>
       _$this._branchIds ??= ListBuilder<String>();
@@ -196,6 +220,12 @@ class MeBuilder implements Builder<Me, MeBuilder> {
       _$this._capabilities ??= ListBuilder<String>();
   set capabilities(ListBuilder<String>? capabilities) =>
       _$this._capabilities = capabilities;
+
+  ListBuilder<String>? _globalCapabilities;
+  ListBuilder<String> get globalCapabilities =>
+      _$this._globalCapabilities ??= ListBuilder<String>();
+  set globalCapabilities(ListBuilder<String>? globalCapabilities) =>
+      _$this._globalCapabilities = globalCapabilities;
 
   MeIdentityVerificationStatusEnum? _identityVerificationStatus;
   MeIdentityVerificationStatusEnum? get identityVerificationStatus =>
@@ -215,6 +245,12 @@ class MeBuilder implements Builder<Me, MeBuilder> {
   set branches(ListBuilder<SessionBranch>? branches) =>
       _$this._branches = branches;
 
+  PreferredStudioBuilder? _preferredBranch;
+  PreferredStudioBuilder get preferredBranch =>
+      _$this._preferredBranch ??= PreferredStudioBuilder();
+  set preferredBranch(PreferredStudioBuilder? preferredBranch) =>
+      _$this._preferredBranch = preferredBranch;
+
   MeBuilder() {
     Me._defaults(this);
   }
@@ -225,11 +261,14 @@ class MeBuilder implements Builder<Me, MeBuilder> {
       _id = $v.id;
       _displayName = $v.displayName;
       _roles = $v.roles.toBuilder();
+      _customRoleCodes = $v.customRoleCodes.toBuilder();
       _branchIds = $v.branchIds.toBuilder();
       _capabilities = $v.capabilities.toBuilder();
+      _globalCapabilities = $v.globalCapabilities.toBuilder();
       _identityVerificationStatus = $v.identityVerificationStatus;
       _sessionExpiresAt = $v.sessionExpiresAt;
       _branches = $v.branches.toBuilder();
+      _preferredBranch = $v.preferredBranch?.toBuilder();
       _$v = null;
     }
     return this;
@@ -261,8 +300,10 @@ class MeBuilder implements Builder<Me, MeBuilder> {
               'displayName',
             ),
             roles: roles.build(),
+            customRoleCodes: customRoleCodes.build(),
             branchIds: branchIds.build(),
             capabilities: capabilities.build(),
+            globalCapabilities: globalCapabilities.build(),
             identityVerificationStatus: BuiltValueNullFieldError.checkNotNull(
               identityVerificationStatus,
               r'Me',
@@ -274,19 +315,26 @@ class MeBuilder implements Builder<Me, MeBuilder> {
               'sessionExpiresAt',
             ),
             branches: branches.build(),
+            preferredBranch: _preferredBranch?.build(),
           );
     } catch (_) {
       late String _$failedField;
       try {
         _$failedField = 'roles';
         roles.build();
+        _$failedField = 'customRoleCodes';
+        customRoleCodes.build();
         _$failedField = 'branchIds';
         branchIds.build();
         _$failedField = 'capabilities';
         capabilities.build();
+        _$failedField = 'globalCapabilities';
+        globalCapabilities.build();
 
         _$failedField = 'branches';
         branches.build();
+        _$failedField = 'preferredBranch';
+        _preferredBranch?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(r'Me', _$failedField, e.toString());
       }

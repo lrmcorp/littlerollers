@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   bookingFailure,
   browserBookingClient,
+  type BookingClient,
   type CustomerBookingRecord,
+  type CustomerRescheduleOptions,
 } from '../../booking-client';
 import { AlertBanner } from '../../components/app-feedback';
-import { ButtonLink } from '../../components/actions';
+import { Button, ButtonLink } from '../../components/actions';
 import { Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
@@ -20,18 +22,72 @@ const statusLabels: Record<string, string> = {
   NO_SHOW: 'Tidak hadir',
 };
 
-export function BookingDetailView({ id }: { id: string }) {
+const reasonLabels = {
+  PERSONAL_UNAVAILABLE: 'Saya tidak dapat hadir pada jadwal semula',
+  CUSTOMER_SCHEDULE_CONFLICT: 'Jadwal saya berbenturan',
+  WRONG_CLASS_SELECTED: 'Saya memilih jadwal yang keliru',
+} as const;
+
+const dateTime = (value: Date, timezone: string) =>
+  value.toLocaleString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: timezone,
+  });
+
+const newIntentKey = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `reschedule-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+export function BookingDetailView({
+  id,
+  client = browserBookingClient,
+}: {
+  id: string;
+  client?: BookingClient;
+}) {
   const [booking, setBooking] = useState<CustomerBookingRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [options, setOptions] = useState<CustomerRescheduleOptions | null>(null);
+  const [targetId, setTargetId] = useState('');
+  const [reasonCode, setReasonCode] = useState<keyof typeof reasonLabels>('PERSONAL_UNAVAILABLE');
+  const [showForm, setShowForm] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [rescheduleMessage, setRescheduleMessage] = useState('');
+  const intentKey = useRef(newIntentKey());
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const bookingResult = await client.detail(id);
+      setBooking(bookingResult);
+      try {
+        const optionResult = await client.rescheduleOptions(id);
+        setOptions(optionResult);
+        setTargetId(optionResult.targets[0]?.id ?? '');
+      } catch (cause) {
+        setOptions(null);
+        setError(await bookingFailure(cause));
+      }
+    } catch (cause) {
+      setBooking(null);
+      setError(await bookingFailure(cause));
+    } finally {
+      setLoading(false);
+    }
+  }, [client, id]);
 
   useEffect(() => {
-    browserBookingClient
-      .detail(id)
-      .then(setBooking)
-      .catch(async (cause) => setError(await bookingFailure(cause)))
-      .finally(() => setLoading(false));
-  }, [id]);
+    void load();
+  }, [load]);
 
   if (loading)
     return (
@@ -48,9 +104,12 @@ export function BookingDetailView({ id }: { id: string }) {
             <AlertBanner tone="danger" title="Detail belum dapat dimuat" message={error} />
           </div>
         )}
-        <ButtonLink href="/bookings" className="mt-5">
-          Kembali
-        </ButtonLink>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <ButtonLink href="/bookings">Kembali</ButtonLink>
+          <ButtonLink href="/contact" variant="secondary">
+            Hubungi studio
+          </ButtonLink>
+        </div>
       </section>
     );
 
@@ -115,6 +174,179 @@ export function BookingDetailView({ id }: { id: string }) {
           title="Siap untuk kelas"
           message="Datang lebih awal dan tunjukkan QR check-in yang dikirim oleh studio."
         />
+      )}
+      {options?.latestRequest && (
+        <AlertBanner
+          tone={
+            options.latestRequest.status === 'APPROVED'
+              ? 'success'
+              : options.latestRequest.status === 'REJECTED'
+                ? 'danger'
+                : 'warning'
+          }
+          title={
+            options.latestRequest.status === 'APPROVED'
+              ? 'Reschedule disetujui'
+              : options.latestRequest.status === 'REJECTED'
+                ? 'Reschedule ditolak'
+                : 'Reschedule sedang ditinjau'
+          }
+          message={
+            options.latestRequest.status === 'PENDING'
+              ? 'Reservation tetap berada di kelas semula sampai tim studio memberikan keputusan.'
+              : options.latestRequest.status === 'APPROVED'
+                ? 'Booking Anda sudah dipindahkan ke jadwal baru.'
+                : 'Booking tetap berada di jadwal semula. Hubungi studio bila Anda memerlukan bantuan.'
+          }
+        />
+      )}
+      {options?.supportAction === 'CONTACT_STUDIO' && (
+        <div className="space-y-3">
+          <AlertBanner
+            tone="warning"
+            title="Batas reschedule telah lewat"
+            message={`Pengajuan ditutup pada ${dateTime(options.cutoffAt, booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Hubungi studio untuk bantuan atau adjustment manual.`}
+          />
+          <ButtonLink href="/contact" variant="secondary">
+            Hubungi studio
+          </ButtonLink>
+        </div>
+      )}
+      {rescheduleMessage && (
+        <AlertBanner
+          tone="success"
+          title="Permintaan berhasil dikirim"
+          message={rescheduleMessage}
+        />
+      )}
+      {options?.canRequest && !showForm && (
+        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+          <h2 className="text-lg font-semibold">Perlu mengganti jadwal?</h2>
+          <p className="mt-2 text-sm leading-6 text-dd-muted">
+            Pengajuan dapat dibuat sampai tepat H-24. Reservation tetap di kelas ini selama
+            permintaan ditinjau.
+          </p>
+          <Button className="mt-4" onClick={() => setShowForm(true)}>
+            Ajukan reschedule
+          </Button>
+        </section>
+      )}
+      {showForm && options?.canRequest && (
+        <form
+          className="space-y-5 rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card"
+          aria-label="Pengajuan reschedule"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!targetId) return;
+            if (!confirming) {
+              setConfirming(true);
+              return;
+            }
+            setSubmitting(true);
+            setError('');
+            void client
+              .requestReschedule(
+                {
+                  bookingId: booking.id,
+                  targetClassSlotId: targetId,
+                  reasonCode,
+                  expectedBookingVersion: options.bookingVersion,
+                },
+                intentKey.current,
+              )
+              .then(async () => {
+                intentKey.current = newIntentKey();
+                setRescheduleMessage(
+                  'Tim studio akan meninjau jadwal tujuan. Anda akan menerima notifikasi setelah keputusan dibuat.',
+                );
+                setShowForm(false);
+                setConfirming(false);
+                await load();
+              })
+              .catch(async (cause) => {
+                setError(await bookingFailure(cause));
+                setConfirming(false);
+              })
+              .finally(() => setSubmitting(false));
+          }}
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Pilih jadwal pengganti</h2>
+            <p className="mt-1 text-sm text-dd-muted">
+              Hanya jadwal yang masih memenuhi syarat ditampilkan.
+            </p>
+          </div>
+          {options.targets.length ? (
+            <>
+              <label className="block text-sm font-semibold" htmlFor="reschedule-target">
+                Jadwal tujuan
+              </label>
+              <select
+                id="reschedule-target"
+                className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3"
+                value={targetId}
+                onChange={(event) => {
+                  setTargetId(event.target.value);
+                  setConfirming(false);
+                }}
+              >
+                {options.targets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {dateTime(target.startAt, target.timezone)} · {target.availableCapacity} tempat
+                  </option>
+                ))}
+              </select>
+              <label className="block text-sm font-semibold" htmlFor="reschedule-reason">
+                Alasan
+              </label>
+              <select
+                id="reschedule-reason"
+                className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3"
+                value={reasonCode}
+                onChange={(event) => {
+                  setReasonCode(event.target.value as keyof typeof reasonLabels);
+                  setConfirming(false);
+                }}
+              >
+                {Object.entries(reasonLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {confirming && (
+                <AlertBanner
+                  tone="warning"
+                  title="Konfirmasi perubahan jadwal"
+                  message="Setelah dikirim, jadwal asal tetap berlaku sampai permintaan disetujui oleh studio."
+                />
+              )}
+              <div className="flex flex-wrap gap-3">
+                <Button type="submit" loading={submitting} loadingLabel="Mengirim…">
+                  {confirming ? 'Kirim permintaan' : 'Tinjau permintaan'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowForm(false);
+                    setConfirming(false);
+                  }}
+                >
+                  Batal
+                </Button>
+              </div>
+            </>
+          ) : (
+            <AlertBanner
+              tone="warning"
+              title="Belum ada jadwal pengganti"
+              message="Tidak ada kelas dengan cabang dan jenis yang sama yang masih memiliki tempat."
+            />
+          )}
+        </form>
+      )}
+      {error && (
+        <AlertBanner tone="danger" title="Permintaan belum dapat diproses" message={error} />
       )}
     </main>
   );

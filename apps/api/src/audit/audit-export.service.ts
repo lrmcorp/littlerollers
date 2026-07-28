@@ -5,6 +5,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PolicyService } from '../identity/policy.service';
+import { EmailNotificationService } from '../email/email-notification.service';
 
 type Command = {
   branchIds: string[];
@@ -23,6 +24,7 @@ export class AuditExportService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly emails?: EmailNotificationService,
   ) {}
 
   private scope(principal: SessionPrincipal, branchIds: string[]) {
@@ -156,7 +158,7 @@ export class AuditExportService {
                   .join(','),
               ),
             ].join('\n');
-      await this.db.auditExport.update({
+      const ready = await this.db.auditExport.update({
         where: { id },
         data: {
           status: 'READY',
@@ -166,6 +168,28 @@ export class AuditExportService {
           version: { increment: 1 },
         },
       });
+      const requester = await this.db.user.findUnique({
+        where: { id: ready.requestedById },
+        select: { email: true },
+      });
+      const publicBaseUrl = process.env.PUBLIC_WEB_BASE_URL?.trim();
+      if (requester?.email && publicBaseUrl && this.emails) {
+        await this.emails
+          .enqueue({
+            eventType: 'audit.export_ready.v1',
+            templateKey: 'AUDIT_EXPORT_READY_V1',
+            recipient: requester.email,
+            variables: {
+              href: new URL('/audit', publicBaseUrl).toString(),
+              detail: `Export berisi ${ready.rowCount} baris dan tersedia selama 24 jam.`,
+            },
+            correlationId: `audit-export:${id}`,
+            occurrenceParts: [id, ready.version],
+            userId: ready.requestedById,
+            expiresAt: ready.expiresAt,
+          })
+          .catch(() => undefined);
+      }
     } catch {
       await this.db.auditExport
         .update({

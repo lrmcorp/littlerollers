@@ -4,6 +4,8 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/assignment_management_branch.dart';
+import 'package:openapi/src/model/assignment_management_user.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -19,6 +21,9 @@ part 'assignment.g.dart';
 /// * [assignmentType] 
 /// * [activeFrom] 
 /// * [activeUntil] 
+/// * [status] 
+/// * [user] 
+/// * [branch] 
 /// * [version] 
 @BuiltValue()
 abstract class Assignment implements Built<Assignment, AssignmentBuilder> {
@@ -40,6 +45,16 @@ abstract class Assignment implements Built<Assignment, AssignmentBuilder> {
 
   @BuiltValueField(wireName: r'activeUntil')
   Date? get activeUntil;
+
+  @BuiltValueField(wireName: r'status')
+  AssignmentStatusEnum get status;
+  // enum statusEnum {  ACTIVE,  ENDED,  };
+
+  @BuiltValueField(wireName: r'user')
+  AssignmentManagementUser get user;
+
+  @BuiltValueField(wireName: r'branch')
+  AssignmentManagementBranch get branch;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -96,6 +111,21 @@ class _$AssignmentSerializer implements PrimitiveSerializer<Assignment> {
     yield object.activeUntil == null ? null : serializers.serialize(
       object.activeUntil,
       specifiedType: const FullType.nullable(Date),
+    );
+    yield r'status';
+    yield serializers.serialize(
+      object.status,
+      specifiedType: const FullType(AssignmentStatusEnum),
+    );
+    yield r'user';
+    yield serializers.serialize(
+      object.user,
+      specifiedType: const FullType(AssignmentManagementUser),
+    );
+    yield r'branch';
+    yield serializers.serialize(
+      object.branch,
+      specifiedType: const FullType(AssignmentManagementBranch),
     );
     yield r'version';
     yield serializers.serialize(
@@ -168,6 +198,27 @@ class _$AssignmentSerializer implements PrimitiveSerializer<Assignment> {
           if (valueDes == null) continue;
           result.activeUntil = valueDes;
           break;
+        case r'status':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AssignmentStatusEnum),
+          ) as AssignmentStatusEnum;
+          result.status = valueDes;
+          break;
+        case r'user':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AssignmentManagementUser),
+          ) as AssignmentManagementUser;
+          result.user.replace(valueDes);
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(AssignmentManagementBranch),
+          ) as AssignmentManagementBranch;
+          result.branch.replace(valueDes);
+          break;
         case r'version':
           final valueDes = serializers.deserialize(
             value,
@@ -217,5 +268,20 @@ class AssignmentAssignmentTypeEnum extends EnumClass {
 
   static BuiltSet<AssignmentAssignmentTypeEnum> get values => _$assignmentAssignmentTypeEnumValues;
   static AssignmentAssignmentTypeEnum valueOf(String name) => _$assignmentAssignmentTypeEnumValueOf(name);
+}
+
+class AssignmentStatusEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'ACTIVE')
+  static const AssignmentStatusEnum ACTIVE = _$assignmentStatusEnum_ACTIVE;
+  @BuiltValueEnumConst(wireName: r'ENDED')
+  static const AssignmentStatusEnum ENDED = _$assignmentStatusEnum_ENDED;
+
+  static Serializer<AssignmentStatusEnum> get serializer => _$assignmentStatusEnumSerializer;
+
+  const AssignmentStatusEnum._(String name): super(name);
+
+  static BuiltSet<AssignmentStatusEnum> get values => _$assignmentStatusEnumValues;
+  static AssignmentStatusEnum valueOf(String name) => _$assignmentStatusEnumValueOf(name);
 }
 

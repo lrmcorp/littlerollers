@@ -39,13 +39,15 @@ const REJECT_CODES: RescheduleDecisionReasonCode[] = [
 ];
 const PAGE_SIZE = 20;
 type Cursor = { at: string; id: string };
+const maskPhone = (value: string | null) =>
+  value && value.length > 5 ? `${value.slice(0, 4)}*****${value.slice(-2)}` : null;
 
 export function isRescheduleEntitled(
   sourceStartAt: Date,
   evaluatedAt: Date,
   cutoffHours: number,
 ): boolean {
-  return evaluatedAt.getTime() < sourceStartAt.getTime() - cutoffHours * 3_600_000;
+  return evaluatedAt.getTime() <= sourceStartAt.getTime() - cutoffHours * 3_600_000;
 }
 
 function encodeCursor(at: Date, id: string): string {
@@ -76,18 +78,130 @@ export class ReschedulesService {
     const booking = this.config.value.booking;
     const reschedule = this.config.value.reschedule;
     if (
-      !booking.syntheticEnabled ||
+      !booking.enabled ||
       booking.cutoffHours === null ||
-      !reschedule.syntheticEnabled ||
+      !reschedule.enabled ||
       reschedule.cutoffHours === null
     )
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
     return { bookingCutoffHours: booking.cutoffHours, cutoffHours: reschedule.cutoffHours };
   }
 
-  private requireBranch(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  async options(principal: SessionPrincipal, bookingId: string) {
+    this.policy.requireCapability(principal.capabilities, 'reschedule:self:read');
+    if (!UUID.test(bookingId)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const policy = this.syntheticPolicy();
+    const booking = await this.db.booking.findFirst({
+      where: { id: bookingId, customerUserId: principal.userId },
+      include: {
+        classSlot: {
+          include: {
+            branch: { select: { id: true, name: true, timezone: true } },
+            classType: { select: { id: true, name: true } },
+          },
+        },
+        customerPackage: true,
+        reschedules: { orderBy: { requestedAt: 'desc' }, take: 1 },
+      },
+    });
+    if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const now = new Date();
+    const cutoffAt = new Date(booking.classSlot.startAt.getTime() - policy.cutoffHours * 3_600_000);
+    const latestRequest = booking.reschedules[0] ?? null;
+    const pending = latestRequest?.status === 'PENDING';
+    const entitled = isRescheduleEntitled(booking.classSlot.startAt, now, policy.cutoffHours);
+    const packageEligible =
+      booking.customerPackage.status === 'ACTIVE' && booking.customerPackage.expiryAt > now;
+    const canRequest = booking.status === 'BOOKED' && entitled && packageEligible && !pending;
+    const candidates = canRequest
+      ? await this.db.classSlot.findMany({
+          where: {
+            id: { not: booking.classSlotId },
+            branchId: booking.branchId,
+            classTypeId: booking.classSlot.classTypeId,
+            status: { in: ['PUBLISHED', 'CONFIRMED'] },
+            startAt: { gt: new Date(now.getTime() + policy.bookingCutoffHours * 3_600_000) },
+          },
+          select: {
+            id: true,
+            branchId: true,
+            classTypeId: true,
+            startAt: true,
+            endAt: true,
+            timezone: true,
+            status: true,
+            capacity: true,
+            bookedCount: true,
+            branch: { select: { id: true, name: true, timezone: true } },
+            classType: { select: { id: true, name: true } },
+            reservations: { where: { status: 'ACTIVE' }, select: { quantity: true } },
+          },
+          orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+          take: 50,
+        })
+      : [];
+    const duplicateTargets = candidates.length
+      ? await this.db.booking.findMany({
+          where: {
+            id: { not: booking.id },
+            customerUserId: principal.userId,
+            classSlotId: { in: candidates.map(({ id }) => id) },
+            status: { in: ['BOOKED', 'RESCHEDULE_PENDING'] },
+          },
+          select: { classSlotId: true },
+        })
+      : [];
+    const duplicated = new Set(duplicateTargets.map(({ classSlotId }) => classSlotId));
+    const targets = candidates
+      .map(({ reservations, ...slot }) => ({
+        ...slot,
+        availableCapacity:
+          slot.capacity - reservations.reduce((sum, item) => sum + item.quantity, 0),
+      }))
+      .filter(({ id, availableCapacity }) => availableCapacity > 0 && !duplicated.has(id));
+    const unavailableReason = canRequest
+      ? targets.length
+        ? null
+        : 'NO_ELIGIBLE_TARGET'
+      : pending
+        ? 'RESCHEDULE_PENDING'
+        : booking.status !== 'BOOKED'
+          ? 'BOOKING_NOT_ACTIVE'
+          : !entitled
+            ? 'RESCHEDULE_CUTOFF_PASSED'
+            : 'PACKAGE_INELIGIBLE';
+    return {
+      bookingId: booking.id,
+      bookingVersion: booking.version,
+      sourceClassSlotId: booking.classSlotId,
+      cutoffAt,
+      canRequest,
+      unavailableReason,
+      supportAction: !entitled ? 'CONTACT_STUDIO' : null,
+      source: {
+        id: booking.classSlot.id,
+        branchId: booking.classSlot.branchId,
+        classTypeId: booking.classSlot.classTypeId,
+        startAt: booking.classSlot.startAt,
+        endAt: booking.classSlot.endAt,
+        timezone: booking.classSlot.timezone,
+        status: booking.classSlot.status,
+        capacity: booking.classSlot.capacity,
+        bookedCount: booking.classSlot.bookedCount,
+        branch: booking.classSlot.branch,
+        classType: booking.classSlot.classType,
+      },
+      latestRequest,
+      targets,
+    };
   }
 
   async list(
@@ -102,34 +216,106 @@ export class ReschedulesService {
     const statuses: RescheduleStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
     if (query.status && !statuses.includes(query.status as RescheduleStatus))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    if (query.branchId && !customer) this.requireBranch(principal, query.branchId);
+    if (query.branchId && !customer)
+      this.requireBranch(principal, query.branchId, 'reschedule:read');
     const cursor = decodeCursor(query.cursor);
+    const pendingQueue = query.status === 'PENDING';
+    const branchScope = this.policy.capabilityBranchScope(principal, 'reschedule:read');
     const items = await this.db.reschedule.findMany({
       where: {
         ...(customer ? { requestedById: principal.userId } : {}),
         ...(query.branchId
           ? { branchId: query.branchId }
-          : customer || principal.capabilities.includes('branch:all')
+          : customer
             ? {}
-            : { branchId: { in: principal.branchIds } }),
+            : branchScope.all
+              ? branchScope.excluded.length
+                ? { branchId: { notIn: branchScope.excluded } }
+                : {}
+              : { branchId: { in: branchScope.included } }),
         ...(query.status ? { status: query.status as RescheduleStatus } : {}),
         ...(cursor
           ? {
               OR: [
-                { requestedAt: { lt: new Date(cursor.at) } },
-                { requestedAt: new Date(cursor.at), id: { lt: cursor.id } },
+                { requestedAt: { [pendingQueue ? 'gt' : 'lt']: new Date(cursor.at) } },
+                {
+                  requestedAt: new Date(cursor.at),
+                  id: { [pendingQueue ? 'gt' : 'lt']: cursor.id },
+                },
               ],
             }
           : {}),
       },
-      orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [
+        { requestedAt: pendingQueue ? 'asc' : 'desc' },
+        { id: pendingQueue ? 'asc' : 'desc' },
+      ],
       take: PAGE_SIZE + 1,
+      include: {
+        branch: { select: { id: true, name: true, timezone: true } },
+        booking: {
+          select: {
+            id: true,
+            customer: { select: { id: true, displayName: true, phoneE164: true } },
+            customerPackage: {
+              select: { package: { select: { id: true, name: true } } },
+            },
+          },
+        },
+        sourceClassSlot: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+            timezone: true,
+            capacity: true,
+            bookedCount: true,
+            classType: { select: { id: true, name: true } },
+          },
+        },
+        targetClassSlot: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+            timezone: true,
+            capacity: true,
+            bookedCount: true,
+            classType: { select: { id: true, name: true } },
+          },
+        },
+      },
     });
     const hasMore = items.length > PAGE_SIZE;
     const pageItems = items.slice(0, PAGE_SIZE);
     const last = pageItems.at(-1);
     return {
-      items: pageItems,
+      items: pageItems.map((item) => ({
+        id: item.id,
+        branchId: item.branchId,
+        bookingId: item.bookingId,
+        sourceClassSlotId: item.sourceClassSlotId,
+        targetClassSlotId: item.targetClassSlotId,
+        requestedById: item.requestedById,
+        decidedById: item.decidedById,
+        requestReasonCode: item.requestReasonCode,
+        decisionReasonCode: item.decisionReasonCode,
+        status: item.status,
+        entitlementCutoffAt: item.entitlementCutoffAt,
+        entitledAtRequest: item.entitledAtRequest,
+        decidedAt: item.decidedAt,
+        version: item.version,
+        requestedAt: item.requestedAt,
+        branch: item.branch,
+        customer: {
+          id: item.booking.customer.id,
+          displayName: item.booking.customer.displayName,
+          phoneMasked: maskPhone(item.booking.customer.phoneE164),
+        },
+        package: item.booking.customerPackage.package,
+        sourceClassSlot: item.sourceClassSlot,
+        targetClassSlot: item.targetClassSlot,
+      })),
       page: {
         hasMore,
         nextCursor: hasMore && last ? encodeCursor(last.requestedAt, last.id) : null,
@@ -192,7 +378,10 @@ export class ReschedulesService {
             source.startAt.getTime() - policy.cutoffHours * 3_600_000,
           );
           if (!isRescheduleEntitled(source.startAt, now, policy.cutoffHours))
-            throw new ApiProblem('RESCHEDULE_CUTOFF_PASSED', HttpStatus.CONFLICT);
+            throw new ApiProblem('RESCHEDULE_CUTOFF_PASSED', HttpStatus.CONFLICT, false, [
+              { field: 'cutoffAt', issue: entitlementCutoffAt.toISOString() },
+              { field: 'nextAction', issue: 'CONTACT_STUDIO' },
+            ]);
           const targetCutoffAt = new Date(
             target.startAt.getTime() - policy.bookingCutoffHours * 3_600_000,
           );
@@ -257,6 +446,22 @@ export class ReschedulesService {
               },
             },
           });
+          await tx.outboxEvent.create({
+            data: {
+              id: randomUUID(),
+              eventType: 'booking.reschedule_requested.v1',
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              correlationId,
+              payload: {
+                bookingId: booking.id,
+                rescheduleId: reschedule.id,
+                branchId: booking.branchId,
+                sourceClassSlotId: source.id,
+                targetClassSlotId: target.id,
+              },
+            },
+          });
           return {
             status: HttpStatus.CREATED,
             body: reschedule as unknown as Prisma.InputJsonValue,
@@ -300,11 +505,13 @@ export class ReschedulesService {
           await tx.$queryRaw`SELECT \`id\` FROM \`Reschedule\` WHERE \`id\` = ${id} FOR UPDATE`;
           const reschedule = await tx.reschedule.findUnique({ where: { id } });
           if (!reschedule) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-          this.requireBranch(principal, reschedule.branchId);
+          this.requireBranch(principal, reschedule.branchId, 'reschedule:decide');
           if (reschedule.status !== 'PENDING')
             throw new ApiProblem('RESCHEDULE_ALREADY_DECIDED', HttpStatus.CONFLICT);
           if (reschedule.version !== input.expectedVersion)
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+          if (decision === 'approve' && reschedule.requestedById === principal.userId)
+            throw new ApiProblem('SELF_APPROVAL_FORBIDDEN', HttpStatus.FORBIDDEN);
 
           await tx.$queryRaw`SELECT \`id\` FROM \`Booking\` WHERE \`id\` = ${reschedule.bookingId} FOR UPDATE`;
           const booking = await tx.booking.findUnique({ where: { id: reschedule.bookingId } });
@@ -400,6 +607,16 @@ export class ReschedulesService {
           const targetCount = targetReserved._sum.quantity ?? 0;
           if (targetCount >= target.capacity)
             throw new ApiProblem('TARGET_CLASS_FULL', HttpStatus.CONFLICT);
+          const duplicateTarget = await tx.booking.findFirst({
+            where: {
+              id: { not: booking.id },
+              customerUserId: booking.customerUserId,
+              classSlotId: target.id,
+              status: { in: ['BOOKED', 'RESCHEDULE_PENDING'] },
+            },
+          });
+          if (duplicateTarget)
+            throw new ApiProblem('DUPLICATE_ACTIVE_BOOKING', HttpStatus.CONFLICT);
 
           await tx.sessionReservation.update({
             where: { id: reservation.id },
@@ -495,8 +712,15 @@ export class ReschedulesService {
   }
 
   private mapTransactionError(error: unknown): never {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
-      throw new ApiProblem('PENDING_RESCHEDULE_EXISTS', HttpStatus.CONFLICT);
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const target = JSON.stringify(error.meta?.target ?? '');
+      throw new ApiProblem(
+        target.includes('activeCustomerSlot')
+          ? 'DUPLICATE_ACTIVE_BOOKING'
+          : 'PENDING_RESCHEDULE_EXISTS',
+        HttpStatus.CONFLICT,
+      );
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034')
       throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
     throw error;

@@ -20,6 +20,7 @@ import {
   Panel,
   SearchableLookup,
 } from '../components/admin/admin-ui';
+import { DateInput, SelectInput, TextInput } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
   CONFIGURATION_REQUIRED: 'Audit belum dapat dimuat.',
@@ -120,52 +121,40 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
             }}
             placeholder="Cari nama target"
           />
-          <label>
-            Tindakan
-            <input
-              value={filters.action}
-              onChange={(event) => setFilters({ ...filters, action: event.target.value })}
-              placeholder="security.user_roles_changed"
-            />
-          </label>
-          <label>
-            Cabang
-            <select
-              value={filters.branchId}
-              onChange={(event) => setFilters({ ...filters, branchId: event.target.value })}
-            >
-              <option value="">Semua cabang</option>
-              {(context?.session?.branches ?? []).map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.code} · {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Dari tanggal
-            <input
-              type="date"
-              value={filters.from}
-              onChange={(event) => setFilters({ ...filters, from: event.target.value })}
-            />
-          </label>
-          <label>
-            Sampai tanggal
-            <input
-              type="date"
-              value={filters.until}
-              onChange={(event) => setFilters({ ...filters, until: event.target.value })}
-            />
-          </label>
-          <label>
-            Correlation ID
-            <input
-              value={filters.correlationId}
-              onChange={(event) => setFilters({ ...filters, correlationId: event.target.value })}
-              placeholder="Referensi permintaan"
-            />
-          </label>
+          <TextInput
+            label="Tindakan"
+            value={filters.action}
+            onChange={(event) => setFilters({ ...filters, action: event.target.value })}
+            placeholder="Contoh: role pengguna diubah"
+          />
+          <SelectInput
+            label="Cabang"
+            value={filters.branchId}
+            onChange={(event) => setFilters({ ...filters, branchId: event.target.value })}
+          >
+            <option value="">Semua cabang</option>
+            {(context?.session?.branches ?? []).map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.code} · {branch.name}
+              </option>
+            ))}
+          </SelectInput>
+          <DateInput
+            label="Dari tanggal"
+            value={filters.from}
+            onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+          />
+          <DateInput
+            label="Sampai tanggal"
+            value={filters.until}
+            onChange={(event) => setFilters({ ...filters, until: event.target.value })}
+          />
+          <TextInput
+            label="Referensi permintaan"
+            value={filters.correlationId}
+            onChange={(event) => setFilters({ ...filters, correlationId: event.target.value })}
+            placeholder="Correlation ID"
+          />
           <Button type="submit" disabled={loading}>
             {loading ? 'Memuat…' : 'Terapkan filter'}
           </Button>
@@ -227,24 +216,21 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
           otorisasi singkat.
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label>
-            Format
-            <select
-              value={exportFormat}
-              onChange={(event) => setExportFormat(event.target.value as 'CSV' | 'JSONL')}
-            >
-              <option>CSV</option>
-              <option>JSONL</option>
-            </select>
-          </label>
-          <label className="min-w-72 flex-1">
-            Alasan
-            <input
-              value={exportReason}
-              minLength={3}
-              onChange={(event) => setExportReason(event.target.value)}
-            />
-          </label>
+          <SelectInput
+            label="Format"
+            value={exportFormat}
+            onChange={(event) => setExportFormat(event.target.value as 'CSV' | 'JSONL')}
+          >
+            <option>CSV</option>
+            <option>JSONL</option>
+          </SelectInput>
+          <TextInput
+            label="Alasan"
+            wrapperClassName="min-w-72 flex-1"
+            value={exportReason}
+            minLength={3}
+            onChange={(event) => setExportReason(event.target.value)}
+          />
           <Button
             disabled={loading || exportReason.trim().length < 3 || !filters.from || !filters.until}
             onClick={() =>

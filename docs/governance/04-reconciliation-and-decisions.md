@@ -42,7 +42,7 @@ Input, validation, approval, application dan verification fields untuk DEC-004..
 | DEC-010 | Pilot branch | PO | Sebelum migration rehearsal | Pilih skor tertinggi ≥75 tanpa blocker | Assessment seluruh kandidat | Migration/UAT | G5/G6 | TBD-BLOCKING |
 | DEC-011 | Cloud/region/managed services | TL + PO | Sebelum environment build | Region dekat Indonesia, managed DB/cache/storage, IaC | Provider evaluation | ADR/deployment/RPO | G4/G5 | TBD-BLOCKING |
 | DEC-012 | Session/token model | TL | Sebelum auth build | AMENDED — web HttpOnly access + rotating refresh cookie; mobile rotating family; 15m access, 30d refresh; MFA/TOTP dihapus; authorization memakai permission, scope, audit dan separation-of-duties | Detail melalui ADR-005; production secret/provider/TTL approval | Clients/security | G4 | LOCAL DRAFT / PROD BLOCKED |
-| DEC-013 | Notification fallback | PO + TL | Sebelum notification build | In-app persisted fallback; no silent success | Push/email optional post-pilot | UX/support | G2/G4 | TBD-BLOCKING |
+| DEC-013 | Notification channel/fallback | PO + TL | Sebelum production activation | AMENDMENT IN REVIEW melalui CR-SMTP-001: SMTP Niagahoster email wajib + persisted in-app fallback; no silent success; Resend manual rollback only | WhatsApp/push menyusul setelah provider decision | UX/support/security/operations | G2/G4 | LOCAL IMPLEMENTED — PROD APPROVAL BLOCKED |
 | DEC-014 | Recovery/account-linking policy | PO + TL | Sebelum US-001 READY | AMENDMENT DRAFT IMPLEMENTED LOCALLY — one-time 15m activation/reset token, generic reset response, revoke sessions on reset, no automatic linking; production Resend domain, support SLA, retention dan notification approval tetap wajib | Manual recovery SLA final | Account takeover risk | G2/G4 | LOCAL DRAFT / PROD BLOCKED |
 
 ## 3. Minimum Policies Pending Approval
@@ -54,7 +54,7 @@ Aturan ini adalah rekomendasi review, bukan baseline production sampai DEC terka
 - **Retention:** payment proof, notification payload, session/security logs, audit, dan financial records memiliki jadwal terpisah; legal hold mengalahkan deletion schedule; ledger/audit tidak hard-delete.
 - **Recovery:** account linking hanya untuk verified identity; perubahan nomor sensitif membutuhkan re-authentication dan notification ke identitas lama bila tersedia.
 - **Fallback:** kegagalan WhatsApp menghasilkan status eksplisit, retry terbatas, dead-letter alert, dan in-app notice; operator tidak boleh menandai delivered tanpa webhook/evidence.
-- **Separation of duties:** requestor tidak self-approve adjustment/correction; role sensitif memakai MFA; emergency override memakai break-glass, reason, alert dan review berikutnya.
+- **Separation of duties:** requestor tidak self-approve adjustment/correction; authorization memakai session, capability, dan scope cabang tanpa MFA; emergency override memakai break-glass, reason, alert dan review berikutnya.
 
 ## 4. Risk and Dependency Expansion
 

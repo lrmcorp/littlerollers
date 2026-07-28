@@ -11,13 +11,18 @@ class _$CustomerBookingOptions extends CustomerBookingOptions {
   final CustomerBookingSlot slot;
   @override
   final BuiltList<CustomerBookingPackage> packages;
+  @override
+  final CustomerBookingEligibility eligibility;
 
   factory _$CustomerBookingOptions([
     void Function(CustomerBookingOptionsBuilder)? updates,
   ]) => (CustomerBookingOptionsBuilder()..update(updates))._build();
 
-  _$CustomerBookingOptions._({required this.slot, required this.packages})
-    : super._();
+  _$CustomerBookingOptions._({
+    required this.slot,
+    required this.packages,
+    required this.eligibility,
+  }) : super._();
   @override
   CustomerBookingOptions rebuild(
     void Function(CustomerBookingOptionsBuilder) updates,
@@ -32,7 +37,8 @@ class _$CustomerBookingOptions extends CustomerBookingOptions {
     if (identical(other, this)) return true;
     return other is CustomerBookingOptions &&
         slot == other.slot &&
-        packages == other.packages;
+        packages == other.packages &&
+        eligibility == other.eligibility;
   }
 
   @override
@@ -40,6 +46,7 @@ class _$CustomerBookingOptions extends CustomerBookingOptions {
     var _$hash = 0;
     _$hash = $jc(_$hash, slot.hashCode);
     _$hash = $jc(_$hash, packages.hashCode);
+    _$hash = $jc(_$hash, eligibility.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -48,7 +55,8 @@ class _$CustomerBookingOptions extends CustomerBookingOptions {
   String toString() {
     return (newBuiltValueToStringHelper(r'CustomerBookingOptions')
           ..add('slot', slot)
-          ..add('packages', packages))
+          ..add('packages', packages)
+          ..add('eligibility', eligibility))
         .toString();
   }
 }
@@ -68,6 +76,12 @@ class CustomerBookingOptionsBuilder
   set packages(ListBuilder<CustomerBookingPackage>? packages) =>
       _$this._packages = packages;
 
+  CustomerBookingEligibilityBuilder? _eligibility;
+  CustomerBookingEligibilityBuilder get eligibility =>
+      _$this._eligibility ??= CustomerBookingEligibilityBuilder();
+  set eligibility(CustomerBookingEligibilityBuilder? eligibility) =>
+      _$this._eligibility = eligibility;
+
   CustomerBookingOptionsBuilder() {
     CustomerBookingOptions._defaults(this);
   }
@@ -77,6 +91,7 @@ class CustomerBookingOptionsBuilder
     if ($v != null) {
       _slot = $v.slot.toBuilder();
       _packages = $v.packages.toBuilder();
+      _eligibility = $v.eligibility.toBuilder();
       _$v = null;
     }
     return this;
@@ -103,6 +118,7 @@ class CustomerBookingOptionsBuilder
           _$CustomerBookingOptions._(
             slot: slot.build(),
             packages: packages.build(),
+            eligibility: eligibility.build(),
           );
     } catch (_) {
       late String _$failedField;
@@ -111,6 +127,8 @@ class CustomerBookingOptionsBuilder
         slot.build();
         _$failedField = 'packages';
         packages.build();
+        _$failedField = 'eligibility';
+        eligibility.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'CustomerBookingOptions',

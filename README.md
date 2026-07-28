@@ -25,8 +25,8 @@ local development flow.
 
 4. Run `pnpm install`.
 5. Run `npm run db:setup`.
-6. Run `npm run dev`, then open Web `http://localhost:32120` and API health
-   `http://localhost:32121/api/v1/operations/health`.
+6. Run `npm run dev`, sign in as an OPS or Super Owner account, then open the
+   authenticated system status page at `http://localhost:32120/health`.
 7. Run `pnpm check` before handing off changes.
 8. In `packages/api-client-dart` and `apps/mobile`, run `flutter pub get`; then
    `flutter analyze && flutter test` in the mobile app.
@@ -87,7 +87,15 @@ menambah duplicate data:
 Gunakan `SEED_ANCHOR_DATE=YYYY-MM-DD` bila fixture waktu perlu dipatok. Semua
 profile seed gagal sebelum membuka koneksi database ketika `NODE_ENV=production`.
 
-`pnpm openapi:validate` verifies OpenAPI version, checksum, operation IDs and component references. `pnpm openapi:drift` verifies committed generated-client metadata. Full pinned generator output can be inspected with `sh tools/openapi-generator.sh`.
+`pnpm openapi:validate` verifies OpenAPI version, checksum, operation IDs and component references. `pnpm openapi:drift` verifies committed generated-client metadata. The generator workflow prefers a local pinned OpenAPI Generator JAR so Docker is not required:
+
+```sh
+OPENAPI_GENERATOR_JAR=/absolute/path/openapi-generator-cli-7.15.0.jar \
+OPENAPI_GENERATOR_JAVA=/absolute/path/to/java \
+pnpm openapi:drift
+```
+
+If neither the JAR nor a working Docker daemon is available, the command exits with a setup message before generating files; it does not fail with an ambiguous Docker permission error.
 
 ## Safety Boundaries
 
@@ -128,6 +136,21 @@ Backup minimal mencakup volume `dailydose_mysql-data` dan
 `dailydose_private-uploads`. Saat memperbarui aplikasi, tarik kode terbaru lalu
 jalankan kembali perintah `up -d --build`; service `migrate` akan menjalankan
 migrasi Prisma sebelum API dan worker dimulai.
+
+### Email transaksional SMTP
+
+Production memakai SMTP Niagahoster melalui `smtp.hostinger.com:465` dengan
+SSL/TLS. Salin konfigurasi email dari `.env.production.example`, isi password
+mailbox `noreply@dailydosepilates.com`, lalu buat encryption key terpisah:
+
+```bash
+openssl rand -base64 32
+```
+
+Simpan hasilnya sebagai `NOTIFICATION_ENCRYPTION_KEY`. Jangan commit password
+SMTP atau encryption key. Pastikan MX, SPF, DKIM, dan DMARC domain telah aktif.
+Detail operasional, smoke test, retry, dan rollback terdapat pada
+`docs/operations/01-smtp-email-runbook.md`.
 
 ## Troubleshooting
 

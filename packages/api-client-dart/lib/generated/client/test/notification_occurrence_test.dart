@@ -17,17 +17,17 @@ void main() {
       // TODO
     });
 
-    // String recipientType
-    test('to test the property `recipientType`', () async {
+    // String templateKey
+    test('to test the property `templateKey`', () async {
       // TODO
     });
 
-    // String maskedRecipient
-    test('to test the property `maskedRecipient`', () async {
+    // String recipientMasked
+    test('to test the property `recipientMasked`', () async {
       // TODO
     });
 
-    // String channel
+    // JsonObject channel
     test('to test the property `channel`', () async {
       // TODO
     });
@@ -37,13 +37,48 @@ void main() {
       // TODO
     });
 
+    // int attemptCount
+    test('to test the property `attemptCount`', () async {
+      // TODO
+    });
+
+    // int rateLimitWaitCount
+    test('to test the property `rateLimitWaitCount`', () async {
+      // TODO
+    });
+
+    // int maxAttempts
+    test('to test the property `maxAttempts`', () async {
+      // TODO
+    });
+
+    // DateTime nextAttemptAt
+    test('to test the property `nextAttemptAt`', () async {
+      // TODO
+    });
+
+    // String lastErrorCode
+    test('to test the property `lastErrorCode`', () async {
+      // TODO
+    });
+
+    // String correlationId
+    test('to test the property `correlationId`', () async {
+      // TODO
+    });
+
     // DateTime createdAt
     test('to test the property `createdAt`', () async {
       // TODO
     });
 
-    // BuiltList<NotificationAttempt> attempts
-    test('to test the property `attempts`', () async {
+    // DateTime acceptedAt
+    test('to test the property `acceptedAt`', () async {
+      // TODO
+    });
+
+    // NotificationAttempt lastAttempt
+    test('to test the property `lastAttempt`', () async {
       // TODO
     });
 

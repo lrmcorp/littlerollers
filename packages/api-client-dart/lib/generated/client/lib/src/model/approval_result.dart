@@ -103,7 +103,7 @@ class _$ApprovalResultSerializer implements PrimitiveSerializer<ApprovalResult> 
             value,
             specifiedType: const FullType(Purchase),
           ) as Purchase;
-          result.purchase.replace(valueDes);
+          result.purchase = valueDes;
           break;
         case r'customerPackage':
           final valueDes = serializers.deserialize(

@@ -1,6 +1,7 @@
 'use client';
 
 import { notifySessionFailure } from './session-client';
+import { foregroundFetch } from './components/app-loading';
 
 export interface PreferredStudio {
   id: string;
@@ -51,12 +52,15 @@ export interface PublicSiteConfig {
   fallbackWhatsappE164: string | null;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/v1${path}`, {
+async function request<T>(path: string, init?: RequestInit, foreground = true): Promise<T> {
+  const requestInit = {
     credentials: 'include',
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-  });
+  } satisfies RequestInit;
+  const response = foreground
+    ? await foregroundFetch(`/api/v1${path}`, requestInit, 'Memuat profil…')
+    : await fetch(`/api/v1${path}`, requestInit);
   if (!response.ok) {
     const error = { response: { status: response.status }, body: await response.text() };
     notifySessionFailure(error);
@@ -77,6 +81,6 @@ export const accountClient = {
     return request('/me/profile', { method: 'PATCH', body: JSON.stringify(input) });
   },
   siteConfig(): Promise<PublicSiteConfig> {
-    return request('/public/site-config');
+    return request('/public/site-config', undefined, false);
   },
 };

@@ -13,21 +13,94 @@ export class AssignmentService {
     private readonly policy: PolicyService,
   ) {}
 
-  async list(principal: SessionPrincipal, branchId?: string) {
+  async list(
+    principal: SessionPrincipal,
+    input: {
+      branchId?: string;
+      q?: string;
+      type?: AssignmentType;
+      status?: 'ACTIVE' | 'ENDED';
+      cursor?: string;
+      limit?: number;
+    } = {},
+  ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:read');
-    this.ensureScope(principal, branchId);
-    const assignments = await this.db.assignment.findMany({
-      where: branchId
-        ? { branchId }
-        : principal.capabilities.includes('branch:all')
-          ? undefined
-          : { branchId: { in: principal.branchIds } },
-      orderBy: [{ activeFrom: 'desc' }, { id: 'asc' }],
-      take: 50,
-    });
+    this.ensureScope(principal, input.branchId);
+    if (input.type && !['OWNER', 'INSTRUCTOR'].includes(input.type))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (input.status && !['ACTIVE', 'ENDED'].includes(input.status))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const limit = input.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const cursor = decodeAssignmentCursor(input.cursor);
+    const now = new Date();
+    const scopeWhere: Prisma.AssignmentWhereInput = input.branchId
+      ? { branchId: input.branchId }
+      : principal.capabilities.includes('branch:all')
+        ? {}
+        : { branchId: { in: principal.branchIds } };
+    const query = input.q?.trim();
+    const commonWhere: Prisma.AssignmentWhereInput = {
+      ...scopeWhere,
+      type: input.type,
+      ...(query
+        ? {
+            OR: [
+              { id: query },
+              { userId: query },
+              { user: { displayName: { contains: query } } },
+              { user: { phoneE164: { contains: query } } },
+              { branch: { name: { contains: query } } },
+              { branch: { code: { contains: query } } },
+            ],
+          }
+        : {}),
+    };
+    const statusWhere: Prisma.AssignmentWhereInput =
+      input.status === 'ACTIVE'
+        ? { OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] }
+        : input.status === 'ENDED'
+          ? { activeUntil: { lte: now } }
+          : {};
+    const cursorWhere: Prisma.AssignmentWhereInput = cursor
+      ? {
+          OR: [
+            { activeFrom: { lt: cursor.activeFrom } },
+            { activeFrom: cursor.activeFrom, id: { lt: cursor.id } },
+          ],
+        }
+      : {};
+    const [rows, total, active, ended] = await this.db.$transaction([
+      this.db.assignment.findMany({
+        where: { AND: [commonWhere, statusWhere, cursorWhere] },
+        include: {
+          user: { select: { id: true, displayName: true, phoneE164: true } },
+          branch: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+      }),
+      this.db.assignment.count({ where: commonWhere }),
+      this.db.assignment.count({
+        where: {
+          AND: [commonWhere, { OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] }],
+        },
+      }),
+      this.db.assignment.count({
+        where: { AND: [commonWhere, { activeUntil: { lte: now } }] },
+      }),
+    ]);
+    const hasMore = rows.length > limit;
+    const assignments = rows.slice(0, limit);
+    const last = assignments.at(-1);
     return {
-      items: assignments.map(assignmentView),
-      page: { nextCursor: null, hasMore: false },
+      items: assignments.map((assignment) => assignmentView(assignment, now)),
+      summary: { total, active, ended },
+      page: {
+        nextCursor: hasMore && last ? encodeAssignmentCursor(last.activeFrom, last.id) : null,
+        hasMore,
+      },
     };
   }
 
@@ -233,15 +306,20 @@ export class AssignmentService {
   }
 }
 
-function assignmentView(assignment: {
-  id: string;
-  userId: string;
-  branchId: string;
-  type: AssignmentType;
-  activeFrom: Date;
-  activeUntil: Date | null;
-  version: number;
-}) {
+function assignmentView(
+  assignment: {
+    id: string;
+    userId: string;
+    branchId: string;
+    type: AssignmentType;
+    activeFrom: Date;
+    activeUntil: Date | null;
+    version: number;
+    user: { id: string; displayName: string; phoneE164: string | null };
+    branch: { id: string; code: string; name: string };
+  },
+  now: Date,
+) {
   return {
     id: assignment.id,
     userId: assignment.userId,
@@ -249,8 +327,41 @@ function assignmentView(assignment: {
     assignmentType: assignment.type,
     activeFrom: assignment.activeFrom.toISOString().slice(0, 10),
     activeUntil: assignment.activeUntil?.toISOString().slice(0, 10) ?? null,
+    status: !assignment.activeUntil || assignment.activeUntil > now ? 'ACTIVE' : 'ENDED',
+    user: {
+      id: assignment.user.id,
+      displayName: assignment.user.displayName,
+      phoneMasked: maskPhone(assignment.user.phoneE164),
+    },
+    branch: assignment.branch,
     version: assignment.version,
   };
+}
+
+function maskPhone(value: string | null) {
+  if (!value) return null;
+  return `${value.slice(0, 4)}••••${value.slice(-3)}`;
+}
+
+function encodeAssignmentCursor(activeFrom: Date, id: string) {
+  return Buffer.from(JSON.stringify({ activeFrom: activeFrom.toISOString(), id })).toString(
+    'base64url',
+  );
+}
+
+function decodeAssignmentCursor(value?: string) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as {
+      activeFrom?: string;
+      id?: string;
+    };
+    const activeFrom = new Date(parsed.activeFrom ?? '');
+    if (!parsed.id || Number.isNaN(activeFrom.getTime())) throw new Error('invalid');
+    return { activeFrom, id: parsed.id };
+  } catch {
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
 }
 
 function isAssignmentConflict(error: unknown) {

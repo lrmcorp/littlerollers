@@ -15,6 +15,7 @@ part 'customer_booking_package.g.dart';
 /// * [packageId] 
 /// * [name] 
 /// * [available] 
+/// * [projectedAvailable] 
 /// * [expiryAt] 
 @BuiltValue()
 abstract class CustomerBookingPackage implements Built<CustomerBookingPackage, CustomerBookingPackageBuilder> {
@@ -29,6 +30,9 @@ abstract class CustomerBookingPackage implements Built<CustomerBookingPackage, C
 
   @BuiltValueField(wireName: r'available')
   int get available;
+
+  @BuiltValueField(wireName: r'projectedAvailable')
+  int get projectedAvailable;
 
   @BuiltValueField(wireName: r'expiryAt')
   DateTime get expiryAt;
@@ -74,6 +78,11 @@ class _$CustomerBookingPackageSerializer implements PrimitiveSerializer<Customer
     yield r'available';
     yield serializers.serialize(
       object.available,
+      specifiedType: const FullType(int),
+    );
+    yield r'projectedAvailable';
+    yield serializers.serialize(
+      object.projectedAvailable,
       specifiedType: const FullType(int),
     );
     yield r'expiryAt';
@@ -131,6 +140,13 @@ class _$CustomerBookingPackageSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(int),
           ) as int;
           result.available = valueDes;
+          break;
+        case r'projectedAvailable':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.projectedAvailable = valueDes;
           break;
         case r'expiryAt':
           final valueDes = serializers.deserialize(

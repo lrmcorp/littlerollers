@@ -53,8 +53,11 @@ export class AttendanceService {
     private readonly policy: PolicyService,
   ) {}
 
-  private requireBranch(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
@@ -152,7 +155,7 @@ export class AttendanceService {
           },
         });
         if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, booking.branchId);
+        this.requireBranch(principal, booking.branchId, 'attendance:manage');
 
         const replay = await tx.checkInToken.findUnique({
           where: {
@@ -241,7 +244,7 @@ export class AttendanceService {
       select: { branchId: true },
     });
     if (!classSlot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.requireBranch(principal, classSlot.branchId);
+    this.requireBranch(principal, classSlot.branchId, 'attendance:manage');
     const bookings = await this.db.booking.findMany({
       where: {
         classSlotId,
@@ -296,7 +299,7 @@ export class AttendanceService {
       },
     });
     if (!token) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.requireBranch(principal, token.booking.branchId);
+    this.requireBranch(principal, token.booking.branchId, 'attendance:read');
     return {
       id: token.id,
       purpose: token.purpose,
@@ -335,7 +338,7 @@ export class AttendanceService {
       include: { booking: { select: { branchId: true, customerUserId: true } } },
     });
     if (!token) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.requireBranch(principal, token.booking.branchId);
+    this.requireBranch(principal, token.booking.branchId, 'attendance:manage');
     if (token.status !== 'ACTIVE')
       throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
     const claimed = await this.db.checkInToken.updateMany({
@@ -402,7 +405,7 @@ export class AttendanceService {
           },
         });
         if (!token) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, token.booking.branchId);
+        this.requireBranch(principal, token.booking.branchId, 'attendance:manage');
         if (token.status === 'USED' && token.attendance)
           return this.attendanceView(token, token.attendance, true);
         if (token.status === 'REVOKED')

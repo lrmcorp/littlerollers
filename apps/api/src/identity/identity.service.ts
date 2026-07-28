@@ -22,7 +22,8 @@ import {
 import { RateLimitService } from './rate-limit.service';
 import { assertIsoDate, dateInTimeZone, startOfLocalDateUtc } from './assignment-boundary';
 import { PolicyService } from './policy.service';
-import { ResendPasswordEmailProvider } from './email-provider';
+import type { CapabilityGrant } from './policy.service';
+import { QueuedPasswordEmailProvider } from './email-provider';
 import {
   canonicalEmailHash,
   hashPassword,
@@ -45,6 +46,8 @@ export interface SessionPrincipal {
   roles: { role: ApplicationRole; branchId: string | null }[];
   capabilities: string[];
   branchIds: string[];
+  capabilityGrants?: CapabilityGrant[];
+  capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
   sessionExpiresAt?: Date;
 }
 
@@ -57,7 +60,7 @@ export class IdentityService {
     private readonly otp: ConfigGatedOtpProvider,
     private readonly proof: ConfigGatedProofProvider,
     private readonly rateLimit: RateLimitService,
-    private readonly passwordEmail: ResendPasswordEmailProvider,
+    private readonly passwordEmail: QueuedPasswordEmailProvider,
     @Optional() private readonly idempotency?: IdempotencyService,
     @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateFiles?: PrivateFileStorage,
     @Optional() private readonly runtimeConfig?: RuntimeConfigService,
@@ -214,12 +217,19 @@ export class IdentityService {
     });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    const access = await this.policy.resolveAccess(user.id, user.roles, at);
     return {
       id: user.id,
       displayName: user.displayName,
       roles: [...new Set(user.roles.map(({ role }) => role))],
-      branchIds: this.policy.branches(user.roles),
-      capabilities: this.policy.capabilities(user.roles),
+      customRoleCodes: access.roleCodes.filter(
+        (code) => !user.roles.some(({ role }) => role === code),
+      ),
+      branchIds: access.branchIds,
+      capabilities: access.capabilities,
+      globalCapabilities: access.capabilities.filter((capability) =>
+        this.policy.hasGlobalCapability(access, capability),
+      ),
       preferredBranch: user.preferredBranch?.active ? user.preferredBranch : null,
     };
   }
@@ -498,12 +508,15 @@ export class IdentityService {
       session.user.status !== 'ACTIVE'
     )
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
+    const access = await this.policy.resolveAccess(session.userId, session.user.roles);
     return {
       sessionId: session.id,
       userId: session.userId,
       roles: session.user.roles,
-      capabilities: this.policy.capabilities(session.user.roles),
-      branchIds: this.policy.branches(session.user.roles),
+      capabilities: access.capabilities,
+      branchIds: access.branchIds,
+      capabilityGrants: access.grants,
+      capabilityDenials: access.denials,
       sessionExpiresAt: session.expiresAt,
     };
   }
@@ -545,9 +558,9 @@ export class IdentityService {
     });
   }
 
-  roleCatalog(principal: SessionPrincipal) {
+  async roleCatalog(principal: SessionPrincipal) {
     this.policy.requireCapability(principal.capabilities, 'user:read');
-    return { items: this.policy.roleCatalog() };
+    return { items: await this.policy.databaseRoleCatalog() };
   }
 
   private async sendPasswordAction(

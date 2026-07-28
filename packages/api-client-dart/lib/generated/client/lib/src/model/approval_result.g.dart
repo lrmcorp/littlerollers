@@ -68,9 +68,9 @@ class ApprovalResultBuilder
     implements Builder<ApprovalResult, ApprovalResultBuilder> {
   _$ApprovalResult? _$v;
 
-  PurchaseBuilder? _purchase;
-  PurchaseBuilder get purchase => _$this._purchase ??= PurchaseBuilder();
-  set purchase(PurchaseBuilder? purchase) => _$this._purchase = purchase;
+  Purchase? _purchase;
+  Purchase? get purchase => _$this._purchase;
+  set purchase(Purchase? purchase) => _$this._purchase = purchase;
 
   CustomerPackageBalanceBuilder? _customerPackage;
   CustomerPackageBalanceBuilder get customerPackage =>
@@ -96,7 +96,7 @@ class ApprovalResultBuilder
   ApprovalResultBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
-      _purchase = $v.purchase.toBuilder();
+      _purchase = $v.purchase;
       _customerPackage = $v.customerPackage.toBuilder();
       _ledgerEntry = $v.ledgerEntry.toBuilder();
       _idempotentReplay = $v.idempotentReplay;
@@ -124,7 +124,11 @@ class ApprovalResultBuilder
       _$result =
           _$v ??
           _$ApprovalResult._(
-            purchase: purchase.build(),
+            purchase: BuiltValueNullFieldError.checkNotNull(
+              purchase,
+              r'ApprovalResult',
+              'purchase',
+            ),
             customerPackage: customerPackage.build(),
             ledgerEntry: ledgerEntry.build(),
             idempotentReplay: BuiltValueNullFieldError.checkNotNull(
@@ -136,8 +140,6 @@ class ApprovalResultBuilder
     } catch (_) {
       late String _$failedField;
       try {
-        _$failedField = 'purchase';
-        purchase.build();
         _$failedField = 'customerPackage';
         customerPackage.build();
         _$failedField = 'ledgerEntry';

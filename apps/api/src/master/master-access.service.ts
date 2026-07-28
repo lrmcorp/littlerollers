@@ -15,9 +15,20 @@ export class MasterAccessService {
     );
   }
 
-  ensureBranchScope(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  ensureBranchScope(principal: SessionPrincipal, branchId: string, mutation = false) {
+    const capability = mutation ? 'master:manage' : 'master:read';
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  branchScope(principal: SessionPrincipal, mutation = false) {
+    return this.policy.capabilityBranchScope(
+      principal,
+      mutation ? 'master:manage' : 'master:read',
+    );
   }
 
   audit(

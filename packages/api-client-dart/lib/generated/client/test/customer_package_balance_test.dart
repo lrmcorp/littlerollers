@@ -32,6 +32,11 @@ void main() {
       // TODO
     });
 
+    // AdjustmentCustomer customer
+    test('to test the property `customer`', () async {
+      // TODO
+    });
+
     // String packageName
     test('to test the property `packageName`', () async {
       // TODO

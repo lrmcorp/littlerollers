@@ -49,7 +49,7 @@ abstract class CustomerBookingSlot implements Built<CustomerBookingSlot, Custome
 
   @BuiltValueField(wireName: r'status')
   CustomerBookingSlotStatusEnum get status;
-  // enum statusEnum {  PUBLISHED,  CONFIRMED,  };
+  // enum statusEnum {  DRAFT,  PUBLISHED,  CONFIRMED,  AUTO_CANCELLED,  CANCELLED,  COMPLETED,  };
 
   @BuiltValueField(wireName: r'capacity')
   int get capacity;
@@ -287,10 +287,18 @@ class _$CustomerBookingSlotSerializer implements PrimitiveSerializer<CustomerBoo
 
 class CustomerBookingSlotStatusEnum extends EnumClass {
 
+  @BuiltValueEnumConst(wireName: r'DRAFT')
+  static const CustomerBookingSlotStatusEnum DRAFT = _$customerBookingSlotStatusEnum_DRAFT;
   @BuiltValueEnumConst(wireName: r'PUBLISHED')
   static const CustomerBookingSlotStatusEnum PUBLISHED = _$customerBookingSlotStatusEnum_PUBLISHED;
   @BuiltValueEnumConst(wireName: r'CONFIRMED')
   static const CustomerBookingSlotStatusEnum CONFIRMED = _$customerBookingSlotStatusEnum_CONFIRMED;
+  @BuiltValueEnumConst(wireName: r'AUTO_CANCELLED')
+  static const CustomerBookingSlotStatusEnum AUTO_CANCELLED = _$customerBookingSlotStatusEnum_AUTO_CANCELLED;
+  @BuiltValueEnumConst(wireName: r'CANCELLED')
+  static const CustomerBookingSlotStatusEnum CANCELLED = _$customerBookingSlotStatusEnum_CANCELLED;
+  @BuiltValueEnumConst(wireName: r'COMPLETED')
+  static const CustomerBookingSlotStatusEnum COMPLETED = _$customerBookingSlotStatusEnum_COMPLETED;
 
   static Serializer<CustomerBookingSlotStatusEnum> get serializer => _$customerBookingSlotStatusEnumSerializer;
 

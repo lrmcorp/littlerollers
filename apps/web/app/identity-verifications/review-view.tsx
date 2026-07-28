@@ -1,6 +1,6 @@
 'use client';
 
-import { RefreshCw, Search, Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   verificationClient,
@@ -26,6 +26,7 @@ import {
   Pagination,
   Panel,
 } from '../components/admin/admin-ui';
+import { DateInput, SearchInput, controlClassName } from '../components/forms';
 import { AlertBanner, messageForApiError, useAppFeedback } from '../components/app-feedback';
 import {
   ageLabel,
@@ -71,7 +72,8 @@ export function IdentityReviewView({
   const session = useSessionContext();
   const capabilities = capabilitiesOverride ?? session?.session?.capabilities ?? [];
   const sessionReady = Boolean(capabilitiesOverride || session?.session);
-  const canReview = sessionReady && capabilities.includes('identity-verification:review');
+  const canReview = sessionReady && capabilities.includes('identity-verification:read');
+  const canDecide = sessionReady && capabilities.includes('identity-verification:decide');
   const canDelete = sessionReady && capabilities.includes('identity-verification:delete');
   const [items, setItems] = useState<IdentityVerificationReviewCase[]>([]);
   const [summary, setSummary] = useState(emptySummary);
@@ -80,11 +82,14 @@ export function IdentityReviewView({
   const [error, setError] = useState<ReturnType<typeof messageForApiError>>();
   const [draftQ, setDraftQ] = useState(() => queryValue('q'));
   const [q, setQ] = useState(() => queryValue('q'));
-  const [status, setStatus] = useState(() => queryValue('status', 'PENDING'));
+  const [status, setStatus] = useState(() =>
+    queryValue('status', queryValue('customerUserId') ? '' : 'PENDING'),
+  );
   const [kind, setKind] = useState(() => queryValue('kind'));
   const [scanStatus, setScanStatus] = useState(() => queryValue('scanStatus'));
   const [from, setFrom] = useState(() => queryValue('from'));
   const [until, setUntil] = useState(() => queryValue('until'));
+  const [customerUserId] = useState(() => queryValue('customerUserId'));
   const [cursor, setCursor] = useState<string>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
@@ -123,8 +128,9 @@ export function IdentityReviewView({
       until: until ? `${until}T23:59:59.999Z` : undefined,
       cursor,
       limit: 20,
+      customerUserId: customerUserId || undefined,
     }),
-    [cursor, from, kind, q, scanStatus, status, until],
+    [cursor, customerUserId, from, kind, q, scanStatus, status, until],
   );
 
   const load = useCallback(async () => {
@@ -158,12 +164,13 @@ export function IdentityReviewView({
     if (scanStatus) params.set('scanStatus', scanStatus);
     if (from) params.set('from', from);
     if (until) params.set('until', until);
+    if (customerUserId) params.set('customerUserId', customerUserId);
     window.history.replaceState(
       window.history.state,
       '',
       `/identity-verifications${params.size ? `?${params}` : ''}`,
     );
-  }, [from, kind, q, scanStatus, status, until]);
+  }, [customerUserId, from, kind, q, scanStatus, status, until]);
 
   useEffect(
     () => () => {
@@ -334,7 +341,7 @@ export function IdentityReviewView({
         </div>
       </Panel>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryButton
           label="Dalam antrean"
           value={summary.pendingDocuments}
@@ -375,18 +382,13 @@ export function IdentityReviewView({
       </div>
 
       <FilterBar>
-        <label className="min-w-[min(100%,18rem)] flex-1 text-sm font-bold text-dd-ink">
-          Cari customer atau ID
-          <span className="relative mt-1 block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted" />
-            <input
-              className="w-full pl-9"
-              value={draftQ}
-              onChange={(event) => setDraftQ(event.target.value)}
-              placeholder="Nama, nomor telepon, atau UUID"
-            />
-          </span>
-        </label>
+        <SearchInput
+          label="Cari customer atau ID"
+          value={draftQ}
+          onChange={(event) => setDraftQ(event.target.value)}
+          placeholder="Nama, nomor telepon, atau UUID"
+          wrapperClassName="min-w-[min(100%,18rem)] flex-1"
+        />
         <FilterSelect
           label="Status"
           value={status}
@@ -417,30 +419,24 @@ export function IdentityReviewView({
           }}
           options={Object.entries(scanLabels)}
         />
-        <label className="text-sm font-bold text-dd-ink">
-          Dari
-          <input
-            className="mt-1 block"
-            type="date"
-            value={from}
-            onChange={(event) => {
-              setFrom(event.target.value);
-              resetPage();
-            }}
-          />
-        </label>
-        <label className="text-sm font-bold text-dd-ink">
-          Sampai
-          <input
-            className="mt-1 block"
-            type="date"
-            value={until}
-            onChange={(event) => {
-              setUntil(event.target.value);
-              resetPage();
-            }}
-          />
-        </label>
+        <DateInput
+          label="Dari"
+          value={from}
+          onChange={(event) => {
+            setFrom(event.target.value);
+            resetPage();
+          }}
+          wrapperClassName="min-w-40"
+        />
+        <DateInput
+          label="Sampai"
+          value={until}
+          onChange={(event) => {
+            setUntil(event.target.value);
+            resetPage();
+          }}
+          wrapperClassName="min-w-40"
+        />
         <Button variant="quiet" onClick={resetFilters}>
           Reset
         </Button>
@@ -608,6 +604,7 @@ export function IdentityReviewView({
                     onApprove={(item) => setDecision({ document: item, kind: 'approve' })}
                     onReject={(item) => setDecision({ document: item, kind: 'reject' })}
                     canDelete={canDelete}
+                    mayDecide={canDecide}
                     onDelete={setDeleteTarget}
                   />
                 );
@@ -633,7 +630,13 @@ export function IdentityReviewView({
         <form className="grid gap-4" onSubmit={submitDeletion}>
           <label className="text-sm font-bold text-dd-ink">
             Alasan penghapusan
-            <textarea name="reason" minLength={3} maxLength={500} required />
+            <textarea
+              className={controlClassName}
+              name="reason"
+              minLength={3}
+              maxLength={500}
+              required
+            />
           </label>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setDeleteTarget(undefined)}>

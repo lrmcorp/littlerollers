@@ -57,6 +57,11 @@ void main() {
       // TODO
     });
 
+    // PublicScheduleSummaryInstructor instructor
+    test('to test the property `instructor`', () async {
+      // TODO
+    });
+
     // PublicClassProfile classProfile
     test('to test the property `classProfile`', () async {
       // TODO

@@ -19,13 +19,16 @@ export class PaymentAccountService {
 
   async list(principal: SessionPrincipal, branchId?: string) {
     this.access.paymentAccount(principal);
-    if (branchId) this.access.scope(principal, branchId);
+    if (branchId) this.access.scope(principal, branchId, ['payment-account:read']);
+    const scope = this.access.branchScope(principal, 'payment-account:read');
     const items = await this.db.paymentAccount.findMany({
       where: branchId
         ? { branchId }
-        : principal.capabilities.includes('branch:all')
-          ? {}
-          : { branchId: { in: principal.branchIds } },
+        : scope.all
+          ? scope.excluded.length
+            ? { branchId: { notIn: scope.excluded } }
+            : {}
+          : { branchId: { in: scope.included } },
       orderBy: [{ branchId: 'asc' }, { createdAt: 'desc' }],
     });
     return { items: items.map(paymentAccountView) };
@@ -44,7 +47,7 @@ export class PaymentAccountService {
       !input.reason?.trim()
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    this.access.scope(principal, input.branchId);
+    this.access.scope(principal, input.branchId, ['payment-account:manage']);
     const accountNumber = normalizeAccountNumber(input.accountNumber);
     return this.db.$transaction(
       async (tx) => {
@@ -100,7 +103,7 @@ export class PaymentAccountService {
       async (tx) => {
         const account = await tx.paymentAccount.findUnique({ where: { id } });
         if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.scope(principal, account.branchId);
+        this.access.scope(principal, account.branchId, ['payment-account:manage']);
         if (!account.active || account.version !== input.expectedVersion)
           throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
         const openOrder = await tx.purchase.findFirst({

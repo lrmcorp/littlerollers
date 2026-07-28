@@ -2,26 +2,55 @@ import {
   Configuration,
   OperationsApi,
   type OperationalJob,
+  type NotificationOccurrence,
+  type NotificationOccurrencePage,
+  type NotificationRetryResult,
   type QuotaEvaluationResult,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
-export type { OperationalJob, QuotaEvaluationResult };
+export type {
+  NotificationOccurrence,
+  NotificationOccurrencePage,
+  NotificationRetryResult,
+  OperationalJob,
+  QuotaEvaluationResult,
+};
 
 export interface OperationsClient {
   list(status?: string, cursor?: string): Promise<OperationalJob[]>;
   run(job: OperationalJob): Promise<QuotaEvaluationResult>;
+  listEmails?(status?: string, cursor?: string): Promise<NotificationOccurrencePage>;
+  retryEmail?(id: string, reason: string): Promise<NotificationRetryResult>;
 }
 
 const api = new OperationsApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 export const browserOperationsClient: OperationsClient = {
   async list(status, cursor) {
-    return (await api.listJobs({ status: status as never, cursor })).items;
+    return (
+      await appLoading.track(api.listJobs({ status: status as never, cursor }), {
+        label: 'Memuat operasional…',
+      })
+    ).items;
   },
   run(job) {
-    return api.runQuotaEvaluation({
-      id: job.id,
-      idempotencyKey: crypto.randomUUID(),
-      quotaEvaluationCommand: { expectedDueAt: job.dueAt, expectedVersion: job.version },
+    return appLoading.track(
+      api.runQuotaEvaluation({
+        id: job.id,
+        idempotencyKey: crypto.randomUUID(),
+        quotaEvaluationCommand: { expectedDueAt: job.dueAt, expectedVersion: job.version },
+      }),
+      { label: 'Menjalankan pemulihan…' },
+    );
+  },
+  listEmails(status, cursor) {
+    return appLoading.track(api.listEmailDeliveries({ status, cursor }), {
+      label: 'Memuat pengiriman email…',
+    });
+  },
+  retryEmail(id, reason) {
+    return appLoading.track(api.retryEmailDelivery({ id, decideCorrectionRequest: { reason } }), {
+      label: 'Mengulangi pengiriman…',
     });
   },
 };

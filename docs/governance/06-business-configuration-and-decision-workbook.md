@@ -145,12 +145,12 @@ blockers.
 
 | Field | Proposed baseline/status |
 |---|---|
-| Primary MVP channel | Official Meta Cloud API WhatsApp; account/template TBD-BLOCKING |
+| Primary MVP channel | SMTP Niagahoster email melalui CR-SMTP-001; production approval/evidence TBD-BLOCKING |
 | Fallback | Persisted in-app notification; PO/TL approval TBD-BLOCKING |
 | No silent success | Required; accepted is not delivered |
 | Retry | Bounded provider-aware backoff; exact limits operational config TBD-BLOCKING |
 | Terminal handling | Dead-letter alert, operator action, auditable manual retry |
-| Push/email | Post-pilot unless Change Request |
+| WhatsApp/push | Post-pilot kecuali Change Request; Resend hanya rollback manual |
 | Recipient/event/template ownership | TBD-BLOCKING |
 | Operator SLA/escalation | TBD-BLOCKING |
 | Approval/evidence | TBD-BLOCKING; TC-NOTIF references required |

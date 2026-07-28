@@ -88,7 +88,7 @@ export class PublicProfileAdminService {
     correlationId: string,
     strings: (value: unknown) => boolean,
   ) {
-    this.access.ensureBranchScope(principal, id);
+    this.access.ensureBranchScope(principal, id, true);
     const current = await tx.branchPublicProfile.findUnique({ where: { branchId: id } });
     if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     const heroImageKey = String(input.heroImageKey ?? '');
@@ -197,7 +197,7 @@ export class PublicProfileAdminService {
       select: { branchId: true, publicProfile: true },
     });
     if (!pkg?.publicProfile) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.access.ensureBranchScope(principal, pkg.branchId);
+    this.access.ensureBranchScope(principal, pkg.branchId, true);
     if (!strings(input.highlights) || !strings(input.terms))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const updated = await tx.packagePublicProfile.updateMany({

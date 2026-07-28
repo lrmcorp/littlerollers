@@ -87,6 +87,171 @@ export class OperationsService {
     };
   }
 
+  async listEmailDeliveries(principal: SessionPrincipal, status?: string, cursor?: string) {
+    this.policy.requireCapability(principal.capabilities, 'operations:read');
+    const allowed = [
+      'PENDING',
+      'SENDING',
+      'ACCEPTED_BY_SMTP',
+      'FAILED_RETRYABLE',
+      'FAILED_TERMINAL',
+      'EXPIRED',
+      'FALLBACK_IN_APP',
+    ] as const;
+    if (status && !allowed.includes(status as (typeof allowed)[number]))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    let position: { at: Date; id: string } | undefined;
+    if (cursor) {
+      try {
+        const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString()) as {
+          at: string;
+          id: string;
+        };
+        const at = new Date(parsed.at);
+        if (!UUID.test(parsed.id) || Number.isNaN(at.getTime())) throw new Error();
+        position = { at, id: parsed.id };
+      } catch {
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      }
+    }
+    const items = await this.db.notificationOccurrence.findMany({
+      where: {
+        ...(status ? { status: status as never } : {}),
+        ...(position
+          ? {
+              OR: [
+                { createdAt: { lt: position.at } },
+                { createdAt: position.at, id: { lt: position.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+      include: { attempts: { orderBy: { attemptNumber: 'desc' }, take: 1 } },
+    });
+    const page = items.slice(0, PAGE_SIZE);
+    const last = page.at(-1);
+    const [statusGroups, totals, oldestQueued, retryCount] = await Promise.all([
+      this.db.notificationOccurrence.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.db.notificationOccurrence.aggregate({
+        _count: { _all: true },
+        _sum: { attemptCount: true, rateLimitWaitCount: true },
+      }),
+      this.db.notificationOccurrence.aggregate({
+        where: { status: { in: ['PENDING', 'SENDING', 'FAILED_RETRYABLE'] } },
+        _min: { createdAt: true },
+      }),
+      this.db.notificationAttempt.count({ where: { attemptNumber: { gt: 1 } } }),
+    ]);
+    const statusCounts = Object.fromEntries(
+      statusGroups.map((item) => [item.status, item._count._all]),
+    ) as Record<string, number>;
+    const acceptedCount = statusCounts.ACCEPTED_BY_SMTP ?? 0;
+    const terminalFailureCount =
+      (statusCounts.FAILED_TERMINAL ?? 0) + (statusCounts.FALLBACK_IN_APP ?? 0);
+    const settledCount = acceptedCount + terminalFailureCount + (statusCounts.EXPIRED ?? 0);
+    return {
+      items: page.map((item) => ({
+        id: item.id,
+        eventType: item.eventType,
+        templateKey: item.templateKey,
+        channel: item.channel,
+        status: item.status,
+        recipientMasked: item.recipientMasked,
+        attemptCount: item.attemptCount,
+        rateLimitWaitCount: item.rateLimitWaitCount,
+        maxAttempts: item.maxAttempts,
+        nextAttemptAt: item.nextAttemptAt,
+        lastErrorCode: item.lastErrorCode,
+        correlationId: item.correlationId,
+        createdAt: item.createdAt,
+        acceptedAt: item.acceptedAt,
+        lastAttempt: item.attempts[0] ?? null,
+      })),
+      metrics: {
+        totalCount: totals._count._all,
+        pendingCount:
+          (statusCounts.PENDING ?? 0) +
+          (statusCounts.SENDING ?? 0) +
+          (statusCounts.FAILED_RETRYABLE ?? 0),
+        acceptedCount,
+        terminalFailureCount,
+        deadLetterCount: terminalFailureCount,
+        retryCount,
+        rateLimitWaitCount: totals._sum.rateLimitWaitCount ?? 0,
+        queueAgeSeconds: oldestQueued._min.createdAt
+          ? Math.max(0, Math.floor((Date.now() - oldestQueued._min.createdAt.getTime()) / 1_000))
+          : 0,
+        acceptedRateBasisPoints: settledCount
+          ? Math.round((acceptedCount / settledCount) * 10_000)
+          : 0,
+        failureRateBasisPoints: settledCount
+          ? Math.round((terminalFailureCount / settledCount) * 10_000)
+          : 0,
+        byStatus: statusCounts,
+      },
+      page: {
+        hasMore: items.length > PAGE_SIZE,
+        nextCursor:
+          items.length > PAGE_SIZE && last
+            ? Buffer.from(
+                JSON.stringify({ at: last.createdAt.toISOString(), id: last.id }),
+              ).toString('base64url')
+            : null,
+      },
+    };
+  }
+
+  async retryEmailDelivery(
+    principal: SessionPrincipal,
+    id: string,
+    reason: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'operations:recover');
+    if (!UUID.test(id) || reason.trim().length < 3)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const occurrence = await this.db.notificationOccurrence.findUnique({ where: { id } });
+    if (!occurrence) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (
+      !['FAILED_TERMINAL', 'FALLBACK_IN_APP', 'FAILED_RETRYABLE'].includes(occurrence.status) ||
+      !occurrence.envelopeEncrypted ||
+      (occurrence.expiresAt && occurrence.expiresAt <= new Date())
+    )
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    const updated = await this.db.$transaction(async (tx) => {
+      const result = await tx.notificationOccurrence.update({
+        where: { id },
+        data: {
+          status: 'PENDING',
+          maxAttempts: occurrence.attemptCount + this.config.value.email.maxAttempts,
+          nextAttemptAt: new Date(),
+          leaseExpiresAt: null,
+          lastErrorCode: null,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          actorType: 'USER',
+          actorId: principal.userId,
+          action: 'notification.email_retry_requested',
+          objectType: 'NotificationOccurrence',
+          objectId: id,
+          beforeMasked: { status: occurrence.status, attemptCount: occurrence.attemptCount },
+          afterMasked: { status: 'PENDING', reasonPresent: true },
+          correlationId,
+        },
+      });
+      return result;
+    });
+    return { id: updated.id, status: updated.status, nextAttemptAt: updated.nextAttemptAt };
+  }
+
   async run(
     principal: SessionPrincipal,
     id: string,

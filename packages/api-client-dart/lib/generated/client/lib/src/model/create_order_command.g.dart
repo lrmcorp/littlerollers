@@ -10,13 +10,16 @@ class _$CreateOrderCommand extends CreateOrderCommand {
   @override
   final String packageId;
   @override
+  final String? branchId;
+  @override
   final String? slotId;
 
   factory _$CreateOrderCommand([
     void Function(CreateOrderCommandBuilder)? updates,
   ]) => (CreateOrderCommandBuilder()..update(updates))._build();
 
-  _$CreateOrderCommand._({required this.packageId, this.slotId}) : super._();
+  _$CreateOrderCommand._({required this.packageId, this.branchId, this.slotId})
+    : super._();
   @override
   CreateOrderCommand rebuild(
     void Function(CreateOrderCommandBuilder) updates,
@@ -31,6 +34,7 @@ class _$CreateOrderCommand extends CreateOrderCommand {
     if (identical(other, this)) return true;
     return other is CreateOrderCommand &&
         packageId == other.packageId &&
+        branchId == other.branchId &&
         slotId == other.slotId;
   }
 
@@ -38,6 +42,7 @@ class _$CreateOrderCommand extends CreateOrderCommand {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, packageId.hashCode);
+    _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, slotId.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -47,6 +52,7 @@ class _$CreateOrderCommand extends CreateOrderCommand {
   String toString() {
     return (newBuiltValueToStringHelper(r'CreateOrderCommand')
           ..add('packageId', packageId)
+          ..add('branchId', branchId)
           ..add('slotId', slotId))
         .toString();
   }
@@ -60,6 +66,10 @@ class CreateOrderCommandBuilder
   String? get packageId => _$this._packageId;
   set packageId(String? packageId) => _$this._packageId = packageId;
 
+  String? _branchId;
+  String? get branchId => _$this._branchId;
+  set branchId(String? branchId) => _$this._branchId = branchId;
+
   String? _slotId;
   String? get slotId => _$this._slotId;
   set slotId(String? slotId) => _$this._slotId = slotId;
@@ -72,6 +82,7 @@ class CreateOrderCommandBuilder
     final $v = _$v;
     if ($v != null) {
       _packageId = $v.packageId;
+      _branchId = $v.branchId;
       _slotId = $v.slotId;
       _$v = null;
     }
@@ -100,6 +111,7 @@ class CreateOrderCommandBuilder
             r'CreateOrderCommand',
             'packageId',
           ),
+          branchId: branchId,
           slotId: slotId,
         );
     replace(_$result);

@@ -10,7 +10,7 @@ import {
   ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
-import { ResendPasswordEmailProvider } from './email-provider';
+import { QueuedPasswordEmailProvider } from './email-provider';
 import { LocalPrivateFileStorage, PRIVATE_FILE_STORAGE } from './private-file-storage';
 import { CustomerProfileService } from './customer-profile.service';
 import { IdentityReviewQueryService } from './identity-review-query.service';
@@ -18,10 +18,12 @@ import { IdentityDocumentAccessService } from './identity-document-access.servic
 import { AssignmentService } from './assignment.service';
 import { IdentityDocumentWorkflowService } from './identity-document-workflow.service';
 import { UserAdministrationService } from './user-administration.service';
+import { AccessManagementController } from './access-management.controller';
+import { AccessManagementService } from './access-management.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [IdentityController],
+  controllers: [IdentityController, AccessManagementController],
   providers: [
     IdentityService,
     CustomerProfileService,
@@ -30,12 +32,13 @@ import { UserAdministrationService } from './user-administration.service';
     AssignmentService,
     IdentityDocumentWorkflowService,
     UserAdministrationService,
+    AccessManagementService,
     PolicyService,
     ConfigGatedGoogleProvider,
     ConfigGatedOtpProvider,
     ConfigGatedProofProvider,
     RateLimitService,
-    ResendPasswordEmailProvider,
+    QueuedPasswordEmailProvider,
     LocalPrivateFileStorage,
     { provide: PRIVATE_FILE_STORAGE, useExisting: LocalPrivateFileStorage },
     AuthGuard,

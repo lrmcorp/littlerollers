@@ -18,8 +18,10 @@ part 'me.g.dart';
 /// * [id] 
 /// * [displayName] 
 /// * [roles] 
+/// * [customRoleCodes] - Active custom role codes resolved from database-managed RBAC.
 /// * [branchIds] 
 /// * [capabilities] 
+/// * [globalCapabilities] - Capabilities with an effective global grant after deny precedence.
 /// * [identityVerificationStatus] 
 /// * [sessionExpiresAt] 
 /// * [branches] 
@@ -35,11 +37,19 @@ abstract class Me implements Built<Me, MeBuilder> {
   @BuiltValueField(wireName: r'roles')
   BuiltList<Role> get roles;
 
+  /// Active custom role codes resolved from database-managed RBAC.
+  @BuiltValueField(wireName: r'customRoleCodes')
+  BuiltList<String> get customRoleCodes;
+
   @BuiltValueField(wireName: r'branchIds')
   BuiltList<String> get branchIds;
 
   @BuiltValueField(wireName: r'capabilities')
   BuiltList<String> get capabilities;
+
+  /// Capabilities with an effective global grant after deny precedence.
+  @BuiltValueField(wireName: r'globalCapabilities')
+  BuiltList<String> get globalCapabilities;
 
   @BuiltValueField(wireName: r'identityVerificationStatus')
   MeIdentityVerificationStatusEnum get identityVerificationStatus;
@@ -92,6 +102,11 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
       object.roles,
       specifiedType: const FullType(BuiltList, [FullType(Role)]),
     );
+    yield r'customRoleCodes';
+    yield serializers.serialize(
+      object.customRoleCodes,
+      specifiedType: const FullType(BuiltList, [FullType(String)]),
+    );
     yield r'branchIds';
     yield serializers.serialize(
       object.branchIds,
@@ -100,6 +115,11 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
     yield r'capabilities';
     yield serializers.serialize(
       object.capabilities,
+      specifiedType: const FullType(BuiltList, [FullType(String)]),
+    );
+    yield r'globalCapabilities';
+    yield serializers.serialize(
+      object.globalCapabilities,
       specifiedType: const FullType(BuiltList, [FullType(String)]),
     );
     yield r'identityVerificationStatus';
@@ -166,6 +186,13 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
           ) as BuiltList<Role>;
           result.roles.replace(valueDes);
           break;
+        case r'customRoleCodes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(String)]),
+          ) as BuiltList<String>;
+          result.customRoleCodes.replace(valueDes);
+          break;
         case r'branchIds':
           final valueDes = serializers.deserialize(
             value,
@@ -179,6 +206,13 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
             specifiedType: const FullType(BuiltList, [FullType(String)]),
           ) as BuiltList<String>;
           result.capabilities.replace(valueDes);
+          break;
+        case r'globalCapabilities':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(String)]),
+          ) as BuiltList<String>;
+          result.globalCapabilities.replace(valueDes);
           break;
         case r'identityVerificationStatus':
           final valueDes = serializers.deserialize(

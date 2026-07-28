@@ -21,9 +21,11 @@ Name | Type | Description | Notes
 **durationDaysSnapshot** | **int** |  | 
 **status** | **String** |  | 
 **submittedAt** | [**DateTime**](DateTime.md) |  | 
+**paymentExpiresAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **decidedAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **decidedById** | **String** |  | [optional] 
 **decisionReasonCode** | **String** |  | [optional] 
+**auditReference** | **String** |  | [optional] 
 **version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

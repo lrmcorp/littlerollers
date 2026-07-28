@@ -24,12 +24,12 @@ Dokumen ini menetapkan halaman yang dibutuhkan, audience, capability, state mini
 | `/classes` | publik/calon pelanggan | public read-safe catalog | none; booking mengarah ke autentikasi | explicit studio, 14-day schedule, date/type filter, status/capacity, empty/dependency/retry | implemented local public baseline |
 | `/workspace/classes` | Admin, Manager, Super Owner | `class-slot:read` | `class-slot:manage` untuk publish/cancel | weekly timetable tujuh hari, agenda mobile, create/detail side panel, assign, publish/cancel, filter, configuration, availability, conflict/stale, hidden, offline/session | implemented Web-first local |
 | `/purchases` | Customer; Manager/Super Owner reviewer | `package:read` atau `purchase:review` | customer submit; `purchase:decide` | capability-aware submission/review, package cards, private proof lifecycle, queue/filter/pagination, decision panel, replay/stale/provider/session states | implemented Web-first local |
-| `/ledger` | Customer dan internal scoped roles | `ledger:read` | adjustment request/decide capabilities | balance, history, pagination, invariant, SoD, stale | implemented synthetic |
+| `/ledger` | Internal scoped roles | `ledger:read` | adjustment request/decide capabilities | authoritative filtered summary, customer/package search, append-only history pagination, adjustment queue/history, invariant, SoD, stale branch protection | implemented production-oriented Web |
 | `/users` | Admin/scoped reader; Super Owner mutator | `user:read` | `user:admin`; `audit:read` untuk riwayat | scoped list/search/filter/cursor, detail, invite, fixed-role/scope update, deactivate/reactivate, read-only permission matrix, per-user audit, stale/hidden/session states | implemented production-oriented local baseline |
 | `/assignments` | Super Owner | `assignment:read` | `assignment:manage` | list, create/end, effective period, overlap, stale | implemented synthetic |
 | `/master` | Super Owner/Finance | `master:read` | `master:manage`; finance capability untuk fee/rate | lifecycle, history, overlap, configuration, stale | implemented synthetic |
 | `/operations` | OPS, Super Owner | `operations:read` | `operations:recover` | queued, retrying, locked, late, terminal, recovery | implemented synthetic |
-| `/health` | public/support | public safe health | none | ready, degraded, not-ready, dependency timeout | implemented |
+| `/health` | OPS, Super Owner, atau global reviewer operasional | global `operations:read` | none | ready, degraded, not-ready, dependency timeout, manual refresh, unreachable | implemented internal |
 
 ## Navigation dan Dashboard Rules
 

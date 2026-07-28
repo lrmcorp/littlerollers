@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, KeyRound, RefreshCw, ShieldCheck, UserRoundCog } from 'lucide-react';
+import { ArrowLeft, Eye, KeyRound, RefreshCw, ShieldCheck, UserRoundCog } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   browserIdentityClient,
@@ -12,6 +12,7 @@ import {
   type UiFailure,
   type UserSummary,
 } from '../../identity-client';
+import type { IdentityVerificationReviewCase } from '../../identity-verification-client';
 import { AdminPageState, Badge, Button, Panel } from '../../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { useSessionContext } from '../../session-context';
@@ -57,10 +58,16 @@ export function UserDetailView({
   const sessionReady = Boolean(capabilitiesOverride || context?.session);
   const canAdmin = sessionReady && capabilities.includes('user:admin');
   const canAudit = sessionReady && capabilities.includes('audit:read');
+  const globalCapabilities =
+    capabilitiesOverride ??
+    context?.session?.globalCapabilities ??
+    (capabilities.includes('branch:all') ? capabilities : []);
+  const canReadIdentity = sessionReady && globalCapabilities.includes('identity-verification:read');
   const branches = context?.session?.branches ?? [];
   const [user, setUser] = useState<UserSummary>();
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
   const [audit, setAudit] = useState<AuditSummary[]>([]);
+  const [verification, setVerification] = useState<IdentityVerificationReviewCase>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<UiFailure>();
@@ -73,14 +80,18 @@ export function UserDetailView({
     setFailure(undefined);
     setNotFound(false);
     try {
-      const [nextUser, roles, nextAudit] = await Promise.all([
-        client.getUser(id),
+      const nextUser = await client.getUser(id);
+      const [roles, nextAudit, nextVerification] = await Promise.all([
         client.roleCatalog(),
         canAudit ? client.listAudit(id) : Promise.resolve([]),
+        nextUser.audience === 'CUSTOMER' && canReadIdentity
+          ? client.getUserIdentityVerification(id).catch(() => undefined)
+          : Promise.resolve(undefined),
       ]);
       setUser(nextUser);
       setCatalog(roles);
       setAudit(nextAudit);
+      setVerification(nextVerification);
     } catch (error) {
       if ((error as { response?: { status?: number } })?.response?.status === 404)
         setNotFound(true);
@@ -88,7 +99,7 @@ export function UserDetailView({
     } finally {
       setLoading(false);
     }
-  }, [canAudit, client, id]);
+  }, [canAudit, canReadIdentity, client, id]);
 
   useEffect(() => void load(), [load]);
 
@@ -138,6 +149,9 @@ export function UserDetailView({
 
   const directRoles = user.directRoles;
   const assignmentRoles = user.assignmentRoles;
+  // Treat legacy/test clients without the new audience field as staff until all
+  // consumers have moved to the generated contract.
+  const canAdminStaff = canAdmin && user.audience !== 'CUSTOMER';
   return (
     <section className="space-y-6" aria-labelledby="user-detail-title">
       <Link
@@ -175,22 +189,22 @@ export function UserDetailView({
           <Button variant="secondary" onClick={() => void load()}>
             <RefreshCw className="size-4" /> Muat ulang
           </Button>
-          {canAdmin && (
+          {canAdminStaff && (
             <Button onClick={() => setAction('profile')}>
               <UserRoundCog className="size-4" /> Edit profil
             </Button>
           )}
-          {canAdmin && (
+          {canAdminStaff && (
             <Button variant="secondary" onClick={() => setAction('roles')}>
               <ShieldCheck className="size-4" /> Kelola role
             </Button>
           )}
-          {canAdmin && user.status === 'ACTIVE' && (
+          {canAdminStaff && user.status === 'ACTIVE' && (
             <Button variant="secondary" onClick={() => setAction('password')}>
               <KeyRound className="size-4" /> Setup password
             </Button>
           )}
-          {canAdmin && user.status !== 'PENDING_ACTIVATION' && (
+          {canAdminStaff && user.status !== 'PENDING_ACTIVATION' && (
             <Button
               variant={user.status === 'ACTIVE' ? 'danger' : 'secondary'}
               onClick={() => setAction('status')}
@@ -253,6 +267,76 @@ export function UserDetailView({
             )}
           </Panel>
 
+          {user.audience === 'CUSTOMER' && (
+            <Panel className="p-5 sm:p-6" aria-labelledby="identity-verification-heading">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 id="identity-verification-heading" className="text-lg font-bold text-dd-ink">
+                    Verifikasi Identitas
+                  </h2>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    Status aman Selfie dan KTP. Gambar tidak dimuat pada halaman pengguna.
+                  </p>
+                </div>
+                {verification && (
+                  <StatusBadge
+                    tone={
+                      verification.verificationStatus === 'APPROVED'
+                        ? 'success'
+                        : verification.verificationStatus === 'ACTION_REQUIRED'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                  >
+                    {verification.verificationStatus === 'APPROVED'
+                      ? 'Terverifikasi'
+                      : verification.verificationStatus === 'ACTION_REQUIRED'
+                        ? 'Perlu perbaikan'
+                        : 'Menunggu pemeriksaan'}
+                  </StatusBadge>
+                )}
+              </div>
+              {!canReadIdentity ? (
+                <p className="mt-4 text-sm text-dd-muted">
+                  Permission global verifikasi identitas diperlukan untuk melihat status dokumen.
+                </p>
+              ) : !verification ? (
+                <p className="mt-4 text-sm text-dd-muted">
+                  Dokumen verifikasi belum tersedia atau fitur review belum diaktifkan.
+                </p>
+              ) : (
+                <>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {(['SELFIE', 'KTP_FRONT'] as const).map((kind) => {
+                      const document = verification.documents.find((item) => item.kind === kind);
+                      return (
+                        <div key={kind} className="rounded-dd-md border border-dd-line p-4">
+                          <strong>{kind === 'SELFIE' ? 'Selfie' : 'KTP depan'}</strong>
+                          <p className="mt-2 text-sm text-dd-muted">
+                            {document
+                              ? `${document.status} · ${document.uploadStatus} · ${document.scanStatus}`
+                              : 'Belum tersedia'}
+                          </p>
+                          {document?.rejectionReasonCode && (
+                            <p className="mt-1 text-xs text-dd-warning">
+                              Alasan: {document.rejectionReasonCode}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Link
+                    className="button-primary mt-5 inline-flex"
+                    href={`/identity-verifications?customerUserId=${encodeURIComponent(user.id)}`}
+                  >
+                    <Eye className="size-4" /> Periksa dokumen
+                  </Link>
+                </>
+              )}
+            </Panel>
+          )}
+
           <Panel className="p-5 sm:p-6" aria-labelledby="security-heading">
             <h2 id="security-heading" className="text-lg font-bold text-dd-ink">
               Keamanan akun
@@ -301,7 +385,7 @@ export function UserDetailView({
       </div>
 
       <ProfileDialog
-        open={action === 'profile' && canAdmin}
+        open={action === 'profile' && canAdminStaff}
         user={user}
         submitting={submitting}
         onClose={closeAction}
@@ -312,7 +396,7 @@ export function UserDetailView({
         }
       />
       <RoleDialog
-        open={action === 'roles' && canAdmin}
+        open={action === 'roles' && canAdminStaff}
         user={user}
         catalog={catalog.filter((item) => item.assignable)}
         branches={branches}
@@ -325,7 +409,7 @@ export function UserDetailView({
         }
       />
       <PasswordDialog
-        open={action === 'password' && canAdmin}
+        open={action === 'password' && canAdminStaff}
         submitting={submitting}
         onClose={closeAction}
         onSubmit={(email, reason) =>
@@ -336,7 +420,7 @@ export function UserDetailView({
         }
       />
       <StatusDialog
-        open={action === 'status' && canAdmin}
+        open={action === 'status' && canAdminStaff}
         user={user}
         submitting={submitting}
         onClose={closeAction}

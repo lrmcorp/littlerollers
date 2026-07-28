@@ -102,6 +102,8 @@ class _$ApprovePurchaseRequest extends ApprovePurchaseRequest {
   final ApprovePurchaseRequestReasonCodeEnum reasonCode;
   @override
   final int expectedVersion;
+  @override
+  final String? note;
 
   factory _$ApprovePurchaseRequest([
     void Function(ApprovePurchaseRequestBuilder)? updates,
@@ -110,6 +112,7 @@ class _$ApprovePurchaseRequest extends ApprovePurchaseRequest {
   _$ApprovePurchaseRequest._({
     required this.reasonCode,
     required this.expectedVersion,
+    this.note,
   }) : super._();
   @override
   ApprovePurchaseRequest rebuild(
@@ -125,7 +128,8 @@ class _$ApprovePurchaseRequest extends ApprovePurchaseRequest {
     if (identical(other, this)) return true;
     return other is ApprovePurchaseRequest &&
         reasonCode == other.reasonCode &&
-        expectedVersion == other.expectedVersion;
+        expectedVersion == other.expectedVersion &&
+        note == other.note;
   }
 
   @override
@@ -133,6 +137,7 @@ class _$ApprovePurchaseRequest extends ApprovePurchaseRequest {
     var _$hash = 0;
     _$hash = $jc(_$hash, reasonCode.hashCode);
     _$hash = $jc(_$hash, expectedVersion.hashCode);
+    _$hash = $jc(_$hash, note.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -141,7 +146,8 @@ class _$ApprovePurchaseRequest extends ApprovePurchaseRequest {
   String toString() {
     return (newBuiltValueToStringHelper(r'ApprovePurchaseRequest')
           ..add('reasonCode', reasonCode)
-          ..add('expectedVersion', expectedVersion))
+          ..add('expectedVersion', expectedVersion)
+          ..add('note', note))
         .toString();
   }
 }
@@ -160,6 +166,10 @@ class ApprovePurchaseRequestBuilder
   set expectedVersion(int? expectedVersion) =>
       _$this._expectedVersion = expectedVersion;
 
+  String? _note;
+  String? get note => _$this._note;
+  set note(String? note) => _$this._note = note;
+
   ApprovePurchaseRequestBuilder() {
     ApprovePurchaseRequest._defaults(this);
   }
@@ -169,6 +179,7 @@ class ApprovePurchaseRequestBuilder
     if ($v != null) {
       _reasonCode = $v.reasonCode;
       _expectedVersion = $v.expectedVersion;
+      _note = $v.note;
       _$v = null;
     }
     return this;
@@ -201,6 +212,7 @@ class ApprovePurchaseRequestBuilder
             r'ApprovePurchaseRequest',
             'expectedVersion',
           ),
+          note: note,
         );
     replace(_$result);
     return _$result;

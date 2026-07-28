@@ -27,8 +27,8 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
   };
   const config = {
     value: {
-      booking: { syntheticEnabled: true, cutoffHours: 2 },
-      reschedule: { syntheticEnabled: true, cutoffHours: 24 },
+      booking: { enabled: true, cutoffHours: 2 },
+      reschedule: { enabled: true, cutoffHours: 24 },
     },
   } as never;
   const service = new ReschedulesService(
@@ -222,6 +222,20 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       reasonCode: 'ELIGIBILITY_VERIFIED' as const,
       expectedVersion: reschedule.version,
     };
+    await expect(
+      service.decide(
+        {
+          ...customerPrincipal(0),
+          capabilities: [...customerPrincipal(0).capabilities, 'reschedule:decide'],
+          branchIds: [branchId],
+        },
+        reschedule.id,
+        'approve',
+        command,
+        `${namespace}-self-decision-0`,
+        `${namespace}-self-decision-0`,
+      ),
+    ).rejects.toThrow('SELF_APPROVAL_FORBIDDEN');
     const approved = await service.decide(
       admin,
       reschedule.id,
@@ -252,6 +266,14 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     expect(await db.auditLog.count({ where: { correlationId: `${namespace}-decision-0` } })).toBe(
       1,
     );
+    expect(
+      await db.outboxEvent.count({
+        where: {
+          correlationId: `${namespace}-request-0`,
+          eventType: 'booking.reschedule_requested.v1',
+        },
+      }),
+    ).toBe(1);
   });
 
   it('rejects without moving the source reservation', async () => {
@@ -267,6 +289,45 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       `${namespace}-request-1`,
     );
     const reschedule = requested.body as unknown as { id: string; version: number };
+    const duplicateReservationId = randomUUID();
+    const duplicateBookingId = randomUUID();
+    await db.sessionReservation.create({
+      data: {
+        id: duplicateReservationId,
+        customerPackageId: customerPackageIds[1],
+        classSlotId: targetSlotIds[1],
+        quantity: 1,
+        status: 'ACTIVE',
+        referenceHash: `${namespace}-duplicate-target-reservation`,
+      },
+    });
+    await db.booking.create({
+      data: {
+        id: duplicateBookingId,
+        branchId,
+        classSlotId: targetSlotIds[1],
+        customerUserId: customerIds[1],
+        customerPackageId: customerPackageIds[1],
+        reservationId: duplicateReservationId,
+        createdById: customerIds[1],
+        source: 'SELF',
+      },
+    });
+    await expect(
+      service.decide(
+        admin,
+        reschedule.id,
+        'approve',
+        { reasonCode: 'ELIGIBILITY_VERIFIED', expectedVersion: reschedule.version },
+        `${namespace}-duplicate-target`,
+        `${namespace}-duplicate-target`,
+      ),
+    ).rejects.toThrow('DUPLICATE_ACTIVE_BOOKING');
+    expect(
+      (await db.sessionReservation.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
+    ).toBe(sourceSlotIds[1]);
+    await db.booking.delete({ where: { id: duplicateBookingId } });
+    await db.sessionReservation.delete({ where: { id: duplicateReservationId } });
     await service.decide(
       admin,
       reschedule.id,
@@ -288,8 +349,8 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       new PolicyService(),
       {
         value: {
-          booking: { syntheticEnabled: true, cutoffHours: 2 },
-          reschedule: { syntheticEnabled: false, cutoffHours: null },
+          booking: { enabled: true, cutoffHours: 2 },
+          reschedule: { enabled: false, cutoffHours: null },
         },
       } as never,
     );

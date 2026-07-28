@@ -223,6 +223,18 @@ class _$Booking extends Booking {
   final int version;
   @override
   final bool idempotentReplay;
+  @override
+  final BookingCustomer? customer;
+  @override
+  final BookingSessionBalance? sessionBalance;
+  @override
+  final BookingBranch? branch;
+  @override
+  final BookingClassSlot? classSlot;
+  @override
+  final BookingClassSlotClassType? package;
+  @override
+  final BookingAttendance? attendance;
 
   factory _$Booking([void Function(BookingBuilder)? updates]) =>
       (BookingBuilder()..update(updates))._build();
@@ -241,6 +253,12 @@ class _$Booking extends Booking {
     required this.createdAt,
     required this.version,
     required this.idempotentReplay,
+    this.customer,
+    this.sessionBalance,
+    this.branch,
+    this.classSlot,
+    this.package,
+    this.attendance,
   }) : super._();
   @override
   Booking rebuild(void Function(BookingBuilder) updates) =>
@@ -265,7 +283,13 @@ class _$Booking extends Booking {
         reservedQuantity == other.reservedQuantity &&
         createdAt == other.createdAt &&
         version == other.version &&
-        idempotentReplay == other.idempotentReplay;
+        idempotentReplay == other.idempotentReplay &&
+        customer == other.customer &&
+        sessionBalance == other.sessionBalance &&
+        branch == other.branch &&
+        classSlot == other.classSlot &&
+        package == other.package &&
+        attendance == other.attendance;
   }
 
   @override
@@ -284,6 +308,12 @@ class _$Booking extends Booking {
     _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
+    _$hash = $jc(_$hash, customer.hashCode);
+    _$hash = $jc(_$hash, sessionBalance.hashCode);
+    _$hash = $jc(_$hash, branch.hashCode);
+    _$hash = $jc(_$hash, classSlot.hashCode);
+    _$hash = $jc(_$hash, package.hashCode);
+    _$hash = $jc(_$hash, attendance.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -303,7 +333,13 @@ class _$Booking extends Booking {
           ..add('reservedQuantity', reservedQuantity)
           ..add('createdAt', createdAt)
           ..add('version', version)
-          ..add('idempotentReplay', idempotentReplay))
+          ..add('idempotentReplay', idempotentReplay)
+          ..add('customer', customer)
+          ..add('sessionBalance', sessionBalance)
+          ..add('branch', branch)
+          ..add('classSlot', classSlot)
+          ..add('package', package)
+          ..add('attendance', attendance))
         .toString();
   }
 }
@@ -368,6 +404,39 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
   set idempotentReplay(bool? idempotentReplay) =>
       _$this._idempotentReplay = idempotentReplay;
 
+  BookingCustomerBuilder? _customer;
+  BookingCustomerBuilder get customer =>
+      _$this._customer ??= BookingCustomerBuilder();
+  set customer(BookingCustomerBuilder? customer) => _$this._customer = customer;
+
+  BookingSessionBalanceBuilder? _sessionBalance;
+  BookingSessionBalanceBuilder get sessionBalance =>
+      _$this._sessionBalance ??= BookingSessionBalanceBuilder();
+  set sessionBalance(BookingSessionBalanceBuilder? sessionBalance) =>
+      _$this._sessionBalance = sessionBalance;
+
+  BookingBranchBuilder? _branch;
+  BookingBranchBuilder get branch => _$this._branch ??= BookingBranchBuilder();
+  set branch(BookingBranchBuilder? branch) => _$this._branch = branch;
+
+  BookingClassSlotBuilder? _classSlot;
+  BookingClassSlotBuilder get classSlot =>
+      _$this._classSlot ??= BookingClassSlotBuilder();
+  set classSlot(BookingClassSlotBuilder? classSlot) =>
+      _$this._classSlot = classSlot;
+
+  BookingClassSlotClassTypeBuilder? _package;
+  BookingClassSlotClassTypeBuilder get package =>
+      _$this._package ??= BookingClassSlotClassTypeBuilder();
+  set package(BookingClassSlotClassTypeBuilder? package) =>
+      _$this._package = package;
+
+  BookingAttendanceBuilder? _attendance;
+  BookingAttendanceBuilder get attendance =>
+      _$this._attendance ??= BookingAttendanceBuilder();
+  set attendance(BookingAttendanceBuilder? attendance) =>
+      _$this._attendance = attendance;
+
   BookingBuilder() {
     Booking._defaults(this);
   }
@@ -388,6 +457,12 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
       _createdAt = $v.createdAt;
       _version = $v.version;
       _idempotentReplay = $v.idempotentReplay;
+      _customer = $v.customer?.toBuilder();
+      _sessionBalance = $v.sessionBalance?.toBuilder();
+      _branch = $v.branch?.toBuilder();
+      _classSlot = $v.classSlot?.toBuilder();
+      _package = $v.package?.toBuilder();
+      _attendance = $v.attendance?.toBuilder();
       _$v = null;
     }
     return this;
@@ -407,71 +482,103 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
   Booking build() => _build();
 
   _$Booking _build() {
-    final _$result =
-        _$v ??
-        _$Booking._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'Booking', 'id'),
-          branchId: BuiltValueNullFieldError.checkNotNull(
-            branchId,
-            r'Booking',
-            'branchId',
-          ),
-          classSlotId: BuiltValueNullFieldError.checkNotNull(
-            classSlotId,
-            r'Booking',
-            'classSlotId',
-          ),
-          customerUserId: BuiltValueNullFieldError.checkNotNull(
-            customerUserId,
-            r'Booking',
-            'customerUserId',
-          ),
-          customerPackageId: BuiltValueNullFieldError.checkNotNull(
-            customerPackageId,
-            r'Booking',
-            'customerPackageId',
-          ),
-          reservationId: BuiltValueNullFieldError.checkNotNull(
-            reservationId,
-            r'Booking',
-            'reservationId',
-          ),
-          createdById: BuiltValueNullFieldError.checkNotNull(
-            createdById,
-            r'Booking',
-            'createdById',
-          ),
-          source_: BuiltValueNullFieldError.checkNotNull(
-            source_,
-            r'Booking',
-            'source_',
-          ),
-          status: BuiltValueNullFieldError.checkNotNull(
-            status,
-            r'Booking',
-            'status',
-          ),
-          reservedQuantity: BuiltValueNullFieldError.checkNotNull(
-            reservedQuantity,
-            r'Booking',
-            'reservedQuantity',
-          ),
-          createdAt: BuiltValueNullFieldError.checkNotNull(
-            createdAt,
-            r'Booking',
-            'createdAt',
-          ),
-          version: BuiltValueNullFieldError.checkNotNull(
-            version,
-            r'Booking',
-            'version',
-          ),
-          idempotentReplay: BuiltValueNullFieldError.checkNotNull(
-            idempotentReplay,
-            r'Booking',
-            'idempotentReplay',
-          ),
+    _$Booking _$result;
+    try {
+      _$result =
+          _$v ??
+          _$Booking._(
+            id: BuiltValueNullFieldError.checkNotNull(id, r'Booking', 'id'),
+            branchId: BuiltValueNullFieldError.checkNotNull(
+              branchId,
+              r'Booking',
+              'branchId',
+            ),
+            classSlotId: BuiltValueNullFieldError.checkNotNull(
+              classSlotId,
+              r'Booking',
+              'classSlotId',
+            ),
+            customerUserId: BuiltValueNullFieldError.checkNotNull(
+              customerUserId,
+              r'Booking',
+              'customerUserId',
+            ),
+            customerPackageId: BuiltValueNullFieldError.checkNotNull(
+              customerPackageId,
+              r'Booking',
+              'customerPackageId',
+            ),
+            reservationId: BuiltValueNullFieldError.checkNotNull(
+              reservationId,
+              r'Booking',
+              'reservationId',
+            ),
+            createdById: BuiltValueNullFieldError.checkNotNull(
+              createdById,
+              r'Booking',
+              'createdById',
+            ),
+            source_: BuiltValueNullFieldError.checkNotNull(
+              source_,
+              r'Booking',
+              'source_',
+            ),
+            status: BuiltValueNullFieldError.checkNotNull(
+              status,
+              r'Booking',
+              'status',
+            ),
+            reservedQuantity: BuiltValueNullFieldError.checkNotNull(
+              reservedQuantity,
+              r'Booking',
+              'reservedQuantity',
+            ),
+            createdAt: BuiltValueNullFieldError.checkNotNull(
+              createdAt,
+              r'Booking',
+              'createdAt',
+            ),
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'Booking',
+              'version',
+            ),
+            idempotentReplay: BuiltValueNullFieldError.checkNotNull(
+              idempotentReplay,
+              r'Booking',
+              'idempotentReplay',
+            ),
+            customer: _customer?.build(),
+            sessionBalance: _sessionBalance?.build(),
+            branch: _branch?.build(),
+            classSlot: _classSlot?.build(),
+            package: _package?.build(),
+            attendance: _attendance?.build(),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'customer';
+        _customer?.build();
+        _$failedField = 'sessionBalance';
+        _sessionBalance?.build();
+        _$failedField = 'branch';
+        _branch?.build();
+        _$failedField = 'classSlot';
+        _classSlot?.build();
+        _$failedField = 'package';
+        _package?.build();
+        _$failedField = 'attendance';
+        _attendance?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'Booking',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

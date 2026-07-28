@@ -10,7 +10,7 @@
 - Booking `SELF` dan `ADMIN_ASSISTED` memakai satu transaksi untuk Booking, ACTIVE reservation satu sesi, class booked count, masked audit, dan `booking.created.v1`.
 - PostgreSQL partial unique constraint mencegah duplicate active booking customer/class; row locks dan serializable idempotency menjaga kursi serta sesi terakhir.
 - Slot harus `PUBLISHED` atau `CONFIRMED`; branch/class/package/customer, active state, expiry, saldo, capacity, dan H-2 synthetic cutoff divalidasi backend.
-- `BOOKING_SYNTHETIC_ENABLED=true` dan `BOOKING_SYNTHETIC_CUTOFF_HOURS=2` hanya berlaku non-production. Production tetap fail-closed.
+- `BOOKING_ENABLED` dan `BOOKING_CUTOFF_HOURS` adalah policy production-neutral; contoh production tetap fail-closed sampai approval/UAT. Nama `BOOKING_SYNTHETIC_*` hanya fallback development/test selama transisi.
 - Web `/bookings` memuat pelanggan aktif, package balance, slot `PUBLISHED/CONFIRMED`, dan histori melalui generated TypeScript clients. Selector customer → package → class difilter menurut active branch, saldo, class type, expiry, waktu, dan kapasitas tanpa mempercayai frontend sebagai authorization boundary.
 - Konfirmasi memperlihatkan nama pelanggan, timezone/jadwal, saldo sebelum/sesudah, kapasitas sebelum/sesudah, dan konsekuensi reservation. Retry mempertahankan idempotency key intent yang sama; perubahan pilihan membuat intent baru.
 

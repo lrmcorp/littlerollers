@@ -17,7 +17,8 @@ class _$UserPage extends UserPage {
   factory _$UserPage([void Function(UserPageBuilder)? updates]) =>
       (UserPageBuilder()..update(updates))._build();
 
-  _$UserPage._({required this.items, required this.page, required this.summary}) : super._();
+  _$UserPage._({required this.items, required this.page, required this.summary})
+    : super._();
   @override
   UserPage rebuild(void Function(UserPageBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -28,7 +29,10 @@ class _$UserPage extends UserPage {
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is UserPage && items == other.items && page == other.page && summary == other.summary;
+    return other is UserPage &&
+        items == other.items &&
+        page == other.page &&
+        summary == other.summary;
   }
 
   @override
@@ -64,7 +68,8 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
   set page(CursorPageMetaBuilder? page) => _$this._page = page;
 
   UserListSummaryBuilder? _summary;
-  UserListSummaryBuilder get summary => _$this._summary ??= UserListSummaryBuilder();
+  UserListSummaryBuilder get summary =>
+      _$this._summary ??= UserListSummaryBuilder();
   set summary(UserListSummaryBuilder? summary) => _$this._summary = summary;
 
   UserPageBuilder() {
@@ -98,7 +103,13 @@ class UserPageBuilder implements Builder<UserPage, UserPageBuilder> {
   _$UserPage _build() {
     _$UserPage _$result;
     try {
-      _$result = _$v ?? _$UserPage._(items: items.build(), page: page.build(), summary: summary.build());
+      _$result =
+          _$v ??
+          _$UserPage._(
+            items: items.build(),
+            page: page.build(),
+            summary: summary.build(),
+          );
     } catch (_) {
       late String _$failedField;
       try {

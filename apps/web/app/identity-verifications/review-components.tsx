@@ -10,6 +10,7 @@ import type {
 } from '../identity-verification-client';
 import { AlertBanner } from '../components/app-feedback';
 import { Badge, Button, Dialog, Panel } from '../components/admin/admin-ui';
+import { SelectInput, controlClassName } from '../components/forms';
 
 export const statusLabels: Record<DocumentReviewStatus, string> = {
   PENDING: 'Menunggu pemeriksaan',
@@ -97,21 +98,19 @@ export function FilterSelect({
   onChange(value: string): void;
 }) {
   return (
-    <label className="text-sm font-bold text-dd-ink">
-      {label}
-      <select
-        className="mt-1 block"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">Semua</option>
-        {options.map(([optionValue, optionLabel]) => (
-          <option key={optionValue} value={optionValue}>
-            {optionLabel}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SelectInput
+      label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      wrapperClassName="min-w-40"
+    >
+      <option value="">Semua</option>
+      {options.map(([optionValue, optionLabel]) => (
+        <option key={optionValue} value={optionValue}>
+          {optionLabel}
+        </option>
+      ))}
+    </SelectInput>
   );
 }
 
@@ -137,6 +136,7 @@ export function DocumentReviewCard({
   onApprove,
   onReject,
   canDelete,
+  mayDecide,
   onDelete,
 }: {
   document?: VerificationDocument;
@@ -146,6 +146,7 @@ export function DocumentReviewCard({
   onApprove(document: VerificationDocument): void;
   onReject(document: VerificationDocument): void;
   canDelete: boolean;
+  mayDecide: boolean;
   onDelete(document: VerificationDocument): void;
 }) {
   if (!document)
@@ -226,7 +227,7 @@ export function DocumentReviewCard({
           message="File harus selesai diunggah dan berstatus aman sebelum reviewer mengambil keputusan."
         />
       )}
-      {canDecide && (
+      {canDecide && mayDecide && (
         <div className="grid gap-2 sm:grid-cols-2">
           <Button onClick={() => onApprove(document)}>Setujui dokumen</Button>
           <Button variant="secondary" onClick={() => onReject(document)}>
@@ -294,6 +295,7 @@ export function DecisionDialog({
             <label className="text-sm font-bold text-dd-ink">
               Alasan
               <select
+                className={controlClassName}
                 value={reason}
                 onChange={(event) => setReason(event.target.value as RejectionReason)}
               >
@@ -307,6 +309,7 @@ export function DecisionDialog({
             <label className="text-sm font-bold text-dd-ink">
               Catatan
               <textarea
+                className={controlClassName}
                 name="note"
                 maxLength={500}
                 required={reason === 'OTHER_REQUIRES_NOTE'}

@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/customer_booking_eligibility.dart';
 import 'package:openapi/src/model/customer_booking_slot.dart';
 import 'package:openapi/src/model/customer_booking_package.dart';
 import 'package:built_value/built_value.dart';
@@ -16,6 +17,7 @@ part 'customer_booking_options.g.dart';
 /// Properties:
 /// * [slot] 
 /// * [packages] 
+/// * [eligibility] 
 @BuiltValue()
 abstract class CustomerBookingOptions implements Built<CustomerBookingOptions, CustomerBookingOptionsBuilder> {
   @BuiltValueField(wireName: r'slot')
@@ -23,6 +25,9 @@ abstract class CustomerBookingOptions implements Built<CustomerBookingOptions, C
 
   @BuiltValueField(wireName: r'packages')
   BuiltList<CustomerBookingPackage> get packages;
+
+  @BuiltValueField(wireName: r'eligibility')
+  CustomerBookingEligibility get eligibility;
 
   CustomerBookingOptions._();
 
@@ -57,6 +62,11 @@ class _$CustomerBookingOptionsSerializer implements PrimitiveSerializer<Customer
       object.packages,
       specifiedType: const FullType(BuiltList, [FullType(CustomerBookingPackage)]),
     );
+    yield r'eligibility';
+    yield serializers.serialize(
+      object.eligibility,
+      specifiedType: const FullType(CustomerBookingEligibility),
+    );
   }
 
   @override
@@ -85,7 +95,7 @@ class _$CustomerBookingOptionsSerializer implements PrimitiveSerializer<Customer
             value,
             specifiedType: const FullType(CustomerBookingSlot),
           ) as CustomerBookingSlot;
-          result.slot = valueDes;
+          result.slot.replace(valueDes);
           break;
         case r'packages':
           final valueDes = serializers.deserialize(
@@ -93,6 +103,13 @@ class _$CustomerBookingOptionsSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(BuiltList, [FullType(CustomerBookingPackage)]),
           ) as BuiltList<CustomerBookingPackage>;
           result.packages.replace(valueDes);
+          break;
+        case r'eligibility':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CustomerBookingEligibility),
+          ) as CustomerBookingEligibility;
+          result.eligibility.replace(valueDes);
           break;
         default:
           unhandled.add(key);

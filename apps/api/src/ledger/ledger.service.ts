@@ -6,9 +6,11 @@ import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { randomUUID } from 'node:crypto';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 
 type Cursor = { at: string; id: string };
 const PAGE_SIZE = 20;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function encodeCursor(at: Date, id: string): string {
   return Buffer.from(JSON.stringify({ at: at.toISOString(), id })).toString('base64url');
@@ -36,7 +38,20 @@ export class LedgerService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
+    private readonly config?: RuntimeConfigService,
   ) {}
+
+  private requireAdjustmentEnabled() {
+    const enabled = this.config
+      ? this.config.value.sessionAdjustment.enabled
+      : process.env.NODE_ENV !== 'production' && process.env.SESSION_ADJUSTMENT_ENABLED !== 'false';
+    if (!enabled) throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
+  }
+
+  private maskPhone(value: string | null | undefined) {
+    if (!value) return null;
+    return `${value.slice(0, Math.min(4, value.length))}${'*'.repeat(Math.max(4, value.length - 6))}${value.slice(-2)}`;
+  }
 
   private authorize(principal: SessionPrincipal) {
     this.policy.requireCapability(principal.capabilities, 'ledger:read');
@@ -59,18 +74,21 @@ export class LedgerService {
   ): Prisma.CustomerPackageWhereInput {
     if (this.isCustomer(principal))
       return { customerUserId: principal.userId, ...(branchId ? { branchId } : {}) };
-    if (
-      branchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(branchId)
-    )
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (branchId) {
+      if (
+        !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+        !this.policy.hasCapability(principal, 'ledger:read', branchId)
+      )
+        throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      return { branchId };
+    }
+    const branchScope = this.policy.capabilityBranchScope(principal, 'ledger:read');
     return {
-      ...(branchId
-        ? { branchId }
-        : !principal.capabilities.includes('branch:all')
-          ? { branchId: { in: principal.branchIds } }
-          : {}),
+      ...(branchScope.all
+        ? branchScope.excluded.length
+          ? { branchId: { notIn: branchScope.excluded } }
+          : {}
+        : { branchId: { in: branchScope.included } }),
     };
   }
 
@@ -121,51 +139,127 @@ export class LedgerService {
     };
   }
 
-  private adjustmentScope(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  private adjustmentScope(principal: SessionPrincipal, branchId: string, capability: string) {
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
   async listAdjustments(
     principal: SessionPrincipal,
     branchId?: string,
-    status?: 'PENDING' | 'POSTED' | 'REJECTED',
+    status?: 'PENDING' | 'POSTED' | 'REJECTED' | 'HISTORY',
     cursorValue?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:read');
-    if (status && !['PENDING', 'POSTED', 'REJECTED'].includes(status))
+    if (status && !['PENDING', 'POSTED', 'REJECTED', 'HISTORY'].includes(status))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    if (branchId) this.adjustmentScope(principal, branchId);
+    if (branchId) this.adjustmentScope(principal, branchId, 'ledger:adjust:read');
     const cursor = decodeCursor(cursorValue);
-    const items = await this.db.sessionAdjustment.findMany({
-      where: {
-        ...(status ? { status } : {}),
-        customerPackage: {
-          ...(branchId
-            ? { branchId }
-            : principal.capabilities.includes('branch:all')
-              ? {}
-              : { branchId: { in: principal.branchIds } }),
-        },
-        ...(cursor
-          ? {
-              OR: [
-                { createdAt: { lt: new Date(cursor.at) } },
-                { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
-              ],
-            }
-          : {}),
+    const branchScope = this.policy.capabilityBranchScope(principal, 'ledger:adjust:read');
+    return this.db.$transaction(
+      async (tx) => {
+        const items = await tx.sessionAdjustment.findMany({
+          where: {
+            ...(status === 'HISTORY'
+              ? { status: { in: ['POSTED', 'REJECTED'] } }
+              : status
+                ? { status }
+                : {}),
+            customerPackage: {
+              ...(branchId
+                ? { branchId }
+                : branchScope.all
+                  ? branchScope.excluded.length
+                    ? { branchId: { notIn: branchScope.excluded } }
+                    : {}
+                  : { branchId: { in: branchScope.included } }),
+            },
+            ...(cursor
+              ? {
+                  OR: [
+                    { createdAt: { lt: new Date(cursor.at) } },
+                    { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
+                  ],
+                }
+              : {}),
+          },
+          include: {
+            customerPackage: {
+              include: { customer: true, branch: true, package: true, classType: true },
+            },
+            requestedBy: { select: { id: true, displayName: true } },
+            decidedBy: { select: { id: true, displayName: true } },
+            ledgerEntry: { select: { id: true } },
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: PAGE_SIZE + 1,
+        });
+        const hasMore = items.length > PAGE_SIZE;
+        const pageItems = items.slice(0, PAGE_SIZE);
+        const views = await Promise.all(
+          pageItems.map(async (item) => {
+            const current = await this.balance(tx, item.customerPackage);
+            const projectedLedgerBalance = current.ledgerBalance + item.quantity;
+            const packageEligible =
+              item.customerPackage.status === 'ACTIVE' &&
+              item.customerPackage.expiryAt > new Date();
+            const balanceEligible =
+              projectedLedgerBalance >= 0 && projectedLedgerBalance >= current.reserved;
+            const eligibilityReason =
+              item.status !== 'PENDING'
+                ? 'ADJUSTMENT_ALREADY_DECIDED'
+                : !packageEligible
+                  ? 'PACKAGE_NOT_ACTIVE'
+                  : !balanceEligible
+                    ? 'LEDGER_INVARIANT_VIOLATION'
+                    : null;
+            return {
+              ...item,
+              customer: {
+                id: item.customerPackage.customer.id,
+                displayName: item.customerPackage.customer.displayName,
+                phoneMasked: this.maskPhone(item.customerPackage.customer.phoneE164),
+              },
+              branch: {
+                id: item.customerPackage.branch.id,
+                name: item.customerPackage.branch.name,
+              },
+              package: {
+                id: item.customerPackage.package.id,
+                name: item.customerPackage.package.name,
+              },
+              classType: {
+                id: item.customerPackage.classType.id,
+                name: item.customerPackage.classType.name,
+              },
+              currentBalance: current.ledgerBalance,
+              currentReserved: current.reserved,
+              currentAvailable: current.available,
+              projectedLedgerBalance,
+              projectedAvailable: packageEligible
+                ? Math.max(0, projectedLedgerBalance - current.reserved)
+                : 0,
+              eligibleForApproval: item.status === 'PENDING' && packageEligible && balanceEligible,
+              eligibilityReason,
+              ledgerEntryId: item.ledgerEntry?.id ?? null,
+              customerPackage: undefined,
+            };
+          }),
+        );
+        const last = pageItems.at(-1);
+        return {
+          items: views,
+          page: {
+            hasMore,
+            nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null,
+          },
+        };
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: PAGE_SIZE + 1,
-    });
-    const hasMore = items.length > PAGE_SIZE;
-    const pageItems = items.slice(0, PAGE_SIZE);
-    const last = pageItems.at(-1);
-    return {
-      items: pageItems,
-      page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null },
-    };
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async requestAdjustment(
@@ -174,6 +268,7 @@ export class LedgerService {
     key: string,
     correlationId: string,
   ) {
+    this.requireAdjustmentEnabled();
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:request');
     const reasons = [
       'MIGRATION_CORRECTION',
@@ -202,9 +297,10 @@ export class LedgerService {
             where: { id: input.customerPackageId },
           });
           if (!customerPackage) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-          this.adjustmentScope(principal, customerPackage.branchId);
+          this.adjustmentScope(principal, customerPackage.branchId, 'ledger:adjust:request');
           if (customerPackage.status !== 'ACTIVE' || customerPackage.expiryAt <= new Date())
             throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+          const requestBalance = await this.balance(tx, customerPackage);
           const existing = await tx.sessionAdjustment.findFirst({
             where: { customerPackageId: customerPackage.id, status: 'PENDING' },
           });
@@ -214,6 +310,8 @@ export class LedgerService {
               id: randomUUID(),
               customerPackageId: customerPackage.id,
               quantity: input.quantity,
+              ledgerBalanceAtRequest: requestBalance.ledgerBalance,
+              reservedAtRequest: requestBalance.reserved,
               reasonCode: input.reasonCode as (typeof reasons)[number],
               requestedById: principal.userId,
             },
@@ -242,7 +340,13 @@ export class LedgerService {
                 eventType: 'session.adjustment_requested.v1',
                 aggregateType: 'SessionAdjustment',
                 aggregateId: adjustment.id,
-                payload: { adjustmentId: adjustment.id, branchId: customerPackage.branchId },
+                payload: {
+                  adjustmentId: adjustment.id,
+                  customerPackageId: customerPackage.id,
+                  branchId: customerPackage.branchId,
+                  quantity: input.quantity,
+                  requestorId: principal.userId,
+                },
                 correlationId,
               },
             }),
@@ -270,6 +374,7 @@ export class LedgerService {
     key: string,
     correlationId: string,
   ) {
+    this.requireAdjustmentEnabled();
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
     const valid =
       decision === 'approve'
@@ -282,6 +387,28 @@ export class LedgerService {
       input.expectedVersion < 0
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const preflight = await this.db.sessionAdjustment.findUnique({
+      where: { id },
+      select: { requestedById: true, customerPackage: { select: { branchId: true } } },
+    });
+    if (!preflight) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.adjustmentScope(principal, preflight.customerPackage.branchId, 'ledger:adjust:decide');
+    if (preflight.requestedById === principal.userId) {
+      await this.db.auditLog.create({
+        data: {
+          id: randomUUID(),
+          actorType: 'USER',
+          actorId: principal.userId,
+          action: 'session.adjustment.self_approval_denied',
+          objectType: 'SessionAdjustment',
+          objectId: id,
+          branchId: preflight.customerPackage.branchId,
+          correlationId,
+          afterMasked: { reasonCode: 'SEPARATION_OF_DUTIES_VIOLATION' },
+        },
+      });
+      throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+    }
     return this.idempotency
       .execute(
         {
@@ -297,7 +424,11 @@ export class LedgerService {
             include: { customerPackage: true },
           });
           if (!adjustment) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-          this.adjustmentScope(principal, adjustment.customerPackage.branchId);
+          this.adjustmentScope(
+            principal,
+            adjustment.customerPackage.branchId,
+            'ledger:adjust:decide',
+          );
           if (adjustment.requestedById === principal.userId)
             throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
           if (adjustment.status !== 'PENDING')
@@ -305,8 +436,9 @@ export class LedgerService {
           if (adjustment.version !== input.expectedVersion)
             throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
           if (
-            adjustment.customerPackage.status !== 'ACTIVE' ||
-            adjustment.customerPackage.expiryAt <= new Date()
+            decision === 'approve' &&
+            (adjustment.customerPackage.status !== 'ACTIVE' ||
+              adjustment.customerPackage.expiryAt <= new Date())
           )
             throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
           let ledgerEntry = null;
@@ -364,7 +496,18 @@ export class LedgerService {
                   eventType,
                   aggregateType: 'SessionAdjustment',
                   aggregateId: id,
-                  payload: { adjustmentId: id, branchId: adjustment.customerPackage.branchId },
+                  payload: {
+                    adjustmentId: id,
+                    customerPackageId: adjustment.customerPackageId,
+                    branchId: adjustment.customerPackage.branchId,
+                    approverId: principal.userId,
+                    ...(eventType === 'session.adjustment_posted.v1'
+                      ? { ledgerEntryId: ledgerEntry?.id, quantity: adjustment.quantity }
+                      : {}),
+                    ...(eventType === 'session.adjustment_rejected.v1'
+                      ? { reasonCode: input.reasonCode }
+                      : {}),
+                  },
                   correlationId,
                 },
               }),
@@ -392,27 +535,85 @@ export class LedgerService {
       });
   }
 
-  async list(principal: SessionPrincipal, branchId?: string, cursorValue?: string) {
+  async list(
+    principal: SessionPrincipal,
+    branchId?: string,
+    cursorValue?: string,
+    search?: string,
+    status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE',
+    customerUserId?: string,
+  ) {
     this.authorize(principal);
+    const customerCaller = this.isCustomer(principal);
+    if (customerUserId && !UUID.test(customerUserId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (customerCaller && customerUserId && customerUserId !== principal.userId)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (status && !['ACTIVE', 'EXPIRED', 'INACTIVE'].includes(status))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (search && search.trim().length > 120)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const cursor = decodeCursor(cursorValue);
+    const normalizedSearch = search?.trim();
+    const baseWhere: Prisma.CustomerPackageWhereInput = {
+      ...this.scopeWhere(principal, branchId),
+      ...(customerUserId ? { customerUserId } : {}),
+      ...(normalizedSearch
+        ? {
+            OR: [
+              { customer: { displayName: { contains: normalizedSearch } } },
+              { package: { name: { contains: normalizedSearch } } },
+              { classType: { name: { contains: normalizedSearch } } },
+            ],
+          }
+        : {}),
+      ...(status === 'INACTIVE'
+        ? { status: 'INACTIVE' }
+        : status === 'EXPIRED'
+          ? { status: 'ACTIVE', expiryAt: { lte: new Date() } }
+          : status === 'ACTIVE'
+            ? { status: 'ACTIVE', expiryAt: { gt: new Date() } }
+            : {}),
+    };
     return this.db.$transaction(
       async (tx) => {
-        const items = await tx.customerPackage.findMany({
-          where: {
-            ...this.scopeWhere(principal, branchId),
-            ...(cursor
-              ? {
-                  OR: [
-                    { createdAt: { lt: new Date(cursor.at) } },
-                    { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
-                  ],
-                }
-              : {}),
-          },
-          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-          take: PAGE_SIZE + 1,
-          include: { branch: true, package: true, classType: true },
-        });
+        const [items, summaryPackages, ledgerGroups, reservationGroups] = await Promise.all([
+          tx.customerPackage.findMany({
+            where: {
+              ...baseWhere,
+              ...(cursor
+                ? {
+                    AND: [
+                      {
+                        OR: [
+                          { createdAt: { lt: new Date(cursor.at) } },
+                          { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
+                        ],
+                      },
+                    ],
+                  }
+                : {}),
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: PAGE_SIZE + 1,
+            include: { branch: true, package: true, classType: true, customer: true },
+          }),
+          tx.customerPackage.findMany({
+            where: baseWhere,
+            select: { id: true, status: true, expiryAt: true },
+          }),
+          tx.ledgerEntry.groupBy({
+            by: ['customerPackageId', 'type'],
+            where: { customerPackage: baseWhere },
+            _sum: { quantity: true },
+            _count: { _all: true },
+          }),
+          tx.sessionReservation.groupBy({
+            by: ['customerPackageId'],
+            where: { status: 'ACTIVE', customerPackage: baseWhere },
+            _sum: { quantity: true },
+          }),
+        ]);
         const hasMore = items.length > PAGE_SIZE;
         const pageItems = items.slice(0, PAGE_SIZE);
         const balances = await Promise.all(
@@ -421,11 +622,57 @@ export class LedgerService {
             packageName: item.package.name,
             branchName: item.branch.name,
             classTypeName: item.classType.name,
+            ...(customerCaller
+              ? {}
+              : {
+                  customer: {
+                    id: item.customer.id,
+                    displayName: item.customer.displayName,
+                    phoneMasked: this.maskPhone(item.customer.phoneE164),
+                  },
+                }),
           })),
+        );
+        const ledgerByPackage = new Map<string, number>();
+        const openingCount = new Map<string, number>();
+        const purchaseCount = new Map<string, number>();
+        for (const group of ledgerGroups) {
+          ledgerByPackage.set(
+            group.customerPackageId,
+            (ledgerByPackage.get(group.customerPackageId) ?? 0) + (group._sum.quantity ?? 0),
+          );
+          if (group.type === 'MIGRATION_OPENING')
+            openingCount.set(group.customerPackageId, group._count._all);
+          if (group.type === 'PURCHASE')
+            purchaseCount.set(group.customerPackageId, group._count._all);
+        }
+        const reservedByPackage = new Map(
+          reservationGroups.map((group) => [group.customerPackageId, group._sum.quantity ?? 0]),
+        );
+        const summary = summaryPackages.reduce(
+          (total, item) => {
+            const ledgerBalance = ledgerByPackage.get(item.id) ?? 0;
+            const reserved = reservedByPackage.get(item.id) ?? 0;
+            if (
+              ledgerBalance < 0 ||
+              reserved > ledgerBalance ||
+              (openingCount.get(item.id) ?? 0) > 1 ||
+              ((openingCount.get(item.id) ?? 0) > 0 && (purchaseCount.get(item.id) ?? 0) > 0)
+            )
+              throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+            const active = item.status === 'ACTIVE' && item.expiryAt.getTime() > Date.now();
+            total.packageCount += 1;
+            total.ledgerBalance += ledgerBalance;
+            total.reserved += reserved;
+            total.available += active ? ledgerBalance - reserved : 0;
+            return total;
+          },
+          { packageCount: 0, ledgerBalance: 0, reserved: 0, available: 0 },
         );
         const last = pageItems.at(-1);
         return {
           items: balances,
+          summary,
           page: {
             hasMore,
             nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null,

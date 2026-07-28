@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { DetailDrawer } from '../components/admin/admin-ui';
 import { EmptyState, Feedback, StatusBadge } from '../ui';
+import { controlClassName } from '../components/forms';
 
 type Editable = Record<string, unknown> & { version: number };
 type ProfileData = {
@@ -199,6 +200,7 @@ export function PublicProfileEditor({
             <label>
               Alasan perubahan
               <input
+                className={controlClassName}
                 name="reason"
                 minLength={3}
                 required

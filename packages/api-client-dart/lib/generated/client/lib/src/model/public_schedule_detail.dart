@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/public_schedule_summary_instructor.dart';
 import 'package:openapi/src/model/public_schedule_summary.dart';
 import 'package:openapi/src/model/public_branch.dart';
 import 'package:built_collection/built_collection.dart';
@@ -26,6 +27,7 @@ part 'public_schedule_detail.g.dart';
 /// * [available] 
 /// * [branch] 
 /// * [classType] 
+/// * [instructor] 
 /// * [classProfile] 
 @BuiltValue()
 abstract class PublicScheduleDetail implements PublicScheduleSummary, Built<PublicScheduleDetail, PublicScheduleDetailBuilder> {
@@ -60,6 +62,13 @@ class _$PublicScheduleDetailSerializer implements PrimitiveSerializer<PublicSche
       yield serializers.serialize(
         object.branchId,
         specifiedType: const FullType(String),
+      );
+    }
+    if (object.instructor != null) {
+      yield r'instructor';
+      yield serializers.serialize(
+        object.instructor,
+        specifiedType: const FullType(PublicScheduleSummaryInstructor),
       );
     }
     yield r'timezone';
@@ -145,6 +154,13 @@ class _$PublicScheduleDetailSerializer implements PrimitiveSerializer<PublicSche
             specifiedType: const FullType(String),
           ) as String;
           result.branchId = valueDes;
+          break;
+        case r'instructor':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PublicScheduleSummaryInstructor),
+          ) as PublicScheduleSummaryInstructor;
+          result.instructor.replace(valueDes);
           break;
         case r'timezone':
           final valueDes = serializers.deserialize(

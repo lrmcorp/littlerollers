@@ -3,9 +3,11 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/public_schedule_summary_instructor.dart';
 import 'package:openapi/src/model/public_branch.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/public_class_type_ref.dart';
+import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -24,6 +26,7 @@ part 'public_schedule_summary.g.dart';
 /// * [available] 
 /// * [branch] 
 /// * [classType] 
+/// * [instructor] 
 @BuiltValue(instantiable: false)
 abstract class PublicScheduleSummary  {
   @BuiltValueField(wireName: r'id')
@@ -56,6 +59,9 @@ abstract class PublicScheduleSummary  {
 
   @BuiltValueField(wireName: r'classType')
   PublicClassTypeRef? get classType;
+
+  @BuiltValueField(wireName: r'instructor')
+  PublicScheduleSummaryInstructor? get instructor;
 
   @BuiltValueSerializer(custom: true)
   static Serializer<PublicScheduleSummary> get serializer => _$PublicScheduleSummarySerializer();
@@ -127,6 +133,13 @@ class _$PublicScheduleSummarySerializer implements PrimitiveSerializer<PublicSch
       yield serializers.serialize(
         object.classType,
         specifiedType: const FullType(PublicClassTypeRef),
+      );
+    }
+    if (object.instructor != null) {
+      yield r'instructor';
+      yield serializers.serialize(
+        object.instructor,
+        specifiedType: const FullType(PublicScheduleSummaryInstructor),
       );
     }
   }
@@ -261,6 +274,13 @@ class _$$PublicScheduleSummarySerializer implements PrimitiveSerializer<$PublicS
             specifiedType: const FullType(PublicClassTypeRef),
           ) as PublicClassTypeRef;
           result.classType.replace(valueDes);
+          break;
+        case r'instructor':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PublicScheduleSummaryInstructor),
+          ) as PublicScheduleSummaryInstructor;
+          result.instructor.replace(valueDes);
           break;
         default:
           unhandled.add(key);

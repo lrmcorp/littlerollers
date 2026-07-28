@@ -21,7 +21,7 @@ Method | HTTP request | Description
 
 
 
-Permission-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
+Session-authenticated, capability and branch-scoped decision by a different Manager or Super Owner. No MFA is used. Approval atomically revalidates and posts one ADJUST_MANUAL entry.
 
 ### Example
 ```dart
@@ -111,11 +111,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listCustomerPackages**
-> CustomerPackageBalancePage listCustomerPackages(branchId, cursor)
+> CustomerPackageBalancePage listCustomerPackages(branchId, cursor, search, status, customerUserId)
 
 
 
-Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Invalid cursor is rejected; invariant mismatch is never silently clamped.
+Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Internal callers may search active customer packages without entering technical IDs.
 
 ### Example
 ```dart
@@ -124,9 +124,12 @@ import 'package:openapi/api.dart';
 final api = Openapi().getLedgerApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final String cursor = cursor_example; // String | 
+final String search = search_example; // String | 
+final String status = status_example; // String | 
+final String customerUserId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 
 try {
-    final response = api.listCustomerPackages(branchId, cursor);
+    final response = api.listCustomerPackages(branchId, cursor, search, status, customerUserId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling LedgerApi->listCustomerPackages: $e\n');
@@ -139,6 +142,9 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **cursor** | **String**|  | [optional] 
+ **search** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
+ **customerUserId** | **String**|  | [optional] 
 
 ### Return type
 
@@ -206,6 +212,8 @@ Name | Type | Description  | Notes
 > SessionAdjustment requestSessionAdjustment(idempotencyKey, adjustmentCommand)
 
 
+
+Branch-scoped Admin request. Stores immutable balance/reservation snapshots and does not mutate the ledger.
 
 ### Example
 ```dart

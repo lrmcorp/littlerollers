@@ -16,6 +16,7 @@ export class ApiProblem extends HttpException {
     readonly code: string,
     status: HttpStatus,
     readonly retryable = false,
+    readonly details: Array<{ field: string; issue: string }> = [],
   ) {
     super(code, status);
   }

@@ -247,15 +247,49 @@ class _$SessionAdjustment extends SessionAdjustment {
   @override
   final String requestedById;
   @override
+  final AdjustmentActor? requestedBy;
+  @override
   final String? decidedById;
+  @override
+  final AdjustmentActor? decidedBy;
   @override
   final SessionAdjustmentDecisionCodeEnum? decisionCode;
   @override
   final SessionAdjustmentStatusEnum status;
   @override
+  final int? ledgerBalanceAtRequest;
+  @override
+  final int? reservedAtRequest;
+  @override
+  final AdjustmentCustomer? customer;
+  @override
+  final AdjustmentNamedReference? branch;
+  @override
+  final AdjustmentNamedReference? package;
+  @override
+  final AdjustmentNamedReference? classType;
+  @override
+  final int? currentBalance;
+  @override
+  final int? currentReserved;
+  @override
+  final int? currentAvailable;
+  @override
+  final int? projectedLedgerBalance;
+  @override
+  final int? projectedAvailable;
+  @override
+  final bool? eligibleForApproval;
+  @override
+  final String? eligibilityReason;
+  @override
+  final String? ledgerEntryId;
+  @override
   final int version;
   @override
   final DateTime createdAt;
+  @override
+  final DateTime? decidedAt;
 
   factory _$SessionAdjustment([
     void Function(SessionAdjustmentBuilder)? updates,
@@ -267,11 +301,28 @@ class _$SessionAdjustment extends SessionAdjustment {
     required this.quantity,
     required this.reasonCode,
     required this.requestedById,
+    this.requestedBy,
     this.decidedById,
+    this.decidedBy,
     this.decisionCode,
     required this.status,
+    this.ledgerBalanceAtRequest,
+    this.reservedAtRequest,
+    this.customer,
+    this.branch,
+    this.package,
+    this.classType,
+    this.currentBalance,
+    this.currentReserved,
+    this.currentAvailable,
+    this.projectedLedgerBalance,
+    this.projectedAvailable,
+    this.eligibleForApproval,
+    this.eligibilityReason,
+    this.ledgerEntryId,
     required this.version,
     required this.createdAt,
+    this.decidedAt,
   }) : super._();
   @override
   SessionAdjustment rebuild(void Function(SessionAdjustmentBuilder) updates) =>
@@ -290,11 +341,28 @@ class _$SessionAdjustment extends SessionAdjustment {
         quantity == other.quantity &&
         reasonCode == other.reasonCode &&
         requestedById == other.requestedById &&
+        requestedBy == other.requestedBy &&
         decidedById == other.decidedById &&
+        decidedBy == other.decidedBy &&
         decisionCode == other.decisionCode &&
         status == other.status &&
+        ledgerBalanceAtRequest == other.ledgerBalanceAtRequest &&
+        reservedAtRequest == other.reservedAtRequest &&
+        customer == other.customer &&
+        branch == other.branch &&
+        package == other.package &&
+        classType == other.classType &&
+        currentBalance == other.currentBalance &&
+        currentReserved == other.currentReserved &&
+        currentAvailable == other.currentAvailable &&
+        projectedLedgerBalance == other.projectedLedgerBalance &&
+        projectedAvailable == other.projectedAvailable &&
+        eligibleForApproval == other.eligibleForApproval &&
+        eligibilityReason == other.eligibilityReason &&
+        ledgerEntryId == other.ledgerEntryId &&
         version == other.version &&
-        createdAt == other.createdAt;
+        createdAt == other.createdAt &&
+        decidedAt == other.decidedAt;
   }
 
   @override
@@ -305,11 +373,28 @@ class _$SessionAdjustment extends SessionAdjustment {
     _$hash = $jc(_$hash, quantity.hashCode);
     _$hash = $jc(_$hash, reasonCode.hashCode);
     _$hash = $jc(_$hash, requestedById.hashCode);
+    _$hash = $jc(_$hash, requestedBy.hashCode);
     _$hash = $jc(_$hash, decidedById.hashCode);
+    _$hash = $jc(_$hash, decidedBy.hashCode);
     _$hash = $jc(_$hash, decisionCode.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, ledgerBalanceAtRequest.hashCode);
+    _$hash = $jc(_$hash, reservedAtRequest.hashCode);
+    _$hash = $jc(_$hash, customer.hashCode);
+    _$hash = $jc(_$hash, branch.hashCode);
+    _$hash = $jc(_$hash, package.hashCode);
+    _$hash = $jc(_$hash, classType.hashCode);
+    _$hash = $jc(_$hash, currentBalance.hashCode);
+    _$hash = $jc(_$hash, currentReserved.hashCode);
+    _$hash = $jc(_$hash, currentAvailable.hashCode);
+    _$hash = $jc(_$hash, projectedLedgerBalance.hashCode);
+    _$hash = $jc(_$hash, projectedAvailable.hashCode);
+    _$hash = $jc(_$hash, eligibleForApproval.hashCode);
+    _$hash = $jc(_$hash, eligibilityReason.hashCode);
+    _$hash = $jc(_$hash, ledgerEntryId.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
+    _$hash = $jc(_$hash, decidedAt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -322,11 +407,28 @@ class _$SessionAdjustment extends SessionAdjustment {
           ..add('quantity', quantity)
           ..add('reasonCode', reasonCode)
           ..add('requestedById', requestedById)
+          ..add('requestedBy', requestedBy)
           ..add('decidedById', decidedById)
+          ..add('decidedBy', decidedBy)
           ..add('decisionCode', decisionCode)
           ..add('status', status)
+          ..add('ledgerBalanceAtRequest', ledgerBalanceAtRequest)
+          ..add('reservedAtRequest', reservedAtRequest)
+          ..add('customer', customer)
+          ..add('branch', branch)
+          ..add('package', package)
+          ..add('classType', classType)
+          ..add('currentBalance', currentBalance)
+          ..add('currentReserved', currentReserved)
+          ..add('currentAvailable', currentAvailable)
+          ..add('projectedLedgerBalance', projectedLedgerBalance)
+          ..add('projectedAvailable', projectedAvailable)
+          ..add('eligibleForApproval', eligibleForApproval)
+          ..add('eligibilityReason', eligibilityReason)
+          ..add('ledgerEntryId', ledgerEntryId)
           ..add('version', version)
-          ..add('createdAt', createdAt))
+          ..add('createdAt', createdAt)
+          ..add('decidedAt', decidedAt))
         .toString();
   }
 }
@@ -358,9 +460,21 @@ class SessionAdjustmentBuilder
   set requestedById(String? requestedById) =>
       _$this._requestedById = requestedById;
 
+  AdjustmentActorBuilder? _requestedBy;
+  AdjustmentActorBuilder get requestedBy =>
+      _$this._requestedBy ??= AdjustmentActorBuilder();
+  set requestedBy(AdjustmentActorBuilder? requestedBy) =>
+      _$this._requestedBy = requestedBy;
+
   String? _decidedById;
   String? get decidedById => _$this._decidedById;
   set decidedById(String? decidedById) => _$this._decidedById = decidedById;
+
+  AdjustmentActorBuilder? _decidedBy;
+  AdjustmentActorBuilder get decidedBy =>
+      _$this._decidedBy ??= AdjustmentActorBuilder();
+  set decidedBy(AdjustmentActorBuilder? decidedBy) =>
+      _$this._decidedBy = decidedBy;
 
   SessionAdjustmentDecisionCodeEnum? _decisionCode;
   SessionAdjustmentDecisionCodeEnum? get decisionCode => _$this._decisionCode;
@@ -371,6 +485,80 @@ class SessionAdjustmentBuilder
   SessionAdjustmentStatusEnum? get status => _$this._status;
   set status(SessionAdjustmentStatusEnum? status) => _$this._status = status;
 
+  int? _ledgerBalanceAtRequest;
+  int? get ledgerBalanceAtRequest => _$this._ledgerBalanceAtRequest;
+  set ledgerBalanceAtRequest(int? ledgerBalanceAtRequest) =>
+      _$this._ledgerBalanceAtRequest = ledgerBalanceAtRequest;
+
+  int? _reservedAtRequest;
+  int? get reservedAtRequest => _$this._reservedAtRequest;
+  set reservedAtRequest(int? reservedAtRequest) =>
+      _$this._reservedAtRequest = reservedAtRequest;
+
+  AdjustmentCustomerBuilder? _customer;
+  AdjustmentCustomerBuilder get customer =>
+      _$this._customer ??= AdjustmentCustomerBuilder();
+  set customer(AdjustmentCustomerBuilder? customer) =>
+      _$this._customer = customer;
+
+  AdjustmentNamedReferenceBuilder? _branch;
+  AdjustmentNamedReferenceBuilder get branch =>
+      _$this._branch ??= AdjustmentNamedReferenceBuilder();
+  set branch(AdjustmentNamedReferenceBuilder? branch) =>
+      _$this._branch = branch;
+
+  AdjustmentNamedReferenceBuilder? _package;
+  AdjustmentNamedReferenceBuilder get package =>
+      _$this._package ??= AdjustmentNamedReferenceBuilder();
+  set package(AdjustmentNamedReferenceBuilder? package) =>
+      _$this._package = package;
+
+  AdjustmentNamedReferenceBuilder? _classType;
+  AdjustmentNamedReferenceBuilder get classType =>
+      _$this._classType ??= AdjustmentNamedReferenceBuilder();
+  set classType(AdjustmentNamedReferenceBuilder? classType) =>
+      _$this._classType = classType;
+
+  int? _currentBalance;
+  int? get currentBalance => _$this._currentBalance;
+  set currentBalance(int? currentBalance) =>
+      _$this._currentBalance = currentBalance;
+
+  int? _currentReserved;
+  int? get currentReserved => _$this._currentReserved;
+  set currentReserved(int? currentReserved) =>
+      _$this._currentReserved = currentReserved;
+
+  int? _currentAvailable;
+  int? get currentAvailable => _$this._currentAvailable;
+  set currentAvailable(int? currentAvailable) =>
+      _$this._currentAvailable = currentAvailable;
+
+  int? _projectedLedgerBalance;
+  int? get projectedLedgerBalance => _$this._projectedLedgerBalance;
+  set projectedLedgerBalance(int? projectedLedgerBalance) =>
+      _$this._projectedLedgerBalance = projectedLedgerBalance;
+
+  int? _projectedAvailable;
+  int? get projectedAvailable => _$this._projectedAvailable;
+  set projectedAvailable(int? projectedAvailable) =>
+      _$this._projectedAvailable = projectedAvailable;
+
+  bool? _eligibleForApproval;
+  bool? get eligibleForApproval => _$this._eligibleForApproval;
+  set eligibleForApproval(bool? eligibleForApproval) =>
+      _$this._eligibleForApproval = eligibleForApproval;
+
+  String? _eligibilityReason;
+  String? get eligibilityReason => _$this._eligibilityReason;
+  set eligibilityReason(String? eligibilityReason) =>
+      _$this._eligibilityReason = eligibilityReason;
+
+  String? _ledgerEntryId;
+  String? get ledgerEntryId => _$this._ledgerEntryId;
+  set ledgerEntryId(String? ledgerEntryId) =>
+      _$this._ledgerEntryId = ledgerEntryId;
+
   int? _version;
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
@@ -378,6 +566,10 @@ class SessionAdjustmentBuilder
   DateTime? _createdAt;
   DateTime? get createdAt => _$this._createdAt;
   set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
+
+  DateTime? _decidedAt;
+  DateTime? get decidedAt => _$this._decidedAt;
+  set decidedAt(DateTime? decidedAt) => _$this._decidedAt = decidedAt;
 
   SessionAdjustmentBuilder() {
     SessionAdjustment._defaults(this);
@@ -391,11 +583,28 @@ class SessionAdjustmentBuilder
       _quantity = $v.quantity;
       _reasonCode = $v.reasonCode;
       _requestedById = $v.requestedById;
+      _requestedBy = $v.requestedBy?.toBuilder();
       _decidedById = $v.decidedById;
+      _decidedBy = $v.decidedBy?.toBuilder();
       _decisionCode = $v.decisionCode;
       _status = $v.status;
+      _ledgerBalanceAtRequest = $v.ledgerBalanceAtRequest;
+      _reservedAtRequest = $v.reservedAtRequest;
+      _customer = $v.customer?.toBuilder();
+      _branch = $v.branch?.toBuilder();
+      _package = $v.package?.toBuilder();
+      _classType = $v.classType?.toBuilder();
+      _currentBalance = $v.currentBalance;
+      _currentReserved = $v.currentReserved;
+      _currentAvailable = $v.currentAvailable;
+      _projectedLedgerBalance = $v.projectedLedgerBalance;
+      _projectedAvailable = $v.projectedAvailable;
+      _eligibleForApproval = $v.eligibleForApproval;
+      _eligibilityReason = $v.eligibilityReason;
+      _ledgerEntryId = $v.ledgerEntryId;
       _version = $v.version;
       _createdAt = $v.createdAt;
+      _decidedAt = $v.decidedAt;
       _$v = null;
     }
     return this;
@@ -415,52 +624,97 @@ class SessionAdjustmentBuilder
   SessionAdjustment build() => _build();
 
   _$SessionAdjustment _build() {
-    final _$result =
-        _$v ??
-        _$SessionAdjustment._(
-          id: BuiltValueNullFieldError.checkNotNull(
-            id,
-            r'SessionAdjustment',
-            'id',
-          ),
-          customerPackageId: BuiltValueNullFieldError.checkNotNull(
-            customerPackageId,
-            r'SessionAdjustment',
-            'customerPackageId',
-          ),
-          quantity: BuiltValueNullFieldError.checkNotNull(
-            quantity,
-            r'SessionAdjustment',
-            'quantity',
-          ),
-          reasonCode: BuiltValueNullFieldError.checkNotNull(
-            reasonCode,
-            r'SessionAdjustment',
-            'reasonCode',
-          ),
-          requestedById: BuiltValueNullFieldError.checkNotNull(
-            requestedById,
-            r'SessionAdjustment',
-            'requestedById',
-          ),
-          decidedById: decidedById,
-          decisionCode: decisionCode,
-          status: BuiltValueNullFieldError.checkNotNull(
-            status,
-            r'SessionAdjustment',
-            'status',
-          ),
-          version: BuiltValueNullFieldError.checkNotNull(
-            version,
-            r'SessionAdjustment',
-            'version',
-          ),
-          createdAt: BuiltValueNullFieldError.checkNotNull(
-            createdAt,
-            r'SessionAdjustment',
-            'createdAt',
-          ),
+    _$SessionAdjustment _$result;
+    try {
+      _$result =
+          _$v ??
+          _$SessionAdjustment._(
+            id: BuiltValueNullFieldError.checkNotNull(
+              id,
+              r'SessionAdjustment',
+              'id',
+            ),
+            customerPackageId: BuiltValueNullFieldError.checkNotNull(
+              customerPackageId,
+              r'SessionAdjustment',
+              'customerPackageId',
+            ),
+            quantity: BuiltValueNullFieldError.checkNotNull(
+              quantity,
+              r'SessionAdjustment',
+              'quantity',
+            ),
+            reasonCode: BuiltValueNullFieldError.checkNotNull(
+              reasonCode,
+              r'SessionAdjustment',
+              'reasonCode',
+            ),
+            requestedById: BuiltValueNullFieldError.checkNotNull(
+              requestedById,
+              r'SessionAdjustment',
+              'requestedById',
+            ),
+            requestedBy: _requestedBy?.build(),
+            decidedById: decidedById,
+            decidedBy: _decidedBy?.build(),
+            decisionCode: decisionCode,
+            status: BuiltValueNullFieldError.checkNotNull(
+              status,
+              r'SessionAdjustment',
+              'status',
+            ),
+            ledgerBalanceAtRequest: ledgerBalanceAtRequest,
+            reservedAtRequest: reservedAtRequest,
+            customer: _customer?.build(),
+            branch: _branch?.build(),
+            package: _package?.build(),
+            classType: _classType?.build(),
+            currentBalance: currentBalance,
+            currentReserved: currentReserved,
+            currentAvailable: currentAvailable,
+            projectedLedgerBalance: projectedLedgerBalance,
+            projectedAvailable: projectedAvailable,
+            eligibleForApproval: eligibleForApproval,
+            eligibilityReason: eligibilityReason,
+            ledgerEntryId: ledgerEntryId,
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'SessionAdjustment',
+              'version',
+            ),
+            createdAt: BuiltValueNullFieldError.checkNotNull(
+              createdAt,
+              r'SessionAdjustment',
+              'createdAt',
+            ),
+            decidedAt: decidedAt,
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'requestedBy';
+        _requestedBy?.build();
+
+        _$failedField = 'decidedBy';
+        _decidedBy?.build();
+
+        _$failedField = 'customer';
+        _customer?.build();
+        _$failedField = 'branch';
+        _branch?.build();
+        _$failedField = 'package';
+        _package?.build();
+        _$failedField = 'classType';
+        _classType?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'SessionAdjustment',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

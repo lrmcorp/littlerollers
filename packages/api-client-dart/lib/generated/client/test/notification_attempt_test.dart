@@ -27,23 +27,23 @@ void main() {
       // TODO
     });
 
-    // DateTime queuedAt
-    test('to test the property `queuedAt`', () async {
+    // DateTime startedAt
+    test('to test the property `startedAt`', () async {
       // TODO
     });
 
-    // String providerReference
-    test('to test the property `providerReference`', () async {
+    // DateTime completedAt
+    test('to test the property `completedAt`', () async {
       // TODO
     });
 
-    // String failureCode
-    test('to test the property `failureCode`', () async {
+    // String providerCode
+    test('to test the property `providerCode`', () async {
       // TODO
     });
 
-    // bool idempotentReplay
-    test('to test the property `idempotentReplay`', () async {
+    // String errorCode
+    test('to test the property `errorCode`', () async {
       // TODO
     });
 

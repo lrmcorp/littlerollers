@@ -5,6 +5,7 @@ import { browserBookingClient, bookingFailure, type CheckInIssue } from '../book
 import type { ClassSlot, ClassTypeOption, InstructorOption } from '../class-slot-client';
 import { formatBranchTime, zonedLocalDateTime } from '../class-time';
 import { Feedback, StatusBadge } from '../ui';
+import { controlClassName } from '../components/forms';
 import {
   cancellationLabels,
   classStatusTone,
@@ -68,7 +69,7 @@ export function CreatePanel({
     >
       <label>
         Class type
-        <select name="classTypeId" required defaultValue="">
+        <select className={controlClassName} name="classTypeId" required defaultValue="">
           <option value="" disabled>
             Pilih class type
           </option>
@@ -81,7 +82,7 @@ export function CreatePanel({
       </label>
       <label>
         Instructor
-        <select name="instructorUserId" defaultValue="">
+        <select className={controlClassName} name="instructorUserId" defaultValue="">
           <option value="">Tetapkan nanti</option>
           {instructors.map((item) => (
             <option value={item.id} key={item.id}>
@@ -92,15 +93,15 @@ export function CreatePanel({
       </label>
       <label>
         Tanggal
-        <input name="date" type="date" required />
+        <input className={controlClassName} name="date" type="date" required />
       </label>
       <label>
         Mulai
-        <input name="startTime" type="time" required />
+        <input className={controlClassName} name="startTime" type="time" required />
       </label>
       <label>
         Selesai eksklusif
-        <input name="endTime" type="time" required />
+        <input className={controlClassName} name="endTime" type="time" required />
       </label>
       <Feedback kind="info">
         Timezone: {timezone}. {summary}
@@ -245,6 +246,7 @@ export function DetailPanel({
           <label>
             Instructor
             <select
+              className={controlClassName}
               aria-label="Instructor"
               value={instructorId}
               onChange={(event) => setInstructorId(event.target.value)}
@@ -282,6 +284,7 @@ export function DetailPanel({
           <label>
             Alasan
             <select
+              className={controlClassName}
               aria-label="Alasan pembatalan"
               value={reason}
               onChange={(event) => setReason(event.target.value as CancellationReason)}

@@ -3,6 +3,7 @@ import type {
   PublicClassTypeRef,
   PublicPackageSummary,
 } from '@dailydose/api-client-ts/generated';
+import { appLoading } from './components/app-loading';
 import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
 export type PublicPackageBranch = Pick<PublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
@@ -27,7 +28,10 @@ export interface PublicPackageCatalogClient {
 
 export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
   async list(branchId) {
-    const result = await publicGeneratedApi.packages.listPublicPackages({ branchId });
+    const result = await appLoading.track(
+      publicGeneratedApi.packages.listPublicPackages({ branchId }),
+      { label: 'Memuat paket…' },
+    );
     return {
       branches: result.branches,
       items: result.items.map((item) => ({

@@ -6,6 +6,7 @@ import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Feedback } from '../ui';
 import { verificationClient } from '../identity-verification-client';
 import { useSessionContext } from '../session-context';
+import { controlClassName } from '../components/forms';
 
 function PasswordField({
   label,
@@ -22,6 +23,7 @@ function PasswordField({
       {label}
       <span className="auth-input-action">
         <input
+          className={controlClassName}
           name={name}
           type={visible ? 'text' : 'password'}
           autoComplete="new-password"
@@ -135,6 +137,7 @@ export function RegisterView() {
         <label>
           Nama lengkap
           <input
+            className={controlClassName}
             name="displayName"
             autoComplete="name"
             maxLength={160}
@@ -144,11 +147,19 @@ export function RegisterView() {
         </label>
         <label>
           Nomor WhatsApp
-          <input name="phone" type="tel" autoComplete="tel" placeholder="0812 3456 7890" required />
+          <input
+            className={controlClassName}
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="0812 3456 7890"
+            required
+          />
         </label>
         <label>
           Email
           <input
+            className={controlClassName}
             name="email"
             type="email"
             autoComplete="email"
@@ -165,6 +176,7 @@ export function RegisterView() {
         <label className="auth-upload-field">
           <span>Foto selfie</span>
           <input
+            className={controlClassName}
             aria-label="Foto selfie"
             name="selfie"
             type="file"
@@ -179,6 +191,7 @@ export function RegisterView() {
         <label className="auth-upload-field">
           <span>Foto KTP bagian depan</span>
           <input
+            className={controlClassName}
             aria-label="Foto KTP bagian depan"
             name="ktp"
             type="file"
@@ -191,7 +204,7 @@ export function RegisterView() {
           <UploadPreview file={ktpPreview} kind="ktp" />
         </label>
         <label className="auth-consent">
-          <input name="consent" type="checkbox" required />
+          <input className="size-4 accent-dd-forest" name="consent" type="checkbox" required />
           <span>Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.</span>
         </label>
         <button disabled={state === 'loading'} type="submit">

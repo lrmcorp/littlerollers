@@ -52,8 +52,11 @@ export class ClassSlotService {
     private readonly config: RuntimeConfigService,
   ) {}
 
-  private scope(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  private scope(principal: SessionPrincipal, branchId: string, capability: string) {
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
   private manage(principal: SessionPrincipal) {
@@ -85,7 +88,8 @@ export class ClassSlotService {
     const isCustomer =
       principal.roles.some((item) => item.role === 'CUSTOMER') &&
       !principal.capabilities.includes('class-slot:manage');
-    if (input.branchId && !isCustomer) this.scope(principal, input.branchId);
+    if (input.branchId && !isCustomer)
+      this.scope(principal, input.branchId, 'class-slot:read');
     const allowed = Object.values(ClassSlotStatus);
     if (input.status && !allowed.includes(input.status as ClassSlotStatus))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -97,13 +101,18 @@ export class ClassSlotService {
     const isInstructor =
       principal.roles.some((item) => item.role === 'INSTRUCTOR') &&
       !principal.capabilities.includes('class-slot:manage');
+    const branchScope = this.policy.capabilityBranchScope(principal, 'class-slot:read');
     const items = await this.db.classSlot.findMany({
       where: {
         ...(input.branchId
           ? { branchId: input.branchId }
-          : principal.capabilities.includes('branch:all') || isCustomer
+          : isCustomer
             ? {}
-            : { branchId: { in: principal.branchIds } }),
+            : branchScope.all
+              ? branchScope.excluded.length
+                ? { branchId: { notIn: branchScope.excluded } }
+                : {}
+              : { branchId: { in: branchScope.included } }),
         ...(input.status
           ? { status: input.status as ClassSlotStatus }
           : isCustomer
@@ -160,7 +169,7 @@ export class ClassSlotService {
       input,
       HttpStatus.CREATED,
       async (tx) => {
-        this.scope(principal, input.branchId);
+        this.scope(principal, input.branchId, 'class-slot:manage');
         const [branch, classType] = await Promise.all([
           tx.branch.findUnique({ where: { id: input.branchId } }),
           tx.classType.findUnique({ where: { id: input.classTypeId } }),
@@ -434,7 +443,7 @@ export class ClassSlotService {
     if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const slot = await tx.classSlot.findUnique({ where: { id } });
     if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.scope(principal, slot.branchId);
+    this.scope(principal, slot.branchId, 'class-slot:manage');
     return slot;
   }
   private requireDraftVersion(

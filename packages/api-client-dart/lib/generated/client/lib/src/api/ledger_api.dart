@@ -27,7 +27,7 @@ class LedgerApi {
   const LedgerApi(this._dio, this._serializers);
 
   /// decideSessionAdjustment
-  /// Permission-gated decision by a different Manager or Super Owner. Approval atomically posts one ADJUST_MANUAL entry.
+  /// Session-authenticated, capability and branch-scoped decision by a different Manager or Super Owner. No MFA is used. Approval atomically revalidates and posts one ADJUST_MANUAL entry.
   ///
   /// Parameters:
   /// * [id] 
@@ -223,11 +223,14 @@ class LedgerApi {
   }
 
   /// listCustomerPackages
-  /// Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Invalid cursor is rejected; invariant mismatch is never silently clamped.
+  /// Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Internal callers may search active customer packages without entering technical IDs.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
   /// * [cursor] 
+  /// * [search] 
+  /// * [status] 
+  /// * [customerUserId] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -240,6 +243,9 @@ class LedgerApi {
   Future<Response<CustomerPackageBalancePage>> listCustomerPackages({ 
     String? branchId,
     String? cursor,
+    String? search,
+    String? status,
+    String? customerUserId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -269,6 +275,9 @@ class LedgerApi {
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (search != null) r'search': encodeQueryParameter(_serializers, search, const FullType(String)),
+      if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (customerUserId != null) r'customerUserId': encodeQueryParameter(_serializers, customerUserId, const FullType(String)),
     };
 
     final _response = await _dio.request<Object>(
@@ -404,7 +413,7 @@ class LedgerApi {
   }
 
   /// requestSessionAdjustment
-  /// 
+  /// Branch-scoped Admin request. Stores immutable balance/reservation snapshots and does not mutate the ledger.
   ///
   /// Parameters:
   /// * [idempotencyKey] 

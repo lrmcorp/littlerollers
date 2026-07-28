@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/notification_attempt.dart';
+import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -15,12 +16,19 @@ part 'notification_occurrence.g.dart';
 /// Properties:
 /// * [id] 
 /// * [eventType] 
-/// * [recipientType] 
-/// * [maskedRecipient] 
+/// * [templateKey] 
+/// * [recipientMasked] 
 /// * [channel] 
 /// * [status] 
+/// * [attemptCount] 
+/// * [rateLimitWaitCount] 
+/// * [maxAttempts] 
+/// * [nextAttemptAt] 
+/// * [lastErrorCode] 
+/// * [correlationId] 
 /// * [createdAt] 
-/// * [attempts] 
+/// * [acceptedAt] 
+/// * [lastAttempt] 
 @BuiltValue()
 abstract class NotificationOccurrence implements Built<NotificationOccurrence, NotificationOccurrenceBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -29,25 +37,45 @@ abstract class NotificationOccurrence implements Built<NotificationOccurrence, N
   @BuiltValueField(wireName: r'eventType')
   String get eventType;
 
-  @BuiltValueField(wireName: r'recipientType')
-  String get recipientType;
+  @BuiltValueField(wireName: r'templateKey')
+  String get templateKey;
 
-  @BuiltValueField(wireName: r'maskedRecipient')
-  String? get maskedRecipient;
+  @BuiltValueField(wireName: r'recipientMasked')
+  String get recipientMasked;
 
   @BuiltValueField(wireName: r'channel')
-  NotificationOccurrenceChannelEnum get channel;
-  // enum channelEnum {  WHATSAPP,  IN_APP,  EMAIL,  };
+  JsonObject? get channel;
 
   @BuiltValueField(wireName: r'status')
   NotificationOccurrenceStatusEnum get status;
-  // enum statusEnum {  PENDING,  SENT,  DELIVERED,  FAILED,  DEAD_LETTER,  };
+  // enum statusEnum {  PENDING,  SENDING,  ACCEPTED_BY_SMTP,  FAILED_RETRYABLE,  FAILED_TERMINAL,  EXPIRED,  FALLBACK_IN_APP,  };
+
+  @BuiltValueField(wireName: r'attemptCount')
+  int get attemptCount;
+
+  @BuiltValueField(wireName: r'rateLimitWaitCount')
+  int get rateLimitWaitCount;
+
+  @BuiltValueField(wireName: r'maxAttempts')
+  int get maxAttempts;
+
+  @BuiltValueField(wireName: r'nextAttemptAt')
+  DateTime? get nextAttemptAt;
+
+  @BuiltValueField(wireName: r'lastErrorCode')
+  String? get lastErrorCode;
+
+  @BuiltValueField(wireName: r'correlationId')
+  String get correlationId;
 
   @BuiltValueField(wireName: r'createdAt')
   DateTime get createdAt;
 
-  @BuiltValueField(wireName: r'attempts')
-  BuiltList<NotificationAttempt> get attempts;
+  @BuiltValueField(wireName: r'acceptedAt')
+  DateTime? get acceptedAt;
+
+  @BuiltValueField(wireName: r'lastAttempt')
+  NotificationAttempt? get lastAttempt;
 
   NotificationOccurrence._();
 
@@ -82,38 +110,79 @@ class _$NotificationOccurrenceSerializer implements PrimitiveSerializer<Notifica
       object.eventType,
       specifiedType: const FullType(String),
     );
-    yield r'recipientType';
+    yield r'templateKey';
     yield serializers.serialize(
-      object.recipientType,
+      object.templateKey,
       specifiedType: const FullType(String),
     );
-    if (object.maskedRecipient != null) {
-      yield r'maskedRecipient';
-      yield serializers.serialize(
-        object.maskedRecipient,
-        specifiedType: const FullType(String),
-      );
-    }
-    yield r'channel';
+    yield r'recipientMasked';
     yield serializers.serialize(
+      object.recipientMasked,
+      specifiedType: const FullType(String),
+    );
+    yield r'channel';
+    yield object.channel == null ? null : serializers.serialize(
       object.channel,
-      specifiedType: const FullType(NotificationOccurrenceChannelEnum),
+      specifiedType: const FullType.nullable(JsonObject),
     );
     yield r'status';
     yield serializers.serialize(
       object.status,
       specifiedType: const FullType(NotificationOccurrenceStatusEnum),
     );
+    yield r'attemptCount';
+    yield serializers.serialize(
+      object.attemptCount,
+      specifiedType: const FullType(int),
+    );
+    yield r'rateLimitWaitCount';
+    yield serializers.serialize(
+      object.rateLimitWaitCount,
+      specifiedType: const FullType(int),
+    );
+    yield r'maxAttempts';
+    yield serializers.serialize(
+      object.maxAttempts,
+      specifiedType: const FullType(int),
+    );
+    if (object.nextAttemptAt != null) {
+      yield r'nextAttemptAt';
+      yield serializers.serialize(
+        object.nextAttemptAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
+    if (object.lastErrorCode != null) {
+      yield r'lastErrorCode';
+      yield serializers.serialize(
+        object.lastErrorCode,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    yield r'correlationId';
+    yield serializers.serialize(
+      object.correlationId,
+      specifiedType: const FullType(String),
+    );
     yield r'createdAt';
     yield serializers.serialize(
       object.createdAt,
       specifiedType: const FullType(DateTime),
     );
-    yield r'attempts';
-    yield serializers.serialize(
-      object.attempts,
-      specifiedType: const FullType(BuiltList, [FullType(NotificationAttempt)]),
-    );
+    if (object.acceptedAt != null) {
+      yield r'acceptedAt';
+      yield serializers.serialize(
+        object.acceptedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
+    if (object.lastAttempt != null) {
+      yield r'lastAttempt';
+      yield serializers.serialize(
+        object.lastAttempt,
+        specifiedType: const FullType.nullable(NotificationAttempt),
+      );
+    }
   }
 
   @override
@@ -151,25 +220,26 @@ class _$NotificationOccurrenceSerializer implements PrimitiveSerializer<Notifica
           ) as String;
           result.eventType = valueDes;
           break;
-        case r'recipientType':
+        case r'templateKey':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
-          result.recipientType = valueDes;
+          result.templateKey = valueDes;
           break;
-        case r'maskedRecipient':
+        case r'recipientMasked':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
-          result.maskedRecipient = valueDes;
+          result.recipientMasked = valueDes;
           break;
         case r'channel':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(NotificationOccurrenceChannelEnum),
-          ) as NotificationOccurrenceChannelEnum;
+            specifiedType: const FullType.nullable(JsonObject),
+          ) as JsonObject?;
+          if (valueDes == null) continue;
           result.channel = valueDes;
           break;
         case r'status':
@@ -179,6 +249,49 @@ class _$NotificationOccurrenceSerializer implements PrimitiveSerializer<Notifica
           ) as NotificationOccurrenceStatusEnum;
           result.status = valueDes;
           break;
+        case r'attemptCount':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.attemptCount = valueDes;
+          break;
+        case r'rateLimitWaitCount':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.rateLimitWaitCount = valueDes;
+          break;
+        case r'maxAttempts':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.maxAttempts = valueDes;
+          break;
+        case r'nextAttemptAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.nextAttemptAt = valueDes;
+          break;
+        case r'lastErrorCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.lastErrorCode = valueDes;
+          break;
+        case r'correlationId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.correlationId = valueDes;
+          break;
         case r'createdAt':
           final valueDes = serializers.deserialize(
             value,
@@ -186,12 +299,21 @@ class _$NotificationOccurrenceSerializer implements PrimitiveSerializer<Notifica
           ) as DateTime;
           result.createdAt = valueDes;
           break;
-        case r'attempts':
+        case r'acceptedAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(NotificationAttempt)]),
-          ) as BuiltList<NotificationAttempt>;
-          result.attempts.replace(valueDes);
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.acceptedAt = valueDes;
+          break;
+        case r'lastAttempt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(NotificationAttempt),
+          ) as NotificationAttempt?;
+          if (valueDes == null) continue;
+          result.lastAttempt.replace(valueDes);
           break;
         default:
           unhandled.add(key);
@@ -222,35 +344,22 @@ class _$NotificationOccurrenceSerializer implements PrimitiveSerializer<Notifica
   }
 }
 
-class NotificationOccurrenceChannelEnum extends EnumClass {
-
-  @BuiltValueEnumConst(wireName: r'WHATSAPP')
-  static const NotificationOccurrenceChannelEnum WHATSAPP = _$notificationOccurrenceChannelEnum_WHATSAPP;
-  @BuiltValueEnumConst(wireName: r'IN_APP')
-  static const NotificationOccurrenceChannelEnum IN_APP = _$notificationOccurrenceChannelEnum_IN_APP;
-  @BuiltValueEnumConst(wireName: r'EMAIL')
-  static const NotificationOccurrenceChannelEnum EMAIL = _$notificationOccurrenceChannelEnum_EMAIL;
-
-  static Serializer<NotificationOccurrenceChannelEnum> get serializer => _$notificationOccurrenceChannelEnumSerializer;
-
-  const NotificationOccurrenceChannelEnum._(String name): super(name);
-
-  static BuiltSet<NotificationOccurrenceChannelEnum> get values => _$notificationOccurrenceChannelEnumValues;
-  static NotificationOccurrenceChannelEnum valueOf(String name) => _$notificationOccurrenceChannelEnumValueOf(name);
-}
-
 class NotificationOccurrenceStatusEnum extends EnumClass {
 
   @BuiltValueEnumConst(wireName: r'PENDING')
   static const NotificationOccurrenceStatusEnum PENDING = _$notificationOccurrenceStatusEnum_PENDING;
-  @BuiltValueEnumConst(wireName: r'SENT')
-  static const NotificationOccurrenceStatusEnum SENT = _$notificationOccurrenceStatusEnum_SENT;
-  @BuiltValueEnumConst(wireName: r'DELIVERED')
-  static const NotificationOccurrenceStatusEnum DELIVERED = _$notificationOccurrenceStatusEnum_DELIVERED;
-  @BuiltValueEnumConst(wireName: r'FAILED')
-  static const NotificationOccurrenceStatusEnum FAILED = _$notificationOccurrenceStatusEnum_FAILED;
-  @BuiltValueEnumConst(wireName: r'DEAD_LETTER')
-  static const NotificationOccurrenceStatusEnum DEAD_LETTER = _$notificationOccurrenceStatusEnum_DEAD_LETTER;
+  @BuiltValueEnumConst(wireName: r'SENDING')
+  static const NotificationOccurrenceStatusEnum SENDING = _$notificationOccurrenceStatusEnum_SENDING;
+  @BuiltValueEnumConst(wireName: r'ACCEPTED_BY_SMTP')
+  static const NotificationOccurrenceStatusEnum ACCEPTED_BY_SMTP = _$notificationOccurrenceStatusEnum_ACCEPTED_BY_SMTP;
+  @BuiltValueEnumConst(wireName: r'FAILED_RETRYABLE')
+  static const NotificationOccurrenceStatusEnum FAILED_RETRYABLE = _$notificationOccurrenceStatusEnum_FAILED_RETRYABLE;
+  @BuiltValueEnumConst(wireName: r'FAILED_TERMINAL')
+  static const NotificationOccurrenceStatusEnum FAILED_TERMINAL = _$notificationOccurrenceStatusEnum_FAILED_TERMINAL;
+  @BuiltValueEnumConst(wireName: r'EXPIRED')
+  static const NotificationOccurrenceStatusEnum EXPIRED = _$notificationOccurrenceStatusEnum_EXPIRED;
+  @BuiltValueEnumConst(wireName: r'FALLBACK_IN_APP')
+  static const NotificationOccurrenceStatusEnum FALLBACK_IN_APP = _$notificationOccurrenceStatusEnum_FALLBACK_IN_APP;
 
   static Serializer<NotificationOccurrenceStatusEnum> get serializer => _$notificationOccurrenceStatusEnumSerializer;
 

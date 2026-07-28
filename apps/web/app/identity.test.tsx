@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,6 +17,7 @@ import { SecurityView } from './account/security/security-view';
 import { AuditView } from './audit/audit-view';
 import { RolePermissionsView } from './users/roles-permissions/role-permissions-view';
 import { AppFeedbackProvider } from './components/app-feedback';
+import type { AccessClient } from './access-client';
 
 const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   signIn: vi.fn().mockResolvedValue(undefined),
@@ -40,6 +41,7 @@ const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   getAuditExport: vi.fn(),
   authorizeAuditExport: vi.fn(),
   getUser: vi.fn(),
+  getUserIdentityVerification: vi.fn(),
   updateProfile: vi.fn(),
   roleCatalog: vi.fn().mockResolvedValue([
     {
@@ -60,6 +62,64 @@ const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   updateRoles: vi.fn(),
   deactivate: vi.fn().mockResolvedValue(undefined),
   reactivate: vi.fn().mockResolvedValue(undefined),
+  ...overrides,
+});
+
+const accessClient = (overrides: Partial<AccessClient> = {}): AccessClient => ({
+  listCapabilities: vi.fn().mockResolvedValue([
+    {
+      key: 'user:read',
+      label: 'Lihat user',
+      description: 'Melihat user dalam scope.',
+      category: 'USER',
+      sensitive: false,
+      active: true,
+      systemOnly: false,
+    },
+    {
+      key: 'ledger:adjust:decide',
+      label: 'Putuskan adjustment sesi',
+      description: 'Menyetujui atau menolak adjustment.',
+      category: 'LEDGER',
+      sensitive: true,
+      active: true,
+      systemOnly: false,
+    },
+  ]),
+  listRoles: vi.fn().mockResolvedValue([
+    {
+      id: 'role-manager',
+      code: 'MANAGER',
+      displayName: 'Manager',
+      description: 'Manager cabang.',
+      scope: 'BRANCH',
+      systemRole: 'MANAGER',
+      system: true,
+      protected: true,
+      active: true,
+      version: 1,
+      affectedUsers: 2,
+      capabilities: [
+        {
+          key: 'user:read',
+          label: 'Lihat user',
+          category: 'USER',
+          sensitive: false,
+          systemOnly: false,
+        },
+      ],
+      createdAt: '2026-07-28T00:00:00.000Z',
+      updatedAt: '2026-07-28T00:00:00.000Z',
+    },
+  ]),
+  createRole: vi.fn(),
+  updateRole: vi.fn(),
+  replaceRoleCapabilities: vi.fn().mockResolvedValue(undefined),
+  deactivateRole: vi.fn(),
+  getUserAccess: vi.fn(),
+  replaceUserRoles: vi.fn(),
+  createOverride: vi.fn(),
+  revokeOverride: vi.fn(),
   ...overrides,
 });
 
@@ -137,6 +197,119 @@ describe('identity UI', () => {
     );
   });
 
+  it('exposes the customer tab and safe verification summary only to global identity readers', async () => {
+    const customer = {
+      id: 'customer-1',
+      displayName: 'Ayu Customer',
+      phoneE164: null,
+      status: 'ACTIVE' as const,
+      audience: 'CUSTOMER' as const,
+      version: 1,
+      createdAt: '2026-07-23T00:00:00.000Z',
+      updatedAt: '2026-07-23T00:00:00.000Z',
+      roles: [],
+      directRoles: [],
+      assignmentRoles: [],
+      effectiveCapabilities: [],
+      identityVerification: {
+        status: 'ACTION_REQUIRED' as const,
+        documents: [
+          {
+            kind: 'SELFIE' as const,
+            status: 'REJECTED',
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+            rejectionReasonCode: 'BLURRY',
+            uploadedAt: '2026-07-23T00:00:00.000Z',
+            reviewedAt: null,
+            updatedAt: '2026-07-23T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+    const listUsers = vi.fn().mockResolvedValue({
+      items: [customer],
+      page: { nextCursor: null, hasMore: false },
+      summary: { total: 1, active: 1, pendingActivation: 0, inactive: 0 },
+    });
+    render(
+      <UsersView
+        client={client({ listUsers })}
+        capabilitiesOverride={['branch:all', 'user:read', 'identity-verification:read']}
+      />,
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: 'Customer' }));
+    await waitFor(() =>
+      expect(listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ audience: 'CUSTOMER' })),
+    );
+    expect((await screen.findAllByText('Ayu Customer'))[0]).toBeVisible();
+    expect(screen.getAllByText('Perlu perbaikan').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Status verifikasi')).toBeVisible();
+  });
+
+  it('shows customer identity metadata without loading images on the user detail page', async () => {
+    const customer = {
+      id: 'customer-1',
+      displayName: 'Ayu Customer',
+      phoneE164: null,
+      status: 'ACTIVE' as const,
+      audience: 'CUSTOMER' as const,
+      version: 1,
+      createdAt: '2026-07-23T00:00:00.000Z',
+      updatedAt: '2026-07-23T00:00:00.000Z',
+      roles: [],
+      directRoles: [],
+      assignmentRoles: [],
+      effectiveCapabilities: [],
+    };
+    const fake = client({
+      getUser: vi.fn().mockResolvedValue(customer),
+      getUserIdentityVerification: vi.fn().mockResolvedValue({
+        id: customer.id,
+        user: {
+          id: customer.id,
+          displayName: customer.displayName,
+          phoneMasked: '+628*****6789',
+          status: customer.status,
+        },
+        verificationStatus: 'PENDING',
+        oldestAt: '2026-07-23T00:00:00.000Z',
+        documents: [
+          {
+            id: 'document-selfie',
+            kind: 'SELFIE',
+            status: 'PENDING',
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+            fileName: 'selfie.png',
+            mimeType: 'image/png',
+            sizeBytes: 1024,
+            rejectionReasonCode: null,
+            rejectionNote: null,
+            reviewedAt: null,
+            deletedAt: null,
+            version: 1,
+          },
+        ],
+      }),
+    });
+    const view = render(
+      <UserDetailView
+        id={customer.id}
+        client={fake}
+        capabilitiesOverride={['branch:all', 'user:read', 'identity-verification:read']}
+      />,
+    );
+    expect(await screen.findByRole('heading', { name: 'Verifikasi Identitas' })).toBeVisible();
+    expect(screen.getByText('PENDING · FINALIZED · CLEAN')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Periksa dokumen/ })).toHaveAttribute(
+      'href',
+      '/identity-verifications?customerUserId=customer-1',
+    );
+    expect(view.container.querySelector('img')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nonaktifkan' })).not.toBeInTheDocument();
+  });
+
   it('manages lifecycle from the dedicated user detail page', async () => {
     window.history.replaceState({}, '', '/users/user-1');
     const user = {
@@ -168,8 +341,25 @@ describe('identity UI', () => {
     expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1, 'akses selesai');
   });
 
-  it('defaults user mutations to deny and exposes the fixed role matrix separately', async () => {
-    const fake = client();
+  it('defaults user mutations to deny and exposes searchable dynamic role management', async () => {
+    const fake = client({
+      roleCatalog: vi.fn().mockResolvedValue([
+        {
+          role: 'FINANCE',
+          capabilities: ['user:read', 'finance:reconcile'],
+          assignable: true,
+          readOnly: false,
+          scope: 'GLOBAL',
+        },
+        {
+          role: 'MANAGER',
+          capabilities: ['user:read', 'ledger:adjust:decide'],
+          assignable: true,
+          readOnly: false,
+          scope: 'BRANCH',
+        },
+      ]),
+    });
     const users = render(<UsersView client={fake} />);
     await screen.findByText('Total pengguna');
     expect(
@@ -177,10 +367,25 @@ describe('identity UI', () => {
     ).not.toBeInTheDocument();
     users.unmount();
 
-    const matrix = render(<RolePermissionsView client={fake} />);
+    const dynamicAccess = accessClient();
+    const matrix = render(
+      <AppFeedbackProvider>
+        <RolePermissionsView
+          identityClient={fake}
+          accessClient={dynamicAccess}
+          masterClient={masterClient()}
+        />
+      </AppFeedbackProvider>,
+    );
     expect(await screen.findByRole('heading', { name: 'Roles & Permissions' })).toBeVisible();
-    expect(await screen.findByRole('region', { name: 'Matrix capability role' })).toBeVisible();
-    expect(screen.getByRole('link', { name: /Kelola pengguna/ })).toHaveAttribute('href', '/users');
+    expect(await screen.findByText('Manager cabang.')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Daftar pengguna/ })).toHaveAttribute('href', '/users');
+    await userEvent.type(screen.getByLabelText('Cari capability'), 'ledger');
+    expect(screen.getByText('ledger:adjust:decide')).toBeVisible();
+    expect(screen.queryByText('user:read')).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Cari capability'));
+    await userEvent.type(screen.getByLabelText('Cari capability'), 'tidak-ada');
+    expect(screen.queryByText('ledger:adjust:decide')).not.toBeInTheDocument();
     expect((await axe(matrix.container)).violations).toHaveLength(0);
   });
 
@@ -256,7 +461,11 @@ describe('identity UI', () => {
 });
 
 const assignmentClient = (overrides: Partial<AssignmentClient> = {}): AssignmentClient => ({
-  list: vi.fn().mockResolvedValue([]),
+  list: vi.fn().mockResolvedValue({
+    items: [],
+    summary: { total: 0, active: 0, ended: 0 },
+    page: { nextCursor: null, hasMore: false },
+  }),
   listUsers: vi.fn().mockResolvedValue([]),
   create: vi.fn().mockResolvedValue(undefined),
   end: vi.fn().mockResolvedValue(undefined),
@@ -266,41 +475,65 @@ const assignmentClient = (overrides: Partial<AssignmentClient> = {}): Assignment
 describe('assignment UI', () => {
   const branches = [{ id: 'branch-1', code: 'GG', name: 'Green Garden' }];
   it('is accessible and exposes scoped loading/empty state', async () => {
-    const view = render(<AssignmentsView client={assignmentClient()} branchOptions={branches} />);
-    expect((await axe(view.container)).violations).toHaveLength(0);
-    expect(screen.getByText(/Belum ada assignment/)).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('Cabang aktif'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat assignment' }));
+    const view = render(
+      <AssignmentsView
+        client={assignmentClient()}
+        branchOptions={branches}
+        access={{ canRead: true, canManage: true }}
+      />,
+    );
     expect(await screen.findByText(/Belum ada assignment/)).toBeInTheDocument();
-    expect(screen.queryByText(/All branches/i)).not.toBeInTheDocument();
+    expect((await axe(view.container)).violations).toHaveLength(0);
+    expect(screen.getByText(/Semua cabang yang diizinkan/)).toBeInTheDocument();
   });
 
   it('creates and ends with expected version through keyboard-operable forms', async () => {
     const fake = assignmentClient({
       listUsers: vi.fn().mockResolvedValue([{ id: 'user-1', displayName: 'Instructor Satu' }]),
-      list: vi.fn().mockResolvedValue([
-        {
-          id: 'assignment-1',
-          userId: 'user-1',
-          branchId: 'branch-1',
-          assignmentType: 'INSTRUCTOR',
-          activeFrom: '2026-08-01',
-          activeUntil: null,
-          version: 3,
-        },
-      ]),
+      list: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'assignment-1',
+            userId: 'user-1',
+            branchId: 'branch-1',
+            assignmentType: 'INSTRUCTOR',
+            activeFrom: '2026-08-01',
+            activeUntil: null,
+            status: 'ACTIVE',
+            user: { id: 'user-1', displayName: 'Instructor Satu', phoneMasked: null },
+            branch: { id: 'branch-1', code: 'GG', name: 'Green Garden' },
+            version: 3,
+          },
+        ],
+        summary: { total: 1, active: 1, ended: 0 },
+        page: { nextCursor: null, hasMore: false },
+      }),
     });
-    render(<AssignmentsView client={fake} branchOptions={branches} />);
-    await userEvent.selectOptions(screen.getByLabelText('Cabang aktif'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat assignment' }));
-    await userEvent.selectOptions(screen.getByLabelText('Pengguna'), 'user-1');
-    await userEvent.type(screen.getByLabelText('Aktif mulai'), '2026-08-01');
-    await userEvent.type(screen.getByLabelText('Alasan'), 'assignment baru');
+    render(
+      <AssignmentsView
+        client={fake}
+        branchOptions={branches}
+        activeBranchId="branch-1"
+        access={{ canRead: true, canManage: true }}
+      />,
+    );
+    await screen.findAllByText('Instructor Satu');
     await userEvent.click(screen.getByRole('button', { name: 'Buat assignment' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('berhasil dibuat');
-    await userEvent.type(screen.getByLabelText('Efektif berakhir'), '2026-08-10T00:00');
-    await userEvent.type(screen.getByLabelText('Alasan akhir'), 'periode selesai');
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi akhiri' }));
+    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat assignment' });
+    expect(assignmentDialog).toBeVisible();
+    const assignmentForm = within(assignmentDialog);
+    await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
+    await userEvent.click(await assignmentForm.findByRole('button', { name: /Instructor Satu/ }));
+    await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
+    await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'assignment baru');
+    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
+    expect(fake.create).toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole('button', { name: 'Akhiri' }));
+    const endDialog = await screen.findByRole('dialog', { name: 'Akhiri assignment' });
+    const endForm = within(endDialog);
+    await userEvent.type(endForm.getByLabelText(/Efektif berakhir/), '2026-08-10T00:00');
+    await userEvent.type(endForm.getByLabelText(/Alasan/), 'periode selesai');
+    await userEvent.click(endForm.getByRole('button', { name: 'Akhiri assignment' }));
     expect(fake.end).toHaveBeenCalledWith('assignment-1', '2026-08-10T00:00', 3, 'periode selesai');
   });
 
@@ -313,19 +546,36 @@ describe('assignment UI', () => {
     render(
       <AssignmentsView
         branchOptions={branches}
+        activeBranchId="branch-1"
+        access={{ canRead: true, canManage: true }}
         client={assignmentClient({
           listUsers: vi.fn().mockResolvedValue([{ id: 'user-1', displayName: 'Instructor Satu' }]),
           create: vi.fn().mockRejectedValue({ response: { status } }),
         })}
       />,
     );
-    await userEvent.selectOptions(screen.getByLabelText('Cabang aktif'), 'branch-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Muat assignment' }));
-    await userEvent.selectOptions(screen.getByLabelText('Pengguna'), 'user-1');
-    await userEvent.type(screen.getByLabelText('Aktif mulai'), '2026-08-01');
-    await userEvent.type(screen.getByLabelText('Alasan'), 'test failure');
     await userEvent.click(screen.getByRole('button', { name: 'Buat assignment' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(code);
+    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat assignment' });
+    const assignmentForm = within(assignmentDialog);
+    await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
+    await userEvent.click(await assignmentForm.findByRole('button', { name: /Instructor Satu/ }));
+    await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
+    await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'test failure');
+    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
+    expect(
+      await screen.findByText(
+        new RegExp(
+          code === 'FORBIDDEN'
+            ? 'tidak memiliki izin'
+            : code === 'RESOURCE_NOT_FOUND'
+              ? 'tidak ditemukan'
+              : code === 'VALIDATION_ERROR'
+                ? 'Periksa kembali'
+                : 'bertabrakan',
+          'i',
+        ),
+      ),
+    ).toBeInTheDocument();
   });
 });
 
@@ -343,10 +593,13 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
 
 describe('effective master UI', () => {
   it('is accessible and has no production numeric defaults', async () => {
-    const view = render(<MasterView client={masterClient()} />);
+    const view = render(
+      <MasterView client={masterClient()} access={{ canManage: true, canFinance: true }} />,
+    );
     expect((await axe(view.container)).violations).toHaveLength(0);
-    expect(screen.getByLabelText('Minimum peserta')).toHaveValue(null);
-    expect(screen.getByLabelText('Kapasitas maksimum')).toHaveValue(null);
+    await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
+    expect(screen.getByLabelText(/Minimum peserta/)).toHaveValue(null);
+    expect(screen.getByLabelText(/Kapasitas maksimum/)).toHaveValue(null);
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(await screen.findByRole('status')).toHaveTextContent('berhasil dimuat');
   });
@@ -369,13 +622,14 @@ describe('effective master UI', () => {
           { id: 'class-1', code: 'REFORMER', name: 'Reformer Pilates', active: true, version: 0 },
         ]),
     });
-    render(<MasterView client={fake} />);
+    render(<MasterView client={fake} access={{ canManage: true, canFinance: true }} />);
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     await screen.findByText('Daily Dose Jakarta');
-    await userEvent.type(screen.getByLabelText('Minimum peserta'), '4');
-    await userEvent.type(screen.getByLabelText('Kapasitas maksimum'), '8');
-    await userEvent.type(screen.getByLabelText('Efektif mulai'), '2026-08-01');
-    await userEvent.type(screen.getByLabelText('Alasan perubahan'), 'Penyesuaian operasional');
+    await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
+    await userEvent.type(screen.getByLabelText(/Minimum peserta/), '4');
+    await userEvent.type(screen.getByLabelText(/Kapasitas maksimum/), '8');
+    await userEvent.type(screen.getByLabelText(/Efektif mulai/), '2026-08-01');
+    await userEvent.type(screen.getByLabelText(/Alasan perubahan/), 'Penyesuaian operasional');
     await userEvent.click(screen.getByRole('button', { name: 'Simpan konfigurasi' }));
     expect(fake.createSetting).toHaveBeenCalledWith(
       expect.objectContaining({ value: 4, capacity: 8 }),

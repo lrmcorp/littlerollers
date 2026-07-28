@@ -16,10 +16,12 @@ import { AuditModule } from './audit/audit.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PublicContentModule } from './public-content/public-content.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
     ConfigModule,
+    EmailModule,
     DatabaseModule,
     FoundationModule,
     HealthModule,

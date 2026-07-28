@@ -8,6 +8,7 @@ import 'package:built_value/json_object.dart';
 import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 
+import 'dart:typed_data';
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/approval_result.dart';
 import 'package:openapi/src/model/approve_purchase_request.dart';
@@ -15,7 +16,7 @@ import 'package:openapi/src/model/attach_order_proof_command.dart';
 import 'package:openapi/src/model/checkout_options.dart';
 import 'package:openapi/src/model/create_order_command.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
-import 'package:openapi/src/model/download_authorization.dart';
+import 'package:openapi/src/model/date.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
 import 'package:openapi/src/model/order.dart';
@@ -24,10 +25,12 @@ import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_page.dart';
 import 'package:openapi/src/model/payment_proof.dart';
 import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
+import 'package:openapi/src/model/payment_proof_view_authorization.dart';
+import 'package:openapi/src/model/payment_review_detail.dart';
+import 'package:openapi/src/model/payment_review_page.dart';
 import 'package:openapi/src/model/public_package_catalog.dart';
 import 'package:openapi/src/model/public_package_detail.dart';
 import 'package:openapi/src/model/purchase.dart';
-import 'package:openapi/src/model/purchase_page.dart';
 import 'package:openapi/src/model/replace_payment_proof_command.dart';
 import 'package:openapi/src/model/resource.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
@@ -249,6 +252,87 @@ class PackagesApi {
     );
   }
 
+  /// authorizeOwnOrderPaymentProofView
+  /// Issues a short-lived one-time authorization for the authenticated customer to view the CLEAN proof currently attached to their own order.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [PaymentProofViewAuthorization] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<PaymentProofViewAuthorization>> authorizeOwnOrderPaymentProofView({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/orders/{id}/payment-proof/view-authorizations'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    PaymentProofViewAuthorization? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(PaymentProofViewAuthorization),
+      ) as PaymentProofViewAuthorization;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<PaymentProofViewAuthorization>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// authorizePaymentProofDownload
   /// 
   ///
@@ -261,9 +345,9 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [DownloadAuthorization] as data
+  /// Returns a [Future] containing a [Response] with a [PaymentProofViewAuthorization] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<DownloadAuthorization>> authorizePaymentProofDownload({ 
+  Future<Response<PaymentProofViewAuthorization>> authorizePaymentProofDownload({ 
     required String id,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -299,14 +383,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    DownloadAuthorization? _responseData;
+    PaymentProofViewAuthorization? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(DownloadAuthorization),
-      ) as DownloadAuthorization;
+        specifiedType: const FullType(PaymentProofViewAuthorization),
+      ) as PaymentProofViewAuthorization;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -318,7 +402,7 @@ class PackagesApi {
       );
     }
 
-    return Response<DownloadAuthorization>(
+    return Response<PaymentProofViewAuthorization>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -993,6 +1077,94 @@ class PackagesApi {
     );
   }
 
+  /// getPaymentReviewDetail
+  /// Capability and branch-scoped reviewer detail with masked customer, private-proof metadata, authoritative balance, usage history, timeline, and persisted activation result.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [usageCursor] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [PaymentReviewDetail] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<PaymentReviewDetail>> getPaymentReviewDetail({ 
+    required String id,
+    String? usageCursor,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/purchases/{id}'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (usageCursor != null) r'usageCursor': encodeQueryParameter(_serializers, usageCursor, const FullType(String)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    PaymentReviewDetail? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(PaymentReviewDetail),
+      ) as PaymentReviewDetail;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<PaymentReviewDetail>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// getPublicPackageDetail
   /// 
   ///
@@ -1074,6 +1246,10 @@ class PackagesApi {
   /// Parameters:
   /// * [status] 
   /// * [cursor] 
+  /// * [q] 
+  /// * [from] 
+  /// * [until] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1086,6 +1262,10 @@ class PackagesApi {
   Future<Response<OrderPage>> listOrders({ 
     String? status,
     String? cursor,
+    String? q,
+    Date? from,
+    Date? until,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1115,6 +1295,10 @@ class PackagesApi {
     final _queryParameters = <String, dynamic>{
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(
@@ -1327,12 +1511,17 @@ class PackagesApi {
   }
 
   /// listPurchases
-  /// 
+  /// Capability-scoped payment review queue. Omitted branchId means every authorized branch, including global scope for Super Owner and Finance.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
   /// * [cursor] 
   /// * [status] 
+  /// * [limit] 
+  /// * [q] 
+  /// * [from] 
+  /// * [until] 
+  /// * [purchaseId] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1340,12 +1529,17 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [PurchasePage] as data
+  /// Returns a [Future] containing a [Response] with a [PaymentReviewPage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<PurchasePage>> listPurchases({ 
+  Future<Response<PaymentReviewPage>> listPurchases({ 
     String? branchId,
     String? cursor,
     String? status,
+    int? limit = 20,
+    String? q,
+    DateTime? from,
+    DateTime? until,
+    String? purchaseId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1376,6 +1570,11 @@ class PackagesApi {
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
+      if (purchaseId != null) r'purchaseId': encodeQueryParameter(_serializers, purchaseId, const FullType(String)),
     };
 
     final _response = await _dio.request<Object>(
@@ -1387,14 +1586,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    PurchasePage? _responseData;
+    PaymentReviewPage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(PurchasePage),
-      ) as PurchasePage;
+        specifiedType: const FullType(PaymentReviewPage),
+      ) as PaymentReviewPage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -1406,7 +1605,7 @@ class PackagesApi {
       );
     }
 
-    return Response<PurchasePage>(
+    return Response<PaymentReviewPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1825,6 +2024,85 @@ class PackagesApi {
     }
 
     return Response<PaymentProof>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// viewAuthorizedPaymentProofContent
+  /// Consumes a one-time viewer-bound payment proof authorization issued for Finance review or customer self-view.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Uint8List] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Uint8List>> viewAuthorizedPaymentProofContent({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/uploads/payment-proofs/view-authorizations/{id}/content'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      responseType: ResponseType.bytes,
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Uint8List? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : rawResponse as Uint8List;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Uint8List>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

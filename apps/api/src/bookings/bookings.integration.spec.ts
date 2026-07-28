@@ -27,7 +27,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     db as never,
     new IdempotencyService(db as never),
     new PolicyService(),
-    { value: { booking: { syntheticEnabled: true, cutoffHours: 2 } } } as never,
+    { value: { booking: { enabled: true, cutoffHours: 2 } } } as never,
   );
 
   beforeAll(async () => {
@@ -220,9 +220,45 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         id: customerPackageIds[0],
         packageId,
         available: 10,
+        projectedAvailable: 9,
       }),
     ]);
+    expect(result.eligibility).toMatchObject({
+      canBook: true,
+      reasonCode: null,
+      requiredAction: null,
+    });
     expect(result.packages.some(({ id }) => id === customerPackageIds[1])).toBe(false);
+  });
+
+  it('returns actionable eligibility without exposing another customer package', async () => {
+    await db.identityVerificationDocument.updateMany({
+      where: { userId: customerIds[1], kind: 'KTP_FRONT' },
+      data: { status: 'PENDING' },
+    });
+    try {
+      const result = await service.customerOptions(
+        {
+          sessionId: `${namespace}-unverified`,
+          userId: customerIds[1],
+          roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+          capabilities: ['customer:self', 'booking:self:read', 'booking:self:create'],
+          branchIds: [],
+        },
+        slotId,
+      );
+      expect(result.eligibility).toMatchObject({
+        canBook: false,
+        reasonCode: 'IDENTITY_VERIFICATION_REQUIRED',
+        requiredAction: 'COMPLETE_IDENTITY_VERIFICATION',
+      });
+      expect(result.packages.every(({ id }) => id === customerPackageIds[1])).toBe(true);
+    } finally {
+      await db.identityVerificationDocument.updateMany({
+        where: { userId: customerIds[1], kind: 'KTP_FRONT' },
+        data: { status: 'APPROVED' },
+      });
+    }
   });
 
   it('atomically creates one booking/reservation/audit/event and replays it', async () => {
@@ -314,7 +350,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       db as never,
       new IdempotencyService(db as never),
       new PolicyService(),
-      { value: { booking: { syntheticEnabled: false, cutoffHours: null } } } as never,
+      { value: { booking: { enabled: false, cutoffHours: null } } } as never,
     );
     await expect(
       gated.create(
@@ -411,5 +447,105 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     );
     expect(sessionResults.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
     expect(await db.booking.count({ where: { classSlotId: { in: [...sessionSlotIds] } } })).toBe(1);
+  });
+
+  it('separates customer upcoming/history and paginates by class time without duplicates', async () => {
+    const now = Date.now();
+    const timelineSlots = [
+      {
+        id: randomUUID(),
+        startAt: new Date(now - 3 * 3_600_000),
+        endAt: new Date(now - 2 * 3_600_000),
+        status: 'COMPLETED' as const,
+      },
+      {
+        id: randomUUID(),
+        startAt: new Date(now + 18 * 3_600_000),
+        endAt: new Date(now + 19 * 3_600_000),
+        status: 'PUBLISHED' as const,
+      },
+      {
+        id: randomUUID(),
+        startAt: new Date(now + 16 * 3_600_000),
+        endAt: new Date(now + 17 * 3_600_000),
+        status: 'PUBLISHED' as const,
+      },
+    ];
+    await db.classSlot.createMany({
+      data: timelineSlots.map((slot) => ({
+        ...slot,
+        branchId,
+        classTypeId,
+        timezone: 'Asia/Jakarta',
+        minimumQuota: 1,
+        capacity: 5,
+      })),
+    });
+    for (const slot of timelineSlots) {
+      const reservationId = randomUUID();
+      await db.sessionReservation.create({
+        data: {
+          id: reservationId,
+          customerPackageId: customerPackageIds[1],
+          classSlotId: slot.id,
+          referenceHash: `${namespace}-timeline-${slot.id}`,
+        },
+      });
+      await db.booking.create({
+        data: {
+          id: randomUUID(),
+          branchId,
+          classSlotId: slot.id,
+          customerUserId: customerIds[1],
+          customerPackageId: customerPackageIds[1],
+          reservationId,
+          createdById: customerIds[1],
+          source: 'SELF',
+        },
+      });
+    }
+    const customerPrincipal = {
+      sessionId: `${namespace}-timeline-customer`,
+      userId: customerIds[1],
+      roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+      capabilities: ['customer:self', 'booking:self:read', 'booking:self:create'],
+      branchIds: [],
+    };
+
+    const upcoming = await service.list(customerPrincipal, {
+      timeline: 'UPCOMING',
+      limit: 100,
+    });
+    expect(upcoming.items.map((item) => item.classSlot!.id)).toEqual(
+      expect.arrayContaining([timelineSlots[1]!.id, timelineSlots[2]!.id]),
+    );
+    expect(
+      upcoming.items.every(
+        (item, index, items) =>
+          index === 0 ||
+          items[index - 1]!.classSlot!.startAt.getTime() <= item.classSlot!.startAt.getTime(),
+      ),
+    ).toBe(true);
+    expect(upcoming.items.some((item) => item.classSlot!.id === timelineSlots[0]!.id)).toBe(false);
+
+    const history = await service.list(customerPrincipal, {
+      timeline: 'HISTORY',
+      limit: 100,
+    });
+    expect(history.items.some((item) => item.classSlot!.id === timelineSlots[0]!.id)).toBe(true);
+    expect(history.items.some((item) => item.classSlot!.id === timelineSlots[1]!.id)).toBe(false);
+
+    const firstPage = await service.list(customerPrincipal, {
+      timeline: 'UPCOMING',
+      limit: 1,
+    });
+    expect(firstPage.page.hasMore).toBe(true);
+    expect(firstPage.page.nextCursor).not.toBeNull();
+    const secondPage = await service.list(customerPrincipal, {
+      timeline: 'UPCOMING',
+      cursor: firstPage.page.nextCursor!,
+      limit: 1,
+    });
+    expect(secondPage.items[0]?.id).not.toBe(firstPage.items[0]?.id);
   });
 });

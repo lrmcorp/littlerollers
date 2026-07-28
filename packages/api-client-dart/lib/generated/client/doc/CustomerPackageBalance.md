@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **customerUserId** | **String** |  | 
 **packageId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**customer** | [**AdjustmentCustomer**](AdjustmentCustomer.md) |  | [optional] 
 **packageName** | **String** |  | [optional] 
 **branchName** | **String** |  | [optional] 
 **classTypeName** | **String** |  | [optional] 

@@ -14,7 +14,8 @@ test('reviewer searches a customer, compares document states and approves with c
         branchIds: [],
         sessionExpiresAt: '2027-07-27T02:00:00.000Z',
         capabilities: [
-          'identity-verification:review',
+          'identity-verification:read',
+          'identity-verification:decide',
           'identity-verification:delete',
           'branch:all',
         ],

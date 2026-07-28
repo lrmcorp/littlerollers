@@ -11,8 +11,9 @@ import {
 import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '../identity-client';
-import { SearchableLookup } from '../components/admin/admin-ui';
+import { Button, SearchableLookup, Tabs } from '../components/admin/admin-ui';
 import { PublicProfileEditor } from './public-profile-editor';
+import { DateInput, SelectInput, TextInput } from '../components/forms';
 
 type Branches = Awaited<ReturnType<MasterClient['listBranches']>>;
 type ClassTypes = Awaited<ReturnType<MasterClient['listClassTypes']>>;
@@ -66,15 +67,23 @@ export function MasterView({
   client = browserMasterClient,
   activeTab = 'branches',
   onTabChange,
+  access,
 }: {
   client?: MasterClient;
   activeTab?: MasterTab;
   onTabChange?: (tab: MasterTab) => void;
+  access?: { canManage: boolean; canFinance: boolean };
 }) {
   const [branchId, setBranchId] = useActiveBranchState();
+  const [selectedTab, setSelectedTab] = useState<MasterTab>(activeTab);
+  useEffect(() => setSelectedTab(activeTab), [activeTab]);
   const sessionContext = useSessionContext();
-  const canManage = !sessionContext || sessionContext.hasCapability('master:manage');
-  const canFinance = !sessionContext || sessionContext.hasCapability('finance:manage');
+  const canManage =
+    access?.canManage ??
+    (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('master:manage'));
+  const canFinance =
+    access?.canFinance ??
+    (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('finance:manage'));
   const [classTypeId, setClassTypeId] = useState('');
   const [kind, setKind] = useState<MasterKind>('QUOTA_CAPACITY');
   const [branches, setBranches] = useState<Branches>([]);
@@ -173,58 +182,45 @@ export function MasterView({
             </>
           }
         />
-        <div
-          className="-mx-1 mb-5 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto px-1 pb-2"
-          role="tablist"
-          aria-label="Bagian data master"
-        >
-          {tabItems.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={
-                activeTab === tab.id
-                  ? '!w-auto shrink-0 border-dd-forest bg-dd-forest text-white'
-                  : '!w-auto shrink-0 border-dd-line bg-dd-surface text-dd-ink'
+        <div className="my-5">
+          <Tabs
+            items={tabItems.map((tab) => ({ value: tab.id, label: tab.label }))}
+            value={selectedTab}
+            onChange={(value) => {
+              const tab = tabItems.find((item) => item.id === value);
+              if (!tab) return;
+              setSelectedTab(tab.id);
+              onTabChange?.(tab.id);
+              if (tab.kind) {
+                setKind(tab.kind);
+                if (branchId)
+                  void run(
+                    async () => setSettings(await client.listSettings(tab.kind!, branchId)),
+                    'Daftar konfigurasi diperbarui.',
+                  );
               }
-              onClick={() => {
-                onTabChange?.(tab.id);
-                if (tab.kind) {
-                  setKind(tab.kind);
-                  if (branchId)
-                    void run(
-                      async () => setSettings(await client.listSettings(tab.kind!, branchId)),
-                      'Daftar konfigurasi diperbarui.',
-                    );
-                }
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+            }}
+          />
         </div>
         <div className="flex flex-wrap items-end justify-between gap-3">
           {!sessionContext && (
-            <label className="grid min-w-[240px] flex-1 gap-2">
-              Cabang aktif
-              <select
-                value={branchId}
-                onChange={(event) => {
-                  const selected = event.target.value;
-                  setBranchId(selected);
-                  void run(() => loadBranchContent(selected), 'Data cabang berhasil dimuat.');
-                }}
-              >
-                <option value="">Pilih cabang</option>
-                {branches.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.code}){item.active ? '' : ' — nonaktif'}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectInput
+              label="Cabang aktif"
+              wrapperClassName="min-w-[240px] flex-1"
+              value={branchId}
+              onChange={(event) => {
+                const selected = event.target.value;
+                setBranchId(selected);
+                void run(() => loadBranchContent(selected), 'Data cabang berhasil dimuat.');
+              }}
+            >
+              <option value="">Pilih cabang</option>
+              {branches.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} ({item.code}){item.active ? '' : ' — nonaktif'}
+                </option>
+              ))}
+            </SelectInput>
           )}
           {sessionContext && (
             <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-4 py-3">
@@ -236,122 +232,111 @@ export function MasterView({
               </strong>
             </div>
           )}
-          <button type="button" onClick={load} disabled={loading}>
+          <Button type="button" variant="secondary" onClick={load} disabled={loading}>
             {loading ? 'Memuat…' : sessionContext ? 'Refresh master data' : 'Muat master data'}
-          </button>
+          </Button>
         </div>
         {message && <Feedback kind="status">{message}</Feedback>}
         {failure && <Feedback kind="error">{failure}</Feedback>}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <form
-          className={`${activeTab === 'branches' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-          aria-label="Buat branch"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = event.currentTarget;
-            const data = new FormData(form);
-            void run(async () => {
-              await client.createBranch({
-                code: String(data.get('code')).trim().toUpperCase(),
-                name: String(data.get('name')).trim(),
-                timezone: String(data.get('timezone')).trim(),
-              });
-              form.reset();
-              await reloadCurrent();
-            }, 'Cabang berhasil dibuat.');
-          }}
-        >
-          <h2>Tambah cabang</h2>
-          <p className="text-dd-muted">Gunakan kode singkat yang konsisten untuk operasional.</p>
-          <label>
-            Kode cabang
-            <input name="code" placeholder="Contoh: DD-BDG" required />
-          </label>
-          <label>
-            Nama cabang
-            <input name="name" placeholder="Daily Dose Bandung" required />
-          </label>
-          <label>
-            Zona waktu
-            <input name="timezone" defaultValue="Asia/Jakarta" required />
-          </label>
-          <button type="submit" disabled={!canManage || loading}>
-            Simpan cabang
-          </button>
-        </form>
+        {selectedTab === 'branches' && (
+          <form
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            aria-label="Buat branch"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = event.currentTarget;
+              const data = new FormData(form);
+              void run(async () => {
+                await client.createBranch({
+                  code: String(data.get('code')).trim().toUpperCase(),
+                  name: String(data.get('name')).trim(),
+                  timezone: String(data.get('timezone')).trim(),
+                });
+                form.reset();
+                await reloadCurrent();
+              }, 'Cabang berhasil dibuat.');
+            }}
+          >
+            <h2>Tambah cabang</h2>
+            <p className="text-dd-muted">Gunakan kode singkat yang konsisten untuk operasional.</p>
+            <TextInput label="Kode cabang" name="code" placeholder="Contoh: DD-BDG" required />
+            <TextInput label="Nama cabang" name="name" placeholder="Daily Dose Bandung" required />
+            <TextInput label="Zona waktu" name="timezone" defaultValue="Asia/Jakarta" required />
+            <Button type="submit" disabled={!canManage || loading}>
+              Simpan cabang
+            </Button>
+          </form>
+        )}
 
-        <form
-          className={`${activeTab === 'classTypes' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-          aria-label="Buat class type"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = event.currentTarget;
-            const data = new FormData(form);
-            void run(async () => {
-              await client.createClassType({
-                branchId,
-                code: String(data.get('code')).trim().toUpperCase(),
-                name: String(data.get('name')).trim(),
-              });
-              form.reset();
-              await loadBranchContent(branchId);
-            }, 'Tipe kelas berhasil dibuat.');
-          }}
-        >
-          <h2>Tambah tipe kelas</h2>
-          <p className="text-dd-muted">Tipe kelas selalu terhubung ke cabang yang dipilih.</p>
-          <label>
-            Kode kelas
-            <input name="code" placeholder="Contoh: REFORMER" required />
-          </label>
-          <label>
-            Nama kelas
-            <input name="name" placeholder="Reformer Pilates" required />
-          </label>
-          <button type="submit" disabled={!branchId || !canManage || loading}>
-            Simpan tipe kelas
-          </button>
-        </form>
+        {selectedTab === 'classTypes' && (
+          <form
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            aria-label="Buat class type"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = event.currentTarget;
+              const data = new FormData(form);
+              void run(async () => {
+                await client.createClassType({
+                  branchId,
+                  code: String(data.get('code')).trim().toUpperCase(),
+                  name: String(data.get('name')).trim(),
+                });
+                form.reset();
+                await loadBranchContent(branchId);
+              }, 'Tipe kelas berhasil dibuat.');
+            }}
+          >
+            <h2>Tambah tipe kelas</h2>
+            <p className="text-dd-muted">Tipe kelas selalu terhubung ke cabang yang dipilih.</p>
+            <TextInput label="Kode kelas" name="code" placeholder="Contoh: REFORMER" required />
+            <TextInput label="Nama kelas" name="name" placeholder="Reformer Pilates" required />
+            <Button type="submit" disabled={!branchId || !canManage || loading}>
+              Simpan tipe kelas
+            </Button>
+          </form>
+        )}
       </div>
 
-      <form
-        className={`${['projection', 'capacity', 'fees'].includes(activeTab) ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-        aria-label="Buat effective setting"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const data = new FormData(form);
-          void run(async () => {
-            await client.createSetting({
-              kind,
-              branchId,
-              classTypeId,
-              instructorUserId: instructor?.id,
-              value: Number(data.get('value')),
-              capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
-              effectiveFrom: String(data.get('effectiveFrom')),
-              effectiveUntil: String(data.get('effectiveUntil')) || undefined,
-              reason: String(data.get('reason')).trim(),
-            });
-            form.reset();
-            setInstructor(undefined);
-            await loadBranchContent(branchId, kind);
-          }, 'Konfigurasi efektif berhasil dibuat.');
-        }}
-      >
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div>
-            <h2>Tambah konfigurasi efektif</h2>
-            <p className="text-dd-muted">
-              Versi baru berlaku pada periode yang dipilih dan tidak boleh tumpang tindih.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label>
-              Jenis konfigurasi
-              <select
+      {['projection', 'capacity', 'fees'].includes(selectedTab) && (
+        <form
+          className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+          aria-label="Buat effective setting"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const data = new FormData(form);
+            void run(async () => {
+              await client.createSetting({
+                kind,
+                branchId,
+                classTypeId,
+                instructorUserId: instructor?.id,
+                value: Number(data.get('value')),
+                capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
+                effectiveFrom: String(data.get('effectiveFrom')),
+                effectiveUntil: String(data.get('effectiveUntil')) || undefined,
+                reason: String(data.get('reason')).trim(),
+              });
+              form.reset();
+              setInstructor(undefined);
+              await loadBranchContent(branchId, kind);
+            }, 'Konfigurasi efektif berhasil dibuat.');
+          }}
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div>
+              <h2>Tambah konfigurasi efektif</h2>
+              <p className="text-dd-muted">
+                Versi baru berlaku pada periode yang dipilih dan tidak boleh tumpang tindih.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectInput
+                label="Jenis konfigurasi"
                 name="kind"
                 value={kind}
                 onChange={(event) => {
@@ -368,11 +353,9 @@ export function MasterView({
                     {label}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label>
-              Tipe kelas
-              <select
+              </SelectInput>
+              <SelectInput
+                label="Tipe kelas"
                 value={classTypeId}
                 onChange={(event) => setClassTypeId(event.target.value)}
                 required
@@ -385,59 +368,63 @@ export function MasterView({
                       {item.name} ({item.code})
                     </option>
                   ))}
-              </select>
-            </label>
-            {kind === 'INSTRUCTOR_FEE' && (
-              <SearchableLookup<LookupOption>
-                label="Instructor aktif"
-                value={instructor}
-                load={lookupInstructors}
-                onChange={setInstructor}
-                placeholder="Cari nama instructor"
+              </SelectInput>
+              {kind === 'INSTRUCTOR_FEE' && (
+                <SearchableLookup<LookupOption>
+                  label="Instructor aktif"
+                  value={instructor}
+                  load={lookupInstructors}
+                  onChange={setInstructor}
+                  placeholder="Cari nama instructor"
+                />
+              )}
+              <TextInput
+                label={kind === 'QUOTA_CAPACITY' ? 'Minimum peserta' : 'Nilai rupiah'}
+                name="value"
+                type="number"
+                min={kind === 'QUOTA_CAPACITY' ? 1 : 0}
+                required
               />
-            )}
-            <label>
-              {kind === 'QUOTA_CAPACITY' ? 'Minimum peserta' : 'Nilai rupiah'}
-              <input name="value" type="number" min={kind === 'QUOTA_CAPACITY' ? 1 : 0} required />
-            </label>
-            {kind === 'QUOTA_CAPACITY' && (
-              <label>
-                Kapasitas maksimum
-                <input name="capacity" type="number" min="1" required />
-              </label>
-            )}
-            <label>
-              Efektif mulai
-              <input name="effectiveFrom" type="date" required />
-            </label>
-            <label>
-              Efektif sampai (opsional)
-              <input name="effectiveUntil" type="date" />
-            </label>
-            <label className="sm:col-span-2">
-              Alasan perubahan
-              <input name="reason" placeholder="Jelaskan kebutuhan bisnis" minLength={3} required />
-            </label>
+              {kind === 'QUOTA_CAPACITY' && (
+                <TextInput
+                  label="Kapasitas maksimum"
+                  name="capacity"
+                  type="number"
+                  min="1"
+                  required
+                />
+              )}
+              <DateInput label="Efektif mulai" name="effectiveFrom" required />
+              <DateInput label="Efektif sampai (opsional)" name="effectiveUntil" />
+              <TextInput
+                label="Alasan perubahan"
+                wrapperClassName="sm:col-span-2"
+                name="reason"
+                placeholder="Jelaskan kebutuhan bisnis"
+                minLength={3}
+                required
+              />
+            </div>
           </div>
-        </div>
-        <button
-          type="submit"
-          disabled={
-            !branchId ||
-            !classTypeId ||
-            (kind === 'INSTRUCTOR_FEE' && !instructor) ||
-            !canManage ||
-            ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance) ||
-            loading
-          }
-        >
-          Simpan konfigurasi
-        </button>
-      </form>
+          <Button
+            type="submit"
+            disabled={
+              !branchId ||
+              !classTypeId ||
+              (kind === 'INSTRUCTOR_FEE' && !instructor) ||
+              !canManage ||
+              ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance) ||
+              loading
+            }
+          >
+            Simpan konfigurasi
+          </Button>
+        </form>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section
-          className={`${activeTab === 'branches' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
+          className={`${selectedTab === 'branches' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
           aria-labelledby="branch-list-title"
         >
           <h2 id="branch-list-title">Daftar cabang</h2>
@@ -457,8 +444,9 @@ export function MasterView({
                     </StatusBadge>
                   </div>
                   {item.active && (
-                    <button
+                    <Button
                       className="mt-3"
+                      variant="secondary"
                       type="button"
                       disabled={!canManage || loading}
                       onClick={() =>
@@ -469,7 +457,7 @@ export function MasterView({
                       }
                     >
                       Nonaktifkan cabang
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}
@@ -483,7 +471,7 @@ export function MasterView({
         </section>
 
         <section
-          className={`${activeTab === 'classTypes' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
+          className={`${selectedTab === 'classTypes' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
           aria-labelledby="class-list-title"
         >
           <h2 id="class-list-title">Tipe kelas</h2>
@@ -501,8 +489,9 @@ export function MasterView({
                     </StatusBadge>
                   </div>
                   {item.active && (
-                    <button
+                    <Button
                       className="mt-3"
+                      variant="secondary"
                       type="button"
                       disabled={!canManage || loading}
                       onClick={() =>
@@ -513,7 +502,7 @@ export function MasterView({
                       }
                     >
                       Nonaktifkan tipe kelas
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}
@@ -528,7 +517,7 @@ export function MasterView({
       </div>
 
       <section
-        className={`${['projection', 'capacity', 'fees'].includes(activeTab) ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
+        className={`${['projection', 'capacity', 'fees'].includes(selectedTab) ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
         aria-labelledby="setting-list-title"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -573,7 +562,7 @@ export function MasterView({
           />
         )}
       </section>
-      {activeTab === 'publicProfiles' && (
+      {selectedTab === 'publicProfiles' && (
         <PublicProfileEditor branchId={branchId} canManage={canManage} />
       )}
     </section>

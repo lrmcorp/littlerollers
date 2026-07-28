@@ -16,6 +16,8 @@ class _$Branch extends Branch {
   @override
   final String timezone;
   @override
+  final String? supportWhatsappE164;
+  @override
   final bool active;
   @override
   final int version;
@@ -28,6 +30,7 @@ class _$Branch extends Branch {
     required this.code,
     required this.name,
     required this.timezone,
+    this.supportWhatsappE164,
     required this.active,
     required this.version,
   }) : super._();
@@ -46,6 +49,7 @@ class _$Branch extends Branch {
         code == other.code &&
         name == other.name &&
         timezone == other.timezone &&
+        supportWhatsappE164 == other.supportWhatsappE164 &&
         active == other.active &&
         version == other.version;
   }
@@ -57,6 +61,7 @@ class _$Branch extends Branch {
     _$hash = $jc(_$hash, code.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, timezone.hashCode);
+    _$hash = $jc(_$hash, supportWhatsappE164.hashCode);
     _$hash = $jc(_$hash, active.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jf(_$hash);
@@ -70,6 +75,7 @@ class _$Branch extends Branch {
           ..add('code', code)
           ..add('name', name)
           ..add('timezone', timezone)
+          ..add('supportWhatsappE164', supportWhatsappE164)
           ..add('active', active)
           ..add('version', version))
         .toString();
@@ -95,6 +101,11 @@ class BranchBuilder implements Builder<Branch, BranchBuilder> {
   String? get timezone => _$this._timezone;
   set timezone(String? timezone) => _$this._timezone = timezone;
 
+  String? _supportWhatsappE164;
+  String? get supportWhatsappE164 => _$this._supportWhatsappE164;
+  set supportWhatsappE164(String? supportWhatsappE164) =>
+      _$this._supportWhatsappE164 = supportWhatsappE164;
+
   bool? _active;
   bool? get active => _$this._active;
   set active(bool? active) => _$this._active = active;
@@ -114,6 +125,7 @@ class BranchBuilder implements Builder<Branch, BranchBuilder> {
       _code = $v.code;
       _name = $v.name;
       _timezone = $v.timezone;
+      _supportWhatsappE164 = $v.supportWhatsappE164;
       _active = $v.active;
       _version = $v.version;
       _$v = null;
@@ -146,6 +158,7 @@ class BranchBuilder implements Builder<Branch, BranchBuilder> {
             r'Branch',
             'timezone',
           ),
+          supportWhatsappE164: supportWhatsappE164,
           active: BuiltValueNullFieldError.checkNotNull(
             active,
             r'Branch',

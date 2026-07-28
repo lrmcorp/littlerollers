@@ -37,6 +37,21 @@ void main() {
       // TODO
     });
 
+    // String status
+    test('to test the property `status`', () async {
+      // TODO
+    });
+
+    // AssignmentManagementUser user
+    test('to test the property `user`', () async {
+      // TODO
+    });
+
+    // AssignmentManagementBranch branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
     // int version
     test('to test the property `version`', () async {
       // TODO

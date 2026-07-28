@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **branchId** | **String** |  | 
 **branchName** | **String** |  | [optional] 
+**branchTimezone** | **String** |  | [optional] 
 **packageId** | **String** |  | 
 **packageName** | **String** |  | 
 **priceRp** | **int** |  | 
@@ -21,11 +22,15 @@ Name | Type | Description | Notes
 **durationDays** | **int** |  | 
 **status** | **String** |  | 
 **submittedAt** | [**DateTime**](DateTime.md) |  | 
+**decidedAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **expiresAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **continuationSlotId** | **String** |  | [optional] 
 **paymentProofId** | **String** |  | [optional] 
 **paymentProofStatus** | [**OrderPaymentProofStatus**](OrderPaymentProofStatus.md) |  | [optional] 
 **decisionReasonCode** | **String** |  | [optional] 
+**timelineComplete** | **bool** |  | 
+**activation** | [**CustomerOrderActivation**](CustomerOrderActivation.md) |  | [optional] 
+**timeline** | [**CustomerOrderTimelinePage**](CustomerOrderTimelinePage.md) |  | [optional] 
 **version** | **int** |  | 
 **paymentAccount** | [**OrderPaymentAccount**](OrderPaymentAccount.md) |  | [optional] 
 

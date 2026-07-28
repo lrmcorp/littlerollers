@@ -14,6 +14,7 @@ part 'approve_purchase_request.g.dart';
 /// Properties:
 /// * [reasonCode] 
 /// * [expectedVersion] 
+/// * [note] 
 @BuiltValue()
 abstract class ApprovePurchaseRequest implements Built<ApprovePurchaseRequest, ApprovePurchaseRequestBuilder> {
   @BuiltValueField(wireName: r'reasonCode')
@@ -22,6 +23,9 @@ abstract class ApprovePurchaseRequest implements Built<ApprovePurchaseRequest, A
 
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
+
+  @BuiltValueField(wireName: r'note')
+  String? get note;
 
   ApprovePurchaseRequest._();
 
@@ -56,6 +60,13 @@ class _$ApprovePurchaseRequestSerializer implements PrimitiveSerializer<ApproveP
       object.expectedVersion,
       specifiedType: const FullType(int),
     );
+    if (object.note != null) {
+      yield r'note';
+      yield serializers.serialize(
+        object.note,
+        specifiedType: const FullType(String),
+      );
+    }
   }
 
   @override
@@ -92,6 +103,13 @@ class _$ApprovePurchaseRequestSerializer implements PrimitiveSerializer<ApproveP
             specifiedType: const FullType(int),
           ) as int;
           result.expectedVersion = valueDes;
+          break;
+        case r'note':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.note = valueDes;
           break;
         default:
           unhandled.add(key);

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   browserSessionClient,
@@ -12,6 +12,8 @@ import {
 } from './session-client';
 import { Feedback, Skeleton } from './ui';
 import { isPublicExperiencePath } from './session-audience';
+import { useOptionalAppFeedback } from './components/app-feedback';
+import { useTrackedRouter } from './components/app-loading';
 
 const ACTIVE_BRANCH_KEY = 'dd_active_branch';
 const anonymousEntryPaths = new Set([
@@ -28,7 +30,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/account/settings', []],
   ['/account/security', []],
   ['/account', ['customer:self']],
-  ['/identity-verifications', ['identity-verification:review']],
+  ['/identity-verifications', ['identity-verification:read']],
   ['/audit', ['audit:read']],
   ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
@@ -38,12 +40,14 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/orders', ['customer:self']],
   ['/account/packages', ['customer:self']],
   ['/workspace/payments', ['payment:review', 'purchase:review']],
+  ['/workspace/bookings', ['booking:read', 'reschedule:read']],
   ['/purchases', ['package:read', 'payment:review', 'purchase:review']],
   ['/finance', ['finance:reconcile']],
   ['/ledger', ['ledger:read']],
+  ['/health', ['operations:read']],
   ['/workspace/classes', ['class-slot:read']],
   ['/operations', ['operations:read']],
-  ['/bookings', ['booking:read', 'booking:self:read']],
+  ['/bookings', ['booking:self:read', 'booking:read']],
   ['/check-in-scanner', ['attendance:manage']],
 ];
 
@@ -102,8 +106,11 @@ export function defaultSessionDestination(session: WebSession): string {
 }
 
 export function forbiddenSessionDestination(session: WebSession, pathname: string): string {
+  const customerOnly =
+    session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  if (customerOnly && pathname.startsWith('/workspace/bookings')) return '/bookings';
   if (pathname === '/account/verification' && session.roles.some((role) => internalRoles.has(role)))
-    return session.capabilities.includes('identity-verification:review')
+    return session.capabilities.includes('identity-verification:read')
       ? '/identity-verifications'
       : '/workspace';
   return defaultSessionDestination(session);
@@ -114,6 +121,7 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
   if (isPublicExperiencePath(path)) return true;
   const customerOnly =
     session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
   if (
     customerOnly &&
@@ -161,7 +169,8 @@ export function SessionProvider({
   const [session, setSession] = useState<WebSession | null>(null);
   const [activeBranchId, setBranch] = useState('');
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useTrackedRouter();
+  const feedback = useOptionalAppFeedback();
 
   const setActiveBranchId = useCallback(
     (id: string) => {
@@ -250,14 +259,21 @@ export function SessionProvider({
   const logout = useCallback(async () => {
     try {
       await client.logout();
-    } finally {
-      setSession(null);
-      setBranch('');
-      sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
-      setStatus('unauthenticated');
-      router.replace('/sign-in');
+    } catch {
+      feedback?.showAlert({
+        tone: 'danger',
+        title: 'Keluar belum berhasil',
+        message:
+          'Sesi belum dapat ditutup dengan aman. Periksa koneksi lalu coba kembali sebelum meninggalkan perangkat ini.',
+      });
+      return;
     }
-  }, [client, router]);
+    setSession(null);
+    setBranch('');
+    sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
+    setStatus('unauthenticated');
+    router.replace('/sign-in');
+  }, [client, feedback, router]);
 
   const completeSignIn = useCallback(
     async (returnTo: string) => {
@@ -311,6 +327,7 @@ export function SessionProvider({
         <main className="content session-state">
           <Feedback kind="error">Konteks sesi tidak dapat dimuat.</Feedback>
           <button onClick={() => void refresh()}>Coba lagi</button>
+          <Link href="/">Kunjungi situs utama</Link>
         </main>
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
         <main className="content session-state">

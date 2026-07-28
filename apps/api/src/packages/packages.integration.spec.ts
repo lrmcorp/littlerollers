@@ -111,6 +111,9 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     reviews = new PaymentReviewService(db as never, idempotency, storage, access);
   });
   afterAll(async () => {
+    await db.paymentProofViewAuthorization.deleteMany({
+      where: { proof: { userId: actorId } },
+    });
     await db.idempotencyRecord.deleteMany({
       where: {
         OR: [{ scope: `purchase:${actorId}` }, { scope: { startsWith: 'purchase-decision:' } }],
@@ -186,6 +189,233 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         where: { eventType: 'purchase.submitted.v1', correlationId: `${namespace}-submit` },
       }),
     ).toBe(1);
+  });
+
+  it('lists a global reviewer queue with real filters, summary, masking and cursor scope', async () => {
+    const pkg = await db.package.findFirstOrThrow({ where: { branchId } });
+    const queueCustomerId = randomUUID();
+    const secondBranchId = randomUUID();
+    const pendingId = randomUUID();
+    const actionRequiredId = randomUUID();
+    const queuePhone = `+628${Date.now().toString().slice(-10)}`;
+    await db.user.create({
+      data: {
+        id: queueCustomerId,
+        displayName: 'Queue Customer',
+        phoneE164: queuePhone,
+      },
+    });
+    await db.branch.create({
+      data: {
+        id: secondBranchId,
+        code: `${namespace}-queue`,
+        name: 'Queue second branch',
+        timezone: 'Asia/Jakarta',
+      },
+    });
+    await db.purchase.createMany({
+      data: [
+        {
+          id: pendingId,
+          userId: queueCustomerId,
+          branchId,
+          packageId: pkg.id,
+          packageNameSnapshot: pkg.name,
+          priceRpSnapshot: pkg.priceRp,
+          payableAmountRpSnapshot: pkg.priceRp + 101,
+          paymentUniqueCode: 101,
+          sessionCountSnapshot: pkg.sessionCount,
+          durationDaysSnapshot: pkg.durationDays,
+          status: 'PENDING',
+          idempotencyKeyHash: `${namespace}-queue-pending`,
+          submittedAt: new Date(Date.now() - 30 * 60 * 60 * 1000),
+        },
+        {
+          id: actionRequiredId,
+          userId: queueCustomerId,
+          branchId: secondBranchId,
+          packageId: pkg.id,
+          packageNameSnapshot: pkg.name,
+          priceRpSnapshot: pkg.priceRp,
+          sessionCountSnapshot: pkg.sessionCount,
+          durationDaysSnapshot: pkg.durationDays,
+          status: 'ACTION_REQUIRED',
+          idempotencyKeyHash: `${namespace}-queue-action`,
+        },
+      ],
+    });
+    try {
+      const global = await reviews.list(reviewer, { q: 'Queue Customer', limit: 1 });
+      expect(global.items).toHaveLength(1);
+      expect(global.items[0]!.id).toBe(actionRequiredId);
+      expect(global.page).toMatchObject({ hasMore: true });
+      expect(global.items[0]).toMatchObject({
+        customer: {
+          id: queueCustomerId,
+          displayName: 'Queue Customer',
+          phoneMasked: expect.stringMatching(new RegExp(`${queuePhone.slice(-4)}$`)),
+        },
+        branch: { id: expect.any(String), name: expect.any(String) },
+      });
+      expect(global.summary).toMatchObject({
+        pending: 1,
+        actionRequired: 1,
+        agingOver24Hours: 1,
+      });
+      const detail = await reviews.get(reviewer, pendingId);
+      expect(detail).toMatchObject({
+        purchase: {
+          id: pendingId,
+          customer: { displayName: 'Queue Customer' },
+          branch: { id: branchId },
+        },
+        timeline: { submittedAt: expect.any(Date), decidedAt: null },
+        activation: null,
+      });
+
+      const secondPage = await reviews.list(reviewer, {
+        q: 'Queue Customer',
+        limit: 1,
+        cursor: global.page.nextCursor!,
+      });
+      expect(secondPage.items).toHaveLength(1);
+      expect(secondPage.items[0]!.id).not.toBe(global.items[0]!.id);
+
+      const filtered = await reviews.list(reviewer, {
+        status: 'ACTION_REQUIRED',
+        purchaseId: actionRequiredId,
+      });
+      expect(filtered.items.map(({ id }) => id)).toEqual([actionRequiredId]);
+      expect(filtered.summary.pending).toBeGreaterThanOrEqual(1);
+
+      const branchReviewer = {
+        ...reviewer,
+        capabilities: ['payment:review'],
+        branchIds: [branchId],
+      };
+      const scoped = await reviews.list(branchReviewer, { q: 'Queue Customer' });
+      expect(scoped.items.map(({ branch }) => branch.id)).toEqual([branchId]);
+      await expect(
+        reviews.list(branchReviewer, { branchId: secondBranchId }),
+      ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+      await expect(reviews.get(branchReviewer, actionRequiredId)).rejects.toMatchObject({
+        code: 'RESOURCE_NOT_FOUND',
+      });
+      await expect(
+        reviews.list({ ...reviewer, capabilities: ['package:read'], branchIds: [branchId] }),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    } finally {
+      await db.purchase.deleteMany({ where: { id: { in: [pendingId, actionRequiredId] } } });
+      await db.branch.delete({ where: { id: secondBranchId } });
+      await db.user.delete({ where: { id: queueCustomerId } });
+    }
+  });
+
+  it('issues reviewer-bound one-time proof preview and audits authorization and consumption', async () => {
+    const purchase = await db.purchase.findFirstOrThrow({
+      where: { userId: actorId, paymentProofId: { not: null } },
+      include: { paymentProof: true },
+    });
+    const proof = purchase.paymentProof!;
+    const authorization = await reviews.authorizeProofDownload(
+      reviewer,
+      proof.id,
+      `${namespace}-proof-authorized`,
+    );
+    expect(authorization.url).toMatch(/view-authorizations\/[^/]+\/content$/u);
+    const authorizationId = authorization.url.split('/').at(-2)!;
+    await expect(
+      reviews.viewProofContent(principal, authorizationId, `${namespace}-wrong-viewer`),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    const viewed = await reviews.viewProofContent(
+      reviewer,
+      authorizationId,
+      `${namespace}-proof-viewed`,
+    );
+    expect(viewed.mimeType).toBe(proof.mimeType);
+    expect(viewed.bytes.byteLength).toBe(proof.sizeBytes);
+    await expect(
+      reviews.viewProofContent(reviewer, authorizationId, `${namespace}-proof-replay`),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    expect(
+      await db.auditLog.count({
+        where: {
+          objectType: 'PaymentProof',
+          objectId: proof.id,
+          action: { in: ['payment-proof.view-authorized', 'payment-proof.viewed'] },
+        },
+      }),
+    ).toBe(2);
+  });
+
+  it('allows only the customer owner to preview the CLEAN proof attached to their order', async () => {
+    const purchase = await db.purchase.findFirstOrThrow({
+      where: { userId: actorId, paymentProofId: { not: null } },
+      include: { paymentProof: true },
+    });
+    const proof = purchase.paymentProof!;
+
+    await expect(
+      reviews.authorizeOwnOrderProof(
+        reviewer,
+        purchase.id,
+        `${namespace}-customer-proof-wrong-owner`,
+      ),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+
+    const expiredAuthorization = await reviews.authorizeOwnOrderProof(
+      principal,
+      purchase.id,
+      `${namespace}-customer-proof-expiring`,
+    );
+    const expiredAuthorizationId = expiredAuthorization.url.split('/').at(-2)!;
+    await db.paymentProofViewAuthorization.update({
+      where: { id: expiredAuthorizationId },
+      data: { expiresAt: new Date(Date.now() - 1_000) },
+    });
+    await expect(
+      reviews.viewProofContent(
+        principal,
+        expiredAuthorizationId,
+        `${namespace}-customer-proof-expired`,
+      ),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+
+    const authorization = await reviews.authorizeOwnOrderProof(
+      principal,
+      purchase.id,
+      `${namespace}-customer-proof-authorized`,
+    );
+    const authorizationId = authorization.url.split('/').at(-2)!;
+    await expect(
+      reviews.viewProofContent(
+        reviewer,
+        authorizationId,
+        `${namespace}-customer-proof-other-viewer`,
+      ),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+
+    const viewed = await reviews.viewProofContent(
+      principal,
+      authorizationId,
+      `${namespace}-customer-proof-viewed`,
+    );
+    expect(viewed).toMatchObject({ mimeType: proof.mimeType });
+    expect(viewed.bytes.byteLength).toBe(proof.sizeBytes);
+    await expect(
+      reviews.viewProofContent(principal, authorizationId, `${namespace}-customer-proof-replayed`),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+
+    expect(
+      await db.auditLog.count({
+        where: {
+          objectType: 'PaymentProof',
+          objectId: proof.id,
+          action: { in: ['payment-proof.view-authorized', 'payment-proof.viewed'] },
+          afterMasked: { path: '$.purpose', equals: 'CUSTOMER_SELF' },
+        },
+      }),
+    ).toBe(3);
   });
 
   it('rejects changed idempotent payload, unsafe proof, and overlapping package period', async () => {
@@ -398,6 +628,33 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       }),
     ).toBe(1);
     expect(pkg.sessionCount).toBe(customerPackage.sessionCountSnapshot);
+    const detail = await reviews.get(reviewer, purchase.id);
+    expect(detail).toMatchObject({
+      purchase: { status: 'APPROVED', auditReference: expect.any(String) },
+      timeline: { submittedAt: expect.any(Date), decidedAt: expect.any(Date) },
+      decisionActorMasked: expect.stringMatching(/^Staf •/),
+      activation: {
+        customerPackageId: customerPackage.id,
+        packageId: purchase.packageId,
+        sessionCount: purchase.sessionCountSnapshot,
+        ledgerEntryId: expect.any(String),
+        ledgerQuantity: purchase.sessionCountSnapshot,
+      },
+      balance: {
+        ledgerBalance: purchase.sessionCountSnapshot,
+        reserved: 0,
+        available: purchase.sessionCountSnapshot,
+      },
+      usageHistory: {
+        items: [
+          {
+            label: 'Paket diaktifkan',
+            quantity: purchase.sessionCountSnapshot,
+            balanceAfter: purchase.sessionCountSnapshot,
+          },
+        ],
+      },
+    });
   });
 
   it('completes order, private binary upload, synthetic scan, attach, Finance approval and reconciliation', async () => {
@@ -504,6 +761,34 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       order.paymentUniqueCode,
     );
     expect(reconciliation.metrics.approvedRp).toBeGreaterThanOrEqual(order.baseAmountRp);
+
+    const customerDetail = await orders.orderDetail(principal, order.id);
+    expect(customerDetail).toMatchObject({
+      status: 'APPROVED',
+      timelineComplete: true,
+      activation: {
+        customerPackageId: activated.id,
+        sessionCount: activated.sessionCountSnapshot,
+      },
+    });
+    expect((customerDetail as any).timeline.items.map((item: any) => item.type)).toEqual(
+      expect.arrayContaining([
+        'ORDER_CREATED',
+        'PAYMENT_DEADLINE_SET',
+        'PROOF_SUBMITTED',
+        'PROOF_SCAN_COMPLETED',
+        'PAYMENT_APPROVED',
+        'PACKAGE_ACTIVATED',
+      ]),
+    );
+    const customerPage = await orders.listOrders(principal, {
+      q: 'Package branch',
+      status: 'APPROVED',
+      limit: '1',
+    });
+    expect(customerPage.summary.total).toBeGreaterThan(0);
+    expect(customerPage.summary.approved).toBeGreaterThan(0);
+    expect(customerPage.items).toHaveLength(1);
   });
 
   it('enforces separation of duties, reason codes and decided state', async () => {

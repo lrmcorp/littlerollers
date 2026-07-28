@@ -22,6 +22,12 @@ void main() {
       // TODO
     });
 
+    // Active custom role codes resolved from database-managed RBAC.
+    // BuiltList<String> customRoleCodes
+    test('to test the property `customRoleCodes`', () async {
+      // TODO
+    });
+
     // BuiltList<String> branchIds
     test('to test the property `branchIds`', () async {
       // TODO
@@ -29,6 +35,12 @@ void main() {
 
     // BuiltList<String> capabilities
     test('to test the property `capabilities`', () async {
+      // TODO
+    });
+
+    // Capabilities with an effective global grant after deny precedence.
+    // BuiltList<String> globalCapabilities
+    test('to test the property `globalCapabilities`', () async {
       // TODO
     });
 

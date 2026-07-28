@@ -16,6 +16,8 @@ class _$CustomerBookingPackage extends CustomerBookingPackage {
   @override
   final int available;
   @override
+  final int projectedAvailable;
+  @override
   final DateTime expiryAt;
 
   factory _$CustomerBookingPackage([
@@ -27,6 +29,7 @@ class _$CustomerBookingPackage extends CustomerBookingPackage {
     required this.packageId,
     required this.name,
     required this.available,
+    required this.projectedAvailable,
     required this.expiryAt,
   }) : super._();
   @override
@@ -46,6 +49,7 @@ class _$CustomerBookingPackage extends CustomerBookingPackage {
         packageId == other.packageId &&
         name == other.name &&
         available == other.available &&
+        projectedAvailable == other.projectedAvailable &&
         expiryAt == other.expiryAt;
   }
 
@@ -56,6 +60,7 @@ class _$CustomerBookingPackage extends CustomerBookingPackage {
     _$hash = $jc(_$hash, packageId.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, available.hashCode);
+    _$hash = $jc(_$hash, projectedAvailable.hashCode);
     _$hash = $jc(_$hash, expiryAt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -68,6 +73,7 @@ class _$CustomerBookingPackage extends CustomerBookingPackage {
           ..add('packageId', packageId)
           ..add('name', name)
           ..add('available', available)
+          ..add('projectedAvailable', projectedAvailable)
           ..add('expiryAt', expiryAt))
         .toString();
   }
@@ -93,6 +99,11 @@ class CustomerBookingPackageBuilder
   int? get available => _$this._available;
   set available(int? available) => _$this._available = available;
 
+  int? _projectedAvailable;
+  int? get projectedAvailable => _$this._projectedAvailable;
+  set projectedAvailable(int? projectedAvailable) =>
+      _$this._projectedAvailable = projectedAvailable;
+
   DateTime? _expiryAt;
   DateTime? get expiryAt => _$this._expiryAt;
   set expiryAt(DateTime? expiryAt) => _$this._expiryAt = expiryAt;
@@ -108,6 +119,7 @@ class CustomerBookingPackageBuilder
       _packageId = $v.packageId;
       _name = $v.name;
       _available = $v.available;
+      _projectedAvailable = $v.projectedAvailable;
       _expiryAt = $v.expiryAt;
       _$v = null;
     }
@@ -150,6 +162,11 @@ class CustomerBookingPackageBuilder
             available,
             r'CustomerBookingPackage',
             'available',
+          ),
+          projectedAvailable: BuiltValueNullFieldError.checkNotNull(
+            projectedAvailable,
+            r'CustomerBookingPackage',
+            'projectedAvailable',
           ),
           expiryAt: BuiltValueNullFieldError.checkNotNull(
             expiryAt,

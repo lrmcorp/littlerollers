@@ -6,7 +6,23 @@ part of 'session_branch.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-class _$SessionBranch extends SessionBranch {
+abstract mixin class SessionBranchBuilder {
+  void replace(SessionBranch other);
+  void update(void Function(SessionBranchBuilder) updates);
+  String? get id;
+  set id(String? id);
+
+  String? get code;
+  set code(String? code);
+
+  String? get name;
+  set name(String? name);
+
+  String? get timezone;
+  set timezone(String? timezone);
+}
+
+class _$$SessionBranch extends $SessionBranch {
   @override
   final String id;
   @override
@@ -16,26 +32,26 @@ class _$SessionBranch extends SessionBranch {
   @override
   final String timezone;
 
-  factory _$SessionBranch([void Function(SessionBranchBuilder)? updates]) =>
-      (SessionBranchBuilder()..update(updates))._build();
+  factory _$$SessionBranch([void Function($SessionBranchBuilder)? updates]) =>
+      ($SessionBranchBuilder()..update(updates))._build();
 
-  _$SessionBranch._({
+  _$$SessionBranch._({
     required this.id,
     required this.code,
     required this.name,
     required this.timezone,
   }) : super._();
   @override
-  SessionBranch rebuild(void Function(SessionBranchBuilder) updates) =>
+  $SessionBranch rebuild(void Function($SessionBranchBuilder) updates) =>
       (toBuilder()..update(updates)).build();
 
   @override
-  SessionBranchBuilder toBuilder() => SessionBranchBuilder()..replace(this);
+  $SessionBranchBuilder toBuilder() => $SessionBranchBuilder()..replace(this);
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is SessionBranch &&
+    return other is $SessionBranch &&
         id == other.id &&
         code == other.code &&
         name == other.name &&
@@ -55,7 +71,7 @@ class _$SessionBranch extends SessionBranch {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'SessionBranch')
+    return (newBuiltValueToStringHelper(r'$SessionBranch')
           ..add('id', id)
           ..add('code', code)
           ..add('name', name)
@@ -64,31 +80,33 @@ class _$SessionBranch extends SessionBranch {
   }
 }
 
-class SessionBranchBuilder
-    implements Builder<SessionBranch, SessionBranchBuilder> {
-  _$SessionBranch? _$v;
+class $SessionBranchBuilder
+    implements
+        Builder<$SessionBranch, $SessionBranchBuilder>,
+        SessionBranchBuilder {
+  _$$SessionBranch? _$v;
 
   String? _id;
   String? get id => _$this._id;
-  set id(String? id) => _$this._id = id;
+  set id(covariant String? id) => _$this._id = id;
 
   String? _code;
   String? get code => _$this._code;
-  set code(String? code) => _$this._code = code;
+  set code(covariant String? code) => _$this._code = code;
 
   String? _name;
   String? get name => _$this._name;
-  set name(String? name) => _$this._name = name;
+  set name(covariant String? name) => _$this._name = name;
 
   String? _timezone;
   String? get timezone => _$this._timezone;
-  set timezone(String? timezone) => _$this._timezone = timezone;
+  set timezone(covariant String? timezone) => _$this._timezone = timezone;
 
-  SessionBranchBuilder() {
-    SessionBranch._defaults(this);
+  $SessionBranchBuilder() {
+    $SessionBranch._defaults(this);
   }
 
-  SessionBranchBuilder get _$this {
+  $SessionBranchBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
       _id = $v.id;
@@ -101,36 +119,40 @@ class SessionBranchBuilder
   }
 
   @override
-  void replace(SessionBranch other) {
-    _$v = other as _$SessionBranch;
+  void replace(covariant $SessionBranch other) {
+    _$v = other as _$$SessionBranch;
   }
 
   @override
-  void update(void Function(SessionBranchBuilder)? updates) {
+  void update(void Function($SessionBranchBuilder)? updates) {
     if (updates != null) updates(this);
   }
 
   @override
-  SessionBranch build() => _build();
+  $SessionBranch build() => _build();
 
-  _$SessionBranch _build() {
+  _$$SessionBranch _build() {
     final _$result =
         _$v ??
-        _$SessionBranch._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'SessionBranch', 'id'),
+        _$$SessionBranch._(
+          id: BuiltValueNullFieldError.checkNotNull(
+            id,
+            r'$SessionBranch',
+            'id',
+          ),
           code: BuiltValueNullFieldError.checkNotNull(
             code,
-            r'SessionBranch',
+            r'$SessionBranch',
             'code',
           ),
           name: BuiltValueNullFieldError.checkNotNull(
             name,
-            r'SessionBranch',
+            r'$SessionBranch',
             'name',
           ),
           timezone: BuiltValueNullFieldError.checkNotNull(
             timezone,
-            r'SessionBranch',
+            r'$SessionBranch',
             'timezone',
           ),
         );

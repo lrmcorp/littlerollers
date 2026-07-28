@@ -1,10 +1,10 @@
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSessionContext } from '../session-context';
+import { useTrackedRouter } from '../components/app-loading';
 export function LegacyPurchaseRedirect() {
   const context = useSessionContext();
-  const router = useRouter();
+  const router = useTrackedRouter();
   useEffect(() => {
     if (context?.status !== 'authenticated') return;
     router.replace(

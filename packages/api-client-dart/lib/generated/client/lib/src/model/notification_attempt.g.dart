@@ -6,32 +6,30 @@ part of 'notification_attempt.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-const NotificationAttemptStatusEnum _$notificationAttemptStatusEnum_QUEUED =
-    const NotificationAttemptStatusEnum._('QUEUED');
-const NotificationAttemptStatusEnum _$notificationAttemptStatusEnum_SENT =
-    const NotificationAttemptStatusEnum._('SENT');
-const NotificationAttemptStatusEnum _$notificationAttemptStatusEnum_DELIVERED =
-    const NotificationAttemptStatusEnum._('DELIVERED');
-const NotificationAttemptStatusEnum _$notificationAttemptStatusEnum_FAILED =
-    const NotificationAttemptStatusEnum._('FAILED');
+const NotificationAttemptStatusEnum _$notificationAttemptStatusEnum_SENDING =
+    const NotificationAttemptStatusEnum._('SENDING');
 const NotificationAttemptStatusEnum
-_$notificationAttemptStatusEnum_DEAD_LETTER =
-    const NotificationAttemptStatusEnum._('DEAD_LETTER');
+_$notificationAttemptStatusEnum_ACCEPTED_BY_SMTP =
+    const NotificationAttemptStatusEnum._('ACCEPTED_BY_SMTP');
+const NotificationAttemptStatusEnum
+_$notificationAttemptStatusEnum_FAILED_RETRYABLE =
+    const NotificationAttemptStatusEnum._('FAILED_RETRYABLE');
+const NotificationAttemptStatusEnum
+_$notificationAttemptStatusEnum_FAILED_TERMINAL =
+    const NotificationAttemptStatusEnum._('FAILED_TERMINAL');
 
 NotificationAttemptStatusEnum _$notificationAttemptStatusEnumValueOf(
   String name,
 ) {
   switch (name) {
-    case 'QUEUED':
-      return _$notificationAttemptStatusEnum_QUEUED;
-    case 'SENT':
-      return _$notificationAttemptStatusEnum_SENT;
-    case 'DELIVERED':
-      return _$notificationAttemptStatusEnum_DELIVERED;
-    case 'FAILED':
-      return _$notificationAttemptStatusEnum_FAILED;
-    case 'DEAD_LETTER':
-      return _$notificationAttemptStatusEnum_DEAD_LETTER;
+    case 'SENDING':
+      return _$notificationAttemptStatusEnum_SENDING;
+    case 'ACCEPTED_BY_SMTP':
+      return _$notificationAttemptStatusEnum_ACCEPTED_BY_SMTP;
+    case 'FAILED_RETRYABLE':
+      return _$notificationAttemptStatusEnum_FAILED_RETRYABLE;
+    case 'FAILED_TERMINAL':
+      return _$notificationAttemptStatusEnum_FAILED_TERMINAL;
     default:
       throw ArgumentError(name);
   }
@@ -40,11 +38,10 @@ NotificationAttemptStatusEnum _$notificationAttemptStatusEnumValueOf(
 final BuiltSet<NotificationAttemptStatusEnum>
 _$notificationAttemptStatusEnumValues = BuiltSet<NotificationAttemptStatusEnum>(
   const <NotificationAttemptStatusEnum>[
-    _$notificationAttemptStatusEnum_QUEUED,
-    _$notificationAttemptStatusEnum_SENT,
-    _$notificationAttemptStatusEnum_DELIVERED,
-    _$notificationAttemptStatusEnum_FAILED,
-    _$notificationAttemptStatusEnum_DEAD_LETTER,
+    _$notificationAttemptStatusEnum_SENDING,
+    _$notificationAttemptStatusEnum_ACCEPTED_BY_SMTP,
+    _$notificationAttemptStatusEnum_FAILED_RETRYABLE,
+    _$notificationAttemptStatusEnum_FAILED_TERMINAL,
   ],
 );
 
@@ -55,18 +52,16 @@ _$notificationAttemptStatusEnumSerializer =
 class _$NotificationAttemptStatusEnumSerializer
     implements PrimitiveSerializer<NotificationAttemptStatusEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
-    'QUEUED': 'QUEUED',
-    'SENT': 'SENT',
-    'DELIVERED': 'DELIVERED',
-    'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
+    'SENDING': 'SENDING',
+    'ACCEPTED_BY_SMTP': 'ACCEPTED_BY_SMTP',
+    'FAILED_RETRYABLE': 'FAILED_RETRYABLE',
+    'FAILED_TERMINAL': 'FAILED_TERMINAL',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
-    'QUEUED': 'QUEUED',
-    'SENT': 'SENT',
-    'DELIVERED': 'DELIVERED',
-    'FAILED': 'FAILED',
-    'DEAD_LETTER': 'DEAD_LETTER',
+    'SENDING': 'SENDING',
+    'ACCEPTED_BY_SMTP': 'ACCEPTED_BY_SMTP',
+    'FAILED_RETRYABLE': 'FAILED_RETRYABLE',
+    'FAILED_TERMINAL': 'FAILED_TERMINAL',
   };
 
   @override
@@ -101,13 +96,13 @@ class _$NotificationAttempt extends NotificationAttempt {
   @override
   final NotificationAttemptStatusEnum status;
   @override
-  final DateTime queuedAt;
+  final DateTime startedAt;
   @override
-  final String? providerReference;
+  final DateTime? completedAt;
   @override
-  final String? failureCode;
+  final String? providerCode;
   @override
-  final bool idempotentReplay;
+  final String? errorCode;
 
   factory _$NotificationAttempt([
     void Function(NotificationAttemptBuilder)? updates,
@@ -118,10 +113,10 @@ class _$NotificationAttempt extends NotificationAttempt {
     required this.occurrenceId,
     required this.attemptNumber,
     required this.status,
-    required this.queuedAt,
-    this.providerReference,
-    this.failureCode,
-    required this.idempotentReplay,
+    required this.startedAt,
+    this.completedAt,
+    this.providerCode,
+    this.errorCode,
   }) : super._();
   @override
   NotificationAttempt rebuild(
@@ -140,10 +135,10 @@ class _$NotificationAttempt extends NotificationAttempt {
         occurrenceId == other.occurrenceId &&
         attemptNumber == other.attemptNumber &&
         status == other.status &&
-        queuedAt == other.queuedAt &&
-        providerReference == other.providerReference &&
-        failureCode == other.failureCode &&
-        idempotentReplay == other.idempotentReplay;
+        startedAt == other.startedAt &&
+        completedAt == other.completedAt &&
+        providerCode == other.providerCode &&
+        errorCode == other.errorCode;
   }
 
   @override
@@ -153,10 +148,10 @@ class _$NotificationAttempt extends NotificationAttempt {
     _$hash = $jc(_$hash, occurrenceId.hashCode);
     _$hash = $jc(_$hash, attemptNumber.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
-    _$hash = $jc(_$hash, queuedAt.hashCode);
-    _$hash = $jc(_$hash, providerReference.hashCode);
-    _$hash = $jc(_$hash, failureCode.hashCode);
-    _$hash = $jc(_$hash, idempotentReplay.hashCode);
+    _$hash = $jc(_$hash, startedAt.hashCode);
+    _$hash = $jc(_$hash, completedAt.hashCode);
+    _$hash = $jc(_$hash, providerCode.hashCode);
+    _$hash = $jc(_$hash, errorCode.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -168,10 +163,10 @@ class _$NotificationAttempt extends NotificationAttempt {
           ..add('occurrenceId', occurrenceId)
           ..add('attemptNumber', attemptNumber)
           ..add('status', status)
-          ..add('queuedAt', queuedAt)
-          ..add('providerReference', providerReference)
-          ..add('failureCode', failureCode)
-          ..add('idempotentReplay', idempotentReplay))
+          ..add('startedAt', startedAt)
+          ..add('completedAt', completedAt)
+          ..add('providerCode', providerCode)
+          ..add('errorCode', errorCode))
         .toString();
   }
 }
@@ -197,23 +192,21 @@ class NotificationAttemptBuilder
   NotificationAttemptStatusEnum? get status => _$this._status;
   set status(NotificationAttemptStatusEnum? status) => _$this._status = status;
 
-  DateTime? _queuedAt;
-  DateTime? get queuedAt => _$this._queuedAt;
-  set queuedAt(DateTime? queuedAt) => _$this._queuedAt = queuedAt;
+  DateTime? _startedAt;
+  DateTime? get startedAt => _$this._startedAt;
+  set startedAt(DateTime? startedAt) => _$this._startedAt = startedAt;
 
-  String? _providerReference;
-  String? get providerReference => _$this._providerReference;
-  set providerReference(String? providerReference) =>
-      _$this._providerReference = providerReference;
+  DateTime? _completedAt;
+  DateTime? get completedAt => _$this._completedAt;
+  set completedAt(DateTime? completedAt) => _$this._completedAt = completedAt;
 
-  String? _failureCode;
-  String? get failureCode => _$this._failureCode;
-  set failureCode(String? failureCode) => _$this._failureCode = failureCode;
+  String? _providerCode;
+  String? get providerCode => _$this._providerCode;
+  set providerCode(String? providerCode) => _$this._providerCode = providerCode;
 
-  bool? _idempotentReplay;
-  bool? get idempotentReplay => _$this._idempotentReplay;
-  set idempotentReplay(bool? idempotentReplay) =>
-      _$this._idempotentReplay = idempotentReplay;
+  String? _errorCode;
+  String? get errorCode => _$this._errorCode;
+  set errorCode(String? errorCode) => _$this._errorCode = errorCode;
 
   NotificationAttemptBuilder() {
     NotificationAttempt._defaults(this);
@@ -226,10 +219,10 @@ class NotificationAttemptBuilder
       _occurrenceId = $v.occurrenceId;
       _attemptNumber = $v.attemptNumber;
       _status = $v.status;
-      _queuedAt = $v.queuedAt;
-      _providerReference = $v.providerReference;
-      _failureCode = $v.failureCode;
-      _idempotentReplay = $v.idempotentReplay;
+      _startedAt = $v.startedAt;
+      _completedAt = $v.completedAt;
+      _providerCode = $v.providerCode;
+      _errorCode = $v.errorCode;
       _$v = null;
     }
     return this;
@@ -272,18 +265,14 @@ class NotificationAttemptBuilder
             r'NotificationAttempt',
             'status',
           ),
-          queuedAt: BuiltValueNullFieldError.checkNotNull(
-            queuedAt,
+          startedAt: BuiltValueNullFieldError.checkNotNull(
+            startedAt,
             r'NotificationAttempt',
-            'queuedAt',
+            'startedAt',
           ),
-          providerReference: providerReference,
-          failureCode: failureCode,
-          idempotentReplay: BuiltValueNullFieldError.checkNotNull(
-            idempotentReplay,
-            r'NotificationAttempt',
-            'idempotentReplay',
-          ),
+          completedAt: completedAt,
+          providerCode: providerCode,
+          errorCode: errorCode,
         );
     replace(_$result);
     return _$result;

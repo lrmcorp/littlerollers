@@ -25,7 +25,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
           message:
             status >= 500 ? 'Terjadi kesalahan internal.' : 'Permintaan tidak dapat diproses.',
           correlationId: request.correlationId ?? 'unknown',
-          details: [],
+          details: error instanceof ApiProblem ? error.details : [],
           retryable: error instanceof ApiProblem ? error.retryable : status >= 500,
         },
       });

@@ -28,7 +28,7 @@ OpenAPI `0.4.0-draft` provides proposed remediation mappings: GAP-1→`runQuotaE
 | BR-021–025; NFR-002 | BKG-01/AC-US-BKG-01-02 | UX-03 | `createBooking` | seat/session locks | conflict/no negative | TC-BOOK-003/004 | UAT-BOOK-01 |
 | BR-020–025; NFR-001 | BKG-01/AC-US-BKG-01-03 | UX-03 | `createBooking` | eligibility/scope | validation/forbidden/conflict | TC-BOOK-005..008 | UAT-BOOK-01 |
 | BR-020–025; NFR-002 | BKG-01/AC-US-BKG-01-04 | UX-03 | `createBooking` | idempotency request hash | reused-key conflict | TC-BOOK-009/010 | UAT-BOOK-01 |
-| BR-050–054 | BKG-02/AC-US-BKG-02-01 | UX-04 | `requestReschedule`, `decideReschedule` | old release/new reserve atomic | `booking.rescheduled.v1`/audit | TC-RES-001 | UAT-RES-01 |
+| BR-050–054 | BKG-02/AC-US-BKG-02-01..06 | UX-04 Web customer/admin | `getCustomerRescheduleOptions`, `requestReschedule`, `decideReschedule` | active-customer-slot unique guard; old release/new reserve atomic | request/approved/rejected events; request/decision audit | TC-RES-001..008 | UAT-RES-01 |
 | BR-050–054 | BKG-02/AC-US-BKG-02-02 | UX-04 | same | cutoff entitlement | validation/consequence | TC-RES-002 | UAT-RES-01 |
 | BR-050–054; NFR-002 | BKG-02/AC-US-BKG-02-03 | UX-04 | `decideReschedule` | target revalidation | conflict/no partial | TC-RES-003 | UAT-RES-01 |
 | BR-050–054; NFR-002 | BKG-02/AC-US-BKG-02-04 | UX-04 | `decideReschedule` | one decision/idempotency | conflict/single notification | TC-RES-004 | UAT-RES-01 |

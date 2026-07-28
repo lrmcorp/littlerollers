@@ -32,8 +32,18 @@ void main() {
       // TODO
     });
 
+    // AdjustmentActor requestedBy
+    test('to test the property `requestedBy`', () async {
+      // TODO
+    });
+
     // String decidedById
     test('to test the property `decidedById`', () async {
+      // TODO
+    });
+
+    // AdjustmentActor decidedBy
+    test('to test the property `decidedBy`', () async {
       // TODO
     });
 
@@ -47,6 +57,76 @@ void main() {
       // TODO
     });
 
+    // int ledgerBalanceAtRequest
+    test('to test the property `ledgerBalanceAtRequest`', () async {
+      // TODO
+    });
+
+    // int reservedAtRequest
+    test('to test the property `reservedAtRequest`', () async {
+      // TODO
+    });
+
+    // AdjustmentCustomer customer
+    test('to test the property `customer`', () async {
+      // TODO
+    });
+
+    // AdjustmentNamedReference branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
+    // AdjustmentNamedReference package
+    test('to test the property `package`', () async {
+      // TODO
+    });
+
+    // AdjustmentNamedReference classType
+    test('to test the property `classType`', () async {
+      // TODO
+    });
+
+    // int currentBalance
+    test('to test the property `currentBalance`', () async {
+      // TODO
+    });
+
+    // int currentReserved
+    test('to test the property `currentReserved`', () async {
+      // TODO
+    });
+
+    // int currentAvailable
+    test('to test the property `currentAvailable`', () async {
+      // TODO
+    });
+
+    // int projectedLedgerBalance
+    test('to test the property `projectedLedgerBalance`', () async {
+      // TODO
+    });
+
+    // int projectedAvailable
+    test('to test the property `projectedAvailable`', () async {
+      // TODO
+    });
+
+    // bool eligibleForApproval
+    test('to test the property `eligibleForApproval`', () async {
+      // TODO
+    });
+
+    // String eligibilityReason
+    test('to test the property `eligibilityReason`', () async {
+      // TODO
+    });
+
+    // String ledgerEntryId
+    test('to test the property `ledgerEntryId`', () async {
+      // TODO
+    });
+
     // int version
     test('to test the property `version`', () async {
       // TODO
@@ -54,6 +134,11 @@ void main() {
 
     // DateTime createdAt
     test('to test the property `createdAt`', () async {
+      // TODO
+    });
+
+    // DateTime decidedAt
+    test('to test the property `decidedAt`', () async {
       // TODO
     });
 

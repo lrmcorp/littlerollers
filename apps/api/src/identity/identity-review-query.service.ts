@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import {
   type IdentityDocumentKind,
   type IdentityVerificationStatus,
@@ -9,6 +9,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 
 const STATUSES = new Set<IdentityVerificationStatus>([
   'PENDING',
@@ -36,6 +37,7 @@ export interface IdentityReviewFilters {
   until?: string;
   cursor?: string;
   limit?: number;
+  customerUserId?: string;
 }
 
 @Injectable()
@@ -43,15 +45,19 @@ export class IdentityReviewQueryService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly runtimeConfig?: RuntimeConfigService,
   ) {}
 
   async list(principal: SessionPrincipal, filters: IdentityReviewFilters = {}) {
-    this.policy.requireCapability(principal.capabilities, 'identity-verification:review');
+    if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+    this.policy.requireGlobalCapability(principal, 'identity-verification:read');
     const status = filters.status as IdentityVerificationStatus | undefined;
     const kind = filters.kind as IdentityDocumentKind | undefined;
     const scanStatus = filters.scanStatus as PaymentProofScanStatus | undefined;
     const limit = filters.limit ?? 20;
     const q = filters.q?.trim();
+    const customerUserId = filters.customerUserId?.trim();
     if (
       (status && !STATUSES.has(status)) ||
       (kind && !KINDS.has(kind)) ||
@@ -68,6 +74,7 @@ export class IdentityReviewQueryService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const baseWhere: Prisma.IdentityVerificationDocumentWhereInput = {
       replacedById: null,
+      ...(customerUserId ? { userId: customerUserId } : {}),
       ...(kind ? { kind } : {}),
       ...(scanStatus ? { scanStatus } : {}),
       ...(from || until
@@ -192,6 +199,40 @@ export class IdentityReviewQueryService {
           hasMore && last?._min.createdAt ? encodeCursor(last._min.createdAt, last.userId) : null,
       },
       generatedAt: new Date().toISOString(),
+    };
+  }
+
+  async getByUser(principal: SessionPrincipal, userId: string) {
+    if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+    this.policy.requireGlobalCapability(principal, 'identity-verification:read');
+    const documents = await this.db.identityVerificationDocument.findMany({
+      where: { userId, replacedById: null },
+      include: {
+        user: { select: { id: true, displayName: true, phoneE164: true, status: true } },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (!documents.length) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const user = documents[0]!.user;
+    const activeByKind = [...new Map(documents.map((item) => [item.kind, item])).values()];
+    return {
+      id: userId,
+      user: {
+        id: userId,
+        displayName: user.displayName,
+        phoneMasked: maskPhone(user.phoneE164),
+        status: user.status,
+      },
+      verificationStatus: ['SELFIE', 'KTP_FRONT'].every((kind) =>
+        activeByKind.some((document) => document.kind === kind && document.status === 'APPROVED'),
+      )
+        ? 'APPROVED'
+        : activeByKind.some((document) => document.status === 'REJECTED')
+          ? 'ACTION_REQUIRED'
+          : 'PENDING',
+      oldestAt: documents[0]?.createdAt.toISOString() ?? null,
+      documents: activeByKind.map(documentView),
     };
   }
 }

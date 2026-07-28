@@ -18,7 +18,17 @@ export type BookingCommand = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PAGE_SIZE = 20;
 type Cursor = { at: string; id: string };
+type CustomerBookingTimeline = 'UPCOMING' | 'HISTORY';
+type BookingEligibilityReason =
+  | 'IDENTITY_VERIFICATION_REQUIRED'
+  | 'MATCHING_PACKAGE_REQUIRED'
+  | 'INSUFFICIENT_AVAILABLE_SESSION'
+  | 'SLOT_FULL'
+  | 'SLOT_UNAVAILABLE'
+  | 'BOOKING_CUTOFF_PASSED';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+const maskPhone = (value: string | null) =>
+  value ? `${value.slice(0, 4)}••••${value.slice(-3)}` : null;
 
 function encodeCursor(at: Date, id: string) {
   return Buffer.from(JSON.stringify({ at: at.toISOString(), id })).toString('base64url');
@@ -45,8 +55,8 @@ export class BookingsService {
   ) {}
 
   private syntheticPolicy() {
-    const { syntheticEnabled, cutoffHours } = this.config.value.booking;
-    if (!syntheticEnabled || cutoffHours === null)
+    const { enabled, cutoffHours } = this.config.value.booking;
+    if (!enabled || cutoffHours === null)
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
     return { cutoffHours };
   }
@@ -58,18 +68,25 @@ export class BookingsService {
     );
   }
 
-  private requireBranch(principal: SessionPrincipal, branchId: string) {
-    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+  private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
+    if (
+      !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+      !this.policy.hasCapability(principal, capability, branchId)
+    )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
-  private async requireVerifiedCustomer(principal: SessionPrincipal) {
-    if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return;
+  private async isVerifiedCustomer(principal: SessionPrincipal) {
+    if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return true;
     const approved = await this.db.identityVerificationDocument.groupBy({
       by: ['kind'],
       where: { userId: principal.userId, status: 'APPROVED', replacedById: null },
     });
-    if (!['SELFIE', 'KTP_FRONT'].every((kind) => approved.some((item) => item.kind === kind)))
+    return ['SELFIE', 'KTP_FRONT'].every((kind) => approved.some((item) => item.kind === kind));
+  }
+
+  private async requireVerifiedCustomer(principal: SessionPrincipal) {
+    if (!(await this.isVerifiedCustomer(principal)))
       throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
   }
 
@@ -111,13 +128,26 @@ export class BookingsService {
             source: booking.attendance.source,
           }
         : null,
+      checkInToken: booking.checkInTokens?.[0]
+        ? {
+            id: booking.checkInTokens[0].id,
+            status: booking.checkInTokens[0].status,
+            notBeforeAt: booking.checkInTokens[0].notBeforeAt,
+            expiresAt: booking.checkInTokens[0].expiresAt,
+            usedAt: booking.checkInTokens[0].usedAt,
+            revokedAt: booking.checkInTokens[0].revokedAt,
+            version: booking.checkInTokens[0].version,
+          }
+        : null,
     };
   }
 
   async customerOptions(principal: SessionPrincipal, classSlotId: string) {
     this.policy.requireCapability(principal.capabilities, 'booking:self:read');
-    await this.requireVerifiedCustomer(principal);
     if (!UUID.test(classSlotId)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const verified = await this.isVerifiedCustomer(principal);
+    const policy = this.syntheticPolicy();
+    const now = new Date();
     const slot = await this.db.classSlot.findUnique({
       where: { id: classSlotId },
       include: {
@@ -125,8 +155,9 @@ export class BookingsService {
         classType: { select: { id: true, code: true, name: true } },
       },
     });
-    if (!slot || !['PUBLISHED', 'CONFIRMED'].includes(slot.status) || slot.startAt <= new Date())
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const cutoffAt = new Date(slot.startAt.getTime() - policy.cutoffHours * 3_600_000);
+    const slotAvailable = Math.max(0, slot.capacity - slot.bookedCount);
 
     const owned = await this.db.customerPackage.findMany({
       where: {
@@ -134,39 +165,60 @@ export class BookingsService {
         branchId: slot.branchId,
         classTypeId: slot.classTypeId,
         status: 'ACTIVE',
-        expiryAt: { gt: new Date() },
+        expiryAt: { gt: now },
       },
       include: { package: { select: { name: true } } },
       orderBy: [{ expiryAt: 'asc' }, { createdAt: 'asc' }],
     });
-    const packages = (
-      await Promise.all(
-        owned.map(async (item) => {
-          const [ledger, reservations] = await Promise.all([
-            this.db.ledgerEntry.aggregate({
-              where: { customerPackageId: item.id },
-              _sum: { quantity: true },
-            }),
-            this.db.sessionReservation.aggregate({
-              where: { customerPackageId: item.id, status: 'ACTIVE' },
-              _sum: { quantity: true },
-            }),
-          ]);
-          const ledgerBalance = ledger._sum.quantity ?? 0;
-          const reserved = reservations._sum.quantity ?? 0;
-          const available = ledgerBalance - reserved;
-          if (ledgerBalance < 0 || reserved > ledgerBalance)
-            throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
-          return {
-            id: item.id,
-            packageId: item.packageId,
-            name: item.package.name,
-            available,
-            expiryAt: item.expiryAt,
-          };
-        }),
-      )
-    ).filter(({ available }) => available > 0);
+    const packageOptions = await Promise.all(
+      owned.map(async (item) => {
+        const [ledger, reservations] = await Promise.all([
+          this.db.ledgerEntry.aggregate({
+            where: { customerPackageId: item.id },
+            _sum: { quantity: true },
+          }),
+          this.db.sessionReservation.aggregate({
+            where: { customerPackageId: item.id, status: 'ACTIVE' },
+            _sum: { quantity: true },
+          }),
+        ]);
+        const ledgerBalance = ledger._sum.quantity ?? 0;
+        const reserved = reservations._sum.quantity ?? 0;
+        const available = ledgerBalance - reserved;
+        if (ledgerBalance < 0 || reserved > ledgerBalance)
+          throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+        return {
+          id: item.id,
+          packageId: item.packageId,
+          name: item.package.name,
+          available,
+          projectedAvailable: Math.max(0, available - 1),
+          expiryAt: item.expiryAt,
+        };
+      }),
+    );
+    const packages = packageOptions.filter(({ available }) => available > 0);
+    let reasonCode: BookingEligibilityReason | null = null;
+    let requiredAction:
+      'COMPLETE_IDENTITY_VERIFICATION' | 'BUY_MATCHING_PACKAGE' | 'CONTACT_STUDIO' | null = null;
+    if (!verified) {
+      reasonCode = 'IDENTITY_VERIFICATION_REQUIRED';
+      requiredAction = 'COMPLETE_IDENTITY_VERIFICATION';
+    } else if (!['PUBLISHED', 'CONFIRMED'].includes(slot.status)) {
+      reasonCode = 'SLOT_UNAVAILABLE';
+      requiredAction = 'CONTACT_STUDIO';
+    } else if (slotAvailable < 1) {
+      reasonCode = 'SLOT_FULL';
+    } else if (now >= cutoffAt || slot.startAt <= now) {
+      reasonCode = 'BOOKING_CUTOFF_PASSED';
+      requiredAction = 'CONTACT_STUDIO';
+    } else if (owned.length === 0) {
+      reasonCode = 'MATCHING_PACKAGE_REQUIRED';
+      requiredAction = 'BUY_MATCHING_PACKAGE';
+    } else if (packages.length === 0) {
+      reasonCode = 'INSUFFICIENT_AVAILABLE_SESSION';
+      requiredAction = 'BUY_MATCHING_PACKAGE';
+    }
 
     return {
       slot: {
@@ -179,17 +231,34 @@ export class BookingsService {
         status: slot.status,
         capacity: slot.capacity,
         bookedCount: slot.bookedCount,
-        available: Math.max(0, slot.capacity - slot.bookedCount),
+        available: slotAvailable,
         branch: slot.branch,
         classType: slot.classType,
       },
       packages,
+      eligibility: {
+        canBook: reasonCode === null,
+        reasonCode,
+        requiredAction,
+        cutoffAt,
+      },
     };
   }
 
   async list(
     principal: SessionPrincipal,
-    query: { branchId?: string; status?: string; cursor?: string },
+    query: {
+      branchId?: string;
+      status?: string;
+      cursor?: string;
+      timeline?: string;
+      q?: string;
+      from?: string;
+      until?: string;
+      classSlotId?: string;
+      customerId?: string;
+      limit?: number;
+    },
   ) {
     const customer = this.isCustomer(principal);
     this.policy.requireCapability(
@@ -205,30 +274,124 @@ export class BookingsService {
     ];
     if (query.status && !statuses.includes(query.status as BookingStatus))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    if (query.branchId && !customer) this.requireBranch(principal, query.branchId);
+    if (query.timeline && (!customer || !['UPCOMING', 'HISTORY'].includes(query.timeline)))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (query.branchId && !customer) this.requireBranch(principal, query.branchId, 'booking:read');
+    const limit = query.limit ?? PAGE_SIZE;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (query.classSlotId && !UUID.test(query.classSlotId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (query.customerId && !UUID.test(query.customerId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const from = query.from ? new Date(query.from) : null;
+    const until = query.until ? new Date(query.until) : null;
+    if (
+      (from && Number.isNaN(from.getTime())) ||
+      (until && Number.isNaN(until.getTime())) ||
+      (from && until && from >= until)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const cursor = decodeCursor(query.cursor);
-    const items = await this.db.booking.findMany({
-      where: {
-        ...(customer ? { customerUserId: principal.userId } : {}),
-        ...(query.branchId
-          ? { branchId: query.branchId }
-          : customer || principal.capabilities.includes('branch:all')
-            ? {}
-            : { branchId: { in: principal.branchIds } }),
-        ...(query.status ? { status: query.status as BookingStatus } : {}),
-        ...(cursor
+    const timeline = query.timeline as CustomerBookingTimeline | undefined;
+    const now = new Date();
+    const branchScope = this.policy.capabilityBranchScope(principal, 'booking:read');
+    const timelineWhere =
+      timeline === 'UPCOMING'
+        ? {
+            status: { in: ['BOOKED', 'RESCHEDULE_PENDING'] as BookingStatus[] },
+            classSlot: { endAt: { gte: now } },
+          }
+        : timeline === 'HISTORY'
           ? {
               OR: [
-                { createdAt: { lt: new Date(cursor.at) } },
-                { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
+                { status: { in: ['CANCELLED', 'ATTENDED', 'NO_SHOW'] as BookingStatus[] } },
+                { classSlot: { endAt: { lt: now } } },
               ],
             }
-          : {}),
+          : {};
+    const timelineCursor =
+      timeline && cursor
+        ? {
+            OR:
+              timeline === 'UPCOMING'
+                ? [
+                    { classSlot: { startAt: { gt: new Date(cursor.at) } } },
+                    { classSlot: { startAt: new Date(cursor.at) }, id: { gt: cursor.id } },
+                  ]
+                : [
+                    { classSlot: { startAt: { lt: new Date(cursor.at) } } },
+                    { classSlot: { startAt: new Date(cursor.at) }, id: { lt: cursor.id } },
+                  ],
+          }
+        : {};
+    const queryText = query.q?.trim();
+    const commonWhere: Prisma.BookingWhereInput = {
+      ...(customer ? { customerUserId: principal.userId } : {}),
+      ...(query.branchId
+        ? { branchId: query.branchId }
+        : customer
+          ? {}
+          : branchScope.all
+            ? branchScope.excluded.length
+              ? { branchId: { notIn: branchScope.excluded } }
+              : {}
+            : { branchId: { in: branchScope.included } }),
+      ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
+      ...(query.customerId ? { customerUserId: query.customerId } : {}),
+      ...(from || until
+        ? {
+            classSlot: {
+              startAt: {
+                ...(from ? { gte: from } : {}),
+                ...(until ? { lt: until } : {}),
+              },
+            },
+          }
+        : {}),
+      ...(queryText
+        ? {
+            OR: [
+              { id: queryText },
+              { customer: { displayName: { contains: queryText } } },
+              { customer: { phoneE164: { contains: queryText } } },
+              { classSlot: { classType: { name: { contains: queryText } } } },
+              { customerPackage: { package: { name: { contains: queryText } } } },
+              { branch: { name: { contains: queryText } } },
+            ],
+          }
+        : {}),
+    };
+    const statusWhere: Prisma.BookingWhereInput = query.status
+      ? { status: query.status as BookingStatus }
+      : {};
+    const items = await this.db.booking.findMany({
+      where: {
+        AND: [
+          commonWhere,
+          statusWhere,
+          timelineWhere,
+          timelineCursor,
+          !timeline && cursor
+            ? {
+                OR: [
+                  { createdAt: { lt: new Date(cursor.at) } },
+                  { createdAt: new Date(cursor.at), id: { lt: cursor.id } },
+                ],
+              }
+            : {},
+        ],
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: PAGE_SIZE + 1,
+      orderBy: timeline
+        ? [
+            { classSlot: { startAt: timeline === 'UPCOMING' ? 'asc' : 'desc' } },
+            { id: timeline === 'UPCOMING' ? 'asc' : 'desc' },
+          ]
+        : [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
       include: {
         branch: { select: { id: true, name: true, timezone: true } },
+        customer: { select: { id: true, displayName: true, phoneE164: true } },
         classSlot: {
           include: { classType: { select: { id: true, name: true } } },
         },
@@ -236,14 +399,80 @@ export class BookingsService {
           include: { package: { select: { id: true, name: true } } },
         },
         attendance: { select: { checkedInAt: true, source: true } },
+        checkInTokens: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            notBeforeAt: true,
+            expiresAt: true,
+            usedAt: true,
+            revokedAt: true,
+            version: true,
+          },
+        },
       },
     });
-    const hasMore = items.length > PAGE_SIZE;
-    const pageItems = items.slice(0, PAGE_SIZE);
+    const hasMore = items.length > limit;
+    const pageItems = items.slice(0, limit);
+    const packageIds = [...new Set(pageItems.map((item) => item.customerPackageId))];
+    const [ledger, reservations, statusGroups] = await Promise.all([
+      this.db.ledgerEntry.groupBy({
+        by: ['customerPackageId'],
+        where: { customerPackageId: { in: packageIds } },
+        _sum: { quantity: true },
+      }),
+      this.db.sessionReservation.groupBy({
+        by: ['customerPackageId'],
+        where: { customerPackageId: { in: packageIds }, status: 'ACTIVE' },
+        _sum: { quantity: true },
+      }),
+      this.db.booking.groupBy({
+        by: ['status'],
+        where: commonWhere,
+        _count: { _all: true },
+      }),
+    ]);
+    const balanceByPackage = new Map(
+      ledger.map((item) => [item.customerPackageId, item._sum.quantity ?? 0]),
+    );
+    const reservedByPackage = new Map(
+      reservations.map((item) => [item.customerPackageId, item._sum.quantity ?? 0]),
+    );
+    const summaryByStatus = new Map(statusGroups.map((item) => [item.status, item._count._all]));
     const last = pageItems.at(-1);
+    const cursorAt = timeline ? last?.classSlot.startAt : last?.createdAt;
     return {
-      items: pageItems.map((item) => this.bookingView(item)),
-      page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null },
+      items: pageItems.map((item) => {
+        const balance = balanceByPackage.get(item.customerPackageId) ?? 0;
+        const reserved = reservedByPackage.get(item.customerPackageId) ?? 0;
+        return {
+          ...this.bookingView(item),
+          customer: {
+            id: item.customer.id,
+            displayName: item.customer.displayName,
+            phoneMasked: maskPhone(item.customer.phoneE164),
+          },
+          sessionBalance: {
+            ledgerBalance: balance,
+            reserved,
+            available: Math.max(0, balance - reserved),
+          },
+        };
+      }),
+      summary: {
+        total: [...summaryByStatus.values()].reduce((sum, value) => sum + value, 0),
+        booked: summaryByStatus.get('BOOKED') ?? 0,
+        reschedulePending: summaryByStatus.get('RESCHEDULE_PENDING') ?? 0,
+        attended: summaryByStatus.get('ATTENDED') ?? 0,
+        cancelled: summaryByStatus.get('CANCELLED') ?? 0,
+        noShow: summaryByStatus.get('NO_SHOW') ?? 0,
+      },
+      page: {
+        hasMore,
+        nextCursor: hasMore && last && cursorAt ? encodeCursor(cursorAt, last.id) : null,
+      },
     };
   }
 
@@ -258,6 +487,8 @@ export class BookingsService {
       where: { id, ...(customer ? { customerUserId: principal.userId } : {}) },
       include: {
         branch: { select: { id: true, name: true, timezone: true } },
+        customer: { select: { id: true, displayName: true, phoneE164: true } },
+        createdBy: { select: { id: true, displayName: true } },
         classSlot: {
           include: { classType: { select: { id: true, name: true } } },
         },
@@ -265,11 +496,77 @@ export class BookingsService {
           include: { package: { select: { id: true, name: true } } },
         },
         attendance: { select: { checkedInAt: true, source: true } },
+        reschedules: {
+          orderBy: { requestedAt: 'desc' },
+          include: {
+            sourceClassSlot: {
+              select: { id: true, startAt: true, endAt: true, timezone: true },
+            },
+            targetClassSlot: {
+              select: { id: true, startAt: true, endAt: true, timezone: true },
+            },
+          },
+        },
+        checkInTokens: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            notBeforeAt: true,
+            expiresAt: true,
+            usedAt: true,
+            revokedAt: true,
+            version: true,
+          },
+        },
       },
     });
     if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    if (!customer) this.requireBranch(principal, booking.branchId);
-    return this.bookingView(booking);
+    if (!customer) this.requireBranch(principal, booking.branchId, 'booking:read');
+    const view = this.bookingView(booking);
+    if (customer) return view;
+    const [ledger, reservations] = await Promise.all([
+      this.db.ledgerEntry.aggregate({
+        where: { customerPackageId: booking.customerPackageId },
+        _sum: { quantity: true },
+      }),
+      this.db.sessionReservation.aggregate({
+        where: { customerPackageId: booking.customerPackageId, status: 'ACTIVE' },
+        _sum: { quantity: true },
+      }),
+    ]);
+    const ledgerBalance = ledger._sum.quantity ?? 0;
+    const reserved = reservations._sum.quantity ?? 0;
+    return {
+      ...view,
+      customer: {
+        id: booking.customer.id,
+        displayName: booking.customer.displayName,
+        phoneMasked: maskPhone(booking.customer.phoneE164),
+      },
+      createdBy: {
+        id: booking.createdBy.id,
+        displayName: booking.createdBy.displayName,
+      },
+      sessionBalance: {
+        ledgerBalance,
+        reserved,
+        available: Math.max(0, ledgerBalance - reserved),
+      },
+      reschedules: booking.reschedules.map((item) => ({
+        id: item.id,
+        status: item.status,
+        requestReasonCode: item.requestReasonCode,
+        decisionReasonCode: item.decisionReasonCode,
+        requestedAt: item.requestedAt,
+        decidedAt: item.decidedAt,
+        version: item.version,
+        sourceClassSlot: item.sourceClassSlot,
+        targetClassSlot: item.targetClassSlot,
+      })),
+      checkInToken: booking.checkInTokens[0] ?? null,
+    };
   }
 
   async create(
@@ -310,7 +607,8 @@ export class BookingsService {
           await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` = ${input.classSlotId} FOR UPDATE`;
           const slot = await tx.classSlot.findUnique({ where: { id: input.classSlotId } });
           if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-          if (!customerFlow) this.requireBranch(principal, slot.branchId);
+          if (!customerFlow)
+            this.requireBranch(principal, slot.branchId, 'booking:create:assisted');
 
           await tx.$queryRaw`SELECT \`id\` FROM \`CustomerPackage\` WHERE \`id\` = ${input.customerPackageId} FOR UPDATE`;
           const [customerPackage, customer] = await Promise.all([

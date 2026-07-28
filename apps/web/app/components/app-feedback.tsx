@@ -432,3 +432,7 @@ export function useAppFeedback() {
   if (!context) throw new Error('useAppFeedback must be used within AppFeedbackProvider');
   return context;
 }
+
+export function useOptionalAppFeedback() {
+  return useContext(FeedbackContext);
+}

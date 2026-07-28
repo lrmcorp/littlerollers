@@ -83,6 +83,7 @@ function client(overrides: Partial<BookingClient> = {}): BookingClient {
     }),
     list: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
     detail: vi.fn().mockResolvedValue(booking),
+    rescheduleOptions: vi.fn().mockRejectedValue(new Error('not used by assisted booking tests')),
     create: vi.fn().mockResolvedValue(booking),
     listReschedules: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
     requestReschedule: vi.fn().mockResolvedValue(reschedule),
@@ -96,16 +97,18 @@ function client(overrides: Partial<BookingClient> = {}): BookingClient {
 }
 
 async function selectBooking(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Muat data booking' }));
+  if (!screen.queryByRole('form', { name: 'Buat booking bantuan' }))
+    await user.click(screen.getByRole('button', { name: 'Buat booking manual' }));
+  await screen.findByRole('option', { name: 'Customer Synthetic' });
   await user.selectOptions(screen.getByLabelText('Pelanggan'), customerId);
   await user.selectOptions(screen.getByLabelText('Paket pelanggan'), packageId);
   await user.selectOptions(screen.getByLabelText('Kelas'), slotId);
 }
 
 describe('BookingView', () => {
-  it('requires an explicit active branch', () => {
+  it('keeps global read mode but requires a branch for mutations', () => {
     render(<BookingView client={client()} activeBranchId="" />);
-    expect(screen.getByText('Pilih cabang aktif')).toBeInTheDocument();
+    expect(screen.getByText(/Mode semua cabang bersifat baca saja/)).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Buat booking bantuan' })).not.toBeInTheDocument();
   });
 
@@ -117,7 +120,7 @@ describe('BookingView', () => {
     expect(screen.getByText(/Saldo tersedia berubah dari 8 menjadi 7/)).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Konfirmasi booking satu sesi' }));
-    expect(await screen.findByText(/BOOKED/)).toBeInTheDocument();
+    expect(await screen.findByText(/Booking dibuat/)).toBeInTheDocument();
     expect(bookingClient.create).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'ADMIN_ASSISTED', customerUserId: customerId }),
       expect.any(String),
@@ -144,14 +147,41 @@ describe('BookingView', () => {
     const second = { ...booking, id: '00000000-0000-4000-8000-000000000210' };
     const list = vi
       .fn()
-      .mockResolvedValueOnce({ items: [booking], nextCursor: 'cursor-2' })
-      .mockResolvedValueOnce({ items: [booking, second], nextCursor: null });
+      .mockImplementation(({ cursor }: { cursor?: string }) =>
+        Promise.resolve(
+          cursor === 'cursor-2'
+            ? { items: [booking, second], nextCursor: null }
+            : { items: [booking], nextCursor: 'cursor-2' },
+        ),
+      );
     render(<BookingView client={client({ list })} activeBranchId={branchId} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat data booking' }));
+    await screen.findAllByText('Aktif');
     await user.click(screen.getByRole('button', { name: 'Muat booking berikutnya' }));
-    expect(screen.getAllByText(/BOOKED/)).toHaveLength(2);
-    expect(list).toHaveBeenLastCalledWith({ branchId, cursor: 'cursor-2' });
+    expect(screen.getAllByText(/Aktif/).length).toBeGreaterThanOrEqual(2);
+    expect(list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ branchId, cursor: 'cursor-2' }),
+    );
+  });
+
+  it('continues cursor pagination in global read mode without requiring a branch', async () => {
+    const second = { ...booking, id: '00000000-0000-4000-8000-000000000299' };
+    const list = vi
+      .fn()
+      .mockImplementation(({ cursor }: { cursor?: string }) =>
+        Promise.resolve(
+          cursor === 'global-cursor'
+            ? { items: [second], nextCursor: null }
+            : { items: [booking], nextCursor: 'global-cursor' },
+        ),
+      );
+    render(<BookingView client={client({ list })} activeBranchId="" />);
+    const user = userEvent.setup();
+    await screen.findByRole('button', { name: 'Muat booking berikutnya' });
+    await user.click(screen.getByRole('button', { name: 'Muat booking berikutnya' }));
+    expect(list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ branchId: undefined, cursor: 'global-cursor' }),
+    );
   });
 
   it('clears downstream selections when active branch changes', async () => {
@@ -179,6 +209,14 @@ describe('BookingView', () => {
       ['SESSION_EXPIRED', 'Sesi berakhir. Silakan masuk kembali.'],
     ] as const;
     for (const [code, message] of cases) expect(await bookingFailure({ code })).toBe(message);
+    expect(
+      await bookingFailure({
+        response: new Response(JSON.stringify({ error: { code: 'DUPLICATE_ACTIVE_BOOKING' } }), {
+          status: 409,
+          headers: { 'content-type': 'application/problem+json' },
+        }),
+      }),
+    ).toBe('Pelanggan sudah memiliki booking aktif untuk kelas ini.');
   });
 
   it('reviews and approves a pending reschedule with controlled reason', async () => {
@@ -197,7 +235,8 @@ describe('BookingView', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat data booking' }));
+    await user.click(screen.getByRole('tab', { name: /Antrean Reschedule/ }));
+    await screen.findByRole('button', { name: /Tinjau reschedule/ });
     await user.click(screen.getByRole('button', { name: /Tinjau reschedule/ }));
     expect((await axe(view.container)).violations).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Setujui reschedule' }));

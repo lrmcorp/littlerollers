@@ -8,6 +8,8 @@ import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/booking_class_slot_class_type.dart';
 import 'package:openapi/src/model/booking_class_slot.dart';
 import 'package:openapi/src/model/booking_attendance.dart';
+import 'package:openapi/src/model/booking_customer.dart';
+import 'package:openapi/src/model/booking_session_balance.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -29,6 +31,8 @@ part 'booking.g.dart';
 /// * [createdAt] 
 /// * [version] 
 /// * [idempotentReplay] 
+/// * [customer] 
+/// * [sessionBalance] 
 /// * [branch] 
 /// * [classSlot] 
 /// * [package] 
@@ -76,6 +80,12 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
 
   @BuiltValueField(wireName: r'idempotentReplay')
   bool get idempotentReplay;
+
+  @BuiltValueField(wireName: r'customer')
+  BookingCustomer? get customer;
+
+  @BuiltValueField(wireName: r'sessionBalance')
+  BookingSessionBalance? get sessionBalance;
 
   @BuiltValueField(wireName: r'branch')
   BookingBranch? get branch;
@@ -177,6 +187,20 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       object.idempotentReplay,
       specifiedType: const FullType(bool),
     );
+    if (object.customer != null) {
+      yield r'customer';
+      yield serializers.serialize(
+        object.customer,
+        specifiedType: const FullType(BookingCustomer),
+      );
+    }
+    if (object.sessionBalance != null) {
+      yield r'sessionBalance';
+      yield serializers.serialize(
+        object.sessionBalance,
+        specifiedType: const FullType(BookingSessionBalance),
+      );
+    }
     if (object.branch != null) {
       yield r'branch';
       yield serializers.serialize(
@@ -318,6 +342,20 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
             specifiedType: const FullType(bool),
           ) as bool;
           result.idempotentReplay = valueDes;
+          break;
+        case r'customer':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingCustomer),
+          ) as BookingCustomer;
+          result.customer.replace(valueDes);
+          break;
+        case r'sessionBalance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingSessionBalance),
+          ) as BookingSessionBalance;
+          result.sessionBalance.replace(valueDes);
           break;
         case r'branch':
           final valueDes = serializers.deserialize(
