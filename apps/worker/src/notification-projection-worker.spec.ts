@@ -50,4 +50,42 @@ describe('NotificationProjectionWorker', () => {
       }),
     );
   });
+
+  it('deep-links a rejected identity document without exposing private metadata', async () => {
+    const event = {
+      id: 'event-verification-rejected',
+      eventType: 'identity.verification.rejected.v1',
+      aggregateType: 'IdentityVerificationDocument',
+      aggregateId: 'document-selfie',
+      payload: { documentId: 'document-selfie', decision: 'REJECTED' },
+      correlationId: 'correlation-1',
+      status: 'PENDING',
+      occurredAt: new Date(),
+      publishedAt: null,
+      attempts: 0,
+    };
+    const tx = {
+      notificationProjection: { upsert: jest.fn().mockResolvedValue({}) },
+      userNotification: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const db = {
+      outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
+      identityVerificationDocument: {
+        findUnique: jest.fn().mockResolvedValue({ userId: 'customer-1', kind: 'SELFIE' }),
+      },
+      $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
+    };
+
+    await expect(new NotificationProjectionWorker(db as never).poll()).resolves.toBe(true);
+    expect(tx.userNotification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 'customer-1',
+          category: 'VERIFICATION',
+          href: '/account/verification?document=SELFIE',
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
 });

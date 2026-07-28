@@ -4,6 +4,7 @@ import { ApplicationShell } from './application-shell';
 import { Dashboard } from './dashboard';
 import {
   defaultSessionDestination,
+  forbiddenSessionDestination,
   resolveSessionDestination,
   safeReturnTo,
   SessionProvider,
@@ -109,6 +110,28 @@ describe('capability-aware session shell', () => {
     expect(screen.queryByText('Protected')).not.toBeInTheDocument();
   });
 
+  it('routes staff away from the customer verification page to the reviewer queue', async () => {
+    navigation.pathname = '/account/verification';
+    const reviewer = {
+      ...adminSession,
+      roles: ['SUPER_OWNER'],
+      capabilities: [...adminSession.capabilities, 'identity-verification:review'],
+    };
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(reviewer), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <div>Customer verification</div>
+      </SessionProvider>,
+    );
+
+    expect(await screen.findByText(/Halaman verifikasi akun hanya untuk customer/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Buka antrean verifikasi' })).toHaveAttribute(
+      'href',
+      '/identity-verifications',
+    );
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/identity-verifications'));
+  });
+
   it('accepts only same-origin relative return targets', () => {
     expect(safeReturnTo('/ledger?cursor=one')).toBe('/ledger?cursor=one');
     expect(safeReturnTo('/classes?studio=Green%20Garden#schedule')).toBe(
@@ -128,6 +151,27 @@ describe('capability-aware session shell', () => {
       }),
     ).toBe('/classes#schedule');
     expect(defaultSessionDestination(adminSession)).toBe('/workspace');
+    expect(
+      forbiddenSessionDestination(
+        {
+          ...adminSession,
+          roles: ['SUPER_OWNER'],
+          capabilities: [...adminSession.capabilities, 'identity-verification:review'],
+        },
+        '/account/verification',
+      ),
+    ).toBe('/identity-verifications');
+    expect(forbiddenSessionDestination(adminSession, '/account/verification')).toBe('/workspace');
+    expect(
+      resolveSessionDestination(
+        {
+          ...customerSession,
+          roles: ['CUSTOMER', 'ADMIN'],
+          capabilities: [...customerSession.capabilities, 'identity-verification:review'],
+        },
+        '/account/verification',
+      ),
+    ).toBe('/workspace');
     expect(
       defaultSessionDestination({
         ...customerSession,
@@ -191,7 +235,9 @@ describe('capability-aware session shell', () => {
         </ApplicationShell>
       </SessionProvider>,
     );
-    expect(await screen.findByRole('navigation', { name: 'Navigasi akun' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('navigation', { name: 'Navigasi customer' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
     expect(view.container.querySelector('[data-customer-shell]')).toBeInTheDocument();
     expect(view.container.querySelector('[data-admin-shell]')).not.toBeInTheDocument();

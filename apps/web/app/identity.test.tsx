@@ -16,6 +16,7 @@ import { ResetPasswordView } from './reset-password/reset-password-view';
 import { SecurityView } from './account/security/security-view';
 import { AuditView } from './audit/audit-view';
 import { RolePermissionsView } from './users/roles-permissions/role-permissions-view';
+import { AppFeedbackProvider } from './components/app-feedback';
 
 const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   signIn: vi.fn().mockResolvedValue(undefined),
@@ -244,7 +245,11 @@ describe('identity UI', () => {
     );
     activation.unmount();
 
-    const security = render(<SecurityView client={fake} />);
+    const security = render(
+      <AppFeedbackProvider>
+        <SecurityView client={fake} />
+      </AppFeedbackProvider>,
+    );
     expect(await screen.findByText('Password aktif')).toBeVisible();
     expect((await axe(security.container)).violations).toHaveLength(0);
   });

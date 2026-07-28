@@ -17,7 +17,7 @@ Navigation visibility membantu usability. Backend tetap satu-satunya authorizati
 | Brand | primary `#396552`; strong `#274a3d`; soft `#e8f0ec` |
 | Surface | canvas hangat, surface putih, muted surface; border netral hijau-abu |
 | Status | success, information, warning, danger selalu memakai warna + teks/ikon |
-| Typography | DM Sans lokal untuk body/UI; Cormorant Garamond lokal untuk heading editorial public/auth; body minimum 16px dan control minimum 14px |
+| Typography | Poppins lokal untuk seluruh body, heading, navigation, form, tabel, status, dan tombol; body minimum 16px dan control minimum 14px |
 | Spacing | skala 4, 8, 12, 16, 20, 24, 32, 40, 48 px |
 | Radius | small untuk control, medium untuk panel, large untuk workspace card |
 | Elevation | shadow kecil untuk item; sedang untuk card utama; tidak menjadi indikator status |
@@ -48,7 +48,7 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 
 - Desktop 1280+: sidebar 264px dan content workspace sampai 1440px.
 - Tablet 768: navigation rail 88px, label aktif tetap terbaca, form dapat dua kolom.
-- Mobile 360: navigation horizontal scroll, seluruh form satu kolom, tombol full width, tidak ada aksi kritis yang hanya tersedia lewat hover.
+- Mobile 360: navigation memakai drawer, seluruh form satu kolom, dan tidak ada aksi kritis yang hanya tersedia lewat hover.
 - Table menggunakan overflow pada region berlabel; informasi row tetap memiliki heading/label semantik.
 - Urutan heading, label, keyboard, visible focus, reduced motion, live region, dan confirmation panel merupakan acceptance wajib.
 - Contrast target WCAG 2.2 AA. Status selalu memadukan copy dan visual marker non-color.

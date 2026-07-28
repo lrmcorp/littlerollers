@@ -25,10 +25,11 @@ import type {
   ErrorEnvelope,
   IdentityDocumentSelfViewAuthorization,
   IdentityVerificationDecisionCommand,
+  IdentityVerificationDeletionResult,
   IdentityVerificationDocument,
+  IdentityVerificationReviewPage,
   IdentityVerificationSummary,
   InviteUserRequest,
-  ListIdentityVerifications200Response,
   LookupPage,
   Me,
   MyProfile,
@@ -65,14 +66,16 @@ import {
     IdentityDocumentSelfViewAuthorizationToJSON,
     IdentityVerificationDecisionCommandFromJSON,
     IdentityVerificationDecisionCommandToJSON,
+    IdentityVerificationDeletionResultFromJSON,
+    IdentityVerificationDeletionResultToJSON,
     IdentityVerificationDocumentFromJSON,
     IdentityVerificationDocumentToJSON,
+    IdentityVerificationReviewPageFromJSON,
+    IdentityVerificationReviewPageToJSON,
     IdentityVerificationSummaryFromJSON,
     IdentityVerificationSummaryToJSON,
     InviteUserRequestFromJSON,
     InviteUserRequestToJSON,
-    ListIdentityVerifications200ResponseFromJSON,
-    ListIdentityVerifications200ResponseToJSON,
     LookupPageFromJSON,
     LookupPageToJSON,
     MeFromJSON,
@@ -151,7 +154,14 @@ export interface ListAssignmentsRequest {
 }
 
 export interface ListIdentityVerificationsRequest {
+    q?: string;
     status?: ListIdentityVerificationsStatusEnum;
+    kind?: ListIdentityVerificationsKindEnum;
+    scanStatus?: ListIdentityVerificationsScanStatusEnum;
+    from?: Date;
+    until?: Date;
+    cursor?: string;
+    limit?: number;
 }
 
 export interface ListUserAuditRequest {
@@ -470,7 +480,7 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
-    async deleteIdentityVerificationFileRaw(requestParameters: DeleteIdentityVerificationFileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Resource>> {
+    async deleteIdentityVerificationFileRaw(requestParameters: DeleteIdentityVerificationFileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IdentityVerificationDeletionResult>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -511,12 +521,12 @@ export class IdentityApi extends runtime.BaseAPI {
             body: DeleteIdentityVerificationFileRequestToJSON(requestParameters['deleteIdentityVerificationFileRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ResourceFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => IdentityVerificationDeletionResultFromJSON(jsonValue));
     }
 
     /**
      */
-    async deleteIdentityVerificationFile(requestParameters: DeleteIdentityVerificationFileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Resource> {
+    async deleteIdentityVerificationFile(requestParameters: DeleteIdentityVerificationFileOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityVerificationDeletionResult> {
         const response = await this.deleteIdentityVerificationFileRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -889,11 +899,39 @@ export class IdentityApi extends runtime.BaseAPI {
 
     /**
      */
-    async listIdentityVerificationsRaw(requestParameters: ListIdentityVerificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ListIdentityVerifications200Response>> {
+    async listIdentityVerificationsRaw(requestParameters: ListIdentityVerificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IdentityVerificationReviewPage>> {
         const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
 
         if (requestParameters['status'] != null) {
             queryParameters['status'] = requestParameters['status'];
+        }
+
+        if (requestParameters['kind'] != null) {
+            queryParameters['kind'] = requestParameters['kind'];
+        }
+
+        if (requestParameters['scanStatus'] != null) {
+            queryParameters['scanStatus'] = requestParameters['scanStatus'];
+        }
+
+        if (requestParameters['from'] != null) {
+            queryParameters['from'] = (requestParameters['from'] as any).toISOString();
+        }
+
+        if (requestParameters['until'] != null) {
+            queryParameters['until'] = (requestParameters['until'] as any).toISOString();
+        }
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -916,12 +954,12 @@ export class IdentityApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ListIdentityVerifications200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => IdentityVerificationReviewPageFromJSON(jsonValue));
     }
 
     /**
      */
-    async listIdentityVerifications(requestParameters: ListIdentityVerificationsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ListIdentityVerifications200Response> {
+    async listIdentityVerifications(requestParameters: ListIdentityVerificationsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IdentityVerificationReviewPage> {
         const response = await this.listIdentityVerificationsRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -1561,6 +1599,25 @@ export const ListIdentityVerificationsStatusEnum = {
     Deleted: 'DELETED'
 } as const;
 export type ListIdentityVerificationsStatusEnum = typeof ListIdentityVerificationsStatusEnum[keyof typeof ListIdentityVerificationsStatusEnum];
+/**
+ * @export
+ */
+export const ListIdentityVerificationsKindEnum = {
+    Selfie: 'SELFIE',
+    KtpFront: 'KTP_FRONT'
+} as const;
+export type ListIdentityVerificationsKindEnum = typeof ListIdentityVerificationsKindEnum[keyof typeof ListIdentityVerificationsKindEnum];
+/**
+ * @export
+ */
+export const ListIdentityVerificationsScanStatusEnum = {
+    Pending: 'PENDING',
+    Clean: 'CLEAN',
+    Rejected: 'REJECTED',
+    Infected: 'INFECTED',
+    Error: 'ERROR'
+} as const;
+export type ListIdentityVerificationsScanStatusEnum = typeof ListIdentityVerificationsScanStatusEnum[keyof typeof ListIdentityVerificationsScanStatusEnum];
 /**
  * @export
  */

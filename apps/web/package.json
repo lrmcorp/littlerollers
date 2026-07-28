@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p ${WEB_PORT:-32120}",
-    "build": "next build",
+    "dev": "NEXT_DIST_DIR=.next-dev next dev -p ${WEB_PORT:-32120}",
+    "build": "NEXT_DIST_DIR=.next next build",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

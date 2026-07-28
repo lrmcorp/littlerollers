@@ -21,6 +21,13 @@ void main() {
       // TODO
     });
 
+    // Customer-owned or branch-scoped booking detail with safe class, studio, package, and attendance labels.
+    //
+    //Future<Booking> getBooking(String id) async
+    test('test getBooking', () async {
+      // TODO
+    });
+
     // Returns one safe future slot and only the authenticated customer own eligible package balances.
     //
     //Future<CustomerBookingOptions> getCustomerBookingOptions(String classSlotId) async

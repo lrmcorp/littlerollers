@@ -30,6 +30,15 @@ export interface RuntimeConfig {
     viewAuthorizationTtlSeconds: number;
     retentionDays: number;
   };
+  paymentProof: {
+    maxBytes: number;
+    scanDriver: 'synthetic' | 'clamav';
+    syntheticResult: 'CLEAN' | 'REJECTED';
+    clamAvHost: string | null;
+    clamAvPort: number;
+    scanTimeoutMs: number;
+    abandonedUploadTtlMinutes: number;
+  };
   publicSupportWhatsappE164: string | null;
 }
 
@@ -90,6 +99,19 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   const publicSupportWhatsappE164 = env.PUBLIC_SUPPORT_WHATSAPP_E164?.trim() || null;
   if (publicSupportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(publicSupportWhatsappE164))
     throw new Error('CONFIGURATION_INVALID:PUBLIC_SUPPORT_WHATSAPP_E164');
+  const paymentProofScanDriver =
+    env.PAYMENT_PROOF_SCAN_DRIVER?.trim() ||
+    (environment === 'production' ? 'clamav' : 'synthetic');
+  if (!['synthetic', 'clamav'].includes(paymentProofScanDriver))
+    throw new Error('CONFIGURATION_INVALID:PAYMENT_PROOF_SCAN_DRIVER');
+  if (environment === 'production' && paymentProofScanDriver === 'synthetic')
+    throw new Error('CONFIGURATION_INVALID:PAYMENT_PROOF_SCAN_DRIVER');
+  const paymentProofSyntheticResult = env.PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT?.trim() || 'CLEAN';
+  if (!['CLEAN', 'REJECTED'].includes(paymentProofSyntheticResult))
+    throw new Error('CONFIGURATION_INVALID:PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT');
+  const paymentProofClamAvHost = env.PAYMENT_PROOF_CLAMAV_HOST?.trim() || null;
+  if (paymentProofScanDriver === 'clamav' && !paymentProofClamAvHost)
+    throw new Error('CONFIGURATION_MISSING:PAYMENT_PROOF_CLAMAV_HOST');
   return {
     environment,
     port,
@@ -120,6 +142,18 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
       maxBytes: privateUploadMaxBytes,
       viewAuthorizationTtlSeconds: configuredPositiveInteger('PRIVATE_VIEW_AUTH_TTL_SECONDS', 300),
       retentionDays: configuredPositiveInteger('IDENTITY_DOCUMENT_RETENTION_DAYS', 30),
+    },
+    paymentProof: {
+      maxBytes: configuredPositiveInteger('PAYMENT_PROOF_MAX_BYTES', 10_000_000),
+      scanDriver: paymentProofScanDriver as 'synthetic' | 'clamav',
+      syntheticResult: paymentProofSyntheticResult as 'CLEAN' | 'REJECTED',
+      clamAvHost: paymentProofClamAvHost,
+      clamAvPort: configuredPositiveInteger('PAYMENT_PROOF_CLAMAV_PORT', 3310),
+      scanTimeoutMs: configuredPositiveInteger('PAYMENT_PROOF_SCAN_TIMEOUT_MS', 15_000),
+      abandonedUploadTtlMinutes: configuredPositiveInteger(
+        'PAYMENT_PROOF_ABANDONED_TTL_MINUTES',
+        60,
+      ),
     },
     publicSupportWhatsappE164,
   };

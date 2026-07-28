@@ -56,6 +56,102 @@ export const branchTemplates: BranchMasterTemplate[] = [
   },
 ];
 
+const branchPublicProfiles = {
+  'DD-JKT': {
+    slug: 'jakarta',
+    area: 'Jakarta Selatan',
+    city: 'Jakarta',
+    address: 'Jl. Wijaya II, Kebayoran Baru, Jakarta Selatan',
+    latitude: -6.2446,
+    longitude: 106.8006,
+    description:
+      'Studio Daily Dose yang hangat dan tenang di Jakarta Selatan untuk latihan personal maupun kelompok kecil.',
+    arrivalInformation:
+      'Datang 15 menit sebelum kelas untuk registrasi, mengganti pakaian, dan menyiapkan perlengkapan.',
+    parkingInformation:
+      'Parkir mobil dan motor tersedia terbatas di area gedung. Transportasi daring disarankan pada jam sibuk.',
+    heroImageKey: 'studios/studio-reception.png',
+    galleryImageKeys: [
+      'studios/studio-reception.png',
+      'studios/studio-lobby-wide.png',
+      'studios/studio-interior-reformer.png',
+    ],
+  },
+  'DD-BSD': {
+    slug: 'bsd',
+    area: 'BSD City',
+    city: 'Tangerang Selatan',
+    address: 'Kawasan BSD City, Tangerang Selatan',
+    latitude: -6.3017,
+    longitude: 106.6527,
+    description:
+      'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
+    arrivalInformation:
+      'Datang 15 menit sebelum kelas. Tim studio akan membantu proses check-in dan orientasi pertama.',
+    parkingInformation: 'Area parkir mobil dan motor tersedia di kompleks studio.',
+    heroImageKey: 'studios/studio-interior-reformer.png',
+    galleryImageKeys: [
+      'studios/studio-interior-reformer.png',
+      'studios/studio-lobby-wide.png',
+      'studios/studio-reception.png',
+    ],
+  },
+} as const;
+
+const classPublicProfiles = {
+  REFORMER: {
+    slug: 'reformer-pilates',
+    summary:
+      'Latihan seluruh tubuh dengan resistance terukur untuk membangun kekuatan, kontrol, dan mobilitas.',
+    description:
+      'Reformer Pilates memadukan gerak terkontrol, resistance, dan presisi untuk membantu memperbaiki postur, keseimbangan, dan kekuatan inti.',
+    level: 'Semua level',
+    durationMinutes: 50,
+    equipment: ['Mesin reformer', 'Grip socks'],
+    benefits: [
+      'Memperbaiki postur dan alignment',
+      'Membangun kekuatan inti',
+      'Meningkatkan fleksibilitas dan mobilitas',
+      'Mengembangkan kontrol tubuh',
+    ],
+    heroImageKey: 'classes/reformer-pilates.png',
+  },
+  MAT: {
+    slug: 'mat-pilates',
+    summary:
+      'Gerak Pilates presisi di atas matras untuk memperkuat inti, stabilitas, dan kesadaran tubuh.',
+    description:
+      'Mat Pilates menggunakan berat tubuh dan gerak terkontrol untuk meningkatkan kekuatan, fleksibilitas, dan kualitas pola gerak.',
+    level: 'Semua level',
+    durationMinutes: 50,
+    equipment: ['Matras Pilates', 'Grip socks'],
+    benefits: [
+      'Menguatkan otot inti',
+      'Meningkatkan keseimbangan',
+      'Memperkuat kesadaran tubuh',
+      'Mendukung pola gerak yang sehat',
+    ],
+    heroImageKey: 'classes/mat-pilates.png',
+  },
+  BARRE: {
+    slug: 'barre',
+    summary:
+      'Perpaduan Pilates dan gerak fungsional untuk membangun stabilitas, postur, dan daya tahan.',
+    description:
+      'Barre memadukan latihan terkontrol di barre dengan prinsip Pilates untuk menciptakan sesi yang seimbang dan energik.',
+    level: 'Pemula–menengah',
+    durationMinutes: 50,
+    equipment: ['Ballet barre', 'Matras', 'Grip socks'],
+    benefits: [
+      'Memperbaiki postur',
+      'Menguatkan tubuh bagian bawah',
+      'Meningkatkan daya tahan',
+      'Meningkatkan kesadaran tubuh',
+    ],
+    heroImageKey: 'landing/studio-showcase.png',
+  },
+} as const;
+
 export const masterCatalog = [
   {
     code: 'REFORMER',
@@ -188,6 +284,27 @@ export async function seedCommercialMaster(
     const instructorIds = instructorsByBranch[template.code] ?? [];
     if (instructorIds.length < 2)
       throw new Error(`Branch ${template.code} requires at least two seeded instructors.`);
+    const publicProfile = branchPublicProfiles[template.code as keyof typeof branchPublicProfiles];
+    await ctx.db.branchPublicProfile.upsert({
+      where: { branchId },
+      update: {
+        ...publicProfile,
+        openingHours: [
+          { days: 'Senin–Jumat', hours: '06.00–21.00' },
+          { days: 'Sabtu–Minggu', hours: '07.00–18.00' },
+        ],
+        amenities: ['Ruang ganti', 'Loker', 'Air minum', 'Area tunggu'],
+      },
+      create: {
+        branchId,
+        ...publicProfile,
+        openingHours: [
+          { days: 'Senin–Jumat', hours: '06.00–21.00' },
+          { days: 'Sabtu–Minggu', hours: '07.00–18.00' },
+        ],
+        amenities: ['Ruang ganti', 'Loker', 'Air minum', 'Area tunggu'],
+      },
+    });
 
     for (const item of masterCatalog) {
       const classTypeId = catalog.classTypes[`${template.code}:${item.code}`];
@@ -330,6 +447,43 @@ export async function seedCommercialMaster(
             status: 'ACTIVE',
           },
         });
+        const sessionsLabel = `${pkg.sessions} sesi`;
+        await ctx.db.packagePublicProfile.upsert({
+          where: { packageId },
+          update: {
+            summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
+            description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
+            highlights: [
+              `${sessionsLabel}`,
+              `Berlaku ${pkg.days} hari`,
+              `Khusus ${template.name}`,
+            ],
+            usageGuidance:
+              'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
+            terms: [
+              'Paket berlaku sesuai periode yang tercantum sejak aktivasi.',
+              'Sesi hanya dapat digunakan pada studio dan tipe kelas paket.',
+              'Ketentuan pembatalan mengikuti kebijakan booking Daily Dose.',
+            ],
+          },
+          create: {
+            packageId,
+            summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
+            description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
+            highlights: [
+              `${sessionsLabel}`,
+              `Berlaku ${pkg.days} hari`,
+              `Khusus ${template.name}`,
+            ],
+            usageGuidance:
+              'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
+            terms: [
+              'Paket berlaku sesuai periode yang tercantum sejak aktivasi.',
+              'Sesi hanya dapat digunakan pada studio dan tipe kelas paket.',
+              'Ketentuan pembatalan mengikuti kebijakan booking Daily Dose.',
+            ],
+          },
+        });
       }
       const inactiveId = ctx.id('package', `${template.code}:${item.code}:inactive`);
       await ctx.db.package.upsert({
@@ -376,6 +530,13 @@ export async function seedCommercialMaster(
         paymentWindowHours: template.payment.windowHours,
         active: true,
       },
+    });
+  }
+  for (const [code, profile] of Object.entries(classPublicProfiles)) {
+    await ctx.db.publicClassProfile.upsert({
+      where: { code },
+      update: { ...profile, active: true },
+      create: { code, ...profile },
     });
   }
   return { ...catalog, packages };

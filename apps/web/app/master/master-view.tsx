@@ -12,11 +12,19 @@ import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '../identity-client';
 import { SearchableLookup } from '../components/admin/admin-ui';
+import { PublicProfileEditor } from './public-profile-editor';
 
 type Branches = Awaited<ReturnType<MasterClient['listBranches']>>;
 type ClassTypes = Awaited<ReturnType<MasterClient['listClassTypes']>>;
 export type MasterTab =
-  'branches' | 'classTypes' | 'packages' | 'projection' | 'capacity' | 'fees' | 'accounts';
+  | 'branches'
+  | 'classTypes'
+  | 'packages'
+  | 'projection'
+  | 'capacity'
+  | 'fees'
+  | 'accounts'
+  | 'publicProfiles';
 
 const kindLabels: Record<MasterKind, string> = {
   QUOTA_CAPACITY: 'Kuota & kapasitas kelas',
@@ -51,6 +59,7 @@ const tabItems: { id: MasterTab; label: string; kind?: MasterKind }[] = [
   { id: 'capacity', label: 'Kuota/Kapasitas', kind: 'QUOTA_CAPACITY' },
   { id: 'fees', label: 'Honor', kind: 'INSTRUCTOR_FEE' },
   { id: 'accounts', label: 'Rekening' },
+  { id: 'publicProfiles', label: 'Profil Publik' },
 ];
 
 export function MasterView({
@@ -564,6 +573,9 @@ export function MasterView({
           />
         )}
       </section>
+      {activeTab === 'publicProfiles' && (
+        <PublicProfileEditor branchId={branchId} canManage={canManage} />
+      )}
     </section>
   );
 }

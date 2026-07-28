@@ -16,6 +16,7 @@ part 'finance_reconciliation_metric.g.dart';
 /// * [approvedRp] 
 /// * [pendingRp] 
 /// * [rejectedRp] 
+/// * [identificationAmountRp] - Three-digit transfer identification amount reported separately from package revenue.
 /// * [ledgerDeltaRp] 
 /// * [unreconciledCount] 
 @BuiltValue()
@@ -34,6 +35,10 @@ abstract class FinanceReconciliationMetric implements Built<FinanceReconciliatio
 
   @BuiltValueField(wireName: r'rejectedRp')
   int get rejectedRp;
+
+  /// Three-digit transfer identification amount reported separately from package revenue.
+  @BuiltValueField(wireName: r'identificationAmountRp')
+  int get identificationAmountRp;
 
   @BuiltValueField(wireName: r'ledgerDeltaRp')
   int get ledgerDeltaRp;
@@ -87,6 +92,11 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
     yield r'rejectedRp';
     yield serializers.serialize(
       object.rejectedRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'identificationAmountRp';
+    yield serializers.serialize(
+      object.identificationAmountRp,
       specifiedType: const FullType(int),
     );
     yield r'ledgerDeltaRp';
@@ -156,6 +166,13 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
             specifiedType: const FullType(int),
           ) as int;
           result.rejectedRp = valueDes;
+          break;
+        case r'identificationAmountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.identificationAmountRp = valueDes;
           break;
         case r'ledgerDeltaRp':
           final valueDes = serializers.deserialize(

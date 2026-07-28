@@ -226,7 +226,7 @@ export class NotificationProjectionWorker {
     if (event.eventType.startsWith('identity.verification.')) {
       const document = await this.db.identityVerificationDocument.findUnique({
         where: { id: event.aggregateId },
-        select: { userId: true },
+        select: { userId: true, kind: true },
       });
       if (!document) return [];
       const approved = event.eventType === 'identity.verification.approved.v1';
@@ -241,7 +241,9 @@ export class NotificationProjectionWorker {
           message: approved
             ? 'Dokumen identitas Anda telah disetujui.'
             : 'Buka verifikasi untuk melihat panduan unggah ulang.',
-          href: '/account/verification',
+          href: rejected
+            ? `/account/verification?document=${document.kind}`
+            : '/account/verification',
         },
       ];
     }

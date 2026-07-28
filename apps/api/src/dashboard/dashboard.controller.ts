@@ -17,3 +17,14 @@ export class DashboardController {
     return this.dashboard.overview(request.principal, { branchId, from, until });
   }
 }
+
+@Controller('me')
+@UseGuards(AuthGuard)
+export class CustomerDashboardController {
+  constructor(private readonly dashboard: DashboardService) {}
+
+  @Get('dashboard')
+  overview(@Req() request: AuthenticatedRequest) {
+    return this.dashboard.customerOverview(request.principal);
+  }
+}

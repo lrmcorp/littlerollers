@@ -1,6 +1,10 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
+import { accountClient, type PublicSiteConfig } from './account-client';
 import { PublicFooter } from './components/public/public-footer';
 import { PublicHeader } from './components/public/public-header';
 import {
@@ -8,7 +12,6 @@ import {
   publicPrimaryButton as primaryButton,
   publicSecondaryButton as secondaryButton,
 } from './components/public/public-styles';
-import { publicClasses, publicStudios } from './public-content';
 import { routes } from './routes';
 
 const benefits = [
@@ -19,9 +22,28 @@ const benefits = [
   ['▦', 'Jadwal fleksibel', 'Pilih jadwal yang sesuai dengan ritme Anda'],
 ] as const;
 
-const classCards = publicClasses;
-
 export function PublicLanding() {
+  const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null);
+  const [catalogError, setCatalogError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    accountClient
+      .siteConfig()
+      .then((result) => {
+        if (active) setSiteConfig(result);
+      })
+      .catch(() => {
+        if (active) setCatalogError('Informasi studio belum dapat dimuat.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const classCards = siteConfig?.classes ?? [];
+  const studioCount = siteConfig?.branches.length ?? 0;
+
   return (
     <div className="min-w-0 overflow-hidden bg-dd-cream font-sans text-dd-ink" id="top">
       <a className="skip-link" href="#public-main">
@@ -52,7 +74,7 @@ export function PublicLanding() {
               </p>
               <h1
                 aria-label="Stronger Body. Calmer Mind."
-                className="m-0 font-serif text-[clamp(3.4rem,6vw,5.8rem)] leading-[0.9] font-semibold tracking-[-0.04em]"
+                className="m-0 font-sans text-[clamp(3.4rem,6vw,5.8rem)] leading-[0.9] font-semibold tracking-[-0.04em]"
                 id="marketing-hero-title"
               >
                 Stronger Body.
@@ -127,7 +149,7 @@ export function PublicLanding() {
               <p className="text-xs font-bold tracking-[0.13em] text-white/75 uppercase">
                 Studio kami
               </p>
-              <h2 className="mt-3 font-serif text-[clamp(2.5rem,4vw,4rem)] leading-none font-semibold">
+              <h2 className="mt-3 font-sans text-[clamp(2.5rem,4vw,4rem)] leading-none font-semibold">
                 Ruang tenang yang dirancang untuk bergerak
               </h2>
               <p className="mt-5 text-sm leading-6 text-white/80">
@@ -142,7 +164,7 @@ export function PublicLanding() {
             </div>
             <dl className="grid grid-cols-2 border-l border-white/20 max-[640px]:border-t max-[640px]:border-l-0">
               {[
-                ['Studio', `${publicStudios.length} lokasi`],
+                ['Studio', siteConfig ? `${studioCount} lokasi` : 'Memuat…'],
                 ['Format', 'Personal & kelompok'],
                 ['Durasi', '50 menit'],
                 ['Area', 'Jakarta & BSD'],
@@ -152,7 +174,7 @@ export function PublicLanding() {
                   key={term}
                 >
                   <dt className="text-xs text-white/65 uppercase">{term}</dt>
-                  <dd className="mt-2 font-serif text-2xl">{value}</dd>
+                  <dd className="mt-2 font-sans text-2xl">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -166,7 +188,7 @@ export function PublicLanding() {
                 Kelas populer
               </p>
               <h2
-                className="mt-2 font-serif text-[clamp(2.4rem,4vw,3.6rem)] leading-none"
+                className="mt-2 font-sans text-[clamp(2.4rem,4vw,3.6rem)] leading-none"
                 id="popular-title"
               >
                 Temukan kelas sesuai tujuan Anda
@@ -176,31 +198,47 @@ export function PublicLanding() {
               Lihat semua kelas ›
             </Link>
           </div>
-          <div className="grid gap-5 md:grid-cols-3">
-            {classCards.map(({ name, description, level, image }) => (
-              <article
-                className="min-w-0 overflow-hidden rounded-dd-md bg-white shadow-dd-card"
-                key={name}
-              >
-                <div className="relative h-[150px]">
-                  <Image
-                    src={`/images/public/classes/${image}`}
-                    fill
-                    sizes="260px"
-                    alt=""
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-xl font-semibold">{name}</h3>
-                  <p className="mt-2 min-h-10 text-[13px] leading-5 text-dd-muted">{description}</p>
-                  <span className="mt-3 inline-flex rounded-full bg-[#e7eee8] px-2.5 py-1 text-xs text-dd-forest">
-                    {level}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
+          {catalogError ? (
+            <div className="rounded-dd-md border border-dd-line bg-white p-6 text-sm text-dd-muted">
+              {catalogError}
+            </div>
+          ) : classCards.length ? (
+            <div className="grid gap-5 md:grid-cols-3">
+              {classCards.map(({ code, name, summary, level, heroImageKey, slug }) => (
+                <article
+                  className="min-w-0 overflow-hidden rounded-dd-md bg-white shadow-dd-card"
+                  key={code}
+                >
+                  <div className="relative h-[150px]">
+                    <Image
+                      src={`/images/public/${heroImageKey}`}
+                      fill
+                      sizes="260px"
+                      alt=""
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-sans text-xl font-semibold">{name}</h3>
+                    <p className="mt-2 min-h-10 text-[13px] leading-5 text-dd-muted">{summary}</p>
+                    <span className="mt-3 inline-flex rounded-full bg-[#e7eee8] px-2.5 py-1 text-xs text-dd-forest">
+                      {level}
+                    </span>
+                    <Link
+                      className="mt-4 block text-sm font-bold text-dd-forest"
+                      href={`/classes/${slug}`}
+                    >
+                      Lihat detail ›
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-dd-md border border-dd-line bg-white p-6 text-sm text-dd-muted">
+              Kelas aktif belum tersedia.
+            </div>
+          )}
         </section>
 
         <section
@@ -215,7 +253,7 @@ export function PublicLanding() {
             Prinsip gerak kami
           </p>
           <div className="mt-6 grid grid-cols-3 divide-x divide-dd-line max-[760px]:grid-cols-1 max-[760px]:divide-y max-[760px]:divide-x-0">
-            <blockquote className="m-0 p-6 font-serif text-2xl leading-8">
+            <blockquote className="m-0 p-6 font-sans text-2xl leading-8">
               “Consistency is not perfection. It is choosing to return to yourself.”
             </blockquote>
             {[
@@ -245,7 +283,7 @@ export function PublicLanding() {
               Paket Daily Dose
             </p>
             <h2
-              className="mt-3 font-serif text-[clamp(2.4rem,5vw,3.8rem)] leading-none"
+              className="mt-3 font-sans text-[clamp(2.4rem,5vw,3.8rem)] leading-none"
               id="package-cta-title"
             >
               Bangun rutinitas yang konsisten.
@@ -279,7 +317,7 @@ export function PublicLanding() {
           className={`${container} my-8 grid items-center gap-8 rounded-dd-lg bg-dd-forest px-[clamp(28px,7vw,96px)] py-9 text-white md:grid-cols-2`}
         >
           <div>
-            <h2 className="font-serif text-3xl">Temukan kelas Pilates yang sesuai untukmu</h2>
+            <h2 className="font-sans text-3xl">Temukan kelas Pilates yang sesuai untukmu</h2>
             <p className="mt-2 text-sm text-white/80">
               Lihat jadwal, pilih studio, dan temukan kelas yang sesuai dengan tujuanmu.
             </p>

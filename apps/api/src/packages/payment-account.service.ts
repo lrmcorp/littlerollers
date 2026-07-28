@@ -1,0 +1,166 @@
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../database/prisma.service';
+import type { SessionPrincipal } from '../identity/identity.service';
+import { ApiProblem, newId } from '../identity/security';
+import { PackageAccessService } from './package-access.service';
+import {
+  encryptAccountNumber,
+  maskedAccountNumber,
+  normalizeAccountNumber,
+} from './payment-account-security';
+
+@Injectable()
+export class PaymentAccountService {
+  constructor(
+    private readonly db: PrismaService,
+    private readonly access: PackageAccessService,
+  ) {}
+
+  async list(principal: SessionPrincipal, branchId?: string) {
+    this.access.paymentAccount(principal);
+    if (branchId) this.access.scope(principal, branchId);
+    const items = await this.db.paymentAccount.findMany({
+      where: branchId
+        ? { branchId }
+        : principal.capabilities.includes('branch:all')
+          ? {}
+          : { branchId: { in: principal.branchIds } },
+      orderBy: [{ branchId: 'asc' }, { createdAt: 'desc' }],
+    });
+    return { items: items.map(paymentAccountView) };
+  }
+
+  async create(principal: SessionPrincipal, input: any, correlationId: string) {
+    this.access.paymentAccount(principal, true);
+    if (
+      !input.branchId ||
+      !input.bankCode?.trim() ||
+      !input.bankName?.trim() ||
+      !input.accountHolderName?.trim() ||
+      !Number.isInteger(input.paymentWindowHours) ||
+      input.paymentWindowHours < 1 ||
+      input.paymentWindowHours > 168 ||
+      !input.reason?.trim()
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    this.access.scope(principal, input.branchId);
+    const accountNumber = normalizeAccountNumber(input.accountNumber);
+    return this.db.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${input.branchId} FOR UPDATE`;
+        const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
+        if (!branch?.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const active = await tx.paymentAccount.findFirst({
+          where: { branchId: input.branchId, active: true },
+        });
+        if (active) throw new ApiProblem('ACTIVE_PAYMENT_ACCOUNT_EXISTS', HttpStatus.CONFLICT);
+        const account = await tx.paymentAccount.create({
+          data: {
+            id: newId(),
+            branchId: input.branchId,
+            activeBranchKey: input.branchId,
+            bankCode: input.bankCode.trim().toUpperCase(),
+            bankName: input.bankName.trim(),
+            accountNumberEncrypted: encryptAccountNumber(accountNumber),
+            accountNumberLast4: accountNumber.slice(-4),
+            accountHolderName: input.accountHolderName.trim(),
+            paymentWindowHours: input.paymentWindowHours,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: newId(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            action: 'PAYMENT_ACCOUNT_CREATED',
+            objectType: 'PaymentAccount',
+            objectId: account.id,
+            branchId: account.branchId,
+            correlationId,
+            afterMasked: {
+              bankName: account.bankName,
+              accountNumber: maskedAccountNumber(accountNumber.slice(-4)),
+              holder: account.accountHolderName,
+              reason: input.reason.trim(),
+            },
+          },
+        });
+        return paymentAccountView(account);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async deactivate(principal: SessionPrincipal, id: string, input: any, correlationId: string) {
+    this.access.paymentAccount(principal, true);
+    if (!Number.isInteger(input?.expectedVersion) || !input?.reason?.trim())
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.db.$transaction(
+      async (tx) => {
+        const account = await tx.paymentAccount.findUnique({ where: { id } });
+        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.access.scope(principal, account.branchId);
+        if (!account.active || account.version !== input.expectedVersion)
+          throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+        const openOrder = await tx.purchase.findFirst({
+          where: {
+            paymentAccountId: id,
+            status: 'AWAITING_PAYMENT',
+            paymentExpiresAt: { gt: new Date() },
+          },
+          select: { id: true },
+        });
+        if (openOrder) throw new ApiProblem('PAYMENT_ACCOUNT_HAS_OPEN_ORDERS', HttpStatus.CONFLICT);
+        const updated = await tx.paymentAccount.update({
+          where: { id, version: input.expectedVersion },
+          data: { active: false, activeBranchKey: null, version: { increment: 1 } },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: newId(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            action: 'PAYMENT_ACCOUNT_DEACTIVATED',
+            objectType: 'PaymentAccount',
+            objectId: id,
+            branchId: account.branchId,
+            correlationId,
+            beforeMasked: { active: true },
+            afterMasked: { active: false, reason: input.reason.trim() },
+          },
+        });
+        return paymentAccountView(updated);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+}
+
+function paymentAccountView(account: {
+  id: string;
+  branchId: string;
+  bankCode: string;
+  bankName: string;
+  accountNumberLast4: string;
+  accountHolderName: string;
+  paymentWindowHours: number;
+  active: boolean;
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: account.id,
+    branchId: account.branchId,
+    bankCode: account.bankCode,
+    bankName: account.bankName,
+    maskedAccountNumber: `•••• ${account.accountNumberLast4}`,
+    accountHolderName: account.accountHolderName,
+    paymentWindowHours: account.paymentWindowHours,
+    active: account.active,
+    version: account.version,
+    createdAt: account.createdAt,
+    updatedAt: account.updatedAt,
+  };
+}

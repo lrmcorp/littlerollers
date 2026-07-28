@@ -57,6 +57,26 @@ void main() {
       // TODO
     });
 
+    // DateTime issuedAt
+    test('to test the property `issuedAt`', () async {
+      // TODO
+    });
+
+    // DateTime uploadedAt
+    test('to test the property `uploadedAt`', () async {
+      // TODO
+    });
+
+    // DateTime finalizedAt
+    test('to test the property `finalizedAt`', () async {
+      // TODO
+    });
+
+    // DateTime createdAt
+    test('to test the property `createdAt`', () async {
+      // TODO
+    });
+
     // DateTime reviewedAt
     test('to test the property `reviewedAt`', () async {
       // TODO
@@ -69,6 +89,11 @@ void main() {
 
     // int version
     test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // String auditReference
+    test('to test the property `auditReference`', () async {
       // TODO
     });
 

@@ -15,7 +15,7 @@ export default defineConfig({
   snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
   use: { baseURL: playwrightBaseUrl, ...devices['Desktop Chrome'] },
   webServer: {
-    command: `pnpm exec next dev -p ${playwrightPort}`,
+    command: `NEXT_DIST_DIR=.next-playwright pnpm exec next dev -p ${playwrightPort}`,
     url: playwrightBaseUrl,
     reuseExistingServer: process.env.DD_PLAYWRIGHT_REUSE_SERVER === 'true',
     env: { NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED: 'true' },

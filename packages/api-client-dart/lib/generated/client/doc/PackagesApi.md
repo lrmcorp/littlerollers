@@ -19,8 +19,10 @@ Method | HTTP request | Description
 [**getCheckoutOptions**](PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
 [**getOrder**](PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [**getPaymentProofStatus**](PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
+[**getPublicPackageDetail**](PackagesApi.md#getpublicpackagedetail) | **GET** /public/package-catalog/{id} | 
 [**listOrders**](PackagesApi.md#listorders) | **GET** /orders | 
 [**listPackages**](PackagesApi.md#listpackages) | **GET** /packages | 
+[**listPublicPackages**](PackagesApi.md#listpublicpackages) | **GET** /public/package-catalog | 
 [**listPurchases**](PackagesApi.md#listpurchases) | **GET** /purchases | 
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
@@ -336,7 +338,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getCheckoutOptions**
-> CheckoutOptions getCheckoutOptions(packageId)
+> CheckoutOptions getCheckoutOptions(packageId, branchId)
 
 
 
@@ -348,9 +350,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getPackagesApi();
 final String packageId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | When supplied, must match the package branch.
 
 try {
-    final response = api.getCheckoutOptions(packageId);
+    final response = api.getCheckoutOptions(packageId, branchId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->getCheckoutOptions: $e\n');
@@ -362,6 +365,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **packageId** | **String**|  | 
+ **branchId** | **String**| When supplied, must match the package branch. | [optional] 
 
 ### Return type
 
@@ -460,6 +464,47 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getPublicPackageDetail**
+> PublicPackageDetail getPublicPackageDetail(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getPublicPackageDetail(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getPublicPackageDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**PublicPackageDetail**](PublicPackageDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listOrders**
 > OrderPage listOrders(status, cursor)
 
@@ -540,6 +585,47 @@ Name | Type | Description  | Notes
 ### Authorization
 
 [bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPublicPackages**
+> PublicPackageCatalog listPublicPackages(branchId)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+
+try {
+    final response = api.listPublicPackages(branchId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listPublicPackages: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+
+### Return type
+
+[**PublicPackageCatalog**](PublicPackageCatalog.md)
+
+### Authorization
+
+No authorization required
 
 ### HTTP request headers
 

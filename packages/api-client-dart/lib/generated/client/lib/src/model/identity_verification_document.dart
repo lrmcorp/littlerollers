@@ -22,9 +22,14 @@ part 'identity_verification_document.g.dart';
 /// * [sizeBytes] 
 /// * [rejectionReasonCode] 
 /// * [rejectionNote] 
+/// * [issuedAt] 
+/// * [uploadedAt] 
+/// * [finalizedAt] 
+/// * [createdAt] 
 /// * [reviewedAt] 
 /// * [deletedAt] 
 /// * [version] 
+/// * [auditReference] 
 @BuiltValue()
 abstract class IdentityVerificationDocument implements Built<IdentityVerificationDocument, IdentityVerificationDocumentBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -61,6 +66,18 @@ abstract class IdentityVerificationDocument implements Built<IdentityVerificatio
   @BuiltValueField(wireName: r'rejectionNote')
   String? get rejectionNote;
 
+  @BuiltValueField(wireName: r'issuedAt')
+  DateTime? get issuedAt;
+
+  @BuiltValueField(wireName: r'uploadedAt')
+  DateTime? get uploadedAt;
+
+  @BuiltValueField(wireName: r'finalizedAt')
+  DateTime? get finalizedAt;
+
+  @BuiltValueField(wireName: r'createdAt')
+  DateTime? get createdAt;
+
   @BuiltValueField(wireName: r'reviewedAt')
   DateTime? get reviewedAt;
 
@@ -69,6 +86,9 @@ abstract class IdentityVerificationDocument implements Built<IdentityVerificatio
 
   @BuiltValueField(wireName: r'version')
   int get version;
+
+  @BuiltValueField(wireName: r'auditReference')
+  String? get auditReference;
 
   IdentityVerificationDocument._();
 
@@ -147,6 +167,34 @@ class _$IdentityVerificationDocumentSerializer implements PrimitiveSerializer<Id
         specifiedType: const FullType.nullable(String),
       );
     }
+    if (object.issuedAt != null) {
+      yield r'issuedAt';
+      yield serializers.serialize(
+        object.issuedAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
+    if (object.uploadedAt != null) {
+      yield r'uploadedAt';
+      yield serializers.serialize(
+        object.uploadedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
+    if (object.finalizedAt != null) {
+      yield r'finalizedAt';
+      yield serializers.serialize(
+        object.finalizedAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
+    if (object.createdAt != null) {
+      yield r'createdAt';
+      yield serializers.serialize(
+        object.createdAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
     if (object.reviewedAt != null) {
       yield r'reviewedAt';
       yield serializers.serialize(
@@ -166,6 +214,13 @@ class _$IdentityVerificationDocumentSerializer implements PrimitiveSerializer<Id
       object.version,
       specifiedType: const FullType(int),
     );
+    if (object.auditReference != null) {
+      yield r'auditReference';
+      yield serializers.serialize(
+        object.auditReference,
+        specifiedType: const FullType(String),
+      );
+    }
   }
 
   @override
@@ -261,6 +316,36 @@ class _$IdentityVerificationDocumentSerializer implements PrimitiveSerializer<Id
           if (valueDes == null) continue;
           result.rejectionNote = valueDes;
           break;
+        case r'issuedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.issuedAt = valueDes;
+          break;
+        case r'uploadedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.uploadedAt = valueDes;
+          break;
+        case r'finalizedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.finalizedAt = valueDes;
+          break;
+        case r'createdAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.createdAt = valueDes;
+          break;
         case r'reviewedAt':
           final valueDes = serializers.deserialize(
             value,
@@ -283,6 +368,13 @@ class _$IdentityVerificationDocumentSerializer implements PrimitiveSerializer<Id
             specifiedType: const FullType(int),
           ) as int;
           result.version = valueDes;
+          break;
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.auditReference = valueDes;
           break;
         default:
           unhandled.add(key);

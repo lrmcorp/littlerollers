@@ -12,11 +12,15 @@ part 'create_order_command.g.dart';
 ///
 /// Properties:
 /// * [packageId] 
+/// * [branchId] 
 /// * [slotId] 
 @BuiltValue()
 abstract class CreateOrderCommand implements Built<CreateOrderCommand, CreateOrderCommandBuilder> {
   @BuiltValueField(wireName: r'packageId')
   String get packageId;
+
+  @BuiltValueField(wireName: r'branchId')
+  String? get branchId;
 
   @BuiltValueField(wireName: r'slotId')
   String? get slotId;
@@ -49,6 +53,13 @@ class _$CreateOrderCommandSerializer implements PrimitiveSerializer<CreateOrderC
       object.packageId,
       specifiedType: const FullType(String),
     );
+    if (object.branchId != null) {
+      yield r'branchId';
+      yield serializers.serialize(
+        object.branchId,
+        specifiedType: const FullType(String),
+      );
+    }
     if (object.slotId != null) {
       yield r'slotId';
       yield serializers.serialize(
@@ -85,6 +96,13 @@ class _$CreateOrderCommandSerializer implements PrimitiveSerializer<CreateOrderC
             specifiedType: const FullType(String),
           ) as String;
           result.packageId = valueDes;
+          break;
+        case r'branchId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.branchId = valueDes;
           break;
         case r'slotId':
           final valueDes = serializers.deserialize(

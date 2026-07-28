@@ -7,6 +7,8 @@ import { PrismaClient } from '@prisma/client';
 import { QuotaWorker } from './quota-worker';
 import { IdentityDeletionWorker } from './identity-deletion-worker';
 import { NotificationProjectionWorker } from './notification-projection-worker';
+import { PaymentExpirationWorker } from './payment-expiration-worker';
+import { PaymentProofCleanupWorker } from './payment-proof-cleanup-worker';
 
 @Injectable()
 class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
@@ -19,6 +21,11 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.config.privateUploads,
   );
   private readonly notificationProjectionWorker = new NotificationProjectionWorker(this.database);
+  private readonly paymentExpirationWorker = new PaymentExpirationWorker(this.database);
+  private readonly paymentProofCleanupWorker = new PaymentProofCleanupWorker(this.database, {
+    privateUploadRoot: this.config.privateUploads.root,
+    abandonedUploadTtlMinutes: this.config.paymentProof.abandonedUploadTtlMinutes,
+  });
   private timer?: NodeJS.Timeout;
 
   async onModuleInit(): Promise<void> {
@@ -26,6 +33,8 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.quotaWorker.start();
     this.identityDeletionWorker.start();
     this.notificationProjectionWorker.start();
+    this.paymentExpirationWorker.start();
+    this.paymentProofCleanupWorker.start();
     this.timer = setInterval(() => void this.beat(), this.config.workerHeartbeatIntervalMs);
   }
 
@@ -34,6 +43,8 @@ class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
     this.quotaWorker.stop();
     this.identityDeletionWorker.stop();
     this.notificationProjectionWorker.stop();
+    this.paymentExpirationWorker.stop();
+    this.paymentProofCleanupWorker.stop();
     await this.redis.quit();
     await this.database.$disconnect();
   }

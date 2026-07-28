@@ -144,4 +144,10 @@ export class PolicyService {
   requireCapability(capabilities: readonly string[], required: string): void {
     if (!capabilities.includes(required)) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }
+
+  requireCustomerSelf(roles: readonly EffectiveRole[], capabilities: readonly string[]): void {
+    const customerOnly = roles.length > 0 && roles.every(({ role }) => role === 'CUSTOMER');
+    if (!customerOnly || !capabilities.includes('customer:self'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+  }
 }

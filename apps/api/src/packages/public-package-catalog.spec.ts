@@ -1,8 +1,8 @@
-import { PublicPackageCatalogService } from './public-package-catalog.service';
+import { PublicPackageQueryService } from '../public-content/public-package-query.service';
 
 const branchId = '00000000-0000-4000-8000-000000000002';
 
-describe('PublicPackageCatalogService', () => {
+describe('PublicPackageQueryService', () => {
   const db = {
     branch: {
       findMany: jest
@@ -32,7 +32,7 @@ describe('PublicPackageCatalogService', () => {
       ]),
     },
   };
-  const service = new PublicPackageCatalogService(db as never);
+  const service = new PublicPackageQueryService(db as never);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -41,6 +41,14 @@ describe('PublicPackageCatalogService', () => {
     expect(result.branches).toHaveLength(1);
     expect(result.items).toEqual([]);
     expect(db.package.findMany).not.toHaveBeenCalled();
+    expect(db.branch.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          supportWhatsappE164: true,
+          publicProfile: true,
+        }),
+      }),
+    );
   });
 
   it('returns only an active effective public commercial projection', async () => {

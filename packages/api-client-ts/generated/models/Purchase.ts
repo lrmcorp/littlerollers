@@ -66,6 +66,18 @@ export interface Purchase {
      * @type {number}
      * @memberof Purchase
      */
+    paymentUniqueCode?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Purchase
+     */
+    payableAmountRpSnapshot?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Purchase
+     */
     sessionCountSnapshot: number;
     /**
      * 
@@ -161,6 +173,8 @@ export function PurchaseFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'paymentProofId': json['paymentProofId'] == null ? undefined : json['paymentProofId'],
         'packageNameSnapshot': json['packageNameSnapshot'],
         'priceRpSnapshot': json['priceRpSnapshot'],
+        'paymentUniqueCode': json['paymentUniqueCode'] == null ? undefined : json['paymentUniqueCode'],
+        'payableAmountRpSnapshot': json['payableAmountRpSnapshot'] == null ? undefined : json['payableAmountRpSnapshot'],
         'sessionCountSnapshot': json['sessionCountSnapshot'],
         'durationDaysSnapshot': json['durationDaysSnapshot'],
         'status': json['status'],
@@ -190,6 +204,8 @@ export function PurchaseToJSONTyped(value?: Purchase | null, ignoreDiscriminator
         'paymentProofId': value['paymentProofId'],
         'packageNameSnapshot': value['packageNameSnapshot'],
         'priceRpSnapshot': value['priceRpSnapshot'],
+        'paymentUniqueCode': value['paymentUniqueCode'],
+        'payableAmountRpSnapshot': value['payableAmountRpSnapshot'],
         'sessionCountSnapshot': value['sessionCountSnapshot'],
         'durationDaysSnapshot': value['durationDaysSnapshot'],
         'status': value['status'],

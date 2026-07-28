@@ -50,6 +50,12 @@ export interface FinanceReconciliationMetric {
      */
     rejectedRp: number;
     /**
+     * Three-digit transfer identification amount reported separately from package revenue.
+     * @type {number}
+     * @memberof FinanceReconciliationMetric
+     */
+    identificationAmountRp: number;
+    /**
      * 
      * @type {number}
      * @memberof FinanceReconciliationMetric
@@ -72,6 +78,7 @@ export function instanceOfFinanceReconciliationMetric(value: object): value is F
     if (!('approvedRp' in value) || value['approvedRp'] === undefined) return false;
     if (!('pendingRp' in value) || value['pendingRp'] === undefined) return false;
     if (!('rejectedRp' in value) || value['rejectedRp'] === undefined) return false;
+    if (!('identificationAmountRp' in value) || value['identificationAmountRp'] === undefined) return false;
     if (!('ledgerDeltaRp' in value) || value['ledgerDeltaRp'] === undefined) return false;
     if (!('unreconciledCount' in value) || value['unreconciledCount'] === undefined) return false;
     return true;
@@ -92,6 +99,7 @@ export function FinanceReconciliationMetricFromJSONTyped(json: any, ignoreDiscri
         'approvedRp': json['approvedRp'],
         'pendingRp': json['pendingRp'],
         'rejectedRp': json['rejectedRp'],
+        'identificationAmountRp': json['identificationAmountRp'],
         'ledgerDeltaRp': json['ledgerDeltaRp'],
         'unreconciledCount': json['unreconciledCount'],
     };
@@ -113,6 +121,7 @@ export function FinanceReconciliationMetricToJSONTyped(value?: FinanceReconcilia
         'approvedRp': value['approvedRp'],
         'pendingRp': value['pendingRp'],
         'rejectedRp': value['rejectedRp'],
+        'identificationAmountRp': value['identificationAmountRp'],
         'ledgerDeltaRp': value['ledgerDeltaRp'],
         'unreconciledCount': value['unreconciledCount'],
     };

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { hideNextDevelopmentAffordances } from './e2e-visual-helpers';
 
 const breakpoints = [
   { name: 'desktop-1280', width: 1280, height: 900 },
@@ -7,6 +8,7 @@ const breakpoints = [
 ];
 
 test.beforeEach(async ({ page }) => {
+  await hideNextDevelopmentAffordances(page);
   await page.route('**/api/v1/me', (route) =>
     route.fulfill({
       status: 200,
@@ -59,7 +61,7 @@ for (const breakpoint of breakpoints) {
   test(`Tailwind Studios ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/locations');
-    await expect(page.getByRole('heading', { name: 'Our Studios', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Studio Kami', exact: true })).toBeVisible();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
     await expect(page).toHaveScreenshot(`studios-${breakpoint.name}.png`, {
       animations: 'disabled',
@@ -105,9 +107,7 @@ for (const breakpoint of breakpoints) {
   test(`permission-based user management ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/users');
-    await expect(
-      page.getByRole('heading', { name: 'Pengguna, role, dan permission' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Pengguna', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Buat pengguna internal' })).toBeVisible();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
   });

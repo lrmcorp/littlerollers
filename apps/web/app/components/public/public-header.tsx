@@ -7,23 +7,27 @@ import { usePathname } from 'next/navigation';
 
 import { BrandMark } from './brand-mark';
 import { publicNavigation, routes } from '../../routes';
+import { isCustomerOnlySession } from '../../session-audience';
 import { useSessionContext } from '../../session-context';
 
 function isCurrent(pathname: string, hash: string, href: string) {
-  if (href === '/classes#schedule') return pathname === '/classes' && hash === '#schedule';
+  if (href === '/classes#schedule')
+    return (pathname === '/classes' && hash === '#schedule') || pathname.startsWith('/schedule/');
   if (href === '/classes')
     return (pathname === '/classes' && hash !== '#schedule') || pathname.startsWith('/classes/');
   const [target, targetHash = ''] = href.split('#');
-  return pathname === (target || '/') && (!targetHash || hash === `#${targetHash}`);
+  const route = target || '/';
+  return (
+    (pathname === route || (route !== '/' && pathname.startsWith(`${route}/`))) &&
+    (!targetHash || hash === `#${targetHash}`)
+  );
 }
 
 export function PublicHeader() {
   const pathname = usePathname() ?? '/';
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
-  const customerOnly = Boolean(
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
-  );
+  const customerOnly = isCustomerOnlySession(session);
   const [open, setOpen] = useState(false);
   const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);

@@ -4,13 +4,14 @@
 
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/order_payment_account.dart';
+import 'package:openapi/src/model/order_payment_proof_status.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'order.g.dart';
 
-/// Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail.
+/// Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail. Legacy orders can have null paymentUniqueCode.
 ///
 /// Properties:
 /// * [id] 
@@ -19,6 +20,9 @@ part 'order.g.dart';
 /// * [packageId] 
 /// * [packageName] 
 /// * [priceRp] 
+/// * [baseAmountRp] 
+/// * [paymentUniqueCode] 
+/// * [payableAmountRp] 
 /// * [sessionCount] 
 /// * [durationDays] 
 /// * [status] 
@@ -26,6 +30,7 @@ part 'order.g.dart';
 /// * [expiresAt] 
 /// * [continuationSlotId] 
 /// * [paymentProofId] 
+/// * [paymentProofStatus] 
 /// * [decisionReasonCode] 
 /// * [version] 
 /// * [paymentAccount] 
@@ -49,6 +54,15 @@ abstract class Order implements Built<Order, OrderBuilder> {
   @BuiltValueField(wireName: r'priceRp')
   int get priceRp;
 
+  @BuiltValueField(wireName: r'baseAmountRp')
+  int get baseAmountRp;
+
+  @BuiltValueField(wireName: r'paymentUniqueCode')
+  int? get paymentUniqueCode;
+
+  @BuiltValueField(wireName: r'payableAmountRp')
+  int get payableAmountRp;
+
   @BuiltValueField(wireName: r'sessionCount')
   int get sessionCount;
 
@@ -70,6 +84,9 @@ abstract class Order implements Built<Order, OrderBuilder> {
 
   @BuiltValueField(wireName: r'paymentProofId')
   String? get paymentProofId;
+
+  @BuiltValueField(wireName: r'paymentProofStatus')
+  OrderPaymentProofStatus? get paymentProofStatus;
 
   @BuiltValueField(wireName: r'decisionReasonCode')
   String? get decisionReasonCode;
@@ -135,6 +152,23 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
       object.priceRp,
       specifiedType: const FullType(int),
     );
+    yield r'baseAmountRp';
+    yield serializers.serialize(
+      object.baseAmountRp,
+      specifiedType: const FullType(int),
+    );
+    if (object.paymentUniqueCode != null) {
+      yield r'paymentUniqueCode';
+      yield serializers.serialize(
+        object.paymentUniqueCode,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    yield r'payableAmountRp';
+    yield serializers.serialize(
+      object.payableAmountRp,
+      specifiedType: const FullType(int),
+    );
     yield r'sessionCount';
     yield serializers.serialize(
       object.sessionCount,
@@ -174,6 +208,13 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
       yield serializers.serialize(
         object.paymentProofId,
         specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.paymentProofStatus != null) {
+      yield r'paymentProofStatus';
+      yield serializers.serialize(
+        object.paymentProofStatus,
+        specifiedType: const FullType(OrderPaymentProofStatus),
       );
     }
     if (object.decisionReasonCode != null) {
@@ -260,6 +301,28 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
           ) as int;
           result.priceRp = valueDes;
           break;
+        case r'baseAmountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.baseAmountRp = valueDes;
+          break;
+        case r'paymentUniqueCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.paymentUniqueCode = valueDes;
+          break;
+        case r'payableAmountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.payableAmountRp = valueDes;
+          break;
         case r'sessionCount':
           final valueDes = serializers.deserialize(
             value,
@@ -311,6 +374,13 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
           ) as String?;
           if (valueDes == null) continue;
           result.paymentProofId = valueDes;
+          break;
+        case r'paymentProofStatus':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(OrderPaymentProofStatus),
+          ) as OrderPaymentProofStatus;
+          result.paymentProofStatus.replace(valueDes);
           break;
         case r'decisionReasonCode':
           final valueDes = serializers.deserialize(

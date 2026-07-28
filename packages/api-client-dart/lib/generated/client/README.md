@@ -98,6 +98,7 @@ Class | Method | HTTP request | Description
 [*AuthApi*](doc/AuthApi.md) | [**verifyOtp**](doc/AuthApi.md#verifyotp) | **POST** /auth/otp/verifications | 
 [*BookingsApi*](doc/BookingsApi.md) | [**createBooking**](doc/BookingsApi.md#createbooking) | **POST** /bookings | 
 [*BookingsApi*](doc/BookingsApi.md) | [**decideReschedule**](doc/BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
+[*BookingsApi*](doc/BookingsApi.md) | [**getBooking**](doc/BookingsApi.md#getbooking) | **GET** /bookings/{id} | 
 [*BookingsApi*](doc/BookingsApi.md) | [**getCustomerBookingOptions**](doc/BookingsApi.md#getcustomerbookingoptions) | **GET** /bookings/options/{classSlotId} | 
 [*BookingsApi*](doc/BookingsApi.md) | [**listBookings**](doc/BookingsApi.md#listbookings) | **GET** /bookings | 
 [*BookingsApi*](doc/BookingsApi.md) | [**listReschedules**](doc/BookingsApi.md#listreschedules) | **GET** /reschedules | 
@@ -106,10 +107,14 @@ Class | Method | HTTP request | Description
 [*ClassesApi*](doc/ClassesApi.md) | [**cancelClassSlot**](doc/ClassesApi.md#cancelclassslot) | **POST** /class-slots/{id}/cancel | 
 [*ClassesApi*](doc/ClassesApi.md) | [**createAvailability**](doc/ClassesApi.md#createavailability) | **POST** /instructor-availabilities | 
 [*ClassesApi*](doc/ClassesApi.md) | [**createClassSlot**](doc/ClassesApi.md#createclassslot) | **POST** /class-slots | 
+[*ClassesApi*](doc/ClassesApi.md) | [**getPublicClassDetail**](doc/ClassesApi.md#getpublicclassdetail) | **GET** /public/class-types/{slug} | 
+[*ClassesApi*](doc/ClassesApi.md) | [**getPublicScheduleDetail**](doc/ClassesApi.md#getpublicscheduledetail) | **GET** /public/class-catalog/{id} | 
 [*ClassesApi*](doc/ClassesApi.md) | [**listAvailabilities**](doc/ClassesApi.md#listavailabilities) | **GET** /instructor-availabilities | 
 [*ClassesApi*](doc/ClassesApi.md) | [**listClassSlots**](doc/ClassesApi.md#listclassslots) | **GET** /class-slots | 
+[*ClassesApi*](doc/ClassesApi.md) | [**listPublicClassSchedule**](doc/ClassesApi.md#listpublicclassschedule) | **GET** /public/class-catalog | 
 [*ClassesApi*](doc/ClassesApi.md) | [**publishClassSlot**](doc/ClassesApi.md#publishclassslot) | **POST** /class-slots/{id}/publish | 
 [*ClassesApi*](doc/ClassesApi.md) | [**transitionClassSlot**](doc/ClassesApi.md#transitionclassslot) | **POST** /class-slots/{id}/{action} | 
+[*DashboardApi*](doc/DashboardApi.md) | [**getMyDashboard**](doc/DashboardApi.md#getmydashboard) | **GET** /me/dashboard | 
 [*FinanceApi*](doc/FinanceApi.md) | [**closeMonth**](doc/FinanceApi.md#closemonth) | **POST** /monthly-closes | 
 [*FinanceApi*](doc/FinanceApi.md) | [**createOtherCost**](doc/FinanceApi.md#createothercost) | **POST** /other-costs | 
 [*FinanceApi*](doc/FinanceApi.md) | [**decideCorrection**](doc/FinanceApi.md#decidecorrection) | **POST** /correction-journals/{id}/{decision} | 
@@ -161,6 +166,7 @@ Class | Method | HTTP request | Description
 [*MasterApi*](doc/MasterApi.md) | [**deactivateBranch**](doc/MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
 [*MasterApi*](doc/MasterApi.md) | [**deactivateClassType**](doc/MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
 [*MasterApi*](doc/MasterApi.md) | [**deactivatePaymentAccount**](doc/MasterApi.md#deactivatepaymentaccount) | **POST** /payment-accounts/{id}/deactivate | 
+[*MasterApi*](doc/MasterApi.md) | [**getPublicStudioDetail**](doc/MasterApi.md#getpublicstudiodetail) | **GET** /public/studios/{slug} | 
 [*MasterApi*](doc/MasterApi.md) | [**listBranches**](doc/MasterApi.md#listbranches) | **GET** /branches | 
 [*MasterApi*](doc/MasterApi.md) | [**listClassTypes**](doc/MasterApi.md#listclasstypes) | **GET** /class-types | 
 [*MasterApi*](doc/MasterApi.md) | [**listEffectiveSettings**](doc/MasterApi.md#listeffectivesettings) | **GET** /master-settings/{kind} | 
@@ -201,8 +207,10 @@ Class | Method | HTTP request | Description
 [*PackagesApi*](doc/PackagesApi.md) | [**getCheckoutOptions**](doc/PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
 [*PackagesApi*](doc/PackagesApi.md) | [**getOrder**](doc/PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [*PackagesApi*](doc/PackagesApi.md) | [**getPaymentProofStatus**](doc/PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
+[*PackagesApi*](doc/PackagesApi.md) | [**getPublicPackageDetail**](doc/PackagesApi.md#getpublicpackagedetail) | **GET** /public/package-catalog/{id} | 
 [*PackagesApi*](doc/PackagesApi.md) | [**listOrders**](doc/PackagesApi.md#listorders) | **GET** /orders | 
 [*PackagesApi*](doc/PackagesApi.md) | [**listPackages**](doc/PackagesApi.md#listpackages) | **GET** /packages | 
+[*PackagesApi*](doc/PackagesApi.md) | [**listPublicPackages**](doc/PackagesApi.md#listpublicpackages) | **GET** /public/package-catalog | 
 [*PackagesApi*](doc/PackagesApi.md) | [**listPurchases**](doc/PackagesApi.md#listpurchases) | **GET** /purchases | 
 [*PackagesApi*](doc/PackagesApi.md) | [**rejectPurchase**](doc/PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [*PackagesApi*](doc/PackagesApi.md) | [**replacePurchasePaymentProof**](doc/PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
@@ -234,6 +242,10 @@ Class | Method | HTTP request | Description
  - [AvailabilityPage](doc/AvailabilityPage.md)
  - [BackfillCustomerCheckInRequest](doc/BackfillCustomerCheckInRequest.md)
  - [Booking](doc/Booking.md)
+ - [BookingAttendance](doc/BookingAttendance.md)
+ - [BookingBranch](doc/BookingBranch.md)
+ - [BookingClassSlot](doc/BookingClassSlot.md)
+ - [BookingClassSlotClassType](doc/BookingClassSlotClassType.md)
  - [BookingCommand](doc/BookingCommand.md)
  - [BookingPage](doc/BookingPage.md)
  - [Branch](doc/Branch.md)
@@ -279,6 +291,12 @@ Class | Method | HTTP request | Description
  - [CustomerBookingSlotClassType](doc/CustomerBookingSlotClassType.md)
  - [CustomerCheckInIssue](doc/CustomerCheckInIssue.md)
  - [CustomerCheckInTokenStatus](doc/CustomerCheckInTokenStatus.md)
+ - [CustomerDashboardOverview](doc/CustomerDashboardOverview.md)
+ - [CustomerDashboardOverviewActionableOrdersInner](doc/CustomerDashboardOverviewActionableOrdersInner.md)
+ - [CustomerDashboardOverviewPackagesInner](doc/CustomerDashboardOverviewPackagesInner.md)
+ - [CustomerDashboardOverviewUpcomingBookingsInner](doc/CustomerDashboardOverviewUpcomingBookingsInner.md)
+ - [CustomerDashboardOverviewVerification](doc/CustomerDashboardOverviewVerification.md)
+ - [CustomerDashboardOverviewVerificationDocumentsInner](doc/CustomerDashboardOverviewVerificationDocumentsInner.md)
  - [CustomerPackageBalance](doc/CustomerPackageBalance.md)
  - [CustomerPackageBalancePage](doc/CustomerPackageBalancePage.md)
  - [DashboardActivityItem](doc/DashboardActivityItem.md)
@@ -317,13 +335,17 @@ Class | Method | HTTP request | Description
  - [HealthResultDependenciesInner](doc/HealthResultDependenciesInner.md)
  - [IdentityDocumentSelfViewAuthorization](doc/IdentityDocumentSelfViewAuthorization.md)
  - [IdentityVerificationDecisionCommand](doc/IdentityVerificationDecisionCommand.md)
+ - [IdentityVerificationDeletionResult](doc/IdentityVerificationDeletionResult.md)
  - [IdentityVerificationDocument](doc/IdentityVerificationDocument.md)
+ - [IdentityVerificationReviewCase](doc/IdentityVerificationReviewCase.md)
+ - [IdentityVerificationReviewPage](doc/IdentityVerificationReviewPage.md)
+ - [IdentityVerificationReviewSummary](doc/IdentityVerificationReviewSummary.md)
+ - [IdentityVerificationReviewUser](doc/IdentityVerificationReviewUser.md)
  - [IdentityVerificationSummary](doc/IdentityVerificationSummary.md)
  - [InstructorFeeCommand](doc/InstructorFeeCommand.md)
  - [InviteUserRequest](doc/InviteUserRequest.md)
  - [IssueCustomerCheckInLinkCommand](doc/IssueCustomerCheckInLinkCommand.md)
  - [LedgerEntry](doc/LedgerEntry.md)
- - [ListIdentityVerifications200Response](doc/ListIdentityVerifications200Response.md)
  - [ListPaymentAccounts200Response](doc/ListPaymentAccounts200Response.md)
  - [LookupOption](doc/LookupOption.md)
  - [LookupOptionMetadata](doc/LookupOptionMetadata.md)
@@ -348,6 +370,7 @@ Class | Method | HTTP request | Description
  - [Order](doc/Order.md)
  - [OrderPage](doc/OrderPage.md)
  - [OrderPaymentAccount](doc/OrderPaymentAccount.md)
+ - [OrderPaymentProofStatus](doc/OrderPaymentProofStatus.md)
  - [OtherCost](doc/OtherCost.md)
  - [OtherCostCommand](doc/OtherCostCommand.md)
  - [OtherCostPage](doc/OtherCostPage.md)
@@ -370,7 +393,24 @@ Class | Method | HTTP request | Description
  - [PaymentProofUploadInstruction](doc/PaymentProofUploadInstruction.md)
  - [PreferredStudio](doc/PreferredStudio.md)
  - [ProjectionRateCommand](doc/ProjectionRateCommand.md)
+ - [PublicBranch](doc/PublicBranch.md)
+ - [PublicBranchProfile](doc/PublicBranchProfile.md)
+ - [PublicBranchProfileOpeningHoursInner](doc/PublicBranchProfileOpeningHoursInner.md)
+ - [PublicCatalogRange](doc/PublicCatalogRange.md)
+ - [PublicClassCatalog](doc/PublicClassCatalog.md)
+ - [PublicClassDetail](doc/PublicClassDetail.md)
+ - [PublicClassMarketingSummary](doc/PublicClassMarketingSummary.md)
+ - [PublicClassProfile](doc/PublicClassProfile.md)
+ - [PublicClassTypeRef](doc/PublicClassTypeRef.md)
+ - [PublicPackageCatalog](doc/PublicPackageCatalog.md)
+ - [PublicPackageDetail](doc/PublicPackageDetail.md)
+ - [PublicPackageProfile](doc/PublicPackageProfile.md)
+ - [PublicPackageSummary](doc/PublicPackageSummary.md)
+ - [PublicScheduleDetail](doc/PublicScheduleDetail.md)
+ - [PublicScheduleSummary](doc/PublicScheduleSummary.md)
  - [PublicSiteConfig](doc/PublicSiteConfig.md)
+ - [PublicStudioDetail](doc/PublicStudioDetail.md)
+ - [PublicStudioDetailAllOfClasses](doc/PublicStudioDetailAllOfClasses.md)
  - [Purchase](doc/Purchase.md)
  - [PurchasePage](doc/PurchasePage.md)
  - [QuotaCapacityCommand](doc/QuotaCapacityCommand.md)

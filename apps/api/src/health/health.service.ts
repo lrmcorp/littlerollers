@@ -4,10 +4,11 @@ import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
 import { access } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { createConnection } from 'node:net';
 
 export type HealthStatus = 'READY' | 'DEGRADED' | 'NOT_READY';
 export interface DependencyHealth {
-  name: 'api' | 'database' | 'redis' | 'worker' | 'private-storage';
+  name: 'api' | 'database' | 'redis' | 'worker' | 'private-storage' | 'payment-proof-scanner';
   status: HealthStatus;
   detailCode: 'TIMEOUT' | 'UNREACHABLE' | 'STALE_HEARTBEAT' | null;
 }
@@ -47,7 +48,7 @@ export class HealthService implements OnModuleDestroy {
 
   async check(): Promise<HealthResult> {
     const milliseconds = this.config.value.healthProbeTimeoutMs;
-    const [database, redis, worker, storage] = await Promise.all([
+    const [database, redis, worker, storage, paymentProofScanner] = await Promise.all([
       this.probe('database', () => this.prisma.$queryRaw`SELECT 1`),
       this.probe('redis', async () => {
         if (this.redis.status === 'wait') await this.redis.connect();
@@ -59,6 +60,7 @@ export class HealthService implements OnModuleDestroy {
           throw new Error('STALE_HEARTBEAT');
       }),
       this.probe('private-storage', () => this.checkPrivateStorage()),
+      this.probe('payment-proof-scanner', () => this.checkPaymentProofScanner()),
     ]);
     const dependencies: DependencyHealth[] = [
       { name: 'api', status: 'READY', detailCode: null },
@@ -66,9 +68,10 @@ export class HealthService implements OnModuleDestroy {
       redis,
       worker,
       storage,
+      paymentProofScanner,
     ];
     const criticalFailure = [database, redis].some((item) => item.status !== 'READY');
-    const degraded = [worker, storage].some((item) => item.status !== 'READY');
+    const degraded = [worker, storage, paymentProofScanner].some((item) => item.status !== 'READY');
     return {
       status: criticalFailure ? 'NOT_READY' : degraded ? 'DEGRADED' : 'READY',
       checkedAt: new Date().toISOString(),
@@ -78,6 +81,25 @@ export class HealthService implements OnModuleDestroy {
 
   private async checkPrivateStorage(): Promise<void> {
     await access(this.config.value.privateUploads.root, constants.R_OK | constants.W_OK);
+  }
+
+  private async checkPaymentProofScanner(): Promise<void> {
+    const scanner = this.config.value.paymentProof;
+    if (scanner.scanDriver === 'synthetic') return;
+    if (!scanner.clamAvHost) throw new Error('UNREACHABLE');
+    await new Promise<void>((resolveReady, rejectReady) => {
+      const socket = createConnection({ host: scanner.clamAvHost!, port: scanner.clamAvPort });
+      const failed = () => rejectReady(new Error('UNREACHABLE'));
+      socket.setTimeout(scanner.scanTimeoutMs, () => socket.destroy());
+      socket.once('error', failed);
+      socket.once('close', (hadError) => {
+        if (hadError) failed();
+      });
+      socket.once('connect', () => {
+        socket.destroy();
+        resolveReady();
+      });
+    });
   }
 
   private async probe(

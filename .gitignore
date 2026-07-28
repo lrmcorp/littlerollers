@@ -3,6 +3,8 @@ node_modules/
 .turbo/
 dist/
 .next/
+.next-dev/
+.next-playwright/
 .next-production/
 coverage/
 apps/web/test-results/
@@ -24,3 +26,5 @@ infra/local/data/
 .local-data/
 apps/api/.local-data/
 Archive.zip
+.DS_Store
+**/.DS_Store

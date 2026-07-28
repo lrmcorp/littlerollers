@@ -7,8 +7,13 @@ void main() {
   // TODO add properties to the builder and call build()
 
   group(PublicSiteConfig, () {
-    // BuiltList<PreferredStudio> branches
+    // BuiltList<PublicBranch> branches
     test('to test the property `branches`', () async {
+      // TODO
+    });
+
+    // BuiltList<PublicClassMarketingSummary> classes
+    test('to test the property `classes`', () async {
       // TODO
     });
 

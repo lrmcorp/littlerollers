@@ -27,7 +27,7 @@ export function AuthPageShell({
         <div className="auth-visual-overlay absolute inset-0 -z-10" />
         <div className="absolute inset-x-8 bottom-10 text-white">
           <p className="text-xs font-bold tracking-[0.14em] uppercase">Daily Dose Pilates</p>
-          <p className="max-w-md font-serif text-[clamp(2.3rem,4vw,4.5rem)] leading-none">
+          <p className="max-w-md font-sans text-[clamp(2.3rem,4vw,4.5rem)] leading-none">
             Bergerak tenang, terhubung dengan aman.
           </p>
           <div className="auth-trust-row" aria-label="Keunggulan keamanan">
@@ -46,7 +46,7 @@ export function AuthPageShell({
             </Link>
           </div>
           <p className="text-xs font-bold tracking-[0.12em] text-dd-forest uppercase">{eyebrow}</p>
-          <h1 className="mt-2 font-serif text-[clamp(2.4rem,5vw,3.8rem)] leading-none font-semibold">
+          <h1 className="mt-2 font-sans text-[clamp(2.4rem,5vw,3.8rem)] leading-none font-semibold">
             {title}
           </h1>
           <p className="mt-4 leading-7 text-dd-muted">{description}</p>

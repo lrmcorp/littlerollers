@@ -252,7 +252,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **deleteIdentityVerificationFile**
-> Resource deleteIdentityVerificationFile(id, deleteIdentityVerificationFileRequest)
+> IdentityVerificationDeletionResult deleteIdentityVerificationFile(id, deleteIdentityVerificationFileRequest)
 
 
 
@@ -281,7 +281,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Resource**](Resource.md)
+[**IdentityVerificationDeletionResult**](IdentityVerificationDeletionResult.md)
 
 ### Authorization
 
@@ -654,7 +654,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listIdentityVerifications**
-> ListIdentityVerifications200Response listIdentityVerifications(status)
+> IdentityVerificationReviewPage listIdentityVerifications(q, status, kind, scanStatus, from, until, cursor, limit)
 
 
 
@@ -663,10 +663,17 @@ Name | Type | Description  | Notes
 import 'package:openapi/api.dart';
 
 final api = Openapi().getIdentityApi();
+final String q = q_example; // String | 
 final String status = status_example; // String | 
+final String kind = kind_example; // String | 
+final String scanStatus = scanStatus_example; // String | 
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | 
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | 
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listIdentityVerifications(status);
+    final response = api.listIdentityVerifications(q, status, kind, scanStatus, from, until, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling IdentityApi->listIdentityVerifications: $e\n');
@@ -677,11 +684,18 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **q** | **String**|  | [optional] 
  **status** | **String**|  | [optional] 
+ **kind** | **String**|  | [optional] 
+ **scanStatus** | **String**|  | [optional] 
+ **from** | **DateTime**|  | [optional] 
+ **until** | **DateTime**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
-[**ListIdentityVerifications200Response**](ListIdentityVerifications200Response.md)
+[**IdentityVerificationReviewPage**](IdentityVerificationReviewPage.md)
 
 ### Authorization
 

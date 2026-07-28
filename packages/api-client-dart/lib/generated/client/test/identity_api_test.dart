@@ -34,7 +34,7 @@ void main() {
       // TODO
     });
 
-    //Future<Resource> deleteIdentityVerificationFile(String id, DeleteIdentityVerificationFileRequest deleteIdentityVerificationFileRequest) async
+    //Future<IdentityVerificationDeletionResult> deleteIdentityVerificationFile(String id, DeleteIdentityVerificationFileRequest deleteIdentityVerificationFileRequest) async
     test('test deleteIdentityVerificationFile', () async {
       // TODO
     });
@@ -88,7 +88,7 @@ void main() {
       // TODO
     });
 
-    //Future<ListIdentityVerifications200Response> listIdentityVerifications({ String status }) async
+    //Future<IdentityVerificationReviewPage> listIdentityVerifications({ String q, String status, String kind, String scanStatus, DateTime from, DateTime until, String cursor, int limit }) async
     test('test listIdentityVerifications', () async {
       // TODO
     });

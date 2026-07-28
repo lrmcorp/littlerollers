@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   output: 'standalone',
+  devIndicators: false,
   transpilePackages: ['@dailydose/api-client-ts'],
   async rewrites() {
     return [

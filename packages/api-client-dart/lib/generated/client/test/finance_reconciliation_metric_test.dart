@@ -32,6 +32,12 @@ void main() {
       // TODO
     });
 
+    // Three-digit transfer identification amount reported separately from package revenue.
+    // int identificationAmountRp
+    test('to test the property `identificationAmountRp`', () async {
+      // TODO
+    });
+
     // int ledgerDeltaRp
     test('to test the property `ledgerDeltaRp`', () async {
       // TODO

@@ -29,6 +29,9 @@ export interface CustomerOrder {
   packageId: string;
   packageName: string;
   priceRp: number;
+  baseAmountRp: number;
+  paymentUniqueCode: number | null;
+  payableAmountRp: number;
   sessionCount: number;
   durationDays: number;
   status: OrderStatus;
@@ -36,6 +39,10 @@ export interface CustomerOrder {
   expiresAt: Date | null;
   continuationSlotId: string | null;
   paymentProofId: string | null;
+  paymentProofStatus: null | {
+    uploadStatus: string;
+    scanStatus: string;
+  };
   decisionReasonCode: string | null;
   version: number;
   paymentAccount: null | {
@@ -43,18 +50,66 @@ export interface CustomerOrder {
     accountNumber: string;
     accountHolderName: string;
   };
+  correlationReference?: string;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/v1${path}`, { credentials: 'include', ...init });
+export type PaymentProofUploadStage =
+  'IDLE' | 'ISSUING' | 'UPLOADING' | 'SCANNING' | 'ATTACHING' | 'COMPLETED';
+
+export interface PaymentProofUploadSession {
+  stage: PaymentProofUploadStage;
+  uploadId?: string;
+  sha256: string;
+  sizeBytes: number;
+}
+
+export class OrderClientError extends Error {
+  constructor(
+    readonly code: string,
+    readonly correlationReference?: string,
+    readonly retryable = false,
+    readonly stage?: PaymentProofUploadStage,
+  ) {
+    super(code);
+    this.name = 'OrderClientError';
+  }
+}
+
+async function requestResult<T>(
+  path: string,
+  init?: RequestInit,
+  stage?: PaymentProofUploadStage,
+): Promise<{ body: T; correlationReference?: string }> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, { credentials: 'include', ...init });
+  } catch {
+    throw new OrderClientError('API_UNAVAILABLE', undefined, true, stage);
+  }
   if (!response.ok) {
     const problem = (await response.json().catch(() => ({}))) as {
       code?: string;
-      error?: { code?: string };
+      error?: { code?: string; correlationId?: string; retryable?: boolean };
     };
-    throw new Error(problem.error?.code || problem.code || `HTTP_${response.status}`);
+    throw new OrderClientError(
+      problem.error?.code || problem.code || `HTTP_${response.status}`,
+      problem.error?.correlationId ?? response.headers.get('x-correlation-id') ?? undefined,
+      problem.error?.retryable ?? response.status >= 500,
+      stage,
+    );
   }
-  return response.json() as Promise<T>;
+  return {
+    body: (await response.json()) as T,
+    correlationReference: response.headers.get('x-correlation-id') ?? undefined,
+  };
+}
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  stage?: PaymentProofUploadStage,
+): Promise<T> {
+  return (await requestResult<T>(path, init, stage)).body;
 }
 
 const orderDates = (
@@ -69,14 +124,20 @@ const orderDates = (
 });
 
 export const browserOrderClient = {
-  checkout(packageId: string) {
-    return request<CheckoutOptions>(`/checkout/options?packageId=${encodeURIComponent(packageId)}`);
+  checkout(packageId: string, branchId?: string | null) {
+    const query = new URLSearchParams({ packageId });
+    if (branchId) query.set('branchId', branchId);
+    return request<CheckoutOptions>(`/checkout/options?${query.toString()}`);
   },
-  async create(packageId: string, slotId?: string | null) {
+  async create(packageId: string, slotId?: string | null, branchId?: string | null) {
     const value = await request<any>('/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
-      body: JSON.stringify({ packageId, ...(slotId ? { slotId } : {}) }),
+      body: JSON.stringify({
+        packageId,
+        ...(slotId ? { slotId } : {}),
+        ...(branchId ? { branchId } : {}),
+      }),
     });
     return orderDates(value);
   },
@@ -87,37 +148,91 @@ export const browserOrderClient = {
   async detail(id: string) {
     return orderDates(await request<any>(`/orders/${encodeURIComponent(id)}`));
   },
-  async uploadProof(order: CustomerOrder, file: File, sha256: string) {
-    const issued = await request<{ id: string }>('/uploads/payment-proofs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orderId: order.id,
-        branchId: order.branchId,
-        packageId: order.packageId,
-        fileName: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        sha256,
-      }),
-    });
-    await request(`/uploads/payment-proofs/${issued.id}/content`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: file,
-    });
-    await request(`/uploads/payment-proofs/${issued.id}/finalize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sha256, sizeBytes: file.size }),
-    });
-    return orderDates(
-      await request<any>(`/orders/${encodeURIComponent(order.id)}/payment-proof`, {
+  async uploadProof(
+    order: CustomerOrder,
+    file: File,
+    sha256: string,
+    previous: PaymentProofUploadSession | undefined,
+    onProgress?: (session: PaymentProofUploadSession) => void,
+  ) {
+    let session =
+      previous && previous.sha256 === sha256 && previous.sizeBytes === file.size
+        ? previous
+        : { stage: 'ISSUING' as const, sha256, sizeBytes: file.size };
+    const progress = (next: PaymentProofUploadSession) => {
+      session = next;
+      onProgress?.(next);
+    };
+    if (!session.uploadId) {
+      progress({ ...session, stage: 'ISSUING' });
+      const issued = await request<{ id: string }>(
+        '/uploads/payment-proofs',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: order.id,
+            branchId: order.branchId,
+            packageId: order.packageId,
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            sha256,
+          }),
+        },
+        'ISSUING',
+      );
+      progress({ ...session, uploadId: issued.id, stage: 'UPLOADING' });
+    }
+    const uploadId = session.uploadId!;
+    if (session.stage === 'UPLOADING' || session.stage === 'ISSUING') {
+      await request(
+        `/uploads/payment-proofs/${uploadId}/content`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: file,
+        },
+        'UPLOADING',
+      );
+      progress({ ...session, stage: 'SCANNING' });
+    }
+    if (session.stage === 'SCANNING') {
+      let status = await request<{ uploadStatus: string; scanStatus: string }>(
+        `/uploads/payment-proofs/${uploadId}/finalize`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sha256, sizeBytes: file.size }),
+        },
+        'SCANNING',
+      );
+      for (let attempt = 0; status.scanStatus === 'PENDING' && attempt < 20; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        status = await request<{ uploadStatus: string; scanStatus: string }>(
+          `/uploads/payment-proofs/${uploadId}`,
+          undefined,
+          'SCANNING',
+        );
+      }
+      if (status.scanStatus !== 'CLEAN')
+        throw new OrderClientError('PAYMENT_PROOF_NOT_CLEAN', undefined, false, 'SCANNING');
+      progress({ ...session, stage: 'ATTACHING' });
+    }
+    const attached = await requestResult<any>(
+      `/orders/${encodeURIComponent(order.id)}/payment-proof`,
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentProofId: issued.id, expectedVersion: order.version }),
-      }),
+        body: JSON.stringify({ paymentProofId: uploadId, expectedVersion: order.version }),
+      },
+      'ATTACHING',
     );
+    progress({ ...session, stage: 'COMPLETED' });
+    return {
+      ...orderDates(attached.body),
+      correlationReference: attached.correlationReference,
+    };
   },
 };
 
@@ -127,17 +242,46 @@ export async function sha256Upload(file: File) {
 }
 
 export function orderError(error: unknown) {
+  return orderErrorDetails(error).message;
+}
+
+export function orderErrorDetails(error: unknown) {
   const code = error instanceof Error ? error.message : '';
   const labels: Record<string, string> = {
     IDENTITY_VERIFICATION_REQUIRED: 'Selesaikan verifikasi identitas sebelum membuat pesanan.',
     PAYMENT_ACCOUNT_UNAVAILABLE: 'Rekening pembayaran cabang belum tersedia.',
+    PAYMENT_UNIQUE_CODE_UNAVAILABLE:
+      'Kode pembayaran sedang penuh. Tunggu beberapa saat lalu buat pesanan kembali.',
     ORDER_EXPIRED: 'Batas pembayaran sudah berakhir. Buat pesanan baru.',
     PAYMENT_PROOF_MIME_MISMATCH: 'Isi file tidak sesuai dengan tipe file yang dipilih.',
+    PAYMENT_PROOF_TOO_LARGE: 'Ukuran file melebihi batas 10 MB.',
     PAYMENT_PROOF_CHECKSUM_MISMATCH: 'File berubah saat diunggah. Silakan pilih ulang.',
-    PAYMENT_PROOF_NOT_CLEAN: 'Bukti pembayaran belum lolos pemeriksaan keamanan.',
+    PAYMENT_PROOF_NOT_CLEAN:
+      'File ditolak oleh pemeriksaan keamanan. Pilih file bukti yang berbeda.',
     UPLOAD_NOT_COMPLETE: 'Upload belum lengkap. Silakan coba kembali.',
+    API_UNAVAILABLE:
+      'API atau database belum dapat dijangkau. Pastikan layanan aktif lalu coba lagi.',
+    CONFIGURATION_REQUIRED:
+      'Layanan pemeriksaan bukti pembayaran belum dikonfigurasi. Hubungi administrator.',
+    PAYMENT_PROOF_SCAN_UNAVAILABLE:
+      'Pemeriksaan keamanan file sedang tidak tersedia. Bukti Anda tetap dapat dicoba kembali.',
+    PAYMENT_PROOF_STORAGE_UNAVAILABLE:
+      'Penyimpanan bukti pembayaran sedang tidak tersedia. File tetap tersimpan pada halaman ini.',
+    INTERNAL_ERROR:
+      'API atau database belum dapat menyelesaikan permintaan. Gunakan referensi bantuan lalu coba lagi.',
+    HTTP_502: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
+    HTTP_503: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
     RESOURCE_NOT_FOUND: 'Data pesanan atau paket tidak ditemukan.',
     CONFLICT: 'Data berubah. Muat ulang halaman lalu coba kembali.',
+    VERSION_CONFLICT: 'Pesanan telah berubah. Muat ulang halaman lalu coba kembali.',
   };
-  return labels[code] ?? 'Layanan pesanan belum dapat memproses permintaan. Silakan coba kembali.';
+  return {
+    code,
+    message:
+      labels[code] ?? 'Layanan pesanan belum dapat memproses permintaan. Silakan coba kembali.',
+    correlationReference:
+      error instanceof OrderClientError ? error.correlationReference : undefined,
+    retryable: error instanceof OrderClientError ? error.retryable : true,
+    stage: error instanceof OrderClientError ? error.stage : undefined,
+  };
 }

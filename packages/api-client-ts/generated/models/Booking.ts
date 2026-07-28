@@ -13,6 +13,35 @@
  */
 
 import { mapValues } from '../runtime';
+import type { BookingAttendance } from './BookingAttendance';
+import {
+    BookingAttendanceFromJSON,
+    BookingAttendanceFromJSONTyped,
+    BookingAttendanceToJSON,
+    BookingAttendanceToJSONTyped,
+} from './BookingAttendance';
+import type { BookingClassSlotClassType } from './BookingClassSlotClassType';
+import {
+    BookingClassSlotClassTypeFromJSON,
+    BookingClassSlotClassTypeFromJSONTyped,
+    BookingClassSlotClassTypeToJSON,
+    BookingClassSlotClassTypeToJSONTyped,
+} from './BookingClassSlotClassType';
+import type { BookingClassSlot } from './BookingClassSlot';
+import {
+    BookingClassSlotFromJSON,
+    BookingClassSlotFromJSONTyped,
+    BookingClassSlotToJSON,
+    BookingClassSlotToJSONTyped,
+} from './BookingClassSlot';
+import type { BookingBranch } from './BookingBranch';
+import {
+    BookingBranchFromJSON,
+    BookingBranchFromJSONTyped,
+    BookingBranchToJSON,
+    BookingBranchToJSONTyped,
+} from './BookingBranch';
+
 /**
  * 
  * @export
@@ -97,6 +126,30 @@ export interface Booking {
      * @memberof Booking
      */
     idempotentReplay: boolean;
+    /**
+     * 
+     * @type {BookingBranch}
+     * @memberof Booking
+     */
+    branch?: BookingBranch;
+    /**
+     * 
+     * @type {BookingClassSlot}
+     * @memberof Booking
+     */
+    classSlot?: BookingClassSlot;
+    /**
+     * 
+     * @type {BookingClassSlotClassType}
+     * @memberof Booking
+     */
+    _package?: BookingClassSlotClassType;
+    /**
+     * 
+     * @type {BookingAttendance}
+     * @memberof Booking
+     */
+    attendance?: BookingAttendance;
 }
 
 
@@ -173,6 +226,10 @@ export function BookingFromJSONTyped(json: any, ignoreDiscriminator: boolean): B
         'createdAt': (new Date(json['createdAt'])),
         'version': json['version'],
         'idempotentReplay': json['idempotentReplay'],
+        'branch': json['branch'] == null ? undefined : BookingBranchFromJSON(json['branch']),
+        'classSlot': json['classSlot'] == null ? undefined : BookingClassSlotFromJSON(json['classSlot']),
+        '_package': json['package'] == null ? undefined : BookingClassSlotClassTypeFromJSON(json['package']),
+        'attendance': json['attendance'] == null ? undefined : BookingAttendanceFromJSON(json['attendance']),
     };
 }
 
@@ -200,6 +257,10 @@ export function BookingToJSONTyped(value?: Booking | null, ignoreDiscriminator: 
         'createdAt': ((value['createdAt']).toISOString()),
         'version': value['version'],
         'idempotentReplay': value['idempotentReplay'],
+        'branch': BookingBranchToJSON(value['branch']),
+        'classSlot': BookingClassSlotToJSON(value['classSlot']),
+        'package': BookingClassSlotClassTypeToJSON(value['_package']),
+        'attendance': BookingAttendanceToJSON(value['attendance']),
     };
 }
 

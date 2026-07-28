@@ -21,6 +21,9 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   const customerId = users.customer!; const financeId = users.finance!; const managerId = users.manager!; const instructorId = users.instructor!;
   const branchId = master.branches['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
+  const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
+    where: { branchId, active: true },
+  });
   const statuses: { key: string; status: ClassSlotStatus; day: number; booked: number; cancellation?: 'INSTRUCTOR_UNAVAILABLE' }[] = [
     { key: 'draft', status: 'DRAFT', day: 1, booked: 0 }, { key: 'risk', status: 'PUBLISHED', day: 1, booked: 1 },
     { key: 'published', status: 'PUBLISHED', day: 2, booked: 2 }, { key: 'confirmed', status: 'CONFIRMED', day: 3, booked: 3 },
@@ -37,7 +40,18 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     const key = status.toLowerCase(); const id = ctx.id('purchase', key); purchases[key] = id;
     const hasProof = status !== 'AWAITING_PAYMENT' && status !== 'EXPIRED'; const proofId = hasProof ? ctx.id('payment-proof', key) : null;
     if (proofId) await ctx.db.paymentProof.upsert({ where: { id: proofId }, update: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' }, create: { id: proofId, userId: customerId, branchId, packageId, objectKey: `seed/proofs/${key}`, checksum: `seed-${key}`, fileName: `${key}.png`, mimeType: 'image/png', sizeBytes: 2048, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN', finalizedAt: ctx.at(-index) } });
-    await ctx.db.purchase.upsert({ where: { id }, update: { status, paymentProofId: proofId }, create: { id, userId: customerId, branchId, packageId, paymentProofId: proofId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    const code = 101 + index;
+    const expiresAt = status === 'EXPIRED' ? ctx.at(-1) : ctx.at(1);
+    await ctx.db.purchase.upsert({ where: { id }, update: { status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt }, create: { id, userId: customerId, branchId, packageId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    if (['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED'].includes(status)) {
+      await ctx.db.paymentUniqueCodeReservation.upsert({
+        where: { purchaseId: id },
+        update: { paymentAccountId: paymentAccount.id, code, expiresAt },
+        create: { id: ctx.id('payment-code-reservation', key), paymentAccountId: paymentAccount.id, purchaseId: id, code, expiresAt },
+      });
+    } else {
+      await ctx.db.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: id } });
+    }
   }
   const customerPackageId = ctx.id('customer-package', 'approved');
   await ctx.db.customerPackage.upsert({ where: { purchaseId: purchases.approved! }, update: { status: 'ACTIVE' }, create: { id: customerPackageId, purchaseId: purchases.approved!, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 175_000 } });
@@ -200,6 +214,9 @@ async function seedBsdOperationalScenarios(
   const instructorId = users['instructor-bsd-2']!;
   if (!managerId || !instructorId) throw new Error('BSD operational scenarios require manager and instructor fixtures.');
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
+  const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
+    where: { branchId, active: true },
+  });
   const slots = [
     { key: 'risk', status: 'PUBLISHED' as const, day: 1, bookedCount: 1 },
     { key: 'published', status: 'PUBLISHED' as const, day: 2, bookedCount: 2 },
@@ -271,20 +288,39 @@ async function seedBsdOperationalScenarios(
   });
   await ctx.db.purchase.upsert({
     where: { id: ctx.id('purchase', 'bsd-pending') },
-    update: { status: 'PENDING', paymentProofId: pendingProofId },
+    update: { status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1) },
     create: {
       id: ctx.id('purchase', 'bsd-pending'),
       userId: customerId,
       branchId,
       packageId,
       paymentProofId: pendingProofId,
+      paymentAccountId: paymentAccount.id,
+      paymentBankNameSnapshot: paymentAccount.bankName,
+      paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted,
+      paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4,
+      paymentAccountHolderSnapshot: paymentAccount.accountHolderName,
+      paymentExpiresAt: ctx.at(1),
       packageNameSnapshot: pkg.name,
       priceRpSnapshot: pkg.priceRp,
+      paymentUniqueCode: 401,
+      payableAmountRpSnapshot: pkg.priceRp + 401,
       sessionCountSnapshot: pkg.sessionCount,
       durationDaysSnapshot: pkg.durationDays,
       status: 'PENDING',
       idempotencyKeyHash: 'seed-bsd-pending',
       submittedAt: ctx.at(-1),
+    },
+  });
+  await ctx.db.paymentUniqueCodeReservation.upsert({
+    where: { purchaseId: ctx.id('purchase', 'bsd-pending') },
+    update: { paymentAccountId: paymentAccount.id, code: 401, expiresAt: ctx.at(1) },
+    create: {
+      id: ctx.id('payment-code-reservation', 'bsd-pending'),
+      paymentAccountId: paymentAccount.id,
+      purchaseId: ctx.id('purchase', 'bsd-pending'),
+      code: 401,
+      expiresAt: ctx.at(1),
     },
   });
 

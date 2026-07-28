@@ -12,24 +12,53 @@ import {
   ShieldCheck,
   UserRound,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { IconButton } from '../actions';
 import { BrandMark } from '../public/brand-mark';
 
-const links = [
-  { href: '/account', label: 'Dashboard', icon: Gauge },
+export type CustomerNavigationItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  requiresApproval?: boolean;
+};
+
+export const CUSTOMER_PRIMARY_NAVIGATION: CustomerNavigationItem[] = [
+  { href: '/account', label: 'Beranda', icon: Gauge },
   { href: '/classes', label: 'Jadwal', icon: CalendarDays },
   { href: '/packages', label: 'Paket', icon: ListChecks },
-  { href: '/bookings', label: 'Booking', icon: BookOpenCheck, approved: true },
-  { href: '/orders', label: 'Pesanan', icon: CreditCard, approved: true },
-  { href: '/account/packages', label: 'Paket Saya', icon: PackageCheck, approved: true },
+  { href: '/bookings', label: 'Booking', icon: BookOpenCheck, requiresApproval: true },
+  { href: '/orders', label: 'Pesanan', icon: CreditCard, requiresApproval: true },
+];
+
+export const CUSTOMER_ACCOUNT_NAVIGATION: CustomerNavigationItem[] = [
+  {
+    href: '/account/packages',
+    label: 'Paket Saya',
+    icon: PackageCheck,
+    requiresApproval: true,
+  },
   { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
   { href: '/account/profile', label: 'Profil', icon: UserRound },
   { href: '/account/settings', label: 'Pengaturan', icon: Settings },
   { href: '/account/security', label: 'Keamanan', icon: LockKeyhole },
-] as const;
+];
+
+export function isCustomerNavigationActive(pathname: string, href: string) {
+  if (href === '/account') return pathname === '/account';
+  if (href === '/orders') return pathname === '/checkout' || pathname.startsWith('/orders');
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function navigationHref(item: CustomerNavigationItem, approved: boolean) {
+  return item.requiresApproval && !approved
+    ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
+    : item.href;
+}
 
 export function CustomerNavigation({
   open,
@@ -45,10 +74,14 @@ export function CustomerNavigation({
   useEffect(() => {
     if (!open) return;
     const before = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = 'hidden';
     panel.current?.querySelector<HTMLElement>('a,button')?.focus();
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
       if (event.key !== 'Tab') return;
       const items = panel.current?.querySelectorAll<HTMLElement>('a,button:not([disabled])');
       if (!items?.length) return;
@@ -66,11 +99,10 @@ export function CustomerNavigation({
     return () => {
       document.body.style.overflow = before;
       window.removeEventListener('keydown', keydown);
+      previousFocus?.focus();
     };
   }, [onClose, open]);
-  const active = (href: string) =>
-    pathname === href || (href !== '/account' && pathname.startsWith(`${href}/`));
-  const visible = links.filter((link) => !('approved' in link) || !link.approved || approved);
+
   return (
     <>
       {open && (
@@ -85,37 +117,70 @@ export function CustomerNavigation({
         ref={panel}
         id="customer-navigation"
         aria-label="Navigasi akun"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar p-5 text-white shadow-dd-float transition-transform lg:static lg:w-auto lg:translate-x-0 lg:flex-row lg:items-center lg:overflow-x-auto lg:border-t lg:border-dd-line lg:bg-white lg:px-6 lg:py-2 lg:text-dd-ink lg:shadow-none ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        aria-hidden={!open}
+        inert={!open}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar p-5 text-white shadow-dd-float transition-transform lg:hidden ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        <div className="mb-6 flex items-center justify-between lg:hidden">
+        <div className="mb-7 flex items-center justify-between">
           <BrandMark className="w-40 brightness-0 invert" href="/account" />
-          <button
-            type="button"
-            aria-label="Tutup navigasi akun"
+          <IconButton
+            label="Tutup navigasi akun"
+            variant="ghost"
             onClick={onClose}
-            className="grid size-10 place-items-center border-white/20 bg-transparent text-white"
+            className="border-white/20 text-white hover:bg-white/10 hover:text-white"
           >
             <X className="size-5" />
-          </button>
+          </IconButton>
         </div>
-        <div className="flex flex-col gap-1 overflow-y-auto lg:flex-row lg:gap-1 lg:overflow-visible">
-          {visible.map((item) => {
-            const Icon = item.icon;
-            const selected = active(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={selected ? 'page' : undefined}
-                onClick={onClose}
-                className={`flex min-h-10 shrink-0 items-center gap-2 rounded-dd-sm px-3 text-sm font-semibold no-underline ${selected ? 'bg-white text-dd-sidebar lg:bg-dd-sidebar lg:text-white' : 'text-white/75 hover:bg-white/10 hover:text-white lg:text-dd-muted lg:hover:bg-dd-surface-muted lg:hover:text-dd-ink'}`}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
+          {[
+            ['Utama', CUSTOMER_PRIMARY_NAVIGATION],
+            ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
+          ].map(([group, items]) => (
+            <div key={group as string}>
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+                {group as string}
+              </p>
+              <div className="space-y-1">
+                {(items as CustomerNavigationItem[]).map((item) => {
+                  const Icon = item.icon;
+                  const selected = isCustomerNavigationActive(pathname, item.href);
+                  const locked = Boolean(item.requiresApproval && !approved);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={navigationHref(item, approved)}
+                      aria-current={selected ? 'page' : undefined}
+                      aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                      onClick={onClose}
+                      className={`flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold no-underline ${
+                        selected
+                          ? 'bg-white text-dd-sidebar shadow-dd-soft'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="size-[18px] shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 flex-1">{item.label}</span>
+                      {locked && (
+                        <LockKeyhole
+                          className={selected ? 'size-3.5 text-dd-muted' : 'size-3.5 text-white/45'}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
+        {!approved && (
+          <div className="mt-5 rounded-dd-lg border border-white/10 bg-white/5 p-3 text-xs leading-5 text-white/65">
+            Selesaikan verifikasi untuk membuka booking dan transaksi.
+          </div>
+        )}
       </nav>
     </>
   );

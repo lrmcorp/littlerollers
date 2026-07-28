@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { OrderPaymentProofStatus } from './OrderPaymentProofStatus';
+import {
+    OrderPaymentProofStatusFromJSON,
+    OrderPaymentProofStatusFromJSONTyped,
+    OrderPaymentProofStatusToJSON,
+    OrderPaymentProofStatusToJSONTyped,
+} from './OrderPaymentProofStatus';
 import type { OrderPaymentAccount } from './OrderPaymentAccount';
 import {
     OrderPaymentAccountFromJSON,
@@ -22,7 +29,7 @@ import {
 } from './OrderPaymentAccount';
 
 /**
- * Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail.
+ * Customer-safe order snapshot. Full destination account is returned only from authorized checkout and own-order detail. Legacy orders can have null paymentUniqueCode.
  * @export
  * @interface Order
  */
@@ -68,6 +75,24 @@ export interface Order {
      * @type {number}
      * @memberof Order
      */
+    baseAmountRp: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Order
+     */
+    paymentUniqueCode?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Order
+     */
+    payableAmountRp: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Order
+     */
     sessionCount: number;
     /**
      * 
@@ -105,6 +130,12 @@ export interface Order {
      * @memberof Order
      */
     paymentProofId?: string | null;
+    /**
+     * 
+     * @type {OrderPaymentProofStatus}
+     * @memberof Order
+     */
+    paymentProofStatus?: OrderPaymentProofStatus;
     /**
      * 
      * @type {string}
@@ -149,6 +180,8 @@ export function instanceOfOrder(value: object): value is Order {
     if (!('packageId' in value) || value['packageId'] === undefined) return false;
     if (!('packageName' in value) || value['packageName'] === undefined) return false;
     if (!('priceRp' in value) || value['priceRp'] === undefined) return false;
+    if (!('baseAmountRp' in value) || value['baseAmountRp'] === undefined) return false;
+    if (!('payableAmountRp' in value) || value['payableAmountRp'] === undefined) return false;
     if (!('sessionCount' in value) || value['sessionCount'] === undefined) return false;
     if (!('durationDays' in value) || value['durationDays'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
@@ -173,6 +206,9 @@ export function OrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ord
         'packageId': json['packageId'],
         'packageName': json['packageName'],
         'priceRp': json['priceRp'],
+        'baseAmountRp': json['baseAmountRp'],
+        'paymentUniqueCode': json['paymentUniqueCode'] == null ? undefined : json['paymentUniqueCode'],
+        'payableAmountRp': json['payableAmountRp'],
         'sessionCount': json['sessionCount'],
         'durationDays': json['durationDays'],
         'status': json['status'],
@@ -180,6 +216,7 @@ export function OrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ord
         'expiresAt': json['expiresAt'] == null ? undefined : (new Date(json['expiresAt'])),
         'continuationSlotId': json['continuationSlotId'] == null ? undefined : json['continuationSlotId'],
         'paymentProofId': json['paymentProofId'] == null ? undefined : json['paymentProofId'],
+        'paymentProofStatus': json['paymentProofStatus'] == null ? undefined : OrderPaymentProofStatusFromJSON(json['paymentProofStatus']),
         'decisionReasonCode': json['decisionReasonCode'] == null ? undefined : json['decisionReasonCode'],
         'version': json['version'],
         'paymentAccount': json['paymentAccount'] == null ? undefined : OrderPaymentAccountFromJSON(json['paymentAccount']),
@@ -203,6 +240,9 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'packageId': value['packageId'],
         'packageName': value['packageName'],
         'priceRp': value['priceRp'],
+        'baseAmountRp': value['baseAmountRp'],
+        'paymentUniqueCode': value['paymentUniqueCode'],
+        'payableAmountRp': value['payableAmountRp'],
         'sessionCount': value['sessionCount'],
         'durationDays': value['durationDays'],
         'status': value['status'],
@@ -210,6 +250,7 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'expiresAt': value['expiresAt'] === null ? null : ((value['expiresAt'] as any)?.toISOString()),
         'continuationSlotId': value['continuationSlotId'],
         'paymentProofId': value['paymentProofId'],
+        'paymentProofStatus': OrderPaymentProofStatusToJSON(value['paymentProofStatus']),
         'decisionReasonCode': value['decisionReasonCode'],
         'version': value['version'],
         'paymentAccount': OrderPaymentAccountToJSON(value['paymentAccount']),

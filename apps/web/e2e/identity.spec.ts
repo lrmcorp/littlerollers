@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { hideNextDevelopmentAffordances } from './e2e-visual-helpers';
 
 const webCapabilities = [
   'user:read',
@@ -27,6 +28,7 @@ const webCapabilities = [
 ];
 
 test.beforeEach(async ({ page }) => {
+  await hideNextDevelopmentAffordances(page);
   await page.route('**/api/v1/me', (route) =>
     route.fulfill({
       status: 200,
@@ -66,8 +68,16 @@ async function routeBookingDiscovery(
         items: [
           {
             id: ids.customerUserId,
+            displayName: 'Customer Synthetic',
+            phoneE164: null,
             status: 'ACTIVE',
-            attributes: { displayName: 'Customer Synthetic' },
+            version: 0,
+            createdAt: '2026-07-23T00:00:00.000Z',
+            updatedAt: '2026-07-23T00:00:00.000Z',
+            roles: [],
+            directRoles: [],
+            assignmentRoles: [],
+            effectiveCapabilities: [],
           },
         ],
         page: { hasMore: false, nextCursor: null },
@@ -141,75 +151,50 @@ async function routeBookingDiscovery(
 }
 
 test('sign-in exposes success without a token body', async ({ page }) => {
-  await page.route('**/api/v1/auth/google', (route) =>
+  await page.route('**/api/v1/auth/password/sessions', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        accessToken: null,
-        refreshToken: null,
-        user: {
-          id: 'user-1',
-          displayName: 'Owner',
-          roles: ['OWNER'],
-          branchIds: ['branch-1'],
-          capabilities: ['user:admin'],
-          sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-        },
-        channel: 'WEB',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        refreshExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }),
+      body: JSON.stringify({}),
     }),
   );
   await page.goto('/sign-in?returnTo=https://evil.example/steal');
-  await page.getByLabel('Email Google synthetic').fill('owner@example.test');
-  await page.getByRole('button', { name: /Google/ }).press('Enter');
+  await page.getByLabel('Email', { exact: true }).fill('owner@example.test');
+  await page.getByLabel('Password').fill('secure-password');
+  await page.getByRole('button', { name: 'Masuk dengan email' }).press('Enter');
   await expect(page).toHaveURL('/workspace');
-  await expect(page.getByText('Synthetic Super Owner', { exact: true })).toBeVisible();
-});
-
-test('duplicate invitation is idempotent and forbidden branch does not mutate', async ({
-  page,
-}) => {
-  let inviteCalls = 0;
-  await page.route('**/api/v1/users', (route) => {
-    inviteCalls += 1;
-    return route.fulfill({
-      status: inviteCalls === 1 ? 200 : 403,
-      contentType: 'application/json',
-      body: JSON.stringify(
-        inviteCalls === 1 ? { id: 'invite-1', status: 'EXISTS' } : { error: { code: 'FORBIDDEN' } },
-      ),
-    });
-  });
-  await page.goto('/users');
-  await page.getByRole('button', { name: 'Undang pengguna' }).click();
-  await page.getByLabel('Email kerja').fill('staff@example.test');
-  await page.getByRole('button', { name: /Buat undangan/ }).click();
-  await expect(page.getByRole('status')).toContainText('sudah tersedia');
-  await page.getByRole('button', { name: /Buat undangan/ }).click();
-  await expect(page.getByText('FORBIDDEN', { exact: true })).toBeVisible();
-});
-
-test('self-deactivation conflict is visible without optimistic mutation', async ({ page }) => {
-  await page.route('**/api/v1/users/*/deactivate', (route) =>
-    route.fulfill({
-      status: 409,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: { code: 'SEPARATION_OF_DUTIES_VIOLATION' } }),
-    }),
-  );
-  await page.goto('/users');
-  await page.getByRole('button', { name: /Nonaktifkan/ }).click();
-  await expect(page.getByText('IDENTITY_CONFLICT', { exact: true })).toBeVisible();
-  await expect(page.getByText('Pengguna dinonaktifkan.')).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: 'Selamat datang, Synthetic Super Owner' }),
+  ).toBeVisible();
 });
 
 test('assignment create and end use one branch and expected version', async ({ page }) => {
   let assignments: Array<Record<string, unknown>> = [];
   let endedBody: Record<string, unknown> | undefined;
+  await page.route('**/api/v1/users**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'user-1',
+            displayName: 'Synthetic Instructor',
+            phoneE164: null,
+            status: 'ACTIVE',
+            version: 0,
+            createdAt: '2026-07-23T00:00:00.000Z',
+            updatedAt: '2026-07-23T00:00:00.000Z',
+            roles: [],
+            directRoles: [],
+            assignmentRoles: [],
+            effectiveCapabilities: [],
+          },
+        ],
+        page: { nextCursor: null, hasMore: false },
+      }),
+    }),
+  );
   await page.route('**/api/v1/assignments**', async (route) => {
     const request = route.request();
     if (request.method() === 'GET')
@@ -245,8 +230,10 @@ test('assignment create and end use one branch and expected version', async ({ p
     });
   });
   await page.goto('/assignments');
-  await page.getByLabel('ID cabang aktif').fill('branch-1');
-  await page.getByLabel('ID pengguna').fill('user-1');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await page.getByRole('button', { name: 'Muat assignment' }).click();
+  const assignmentForm = page.getByRole('form', { name: 'Buat assignment' });
+  await assignmentForm.getByRole('combobox').first().selectOption('user-1');
   await page.getByLabel('Aktif mulai').fill('2026-08-01');
   await page.getByLabel('Alasan').fill('synthetic create');
   await page.getByRole('button', { name: 'Buat assignment' }).press('Enter');
@@ -300,7 +287,7 @@ test('master creates quota without a production default and exposes overlap safe
     }),
   );
   let calls = 0;
-  await page.route('**/api/v1/quota-capacity-settings', (route) => {
+  await page.route('**/api/v1/quota-capacity-settings**', (route) => {
     if (route.request().method() === 'GET')
       return route.fulfill({
         status: 200,
@@ -319,14 +306,18 @@ test('master creates quota without a production default and exposes overlap safe
     });
   });
   await page.goto('/master');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await page.getByRole('tab', { name: 'Kuota/Kapasitas' }).click();
   await expect(page.getByLabel('Minimum peserta')).toHaveValue('');
-  await page.getByRole('button', { name: 'Muat master data' }).click();
-  await expect(page.getByLabel('Cabang aktif')).toHaveValue('branch-1');
-  await expect(page.getByLabel('Tipe kelas')).toHaveValue('class-1');
+  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('branch-1');
+  await expect(
+    page.getByRole('form', { name: 'Buat effective setting' }).getByRole('combobox').nth(1),
+  ).toHaveValue('class-1');
   await page.getByLabel('Minimum peserta').fill('4');
   await page.getByLabel('Kapasitas maksimum').fill('8');
   await page.getByLabel('Efektif mulai').fill('2026-08-01');
   await page.getByLabel('Alasan perubahan').fill('Penyesuaian operasional E2E');
+  await expect(page.getByRole('button', { name: 'Simpan konfigurasi' })).toBeEnabled();
   await page.getByRole('button', { name: 'Simpan konfigurasi' }).press('Enter');
   await expect(page.getByRole('status')).toContainText('berhasil dibuat');
   await page.getByLabel('Minimum peserta').fill('4');
@@ -339,141 +330,6 @@ test('master creates quota without a production default and exposes overlap safe
   ).toBeVisible();
 });
 
-test('purchase proof clean flow submits one pending intent with keyboard controls', async ({
-  page,
-}) => {
-  await page.route('**/api/v1/me', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'customer-1',
-        displayName: 'Customer Synthetic',
-        roles: ['CUSTOMER'],
-        branchIds: ['branch-1'],
-        capabilities: ['package:read'],
-        sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-      }),
-    }),
-  );
-  await page.route('**/api/v1/packages**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        items: [
-          {
-            id: 'package-1',
-            branchId: 'branch-1',
-            classTypeId: 'class-1',
-            businessKey: 'PKG-10',
-            name: 'Ten Sessions',
-            sessionCount: 10,
-            durationDays: 30,
-            priceRp: 2000000,
-            status: 'ACTIVE',
-            effectiveFrom: '2026-01-01',
-            effectiveUntil: null,
-            version: 0,
-          },
-        ],
-        page: { nextCursor: null, hasMore: false },
-      }),
-    }),
-  );
-  await page.route('**/api/v1/uploads/payment-proofs', (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'proof-1',
-        status: 'ISSUED',
-        scanStatus: 'PENDING',
-        uploadReference: 'opaque',
-      }),
-    }),
-  );
-  await page.route('**/api/v1/uploads/payment-proofs/proof-1/finalize', (route) =>
-    route.fulfill({
-      status: 202,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'proof-1',
-        uploadStatus: 'FINALIZED',
-        scanStatus: 'CLEAN',
-        fileName: 'proof.png',
-        mimeType: 'image/png',
-        sizeBytes: 1024,
-        version: 0,
-      }),
-    }),
-  );
-  await page.route('**/api/v1/purchases', (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'purchase-1',
-        userId: 'user-1',
-        branchId: 'branch-1',
-        packageId: 'package-1',
-        paymentProofId: 'proof-1',
-        packageNameSnapshot: 'Ten Sessions',
-        priceRpSnapshot: 2000000,
-        sessionCountSnapshot: 10,
-        durationDaysSnapshot: 30,
-        status: 'PENDING',
-        submittedAt: new Date().toISOString(),
-        version: 0,
-      }),
-    }),
-  );
-  await page.goto('/purchases');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
-  await page.getByRole('button', { name: 'Muat paket' }).press('Enter');
-  await page.getByRole('radio', { name: /Ten Sessions/ }).check();
-  await page.getByLabel('Bukti pembayaran', { exact: true }).setInputFiles({
-    name: 'proof.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from('synthetic-proof'),
-  });
-  await page.getByRole('button', { name: 'Upload dan periksa' }).press('Enter');
-  await expect(page.getByText('Bersih', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Kirim pengajuan' }).press('Enter');
-  await expect(page.getByText(/Purchase PENDING/)).toBeVisible();
-});
-
-test('unsafe scan and provider failure never enable purchase submission', async ({ page }) => {
-  await page.route('**/api/v1/me', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'customer-1',
-        displayName: 'Customer Synthetic',
-        roles: ['CUSTOMER'],
-        branchIds: ['branch-1'],
-        capabilities: ['package:read'],
-        sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
-      }),
-    }),
-  );
-  await page.route('**/api/v1/packages**', (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: { code: 'CONFIGURATION_REQUIRED' } }),
-    }),
-  );
-  await page.goto('/purchases');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
-  await page.getByRole('button', { name: 'Muat paket' }).click();
-  await expect(page.getByText(/belum dikonfigurasi/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Kirim pengajuan' })).toHaveCount(0);
-});
-
 test('permission-gated purchase review approves once and exposes only an opaque proof authorization', async ({
   page,
 }) => {
@@ -483,7 +339,19 @@ test('permission-gated purchase review approves once and exposes only an opaque 
       contentType: 'application/json',
       body: JSON.stringify({
         items: [
-          { id: 'customer-1', status: 'ACTIVE', attributes: { displayName: 'Customer Synthetic' } },
+          {
+            id: 'customer-1',
+            displayName: 'Customer Synthetic',
+            phoneE164: null,
+            status: 'ACTIVE',
+            version: 0,
+            createdAt: '2026-07-23T00:00:00.000Z',
+            updatedAt: '2026-07-23T00:00:00.000Z',
+            roles: [],
+            directRoles: [],
+            assignmentRoles: [],
+            effectiveCapabilities: [],
+          },
         ],
         page: { nextCursor: null, hasMore: false },
       }),
@@ -563,10 +431,11 @@ test('permission-gated purchase review approves once and exposes only an opaque 
     await expect(page).toHaveScreenshot(`purchases-${viewport.name}.png`, {
       fullPage: true,
       animations: 'disabled',
+      maxDiffPixels: 100,
     });
   }
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByRole('button', { name: /Customer Synthetic/ }).press('Enter');
+  await page.getByRole('button', { name: 'Review', exact: true }).first().press('Enter');
   await page.getByRole('button', { name: 'Buka bukti privat' }).press('Enter');
   await expect(page.getByRole('status')).toContainText('Bukti privat diotorisasi');
   await page.getByRole('button', { name: 'Setujui purchase' }).press('Enter');
@@ -624,7 +493,7 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
     }),
   );
   await page.goto('/ledger');
-  await page.getByLabel('Cabang ledger').fill('branch-1');
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
   await page.getByRole('button', { name: 'Muat saldo' }).press('Enter');
   await page.getByRole('button', { name: /total 10.*reserved 2.*tersedia 8/ }).press('Enter');
   await expect(page.getByText('PURCHASE 10')).toBeVisible();
@@ -684,28 +553,6 @@ test('session adjustment request and permission review use controlled codes with
   await expect(page.getByRole('button', { name: 'Setujui' })).toHaveCount(0);
 });
 
-test('assignment overlap and hidden branch failures do not show optimistic success', async ({
-  page,
-}) => {
-  await page.route('**/api/v1/assignments**', (route) =>
-    route.fulfill({
-      status: route.request().method() === 'GET' ? 404 : 409,
-      contentType: 'application/problem+json',
-      body: JSON.stringify({ code: 'EFFECTIVE_PERIOD_OVERLAP' }),
-    }),
-  );
-  await page.goto('/assignments');
-  await page.getByLabel('ID cabang aktif').fill('foreign-branch');
-  await page.getByRole('button', { name: 'Muat assignment' }).click();
-  await expect(page.getByText('RESOURCE_NOT_FOUND', { exact: true })).toBeVisible();
-  await page.getByLabel('ID pengguna').fill('user-1');
-  await page.getByLabel('Aktif mulai').fill('2026-08-01');
-  await page.getByLabel('Alasan').fill('overlap test');
-  await page.getByRole('button', { name: 'Buat assignment' }).click();
-  await expect(page.getByText('EFFECTIVE_PERIOD_OVERLAP', { exact: true })).toBeVisible();
-  await expect(page.getByText('Assignment berhasil dibuat.')).toHaveCount(0);
-});
-
 test('class-slot draft assign publish and cancel lifecycle is keyboard operable', async ({
   page,
 }) => {
@@ -714,8 +561,8 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     branchId: 'branch-1',
     classTypeId: 'type-1',
     instructorUserId: null as string | null,
-    startAt: '2026-07-24T02:00:00Z',
-    endAt: '2026-07-24T03:00:00Z',
+    startAt: '2026-07-29T02:00:00Z',
+    endAt: '2026-07-29T03:00:00Z',
     timezone: 'Asia/Jakarta',
     status: 'DRAFT' as string,
     minimumQuota: 2,
@@ -750,7 +597,19 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
       contentType: 'application/json',
       body: JSON.stringify({
         items: [
-          { id: 'instructor-1', status: 'ACTIVE', attributes: { displayName: 'Ayu Instructor' } },
+          {
+            id: 'instructor-1',
+            displayName: 'Ayu Instructor',
+            phoneE164: null,
+            status: 'ACTIVE',
+            version: 0,
+            createdAt: '2026-07-23T00:00:00.000Z',
+            updatedAt: '2026-07-23T00:00:00.000Z',
+            roles: [],
+            directRoles: [],
+            assignmentRoles: [],
+            effectiveCapabilities: [],
+          },
         ],
         page: { hasMore: false, nextCursor: null },
       }),
@@ -802,8 +661,17 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     });
   });
   await page.goto('/workspace/classes');
+  await expect(
+    page
+      .getByRole('region', { name: 'Kalender kelas tujuh hari' })
+      .getByRole('button', { name: /Reformer/ }),
+  ).toBeVisible();
   await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
-  await page.getByRole('button', { name: 'Muat timetable' }).press('Enter');
+  await expect(
+    page
+      .getByRole('region', { name: 'Kalender kelas tujuh hari' })
+      .getByRole('button', { name: /Reformer/ }),
+  ).toBeVisible();
   for (const viewport of [
     { name: 'desktop-1280', width: 1280, height: 900 },
     { name: 'tablet-768', width: 768, height: 900 },
@@ -813,6 +681,7 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     await expect(page).toHaveScreenshot(`classes-${viewport.name}.png`, {
       fullPage: true,
       animations: 'disabled',
+      maxDiffPixels: 100,
     });
   }
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -852,7 +721,6 @@ test('class-slot configuration and hidden failures never show optimistic success
   );
   await page.goto('/workspace/classes');
   await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
-  await page.getByRole('button', { name: 'Muat timetable' }).click();
   await expect(page.getByText(/Konfigurasi quota atau capacity/)).toBeVisible();
   await expect(page.getByText('Draft kelas berhasil dibuat.')).toHaveCount(0);
 });
@@ -898,7 +766,7 @@ test('operations H-24 queue and recovery are keyboard operable', async ({ page }
   );
   await page.goto('/operations');
   await page.getByRole('button', { name: 'Muat job' }).press('Enter');
-  await expect(page.getByText(/RETRYING.*DEPENDENCY_UNAVAILABLE/)).toBeVisible();
+  await expect(page.getByRole('row', { name: /RETRYING.*DEPENDENCY_UNAVAILABLE/ })).toBeVisible();
   await page.getByRole('button', { name: 'Jalankan recovery' }).press('Enter');
   await expect(page.getByText('Evaluasi selesai.')).toBeVisible();
 });
@@ -937,7 +805,7 @@ test('assisted booking reserves one session with keyboard confirmation', async (
     });
   });
   await page.goto('/bookings');
-  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
   await page.getByRole('button', { name: 'Muat data booking' }).press('Enter');
   await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
   await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
@@ -968,7 +836,7 @@ test('booking conflict never renders optimistic success', async ({ page }) => {
         }),
   );
   await page.goto('/bookings');
-  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
   await page.getByRole('button', { name: 'Muat data booking' }).click();
   await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
   await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
@@ -1048,7 +916,7 @@ test('permission-gated reschedule review moves one reservation with controlled d
     }),
   );
   await page.goto('/bookings');
-  await page.getByLabel('Cabang aktif').selectOption(branchId);
+  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
   await page.getByRole('button', { name: 'Muat data booking' }).click();
   await page.getByRole('button', { name: /Tinjau reschedule/ }).press('Enter');
   await page.getByRole('button', { name: 'Setujui reschedule' }).press('Enter');

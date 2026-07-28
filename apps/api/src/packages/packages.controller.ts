@@ -14,35 +14,45 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { PackagesService } from './packages.service';
+import { CustomerOrderService } from './customer-order.service';
+import { PackageCatalogService } from './package-catalog.service';
+import { PaymentAccountService } from './payment-account.service';
+import { PaymentReviewService } from './payment-review.service';
+import { PaymentProofService } from './payment-proof.service';
 @Controller()
 @UseGuards(AuthGuard)
 export class PackagesController {
-  constructor(private readonly packages: PackagesService) {}
+  constructor(
+    private readonly customerOrders: CustomerOrderService,
+    private readonly catalog: PackageCatalogService,
+    private readonly paymentAccountsService: PaymentAccountService,
+    private readonly paymentReview: PaymentReviewService,
+    private readonly paymentProof: PaymentProofService,
+  ) {}
   @Get('packages') list(@Req() r: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    return this.packages.listPackages(r.principal, branchId);
+    return this.catalog.list(r.principal, branchId);
   }
   @Post('packages') create(@Req() r: AuthenticatedRequest, @Body() b: any) {
-    return this.packages.createPackage(r.principal, b, r.correlationId ?? 'unknown');
+    return this.catalog.create(r.principal, b, r.correlationId ?? 'unknown');
   }
   @Get('payment-accounts') paymentAccounts(
     @Req() r: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
   ) {
-    return this.packages.listPaymentAccounts(r.principal, branchId);
+    return this.paymentAccountsService.list(r.principal, branchId);
   }
   @Post('payment-accounts') createPaymentAccount(
     @Req() r: AuthenticatedRequest,
     @Body() body: any,
   ) {
-    return this.packages.createPaymentAccount(r.principal, body, r.correlationId ?? 'unknown');
+    return this.paymentAccountsService.create(r.principal, body, r.correlationId ?? 'unknown');
   }
   @Post('payment-accounts/:id/deactivate') @HttpCode(200) deactivatePaymentAccount(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    return this.packages.deactivatePaymentAccount(
+    return this.paymentAccountsService.deactivate(
       r.principal,
       id,
       body,
@@ -52,8 +62,9 @@ export class PackagesController {
   @Get('checkout/options') checkout(
     @Req() r: AuthenticatedRequest,
     @Query('packageId') packageId: string,
+    @Query('branchId') branchId?: string,
   ) {
-    return this.packages.checkoutOptions(r.principal, packageId);
+    return this.customerOrders.checkoutOptions(r.principal, packageId, branchId);
   }
   @Post('orders') async createOrder(
     @Req() r: AuthenticatedRequest,
@@ -61,7 +72,7 @@ export class PackagesController {
     @Body() body: any,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.packages.createOrder(
+    const result = await this.customerOrders.createOrder(
       r.principal,
       body,
       key,
@@ -72,46 +83,51 @@ export class PackagesController {
     return result.body;
   }
   @Get('orders') orders(@Req() r: AuthenticatedRequest, @Query('status') status?: string) {
-    return this.packages.listOrders(r.principal, status);
+    return this.customerOrders.listOrders(r.principal, status);
   }
   @Get('orders/:id') order(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
-    return this.packages.orderDetail(r.principal, id);
+    return this.customerOrders.orderDetail(r.principal, id);
   }
   @Post('orders/:id/payment-proof') @HttpCode(200) attachOrderProof(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    return this.packages.attachOrderProof(r.principal, id, body, r.correlationId ?? 'unknown');
+    return this.customerOrders.attachOrderProof(
+      r.principal,
+      id,
+      body,
+      r.correlationId ?? 'unknown',
+    );
   }
   @Post('uploads/payment-proofs') issue(@Req() r: AuthenticatedRequest, @Body() b: any) {
-    return this.packages.issueProof(r.principal, b, r.correlationId ?? 'unknown');
+    return this.paymentProof.issue(r.principal, b, r.correlationId ?? 'unknown');
   }
   @Put('uploads/payment-proofs/:id/content') uploadContent(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: Buffer,
   ) {
-    return this.packages.uploadProofContent(r.principal, id, body);
+    return this.paymentProof.uploadContent(r.principal, id, body);
   }
   @Post('uploads/payment-proofs/:id/finalize') @HttpCode(202) finalize(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { sha256: string; sizeBytes: number },
   ) {
-    return this.packages.finalizeProof(r.principal, id, body, r.correlationId ?? 'unknown');
+    return this.paymentProof.finalize(r.principal, id, body, r.correlationId ?? 'unknown');
   }
   @Get('uploads/payment-proofs/:id') status(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.packages.status(r.principal, id);
+    return this.paymentProof.status(r.principal, id);
   }
   @Get('purchases') listPurchases(
     @Req() r: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
   ) {
-    return this.packages.listPurchases(r.principal, branchId);
+    return this.paymentReview.list(r.principal, branchId);
   }
   @Post('purchases') async submit(
     @Req() r: AuthenticatedRequest,
@@ -119,7 +135,12 @@ export class PackagesController {
     @Body() b: any,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.packages.submit(r.principal, b, key, r.correlationId ?? 'unknown');
+    const result = await this.customerOrders.submit(
+      r.principal,
+      b,
+      key,
+      r.correlationId ?? 'unknown',
+    );
     response.status(result.status);
     response.setHeader('Idempotency-Replayed', String(result.replay));
     return result.body;
@@ -129,20 +150,20 @@ export class PackagesController {
     @Param('id') id: string,
     @Body() b: any,
   ) {
-    return this.packages.replaceProof(r.principal, id, b, r.correlationId ?? 'unknown');
+    return this.paymentProof.replace(r.principal, id, b, r.correlationId ?? 'unknown');
   }
   @Post('uploads/payment-proofs/:id/download-authorizations') authorizeDownload(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.packages.authorizeProofDownload(r.principal, id);
+    return this.paymentReview.authorizeProofDownload(r.principal, id);
   }
   @Get('uploads/payment-proofs/:id/content-view') async viewProof(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Res() response: Response,
   ) {
-    const result = await this.packages.viewProofContent(r.principal, id);
+    const result = await this.paymentReview.viewProofContent(r.principal, id);
     response.setHeader('Content-Type', result.mimeType);
     response.setHeader('Cache-Control', 'private, no-store');
     response.setHeader('Content-Disposition', 'inline');
@@ -155,7 +176,7 @@ export class PackagesController {
     @Body() body: { reasonCode?: string; expectedVersion?: number },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.packages.decidePurchase(
+    const result = await this.paymentReview.decide(
       r.principal,
       id,
       'APPROVED',
@@ -173,7 +194,7 @@ export class PackagesController {
     @Body() body: { reasonCode?: string; expectedVersion?: number },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.packages.decidePurchase(
+    const result = await this.paymentReview.decide(
       r.principal,
       id,
       'REJECTED',

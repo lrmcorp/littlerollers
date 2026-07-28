@@ -10,6 +10,10 @@ import { RateLimitService } from './rate-limit.service';
 import { ResendPasswordEmailProvider } from './email-provider';
 import { digest } from './security';
 import { randomUUID } from 'node:crypto';
+import { IdentityReviewQueryService } from './identity-review-query.service';
+import { AssignmentService } from './assignment.service';
+import { UserAdministrationService } from './user-administration.service';
+import { IdempotencyService } from '../foundation/idempotency.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -21,7 +25,25 @@ databaseDescribe('identity MySQL integration', () => {
   const targetId = randomUUID();
   const otpUserId = randomUUID();
   const assignmentUserId = randomUUID();
+  const reviewStatuses = [
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+    'PENDING_DELETION',
+    'DELETE_FAILED',
+    'DELETED',
+  ] as const;
+  const reviewFixtures = reviewStatuses.map((status, index) => ({
+    userId: randomUUID(),
+    documentId: randomUUID(),
+    status,
+    displayName: `${namespace} Review Fixture ${index + 1}`,
+    phoneE164: `+6287000000${String(index).padStart(2, '0')}`,
+  }));
   let service: IdentityService;
+  let reviewQueries: IdentityReviewQueryService;
+  let assignments: AssignmentService;
+  let users: UserAdministrationService;
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
@@ -43,6 +65,30 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.user.create({ data: { id: assignmentUserId, displayName: 'Assignment target' } });
     await db.user.create({ data: { id: otpUserId, displayName: 'Integration OTP user' } });
+    await db.user.createMany({
+      data: reviewFixtures.map(({ userId, displayName, phoneE164 }) => ({
+        id: userId,
+        displayName,
+        phoneE164,
+      })),
+    });
+    await db.identityVerificationDocument.createMany({
+      data: reviewFixtures.map(({ userId, documentId, status }, index) => ({
+        id: documentId,
+        userId,
+        kind: index % 2 === 0 ? ('SELFIE' as const) : ('KTP_FRONT' as const),
+        status,
+        checksum: digest(`${namespace}:${documentId}`),
+        fileName: 'fixture.png',
+        mimeType: 'image/png',
+        sizeBytes: 1024,
+        uploadStatus: 'FINALIZED' as const,
+        scanStatus: 'CLEAN' as const,
+        uploadedAt: new Date(Date.now() - (reviewFixtures.length - index) * 60_000),
+        finalizedAt: new Date(Date.now() - (reviewFixtures.length - index) * 60_000),
+        createdAt: new Date(Date.now() - (reviewFixtures.length - index) * 60_000),
+      })),
+    });
     await db.identity.create({
       data: {
         id: randomUUID(),
@@ -52,14 +98,28 @@ databaseDescribe('identity MySQL integration', () => {
         verifiedAt: new Date(),
       },
     });
+    const policy = new PolicyService();
+    const rateLimit = new RateLimitService(db as never);
+    const passwordEmail = new ResendPasswordEmailProvider();
+    const idempotency = new IdempotencyService(db as never);
     service = new IdentityService(
       db as never,
-      new PolicyService(),
+      policy,
       new ConfigGatedGoogleProvider(),
       new ConfigGatedOtpProvider(),
       new ConfigGatedProofProvider(),
-      new RateLimitService(db as never),
-      new ResendPasswordEmailProvider(),
+      rateLimit,
+      passwordEmail,
+      idempotency,
+    );
+    reviewQueries = new IdentityReviewQueryService(db as never, policy);
+    assignments = new AssignmentService(db as never, policy);
+    users = new UserAdministrationService(
+      db as never,
+      policy,
+      rateLimit,
+      passwordEmail,
+      idempotency,
     );
   });
 
@@ -69,7 +129,14 @@ databaseDescribe('identity MySQL integration', () => {
       select: { id: true },
     });
     const userIds = [
-      ...new Set([inviterId, targetId, otpUserId, assignmentUserId, ...users.map(({ id }) => id)]),
+      ...new Set([
+        inviterId,
+        targetId,
+        otpUserId,
+        assignmentUserId,
+        ...reviewFixtures.map(({ userId }) => userId),
+        ...users.map(({ id }) => id),
+      ]),
     ];
     await db.auditLog.deleteMany({
       where: {
@@ -82,6 +149,13 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.authChallenge.deleteMany({ where: { userId: { in: userIds } } });
     await db.userSession.deleteMany({ where: { userId: { in: userIds } } });
+    await db.identityDocumentViewAuthorization.deleteMany({
+      where: { document: { userId: { in: userIds } } },
+    });
+    await db.identityDocumentDeletionJob.deleteMany({
+      where: { document: { userId: { in: userIds } } },
+    });
+    await db.identityVerificationDocument.deleteMany({ where: { userId: { in: userIds } } });
     await db.identity.deleteMany({ where: { userId: { in: userIds } } });
     await db.passwordActionToken.deleteMany({
       where: {
@@ -112,18 +186,52 @@ databaseDescribe('identity MySQL integration', () => {
       'branch:all',
       'assignment:read',
       'assignment:manage',
+      'identity-verification:review',
     ],
     branchIds: [branchId],
   };
 
+  it('lists every identity lifecycle status with search, masking, summary and cursor pagination', async () => {
+    for (const fixture of reviewFixtures) {
+      const result = await reviewQueries.list(principal, {
+        q: fixture.displayName,
+        status: fixture.status,
+        limit: 2,
+      });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.documents).toEqual(
+        expect.arrayContaining([expect.objectContaining({ status: fixture.status })]),
+      );
+      expect(result.items[0]?.user.phoneMasked).not.toBe(fixture.phoneE164);
+      expect(result.summary.totalCustomers).toBe(1);
+    }
+
+    const first = await reviewQueries.list(principal, {
+      q: `${namespace} Review Fixture`,
+      limit: 2,
+    });
+    expect(first.items).toHaveLength(2);
+    expect(first.page.hasMore).toBe(true);
+    expect(first.page.nextCursor).toEqual(expect.any(String));
+    const second = await reviewQueries.list(principal, {
+      q: `${namespace} Review Fixture`,
+      cursor: first.page.nextCursor!,
+      limit: 2,
+    });
+    expect(second.items).toHaveLength(2);
+    expect(second.items.map(({ id }) => id)).not.toEqual(
+      expect.arrayContaining(first.items.map(({ id }) => id)),
+    );
+  });
+
   it('keeps invitation and concurrent Google identity unique', async () => {
     const email = `${namespace}@example.test`;
-    const first = await service.inviteUser(
+    const first = await users.inviteUser(
       principal,
       { email, roles: ['ADMIN'], branchIds: [branchId] },
       `${namespace}-invite-1`,
     );
-    const replay = await service.inviteUser(
+    const replay = await users.inviteUser(
       principal,
       { email, roles: ['ADMIN'], branchIds: [branchId] },
       `${namespace}-invite-2`,
@@ -154,7 +262,7 @@ databaseDescribe('identity MySQL integration', () => {
 
   it('creates a visible pending internal user with multiple fixed-role permission bundles', async () => {
     const email = `${namespace}-multi@example.test`;
-    const created = await service.inviteUser(
+    const created = await users.inviteUser(
       principal,
       {
         email,
@@ -167,7 +275,7 @@ databaseDescribe('identity MySQL integration', () => {
       `${namespace}-multi-create`,
     );
     const invitation = await db.userInvitation.findUniqueOrThrow({ where: { id: created.id } });
-    const user = await service.getUser(principal, invitation.userId!);
+    const user = await users.getUser(principal, invitation.userId!);
     expect(user.status).toBe('PENDING_ACTIVATION');
     expect(user.directRoles).toEqual(
       expect.arrayContaining([
@@ -178,7 +286,7 @@ databaseDescribe('identity MySQL integration', () => {
     expect(user.effectiveCapabilities).toEqual(
       expect.arrayContaining(['booking:read', 'finance:read']),
     );
-    const audit = await service.listAuditLogs(principal, {
+    const audit = await users.listAuditLogs(principal, {
       targetUserId: user.id,
       action: 'security.user_created',
     });
@@ -285,13 +393,7 @@ databaseDescribe('identity MySQL integration', () => {
       data: { userId: targetId, branchId, role: 'ADMIN', activeFrom: new Date() },
     });
     await service.issueSession(targetId, 'MOBILE');
-    await service.deactivate(
-      principal,
-      targetId,
-      'integration reason',
-      0,
-      `${namespace}-deactivate`,
-    );
+    await users.deactivate(principal, targetId, 'integration reason', 0, `${namespace}-deactivate`);
     expect(await db.userSession.count({ where: { userId: targetId, revokedAt: null } })).toBe(0);
     const audit = await db.auditLog.findFirstOrThrow({
       where: { correlationId: `${namespace}-deactivate` },
@@ -302,18 +404,18 @@ databaseDescribe('identity MySQL integration', () => {
 
   it('enforces hidden branch and self-deactivation boundaries', async () => {
     await expect(
-      service.listUsers(
+      users.listUsers(
         { ...principal, capabilities: ['user:read'] },
         { branchId: 'outside-branch' },
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
-      service.deactivate(principal, inviterId, 'self', 0, `${namespace}-self`),
+      users.deactivate(principal, inviterId, 'self', 0, `${namespace}-self`),
     ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES_VIOLATION' });
   });
 
   it('returns capability-scoped user totals independent of the selected status filter', async () => {
-    const result = await service.listUsers(principal, { branchId, status: 'ACTIVE' });
+    const result = await users.listUsers(principal, { branchId, status: 'ACTIVE' });
     expect(result.items.every((user) => user.status === 'ACTIVE')).toBe(true);
     expect(result.summary.total).toBeGreaterThanOrEqual(result.items.length);
     expect(result.summary.active).toBeGreaterThanOrEqual(result.items.length);
@@ -326,7 +428,7 @@ databaseDescribe('identity MySQL integration', () => {
     await db.userRole.create({
       data: { userId: instructorId, branchId, role: 'INSTRUCTOR', activeFrom: new Date() },
     });
-    const result = await service.lookupUsers(
+    const result = await users.lookupUsers(
       { ...principal, capabilities: ['class-slot:read'] },
       { branchId, q: 'Lookup', instructorsOnly: true },
     );
@@ -339,7 +441,7 @@ databaseDescribe('identity MySQL integration', () => {
     ]);
     expect(JSON.stringify(result)).not.toContain('phoneE164');
     await expect(
-      service.lookupUsers(
+      users.lookupUsers(
         { ...principal, capabilities: ['class-slot:read'], branchIds: [] },
         { branchId, instructorsOnly: true },
       ),
@@ -347,10 +449,10 @@ databaseDescribe('identity MySQL integration', () => {
   });
 
   it('updates assignable roles with concurrency, revokes sessions, reactivates and exposes audit', async () => {
-    await service.reactivate(principal, targetId, 'returning staff', 1, `${namespace}-reactivate`);
-    const before = await service.getUser(principal, targetId);
+    await users.reactivate(principal, targetId, 'returning staff', 1, `${namespace}-reactivate`);
+    const before = await users.getUser(principal, targetId);
     await service.issueSession(targetId, 'MOBILE', 'BASE');
-    const updated = await service.updateUserRoles(
+    const updated = await users.updateUserRoles(
       principal,
       targetId,
       {
@@ -366,7 +468,7 @@ databaseDescribe('identity MySQL integration', () => {
     );
     expect(await db.userSession.count({ where: { userId: targetId, revokedAt: null } })).toBe(0);
     await expect(
-      service.updateUserRoles(
+      users.updateUserRoles(
         principal,
         targetId,
         {
@@ -379,7 +481,7 @@ databaseDescribe('identity MySQL integration', () => {
       ),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' });
     await expect(
-      service.updateUserRoles(
+      users.updateUserRoles(
         principal,
         targetId,
         {
@@ -391,7 +493,7 @@ databaseDescribe('identity MySQL integration', () => {
         randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    expect((await service.listUserAudit(principal, targetId)).items.length).toBeGreaterThan(0);
+    expect((await users.listUserAudit(principal, targetId)).items.length).toBeGreaterThan(0);
   });
 
   it('keeps concurrent linking unique and audit payloads free of raw credentials and PII', async () => {
@@ -430,7 +532,7 @@ databaseDescribe('identity MySQL integration', () => {
   });
 
   it('creates one assignment and linked role projection with a masked audit', async () => {
-    const created = await service.createAssignment(
+    const created = await assignments.create(
       principal,
       {
         userId: assignmentUserId,
@@ -458,12 +560,12 @@ databaseDescribe('identity MySQL integration', () => {
         }),
       ),
     ).not.toContain('raw operational reason');
-    expect((await service.listAssignments(principal, branchId)).items).toHaveLength(1);
+    expect((await assignments.list(principal, branchId)).items).toHaveLength(1);
   });
 
   it('rejects overlap and permits only one concurrent create without partial projection', async () => {
     await expect(
-      service.createAssignment(
+      assignments.create(
         principal,
         {
           userId: assignmentUserId,
@@ -478,7 +580,7 @@ databaseDescribe('identity MySQL integration', () => {
     ).rejects.toMatchObject({ code: 'EFFECTIVE_PERIOD_OVERLAP' });
 
     const concurrent = await Promise.allSettled([
-      service.createAssignment(
+      assignments.create(
         principal,
         {
           userId: assignmentUserId,
@@ -490,7 +592,7 @@ databaseDescribe('identity MySQL integration', () => {
         },
         `${namespace}-concurrent-1`,
       ),
-      service.createAssignment(
+      assignments.create(
         principal,
         {
           userId: assignmentUserId,
@@ -525,7 +627,7 @@ databaseDescribe('identity MySQL integration', () => {
     const assignment = await db.assignment.findFirstOrThrow({
       where: { userId: assignmentUserId, branchId, type: 'INSTRUCTOR' },
     });
-    const ended = await service.endAssignment(
+    const ended = await assignments.end(
       principal,
       assignment.id,
       { effectiveAt: '2026-08-08T18:00:00.000Z', reason: 'end', expectedVersion: 0 },
@@ -539,7 +641,7 @@ databaseDescribe('identity MySQL integration', () => {
       (await service.me(assignmentUserId, new Date('2026-08-08T17:00:00.000Z'))).roles,
     ).not.toContain('INSTRUCTOR');
     await expect(
-      service.endAssignment(
+      assignments.end(
         principal,
         assignment.id,
         { effectiveAt: '2026-08-10T00:00:00.000Z', reason: 'again', expectedVersion: 0 },
@@ -555,7 +657,7 @@ databaseDescribe('identity MySQL integration', () => {
 
   it('rejects self-escalation without mutation', async () => {
     await expect(
-      service.createAssignment(
+      assignments.create(
         principal,
         {
           userId: inviterId,

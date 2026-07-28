@@ -1,8 +1,8 @@
-import { PublicClassCatalogService } from './public-class-catalog.service';
+import { PublicScheduleQueryService } from '../public-content/public-schedule-query.service';
 
 const branchId = '00000000-0000-4000-8000-000000000002';
 
-describe('PublicClassCatalogService', () => {
+describe('PublicScheduleQueryService', () => {
   const db = {
     branch: {
       findMany: jest
@@ -31,7 +31,7 @@ describe('PublicClassCatalogService', () => {
       ]),
     },
   };
-  const service = new PublicClassCatalogService(db as never);
+  const service = new PublicScheduleQueryService(db as never);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -40,6 +40,14 @@ describe('PublicClassCatalogService', () => {
     expect(result.branches).toHaveLength(1);
     expect(result.items).toEqual([]);
     expect(db.classSlot.findMany).not.toHaveBeenCalled();
+    expect(db.branch.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          supportWhatsappE164: true,
+          publicProfile: true,
+        }),
+      }),
+    );
   });
 
   it('returns only the safe public projection and derived remaining capacity', async () => {

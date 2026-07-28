@@ -33,6 +33,16 @@ void main() {
       // TODO
     });
 
+    //Future<PublicClassDetail> getPublicClassDetail(String slug) async
+    test('test getPublicClassDetail', () async {
+      // TODO
+    });
+
+    //Future<PublicScheduleDetail> getPublicScheduleDetail(String id) async
+    test('test getPublicScheduleDetail', () async {
+      // TODO
+    });
+
     // Instructor-own half-open intervals ordered by startAt and id descending. Optional from/until selects intervals that overlap the requested UTC window.
     //
     //Future<AvailabilityPage> listAvailabilities({ String branchId, DateTime from, DateTime until, String cursor }) async
@@ -44,6 +54,11 @@ void main() {
     //
     //Future<ClassSlotPage> listClassSlots({ String branchId, String status, DateTime from, DateTime until, String cursor }) async
     test('test listClassSlots', () async {
+      // TODO
+    });
+
+    //Future<PublicClassCatalog> listPublicClassSchedule({ String branchId, DateTime from, DateTime until }) async
+    test('test listPublicClassSchedule', () async {
       // TODO
     });
 

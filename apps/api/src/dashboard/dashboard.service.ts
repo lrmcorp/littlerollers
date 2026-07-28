@@ -24,6 +24,103 @@ function percentChange(current: number, previous: number) {
 export class DashboardService {
   constructor(private readonly db: PrismaService) {}
 
+  async customerOverview(principal: SessionPrincipal) {
+    if (!principal.roles.some(({ role }) => role === 'CUSTOMER'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    const now = new Date();
+    const [upcomingBookings, packages, actionableOrders, documents, unreadNotifications] =
+      await Promise.all([
+        this.db.booking.findMany({
+          where: {
+            customerUserId: principal.userId,
+            status: 'BOOKED',
+            classSlot: { startAt: { gte: now } },
+          },
+          include: {
+            branch: { select: { id: true, name: true, timezone: true } },
+            classSlot: {
+              include: { classType: { select: { id: true, name: true } } },
+            },
+          },
+          orderBy: { classSlot: { startAt: 'asc' } },
+          take: 3,
+        }),
+        this.db.customerPackage.findMany({
+          where: { customerUserId: principal.userId, status: 'ACTIVE', expiryAt: { gt: now } },
+          include: {
+            branch: { select: { id: true, name: true } },
+            package: { select: { name: true } },
+            classType: { select: { name: true } },
+            ledgerEntries: { select: { quantity: true } },
+            reservations: { where: { status: 'ACTIVE' }, select: { quantity: true } },
+          },
+          orderBy: { expiryAt: 'asc' },
+          take: 6,
+        }),
+        this.db.purchase.findMany({
+          where: {
+            userId: principal.userId,
+            status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED', 'PENDING'] },
+          },
+          include: { branch: { select: { name: true } } },
+          orderBy: { submittedAt: 'desc' },
+          take: 5,
+        }),
+        this.db.identityVerificationDocument.findMany({
+          where: { userId: principal.userId, replacedById: null },
+          select: { kind: true, status: true, updatedAt: true },
+        }),
+        this.db.userNotification.count({
+          where: {
+            userId: principal.userId,
+            readAt: null,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+        }),
+      ]);
+    return {
+      generatedAt: now,
+      upcomingBookings: upcomingBookings.map((booking) => ({
+        id: booking.id,
+        status: booking.status,
+        className: booking.classSlot.classType.name,
+        branchName: booking.branch.name,
+        timezone: booking.branch.timezone,
+        startAt: booking.classSlot.startAt,
+        endAt: booking.classSlot.endAt,
+      })),
+      packages: packages.map((item) => ({
+        id: item.id,
+        packageName: item.package.name,
+        classTypeName: item.classType.name,
+        branchName: item.branch.name,
+        expiryAt: item.expiryAt,
+        available:
+          item.ledgerEntries.reduce((sum, entry) => sum + entry.quantity, 0) -
+          item.reservations.reduce((sum, reservation) => sum + reservation.quantity, 0),
+      })),
+      actionableOrders: actionableOrders.map((order) => ({
+        id: order.id,
+        packageName: order.packageNameSnapshot,
+        branchName: order.branch.name,
+        status: order.status,
+        payableAmountRp: order.payableAmountRpSnapshot ?? order.priceRpSnapshot,
+        expiresAt: order.paymentExpiresAt,
+      })),
+      verification: {
+        status: ['SELFIE', 'KTP_FRONT'].every((kind) =>
+          documents.some((document) => document.kind === kind && document.status === 'APPROVED'),
+        )
+          ? 'APPROVED'
+          : documents.some(({ status }) => status === 'REJECTED')
+            ? 'ACTION_REQUIRED'
+            : 'PENDING',
+        documents,
+      },
+      unreadNotifications,
+    };
+  }
+
   async overview(
     principal: SessionPrincipal,
     query: { branchId?: string; from?: string; until?: string },

@@ -13,13 +13,20 @@
  */
 
 import { mapValues } from '../runtime';
-import type { PreferredStudio } from './PreferredStudio';
+import type { PublicBranch } from './PublicBranch';
 import {
-    PreferredStudioFromJSON,
-    PreferredStudioFromJSONTyped,
-    PreferredStudioToJSON,
-    PreferredStudioToJSONTyped,
-} from './PreferredStudio';
+    PublicBranchFromJSON,
+    PublicBranchFromJSONTyped,
+    PublicBranchToJSON,
+    PublicBranchToJSONTyped,
+} from './PublicBranch';
+import type { PublicClassMarketingSummary } from './PublicClassMarketingSummary';
+import {
+    PublicClassMarketingSummaryFromJSON,
+    PublicClassMarketingSummaryFromJSONTyped,
+    PublicClassMarketingSummaryToJSON,
+    PublicClassMarketingSummaryToJSONTyped,
+} from './PublicClassMarketingSummary';
 
 /**
  * 
@@ -29,10 +36,16 @@ import {
 export interface PublicSiteConfig {
     /**
      * 
-     * @type {Array<PreferredStudio>}
+     * @type {Array<PublicBranch>}
      * @memberof PublicSiteConfig
      */
-    branches: Array<PreferredStudio>;
+    branches: Array<PublicBranch>;
+    /**
+     * 
+     * @type {Array<PublicClassMarketingSummary>}
+     * @memberof PublicSiteConfig
+     */
+    classes: Array<PublicClassMarketingSummary>;
     /**
      * 
      * @type {string}
@@ -46,6 +59,7 @@ export interface PublicSiteConfig {
  */
 export function instanceOfPublicSiteConfig(value: object): value is PublicSiteConfig {
     if (!('branches' in value) || value['branches'] === undefined) return false;
+    if (!('classes' in value) || value['classes'] === undefined) return false;
     if (!('fallbackWhatsappE164' in value) || value['fallbackWhatsappE164'] === undefined) return false;
     return true;
 }
@@ -60,7 +74,8 @@ export function PublicSiteConfigFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
-        'branches': ((json['branches'] as Array<any>).map(PreferredStudioFromJSON)),
+        'branches': ((json['branches'] as Array<any>).map(PublicBranchFromJSON)),
+        'classes': ((json['classes'] as Array<any>).map(PublicClassMarketingSummaryFromJSON)),
         'fallbackWhatsappE164': json['fallbackWhatsappE164'],
     };
 }
@@ -76,7 +91,8 @@ export function PublicSiteConfigToJSONTyped(value?: PublicSiteConfig | null, ign
 
     return {
         
-        'branches': ((value['branches'] as Array<any>).map(PreferredStudioToJSON)),
+        'branches': ((value['branches'] as Array<any>).map(PublicBranchToJSON)),
+        'classes': ((value['classes'] as Array<any>).map(PublicClassMarketingSummaryToJSON)),
         'fallbackWhatsappE164': value['fallbackWhatsappE164'],
     };
 }

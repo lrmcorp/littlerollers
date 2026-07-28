@@ -20,29 +20,29 @@ export function PublicPageHero({
   return (
     <section
       className={`relative isolate overflow-hidden border-b border-dd-line bg-dd-paper ${
-        compact ? 'py-8 sm:py-9' : 'py-16 sm:py-20 lg:py-24'
+        compact ? 'py-5' : 'py-16 sm:py-20 lg:py-24'
       }`}
     >
       <div className={`${publicContainer} relative z-10`}>
         <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
         <h1
-          className={`max-w-4xl font-serif font-semibold tracking-[-0.035em] ${
+          className={`font-sans font-semibold tracking-[-0.035em] ${
             compact
-              ? 'mt-2 text-[clamp(2.35rem,5.5vw,4.5rem)] leading-[0.98]'
-              : 'mt-3 text-[clamp(3rem,7vw,5.5rem)] leading-[0.93]'
+              ? 'mt-1 max-w-5xl text-[clamp(2.15rem,3.2vw,2.8rem)] leading-[1.02]'
+              : 'mt-3 max-w-4xl text-[clamp(3rem,7vw,5.5rem)] leading-[0.93]'
           }`}
           id={titleId}
         >
           {title}
         </h1>
         <p
-          className={`max-w-2xl text-base text-dd-muted sm:text-lg ${
-            compact ? 'mt-4 leading-6 sm:leading-7' : 'mt-5 leading-7'
+          className={`text-base text-dd-muted sm:text-lg ${
+            compact ? 'mt-2 max-w-4xl leading-6 sm:leading-7' : 'mt-5 max-w-2xl leading-7'
           }`}
         >
           {description}
         </p>
-        {children && <div className={compact ? 'mt-5' : 'mt-7'}>{children}</div>}
+        {children && <div className={compact ? 'mt-3' : 'mt-7'}>{children}</div>}
       </div>
       <span
         className="absolute -top-20 right-[-8rem] -z-10 size-[28rem] rounded-full border border-dd-forest/10"
@@ -74,7 +74,7 @@ export function PublicSectionHeading({
       <div className="max-w-3xl">
         <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
         <h2
-          className="mt-2 font-serif text-[clamp(2.25rem,5vw,3.75rem)] leading-none font-semibold"
+          className="mt-2 font-sans text-[clamp(2.25rem,5vw,3.75rem)] leading-none font-semibold"
           id={titleId}
         >
           {title}
@@ -106,7 +106,7 @@ export function PublicStatePanel({
       }`}
       role={role}
     >
-      {title && <h3 className="font-serif text-2xl font-semibold text-dd-ink">{title}</h3>}
+      {title && <h3 className="font-sans text-2xl font-semibold text-dd-ink">{title}</h3>}
       <div className={title ? 'mt-2' : ''}>{children}</div>
     </div>
   );

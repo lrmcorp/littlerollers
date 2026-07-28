@@ -60,6 +60,12 @@ export interface FinanceBranchReconciliation {
      * @type {number}
      * @memberof FinanceBranchReconciliation
      */
+    identificationAmountRp: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FinanceBranchReconciliation
+     */
     pendingCount: number;
     /**
      * 
@@ -79,6 +85,7 @@ export function instanceOfFinanceBranchReconciliation(value: object): value is F
     if (!('expectedRp' in value) || value['expectedRp'] === undefined) return false;
     if (!('receivedRp' in value) || value['receivedRp'] === undefined) return false;
     if (!('approvedRp' in value) || value['approvedRp'] === undefined) return false;
+    if (!('identificationAmountRp' in value) || value['identificationAmountRp'] === undefined) return false;
     if (!('pendingCount' in value) || value['pendingCount'] === undefined) return false;
     if (!('anomalyCount' in value) || value['anomalyCount'] === undefined) return false;
     return true;
@@ -100,6 +107,7 @@ export function FinanceBranchReconciliationFromJSONTyped(json: any, ignoreDiscri
         'expectedRp': json['expectedRp'],
         'receivedRp': json['receivedRp'],
         'approvedRp': json['approvedRp'],
+        'identificationAmountRp': json['identificationAmountRp'],
         'pendingCount': json['pendingCount'],
         'anomalyCount': json['anomalyCount'],
     };
@@ -122,6 +130,7 @@ export function FinanceBranchReconciliationToJSONTyped(value?: FinanceBranchReco
         'expectedRp': value['expectedRp'],
         'receivedRp': value['receivedRp'],
         'approvedRp': value['approvedRp'],
+        'identificationAmountRp': value['identificationAmountRp'],
         'pendingCount': value['pendingCount'],
         'anomalyCount': value['anomalyCount'],
     };

@@ -1,7 +1,7 @@
 import './tailwind.css';
 import './globals.css';
-import './unified-overrides.css';
-import './admin-overrides.css';
+import './legacy-ui.css';
+import './legacy-compatibility.css';
 import { ApplicationShell } from './application-shell';
 import { SessionProvider } from './session-context';
 import { AppFeedbackProvider } from './components/app-feedback';

@@ -61,6 +61,10 @@ export interface DecideRescheduleRequest {
     rescheduleDecisionCommand: RescheduleDecisionCommand;
 }
 
+export interface GetBookingRequest {
+    id: string;
+}
+
 export interface GetCustomerBookingOptionsRequest {
     classSlotId: string;
 }
@@ -216,6 +220,51 @@ export class BookingsApi extends runtime.BaseAPI {
      */
     async decideReschedule(requestParameters: DecideRescheduleRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RescheduleDecisionResult> {
         const response = await this.decideRescheduleRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Customer-owned or branch-scoped booking detail with safe class, studio, package, and attendance labels.
+     */
+    async getBookingRaw(requestParameters: GetBookingRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Booking>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getBooking().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/bookings/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BookingFromJSON(jsonValue));
+    }
+
+    /**
+     * Customer-owned or branch-scoped booking detail with safe class, studio, package, and attendance labels.
+     */
+    async getBooking(requestParameters: GetBookingRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Booking> {
+        const response = await this.getBookingRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

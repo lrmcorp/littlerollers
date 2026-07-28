@@ -3,17 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { browserOrderClient, orderError, type CustomerOrder } from '../order-client';
+import { orderStatusLabels } from '../order-presenters';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
-const labels: Record<string, string> = {
-  AWAITING_PAYMENT: 'Menunggu pembayaran',
-  PENDING: 'Sedang diperiksa',
-  ACTION_REQUIRED: 'Perlu diperbaiki',
-  APPROVED: 'Disetujui',
-  REJECTED: 'Ditolak',
-  EXPIRED: 'Kedaluwarsa',
-};
 export function OrdersView() {
   const [items, setItems] = useState<CustomerOrder[]>([]);
   const [status, setStatus] = useState('');
@@ -28,18 +21,22 @@ export function OrdersView() {
       .finally(() => setLoading(false));
   }, [status]);
   return (
-    <section className="card order-page">
+    <main className="space-y-6">
       <PageHeader
         eyebrow="Member area"
         title="Pesanan Saya"
         description="Pantau transfer, pemeriksaan bukti, dan aktivasi paket dalam satu tempat."
         context={<Link href="/packages">Beli paket</Link>}
       />
-      <label className="order-filter">
+      <label className="grid max-w-xs gap-2 text-sm font-semibold">
         Status
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select
+          className="rounded-dd-md border border-dd-line bg-white px-3"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
           <option value="">Semua</option>
-          {Object.entries(labels).map(([value, label]) => (
+          {Object.entries(orderStatusLabels).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -55,17 +52,25 @@ export function OrdersView() {
           description="Pilih paket yang sesuai lalu buat pesanan sebelum melakukan transfer."
         />
       ) : (
-        <div className="order-list">
+        <div className="grid gap-3">
           {items.map((item) => (
-            <Link className="order-row" href={`/orders/${item.id}`} key={item.id}>
-              <span>
-                <strong>{item.packageName}</strong>
-                <small>
+            <Link
+              className="flex flex-wrap items-center justify-between gap-4 rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5"
+              href={
+                ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(item.status)
+                  ? `/checkout?order=${encodeURIComponent(item.id)}`
+                  : `/orders/${item.id}`
+              }
+              key={item.id}
+            >
+              <span className="min-w-0">
+                <strong className="block">{item.packageName}</strong>
+                <small className="mt-1 block text-dd-muted">
                   {item.branchName} · {item.submittedAt.toLocaleDateString('id-ID')}
                 </small>
               </span>
-              <span>
-                <strong>{rupiah.format(item.priceRp)}</strong>
+              <span className="grid justify-items-end gap-2">
+                <strong className="text-dd-forest">{rupiah.format(item.payableAmountRp)}</strong>
                 <StatusBadge
                   tone={
                     item.status === 'APPROVED'
@@ -75,13 +80,13 @@ export function OrdersView() {
                         : 'warning'
                   }
                 >
-                  {labels[item.status]}
+                  {orderStatusLabels[item.status]}
                 </StatusBadge>
               </span>
             </Link>
           ))}
         </div>
       )}
-    </section>
+    </main>
   );
 }

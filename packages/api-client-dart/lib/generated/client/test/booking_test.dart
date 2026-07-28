@@ -72,5 +72,25 @@ void main() {
       // TODO
     });
 
+    // BookingBranch branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
+    // BookingClassSlot classSlot
+    test('to test the property `classSlot`', () async {
+      // TODO
+    });
+
+    // BookingClassSlotClassType package
+    test('to test the property `package`', () async {
+      // TODO
+    });
+
+    // BookingAttendance attendance
+    test('to test the property `attendance`', () async {
+      // TODO
+    });
+
   });
 }

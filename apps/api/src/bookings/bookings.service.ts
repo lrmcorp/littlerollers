@@ -73,6 +73,47 @@ export class BookingsService {
       throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
   }
 
+  private bookingView(booking: any) {
+    return {
+      id: booking.id,
+      branchId: booking.branchId,
+      classSlotId: booking.classSlotId,
+      customerUserId: booking.customerUserId,
+      customerPackageId: booking.customerPackageId,
+      reservationId: booking.reservationId,
+      createdById: booking.createdById,
+      source: booking.source,
+      status: booking.status,
+      reservedQuantity: booking.reservedQuantity,
+      createdAt: booking.createdAt,
+      version: booking.version,
+      idempotentReplay: false,
+      branch: booking.branch,
+      classSlot: booking.classSlot
+        ? {
+            id: booking.classSlot.id,
+            startAt: booking.classSlot.startAt,
+            endAt: booking.classSlot.endAt,
+            timezone: booking.classSlot.timezone,
+            status: booking.classSlot.status,
+            classType: booking.classSlot.classType,
+          }
+        : undefined,
+      package: booking.customerPackage?.package
+        ? {
+            id: booking.customerPackage.package.id,
+            name: booking.customerPackage.package.name,
+          }
+        : undefined,
+      attendance: booking.attendance
+        ? {
+            checkedInAt: booking.attendance.checkedInAt,
+            source: booking.attendance.source,
+          }
+        : null,
+    };
+  }
+
   async customerOptions(principal: SessionPrincipal, classSlotId: string) {
     this.policy.requireCapability(principal.capabilities, 'booking:self:read');
     await this.requireVerifiedCustomer(principal);
@@ -186,14 +227,49 @@ export class BookingsService {
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: PAGE_SIZE + 1,
+      include: {
+        branch: { select: { id: true, name: true, timezone: true } },
+        classSlot: {
+          include: { classType: { select: { id: true, name: true } } },
+        },
+        customerPackage: {
+          include: { package: { select: { id: true, name: true } } },
+        },
+        attendance: { select: { checkedInAt: true, source: true } },
+      },
     });
     const hasMore = items.length > PAGE_SIZE;
     const pageItems = items.slice(0, PAGE_SIZE);
     const last = pageItems.at(-1);
     return {
-      items: pageItems.map((item) => ({ ...item, idempotentReplay: false })),
+      items: pageItems.map((item) => this.bookingView(item)),
       page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null },
     };
+  }
+
+  async detail(principal: SessionPrincipal, id: string) {
+    const customer = this.isCustomer(principal);
+    this.policy.requireCapability(
+      principal.capabilities,
+      customer ? 'booking:self:read' : 'booking:read',
+    );
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const booking = await this.db.booking.findFirst({
+      where: { id, ...(customer ? { customerUserId: principal.userId } : {}) },
+      include: {
+        branch: { select: { id: true, name: true, timezone: true } },
+        classSlot: {
+          include: { classType: { select: { id: true, name: true } } },
+        },
+        customerPackage: {
+          include: { package: { select: { id: true, name: true } } },
+        },
+        attendance: { select: { checkedInAt: true, source: true } },
+      },
+    });
+    if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!customer) this.requireBranch(principal, booking.branchId);
+    return this.bookingView(booking);
   }
 
   async create(

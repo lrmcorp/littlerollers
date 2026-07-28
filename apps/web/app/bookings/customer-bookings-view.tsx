@@ -5,17 +5,25 @@ import { useEffect, useState } from 'react';
 import {
   bookingFailure,
   browserBookingClient,
-  type Booking,
+  type CustomerBookingRecord,
   type BookingClient,
 } from '../booking-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+
+const statusLabels: Record<string, string> = {
+  BOOKED: 'Terjadwal',
+  RESCHEDULE_PENDING: 'Perubahan jadwal diproses',
+  CANCELLED: 'Dibatalkan',
+  ATTENDED: 'Hadir',
+  NO_SHOW: 'Tidak hadir',
+};
 
 export function CustomerBookingsView({
   client = browserBookingClient,
 }: {
   client?: BookingClient;
 }) {
-  const [items, setItems] = useState<Booking[]>([]);
+  const [items, setItems] = useState<CustomerBookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -46,13 +54,40 @@ export function CustomerBookingsView({
       ) : (
         <div className="customer-booking-list">
           {items.map((item) => (
-            <article className="card" key={item.id}>
-              <StatusBadge tone={item.status === 'BOOKED' ? 'success' : 'neutral'}>
-                {item.status}
-              </StatusBadge>
-              <strong>Booking •{item.id.slice(-6)}</strong>
-              <span>Dibuat {item.createdAt.toLocaleString('id-ID')}</span>
-            </article>
+            <Link
+              href={`/bookings/${encodeURIComponent(item.id)}`}
+              className="rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card"
+              key={item.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <strong className="block text-base">
+                    {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+                  </strong>
+                  <span className="mt-1 block text-xs text-dd-muted">
+                    {item.branch?.name ?? 'Studio Daily Dose'}
+                  </span>
+                </div>
+                <StatusBadge tone={item.status === 'BOOKED' ? 'success' : 'neutral'}>
+                  {statusLabels[item.status] ?? 'Status booking'}
+                </StatusBadge>
+              </div>
+              <time className="mt-5 block text-sm font-semibold text-dd-forest">
+                {item.classSlot
+                  ? item.classSlot.startAt.toLocaleString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: item.classSlot.timezone,
+                    })
+                  : `Dibuat ${item.createdAt.toLocaleString('id-ID')}`}
+              </time>
+              <span className="mt-4 block text-xs font-semibold text-dd-forest">
+                Lihat detail →
+              </span>
+            </Link>
           ))}
         </div>
       )}

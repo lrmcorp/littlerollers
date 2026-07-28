@@ -17,6 +17,7 @@ import {
   Skeleton,
   StatusBadge,
 } from '../../ui';
+import { Button } from '../../components/actions';
 
 const dateTime = (value: Date, timezone: string) =>
   new Intl.DateTimeFormat('id-ID', {
@@ -150,9 +151,15 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               {slot.classType.name} di {slot.branch.name}. Satu sesi akan direservasi dari paket
               terpilih.
             </p>
-            <button disabled={status === 'submitting'} type="submit">
-              {status === 'submitting' ? 'Mengonfirmasi…' : 'Konfirmasi booking'}
-            </button>
+            <Button
+              disabled={status === 'submitting'}
+              loading={status === 'submitting'}
+              loadingLabel="Mengonfirmasi…"
+              type="submit"
+              className="mt-4"
+            >
+              Konfirmasi booking
+            </Button>
           </ConfirmationPanel>
         </form>
       )}

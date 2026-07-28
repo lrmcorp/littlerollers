@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { accountClient, type PreferredStudio } from '../account-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import {
@@ -11,7 +12,6 @@ import {
   publicPrimaryButton as primary,
   publicSecondaryButton as secondary,
 } from '../components/public/public-styles';
-import { publicStudios } from '../public-content';
 
 const studioBenefits = [
   ['▱', 'Peralatan premium', 'Peralatan Pilates berkualitas untuk latihan yang terarah.'],
@@ -21,21 +21,56 @@ const studioBenefits = [
 ] as const;
 
 export function LocationsView() {
+  const [studios, setStudios] = useState<PreferredStudio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [region, setRegion] = useState('Semua lokasi');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'recommended' | 'az'>('recommended');
 
+  useEffect(() => {
+    let active = true;
+    accountClient
+      .siteConfig()
+      .then((result) => {
+        if (active) setStudios(result.branches.filter((branch) => branch.publicProfile));
+      })
+      .catch(() => {
+        if (active) setLoadError('Daftar studio belum dapat dimuat. Silakan coba lagi.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const regions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          studios.flatMap((studio) => (studio.publicProfile ? [studio.publicProfile.area] : [])),
+        ),
+      ),
+    [studios],
+  );
+
   const visibleLocations = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('id-ID');
-    const filtered = publicStudios.filter(
-      ({ name, area, city }) =>
-        (region === 'Semua lokasi' || area === region) &&
-        (!normalized || `${name} ${area} ${city}`.toLocaleLowerCase('id-ID').includes(normalized)),
+    const filtered = studios.filter(
+      ({ name, publicProfile }) =>
+        publicProfile &&
+        (region === 'Semua lokasi' || publicProfile.area === region) &&
+        (!normalized ||
+          `${name} ${publicProfile.area} ${publicProfile.city}`
+            .toLocaleLowerCase('id-ID')
+            .includes(normalized)),
     );
     return sort === 'az'
       ? [...filtered].sort((left, right) => left.name.localeCompare(right.name, 'id-ID'))
       : filtered;
-  }, [query, region, sort]);
+  }, [query, region, sort, studios]);
 
   return (
     <div className="min-w-0 overflow-hidden bg-dd-cream font-sans text-dd-ink">
@@ -64,7 +99,7 @@ export function LocationsView() {
                 Daily Dose Pilates
               </p>
               <h1
-                className="mt-3 font-serif text-[clamp(3.6rem,7vw,6rem)] leading-none font-semibold"
+                className="mt-3 font-sans text-[clamp(3.6rem,7vw,6rem)] leading-none font-semibold"
                 id="studio-hero-title"
               >
                 Studio Kami
@@ -93,8 +128,9 @@ export function LocationsView() {
                 onChange={(event) => setRegion(event.target.value)}
               >
                 <option>Semua lokasi</option>
-                <option>Jakarta</option>
-                <option>BSD</option>
+                {regions.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
               </select>
             </label>
             <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
@@ -137,60 +173,77 @@ export function LocationsView() {
               </label>
             </div>
 
-            {visibleLocations.length ? (
+            {loading ? (
+              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center text-dd-muted">
+                Memuat studio aktif…
+              </div>
+            ) : loadError ? (
+              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
+                <h2 className="font-sans text-2xl font-semibold">Studio belum dapat dimuat</h2>
+                <p className="mt-2 text-dd-muted">{loadError}</p>
+              </div>
+            ) : visibleLocations.length ? (
               <div className="grid gap-4">
-                {visibleLocations.map(({ code, name, area, image, description }) => (
-                  <article
-                    className="grid overflow-hidden rounded-dd-md border border-dd-line bg-white shadow-dd-card md:grid-cols-[220px_minmax(0,1fr)_170px]"
-                    key={code}
-                  >
-                    <div className="relative min-h-[190px]">
-                      <Image
-                        className="object-cover"
-                        src={`/images/public/studios/${image}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 220px"
-                        alt={`Studio Daily Dose Pilates ${name}`}
-                      />
-                    </div>
-                    <div className="p-5">
-                      <p className="text-xs font-bold tracking-wider text-dd-forest uppercase">
-                        Daily Dose Pilates
-                      </p>
-                      <h2 className="mt-1 font-serif text-2xl font-semibold">{name}</h2>
-                      <p className="mt-3 text-sm text-dd-muted">⌖ {area}</p>
-                      <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>
-                      <p className="mt-2 text-sm text-dd-muted">
-                        ◷ Jadwal tersedia pada halaman kelas
-                      </p>
-                      <ul
-                        className="mt-4 flex list-none flex-wrap gap-2 p-0 text-xs text-dd-muted"
-                        aria-label={`Format latihan di ${name}`}
-                      >
-                        {['Reformer', 'Private', 'Semi Private', 'Group'].map((format) => (
-                          <li className="rounded-full bg-[#edf1ec] px-2.5 py-1" key={format}>
-                            {format}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="grid content-center gap-3 border-l border-dd-line p-4 max-[768px]:grid-cols-2 max-[768px]:border-t max-[768px]:border-l-0">
-                      <Link className={secondary} href="/contact">
-                        Hubungi studio ›
-                      </Link>
-                      <Link
-                        className={primary}
-                        href={`/classes?studio=${encodeURIComponent(name)}#schedule`}
-                      >
-                        Lihat Jadwal ▦
-                      </Link>
-                    </div>
-                  </article>
-                ))}
+                {visibleLocations.map(({ code, id, name, publicProfile }) => {
+                  if (!publicProfile) return null;
+                  return (
+                    <article
+                      className="grid overflow-hidden rounded-dd-md border border-dd-line bg-white shadow-dd-card md:grid-cols-[220px_minmax(0,1fr)_170px]"
+                      key={code}
+                    >
+                      <div className="relative min-h-[190px]">
+                        <Image
+                          className="object-cover"
+                          src={`/images/public/${publicProfile.heroImageKey}`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 220px"
+                          alt={`Studio Daily Dose Pilates ${name}`}
+                        />
+                      </div>
+                      <div className="p-5">
+                        <p className="text-xs font-bold tracking-wider text-dd-forest uppercase">
+                          Daily Dose Pilates
+                        </p>
+                        <h2 className="mt-1 font-sans text-2xl font-semibold">{name}</h2>
+                        <p className="mt-3 text-sm text-dd-muted">⌖ {publicProfile.area}</p>
+                        <p className="mt-2 text-sm leading-6 text-dd-muted">
+                          {publicProfile.description}
+                        </p>
+                        <p className="mt-2 text-sm text-dd-muted">
+                          ◷ Jadwal tersedia pada halaman kelas
+                        </p>
+                        <ul
+                          className="mt-4 flex list-none flex-wrap gap-2 p-0 text-xs text-dd-muted"
+                          aria-label={`Format latihan di ${name}`}
+                        >
+                          {['Reformer', 'Private', 'Semi Private', 'Group'].map((format) => (
+                            <li className="rounded-full bg-[#edf1ec] px-2.5 py-1" key={format}>
+                              {format}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="grid content-center gap-3 border-l border-dd-line p-4 max-[768px]:grid-cols-2 max-[768px]:border-t max-[768px]:border-l-0">
+                        <Link className={secondary} href={`/locations/${publicProfile.slug}`}>
+                          Lihat detail ›
+                        </Link>
+                        <Link className={secondary} href="/contact">
+                          Hubungi studio ›
+                        </Link>
+                        <Link
+                          className={primary}
+                          href={`/classes?branch=${encodeURIComponent(id)}#schedule`}
+                        >
+                          Lihat Jadwal ▦
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
-                <h2 className="font-serif text-3xl">Studio belum ditemukan</h2>
+                <h2 className="font-sans text-3xl">Studio belum ditemukan</h2>
                 <p className="mt-2 text-dd-muted">
                   Coba ubah pencarian atau tampilkan semua lokasi.
                 </p>
@@ -228,7 +281,7 @@ export function LocationsView() {
             </div>
 
             <div className="rounded-dd-lg bg-white p-5 shadow-dd-card">
-              <h2 className="font-serif text-2xl font-semibold">Mengapa Daily Dose?</h2>
+              <h2 className="font-sans text-2xl font-semibold">Mengapa Daily Dose?</h2>
               <div className="mt-5 grid gap-5">
                 {studioBenefits.map(([icon, title, description]) => (
                   <article className="grid grid-cols-[34px_1fr] gap-3" key={title}>
@@ -245,7 +298,7 @@ export function LocationsView() {
             </div>
 
             <div className="rounded-dd-lg bg-dd-forest p-6 text-white">
-              <h2 className="font-serif text-2xl">Belum menemukan studio terdekat?</h2>
+              <h2 className="font-sans text-2xl">Belum menemukan studio terdekat?</h2>
               <p className="mt-3 text-sm leading-6 text-white/80">
                 Sampaikan area Anda dan tim kami akan membantu menemukan pilihan terdekat.
               </p>

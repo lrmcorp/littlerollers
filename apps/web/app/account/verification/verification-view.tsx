@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   Eye,
@@ -11,7 +12,6 @@ import {
   LockKeyhole,
   RefreshCw,
   ShieldCheck,
-  X,
 } from 'lucide-react';
 import {
   verificationClient,
@@ -20,6 +20,14 @@ import {
   type VerificationSummary,
 } from '../../identity-verification-client';
 import { useSessionContext } from '../../session-context';
+import { messageForApiError, Modal, useAppFeedback } from '../../components/app-feedback';
+import { Button } from '../../components/actions';
+import {
+  clearVerificationContinuation,
+  rememberVerificationContinuation,
+  storedVerificationContinuation,
+  verificationDocumentTarget,
+} from './verification-continuation';
 
 const documentLabels: Record<DocumentKind, string> = {
   SELFIE: 'Foto selfie',
@@ -73,6 +81,26 @@ function documentStatus(document: VerificationDocument) {
   return { label: 'Sedang diperiksa', className: 'bg-dd-brass-soft text-dd-forest' };
 }
 
+function documentDescription(document: VerificationDocument) {
+  if (document.status === 'APPROVED')
+    return 'Dokumen telah lolos pemeriksaan dan tidak dapat diganti.';
+  if (document.status === 'REJECTED')
+    return (
+      reasonLabels[document.rejectionReasonCode ?? ''] ??
+      'Foto perlu diperbaiki sebelum pemeriksaan dilanjutkan.'
+    );
+  if (document.status === 'PENDING_DELETION')
+    return 'Dokumen lama sedang dihapus secara aman. Hubungi bantuan jika status tidak berubah.';
+  if (document.status === 'DELETE_FAILED')
+    return 'Penghapusan dokumen mengalami kendala. File tetap privat dan tim kami perlu menindaklanjuti.';
+  if (document.status === 'DELETED') return 'Dokumen telah dihapus dan tidak dapat ditampilkan.';
+  if (document.scanStatus === 'PENDING')
+    return 'Pemeriksaan keamanan file sedang berlangsung. Upload ulang tersedia jika reviewer meminta perbaikan.';
+  if (['ERROR', 'REJECTED', 'INFECTED'].includes(document.scanStatus))
+    return 'Pemeriksaan keamanan file memerlukan tindak lanjut reviewer. File tetap privat selama proses berlangsung.';
+  return 'Dokumen sedang diperiksa. Upload ulang tersedia jika reviewer meminta perbaikan.';
+}
+
 function usePrivateDocumentPreview(kind: DocumentKind, enabled = true) {
   const [url, setUrl] = useState('');
   const [state, setState] = useState<'loading' | 'ready' | 'error'>(enabled ? 'loading' : 'ready');
@@ -108,55 +136,32 @@ function DocumentPreviewDialog({
 }) {
   const preview = usePrivateDocumentPreview(document.kind);
   return (
-    <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-dd-sidebar/60 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    <Modal
+      open
+      title={documentLabels[document.kind]}
+      description="Dokumen privat hanya dapat dibuka melalui otorisasi singkat dan sekali pakai."
+      onClose={onClose}
+      className="max-w-2xl"
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="document-preview-title"
-        className="w-full max-w-2xl rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-float"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-brass-dark">
-              Dokumen privat
-            </p>
-            <h2 id="document-preview-title" className="mt-1 text-xl font-bold">
-              {documentLabels[document.kind]}
-            </h2>
-          </div>
-          <button
-            autoFocus
-            type="button"
-            aria-label="Tutup pratinjau dokumen"
-            onClick={onClose}
-            className="grid size-10 place-items-center rounded-full border border-dd-line bg-white p-0"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <div className="mt-5 grid min-h-64 place-items-center rounded-dd-lg bg-dd-surface-muted p-4">
-          {preview.state === 'loading' ? (
-            <p role="status">Membuka dokumen secara aman…</p>
-          ) : preview.state === 'error' ? (
-            <p role="alert" className="text-dd-danger">
-              Dokumen belum dapat ditampilkan. Tutup lalu coba kembali.
-            </p>
-          ) : (
-            <img
-              src={preview.url}
-              alt={`Dokumen ${documentLabels[document.kind]}`}
-              className="max-h-[65vh] rounded-dd-md object-contain"
-            />
-          )}
-        </div>
-        <p className="mt-3 text-xs leading-5 text-dd-muted">
-          Akses ini bersifat privat, hanya sekali pakai, dan tidak disimpan oleh browser.
-        </p>
-      </section>
-    </div>
+      <div className="grid min-h-64 place-items-center rounded-dd-lg bg-dd-surface-muted p-4">
+        {preview.state === 'loading' ? (
+          <p role="status">Membuka dokumen secara aman…</p>
+        ) : preview.state === 'error' ? (
+          <p role="alert" className="text-dd-danger">
+            Dokumen belum dapat ditampilkan. Tutup lalu coba kembali.
+          </p>
+        ) : (
+          <img
+            src={preview.url}
+            alt={`Dokumen ${documentLabels[document.kind]}`}
+            className="max-h-[65vh] rounded-dd-md object-contain"
+          />
+        )}
+      </div>
+      <p className="mt-3 text-xs leading-5 text-dd-muted">
+        Akses ini bersifat privat, hanya sekali pakai, dan tidak disimpan oleh browser.
+      </p>
+    </Modal>
   );
 }
 
@@ -174,6 +179,7 @@ function ReplacementDialog({
   const [state, setState] = useState<'idle' | 'uploading' | 'success' | 'error' | 'stale'>('idle');
   const [message, setMessage] = useState('');
   const currentPreview = usePrivateDocumentPreview(document.kind);
+  const feedback = useAppFeedback();
 
   useEffect(() => {
     if (!file) {
@@ -185,179 +191,160 @@ function ReplacementDialog({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && state !== 'uploading') onClose();
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onClose, state]);
-
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-dd-sidebar/60 p-0 backdrop-blur-sm sm:items-center sm:p-5"
-      onMouseDown={(event) =>
-        event.target === event.currentTarget && state !== 'uploading' && onClose()
-      }
+    <Modal
+      open
+      title={`Unggah ulang ${documentLabels[document.kind]}`}
+      description="Bandingkan dokumen saat ini dengan foto pengganti sebelum mengirim."
+      onClose={onClose}
+      closeOnEscape={state !== 'uploading'}
+      closeOnBackdrop={state !== 'uploading'}
+      showCloseButton={state !== 'uploading'}
+      className="max-h-[92dvh] max-w-xl overflow-y-auto"
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="replacement-title"
-        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-dd-xl border border-dd-line bg-white p-5 shadow-dd-float sm:rounded-dd-xl sm:p-7"
+      <div className="rounded-dd-lg bg-dd-surface-muted p-4 text-sm leading-6 text-dd-muted">
+        Pastikan gambar tajam, seluruh sisi dokumen terlihat, tidak tertutup pantulan cahaya, dan
+        berformat JPG, PNG, atau WebP maksimal 8 MB.
+      </div>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
+            Dokumen saat ini
+          </p>
+          <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
+            {currentPreview.state === 'ready' ? (
+              <img
+                src={currentPreview.url}
+                alt={`Dokumen saat ini ${documentLabels[document.kind]}`}
+                className="max-h-44 rounded-dd-md object-contain"
+              />
+            ) : (
+              <span className="text-sm text-dd-muted">
+                {currentPreview.state === 'loading' ? 'Membuka…' : 'Preview tidak tersedia'}
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
+            Dokumen pengganti
+          </p>
+          <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
+            {preview ? (
+              <img
+                src={preview}
+                alt="Pratinjau dokumen pengganti"
+                className="max-h-44 rounded-dd-md object-contain"
+              />
+            ) : (
+              <span className="text-sm text-dd-muted">Belum dipilih</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <form
+        className="mt-5 grid gap-5"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!file || state === 'uploading') return;
+          if (
+            file.size > 8_000_000 ||
+            !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+          ) {
+            setState('error');
+            setMessage('Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 8 MB.');
+            feedback.showToast({
+              tone: 'warning',
+              title: 'File belum sesuai',
+              message: 'Gunakan gambar JPG, PNG, atau WebP dengan ukuran maksimal 8 MB.',
+            });
+            return;
+          }
+          setState('uploading');
+          setMessage('Dokumen sedang diunggah dan divalidasi…');
+          try {
+            await verificationClient.replace(document.kind, {
+              file,
+              expectedVersion: document.version,
+            });
+            setState('success');
+            setMessage('Dokumen pengganti berhasil diterima. Status verifikasi telah diperbarui.');
+            await onComplete();
+            feedback.showToast({
+              tone: 'success',
+              title: 'Dokumen pengganti diterima',
+              message: `${documentLabels[document.kind]} kembali masuk ke antrean pemeriksaan.`,
+            });
+            onClose();
+          } catch (error) {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            setState(status === 409 ? 'stale' : 'error');
+            setMessage(
+              status === 409
+                ? 'Status dokumen sudah berubah. Tutup panel lalu muat ulang sebelum mencoba lagi.'
+                : status === 422
+                  ? 'File tidak lolos validasi. Pastikan gambar asli, tidak rusak, dan cukup jelas.'
+                  : status === 503
+                    ? 'Penyimpanan privat sedang tidak tersedia. Coba kembali beberapa saat lagi.'
+                    : 'Dokumen belum dapat diunggah. Periksa koneksi lalu coba kembali.',
+            );
+            const mapped = messageForApiError(error);
+            feedback.showAlert({
+              tone: 'danger',
+              title: mapped.title,
+              message: mapped.message,
+              correlationReference: mapped.correlationReference,
+            });
+          }
+        }}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-dd-brass-dark">
-              Unggah ulang
-            </span>
-            <h2 id="replacement-title" className="mt-2 text-xl font-bold text-dd-ink">
-              {documentLabels[document.kind]}
-            </h2>
-          </div>
-          <button
-            autoFocus
-            type="button"
-            aria-label="Tutup panel unggah ulang"
+        <label className="grid cursor-pointer place-items-center rounded-dd-lg border border-dashed border-dd-brass bg-dd-brass-soft/45 p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
+          <ImagePlus className="size-8 text-dd-forest" aria-hidden="true" />
+          <span className="mt-3 font-bold text-dd-forest">
+            {file ? 'Ganti foto yang dipilih' : 'Pilih foto pengganti'}
+          </span>
+          <span className="mt-1 text-xs text-dd-muted">
+            {file ? `${(file.size / 1_000_000).toFixed(1)} MB` : 'JPG, PNG, atau WebP · maks. 8 MB'}
+          </span>
+          <input
+            className="sr-only"
+            aria-label="Pilih foto pengganti"
+            name="replacement"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
             disabled={state === 'uploading'}
-            onClick={onClose}
-            className="grid size-10 min-h-0 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-muted"
+            onChange={(event) => {
+              setFile(event.currentTarget.files?.[0] ?? null);
+              setState('idle');
+              setMessage('');
+            }}
+            required
+          />
+        </label>
+
+        {message && (
+          <p
+            aria-live="polite"
+            className={`rounded-dd-md p-3 text-sm ${state === 'success' ? 'bg-dd-success-soft text-dd-success' : state === 'uploading' ? 'bg-dd-surface-muted text-dd-muted' : 'bg-dd-danger-soft text-dd-danger'}`}
           >
-            <X className="size-5" />
-          </button>
-        </div>
+            {message}
+          </p>
+        )}
 
-        <div className="mt-5 rounded-dd-lg bg-dd-surface-muted p-4 text-sm leading-6 text-dd-muted">
-          Pastikan gambar tajam, seluruh sisi dokumen terlihat, tidak tertutup pantulan cahaya, dan
-          berformat JPG, PNG, atau WebP maksimal 8 MB.
-        </div>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-              Dokumen saat ini
-            </p>
-            <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
-              {currentPreview.state === 'ready' ? (
-                <img
-                  src={currentPreview.url}
-                  alt={`Dokumen saat ini ${documentLabels[document.kind]}`}
-                  className="max-h-44 rounded-dd-md object-contain"
-                />
-              ) : (
-                <span className="text-sm text-dd-muted">
-                  {currentPreview.state === 'loading' ? 'Membuka…' : 'Preview tidak tersedia'}
-                </span>
-              )}
-            </div>
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-              Dokumen pengganti
-            </p>
-            <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="Pratinjau dokumen pengganti"
-                  className="max-h-44 rounded-dd-md object-contain"
-                />
-              ) : (
-                <span className="text-sm text-dd-muted">Belum dipilih</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <form
-          className="mt-5 grid gap-5"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            if (!file || state === 'uploading') return;
-            if (
-              file.size > 8_000_000 ||
-              !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
-            ) {
-              setState('error');
-              setMessage('Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 8 MB.');
-              return;
-            }
-            setState('uploading');
-            setMessage('Dokumen sedang diunggah dan divalidasi…');
-            try {
-              await verificationClient.replace(document.kind, {
-                file,
-                expectedVersion: document.version,
-              });
-              setState('success');
-              setMessage(
-                'Dokumen pengganti berhasil diterima. Status verifikasi telah diperbarui.',
-              );
-              await onComplete();
-            } catch (error) {
-              const status = (error as { response?: { status?: number } }).response?.status;
-              setState(status === 409 ? 'stale' : 'error');
-              setMessage(
-                status === 409
-                  ? 'Status dokumen sudah berubah. Tutup panel lalu muat ulang sebelum mencoba lagi.'
-                  : status === 422
-                    ? 'File tidak lolos validasi. Pastikan gambar asli, tidak rusak, dan cukup jelas.'
-                    : status === 503
-                      ? 'Penyimpanan privat sedang tidak tersedia. Coba kembali beberapa saat lagi.'
-                      : 'Dokumen belum dapat diunggah. Periksa koneksi lalu coba kembali.',
-              );
-            }
-          }}
+        <Button
+          type="submit"
+          disabled={!file || state === 'uploading' || state === 'success'}
+          size="lg"
+          fullWidth
+          loading={state === 'uploading'}
+          loadingLabel="Mengunggah…"
         >
-          <label className="grid cursor-pointer place-items-center rounded-dd-lg border border-dashed border-dd-brass bg-dd-brass-soft/45 p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
-            <ImagePlus className="size-8 text-dd-forest" aria-hidden="true" />
-            <span className="mt-3 font-bold text-dd-forest">
-              {file ? 'Ganti foto yang dipilih' : 'Pilih foto pengganti'}
-            </span>
-            <span className="mt-1 text-xs text-dd-muted">
-              {file
-                ? `${(file.size / 1_000_000).toFixed(1)} MB`
-                : 'JPG, PNG, atau WebP · maks. 8 MB'}
-            </span>
-            <input
-              className="sr-only"
-              aria-label="Pilih foto pengganti"
-              name="replacement"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={state === 'uploading'}
-              onChange={(event) => {
-                setFile(event.currentTarget.files?.[0] ?? null);
-                setState('idle');
-                setMessage('');
-              }}
-              required
-            />
-          </label>
-
-          {message && (
-            <p
-              aria-live="polite"
-              className={`rounded-dd-md p-3 text-sm ${state === 'success' ? 'bg-dd-success-soft text-dd-success' : state === 'uploading' ? 'bg-dd-surface-muted text-dd-muted' : 'bg-dd-danger-soft text-dd-danger'}`}
-            >
-              {message}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={!file || state === 'uploading' || state === 'success'}
-            className="min-h-12 rounded-dd-md border-0 bg-dd-forest px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {state === 'uploading'
-              ? 'Mengunggah…'
-              : state === 'success'
-                ? 'Dokumen diterima'
-                : 'Kirim dokumen pengganti'}
-          </button>
-        </form>
-      </section>
-    </div>
+          {state === 'success' ? 'Dokumen diterima' : 'Kirim dokumen pengganti'}
+        </Button>
+      </form>
+    </Modal>
   );
 }
 
@@ -366,16 +353,54 @@ export function VerificationView() {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [replacement, setReplacement] = useState<VerificationDocument | null>(null);
   const [viewing, setViewing] = useState<VerificationDocument | null>(null);
+  const [highlightedKind, setHighlightedKind] = useState<DocumentKind | null>(null);
   const session = useSessionContext();
+  const router = useRouter();
+  const feedback = useAppFeedback();
+  const approvedHandled = useRef(false);
+  const invalidContinuation = useRef(false);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const requestedReturnTo = query.get('returnTo');
+    if (requestedReturnTo) {
+      const remembered = rememberVerificationContinuation(requestedReturnTo);
+      invalidContinuation.current = !remembered;
+      if (!remembered)
+        feedback.showToast({
+          id: 'invalid-verification-continuation',
+          tone: 'warning',
+          title: 'Tujuan lanjutan tidak valid',
+          message: 'Setelah verifikasi selesai, Anda akan diarahkan ke halaman paket.',
+        });
+    }
+    setHighlightedKind(verificationDocumentTarget(query.get('document')));
+  }, [feedback]);
 
   const load = async (quiet = false) => {
     if (!quiet) setState('loading');
     try {
       const next = await verificationClient.mine();
-      const becameApproved = summary?.status !== 'APPROVED' && next.status === 'APPROVED';
       setSummary(next);
       setState('ready');
-      if (becameApproved) await session?.refresh();
+      if (next.status === 'APPROVED' && !approvedHandled.current) {
+        approvedHandled.current = true;
+        const refreshed = await session?.refresh({ quiet: true });
+        const continuation = storedVerificationContinuation();
+        if (continuation && refreshed?.identityVerificationStatus === 'APPROVED') {
+          clearVerificationContinuation();
+          feedback.showToast({
+            id: 'verification-approved',
+            tone: 'success',
+            title: 'Verifikasi selesai',
+            message: 'Mengarahkan Anda kembali ke aktivitas sebelumnya.',
+          });
+          router.replace(continuation);
+        } else if (invalidContinuation.current) {
+          clearVerificationContinuation();
+          router.replace('/packages');
+        }
+      }
     } catch {
       if (!quiet) setState('error');
     }
@@ -387,6 +412,16 @@ export function VerificationView() {
     const timer = window.setInterval(() => void load(true), 20_000);
     return () => window.clearInterval(timer);
   }, [summary?.status]);
+
+  useEffect(() => {
+    if (!highlightedKind || state !== 'ready') return;
+    const card = document.getElementById(`verification-document-${highlightedKind}`);
+    if (!card) return;
+    card.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    card.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => setHighlightedKind(null), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [highlightedKind, state, summary]);
 
   const progress = useMemo(() => {
     if (summary?.status === 'APPROVED') return 3;
@@ -413,13 +448,9 @@ export function VerificationView() {
         <p className="mt-2 text-sm leading-6 text-dd-muted">
           Layanan mungkin sedang tidak tersedia atau sesi Anda telah berakhir.
         </p>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="mt-5 min-h-11 rounded-dd-md border-0 bg-dd-forest px-5 font-bold text-white"
-        >
+        <Button type="button" onClick={() => void load()} className="mt-5">
           Coba lagi
-        </button>
+        </Button>
       </section>
     );
 
@@ -530,7 +561,13 @@ export function VerificationView() {
             const status = documentStatus(document);
             return (
               <article
-                className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+                id={`verification-document-${document.kind}`}
+                tabIndex={-1}
+                className={`rounded-dd-xl border bg-white p-5 shadow-dd-card outline-none transition sm:p-6 ${
+                  highlightedKind === document.kind
+                    ? 'border-dd-brass ring-4 ring-dd-brass/25'
+                    : 'border-dd-line'
+                }`}
                 key={document.id}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -543,12 +580,7 @@ export function VerificationView() {
                 </div>
                 <h3 className="mt-5 text-lg font-bold">{documentLabels[document.kind]}</h3>
                 <p className="mt-2 text-sm leading-6 text-dd-muted">
-                  {document.status === 'APPROVED'
-                    ? 'Dokumen telah lolos pemeriksaan.'
-                    : document.status === 'REJECTED'
-                      ? (reasonLabels[document.rejectionReasonCode ?? ''] ??
-                        'Foto perlu diperbaiki sebelum pemeriksaan dilanjutkan.')
-                      : 'Dokumen tersimpan privat dan hanya dapat dilihat reviewer berwenang.'}
+                  {documentDescription(document)}
                 </p>
                 {document.rejectionNote && document.status === 'REJECTED' && (
                   <p className="mt-3 rounded-dd-md bg-dd-warning-soft p-3 text-sm leading-6 text-dd-warning">
@@ -556,22 +588,34 @@ export function VerificationView() {
                   </p>
                 )}
                 {document.status === 'REJECTED' && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setReplacement(document)}
-                    className="mt-5 min-h-11 w-full rounded-dd-md border-0 bg-dd-forest px-4 font-bold text-white"
+                    fullWidth
+                    className="mt-5"
                   >
                     Unggah ulang dokumen
-                  </button>
+                  </Button>
+                )}
+                {['PENDING_DELETION', 'DELETE_FAILED', 'DELETED'].includes(document.status) && (
+                  <Link
+                    className="mt-4 inline-flex text-sm font-bold text-dd-forest"
+                    href="/contact"
+                  >
+                    Hubungi bantuan
+                  </Link>
                 )}
                 {!['DELETED', 'PENDING_DELETION'].includes(document.status) && (
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={() => setViewing(document)}
-                    className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-dd-md border border-dd-line bg-white px-4 font-bold text-dd-forest"
+                    fullWidth
+                    leadingIcon={<Eye className="size-4" />}
+                    className="mt-3"
                   >
-                    <Eye className="size-4" /> Lihat dokumen
-                  </button>
+                    Lihat dokumen
+                  </Button>
                 )}
               </article>
             );

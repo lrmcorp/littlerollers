@@ -20,10 +20,11 @@ import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/identity_document_self_view_authorization.dart';
 import 'package:openapi/src/model/identity_verification_decision_command.dart';
+import 'package:openapi/src/model/identity_verification_deletion_result.dart';
 import 'package:openapi/src/model/identity_verification_document.dart';
+import 'package:openapi/src/model/identity_verification_review_page.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
-import 'package:openapi/src/model/list_identity_verifications200_response.dart';
 import 'package:openapi/src/model/lookup_page.dart';
 import 'package:openapi/src/model/me.dart';
 import 'package:openapi/src/model/my_profile.dart';
@@ -531,9 +532,9 @@ class IdentityApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Resource] as data
+  /// Returns a [Future] containing a [Response] with a [IdentityVerificationDeletionResult] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Resource>> deleteIdentityVerificationFile({ 
+  Future<Response<IdentityVerificationDeletionResult>> deleteIdentityVerificationFile({ 
     required String id,
     required DeleteIdentityVerificationFileRequest deleteIdentityVerificationFileRequest,
     CancelToken? cancelToken,
@@ -590,14 +591,14 @@ class IdentityApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Resource? _responseData;
+    IdentityVerificationDeletionResult? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Resource),
-      ) as Resource;
+        specifiedType: const FullType(IdentityVerificationDeletionResult),
+      ) as IdentityVerificationDeletionResult;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -609,7 +610,7 @@ class IdentityApi {
       );
     }
 
-    return Response<Resource>(
+    return Response<IdentityVerificationDeletionResult>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1391,7 +1392,14 @@ class IdentityApi {
   /// 
   ///
   /// Parameters:
+  /// * [q] 
   /// * [status] 
+  /// * [kind] 
+  /// * [scanStatus] 
+  /// * [from] 
+  /// * [until] 
+  /// * [cursor] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1399,10 +1407,17 @@ class IdentityApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [ListIdentityVerifications200Response] as data
+  /// Returns a [Future] containing a [Response] with a [IdentityVerificationReviewPage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ListIdentityVerifications200Response>> listIdentityVerifications({ 
+  Future<Response<IdentityVerificationReviewPage>> listIdentityVerifications({ 
+    String? q,
     String? status,
+    String? kind,
+    String? scanStatus,
+    DateTime? from,
+    DateTime? until,
+    String? cursor,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1430,7 +1445,14 @@ class IdentityApi {
     );
 
     final _queryParameters = <String, dynamic>{
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (kind != null) r'kind': encodeQueryParameter(_serializers, kind, const FullType(String)),
+      if (scanStatus != null) r'scanStatus': encodeQueryParameter(_serializers, scanStatus, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(
@@ -1442,14 +1464,14 @@ class IdentityApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    ListIdentityVerifications200Response? _responseData;
+    IdentityVerificationReviewPage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(ListIdentityVerifications200Response),
-      ) as ListIdentityVerifications200Response;
+        specifiedType: const FullType(IdentityVerificationReviewPage),
+      ) as IdentityVerificationReviewPage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -1461,7 +1483,7 @@ class IdentityApi {
       );
     }
 
-    return Response<ListIdentityVerifications200Response>(
+    return Response<IdentityVerificationReviewPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

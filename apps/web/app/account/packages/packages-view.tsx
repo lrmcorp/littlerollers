@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { browserLedgerClient, type LedgerBalance } from '../../ledger-client';
+import { ButtonLink } from '../../components/actions';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 
 export function CustomerPackagesView() {
@@ -17,7 +18,7 @@ export function CustomerPackagesView() {
       .finally(() => setLoading(false));
   }, []);
   return (
-    <section className="card order-page">
+    <main className="space-y-6">
       <PageHeader
         eyebrow="Member area"
         title="Paket Saya"
@@ -33,42 +34,55 @@ export function CustomerPackagesView() {
           description="Paket akan tampil setelah bukti pembayaran pesanan disetujui."
         />
       ) : (
-        <div className="member-package-grid">
+        <div className="grid gap-4 md:grid-cols-2">
           {items.map((item) => (
-            <article className="member-package-card" key={item.id}>
-              <div>
-                <p className="eyebrow">{item.branchName ?? 'Daily Dose'}</p>
-                <h2>{item.packageName ?? 'Paket kelas'}</h2>
-                <p>{item.classTypeName ?? 'Kelas Daily Dose'}</p>
+            <article
+              className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+              key={item.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                    {item.branchName ?? 'Daily Dose'}
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold">
+                    {item.packageName ?? 'Paket kelas'}
+                  </h2>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    {item.classTypeName ?? 'Kelas Daily Dose'}
+                  </p>
+                </div>
+                <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
+                  {item.status === 'ACTIVE' ? 'Aktif' : 'Tidak aktif'}
+                </StatusBadge>
               </div>
-              <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
-                {item.status}
-              </StatusBadge>
-              <dl>
-                <div>
-                  <dt>Tersedia</dt>
-                  <dd>{item.available}</dd>
+              <dl className="mt-5 grid grid-cols-3 gap-2">
+                <div className="rounded-dd-lg bg-dd-surface-muted p-3">
+                  <dt className="text-xs text-dd-muted">Tersedia</dt>
+                  <dd className="mt-1 text-xl font-semibold">{item.available}</dd>
                 </div>
-                <div>
-                  <dt>Dipesan</dt>
-                  <dd>{item.reserved}</dd>
+                <div className="rounded-dd-lg bg-dd-surface-muted p-3">
+                  <dt className="text-xs text-dd-muted">Dipesan</dt>
+                  <dd className="mt-1 text-xl font-semibold">{item.reserved}</dd>
                 </div>
-                <div>
-                  <dt>Total</dt>
-                  <dd>{item.ledgerBalance}</dd>
+                <div className="rounded-dd-lg bg-dd-surface-muted p-3">
+                  <dt className="text-xs text-dd-muted">Total</dt>
+                  <dd className="mt-1 text-xl font-semibold">{item.ledgerBalance}</dd>
                 </div>
               </dl>
-              <p>Berlaku sampai {item.expiryAt.toLocaleDateString('id-ID')}</p>
-              <Link
-                className="button-link"
+              <p className="mt-4 text-sm text-dd-muted">
+                Berlaku sampai {item.expiryAt.toLocaleDateString('id-ID')}
+              </p>
+              <ButtonLink
+                className="mt-5"
                 href={`/classes?branch=${encodeURIComponent(item.branchId)}#schedule`}
               >
                 Booking kelas
-              </Link>
+              </ButtonLink>
             </article>
           ))}
         </div>
       )}
-    </section>
+    </main>
   );
 }

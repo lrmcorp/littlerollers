@@ -12,6 +12,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Button, IconButton } from './actions';
 
 export type FeedbackTone = 'success' | 'info' | 'warning' | 'danger';
 
@@ -96,6 +97,14 @@ export function messageForApiError(error: unknown): {
     ],
     NOT_FOUND: ['Data tidak ditemukan', 'Data mungkin telah dipindahkan atau tidak lagi tersedia.'],
     SERVICE_UNAVAILABLE: ['Layanan belum tersedia', 'Coba kembali beberapa saat lagi.'],
+    CONFIGURATION_REQUIRED: [
+      'Storage privat belum tersedia',
+      'Konfigurasi penyimpanan dokumen belum siap. Hubungi pengelola sistem.',
+    ],
+    IDENTITY_DOCUMENT_NOT_READY: [
+      'Dokumen belum siap diperiksa',
+      'Upload atau pemeriksaan keamanan file belum selesai. Segarkan status sebelum mencoba lagi.',
+    ],
   };
   const fallback: [string, string] =
     response?.status === 401
@@ -131,9 +140,15 @@ export function AlertBanner({
           <p className="mt-2 text-xs opacity-70">Referensi: {correlationReference}</p>
         )}
         {action && (
-          <button type="button" className="mt-3" onClick={action.onSelect}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3"
+            onClick={action.onSelect}
+          >
             {action.label}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -148,6 +163,7 @@ export function Modal({
   onClose,
   closeOnEscape = true,
   closeOnBackdrop = true,
+  showCloseButton = true,
   className = '',
 }: {
   open: boolean;
@@ -157,6 +173,7 @@ export function Modal({
   onClose(): void;
   closeOnEscape?: boolean;
   closeOnBackdrop?: boolean;
+  showCloseButton?: boolean;
   className?: string;
 }) {
   const titleId = useId();
@@ -227,14 +244,16 @@ export function Modal({
               </p>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Tutup dialog"
-            onClick={onClose}
-            className="grid size-10 min-h-0 shrink-0 place-items-center rounded-full border border-dd-line bg-white p-0 text-dd-muted"
-          >
-            <X className="size-4" />
-          </button>
+          {showCloseButton && (
+            <IconButton
+              label="Tutup dialog"
+              variant="ghost"
+              onClick={onClose}
+              className="size-10 rounded-full border-dd-line bg-white text-dd-muted"
+            >
+              <X className="size-4" />
+            </IconButton>
+          )}
         </header>
         {children}
       </section>
@@ -271,20 +290,27 @@ function ToastItem({ toast, onDismiss }: { toast: Stored<AppToast>; onDismiss(id
           <p className="mt-2 text-xs opacity-70">Referensi: {toast.correlationReference}</p>
         )}
         {toast.action && (
-          <button type="button" className="mt-2" onClick={toast.action.onSelect}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-2"
+            onClick={toast.action.onSelect}
+          >
             {toast.action.label}
-          </button>
+          </Button>
         )}
       </div>
       {toast.dismissible !== false && (
-        <button
-          type="button"
-          aria-label={`Tutup pesan ${toast.title}`}
+        <IconButton
+          label={`Tutup pesan ${toast.title}`}
+          variant="ghost"
+          size="sm"
           onClick={() => onDismiss(toast.id)}
-          className="grid size-8 min-h-0 place-items-center border-0 bg-transparent p-0 text-current"
+          className="size-8 text-current"
         >
           <X className="size-4" />
-        </button>
+        </IconButton>
       )}
     </div>
   );
@@ -299,6 +325,7 @@ export function ToastViewport({
 }) {
   return (
     <div
+      role="region"
       aria-label="Pesan aplikasi"
       className="pointer-events-none fixed inset-x-4 top-4 z-[150] ml-auto grid max-w-sm gap-3 sm:left-auto sm:right-5"
     >
@@ -343,7 +370,7 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
     }),
     [dismiss],
   );
-  const currentAlert = alerts[0];
+  const currentAlert = confirmation ? undefined : alerts[0];
   const resolveConfirmation = (result: boolean) => {
     confirmation?.resolve(result);
     setConfirmation(null);
@@ -363,13 +390,13 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
         )}
         <div className="mt-5 flex justify-end gap-3">
           {currentAlert?.action && (
-            <button type="button" onClick={currentAlert.action.onSelect}>
+            <Button type="button" variant="secondary" onClick={currentAlert.action.onSelect}>
               {currentAlert.action.label}
-            </button>
+            </Button>
           )}
-          <button type="button" onClick={() => currentAlert && dismiss(currentAlert.id)}>
+          <Button type="button" onClick={() => currentAlert && dismiss(currentAlert.id)}>
             {currentAlert?.closeLabel ?? 'Tutup'}
-          </button>
+          </Button>
         </div>
       </Modal>
       <Modal
@@ -384,16 +411,16 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
           </p>
         )}
         <div className="mt-5 flex justify-end gap-3">
-          <button type="button" onClick={() => resolveConfirmation(false)}>
+          <Button type="button" variant="secondary" onClick={() => resolveConfirmation(false)}>
             {confirmation?.input.cancelLabel ?? 'Batal'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => resolveConfirmation(true)}
-            className={confirmation?.input.tone === 'danger' ? 'bg-dd-danger text-white' : ''}
+            variant={confirmation?.input.tone === 'danger' ? 'danger' : 'primary'}
           >
             {confirmation?.input.confirmLabel ?? 'Lanjutkan'}
-          </button>
+          </Button>
         </div>
       </Modal>
     </FeedbackContext.Provider>

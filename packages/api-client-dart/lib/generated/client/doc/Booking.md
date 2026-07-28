@@ -21,6 +21,10 @@ Name | Type | Description | Notes
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 **version** | **int** |  | 
 **idempotentReplay** | **bool** |  | 
+**branch** | [**BookingBranch**](BookingBranch.md) |  | [optional] 
+**classSlot** | [**BookingClassSlot**](BookingClassSlot.md) |  | [optional] 
+**package** | [**BookingClassSlotClassType**](BookingClassSlotClassType.md) |  | [optional] 
+**attendance** | [**BookingAttendance**](BookingAttendance.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

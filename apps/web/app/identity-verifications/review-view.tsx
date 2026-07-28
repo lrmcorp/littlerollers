@@ -1,208 +1,650 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { verificationClient, type VerificationDocument } from '../identity-verification-client';
-import { Feedback, PageHeader, StatusBadge } from '../ui';
+import { RefreshCw, Search, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  verificationClient,
+  type DocumentKind,
+  type DocumentReviewStatus,
+  type DocumentScanStatus,
+  type IdentityVerificationReviewCase,
+  type IdentityVerificationReviewFilters,
+  type IdentityVerificationReviewSummary,
+  type VerificationDocument,
+} from '../identity-verification-client';
+import { PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
-import { Badge, Button, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
+import {
+  AdminPageState,
+  AdminSkeleton,
+  Badge,
+  Button,
+  DataTable,
+  DestructiveActionDialog,
+  DetailDrawer,
+  FilterBar,
+  Pagination,
+  Panel,
+} from '../components/admin/admin-ui';
+import { AlertBanner, messageForApiError, useAppFeedback } from '../components/app-feedback';
+import {
+  ageLabel,
+  DecisionDialog,
+  DocumentBadge,
+  DocumentReviewCard,
+  FilterSelect,
+  kindLabel,
+  type RejectionReason,
+  scanLabels,
+  statusLabels,
+  SummaryButton,
+} from './review-components';
 
-const reasons = [
-  'BLURRY',
-  'GLARE',
-  'CROPPED',
-  'DOCUMENT_UNREADABLE',
-  'FACE_MISMATCH',
-  'WRONG_DOCUMENT',
-  'OTHER_REQUIRES_NOTE',
-];
+type ReviewClient = Pick<
+  typeof verificationClient,
+  'reviewQueue' | 'authorizeView' | 'readPrivateFile' | 'decide' | 'delete'
+>;
 
-const statusLabels: Record<string, string> = {
-  PENDING: 'Menunggu pemeriksaan',
-  APPROVED: 'Disetujui',
-  REJECTED: 'Perlu diperbaiki',
-  PENDING_DELETION: 'Sedang dihapus',
-  DELETE_FAILED: 'Penghapusan gagal',
-  DELETED: 'Telah dihapus',
+const emptySummary: IdentityVerificationReviewSummary = {
+  totalCustomers: 0,
+  totalDocuments: 0,
+  pendingDocuments: 0,
+  approvedDocuments: 0,
+  rejectedDocuments: 0,
+  deletionIssues: 0,
 };
 
-export function IdentityReviewView() {
-  const [items, setItems] = useState<VerificationDocument[]>([]);
-  const [status, setStatus] = useState('PENDING');
-  const [message, setMessage] = useState('');
-  const [previewAuthorization, setPreviewAuthorization] = useState<{
-    documentId: string;
-    url: string;
-    expiresAt: string;
-  }>();
+function queryValue(name: string, fallback = '') {
+  return typeof window === 'undefined'
+    ? fallback
+    : (new URLSearchParams(window.location.search).get(name) ?? fallback);
+}
+
+export function IdentityReviewView({
+  client = verificationClient,
+  capabilitiesOverride,
+}: {
+  client?: ReviewClient;
+  capabilitiesOverride?: readonly string[];
+}) {
+  const feedback = useAppFeedback();
   const session = useSessionContext();
-  const load = () =>
-    verificationClient
-      .reviewQueue(status)
-      .then((value) => setItems(value.items))
-      .catch(() => setMessage('Antrean verifikasi tidak dapat dimuat.'));
-  useEffect(() => void load(), [status]);
+  const capabilities = capabilitiesOverride ?? session?.session?.capabilities ?? [];
+  const sessionReady = Boolean(capabilitiesOverride || session?.session);
+  const canReview = sessionReady && capabilities.includes('identity-verification:review');
+  const canDelete = sessionReady && capabilities.includes('identity-verification:delete');
+  const [items, setItems] = useState<IdentityVerificationReviewCase[]>([]);
+  const [summary, setSummary] = useState(emptySummary);
+  const [generatedAt, setGeneratedAt] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ReturnType<typeof messageForApiError>>();
+  const [draftQ, setDraftQ] = useState(() => queryValue('q'));
+  const [q, setQ] = useState(() => queryValue('q'));
+  const [status, setStatus] = useState(() => queryValue('status', 'PENDING'));
+  const [kind, setKind] = useState(() => queryValue('kind'));
+  const [scanStatus, setScanStatus] = useState(() => queryValue('scanStatus'));
+  const [from, setFrom] = useState(() => queryValue('from'));
+  const [until, setUntil] = useState(() => queryValue('until'));
+  const [cursor, setCursor] = useState<string>();
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
+  const [selected, setSelected] = useState<IdentityVerificationReviewCase>();
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const previewUrls = useRef(new Set<string>());
+  const [previewLoading, setPreviewLoading] = useState<string>();
+  const [decision, setDecision] = useState<{
+    document: VerificationDocument;
+    kind: 'approve' | 'reject';
+  }>();
+  const [deleteTarget, setDeleteTarget] = useState<VerificationDocument>();
+  const [submitting, setSubmitting] = useState(false);
+  const [staleDocumentId, setStaleDocumentId] = useState<string>();
+
+  const resetPage = useCallback(() => {
+    setCursor(undefined);
+    setCursorHistory([]);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setQ(draftQ.trim());
+      resetPage();
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [draftQ, resetPage]);
+
+  const filters = useMemo<IdentityVerificationReviewFilters>(
+    () => ({
+      q: q || undefined,
+      status: (status || undefined) as DocumentReviewStatus | undefined,
+      kind: (kind || undefined) as DocumentKind | undefined,
+      scanStatus: (scanStatus || undefined) as DocumentScanStatus | undefined,
+      from: from ? `${from}T00:00:00.000Z` : undefined,
+      until: until ? `${until}T23:59:59.999Z` : undefined,
+      cursor,
+      limit: 20,
+    }),
+    [cursor, from, kind, q, scanStatus, status, until],
+  );
+
+  const load = useCallback(async () => {
+    if (!canReview) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(undefined);
+    try {
+      const result = await client.reviewQueue(filters);
+      setItems(result.items);
+      setSummary(result.summary);
+      setNextCursor(result.page.nextCursor);
+      setGeneratedAt(result.generatedAt);
+    } catch (cause) {
+      setError(messageForApiError(cause));
+    } finally {
+      setLoading(false);
+    }
+  }, [canReview, client, filters]);
+
+  useEffect(() => void load(), [load]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    if (kind) params.set('kind', kind);
+    if (scanStatus) params.set('scanStatus', scanStatus);
+    if (from) params.set('from', from);
+    if (until) params.set('until', until);
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `/identity-verifications${params.size ? `?${params}` : ''}`,
+    );
+  }, [from, kind, q, scanStatus, status, until]);
+
+  useEffect(
+    () => () => {
+      for (const url of previewUrls.current) URL.revokeObjectURL(url);
+      previewUrls.current.clear();
+    },
+    [],
+  );
+
+  const closeDrawer = () => {
+    for (const url of previewUrls.current) URL.revokeObjectURL(url);
+    previewUrls.current.clear();
+    setPreviews({});
+    setSelected(undefined);
+    setStaleDocumentId(undefined);
+  };
+
+  const loadPreview = async (document: VerificationDocument) => {
+    setPreviewLoading(document.id);
+    try {
+      const authorization = await client.authorizeView(document.id);
+      const blob = await client.readPrivateFile(authorization.url);
+      const url = URL.createObjectURL(blob);
+      setPreviews((current) => {
+        if (current[document.id]) {
+          URL.revokeObjectURL(current[document.id]!);
+          previewUrls.current.delete(current[document.id]!);
+        }
+        previewUrls.current.add(url);
+        return { ...current, [document.id]: url };
+      });
+    } catch (cause) {
+      const mapped = messageForApiError(cause);
+      feedback.showAlert({ tone: 'danger', ...mapped });
+    } finally {
+      setPreviewLoading(undefined);
+    }
+  };
+
+  const updateSelectedDocument = (document: VerificationDocument) => {
+    setSelected((current) =>
+      current
+        ? {
+            ...current,
+            documents: current.documents.map((item) => (item.id === document.id ? document : item)),
+          }
+        : current,
+    );
+  };
+
+  const submitDecision = async (
+    document: VerificationDocument,
+    kind: 'approve' | 'reject',
+    reasonCode?: RejectionReason,
+    note?: string,
+  ) => {
+    const confirmed = await feedback.confirm({
+      tone: kind === 'reject' ? 'warning' : undefined,
+      title: kind === 'approve' ? 'Setujui dokumen?' : 'Minta perbaikan dokumen?',
+      message: `${kindLabel(document.kind)} milik ${selected?.user.displayName ?? 'customer'} akan ${kind === 'approve' ? 'disetujui' : 'dikembalikan untuk diperbaiki'}.`,
+      confirmLabel: kind === 'approve' ? 'Setujui' : 'Minta perbaikan',
+    });
+    if (!confirmed) return;
+    setSubmitting(true);
+    setStaleDocumentId(undefined);
+    try {
+      const result = await client.decide(document.id, kind, {
+        expectedVersion: document.version,
+        reasonCode,
+        note,
+      });
+      updateSelectedDocument(result);
+      setDecision(undefined);
+      feedback.showToast({
+        tone: 'success',
+        title: kind === 'approve' ? 'Dokumen disetujui' : 'Perbaikan diminta',
+        message: `${kindLabel(document.kind)} berhasil diperbarui.`,
+        correlationReference: result.auditReference,
+      });
+      await load();
+    } catch (cause) {
+      const mapped = messageForApiError(cause);
+      if ((cause as { response?: { status?: number } })?.response?.status === 409)
+        setStaleDocumentId(document.id);
+      feedback.showAlert({ tone: 'danger', ...mapped });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const refreshSelected = async () => {
+    if (!selected) return;
+    try {
+      const result = await client.reviewQueue({ q: selected.user.id, limit: 1 });
+      setSelected(result.items[0]);
+      setStaleDocumentId(undefined);
+    } catch (cause) {
+      feedback.showAlert({ tone: 'danger', ...messageForApiError(cause) });
+    }
+  };
+
+  const submitDeletion = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!deleteTarget) return;
+    const reason = String(new FormData(event.currentTarget).get('reason') ?? '').trim();
+    setSubmitting(true);
+    try {
+      const result = await client.delete(deleteTarget.id, {
+        expectedVersion: deleteTarget.version,
+        reason,
+      });
+      updateSelectedDocument({ ...deleteTarget, status: result.status, version: result.version });
+      setDeleteTarget(undefined);
+      feedback.showToast({
+        tone: result.status === 'DELETE_FAILED' ? 'warning' : 'success',
+        title:
+          result.status === 'DELETE_FAILED' ? 'Penghapusan perlu dicoba ulang' : 'File dihapus',
+        correlationReference: result.auditReference,
+      });
+      await load();
+    } catch (cause) {
+      const mapped = messageForApiError(cause);
+      if ((cause as { response?: { status?: number } })?.response?.status === 409)
+        setStaleDocumentId(deleteTarget.id);
+      feedback.showAlert({ tone: 'danger', ...mapped });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!sessionReady) return <AdminSkeleton rows={5} />;
+  if (!canReview) return <AdminPageState kind="forbidden" />;
+
+  const resetFilters = () => {
+    setDraftQ('');
+    setQ('');
+    setStatus('PENDING');
+    setKind('');
+    setScanStatus('');
+    setFrom('');
+    setUntil('');
+    resetPage();
+  };
+
   return (
-    <>
-      <Panel className="mb-6 p-6 sm:p-8">
+    <section className="space-y-6" aria-labelledby="identity-review-title">
+      <Panel className="p-6 sm:p-8">
         <PageHeader
           eyebrow="Administrasi"
           title="Verifikasi customer"
-          description="Periksa selfie dan KTP secara terpisah. Semua keputusan membutuhkan permission dan dicatat dalam audit."
-          context={<StatusBadge tone="neutral">{items.length} dokumen</StatusBadge>}
+          titleId="identity-review-title"
+          description="Cari customer, bandingkan Selfie dan KTP, lalu ambil keputusan dengan jejak audit."
+          context={
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
+              <Button variant="secondary" disabled={loading} onClick={() => void load()}>
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Segarkan
+              </Button>
+            </div>
+          }
         />
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <StatCard
-            label="Dalam antrean"
-            value={String(items.filter((item) => item.status === 'PENDING').length)}
-            tone="warning"
-          />
-          <StatCard
-            label="Disetujui"
-            value={String(items.filter((item) => item.status === 'APPROVED').length)}
-            tone="success"
-          />
-          <StatCard
-            label="Ditolak"
-            value={String(items.filter((item) => item.status === 'REJECTED').length)}
-          />
+        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-dd-muted">
+          <span>{summary.totalCustomers.toLocaleString('id-ID')} customer</span>
+          <span>{summary.totalDocuments.toLocaleString('id-ID')} dokumen</span>
+          <span>
+            Diperbarui {generatedAt ? new Date(generatedAt).toLocaleString('id-ID') : '—'}
+          </span>
         </div>
       </Panel>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryButton
+          label="Dalam antrean"
+          value={summary.pendingDocuments}
+          active={status === 'PENDING'}
+          onClick={() => {
+            setStatus(status === 'PENDING' ? '' : 'PENDING');
+            resetPage();
+          }}
+        />
+        <SummaryButton
+          label="Disetujui"
+          value={summary.approvedDocuments}
+          active={status === 'APPROVED'}
+          onClick={() => {
+            setStatus(status === 'APPROVED' ? '' : 'APPROVED');
+            resetPage();
+          }}
+        />
+        <SummaryButton
+          label="Perlu diperbaiki"
+          value={summary.rejectedDocuments}
+          active={status === 'REJECTED'}
+          onClick={() => {
+            setStatus(status === 'REJECTED' ? '' : 'REJECTED');
+            resetPage();
+          }}
+        />
+        <SummaryButton
+          label="Masalah penghapusan"
+          value={summary.deletionIssues}
+          active={status === 'DELETE_FAILED'}
+          tone="danger"
+          onClick={() => {
+            setStatus(status === 'DELETE_FAILED' ? '' : 'DELETE_FAILED');
+            resetPage();
+          }}
+        />
+      </div>
+
       <FilterBar>
-        <label className="filter-field">
-          Status
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            {[
-              'PENDING',
-              'APPROVED',
-              'REJECTED',
-              'PENDING_DELETION',
-              'DELETE_FAILED',
-              'DELETED',
-            ].map((value) => (
-              <option key={value} value={value}>
-                {statusLabels[value]}
-              </option>
-            ))}
-          </select>
+        <label className="min-w-[min(100%,18rem)] flex-1 text-sm font-bold text-dd-ink">
+          Cari customer atau ID
+          <span className="relative mt-1 block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted" />
+            <input
+              className="w-full pl-9"
+              value={draftQ}
+              onChange={(event) => setDraftQ(event.target.value)}
+              placeholder="Nama, nomor telepon, atau UUID"
+            />
+          </span>
         </label>
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(value) => {
+            setStatus(value);
+            resetPage();
+          }}
+          options={Object.entries(statusLabels)}
+        />
+        <FilterSelect
+          label="Dokumen"
+          value={kind}
+          onChange={(value) => {
+            setKind(value);
+            resetPage();
+          }}
+          options={[
+            ['SELFIE', 'Selfie'],
+            ['KTP_FRONT', 'KTP depan'],
+          ]}
+        />
+        <FilterSelect
+          label="Status scan"
+          value={scanStatus}
+          onChange={(value) => {
+            setScanStatus(value);
+            resetPage();
+          }}
+          options={Object.entries(scanLabels)}
+        />
+        <label className="text-sm font-bold text-dd-ink">
+          Dari
+          <input
+            className="mt-1 block"
+            type="date"
+            value={from}
+            onChange={(event) => {
+              setFrom(event.target.value);
+              resetPage();
+            }}
+          />
+        </label>
+        <label className="text-sm font-bold text-dd-ink">
+          Sampai
+          <input
+            className="mt-1 block"
+            type="date"
+            value={until}
+            onChange={(event) => {
+              setUntil(event.target.value);
+              resetPage();
+            }}
+          />
+        </label>
+        <Button variant="quiet" onClick={resetFilters}>
+          Reset
+        </Button>
       </FilterBar>
-      {message && <Feedback kind="error">{message}</Feedback>}
-      <section className="verification-review-list" aria-label="Antrean verifikasi">
-        {items.map((document) => (
-          <Panel className="p-5" key={document.id}>
-            <h2>{document.kind === 'SELFIE' ? 'Selfie' : 'KTP depan'}</h2>
-            <p>
-              <strong>{document.user?.displayName}</strong>
-              <br />
-              {document.user?.phoneE164}
-            </p>
-            <p>Gambar privat · {(document.sizeBytes / 1024).toFixed(0)} KB</p>
-            <Badge
-              tone={
-                document.status === 'APPROVED'
-                  ? 'success'
-                  : document.status === 'REJECTED'
-                    ? 'warning'
-                    : 'neutral'
-              }
-            >
-              {statusLabels[document.status] ?? 'Status tidak tersedia'}
-            </Badge>
-            {!['DELETED', 'PENDING_DELETION', 'DELETE_FAILED'].includes(document.status) && (
+
+      {error && (
+        <AlertBanner
+          tone="danger"
+          {...error}
+          action={{ label: 'Coba lagi', onSelect: () => void load() }}
+        />
+      )}
+
+      <DataTable<IdentityVerificationReviewCase>
+        items={items}
+        loading={loading}
+        rowKey={(item) => item.id}
+        onRowClick={(item) => setSelected(item)}
+        emptyTitle={
+          q || kind || scanStatus || from || until
+            ? 'Tidak ada hasil yang sesuai'
+            : 'Antrean verifikasi kosong'
+        }
+        emptyDescription={
+          q || kind || scanStatus || from || until
+            ? 'Ubah pencarian atau reset filter untuk melihat data lain.'
+            : 'Tidak ada customer yang perlu diperiksa pada status ini.'
+        }
+        columns={[
+          {
+            id: 'customer',
+            header: 'Customer',
+            cell: (item) => (
+              <div>
+                <strong>{item.user.displayName}</strong>
+                <p className="mt-1 text-xs text-dd-muted">
+                  {item.user.phoneMasked ?? 'Kontak tidak tersedia'}
+                </p>
+              </div>
+            ),
+          },
+          {
+            id: 'selfie',
+            header: 'Selfie',
+            cell: (item) => (
+              <DocumentBadge
+                document={item.documents.find((document) => document.kind === 'SELFIE')}
+              />
+            ),
+          },
+          {
+            id: 'ktp',
+            header: 'KTP',
+            cell: (item) => (
+              <DocumentBadge
+                document={item.documents.find((document) => document.kind === 'KTP_FRONT')}
+              />
+            ),
+          },
+          { id: 'age', header: 'Umur antrean', cell: (item) => ageLabel(item.oldestAt) },
+          {
+            id: 'action',
+            header: <span className="sr-only">Tindakan</span>,
+            cell: (item) => (
               <Button
                 variant="secondary"
-                onClick={async () => {
-                  try {
-                    const authorization = await verificationClient.authorizeView(document.id);
-                    setPreviewAuthorization({ documentId: document.id, ...authorization });
-                  } catch {
-                    setMessage('Preview privat tidak dapat diotorisasi.');
-                  }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSelected(item);
                 }}
               >
-                Otorisasi preview privat
+                Periksa
               </Button>
-            )}
-            {previewAuthorization?.documentId === document.id && (
-              <a
-                href={previewAuthorization.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-dd-md bg-dd-forest px-4 text-sm font-bold text-white no-underline"
-              >
-                Buka preview sekali pakai
-              </a>
-            )}
-            {document.status === 'PENDING' && (
-              <form
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const data = new FormData(event.currentTarget);
-                  const decision = String(data.get('decision')) as 'approve' | 'reject';
-                  try {
-                    await verificationClient.decide(document.id, decision, {
-                      expectedVersion: document.version,
-                      reasonCode: decision === 'reject' ? String(data.get('reason')) : undefined,
-                      note: String(data.get('note') ?? ''),
-                    });
-                    await load();
-                  } catch {
-                    setMessage(
-                      'Keputusan gagal. Pastikan permission sesuai dan data belum berubah.',
-                    );
+            ),
+          },
+        ]}
+        mobileCard={(item) => (
+          <div className="grid gap-3">
+            <div>
+              <strong>{item.user.displayName}</strong>
+              <p className="text-xs text-dd-muted">
+                {item.user.phoneMasked ?? 'Kontak tidak tersedia'} · {ageLabel(item.oldestAt)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <DocumentBadge
+                document={item.documents.find((document) => document.kind === 'SELFIE')}
+              />
+              <DocumentBadge
+                document={item.documents.find((document) => document.kind === 'KTP_FRONT')}
+              />
+            </div>
+            <Button variant="secondary">Periksa</Button>
+          </div>
+        )}
+      />
+
+      <Pagination
+        hasPrevious={cursorHistory.length > 0}
+        hasNext={Boolean(nextCursor) && !loading}
+        totalLabel={`${summary.totalCustomers.toLocaleString('id-ID')} customer sesuai filter`}
+        onPrevious={() => {
+          const history = [...cursorHistory];
+          setCursor(history.pop());
+          setCursorHistory(history);
+        }}
+        onNext={() => {
+          if (!nextCursor) return;
+          setCursorHistory((history) => [...history, cursor]);
+          setCursor(nextCursor);
+        }}
+      />
+
+      <DetailDrawer
+        open={Boolean(selected)}
+        title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
+        onClose={closeDrawer}
+        className="max-w-4xl"
+      >
+        {selected && (
+          <div className="space-y-6">
+            <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <strong>{selected.user.displayName}</strong>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · {selected.user.status}
+                  </p>
+                </div>
+                <Badge
+                  tone={
+                    selected.verificationStatus === 'APPROVED'
+                      ? 'success'
+                      : selected.verificationStatus === 'ACTION_REQUIRED'
+                        ? 'warning'
+                        : 'neutral'
                   }
-                }}
-              >
-                <label>
-                  Keputusan
-                  <select name="decision" required>
-                    <option value="approve">Setujui</option>
-                    <option value="reject">Tolak</option>
-                  </select>
-                </label>
-                <label>
-                  Alasan penolakan
-                  <select name="reason">
-                    <option value="">Tidak ada</option>
-                    {reasons.map((reason) => (
-                      <option key={reason}>{reason}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Catatan
-                  <textarea name="note" maxLength={500} />
-                </label>
-                <Button>Simpan keputusan</Button>
-              </form>
-            )}
-            {session?.hasCapability('identity-verification:delete') &&
-              document.status !== 'DELETED' && (
-                <form
-                  onSubmit={async (event) => {
-                    event.preventDefault();
-                    const reason = String(new FormData(event.currentTarget).get('reason'));
-                    try {
-                      await verificationClient.delete(document.id, {
-                        expectedVersion: document.version,
-                        reason,
-                      });
-                      await load();
-                    } catch {
-                      setMessage('Penghapusan hanya dapat dilakukan Super Owner yang berizin.');
-                    }
-                  }}
                 >
-                  <label>
-                    Alasan penghapusan permanen
-                    <input name="reason" minLength={3} required />
-                  </label>
-                  <Button variant="danger">Hapus file secara permanen</Button>
-                </form>
-              )}
-          </Panel>
-        ))}
-      </section>
-    </>
+                  {selected.verificationStatus === 'APPROVED'
+                    ? 'Verifikasi selesai'
+                    : selected.verificationStatus === 'ACTION_REQUIRED'
+                      ? 'Perlu perbaikan'
+                      : 'Sedang diperiksa'}
+                </Badge>
+              </div>
+            </div>
+            {staleDocumentId && (
+              <AlertBanner
+                tone="warning"
+                title="Data dokumen telah berubah"
+                message="Muat versi terbaru sebelum mengambil keputusan lain."
+                action={{ label: 'Muat data terbaru', onSelect: () => void refreshSelected() }}
+              />
+            )}
+            <div className="grid gap-4 lg:grid-cols-2">
+              {(['SELFIE', 'KTP_FRONT'] as const).map((documentKind) => {
+                const document = selected.documents.find((item) => item.kind === documentKind);
+                return (
+                  <DocumentReviewCard
+                    key={documentKind}
+                    document={document}
+                    previewUrl={document ? previews[document.id] : undefined}
+                    previewLoading={document ? previewLoading === document.id : false}
+                    onPreview={loadPreview}
+                    onApprove={(item) => setDecision({ document: item, kind: 'approve' })}
+                    onReject={(item) => setDecision({ document: item, kind: 'reject' })}
+                    canDelete={canDelete}
+                    onDelete={setDeleteTarget}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </DetailDrawer>
+
+      <DecisionDialog
+        decision={decision}
+        submitting={submitting}
+        onClose={() => setDecision(undefined)}
+        onSubmit={submitDecision}
+      />
+      <DestructiveActionDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus file identitas secara permanen"
+        impact="File privat tidak dapat dipulihkan dan customer mungkin perlu mengunggah dokumen baru."
+        scope={selected?.user.displayName}
+        onClose={() => setDeleteTarget(undefined)}
+      >
+        <form className="grid gap-4" onSubmit={submitDeletion}>
+          <label className="text-sm font-bold text-dd-ink">
+            Alasan penghapusan
+            <textarea name="reason" minLength={3} maxLength={500} required />
+          </label>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setDeleteTarget(undefined)}>
+              Batal
+            </Button>
+            <Button variant="danger" disabled={submitting}>
+              <Trash2 className="size-4" /> {submitting ? 'Menghapus…' : 'Hapus permanen'}
+            </Button>
+          </div>
+        </form>
+      </DestructiveActionDialog>
+    </section>
   );
 }

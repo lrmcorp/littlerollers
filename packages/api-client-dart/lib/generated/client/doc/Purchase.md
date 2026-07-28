@@ -15,6 +15,8 @@ Name | Type | Description | Notes
 **paymentProofId** | **String** |  | [optional] 
 **packageNameSnapshot** | **String** |  | 
 **priceRpSnapshot** | **int** |  | 
+**paymentUniqueCode** | **int** |  | [optional] 
+**payableAmountRpSnapshot** | **int** |  | [optional] 
 **sessionCountSnapshot** | **int** |  | 
 **durationDaysSnapshot** | **int** |  | 
 **status** | **String** |  | 

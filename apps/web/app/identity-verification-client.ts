@@ -2,13 +2,16 @@
 
 export type VerificationStatus = 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
 export type DocumentKind = 'SELFIE' | 'KTP_FRONT';
+export type DocumentReviewStatus =
+  'PENDING' | 'APPROVED' | 'REJECTED' | 'PENDING_DELETION' | 'DELETE_FAILED' | 'DELETED';
+export type DocumentScanStatus = 'PENDING' | 'CLEAN' | 'REJECTED' | 'INFECTED' | 'ERROR';
 
 export interface VerificationDocument {
   id: string;
   kind: DocumentKind;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PENDING_DELETION' | 'DELETE_FAILED' | 'DELETED';
+  status: DocumentReviewStatus;
   uploadStatus: string;
-  scanStatus: string;
+  scanStatus: DocumentScanStatus;
   fileName: string;
   mimeType: string;
   sizeBytes: number;
@@ -16,8 +19,51 @@ export interface VerificationDocument {
   rejectionNote: string | null;
   reviewedAt: string | null;
   deletedAt: string | null;
+  issuedAt?: string;
+  uploadedAt?: string | null;
+  finalizedAt?: string | null;
+  createdAt?: string;
   version: number;
-  user?: { id: string; displayName: string; phoneE164: string | null };
+}
+
+export interface IdentityVerificationReviewCase {
+  id: string;
+  user: {
+    id: string;
+    displayName: string;
+    phoneMasked: string | null;
+    status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
+  };
+  verificationStatus: VerificationStatus;
+  oldestAt: string | null;
+  documents: VerificationDocument[];
+}
+
+export interface IdentityVerificationReviewSummary {
+  totalCustomers: number;
+  totalDocuments: number;
+  pendingDocuments: number;
+  approvedDocuments: number;
+  rejectedDocuments: number;
+  deletionIssues: number;
+}
+
+export interface IdentityVerificationReviewPage {
+  items: IdentityVerificationReviewCase[];
+  summary: IdentityVerificationReviewSummary;
+  page: { hasMore: boolean; nextCursor: string | null };
+  generatedAt: string;
+}
+
+export interface IdentityVerificationReviewFilters {
+  q?: string;
+  status?: DocumentReviewStatus;
+  kind?: DocumentKind;
+  scanStatus?: DocumentScanStatus;
+  from?: string;
+  until?: string;
+  cursor?: string;
+  limit?: number;
 }
 
 export interface VerificationSummary {
@@ -35,7 +81,16 @@ async function request(path: string, init?: RequestInit) {
       ...(init?.headers ?? {}),
     },
   });
-  if (!response.ok) throw { response: { status: response.status }, body: await response.text() };
+  if (!response.ok) {
+    const body = await response.json().catch(() => undefined);
+    throw {
+      response: {
+        status: response.status,
+        data: body?.error,
+        correlationId: body?.error?.correlationId,
+      },
+    };
+  }
   return response.status === 204 ? undefined : response.json();
 }
 
@@ -85,14 +140,19 @@ export const verificationClient = {
       body: form,
     });
   },
-  reviewQueue(status = 'PENDING'): Promise<{ items: VerificationDocument[] }> {
-    return request(`/identity-verifications?status=${encodeURIComponent(status)}`);
+  reviewQueue(
+    filters: IdentityVerificationReviewFilters = {},
+  ): Promise<IdentityVerificationReviewPage> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters))
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    return request(`/identity-verifications${query.size ? `?${query}` : ''}`);
   },
   decide(
     id: string,
     decision: 'approve' | 'reject',
     input: { expectedVersion: number; reasonCode?: string; note?: string },
-  ) {
+  ): Promise<VerificationDocument & { auditReference?: string }> {
     return request(`/identity-verifications/${id}/decisions/${decision}`, {
       method: 'POST',
       body: JSON.stringify(input),
@@ -101,7 +161,16 @@ export const verificationClient = {
   authorizeView(id: string): Promise<{ url: string; expiresAt: string }> {
     return request(`/identity-verifications/${id}/view-authorizations`, { method: 'POST' });
   },
-  delete(id: string, input: { expectedVersion: number; reason: string }) {
+  delete(
+    id: string,
+    input: { expectedVersion: number; reason: string },
+  ): Promise<{
+    id: string;
+    status: 'DELETED' | 'DELETE_FAILED';
+    version: number;
+    nextAttemptAt?: string;
+    auditReference?: string;
+  }> {
     return request(`/identity-verifications/${id}/delete`, {
       method: 'POST',
       body: JSON.stringify(input),

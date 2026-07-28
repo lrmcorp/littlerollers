@@ -13,8 +13,11 @@ Method | HTTP request | Description
 [**cancelClassSlot**](ClassesApi.md#cancelclassslot) | **POST** /class-slots/{id}/cancel | 
 [**createAvailability**](ClassesApi.md#createavailability) | **POST** /instructor-availabilities | 
 [**createClassSlot**](ClassesApi.md#createclassslot) | **POST** /class-slots | 
+[**getPublicClassDetail**](ClassesApi.md#getpublicclassdetail) | **GET** /public/class-types/{slug} | 
+[**getPublicScheduleDetail**](ClassesApi.md#getpublicscheduledetail) | **GET** /public/class-catalog/{id} | 
 [**listAvailabilities**](ClassesApi.md#listavailabilities) | **GET** /instructor-availabilities | 
 [**listClassSlots**](ClassesApi.md#listclassslots) | **GET** /class-slots | 
+[**listPublicClassSchedule**](ClassesApi.md#listpublicclassschedule) | **GET** /public/class-catalog | 
 [**publishClassSlot**](ClassesApi.md#publishclassslot) | **POST** /class-slots/{id}/publish | 
 [**transitionClassSlot**](ClassesApi.md#transitionclassslot) | **POST** /class-slots/{id}/{action} | 
 
@@ -201,6 +204,88 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getPublicClassDetail**
+> PublicClassDetail getPublicClassDetail(slug)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String slug = slug_example; // String | 
+
+try {
+    final response = api.getPublicClassDetail(slug);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->getPublicClassDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **slug** | **String**|  | 
+
+### Return type
+
+[**PublicClassDetail**](PublicClassDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getPublicScheduleDetail**
+> PublicScheduleDetail getPublicScheduleDetail(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getPublicScheduleDetail(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->getPublicScheduleDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**PublicScheduleDetail**](PublicScheduleDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listAvailabilities**
 > AvailabilityPage listAvailabilities(branchId, from, until, cursor)
 
@@ -293,6 +378,51 @@ Name | Type | Description  | Notes
 ### Authorization
 
 [bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPublicClassSchedule**
+> PublicClassCatalog listPublicClassSchedule(branchId, from, until)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | Inclusive UTC-normalized window start; offset or Z required
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | Exclusive UTC-normalized window end; offset or Z required
+
+try {
+    final response = api.listPublicClassSchedule(branchId, from, until);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->listPublicClassSchedule: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **from** | **DateTime**| Inclusive UTC-normalized window start; offset or Z required | [optional] 
+ **until** | **DateTime**| Exclusive UTC-normalized window end; offset or Z required | [optional] 
+
+### Return type
+
+[**PublicClassCatalog**](PublicClassCatalog.md)
+
+### Authorization
+
+No authorization required
 
 ### HTTP request headers
 

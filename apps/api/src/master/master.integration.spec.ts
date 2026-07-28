@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PolicyService } from '../identity/policy.service';
-import { MasterService } from './master.service';
+import { EffectiveSettingsService } from './effective-settings.service';
+import { MasterAccessService } from './master-access.service';
+import { MasterCatalogService } from './master-catalog.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('effective master MySQL integration', () => {
@@ -9,7 +11,8 @@ databaseDescribe('effective master MySQL integration', () => {
   const namespace = `mst-${Date.now()}`;
   const actorId = randomUUID();
   const instructorId = randomUUID();
-  let service: MasterService;
+  let catalog: MasterCatalogService;
+  let settings: EffectiveSettingsService;
   let branchId = '';
   let classTypeId = '';
   const principal = () => ({
@@ -25,20 +28,22 @@ databaseDescribe('effective master MySQL integration', () => {
 
   beforeAll(async () => {
     await db.$connect();
-    service = new MasterService(db as never, new PolicyService());
+    const access = new MasterAccessService(new PolicyService());
+    catalog = new MasterCatalogService(db as never, access);
+    settings = new EffectiveSettingsService(db as never, access);
     await db.user.createMany({
       data: [
         { id: actorId, displayName: 'Master actor' },
         { id: instructorId, displayName: 'Master instructor' },
       ],
     });
-    const branch = await service.createBranch(
+    const branch = await catalog.createBranch(
       principal(),
       { code: namespace, name: 'Integration Branch', timezone: 'Asia/Jakarta' },
       `${namespace}-branch`,
     );
     branchId = branch.id;
-    const type = await service.createClassType(
+    const type = await catalog.createClassType(
       principal(),
       { branchId, code: 'REFORMER', name: 'Reformer' },
       `${namespace}-class`,
@@ -55,7 +60,7 @@ databaseDescribe('effective master MySQL integration', () => {
   });
 
   it('creates typed versions and masks raw reasons', async () => {
-    const quota = await service.createSetting(
+    const quota = await settings.create(
       principal(),
       {
         kind: 'QUOTA_CAPACITY',
@@ -69,7 +74,7 @@ databaseDescribe('effective master MySQL integration', () => {
       `${namespace}-quota`,
     );
     expect(quota.value).toEqual({ minimumQuota: 4, defaultCapacity: 8 });
-    const fee = await service.createSetting(
+    const fee = await settings.create(
       principal(),
       {
         kind: 'INSTRUCTOR_FEE',
@@ -92,7 +97,7 @@ databaseDescribe('effective master MySQL integration', () => {
 
   it('rejects invalid values and overlapping concurrent periods atomically', async () => {
     await expect(
-      service.createSetting(
+      settings.create(
         principal(),
         {
           kind: 'QUOTA_CAPACITY',
@@ -108,7 +113,7 @@ databaseDescribe('effective master MySQL integration', () => {
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     const attempts = await Promise.allSettled(
       [1, 2].map((index) =>
-        service.createSetting(
+        settings.create(
           principal(),
           {
             kind: 'PROJECTION_RATE',
@@ -133,7 +138,7 @@ databaseDescribe('effective master MySQL integration', () => {
 
   it('enforces finance authority, hidden scope and stale lifecycle', async () => {
     await expect(
-      service.createSetting(
+      settings.create(
         { ...principal(), capabilities: ['branch:all', 'master:read', 'master:manage'] },
         {
           kind: 'PROJECTION_RATE',
@@ -147,13 +152,13 @@ databaseDescribe('effective master MySQL integration', () => {
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(
-      service.listClassTypes(
+      catalog.listClassTypes(
         { ...principal(), capabilities: ['master:read'], branchIds: [] },
         branchId,
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
-      service.deactivateClassType(principal(), classTypeId, 0, `${namespace}-dependency`),
+      catalog.deactivateClassType(principal(), classTypeId, 0, `${namespace}-dependency`),
     ).rejects.toMatchObject({ code: 'ACTIVE_DEPENDENCY' });
   });
 });

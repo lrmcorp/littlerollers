@@ -17,9 +17,15 @@ import {
   publicContainer,
   publicField,
   publicPrimaryButton,
+  publicSecondaryButton,
 } from '../components/public/public-styles';
 import { signInReturnTo } from '../routes';
 import type { WebSession } from '../session-client';
+import {
+  isCustomerOnlySession,
+  packageAudienceState,
+  type PackageAudienceState,
+} from '../session-audience';
 import { useSessionContext } from '../session-context';
 
 const rupiah = new Intl.NumberFormat('id-ID', {
@@ -69,17 +75,29 @@ export function packageDescriptor(
 }
 
 export function packageCtaLabel(session: WebSession | null) {
-  if (!session) return 'Masuk untuk memilih';
-  return session.identityVerificationStatus === 'APPROVED'
-    ? 'Pilih paket'
-    : 'Verifikasi untuk memilih';
+  const audience = packageAudienceState(session);
+  if (audience === 'GUEST') return 'Masuk untuk memilih';
+  if (audience === 'CUSTOMER_UNVERIFIED') return 'Verifikasi untuk memilih';
+  if (audience === 'CUSTOMER_APPROVED') return 'Pilih paket';
+  return 'Buka Workspace';
 }
 
 export function packageJourneyCopy(session: WebSession | null) {
-  if (!session) return 'Masuk atau buat akun untuk melanjutkan pembelian.';
-  return session.identityVerificationStatus === 'APPROVED'
-    ? 'Pilih paket yang sesuai, lalu lanjutkan ke pembayaran.'
-    : 'Selesaikan verifikasi akun untuk melanjutkan pembelian.';
+  const audience = packageAudienceState(session);
+  if (audience === 'GUEST') return 'Masuk atau buat akun untuk melanjutkan pembelian.';
+  if (audience === 'CUSTOMER_UNVERIFIED')
+    return 'Selesaikan verifikasi akun untuk melanjutkan pembelian.';
+  if (audience === 'CUSTOMER_APPROVED')
+    return 'Pilih paket yang sesuai, lalu lanjutkan ke pembayaran.';
+  return 'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.';
+}
+
+export function packageCtaHref(audience: PackageAudienceState, purchase: string): string {
+  if (audience === 'GUEST') return signInReturnTo(purchase);
+  if (audience === 'CUSTOMER_UNVERIFIED')
+    return `/account/verification?returnTo=${encodeURIComponent(purchase)}`;
+  if (audience === 'CUSTOMER_APPROVED') return purchase;
+  return '/workspace';
 }
 
 function syncCatalogQuery(branchId: string, classTypeId: string) {
@@ -102,9 +120,8 @@ export function PublicPackagesView({
   client?: PublicPackageCatalogClient;
 }) {
   const session = useSessionContext()?.session;
-  const inCustomerShell = Boolean(
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
-  );
+  const inCustomerShell = isCustomerOnlySession(session);
+  const audience = packageAudienceState(session);
   const [branches, setBranches] = useState<PublicPackageBranch[]>([]);
   const [items, setItems] = useState<PublicPackage[]>([]);
   const [branchId, setBranchId] = useState('');
@@ -201,6 +218,8 @@ export function PublicPackagesView({
   const recommendedId = recommendedPackageId(visible);
   const orderedVisible = recommendedFirst(visible, recommendedId);
   const ctaLabel = packageCtaLabel(session ?? null);
+  const showCatalogState =
+    status !== 'ready' || !branchId || (branchId.length > 0 && visible.length === 0);
 
   return (
     <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
@@ -225,19 +244,19 @@ export function PublicPackagesView({
           </ul>
         </PublicPageHero>
 
-        <section className="py-5 sm:py-7" aria-labelledby="package-discovery-title">
+        <section className="py-4 sm:py-5" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>
-            <header className="mb-4 max-w-3xl">
+            <header className="mb-3 max-w-3xl">
               <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
                 01 — Pilih studio
               </p>
               <h2
-                className="mt-2 font-serif text-[clamp(2rem,4vw,3rem)] leading-tight font-semibold"
+                className="mt-1 text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight font-semibold"
                 id="package-discovery-title"
               >
                 Pilih studio tempat Anda berlatih.
               </h2>
-              <p className="mt-2 max-w-2xl leading-6 text-dd-muted">
+              <p className="mt-1 max-w-2xl leading-6 text-dd-muted">
                 Harga dan ketersediaan paket mengikuti studio pilihan Anda.
               </p>
             </header>
@@ -258,7 +277,7 @@ export function PublicPackagesView({
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-20 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
+                      className={`flex min-h-16 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
                         selected
                           ? 'border-dd-forest bg-dd-forest text-white'
                           : 'border-dd-line bg-white text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/50'
@@ -290,8 +309,8 @@ export function PublicPackagesView({
               </div>
             )}
 
-            <div className="mt-5 grid gap-3 rounded-dd-md border border-dd-line bg-white p-3 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-4">
-              <label className="grid gap-2 text-sm font-semibold">
+            <div className="mt-3 grid gap-3 rounded-dd-md border border-dd-line bg-white p-3 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <label className="grid gap-2 text-sm font-semibold sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4">
                 Tipe kelas
                 <select
                   className={publicField}
@@ -326,54 +345,54 @@ export function PublicPackagesView({
               )}
             </div>
 
-            <div className="mt-5" aria-live="polite">
-              {status === 'loading' && branchId && (
-                <div className="grid gap-5 md:grid-cols-2" role="status">
-                  {[0, 1].map((item) => (
-                    <div
-                      className="h-72 animate-pulse rounded-dd-lg border border-dd-line bg-white"
-                      key={item}
-                    />
-                  ))}
-                </div>
-              )}
-              {status === 'error' && (
-                <PublicStatePanel title="Paket belum dapat dimuat" tone="error" role="alert">
-                  <p>{message}</p>
-                  <button
-                    type="button"
-                    className="mt-4 min-h-11 rounded-dd-sm border border-dd-danger/30 bg-white px-5 font-bold"
-                    onClick={() => void retryCatalog()}
-                  >
-                    Coba lagi
-                  </button>
-                </PublicStatePanel>
-              )}
-              {status === 'ready' && !branchId && (
-                <PublicStatePanel title="Pilih studio untuk melihat paket">
-                  Harga, tipe kelas, dan masa berlaku paket akan muncul setelah Anda menentukan
-                  lokasi latihan.
-                </PublicStatePanel>
-              )}
-              {status === 'ready' && branchId && visible.length === 0 && (
-                <PublicStatePanel title="Belum ada paket aktif">
-                  Coba tipe kelas lain atau pilih studio berbeda.
-                </PublicStatePanel>
-              )}
-            </div>
+            {showCatalogState && (
+              <div className="mt-3" aria-live="polite">
+                {status === 'loading' && branchId && (
+                  <div className="grid gap-5 md:grid-cols-2" role="status">
+                    {[0, 1].map((item) => (
+                      <div
+                        className="h-72 animate-pulse rounded-dd-lg border border-dd-line bg-white"
+                        key={item}
+                      />
+                    ))}
+                  </div>
+                )}
+                {status === 'error' && (
+                  <PublicStatePanel title="Paket belum dapat dimuat" tone="error" role="alert">
+                    <p>{message}</p>
+                    <button
+                      type="button"
+                      className="mt-4 min-h-11 rounded-dd-sm border border-dd-danger/30 bg-white px-5 font-bold"
+                      onClick={() => void retryCatalog()}
+                    >
+                      Coba lagi
+                    </button>
+                  </PublicStatePanel>
+                )}
+                {status === 'ready' && !branchId && (
+                  <PublicStatePanel title="Pilih studio untuk melihat paket">
+                    Harga, tipe kelas, dan masa berlaku paket akan muncul setelah Anda menentukan
+                    lokasi latihan.
+                  </PublicStatePanel>
+                )}
+                {status === 'ready' && branchId && visible.length === 0 && (
+                  <PublicStatePanel title="Belum ada paket aktif">
+                    Coba tipe kelas lain atau pilih studio berbeda.
+                  </PublicStatePanel>
+                )}
+              </div>
+            )}
 
             {status === 'ready' && visible.length > 0 && (
               <>
-                <p className="mt-5 text-sm text-dd-muted">{packageJourneyCopy(session ?? null)}</p>
-                <div className="mt-4 grid gap-5 md:grid-cols-2" aria-label="Daftar paket aktif">
+                <p className="mt-3 pr-20 text-sm text-dd-muted sm:pr-0">
+                  {packageJourneyCopy(session ?? null)}
+                </p>
+                <div className="mt-3 grid gap-5 md:grid-cols-2" aria-label="Daftar paket aktif">
                   {orderedVisible.map((item) => {
                     const recommended = item.id === recommendedId;
                     const purchase = `/checkout?package=${item.id}&branch=${item.branchId}${continuationSlot ? `&slot=${encodeURIComponent(continuationSlot)}` : ''}`;
-                    const href = !session
-                      ? signInReturnTo(purchase)
-                      : session.identityVerificationStatus !== 'APPROVED'
-                        ? `/account/verification?returnTo=${encodeURIComponent(purchase)}`
-                        : purchase;
+                    const href = packageCtaHref(audience, purchase);
                     return (
                       <article
                         className={`flex min-h-[320px] flex-col rounded-dd-lg border bg-white p-5 shadow-dd-card sm:p-6 ${
@@ -386,13 +405,13 @@ export function PublicPackagesView({
                             {item.classType.name}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-warning">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-brass-dark">
                               <Sparkles className="size-3.5" aria-hidden="true" />
                               Direkomendasikan
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">
+                        <h3 className="mt-2 text-[1.375rem] leading-tight font-semibold sm:text-2xl">
                           {item.name}
                         </h3>
                         <p className="mt-1 text-sm text-dd-muted">
@@ -414,17 +433,30 @@ export function PublicPackagesView({
                             <dd className="mt-1 font-bold">{item.durationDays} hari</dd>
                           </div>
                         </dl>
-                        <p className="mt-3 flex items-center gap-2 text-xs text-dd-muted">
-                          <CalendarDays className="size-4" aria-hidden="true" />
-                          {item.effectiveUntil
-                            ? `Tersedia sampai ${new Intl.DateTimeFormat('id-ID', {
-                                dateStyle: 'medium',
-                              }).format(new Date(item.effectiveUntil))}`
-                            : 'Tersedia untuk pembelian'}
-                        </p>
-                        <Link className={`${publicPrimaryButton} mt-auto w-full`} href={href}>
-                          {ctaLabel} <ArrowRight className="size-4" aria-hidden="true" />
-                        </Link>
+                        <div className="mt-auto grid gap-3 pt-4">
+                          <p className="flex items-center gap-2 text-xs text-dd-muted">
+                            <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
+                            {item.effectiveUntil
+                              ? `Tersedia sampai ${new Intl.DateTimeFormat('id-ID', {
+                                  dateStyle: 'medium',
+                                }).format(new Date(item.effectiveUntil))}`
+                              : 'Tersedia untuk pembelian'}
+                          </p>
+                          {audience === 'STAFF' && (
+                            <p className="rounded-dd-sm bg-dd-surface-muted px-3 py-2 text-xs leading-5 text-dd-muted">
+                              Pembelian paket menggunakan akun customer.
+                            </p>
+                          )}
+                          <Link
+                            className={`${publicSecondaryButton} w-full`}
+                            href={`/packages/${item.id}`}
+                          >
+                            Lihat detail paket
+                          </Link>
+                          <Link className={`${publicPrimaryButton} w-full`} href={href}>
+                            {ctaLabel} <ArrowRight className="size-4" aria-hidden="true" />
+                          </Link>
+                        </div>
                       </article>
                     );
                   })}

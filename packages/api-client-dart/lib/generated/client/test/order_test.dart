@@ -37,6 +37,21 @@ void main() {
       // TODO
     });
 
+    // int baseAmountRp
+    test('to test the property `baseAmountRp`', () async {
+      // TODO
+    });
+
+    // int paymentUniqueCode
+    test('to test the property `paymentUniqueCode`', () async {
+      // TODO
+    });
+
+    // int payableAmountRp
+    test('to test the property `payableAmountRp`', () async {
+      // TODO
+    });
+
     // int sessionCount
     test('to test the property `sessionCount`', () async {
       // TODO
@@ -69,6 +84,11 @@ void main() {
 
     // String paymentProofId
     test('to test the property `paymentProofId`', () async {
+      // TODO
+    });
+
+    // OrderPaymentProofStatus paymentProofStatus
+    test('to test the property `paymentProofStatus`', () async {
       // TODO
     });
 

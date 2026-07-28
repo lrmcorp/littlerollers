@@ -30,6 +30,12 @@ export interface CreateOrderCommand {
      * @type {string}
      * @memberof CreateOrderCommand
      */
+    branchId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateOrderCommand
+     */
     slotId?: string;
 }
 
@@ -52,6 +58,7 @@ export function CreateOrderCommandFromJSONTyped(json: any, ignoreDiscriminator: 
     return {
         
         'packageId': json['packageId'],
+        'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'slotId': json['slotId'] == null ? undefined : json['slotId'],
     };
 }
@@ -68,6 +75,7 @@ export function CreateOrderCommandToJSONTyped(value?: CreateOrderCommand | null,
     return {
         
         'packageId': value['packageId'],
+        'branchId': value['branchId'],
         'slotId': value['slotId'],
     };
 }

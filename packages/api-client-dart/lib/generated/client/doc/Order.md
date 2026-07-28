@@ -14,6 +14,9 @@ Name | Type | Description | Notes
 **packageId** | **String** |  | 
 **packageName** | **String** |  | 
 **priceRp** | **int** |  | 
+**baseAmountRp** | **int** |  | 
+**paymentUniqueCode** | **int** |  | [optional] 
+**payableAmountRp** | **int** |  | 
 **sessionCount** | **int** |  | 
 **durationDays** | **int** |  | 
 **status** | **String** |  | 
@@ -21,6 +24,7 @@ Name | Type | Description | Notes
 **expiresAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **continuationSlotId** | **String** |  | [optional] 
 **paymentProofId** | **String** |  | [optional] 
+**paymentProofStatus** | [**OrderPaymentProofStatus**](OrderPaymentProofStatus.md) |  | [optional] 
 **decisionReasonCode** | **String** |  | [optional] 
 **version** | **int** |  | 
 **paymentAccount** | [**OrderPaymentAccount**](OrderPaymentAccount.md) |  | [optional] 

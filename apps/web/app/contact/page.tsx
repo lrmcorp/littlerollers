@@ -34,7 +34,7 @@ export default function ContactPage() {
             <div className="grid gap-5 md:grid-cols-3">
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
                 <span className="text-xs font-bold text-dd-brass">01</span>
-                <h3 className="mt-3 font-serif text-2xl font-semibold">Jadwal kelas</h3>
+                <h3 className="mt-3 font-sans text-2xl font-semibold">Jadwal kelas</h3>
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
                   Lihat jadwal publik yang tersedia menurut studio dan zona waktunya.
                 </p>
@@ -44,7 +44,7 @@ export default function ContactPage() {
               </article>
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
                 <span className="text-xs font-bold text-dd-brass">02</span>
-                <h3 className="mt-3 font-serif text-2xl font-semibold">Paket Pilates</h3>
+                <h3 className="mt-3 font-sans text-2xl font-semibold">Paket Pilates</h3>
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
                   Bandingkan paket aktif, jumlah sesi, harga, dan masa berlaku.
                 </p>
@@ -54,7 +54,7 @@ export default function ContactPage() {
               </article>
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
                 <span className="text-xs font-bold text-dd-brass">03</span>
-                <h3 className="mt-3 font-serif text-2xl font-semibold">Bantuan lainnya</h3>
+                <h3 className="mt-3 font-sans text-2xl font-semibold">Bantuan lainnya</h3>
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
                   Gunakan kanal kontak resmi Daily Dose Pilates untuk bantuan personal.
                 </p>

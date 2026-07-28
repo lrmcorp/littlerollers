@@ -4,13 +4,16 @@ import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PublicPackage, PublicPackageCatalogClient } from './public-package-catalog-client';
 import {
+  packageCtaHref,
   packageCtaLabel,
   packageDescriptor,
+  packageJourneyCopy,
   PublicPackagesView,
   publicBranchLocation,
   recommendedFirst,
   recommendedPackageId,
 } from './packages/public-packages-view';
+import { packageAudienceState } from './session-audience';
 import type { WebSession } from './session-client';
 
 const branch = {
@@ -62,6 +65,15 @@ const approvedCustomer: WebSession = {
   identityVerificationStatus: 'APPROVED',
   sessionExpiresAt: new Date(Date.now() + 60_000),
   branches: [],
+};
+
+const superOwner: WebSession = {
+  ...approvedCustomer,
+  id: 'super-owner-1',
+  displayName: 'Super Owner',
+  roles: ['SUPER_OWNER'],
+  capabilities: ['branch:all'],
+  identityVerificationStatus: 'NOT_REQUIRED',
 };
 
 describe('public package catalog', () => {
@@ -120,6 +132,18 @@ describe('public package catalog', () => {
       'Verifikasi untuk memilih',
     );
     expect(packageCtaLabel(approvedCustomer)).toBe('Pilih paket');
+    expect(packageCtaLabel(superOwner)).toBe('Buka Workspace');
+    expect(packageCtaLabel({ ...superOwner, roles: ['CUSTOMER', 'SUPER_OWNER'] })).toBe(
+      'Buka Workspace',
+    );
+    expect(packageAudienceState(superOwner)).toBe('STAFF');
+    expect(packageJourneyCopy(superOwner)).toBe(
+      'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.',
+    );
+    expect(packageCtaHref('STAFF', '/checkout?package=one')).toBe('/workspace');
+    expect(packageCtaHref('CUSTOMER_APPROVED', '/checkout?package=one')).toBe(
+      '/checkout?package=one',
+    );
   });
 
   it('preserves slot while synchronizing studio and class type filters', async () => {

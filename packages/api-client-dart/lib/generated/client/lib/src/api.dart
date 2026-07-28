@@ -14,6 +14,7 @@ import 'package:openapi/src/api/audit_api.dart';
 import 'package:openapi/src/api/auth_api.dart';
 import 'package:openapi/src/api/bookings_api.dart';
 import 'package:openapi/src/api/classes_api.dart';
+import 'package:openapi/src/api/dashboard_api.dart';
 import 'package:openapi/src/api/finance_api.dart';
 import 'package:openapi/src/api/identity_api.dart';
 import 'package:openapi/src/api/ledger_api.dart';
@@ -105,6 +106,12 @@ class Openapi {
   /// by doing that all interceptors will not be executed
   ClassesApi getClassesApi() {
     return ClassesApi(dio, serializers);
+  }
+
+  /// Get DashboardApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  DashboardApi getDashboardApi() {
+    return DashboardApi(dio, serializers);
   }
 
   /// Get FinanceApi instance, base route and serializer can be overridden by a given but be careful,

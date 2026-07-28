@@ -8,6 +8,11 @@ import {
 import { ApiProblem, digest, safeEqual } from './security';
 import { IdentityService } from './identity.service';
 import { RateLimitService } from './rate-limit.service';
+import { CustomerProfileService } from './customer-profile.service';
+import { IdentityDocumentAccessService } from './identity-document-access.service';
+import { IdentityReviewQueryService } from './identity-review-query.service';
+import { IdentityDocumentWorkflowService } from './identity-document-workflow.service';
+import { UserAdministrationService } from './user-administration.service';
 
 describe('identity security foundation', () => {
   const original = process.env;
@@ -56,6 +61,28 @@ describe('identity security foundation', () => {
     expect(superOwner).toEqual(
       expect.arrayContaining(['identity-verification:review', 'identity-verification:delete']),
     );
+  });
+
+  it('reserves customer self-service verification for customer-only sessions', () => {
+    const policy = new PolicyService();
+    expect(() =>
+      policy.requireCustomerSelf([{ role: 'CUSTOMER', branchId: null }], ['customer:self']),
+    ).not.toThrow();
+    expect(() =>
+      policy.requireCustomerSelf(
+        [
+          { role: 'CUSTOMER', branchId: null },
+          { role: 'ADMIN', branchId: 'branch-a' },
+        ],
+        ['customer:self', 'identity-verification:review'],
+      ),
+    ).toThrow(ApiProblem);
+    expect(() =>
+      policy.requireCustomerSelf(
+        [{ role: 'SUPER_OWNER', branchId: null }],
+        ['identity-verification:review'],
+      ),
+    ).toThrow(ApiProblem);
   });
 
   it('reserves payment decisions for Finance and Super Owner', () => {
@@ -255,12 +282,9 @@ describe('identity security foundation', () => {
       userSession: { updateMany: jest.fn() },
       $transaction: (callback: (client: unknown) => unknown) => callback(db),
     };
-    const service = new IdentityService(
+    const service = new UserAdministrationService(
       db as never,
       new PolicyService(),
-      new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
       { sendAction: jest.fn() } as never,
     );
@@ -329,16 +353,8 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn().mockResolvedValue({}) },
       $transaction: (callback: (client: unknown) => unknown) => callback(db),
     };
-    const service = new IdentityService(
-      db as never,
-      new PolicyService(),
-      new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
-      { consume: jest.fn() } as never,
-      { sendAction: jest.fn() } as never,
-    );
-    const result = await service.updateMyProfile(
+    const profiles = new CustomerProfileService(db as never);
+    const result = await profiles.update(
       {
         sessionId: 'session-1',
         userId: 'customer-1',
@@ -385,15 +401,9 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn().mockResolvedValue({}) },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
-    const service = new IdentityService(
+    const service = new IdentityDocumentAccessService(
       db as never,
       new PolicyService(),
-      new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
-      { consume: jest.fn() } as never,
-      { sendAction: jest.fn() } as never,
-      undefined,
       storage as never,
     );
     const principal = {
@@ -403,9 +413,7 @@ describe('identity security foundation', () => {
       capabilities: ['customer:self'],
       branchIds: [],
     };
-    await expect(
-      service.authorizeMyIdentityDocument(principal, 'SELFIE', 'correlation-1'),
-    ).resolves.toEqual({
+    await expect(service.authorizeSelf(principal, 'SELFIE', 'correlation-1')).resolves.toEqual({
       url: '/api/v1/identity-verification-files/authorization-1/content',
       expiresAt: expect.any(String),
     });
@@ -422,11 +430,127 @@ describe('identity security foundation', () => {
       }),
     );
     await expect(
-      service.authorizeMyIdentityDocument(
+      service.authorizeSelf(
         { ...principal, roles: [{ role: 'ADMIN', branchId: 'branch-jkt' }] },
         'SELFIE',
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('groups the review queue by customer with masked contact, summary and all lifecycle statuses', async () => {
+    const createdAt = new Date('2026-07-20T02:00:00.000Z');
+    const groupBy = jest
+      .fn()
+      .mockResolvedValueOnce([{ userId: 'customer-1', _min: { createdAt } }])
+      .mockResolvedValueOnce([{ userId: 'customer-1' }]);
+    const count = jest
+      .fn()
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
+    const document = (input: { id: string; kind: 'SELFIE' | 'KTP_FRONT'; status: string }) => ({
+      ...input,
+      userId: 'customer-1',
+      uploadStatus: 'FINALIZED',
+      scanStatus: 'CLEAN',
+      fileName: 'private.png',
+      mimeType: 'image/png',
+      sizeBytes: 1024,
+      rejectionReasonCode: input.status === 'REJECTED' ? 'BLURRY' : null,
+      rejectionNote: null,
+      issuedAt: createdAt,
+      uploadedAt: createdAt,
+      finalizedAt: createdAt,
+      reviewedAt: null,
+      deletedAt: null,
+      version: 1,
+      createdAt,
+      user: {
+        id: 'customer-1',
+        displayName: 'Ayu Customer',
+        phoneE164: '+628123456789',
+        status: 'ACTIVE',
+      },
+    });
+    const db = {
+      identityVerificationDocument: {
+        groupBy,
+        count,
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            document({ id: 'document-selfie', kind: 'SELFIE', status: 'DELETE_FAILED' }),
+            document({ id: 'document-ktp', kind: 'KTP_FRONT', status: 'REJECTED' }),
+          ]),
+      },
+    };
+    const service = new IdentityReviewQueryService(db as never, new PolicyService());
+    const result = await service.list(
+      {
+        sessionId: 'review-session',
+        userId: 'reviewer-1',
+        roles: [{ role: 'SUPER_OWNER', branchId: null }],
+        capabilities: ['identity-verification:review'],
+        branchIds: [],
+      },
+      { q: 'Ayu', status: 'DELETE_FAILED', limit: 20 },
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          displayName: 'Ayu Customer',
+          phoneMasked: '+628*****6789',
+        }),
+        verificationStatus: 'ACTION_REQUIRED',
+        documents: expect.arrayContaining([
+          expect.objectContaining({ id: 'document-selfie', status: 'DELETE_FAILED' }),
+        ]),
+      }),
+    );
+    expect(result.summary).toEqual({
+      totalCustomers: 1,
+      totalDocuments: 2,
+      pendingDocuments: 1,
+      approvedDocuments: 0,
+      rejectedDocuments: 1,
+      deletionIssues: 1,
+    });
+    expect(result.page).toEqual({ hasMore: false, nextCursor: null });
+  });
+
+  it('reports scan-incomplete documents separately from stale decisions', async () => {
+    const db = {
+      identityVerificationDocument: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'document-1',
+          replacedById: null,
+          status: 'PENDING',
+          scanStatus: 'PENDING',
+          uploadStatus: 'FINALIZED',
+          version: 2,
+        }),
+      },
+    };
+    const service = new IdentityDocumentWorkflowService(db as never, new PolicyService());
+    await expect(
+      service.decideIdentityDocument(
+        {
+          sessionId: 'review-session',
+          userId: 'reviewer-1',
+          roles: [{ role: 'ADMIN', branchId: 'branch-1' }],
+          capabilities: ['identity-verification:review'],
+          branchIds: ['branch-1'],
+        },
+        'document-1',
+        'APPROVED',
+        { expectedVersion: 2 },
+        'correlation-1',
+      ),
+    ).rejects.toMatchObject({ code: 'IDENTITY_DOCUMENT_NOT_READY' });
   });
 
   it('rate limits only on hashed subject counters', async () => {

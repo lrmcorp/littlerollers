@@ -37,6 +37,11 @@ void main() {
       // TODO
     });
 
+    // int identificationAmountRp
+    test('to test the property `identificationAmountRp`', () async {
+      // TODO
+    });
+
     // int pendingCount
     test('to test the property `pendingCount`', () async {
       // TODO

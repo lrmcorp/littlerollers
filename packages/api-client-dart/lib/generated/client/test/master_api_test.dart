@@ -65,6 +65,11 @@ void main() {
       // TODO
     });
 
+    //Future<PublicStudioDetail> getPublicStudioDetail(String slug) async
+    test('test getPublicStudioDetail', () async {
+      // TODO
+    });
+
     //Future<BranchPage> listBranches() async
     test('test listBranches', () async {
       // TODO

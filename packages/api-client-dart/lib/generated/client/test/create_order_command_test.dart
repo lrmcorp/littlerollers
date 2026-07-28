@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // String branchId
+    test('to test the property `branchId`', () async {
+      // TODO
+    });
+
     // String slotId
     test('to test the property `slotId`', () async {
       // TODO

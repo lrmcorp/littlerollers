@@ -82,6 +82,7 @@ function client(overrides: Partial<BookingClient> = {}): BookingClient {
       slots: [slot],
     }),
     list: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    detail: vi.fn().mockResolvedValue(booking),
     create: vi.fn().mockResolvedValue(booking),
     listReschedules: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
     requestReschedule: vi.fn().mockResolvedValue(reschedule),

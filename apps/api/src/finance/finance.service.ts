@@ -56,10 +56,12 @@ export class FinanceService {
     query: { branchId?: string; from?: string; until?: string },
   ) {
     const { range, purchases } = await this.records(principal, query);
+    const payable = (item: (typeof purchases)[number]) =>
+      item.payableAmountRpSnapshot ?? item.priceRpSnapshot;
     const amount = (statuses: string[]) =>
       purchases
         .filter((item) => statuses.includes(item.status))
-        .reduce((sum, item) => sum + item.priceRpSnapshot, 0);
+        .reduce((sum, item) => sum + payable(item), 0);
     const received = purchases.filter(
       (item) =>
         item.paymentProof?.uploadStatus === 'FINALIZED' && item.paymentProof.scanStatus === 'CLEAN',
@@ -71,7 +73,16 @@ export class FinanceService {
       'APPROVED',
       'REJECTED',
     ]);
-    const approvedRp = amount(['APPROVED']);
+    const approvedRp = purchases
+      .filter((item) => item.status === 'APPROVED')
+      .reduce((sum, item) => sum + item.priceRpSnapshot, 0);
+    const identificationAmountRp = purchases
+      .filter((item) =>
+        ['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED'].includes(
+          item.status,
+        ),
+      )
+      .reduce((sum, item) => sum + (item.paymentUniqueCode ?? 0), 0);
     const ledgerRecognizedRp = purchases.reduce(
       (sum, item) => sum + (item.customerPackage?.salePriceRp ?? 0),
       0,
@@ -85,6 +96,7 @@ export class FinanceService {
         expectedRp: number;
         receivedRp: number;
         approvedRp: number;
+        identificationAmountRp: number;
         pendingCount: number;
         anomalyCount: number;
       }
@@ -95,16 +107,18 @@ export class FinanceService {
         expectedRp: 0,
         receivedRp: 0,
         approvedRp: 0,
+        identificationAmountRp: 0,
         pendingCount: 0,
         anomalyCount: 0,
       };
-      row.expectedRp += item.priceRpSnapshot;
+      row.expectedRp += payable(item);
       if (
         item.paymentProof?.uploadStatus === 'FINALIZED' &&
         item.paymentProof.scanStatus === 'CLEAN'
       )
-        row.receivedRp += item.priceRpSnapshot;
+        row.receivedRp += payable(item);
       if (item.status === 'APPROVED') row.approvedRp += item.priceRpSnapshot;
+      row.identificationAmountRp += item.paymentUniqueCode ?? 0;
       if (item.status === 'PENDING') row.pendingCount += 1;
       if (
         (item.status === 'APPROVED' && !item.customerPackage) ||
@@ -118,10 +132,11 @@ export class FinanceService {
       period: range,
       metrics: {
         expectedRp,
-        receivedRp: received.reduce((sum, item) => sum + item.priceRpSnapshot, 0),
+        receivedRp: received.reduce((sum, item) => sum + payable(item), 0),
         approvedRp,
         pendingRp: amount(['PENDING']),
         rejectedRp: amount(['REJECTED', 'ACTION_REQUIRED']),
+        identificationAmountRp,
         ledgerDeltaRp: approvedRp - ledgerRecognizedRp,
         unreconciledCount: purchases.filter(
           (item) =>
@@ -143,7 +158,7 @@ export class FinanceService {
         purchaseId: item.id,
         branchId: item.branchId,
         branchCode: item.branch.code,
-        amountRp: item.priceRpSnapshot,
+        amountRp: item.payableAmountRpSnapshot ?? item.priceRpSnapshot,
         submittedAt: item.submittedAt,
         href: `/workspace/payments?purchaseId=${item.id}`,
       };

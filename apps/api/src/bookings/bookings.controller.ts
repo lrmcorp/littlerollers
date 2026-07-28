@@ -34,6 +34,11 @@ export class BookingsController {
     return this.bookings.list(request.principal, { branchId, status, cursor });
   }
 
+  @Get(':id')
+  detail(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.bookings.detail(request.principal, id);
+  }
+
   @Post()
   async create(
     @Req() request: AuthenticatedRequest,

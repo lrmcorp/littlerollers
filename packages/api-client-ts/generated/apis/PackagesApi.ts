@@ -30,6 +30,8 @@ import type {
   PackagePage,
   PaymentProof,
   PaymentProofUploadInstruction,
+  PublicPackageCatalog,
+  PublicPackageDetail,
   Purchase,
   PurchasePage,
   ReplacePaymentProofCommand,
@@ -67,6 +69,10 @@ import {
     PaymentProofToJSON,
     PaymentProofUploadInstructionFromJSON,
     PaymentProofUploadInstructionToJSON,
+    PublicPackageCatalogFromJSON,
+    PublicPackageCatalogToJSON,
+    PublicPackageDetailFromJSON,
+    PublicPackageDetailToJSON,
     PurchaseFromJSON,
     PurchaseToJSON,
     PurchasePageFromJSON,
@@ -115,6 +121,7 @@ export interface FinalizePaymentProofUploadRequest {
 
 export interface GetCheckoutOptionsRequest {
     packageId: string;
+    branchId?: string;
 }
 
 export interface GetOrderRequest {
@@ -122,6 +129,10 @@ export interface GetOrderRequest {
 }
 
 export interface GetPaymentProofStatusRequest {
+    id: string;
+}
+
+export interface GetPublicPackageDetailRequest {
     id: string;
 }
 
@@ -133,6 +144,10 @@ export interface ListOrdersRequest {
 export interface ListPackagesRequest {
     branchId?: string;
     cursor?: string;
+}
+
+export interface ListPublicPackagesRequest {
+    branchId?: string;
 }
 
 export interface ListPurchasesRequest {
@@ -563,6 +578,10 @@ export class PackagesApi extends runtime.BaseAPI {
             queryParameters['packageId'] = requestParameters['packageId'];
         }
 
+        if (requestParameters['branchId'] != null) {
+            queryParameters['branchId'] = requestParameters['branchId'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.accessToken) {
@@ -682,6 +701,41 @@ export class PackagesApi extends runtime.BaseAPI {
 
     /**
      */
+    async getPublicPackageDetailRaw(requestParameters: GetPublicPackageDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicPackageDetail>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getPublicPackageDetail().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/package-catalog/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicPackageDetailFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPublicPackageDetail(requestParameters: GetPublicPackageDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicPackageDetail> {
+        const response = await this.getPublicPackageDetailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
     async listOrdersRaw(requestParameters: ListOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderPage>> {
         const queryParameters: any = {};
 
@@ -765,6 +819,37 @@ export class PackagesApi extends runtime.BaseAPI {
      */
     async listPackages(requestParameters: ListPackagesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PackagePage> {
         const response = await this.listPackagesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async listPublicPackagesRaw(requestParameters: ListPublicPackagesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicPackageCatalog>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['branchId'] != null) {
+            queryParameters['branchId'] = requestParameters['branchId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/package-catalog`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicPackageCatalogFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async listPublicPackages(requestParameters: ListPublicPackagesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicPackageCatalog> {
+        const response = await this.listPublicPackagesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

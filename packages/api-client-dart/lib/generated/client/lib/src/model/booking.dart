@@ -3,7 +3,11 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/booking_branch.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/booking_class_slot_class_type.dart';
+import 'package:openapi/src/model/booking_class_slot.dart';
+import 'package:openapi/src/model/booking_attendance.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -25,6 +29,10 @@ part 'booking.g.dart';
 /// * [createdAt] 
 /// * [version] 
 /// * [idempotentReplay] 
+/// * [branch] 
+/// * [classSlot] 
+/// * [package] 
+/// * [attendance] 
 @BuiltValue()
 abstract class Booking implements Built<Booking, BookingBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -68,6 +76,18 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
 
   @BuiltValueField(wireName: r'idempotentReplay')
   bool get idempotentReplay;
+
+  @BuiltValueField(wireName: r'branch')
+  BookingBranch? get branch;
+
+  @BuiltValueField(wireName: r'classSlot')
+  BookingClassSlot? get classSlot;
+
+  @BuiltValueField(wireName: r'package')
+  BookingClassSlotClassType? get package;
+
+  @BuiltValueField(wireName: r'attendance')
+  BookingAttendance? get attendance;
 
   Booking._();
 
@@ -157,6 +177,34 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       object.idempotentReplay,
       specifiedType: const FullType(bool),
     );
+    if (object.branch != null) {
+      yield r'branch';
+      yield serializers.serialize(
+        object.branch,
+        specifiedType: const FullType(BookingBranch),
+      );
+    }
+    if (object.classSlot != null) {
+      yield r'classSlot';
+      yield serializers.serialize(
+        object.classSlot,
+        specifiedType: const FullType(BookingClassSlot),
+      );
+    }
+    if (object.package != null) {
+      yield r'package';
+      yield serializers.serialize(
+        object.package,
+        specifiedType: const FullType(BookingClassSlotClassType),
+      );
+    }
+    if (object.attendance != null) {
+      yield r'attendance';
+      yield serializers.serialize(
+        object.attendance,
+        specifiedType: const FullType(BookingAttendance),
+      );
+    }
   }
 
   @override
@@ -270,6 +318,34 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
             specifiedType: const FullType(bool),
           ) as bool;
           result.idempotentReplay = valueDes;
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingBranch),
+          ) as BookingBranch;
+          result.branch.replace(valueDes);
+          break;
+        case r'classSlot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingClassSlot),
+          ) as BookingClassSlot;
+          result.classSlot.replace(valueDes);
+          break;
+        case r'package':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingClassSlotClassType),
+          ) as BookingClassSlotClassType;
+          result.package.replace(valueDes);
+          break;
+        case r'attendance':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BookingAttendance),
+          ) as BookingAttendance;
+          result.attendance.replace(valueDes);
           break;
         default:
           unhandled.add(key);

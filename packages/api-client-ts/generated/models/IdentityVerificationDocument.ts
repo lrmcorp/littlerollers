@@ -84,6 +84,30 @@ export interface IdentityVerificationDocument {
      * @type {Date}
      * @memberof IdentityVerificationDocument
      */
+    issuedAt?: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof IdentityVerificationDocument
+     */
+    uploadedAt?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof IdentityVerificationDocument
+     */
+    finalizedAt?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof IdentityVerificationDocument
+     */
+    createdAt?: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof IdentityVerificationDocument
+     */
     reviewedAt?: Date | null;
     /**
      * 
@@ -97,6 +121,12 @@ export interface IdentityVerificationDocument {
      * @memberof IdentityVerificationDocument
      */
     version: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof IdentityVerificationDocument
+     */
+    auditReference?: string;
 }
 
 
@@ -182,9 +212,14 @@ export function IdentityVerificationDocumentFromJSONTyped(json: any, ignoreDiscr
         'sizeBytes': json['sizeBytes'],
         'rejectionReasonCode': json['rejectionReasonCode'] == null ? undefined : json['rejectionReasonCode'],
         'rejectionNote': json['rejectionNote'] == null ? undefined : json['rejectionNote'],
+        'issuedAt': json['issuedAt'] == null ? undefined : (new Date(json['issuedAt'])),
+        'uploadedAt': json['uploadedAt'] == null ? undefined : (new Date(json['uploadedAt'])),
+        'finalizedAt': json['finalizedAt'] == null ? undefined : (new Date(json['finalizedAt'])),
+        'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
         'reviewedAt': json['reviewedAt'] == null ? undefined : (new Date(json['reviewedAt'])),
         'deletedAt': json['deletedAt'] == null ? undefined : (new Date(json['deletedAt'])),
         'version': json['version'],
+        'auditReference': json['auditReference'] == null ? undefined : json['auditReference'],
     };
 }
 
@@ -209,9 +244,14 @@ export function IdentityVerificationDocumentToJSONTyped(value?: IdentityVerifica
         'sizeBytes': value['sizeBytes'],
         'rejectionReasonCode': value['rejectionReasonCode'],
         'rejectionNote': value['rejectionNote'],
+        'issuedAt': value['issuedAt'] == null ? undefined : ((value['issuedAt']).toISOString()),
+        'uploadedAt': value['uploadedAt'] === null ? null : ((value['uploadedAt'] as any)?.toISOString()),
+        'finalizedAt': value['finalizedAt'] === null ? null : ((value['finalizedAt'] as any)?.toISOString()),
+        'createdAt': value['createdAt'] == null ? undefined : ((value['createdAt']).toISOString()),
         'reviewedAt': value['reviewedAt'] === null ? null : ((value['reviewedAt'] as any)?.toISOString()),
         'deletedAt': value['deletedAt'] === null ? null : ((value['deletedAt'] as any)?.toISOString()),
         'version': value['version'],
+        'auditReference': value['auditReference'],
     };
 }
 

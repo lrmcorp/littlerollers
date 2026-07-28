@@ -143,10 +143,10 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           <p className="mb-4 text-xs font-bold tracking-[0.16em] uppercase">
             Move better, live better
           </p>
-          <h1 className="m-0 max-w-[620px] font-serif text-[clamp(3.2rem,5.2vw,5.4rem)] leading-[0.92] font-semibold tracking-[-0.035em] max-[900px]:text-[clamp(2.7rem,8vw,4.3rem)] max-[540px]:text-[2.75rem]">
+          <h1 className="m-0 max-w-[620px] font-sans text-[clamp(3.2rem,5.2vw,5.4rem)] leading-[0.92] font-semibold tracking-[-0.035em] max-[900px]:text-[clamp(2.7rem,8vw,4.3rem)] max-[540px]:text-[2.75rem]">
             Welcome back to your Daily Dose.
           </h1>
-          <blockquote className="mt-6 border-l border-white/60 pl-[18px] font-serif text-[1.35rem] max-[900px]:hidden">
+          <blockquote className="mt-6 border-l border-white/60 pl-[18px] font-sans text-[1.35rem] max-[900px]:hidden">
             “Stronger body. Calmer mind.”
           </blockquote>
         </div>
@@ -168,7 +168,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             Secure member access
           </p>
           <h2
-            className="m-0 font-serif text-[clamp(2.7rem,4vw,4rem)] leading-[0.98] font-semibold tracking-[-0.035em]"
+            className="m-0 font-sans text-[clamp(2.7rem,4vw,4rem)] leading-[0.98] font-semibold tracking-[-0.035em]"
             id="sign-in-title"
           >
             Masuk ke Daily Dose

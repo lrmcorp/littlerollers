@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { accountClient, type MyProfile, type PublicSiteConfig } from '../../account-client';
 import { useSessionContext } from '../../session-context';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
+import { Button } from '../../components/actions';
 
 export function SettingsView() {
   const context = useSessionContext();
@@ -50,9 +51,9 @@ export function SettingsView() {
       ) : state === 'error' || !profile || !config ? (
         <section className="rounded-dd-xl border border-dd-danger/20 bg-white p-6">
           <h2 className="font-bold">Pengaturan belum dapat dimuat</h2>
-          <button className="mt-4" onClick={() => void load()}>
+          <Button className="mt-4" onClick={() => void load()}>
             Coba lagi
-          </button>
+          </Button>
         </section>
       ) : (
         <form
@@ -115,12 +116,9 @@ export function SettingsView() {
               {message}
             </p>
           )}
-          <button
-            disabled={state === 'saving'}
-            className="rounded-dd-md border-0 bg-dd-forest px-5 font-bold text-white"
-          >
-            {state === 'saving' ? 'Menyimpan…' : 'Simpan pengaturan'}
-          </button>
+          <Button type="submit" loading={state === 'saving'} loadingLabel="Menyimpan pengaturan…">
+            Simpan pengaturan
+          </Button>
         </form>
       )}
     </div>

@@ -1,20 +1,20 @@
-export interface PublicPackageBranch {
-  id: string;
-  code: string;
-  name: string;
-  timezone: string;
-}
+import type {
+  PublicBranch,
+  PublicClassTypeRef,
+  PublicPackageSummary,
+} from '@dailydose/api-client-ts/generated';
+import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
-export interface PublicPackage {
-  id: string;
+export type PublicPackageBranch = Pick<PublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
+  Partial<Pick<PublicBranch, 'publicProfile'>>;
+export type PublicPackage = Omit<
+  PublicPackageSummary,
+  'effectiveUntil' | 'classType' | 'branch'
+> & {
   branchId: string;
-  name: string;
-  sessionCount: number;
-  durationDays: number;
-  priceRp: number;
+  classType: PublicClassTypeRef;
   effectiveUntil: string | null;
-  classType: { id: string; code: string; name: string };
-}
+};
 
 export interface PublicPackageCatalogResult {
   branches: PublicPackageBranch[];
@@ -27,19 +27,21 @@ export interface PublicPackageCatalogClient {
 
 export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
   async list(branchId) {
-    const query = new URLSearchParams();
-    if (branchId) query.set('branchId', branchId);
-    const response = await fetch(`/api/v1/public/package-catalog?${query}`, {
-      credentials: 'omit',
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw { response: { status: response.status } };
-    return response.json() as Promise<PublicPackageCatalogResult>;
+    const result = await publicGeneratedApi.packages.listPublicPackages({ branchId });
+    return {
+      branches: result.branches,
+      items: result.items.map((item) => ({
+        ...item,
+        branchId: item.branch?.id ?? branchId ?? '',
+        classType: item.classType as PublicClassTypeRef,
+        effectiveUntil: item.effectiveUntil?.toISOString() ?? null,
+      })),
+    };
   },
 };
 
 export function publicPackageFailure(error: unknown) {
-  const status = (error as { response?: { status?: number } })?.response?.status;
+  const status = publicApiStatus(error);
   if (status === 404) return 'Studio tidak tersedia.';
   if (status === 422) return 'Studio yang dipilih tidak valid.';
   if (status === 503) return 'Paket sedang tidak tersedia. Silakan coba kembali.';

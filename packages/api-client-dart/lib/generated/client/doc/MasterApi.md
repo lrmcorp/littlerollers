@@ -19,6 +19,7 @@ Method | HTTP request | Description
 [**deactivateBranch**](MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
 [**deactivateClassType**](MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
 [**deactivatePaymentAccount**](MasterApi.md#deactivatepaymentaccount) | **POST** /payment-accounts/{id}/deactivate | 
+[**getPublicStudioDetail**](MasterApi.md#getpublicstudiodetail) | **GET** /public/studios/{slug} | 
 [**listBranches**](MasterApi.md#listbranches) | **GET** /branches | 
 [**listClassTypes**](MasterApi.md#listclasstypes) | **GET** /class-types | 
 [**listEffectiveSettings**](MasterApi.md#listeffectivesettings) | **GET** /master-settings/{kind} | 
@@ -450,6 +451,47 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getPublicStudioDetail**
+> PublicStudioDetail getPublicStudioDetail(slug)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String slug = slug_example; // String | 
+
+try {
+    final response = api.getPublicStudioDetail(slug);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->getPublicStudioDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **slug** | **String**|  | 
+
+### Return type
+
+[**PublicStudioDetail**](PublicStudioDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

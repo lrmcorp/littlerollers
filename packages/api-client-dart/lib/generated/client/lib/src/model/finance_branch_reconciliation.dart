@@ -17,6 +17,7 @@ part 'finance_branch_reconciliation.g.dart';
 /// * [expectedRp] 
 /// * [receivedRp] 
 /// * [approvedRp] 
+/// * [identificationAmountRp] 
 /// * [pendingCount] 
 /// * [anomalyCount] 
 @BuiltValue()
@@ -38,6 +39,9 @@ abstract class FinanceBranchReconciliation implements Built<FinanceBranchReconci
 
   @BuiltValueField(wireName: r'approvedRp')
   int get approvedRp;
+
+  @BuiltValueField(wireName: r'identificationAmountRp')
+  int get identificationAmountRp;
 
   @BuiltValueField(wireName: r'pendingCount')
   int get pendingCount;
@@ -96,6 +100,11 @@ class _$FinanceBranchReconciliationSerializer implements PrimitiveSerializer<Fin
     yield r'approvedRp';
     yield serializers.serialize(
       object.approvedRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'identificationAmountRp';
+    yield serializers.serialize(
+      object.identificationAmountRp,
       specifiedType: const FullType(int),
     );
     yield r'pendingCount';
@@ -172,6 +181,13 @@ class _$FinanceBranchReconciliationSerializer implements PrimitiveSerializer<Fin
             specifiedType: const FullType(int),
           ) as int;
           result.approvedRp = valueDes;
+          break;
+        case r'identificationAmountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.identificationAmountRp = valueDes;
           break;
         case r'pendingCount':
           final valueDes = serializers.deserialize(

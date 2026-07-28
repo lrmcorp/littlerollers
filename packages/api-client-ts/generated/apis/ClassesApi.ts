@@ -25,6 +25,9 @@ import type {
   ClassSlotPage,
   ClassSlotVersionCommand,
   ErrorEnvelope,
+  PublicClassCatalog,
+  PublicClassDetail,
+  PublicScheduleDetail,
   TimeRangeCommand,
 } from '../models/index';
 import {
@@ -48,6 +51,12 @@ import {
     ClassSlotVersionCommandToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
+    PublicClassCatalogFromJSON,
+    PublicClassCatalogToJSON,
+    PublicClassDetailFromJSON,
+    PublicClassDetailToJSON,
+    PublicScheduleDetailFromJSON,
+    PublicScheduleDetailToJSON,
     TimeRangeCommandFromJSON,
     TimeRangeCommandToJSON,
 } from '../models/index';
@@ -74,6 +83,14 @@ export interface CreateClassSlotRequest {
     classSlotCommand: ClassSlotCommand;
 }
 
+export interface GetPublicClassDetailRequest {
+    slug: string;
+}
+
+export interface GetPublicScheduleDetailRequest {
+    id: string;
+}
+
 export interface ListAvailabilitiesRequest {
     branchId?: string;
     from?: Date;
@@ -87,6 +104,12 @@ export interface ListClassSlotsRequest {
     from?: Date;
     until?: Date;
     cursor?: string;
+}
+
+export interface ListPublicClassScheduleRequest {
+    branchId?: string;
+    from?: Date;
+    until?: Date;
 }
 
 export interface PublishClassSlotRequest {
@@ -354,6 +377,76 @@ export class ClassesApi extends runtime.BaseAPI {
     }
 
     /**
+     */
+    async getPublicClassDetailRaw(requestParameters: GetPublicClassDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicClassDetail>> {
+        if (requestParameters['slug'] == null) {
+            throw new runtime.RequiredError(
+                'slug',
+                'Required parameter "slug" was null or undefined when calling getPublicClassDetail().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/class-types/{slug}`;
+        urlPath = urlPath.replace(`{${"slug"}}`, encodeURIComponent(String(requestParameters['slug'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicClassDetailFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPublicClassDetail(requestParameters: GetPublicClassDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicClassDetail> {
+        const response = await this.getPublicClassDetailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPublicScheduleDetailRaw(requestParameters: GetPublicScheduleDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicScheduleDetail>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getPublicScheduleDetail().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/class-catalog/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicScheduleDetailFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPublicScheduleDetail(requestParameters: GetPublicScheduleDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicScheduleDetail> {
+        const response = await this.getPublicScheduleDetailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Instructor-own half-open intervals ordered by startAt and id descending. Optional from/until selects intervals that overlap the requested UTC window.
      */
     async listAvailabilitiesRaw(requestParameters: ListAvailabilitiesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AvailabilityPage>> {
@@ -460,6 +553,45 @@ export class ClassesApi extends runtime.BaseAPI {
      */
     async listClassSlots(requestParameters: ListClassSlotsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClassSlotPage> {
         const response = await this.listClassSlotsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async listPublicClassScheduleRaw(requestParameters: ListPublicClassScheduleRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicClassCatalog>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['branchId'] != null) {
+            queryParameters['branchId'] = requestParameters['branchId'];
+        }
+
+        if (requestParameters['from'] != null) {
+            queryParameters['from'] = (requestParameters['from'] as any).toISOString();
+        }
+
+        if (requestParameters['until'] != null) {
+            queryParameters['until'] = (requestParameters['until'] as any).toISOString();
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/class-catalog`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicClassCatalogFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async listPublicClassSchedule(requestParameters: ListPublicClassScheduleRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicClassCatalog> {
+        const response = await this.listPublicClassScheduleRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

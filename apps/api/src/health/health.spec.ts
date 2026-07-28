@@ -5,6 +5,12 @@ const config = {
     redisUrl: 'redis://127.0.0.1:6379',
     healthProbeTimeoutMs: 10,
     privateUploads: { root: '/private/identity-files' },
+    paymentProof: {
+      scanDriver: 'synthetic',
+      clamAvHost: null,
+      clamAvPort: 3310,
+      scanTimeoutMs: 10,
+    },
   },
 };
 
@@ -18,6 +24,7 @@ describe('HealthService', () => {
     stale?: boolean;
     missingHeartbeat?: boolean;
     storageFails?: boolean;
+    scannerFails?: boolean;
   }) {
     const prisma = {
       $queryRaw: options?.databaseTimeout
@@ -48,6 +55,14 @@ describe('HealthService', () => {
       .spyOn(health as unknown as { checkPrivateStorage(): Promise<void> }, 'checkPrivateStorage')
       .mockImplementation(() =>
         options?.storageFails ? Promise.reject(new Error('permission denied')) : Promise.resolve(),
+      );
+    jest
+      .spyOn(
+        health as unknown as { checkPaymentProofScanner(): Promise<void> },
+        'checkPaymentProofScanner',
+      )
+      .mockImplementation(() =>
+        options?.scannerFails ? Promise.reject(new Error('connection refused')) : Promise.resolve(),
       );
     return health;
   }
@@ -80,6 +95,15 @@ describe('HealthService', () => {
     expect(result.status).toBe('DEGRADED');
     expect(result.dependencies).toContainEqual({
       name: 'private-storage',
+      status: 'DEGRADED',
+      detailCode: 'UNREACHABLE',
+    });
+  });
+
+  it('reports DEGRADED when the payment-proof scanner is unreachable', async () => {
+    const result = await service({ scannerFails: true }).check();
+    expect(result.dependencies).toContainEqual({
+      name: 'payment-proof-scanner',
       status: 'DEGRADED',
       detailCode: 'UNREACHABLE',
     });

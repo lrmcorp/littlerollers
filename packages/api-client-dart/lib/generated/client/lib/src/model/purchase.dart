@@ -19,6 +19,8 @@ part 'purchase.g.dart';
 /// * [paymentProofId] 
 /// * [packageNameSnapshot] 
 /// * [priceRpSnapshot] 
+/// * [paymentUniqueCode] 
+/// * [payableAmountRpSnapshot] 
 /// * [sessionCountSnapshot] 
 /// * [durationDaysSnapshot] 
 /// * [status] 
@@ -49,6 +51,12 @@ abstract class Purchase implements Built<Purchase, PurchaseBuilder> {
 
   @BuiltValueField(wireName: r'priceRpSnapshot')
   int get priceRpSnapshot;
+
+  @BuiltValueField(wireName: r'paymentUniqueCode')
+  int? get paymentUniqueCode;
+
+  @BuiltValueField(wireName: r'payableAmountRpSnapshot')
+  int? get payableAmountRpSnapshot;
 
   @BuiltValueField(wireName: r'sessionCountSnapshot')
   int get sessionCountSnapshot;
@@ -135,6 +143,20 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.priceRpSnapshot,
       specifiedType: const FullType(int),
     );
+    if (object.paymentUniqueCode != null) {
+      yield r'paymentUniqueCode';
+      yield serializers.serialize(
+        object.paymentUniqueCode,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.payableAmountRpSnapshot != null) {
+      yield r'payableAmountRpSnapshot';
+      yield serializers.serialize(
+        object.payableAmountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     yield r'sessionCountSnapshot';
     yield serializers.serialize(
       object.sessionCountSnapshot,
@@ -253,6 +275,22 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
             specifiedType: const FullType(int),
           ) as int;
           result.priceRpSnapshot = valueDes;
+          break;
+        case r'paymentUniqueCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.paymentUniqueCode = valueDes;
+          break;
+        case r'payableAmountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.payableAmountRpSnapshot = valueDes;
           break;
         case r'sessionCountSnapshot':
           final valueDes = serializers.deserialize(

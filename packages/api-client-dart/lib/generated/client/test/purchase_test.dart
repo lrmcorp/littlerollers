@@ -42,6 +42,16 @@ void main() {
       // TODO
     });
 
+    // int paymentUniqueCode
+    test('to test the property `paymentUniqueCode`', () async {
+      // TODO
+    });
+
+    // int payableAmountRpSnapshot
+    test('to test the property `payableAmountRpSnapshot`', () async {
+      // TODO
+    });
+
     // int sessionCountSnapshot
     test('to test the property `sessionCountSnapshot`', () async {
       // TODO

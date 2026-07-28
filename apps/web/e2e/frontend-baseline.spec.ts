@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { hideNextDevelopmentAffordances } from './e2e-visual-helpers';
 
 test.beforeEach(async ({ page }) => {
+  await hideNextDevelopmentAffordances(page);
   await page.route('**/api/v1/me', (route) =>
     route.fulfill({
       status: 200,
@@ -174,7 +176,7 @@ test('super owner manages users while permissions remain read-only', async ({ pa
   });
 
   await page.goto('/users');
-  await expect(page.getByText('Admin Green Garden')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Admin Green Garden' }).first()).toBeVisible();
   await page.getByRole('link', { name: 'Admin Green Garden' }).first().click();
   await expect(page).toHaveURL('/users/user-1');
   await expect(page.getByText('security.user_invited')).toBeVisible();
@@ -266,7 +268,7 @@ test('admin sees only a read-only scoped user workspace', async ({ page }) => {
   });
 
   await page.goto('/users');
-  await expect(page.getByText('Branch User')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Branch User' }).first()).toBeVisible();
   await expect(page.getByText('Read only')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Buat pengguna internal' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Branch User' }).first().click();
@@ -307,7 +309,7 @@ test('public catalog requires a studio then shows authoritative availability', a
   await expect(page.getByText('2 tempat')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pilih kelas' })).toHaveAttribute(
     'href',
-    '/sign-in?returnTo=%2Fclasses%3Fslot%3Dslot-1',
+    '/workspace/classes',
   );
 });
 
@@ -385,12 +387,14 @@ for (const breakpoint of breakpoints) {
     await expect(
       page.getByRole('heading', { name: 'Reformer Pilates', exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('link', {
-        name: breakpoint.width >= 640 ? 'Masuk' : 'Masuk ke akun',
-        exact: true,
-      }),
-    ).toHaveAttribute('href', '/sign-in');
+    if (breakpoint.width >= 640) {
+      await expect(page.getByText('Synthetic Operator', { exact: true })).toBeVisible();
+    } else {
+      await expect(page.getByRole('link', { name: 'Buka workspace' })).toHaveAttribute(
+        'href',
+        '/workspace',
+      );
+    }
     for (const link of await page.getByRole('link', { name: 'Jelajahi Studio' }).all()) {
       await expect(link).toHaveAttribute('href', '/locations');
     }

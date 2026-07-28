@@ -8,6 +8,32 @@ export interface PreferredStudio {
   name: string;
   timezone: string;
   supportWhatsappE164: string | null;
+  publicProfile?: {
+    slug: string;
+    area: string;
+    city: string;
+    address: string;
+    description: string;
+    arrivalInformation: string | null;
+    parkingInformation: string | null;
+    openingHours: Array<{ days: string; hours: string }>;
+    amenities: string[];
+    heroImageKey: string;
+    galleryImageKeys: string[];
+  };
+}
+
+export interface PublicClassMarketingProfile {
+  code: string;
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  level: string;
+  durationMinutes: number;
+  equipment: string[];
+  benefits: string[];
+  heroImageKey: string;
 }
 
 export interface MyProfile {
@@ -21,6 +47,7 @@ export interface MyProfile {
 
 export interface PublicSiteConfig {
   branches: PreferredStudio[];
+  classes: PublicClassMarketingProfile[];
   fallbackWhatsappE164: string | null;
 }
 

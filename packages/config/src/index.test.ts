@@ -34,6 +34,15 @@ test('loads a complete synthetic local configuration', () => {
     viewAuthorizationTtlSeconds: 300,
     retentionDays: 30,
   });
+  assert.deepEqual(config.paymentProof, {
+    maxBytes: 10_000_000,
+    scanDriver: 'synthetic',
+    syntheticResult: 'CLEAN',
+    clamAvHost: null,
+    clamAvPort: 3310,
+    scanTimeoutMs: 15_000,
+    abandonedUploadTtlMinutes: 60,
+  });
 });
 
 test('does not require object storage credentials for local private uploads', () => {
@@ -60,9 +69,35 @@ test('never enables synthetic booking in production', () => {
     ...validEnvironment,
     NODE_ENV: 'production',
     PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+    PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
+    PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
   });
   assert.deepEqual(config.booking, { syntheticEnabled: false, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { syntheticEnabled: false, cutoffHours: 24 });
+});
+
+test('rejects synthetic payment scanning in production and validates scanner settings', () => {
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      NODE_ENV: 'production',
+      PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+      PAYMENT_PROOF_SCAN_DRIVER: 'synthetic',
+    }),
+  );
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
+      PAYMENT_PROOF_CLAMAV_HOST: '',
+    }),
+  );
+  assert.throws(() =>
+    loadRuntimeConfig({
+      ...validEnvironment,
+      PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT: 'TIMEOUT',
+    }),
+  );
 });
 
 test('does not invent defaults for production-required values', () => {

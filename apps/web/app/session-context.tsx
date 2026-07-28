@@ -11,22 +11,9 @@ import {
   type WebSession,
 } from './session-client';
 import { Feedback, Skeleton } from './ui';
+import { isPublicExperiencePath } from './session-audience';
 
 const ACTIVE_BRANCH_KEY = 'dd_active_branch';
-const publicPaths = new Set([
-  '/',
-  '/classes',
-  '/packages',
-  '/locations',
-  '/contact',
-  '/sign-in',
-  '/register',
-  '/activate-account',
-  '/forgot-password',
-  '/reset-password',
-  '/health',
-  '/check-in-pass',
-]);
 const anonymousEntryPaths = new Set([
   '/sign-in',
   '/register',
@@ -67,7 +54,7 @@ interface SessionContextValue {
   activeBranch: WebSession['branches'][number] | null;
   setActiveBranchId(id: string): void;
   hasCapability(...required: string[]): boolean;
-  refresh(): Promise<WebSession | null>;
+  refresh(options?: { quiet?: boolean }): Promise<WebSession | null>;
   completeSignIn(returnTo: string): Promise<boolean>;
   logout(): Promise<void>;
 }
@@ -114,11 +101,20 @@ export function defaultSessionDestination(session: WebSession): string {
   return '/workspace';
 }
 
+export function forbiddenSessionDestination(session: WebSession, pathname: string): string {
+  if (pathname === '/account/verification' && session.roles.some((role) => internalRoles.has(role)))
+    return session.capabilities.includes('identity-verification:review')
+      ? '/identity-verifications'
+      : '/workspace';
+  return defaultSessionDestination(session);
+}
+
 export function canAccessSessionPath(session: WebSession, value: string): boolean {
   const path = new URL(value, 'http://local.invalid').pathname;
-  if (publicPaths.has(path) || path.startsWith('/classes/')) return true;
+  if (isPublicExperiencePath(path)) return true;
   const customerOnly =
     session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  if (path === '/account/verification' && !customerOnly) return false;
   if (
     customerOnly &&
     session.identityVerificationStatus !== 'APPROVED' &&
@@ -177,34 +173,37 @@ export function SessionProvider({
     [session],
   );
 
-  const refresh = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const current = await client.me();
-      if (
-        !Number.isFinite(current.sessionExpiresAt.getTime()) ||
-        current.sessionExpiresAt <= new Date()
-      ) {
+  const refresh = useCallback(
+    async (options?: { quiet?: boolean }) => {
+      if (!options?.quiet) setStatus('loading');
+      try {
+        const current = await client.me();
+        if (
+          !Number.isFinite(current.sessionExpiresAt.getTime()) ||
+          current.sessionExpiresAt <= new Date()
+        ) {
+          setSession(null);
+          setStatus('expired');
+          sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
+          return null;
+        }
+        setSession(current);
+        const stored = sessionStorage.getItem(ACTIVE_BRANCH_KEY) ?? '';
+        setBranch(current.branches.some(({ id }) => id === stored) ? stored : '');
+        if (stored && !current.branches.some(({ id }) => id === stored))
+          sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
+        setStatus('authenticated');
+        return current;
+      } catch (error) {
         setSession(null);
-        setStatus('expired');
+        setBranch('');
         sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
+        setStatus(sessionFailure(error));
         return null;
       }
-      setSession(current);
-      const stored = sessionStorage.getItem(ACTIVE_BRANCH_KEY) ?? '';
-      setBranch(current.branches.some(({ id }) => id === stored) ? stored : '');
-      if (stored && !current.branches.some(({ id }) => id === stored))
-        sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
-      setStatus('authenticated');
-      return current;
-    } catch (error) {
-      setSession(null);
-      setBranch('');
-      sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
-      setStatus(sessionFailure(error));
-      return null;
-    }
-  }, [client]);
+    },
+    [client],
+  );
 
   useEffect(() => {
     if (anonymousEntryPaths.has(pathname)) {
@@ -238,7 +237,8 @@ export function SessionProvider({
   }, []);
 
   useEffect(() => {
-    if (publicPaths.has(pathname) || status === 'loading' || status === 'dependency-error') return;
+    if (isPublicExperiencePath(pathname) || status === 'loading' || status === 'dependency-error')
+      return;
     if (status !== 'authenticated') {
       const returnTo = encodeURIComponent(
         `${pathname}${window.location.search}${window.location.hash}`,
@@ -288,9 +288,14 @@ export function SessionProvider({
   const required = routeCapabilities.find(
     ([route]) => pathname === route || pathname.startsWith(`${route}/`),
   )?.[1];
-  const publicRoute = publicPaths.has(pathname);
+  const publicRoute = isPublicExperiencePath(pathname);
   const allowed = session ? canAccessSessionPath(session, pathname) : !required;
-  const fallback = session ? defaultSessionDestination(session) : '/workspace';
+  const fallback = session ? forbiddenSessionDestination(session, pathname) : '/workspace';
+  const staffVerificationRedirect = Boolean(
+    session &&
+    pathname === '/account/verification' &&
+    session.roles.some((role) => internalRoles.has(role)),
+  );
 
   useEffect(() => {
     if (status === 'authenticated' && session && !publicRoute && !allowed) router.replace(fallback);
@@ -309,8 +314,14 @@ export function SessionProvider({
         </main>
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
         <main className="content session-state">
-          <Feedback kind="error">Anda tidak memiliki akses ke area ini.</Feedback>
-          <Link href={fallback}>Kembali ke ringkasan</Link>
+          <Feedback kind={staffVerificationRedirect ? 'info' : 'error'}>
+            {staffVerificationRedirect
+              ? 'Halaman verifikasi akun hanya untuk customer. Anda sedang diarahkan ke antrean reviewer.'
+              : 'Anda tidak memiliki akses ke area ini.'}
+          </Feedback>
+          <Link href={fallback}>
+            {staffVerificationRedirect ? 'Buka antrean verifikasi' : 'Kembali ke ringkasan'}
+          </Link>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
         <main className="content session-state">

@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { accountClient, type MyProfile } from '../../account-client';
 import { useSessionContext } from '../../session-context';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
+import { Button, ButtonLink } from '../../components/actions';
 
 export function ProfileView() {
   const session = useSessionContext();
@@ -31,9 +31,9 @@ export function ProfileView() {
           {state === 'error' ? 'Profil belum dapat dimuat' : 'Memuat profil…'}
         </h1>
         {state === 'error' && (
-          <button className="mt-5" onClick={() => void load()}>
+          <Button className="mt-5" onClick={() => void load()}>
             Coba lagi
-          </button>
+          </Button>
         )}
       </section>
     );
@@ -120,18 +120,12 @@ export function ProfileView() {
           </p>
         )}
         <div className="flex flex-wrap gap-3">
-          <button
-            disabled={state === 'saving'}
-            className="rounded-dd-md border-0 bg-dd-forest px-5 font-bold text-white"
-          >
-            {state === 'saving' ? 'Menyimpan…' : 'Simpan profil'}
-          </button>
-          <Link
-            href="/account/security"
-            className="inline-flex min-h-11 items-center rounded-dd-md border border-dd-line px-5 font-bold text-dd-ink no-underline"
-          >
+          <Button type="submit" loading={state === 'saving'} loadingLabel="Menyimpan…">
+            Simpan profil
+          </Button>
+          <ButtonLink href="/account/security" variant="secondary">
             Keamanan akun
-          </Link>
+          </ButtonLink>
         </div>
       </form>
     </div>

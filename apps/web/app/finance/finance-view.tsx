@@ -62,6 +62,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         'expected_rp',
         'received_rp',
         'approved_rp',
+        'identification_amount_rp',
         'pending_count',
         'anomaly_count',
       ],
@@ -71,6 +72,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         item.expectedRp,
         item.receivedRp,
         item.approvedRp,
+        item.identificationAmountRp,
         item.pendingCount,
         item.anomalyCount,
       ]),
@@ -144,7 +146,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       )}
       <section
         aria-label="Ringkasan rekonsiliasi"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"
       >
         <StatCard
           label="Expected"
@@ -160,6 +162,11 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           label="Approved"
           value={money.format(metrics?.approvedRp ?? 0)}
           helper="Keputusan Finance"
+        />
+        <StatCard
+          label="Identifikasi transfer"
+          value={money.format(metrics?.identificationAmountRp ?? 0)}
+          helper="Penyesuaian tiga digit, terpisah dari harga paket"
         />
         <StatCard
           label="Ledger delta"
@@ -188,6 +195,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                     <th>Expected</th>
                     <th>Received</th>
                     <th>Approved</th>
+                    <th>Identifikasi</th>
                     <th>Pending</th>
                   </tr>
                 </thead>
@@ -201,6 +209,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                       <td>{money.format(item.expectedRp)}</td>
                       <td>{money.format(item.receivedRp)}</td>
                       <td>{money.format(item.approvedRp)}</td>
+                      <td>{money.format(item.identificationAmountRp)}</td>
                       <td>
                         <Badge tone={item.pendingCount ? 'warning' : 'success'}>
                           {item.pendingCount}

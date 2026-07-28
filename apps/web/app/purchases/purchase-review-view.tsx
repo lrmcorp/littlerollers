@@ -165,9 +165,11 @@ export function PurchaseReviewView({
               header: 'Nilai',
               cell: (item) => (
                 <div>
-                  {rupiah.format(item.priceRpSnapshot)}
+                  {rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
                   <p className="text-xs text-dd-muted">
-                    {item.sessionCountSnapshot} sesi · {item.durationDaysSnapshot} hari
+                    {item.paymentUniqueCode
+                      ? `Harga ${rupiah.format(item.priceRpSnapshot)} · identifikasi ${String(item.paymentUniqueCode).padStart(3, '0')}`
+                      : 'Nominal standar'}
                   </p>
                 </div>
               ),
@@ -216,7 +218,9 @@ export function PurchaseReviewView({
               <div>
                 <strong>{item.customerName}</strong>
                 <p className="mt-1 text-sm text-dd-muted">{item.packageNameSnapshot}</p>
-                <p className="mt-2 font-semibold">{rupiah.format(item.priceRpSnapshot)}</p>
+                <p className="mt-2 font-semibold">
+                  {rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
+                </p>
               </div>
               <div className="grid justify-items-end gap-3">
                 <Badge
@@ -268,8 +272,17 @@ export function PurchaseReviewView({
               <dd>{selected.packageNameSnapshot}</dd>
             </div>
             <div>
-              <dt>Harga</dt>
-              <dd>{rupiah.format(selected.priceRpSnapshot)}</dd>
+              <dt>Total transfer</dt>
+              <dd>{rupiah.format(selected.payableAmountRpSnapshot ?? selected.priceRpSnapshot)}</dd>
+            </div>
+            <div>
+              <dt>Harga paket / identifikasi transfer</dt>
+              <dd>
+                {rupiah.format(selected.priceRpSnapshot)} /{' '}
+                {selected.paymentUniqueCode
+                  ? String(selected.paymentUniqueCode).padStart(3, '0')
+                  : 'Nominal standar'}
+              </dd>
             </div>
             <div>
               <dt>Sesi / durasi</dt>

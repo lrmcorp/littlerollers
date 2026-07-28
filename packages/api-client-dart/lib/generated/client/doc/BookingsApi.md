@@ -11,6 +11,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**createBooking**](BookingsApi.md#createbooking) | **POST** /bookings | 
 [**decideReschedule**](BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
+[**getBooking**](BookingsApi.md#getbooking) | **GET** /bookings/{id} | 
 [**getCustomerBookingOptions**](BookingsApi.md#getcustomerbookingoptions) | **GET** /bookings/options/{classSlotId} | 
 [**listBookings**](BookingsApi.md#listbookings) | **GET** /bookings | 
 [**listReschedules**](BookingsApi.md#listreschedules) | **GET** /reschedules | 
@@ -107,6 +108,49 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getBooking**
+> Booking getBooking(id)
+
+
+
+Customer-owned or branch-scoped booking detail with safe class, studio, package, and attendance labels.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getBooking(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->getBooking: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**Booking**](Booking.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

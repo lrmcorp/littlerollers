@@ -3,8 +3,9 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/public_branch.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:openapi/src/model/preferred_studio.dart';
+import 'package:openapi/src/model/public_class_marketing_summary.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -14,11 +15,15 @@ part 'public_site_config.g.dart';
 ///
 /// Properties:
 /// * [branches] 
+/// * [classes] 
 /// * [fallbackWhatsappE164] 
 @BuiltValue()
 abstract class PublicSiteConfig implements Built<PublicSiteConfig, PublicSiteConfigBuilder> {
   @BuiltValueField(wireName: r'branches')
-  BuiltList<PreferredStudio> get branches;
+  BuiltList<PublicBranch> get branches;
+
+  @BuiltValueField(wireName: r'classes')
+  BuiltList<PublicClassMarketingSummary> get classes;
 
   @BuiltValueField(wireName: r'fallbackWhatsappE164')
   String? get fallbackWhatsappE164;
@@ -49,7 +54,12 @@ class _$PublicSiteConfigSerializer implements PrimitiveSerializer<PublicSiteConf
     yield r'branches';
     yield serializers.serialize(
       object.branches,
-      specifiedType: const FullType(BuiltList, [FullType(PreferredStudio)]),
+      specifiedType: const FullType(BuiltList, [FullType(PublicBranch)]),
+    );
+    yield r'classes';
+    yield serializers.serialize(
+      object.classes,
+      specifiedType: const FullType(BuiltList, [FullType(PublicClassMarketingSummary)]),
     );
     yield r'fallbackWhatsappE164';
     yield object.fallbackWhatsappE164 == null ? null : serializers.serialize(
@@ -82,9 +92,16 @@ class _$PublicSiteConfigSerializer implements PrimitiveSerializer<PublicSiteConf
         case r'branches':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(PreferredStudio)]),
-          ) as BuiltList<PreferredStudio>;
+            specifiedType: const FullType(BuiltList, [FullType(PublicBranch)]),
+          ) as BuiltList<PublicBranch>;
           result.branches.replace(valueDes);
+          break;
+        case r'classes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PublicClassMarketingSummary)]),
+          ) as BuiltList<PublicClassMarketingSummary>;
+          result.classes.replace(valueDes);
           break;
         case r'fallbackWhatsappE164':
           final valueDes = serializers.deserialize(

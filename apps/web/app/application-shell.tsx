@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleHelp,
+  LockKeyhole,
   Menu,
   Search,
   ShieldCheck,
@@ -18,21 +19,18 @@ import { routes } from './routes';
 import { canReadPage, frontendPages } from './frontend-pages';
 import { PublicExperience } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
-import { CustomerNavigation } from './components/customer/customer-navigation';
-
-const publicPaths = [
-  '/',
-  '/classes',
-  '/packages',
-  '/locations',
-  '/contact',
-  '/sign-in',
-  '/register',
-  '/activate-account',
-  '/forgot-password',
-  '/reset-password',
-  '/check-in-pass',
-];
+import {
+  CUSTOMER_ACCOUNT_NAVIGATION,
+  CUSTOMER_PRIMARY_NAVIGATION,
+  CustomerNavigation,
+  isCustomerNavigationActive,
+} from './components/customer/customer-navigation';
+import { BrandMark } from './components/public/brand-mark';
+import {
+  isCustomerCatalogPath,
+  isCustomerOnlySession,
+  isPublicExperiencePath,
+} from './session-audience';
 
 const roleLabels: Record<string, string> = {
   SUPER_OWNER: 'Super Owner',
@@ -50,6 +48,9 @@ const accountPageLabels: Record<string, string> = {
   '/account/settings': 'Pengaturan',
   '/account/security': 'Keamanan akun',
   '/account/verification': 'Verifikasi identitas',
+  '/checkout': 'Checkout',
+  '/orders': 'Pesanan',
+  '/bookings': 'Booking',
 };
 
 function pageForPath(pathname: string) {
@@ -113,10 +114,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('pointerdown', outsideHandler);
     };
   }, [profileOpen]);
-  const customerOnly =
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
-  const customerCatalog = customerOnly && (pathname === '/classes' || pathname === '/packages');
-  if (publicPaths.includes(pathname) && !customerCatalog)
+  const customerOnly = isCustomerOnlySession(session);
+  const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
+  if (isPublicExperiencePath(pathname) && !customerCatalog)
     return (
       <>
         {children}
@@ -124,35 +124,83 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       </>
     );
   if (customerOnly) {
+    const approved = session?.identityVerificationStatus === 'APPROVED';
     return (
       <div className="min-h-dvh bg-dd-canvas text-dd-ink" data-customer-shell>
         <a className="skip-link" href="#main-content">
           Langsung ke konten utama
         </a>
-        <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 backdrop-blur-xl">
-            <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
-              <button
-                type="button"
-                aria-label="Buka navigasi akun"
-                aria-controls="customer-navigation"
-                onClick={() => setMobileOpen(true)}
-                className="grid size-10 min-h-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-ink lg:hidden"
-              >
-                <Menu className="size-5" />
-              </button>
-              <div className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-                  Akun Daily Dose
-                </span>
-                <strong className="block truncate text-sm sm:text-base">
-                  {currentPageLabel ?? 'Akun Saya'}
-                </strong>
-              </div>
+        <CustomerNavigation
+          open={mobileOpen}
+          approved={approved}
+          onClose={() => setMobileOpen(false)}
+        />
+        <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 backdrop-blur-xl">
+          <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
+            <button
+              type="button"
+              aria-label="Buka navigasi akun"
+              aria-controls="customer-navigation"
+              onClick={() => setMobileOpen(true)}
+              className="grid size-10 min-h-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-ink lg:hidden"
+            >
+              <Menu className="size-5" />
+            </button>
+            <BrandMark
+              href="/account"
+              priority
+              className="hidden w-40 shrink-0 lg:inline-flex xl:w-44"
+              ariaLabel="Daily Dose Pilates — Beranda customer"
+            />
+            <nav
+              aria-label="Navigasi customer"
+              className="hidden min-w-0 items-center gap-1 lg:flex xl:ml-3"
+            >
+              {CUSTOMER_PRIMARY_NAVIGATION.map((item) => {
+                const selected = isCustomerNavigationActive(pathname, item.href);
+                const locked = Boolean(item.requiresApproval && !approved);
+                const href = locked
+                  ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
+                  : item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={href}
+                    aria-current={selected ? 'page' : undefined}
+                    aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
+                      selected
+                        ? 'bg-dd-forest text-white shadow-dd-soft'
+                        : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-forest'
+                    }`}
+                  >
+                    {item.label}
+                    {locked && <LockKeyhole className="size-3" aria-hidden="true" />}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="min-w-0 flex-1 lg:hidden">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-dd-muted">
+                Akun Daily Dose
+              </span>
+              <strong className="block truncate text-sm sm:text-base">
+                {currentPageLabel ?? 'Akun Saya'}
+              </strong>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              {session?.preferredBranch && (
+                <Link
+                  href="/account/settings"
+                  className="hidden max-w-48 truncate rounded-dd-md border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-ink no-underline xl:block"
+                >
+                  Studio: {session.preferredBranch.name}
+                </Link>
+              )}
               <Link
                 href="/contact"
                 aria-label="Bantuan customer"
-                className="grid size-10 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline"
+                className="hidden size-10 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline sm:grid"
               >
                 <CircleHelp className="size-[18px]" />
               </Link>
@@ -170,7 +218,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   <span className="grid size-7 place-items-center rounded-dd-md bg-dd-sidebar text-white">
                     <UserRound className="size-4" />
                   </span>
-                  <span className="hidden max-w-36 truncate text-sm font-bold sm:block">
+                  <span className="hidden max-w-32 truncate text-sm font-bold 2xl:block">
                     {session?.displayName ?? 'Customer'}
                   </span>
                   <ChevronDown className="hidden size-3.5 text-dd-muted sm:block" />
@@ -180,32 +228,31 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     id="customer-profile-menu"
                     role="region"
                     aria-label="Menu akun customer"
-                    className="absolute right-0 mt-2 w-60 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
+                    className="absolute right-0 mt-2 w-64 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
                   >
-                    <Link
-                      href="/account/profile"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                    >
-                      <UserRound className="size-4" />
-                      Profil Saya
-                    </Link>
-                    <Link
-                      href="/account/settings"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                    >
-                      <CircleHelp className="size-4" />
-                      Pengaturan
-                    </Link>
-                    <Link
-                      href={routes.security}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                    >
-                      <ShieldCheck className="size-4" />
-                      Keamanan akun
-                    </Link>
+                    {CUSTOMER_ACCOUNT_NAVIGATION.map((item) => {
+                      const Icon = item.icon;
+                      const locked = Boolean(item.requiresApproval && !approved);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={
+                            locked
+                              ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
+                              : item.href
+                          }
+                          onClick={() => setProfileOpen(false)}
+                          aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                          className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        >
+                          <Icon className="size-4" aria-hidden="true" />
+                          <span className="flex-1">{item.label}</span>
+                          {locked && (
+                            <LockKeyhole className="size-3.5 text-dd-muted" aria-hidden="true" />
+                          )}
+                        </Link>
+                      );
+                    })}
                     <button
                       className="mt-1 flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                       onClick={() => void context?.logout()}
@@ -216,28 +263,22 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             </div>
-            {session?.preferredBranch && (
-              <div className="border-t border-dd-line px-4 py-2 text-xs text-dd-muted sm:px-6 lg:hidden">
-                Studio aktif:{' '}
-                <strong className="text-dd-ink">{session.preferredBranch.name}</strong>
-              </div>
-            )}
-            <CustomerNavigation
-              open={mobileOpen}
-              approved={session?.identityVerificationStatus === 'APPROVED'}
-              onClose={() => setMobileOpen(false)}
-            />
-          </header>
-          <div
-            className={
-              customerCatalog
-                ? 'min-w-0'
-                : 'mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8'
-            }
-            id="main-content"
-          >
-            {children}
           </div>
+          {session?.preferredBranch && (
+            <div className="border-t border-dd-line px-4 py-2 text-xs text-dd-muted sm:px-6 xl:hidden">
+              Studio aktif: <strong className="text-dd-ink">{session.preferredBranch.name}</strong>
+            </div>
+          )}
+        </header>
+        <div
+          className={
+            customerCatalog
+              ? 'min-w-0'
+              : 'mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8'
+          }
+          id="main-content"
+        >
+          {children}
         </div>
         <PublicExperience />
       </div>

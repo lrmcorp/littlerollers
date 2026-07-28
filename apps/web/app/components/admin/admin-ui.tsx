@@ -222,14 +222,16 @@ export function Drawer({
   title,
   children,
   onClose,
+  className,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose(): void;
+  className?: string;
 }) {
   return (
-    <GlobalDrawer open={open} title={title} onClose={onClose}>
+    <GlobalDrawer open={open} title={title} onClose={onClose} className={className}>
       {children}
     </GlobalDrawer>
   );

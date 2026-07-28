@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **approvedRp** | **int** |  | 
 **pendingRp** | **int** |  | 
 **rejectedRp** | **int** |  | 
+**identificationAmountRp** | **int** | Three-digit transfer identification amount reported separately from package revenue. | 
 **ledgerDeltaRp** | **int** |  | 
 **unreconciledCount** | **int** |  | 
 

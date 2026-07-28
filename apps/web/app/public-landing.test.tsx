@@ -1,10 +1,70 @@
 import { render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { accountClient } from './account-client';
 import { PublicLanding } from './public-landing';
 
 describe('public landing page', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it('renders the full public journey without requiring a session', async () => {
+    vi.spyOn(accountClient, 'siteConfig').mockResolvedValue({
+      branches: [
+        {
+          id: 'branch-jakarta',
+          code: 'DD-JKT',
+          name: 'Daily Dose Jakarta',
+          timezone: 'Asia/Jakarta',
+          supportWhatsappE164: null,
+        },
+        {
+          id: 'branch-bsd',
+          code: 'DD-BSD',
+          name: 'Daily Dose BSD',
+          timezone: 'Asia/Jakarta',
+          supportWhatsappE164: null,
+        },
+      ],
+      classes: [
+        {
+          code: 'REFORMER',
+          name: 'Reformer Pilates',
+          slug: 'reformer-pilates',
+          summary: 'Latihan seluruh tubuh dengan reformer.',
+          description: 'Latihan terarah.',
+          level: 'Semua level',
+          durationMinutes: 50,
+          equipment: ['Reformer'],
+          benefits: ['Kekuatan'],
+          heroImageKey: 'classes/reformer-pilates.png',
+        },
+        {
+          code: 'MAT',
+          name: 'Mat Pilates',
+          slug: 'mat-pilates',
+          summary: 'Gerak presisi di atas mat.',
+          description: 'Bangun kontrol tubuh.',
+          level: 'Semua level',
+          durationMinutes: 50,
+          equipment: ['Mat'],
+          benefits: ['Kontrol'],
+          heroImageKey: 'classes/mat-pilates.png',
+        },
+        {
+          code: 'BARRE',
+          name: 'Barre',
+          slug: 'barre',
+          summary: 'Latihan stabilitas dan daya tahan.',
+          description: 'Gerak fungsional.',
+          level: 'Pemula–menengah',
+          durationMinutes: 50,
+          equipment: ['Barre'],
+          benefits: ['Stabilitas'],
+          heroImageKey: 'landing/studio-showcase.png',
+        },
+      ],
+      fallbackWhatsappE164: null,
+    });
     const view = render(<PublicLanding />);
 
     expect(
@@ -13,9 +73,9 @@ describe('public landing page', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Navigasi publik' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Reformer Pilates' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Mat Pilates' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Barre' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Reformer Pilates' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Mat Pilates' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Barre' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Cadillac Pilates' })).not.toBeInTheDocument();
     screen.getAllByRole('link', { name: 'Jelajahi Studio' }).forEach((link) => {
       expect(link).toHaveAttribute('href', '/locations');

@@ -30,6 +30,7 @@ import type {
   PaymentAccount,
   PaymentAccountCommand,
   ProjectionRateCommand,
+  PublicStudioDetail,
   QuotaCapacityCommand,
   ReasonedVersionCommand,
   Resource,
@@ -66,6 +67,8 @@ import {
     PaymentAccountCommandToJSON,
     ProjectionRateCommandFromJSON,
     ProjectionRateCommandToJSON,
+    PublicStudioDetailFromJSON,
+    PublicStudioDetailToJSON,
     QuotaCapacityCommandFromJSON,
     QuotaCapacityCommandToJSON,
     ReasonedVersionCommandFromJSON,
@@ -118,6 +121,10 @@ export interface DeactivateClassTypeRequest {
 export interface DeactivatePaymentAccountRequest {
     id: string;
     reasonedVersionCommand: ReasonedVersionCommand;
+}
+
+export interface GetPublicStudioDetailRequest {
+    slug: string;
 }
 
 export interface ListClassTypesRequest {
@@ -640,6 +647,41 @@ export class MasterApi extends runtime.BaseAPI {
      */
     async deactivatePaymentAccount(requestParameters: DeactivatePaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentAccount> {
         const response = await this.deactivatePaymentAccountRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getPublicStudioDetailRaw(requestParameters: GetPublicStudioDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicStudioDetail>> {
+        if (requestParameters['slug'] == null) {
+            throw new runtime.RequiredError(
+                'slug',
+                'Required parameter "slug" was null or undefined when calling getPublicStudioDetail().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/public/studios/{slug}`;
+        urlPath = urlPath.replace(`{${"slug"}}`, encodeURIComponent(String(requestParameters['slug'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicStudioDetailFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getPublicStudioDetail(requestParameters: GetPublicStudioDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicStudioDetail> {
+        const response = await this.getPublicStudioDetailRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

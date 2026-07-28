@@ -28,8 +28,25 @@ export type BookingDiscovery = {
 };
 
 export type BookingPage = {
-  items: Booking[];
+  items: CustomerBookingRecord[];
   nextCursor?: string | null;
+};
+
+export type CustomerBookingRecord = Omit<
+  Booking,
+  'branch' | 'classSlot' | 'package' | 'attendance'
+> & {
+  branch?: { id: string; name: string; timezone: string };
+  classSlot?: {
+    id: string;
+    startAt: Date;
+    endAt: Date;
+    timezone: string;
+    status: string;
+    classType: { id: string; name: string };
+  };
+  package?: { id: string; name: string };
+  attendance?: { checkedInAt: Date; source: 'QR' | 'BACKFILL' };
 };
 
 export type CustomerBookingOptions = {
@@ -95,6 +112,7 @@ export interface BookingClient {
   discover(branchId: string): Promise<BookingDiscovery>;
   options(classSlotId: string): Promise<CustomerBookingOptions>;
   list(input: { branchId?: string; status?: string; cursor?: string }): Promise<BookingPage>;
+  detail(id: string): Promise<CustomerBookingRecord>;
   create(input: BookingCommand, idempotencyKey: string): Promise<Booking>;
   listReschedules(input: {
     branchId: string;
@@ -189,8 +207,65 @@ export const browserBookingClient: BookingClient = {
     };
   },
   async list(input) {
-    const result = await bookings.listBookings(input);
-    return { items: result.items, nextCursor: result.page.nextCursor };
+    const query = new URLSearchParams();
+    if (input.branchId) query.set('branchId', input.branchId);
+    if (input.status) query.set('status', input.status);
+    if (input.cursor) query.set('cursor', input.cursor);
+    const response = await fetch(`/api/v1/bookings?${query.toString()}`, {
+      credentials: 'include',
+    });
+    if (!response.ok) throw { response };
+    const result = (await response.json()) as {
+      items: Array<
+        Omit<CustomerBookingRecord, 'createdAt' | 'classSlot' | 'attendance'> & {
+          createdAt: string;
+          classSlot?: Omit<NonNullable<CustomerBookingRecord['classSlot']>, 'startAt' | 'endAt'> & {
+            startAt: string;
+            endAt: string;
+          };
+          attendance?: { checkedInAt: string; source: 'QR' | 'BACKFILL' } | null;
+        }
+      >;
+      page: { nextCursor?: string | null };
+    };
+    return {
+      items: result.items.map((item) => ({
+        ...item,
+        createdAt: new Date(item.createdAt),
+        classSlot: item.classSlot
+          ? {
+              ...item.classSlot,
+              startAt: new Date(item.classSlot.startAt),
+              endAt: new Date(item.classSlot.endAt),
+            }
+          : undefined,
+        attendance: item.attendance
+          ? { ...item.attendance, checkedInAt: new Date(item.attendance.checkedInAt) }
+          : undefined,
+      })),
+      nextCursor: result.page.nextCursor,
+    };
+  },
+  async detail(id) {
+    const response = await fetch(`/api/v1/bookings/${encodeURIComponent(id)}`, {
+      credentials: 'include',
+    });
+    if (!response.ok) throw { response };
+    const item = (await response.json()) as any;
+    return {
+      ...item,
+      createdAt: new Date(item.createdAt),
+      classSlot: item.classSlot
+        ? {
+            ...item.classSlot,
+            startAt: new Date(item.classSlot.startAt),
+            endAt: new Date(item.classSlot.endAt),
+          }
+        : undefined,
+      attendance: item.attendance
+        ? { ...item.attendance, checkedInAt: new Date(item.attendance.checkedInAt) }
+        : undefined,
+    };
   },
   create(input, idempotencyKey) {
     return bookings.createBooking({ idempotencyKey, bookingCommand: input });

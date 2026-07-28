@@ -5,6 +5,7 @@ export * from './AuditApi';
 export * from './AuthApi';
 export * from './BookingsApi';
 export * from './ClassesApi';
+export * from './DashboardApi';
 export * from './FinanceApi';
 export * from './IdentityApi';
 export * from './LedgerApi';

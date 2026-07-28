@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   browserPublicClassCatalogClient,
   publicCatalogFailure,
@@ -249,7 +250,7 @@ export function PublicClassesView({
                 className="mt-8 rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
                 role="alert"
               >
-                <strong className="font-serif text-2xl">Jadwal belum tersedia</strong>
+                <strong className="font-sans text-2xl">Jadwal belum tersedia</strong>
                 <p className="mt-2">{message}</p>
                 <button
                   className={`${publicSecondaryButton} mt-5`}
@@ -268,7 +269,7 @@ export function PublicClassesView({
               </div>
             ) : !branchId ? (
               <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
-                <strong className="font-serif text-2xl">Pilih studio untuk melihat kelas</strong>
+                <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
                 <p className="mt-2 text-dd-muted">
                   Kami tidak memilih lokasi pertama secara otomatis agar jadwal selalu sesuai
                   pilihan Anda.
@@ -276,7 +277,7 @@ export function PublicClassesView({
               </div>
             ) : visible.length === 0 ? (
               <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
-                <strong className="font-serif text-2xl">Belum ada kelas pada filter ini</strong>
+                <strong className="font-sans text-2xl">Belum ada kelas pada filter ini</strong>
                 <p className="mt-2 text-dd-muted">
                   Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
                 </p>
@@ -291,7 +292,7 @@ export function PublicClassesView({
                   >
                     <header className="border-b border-dd-line bg-dd-paper px-5 py-4">
                       <span className="text-xs font-bold tracking-wider text-dd-brass">{date}</span>
-                      <h3 className="mt-1 font-serif text-2xl font-semibold" id={`day-${date}`}>
+                      <h3 className="mt-1 font-sans text-2xl font-semibold" id={`day-${date}`}>
                         {dateLabel(items[0]!.startAt, items[0]!.timezone)}
                       </h3>
                     </header>
@@ -313,7 +314,7 @@ export function PublicClassesView({
                             <span className="text-xs font-bold text-dd-forest">
                               {slot.classType.code}
                             </span>
-                            <h4 className="mt-1 font-serif text-xl font-semibold">
+                            <h4 className="mt-1 font-sans text-xl font-semibold">
                               {slot.classType.name}
                             </h4>
                             <p className="mt-1 text-sm text-dd-muted">
@@ -321,6 +322,26 @@ export function PublicClassesView({
                                 ? 'Kelas dikonfirmasi'
                                 : 'Terbuka untuk booking'}
                             </p>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
+                              <Link
+                                href={`/schedule/${slot.id}`}
+                                className="text-dd-forest underline-offset-4 hover:underline"
+                              >
+                                Detail jadwal
+                              </Link>
+                              <Link
+                                href={`/classes/${
+                                  slot.classType.code === 'REFORMER'
+                                    ? 'reformer-pilates'
+                                    : slot.classType.code === 'MAT'
+                                      ? 'mat-pilates'
+                                      : 'barre'
+                                }`}
+                                className="text-dd-forest underline-offset-4 hover:underline"
+                              >
+                                Detail kelas
+                              </Link>
+                            </div>
                           </div>
                           <div>
                             <span className="block text-xs text-dd-muted">Ketersediaan</span>

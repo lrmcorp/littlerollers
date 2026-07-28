@@ -1,0 +1,2 @@
+packages/api-client-ts/generated/** linguist-generated=true -whitespace
+packages/api-client-dart/lib/generated/** linguist-generated=true -whitespace

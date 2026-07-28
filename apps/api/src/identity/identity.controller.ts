@@ -23,6 +23,12 @@ import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { IdentityService } from './identity.service';
 import { ApiProblem } from './security';
 import { HttpStatus } from '@nestjs/common';
+import { CustomerProfileService } from './customer-profile.service';
+import { IdentityReviewQueryService } from './identity-review-query.service';
+import { IdentityDocumentAccessService } from './identity-document-access.service';
+import { AssignmentService } from './assignment.service';
+import { IdentityDocumentWorkflowService } from './identity-document-workflow.service';
+import { UserAdministrationService } from './user-administration.service';
 
 interface MemoryUpload {
   originalname: string;
@@ -34,7 +40,15 @@ const multipartLimits = { fileSize: 8_000_000, files: 2 };
 
 @Controller()
 export class IdentityController {
-  constructor(private readonly identities: IdentityService) {}
+  constructor(
+    private readonly identities: IdentityService,
+    private readonly customerProfiles: CustomerProfileService,
+    private readonly identityReviews: IdentityReviewQueryService,
+    private readonly identityDocuments: IdentityDocumentAccessService,
+    private readonly assignments: AssignmentService,
+    private readonly identityDocumentWorkflow: IdentityDocumentWorkflowService,
+    private readonly users: UserAdministrationService,
+  ) {}
 
   private deliverSession(
     response: Response,
@@ -145,7 +159,7 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Get('me/profile')
   myProfile(@Req() request: AuthenticatedRequest) {
-    return this.identities.myProfile(request.principal);
+    return this.customerProfiles.get(request.principal);
   }
 
   @UseGuards(AuthGuard)
@@ -155,16 +169,11 @@ export class IdentityController {
     @Body()
     body: { displayName: string; preferredBranchId?: string | null; expectedVersion: number },
   ) {
-    return this.identities.updateMyProfile(
+    return this.customerProfiles.update(
       request.principal,
       body,
       request.correlationId ?? 'unknown',
     );
-  }
-
-  @Get('public/site-config')
-  publicSiteConfig() {
-    return this.identities.publicSiteConfig();
   }
 
   @UseGuards(AuthGuard)
@@ -173,7 +182,7 @@ export class IdentityController {
     @Req() request: AuthenticatedRequest,
     @Param('kind') kind: import('@prisma/client').IdentityDocumentKind,
   ) {
-    return this.identities.authorizeMyIdentityDocument(
+    return this.identityDocuments.authorizeSelf(
       request.principal,
       kind,
       request.correlationId ?? 'unknown',
@@ -192,7 +201,7 @@ export class IdentityController {
     const expectedVersion = Number(body.expectedVersion);
     if (!replacement || !Number.isInteger(expectedVersion))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    return this.identities.replaceIdentityDocument(
+    return this.identityDocumentWorkflow.replaceIdentityDocument(
       request.principal,
       kind,
       {
@@ -207,14 +216,34 @@ export class IdentityController {
 
   @UseGuards(AuthGuard)
   @Get('identity-verifications')
-  listIdentityReview(@Req() request: AuthenticatedRequest, @Query('status') status?: string) {
-    return this.identities.listIdentityReview(request.principal, status);
+  listIdentityReview(
+    @Req() request: AuthenticatedRequest,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('kind') kind?: string,
+    @Query('scanStatus') scanStatus?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') rawLimit?: string,
+  ) {
+    const limit = rawLimit == null ? undefined : Number(rawLimit);
+    return this.identityReviews.list(request.principal, {
+      q,
+      status,
+      kind,
+      scanStatus,
+      from,
+      until,
+      cursor,
+      limit,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Post('identity-verifications/:id/view-authorizations')
   authorizeIdentityDocument(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.identities.authorizeIdentityDocument(
+    return this.identityDocuments.authorizeReview(
       request.principal,
       id,
       request.correlationId ?? 'unknown',
@@ -228,7 +257,7 @@ export class IdentityController {
     @Param('authorizationId') authorizationId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const file = await this.identities.readAuthorizedIdentityDocument(
+    const file = await this.identityDocuments.read(
       request.principal,
       authorizationId,
       request.correlationId ?? 'unknown',
@@ -255,7 +284,7 @@ export class IdentityController {
   ) {
     if (!['approve', 'reject'].includes(decision))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    return this.identities.decideIdentityDocument(
+    return this.identityDocumentWorkflow.decideIdentityDocument(
       request.principal,
       id,
       decision === 'approve' ? 'APPROVED' : 'REJECTED',
@@ -271,7 +300,7 @@ export class IdentityController {
     @Param('id') id: string,
     @Body() body: { expectedVersion: number; reason: string },
   ) {
-    return this.identities.deleteIdentityDocument(
+    return this.identityDocumentWorkflow.deleteIdentityDocument(
       request.principal,
       id,
       body,
@@ -471,7 +500,7 @@ export class IdentityController {
     @Query('status') status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE',
     @Query('role') role?: import('@prisma/client').ApplicationRole,
   ) {
-    return this.identities.listUsers(request.principal, {
+    return this.users.listUsers(request.principal, {
       branchId,
       cursor,
       search,
@@ -489,7 +518,7 @@ export class IdentityController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.identities.lookupUsers(request.principal, {
+    return this.users.lookupUsers(request.principal, {
       q,
       branchId,
       cursor,
@@ -506,7 +535,7 @@ export class IdentityController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.identities.lookupUsers(request.principal, {
+    return this.users.lookupUsers(request.principal, {
       q,
       branchId,
       cursor,
@@ -524,7 +553,7 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Get('users/:id')
   getUser(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.identities.getUser(request.principal, id);
+    return this.users.getUser(request.principal, id);
   }
 
   @UseGuards(AuthGuard)
@@ -540,7 +569,7 @@ export class IdentityController {
       reason: string;
     },
   ) {
-    return this.identities.updateUserProfile(
+    return this.users.updateUserProfile(
       request.principal,
       id,
       body,
@@ -564,7 +593,7 @@ export class IdentityController {
       }[];
     },
   ) {
-    return this.identities.inviteUser(request.principal, body, request.correlationId ?? 'unknown');
+    return this.users.inviteUser(request.principal, body, request.correlationId ?? 'unknown');
   }
 
   @UseGuards(AuthGuard)
@@ -596,7 +625,7 @@ export class IdentityController {
       reason: string;
     },
   ) {
-    return this.identities.updateUserRoles(
+    return this.users.updateUserRoles(
       request.principal,
       id,
       body,
@@ -612,7 +641,7 @@ export class IdentityController {
     @Param('id') id: string,
     @Body() body: { reason: string; expectedVersion: number },
   ) {
-    return this.identities.deactivate(
+    return this.users.deactivate(
       request.principal,
       id,
       body.reason,
@@ -628,7 +657,7 @@ export class IdentityController {
     @Param('id') id: string,
     @Body() body: { reason: string; expectedVersion: number },
   ) {
-    return this.identities.reactivate(
+    return this.users.reactivate(
       request.principal,
       id,
       body.reason,
@@ -644,7 +673,7 @@ export class IdentityController {
     @Param('id') id: string,
     @Query('cursor') cursor?: string,
   ) {
-    return this.identities.listUserAudit(request.principal, id, cursor);
+    return this.users.listUserAudit(request.principal, id, cursor);
   }
 
   @UseGuards(AuthGuard)
@@ -660,7 +689,7 @@ export class IdentityController {
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
   ) {
-    return this.identities.listAuditLogs(request.principal, {
+    return this.users.listAuditLogs(request.principal, {
       actorId,
       targetUserId,
       action,
@@ -675,7 +704,7 @@ export class IdentityController {
   @UseGuards(AuthGuard)
   @Get('assignments')
   listAssignments(@Req() request: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    return this.identities.listAssignments(request.principal, branchId);
+    return this.assignments.list(request.principal, branchId);
   }
 
   @UseGuards(AuthGuard)
@@ -692,11 +721,7 @@ export class IdentityController {
       reason: string;
     },
   ) {
-    return this.identities.createAssignment(
-      request.principal,
-      body,
-      request.correlationId ?? 'unknown',
-    );
+    return this.assignments.create(request.principal, body, request.correlationId ?? 'unknown');
   }
 
   @UseGuards(AuthGuard)
@@ -707,11 +732,6 @@ export class IdentityController {
     @Headers('idempotency-key') _idempotencyKey: string,
     @Body() body: { effectiveAt: string; reason: string; expectedVersion: number },
   ) {
-    return this.identities.endAssignment(
-      request.principal,
-      id,
-      body,
-      request.correlationId ?? 'unknown',
-    );
+    return this.assignments.end(request.principal, id, body, request.correlationId ?? 'unknown');
   }
 }

@@ -14,6 +14,7 @@ Name | Type | Description | Notes
 **expectedRp** | **int** |  | 
 **receivedRp** | **int** |  | 
 **approvedRp** | **int** |  | 
+**identificationAmountRp** | **int** |  | 
 **pendingCount** | **int** |  | 
 **anomalyCount** | **int** |  | 
 

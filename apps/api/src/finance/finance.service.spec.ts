@@ -31,6 +31,8 @@ describe('FinanceService', () => {
         branch: { id: 'b1', code: 'JKT', name: 'Jakarta' },
         status: 'APPROVED',
         priceRpSnapshot: 1_000_000,
+        paymentUniqueCode: 101,
+        payableAmountRpSnapshot: 1_000_101,
         submittedAt: new Date(),
         paymentProof: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
         customerPackage: { id: 'cp1', salePriceRp: 1_000_000 },
@@ -41,6 +43,8 @@ describe('FinanceService', () => {
         branch: { id: 'b1', code: 'JKT', name: 'Jakarta' },
         status: 'PENDING',
         priceRpSnapshot: 500_000,
+        paymentUniqueCode: 202,
+        payableAmountRpSnapshot: 500_202,
         submittedAt: new Date(),
         paymentProof: { uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
         customerPackage: null,
@@ -52,14 +56,21 @@ describe('FinanceService', () => {
       until: '2026-07-31',
     });
     expect(result.metrics).toMatchObject({
-      expectedRp: 1_500_000,
-      receivedRp: 1_500_000,
+      expectedRp: 1_500_303,
+      receivedRp: 1_500_303,
       approvedRp: 1_000_000,
-      pendingRp: 500_000,
+      pendingRp: 500_202,
+      identificationAmountRp: 303,
       ledgerDeltaRp: 0,
       unreconciledCount: 1,
     });
-    expect(result.branches).toEqual([expect.objectContaining({ code: 'JKT', pendingCount: 1 })]);
+    expect(result.branches).toEqual([
+      expect.objectContaining({
+        code: 'JKT',
+        pendingCount: 1,
+        identificationAmountRp: 303,
+      }),
+    ]);
   });
 
   it('returns actionable anomalies without exposing proof contents', async () => {

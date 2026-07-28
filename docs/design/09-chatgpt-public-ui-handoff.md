@@ -36,8 +36,8 @@ Karakter visual: tenang, premium, editorial, hangat, dan berfokus pada mindful m
 | Latar utama | Paper `#fbfaf7` |
 | Latar hangat | Cream `#f5f0e7` |
 | Latar lembut | Mist `#e9efea` |
-| Heading | Cormorant Garamond lokal / serif editorial |
-| Body dan control | DM Sans lokal / system sans-serif fallback |
+| Heading | Poppins lokal, weight 600–700 |
+| Body dan control | Poppins lokal, weight 400–600 |
 | Bentuk | Pill button, card radius 22–24px, arch/oval untuk visual |
 | Nuansa | Banyak whitespace, garis tipis, dekorasi botanical/geometris |
 
@@ -69,7 +69,7 @@ Logo harus memiliki `alt="Daily Dose Pilates"` dan dimensi eksplisit untuk mence
 ### Tablet dan Mobile
 
 - Tablet: logo dan tombol masuk berada di baris pertama; navigasi berada di baris kedua.
-- Mobile: navigasi boleh horizontal-scroll, tetapi tidak boleh menyebabkan body overflow.
+- Mobile: navigasi menggunakan drawer dan tidak boleh menyebabkan body overflow.
 - Semua aksi yang tersedia saat hover juga harus tersedia melalui keyboard/touch.
 - Skip link menjadi elemen fokus pertama.
 

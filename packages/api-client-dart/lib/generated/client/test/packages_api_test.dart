@@ -52,7 +52,7 @@ void main() {
 
     // Approved customer checkout snapshot with the full account number for the selected active package only.
     //
-    //Future<CheckoutOptions> getCheckoutOptions(String packageId) async
+    //Future<CheckoutOptions> getCheckoutOptions(String packageId, { String branchId }) async
     test('test getCheckoutOptions', () async {
       // TODO
     });
@@ -67,6 +67,11 @@ void main() {
       // TODO
     });
 
+    //Future<PublicPackageDetail> getPublicPackageDetail(String id) async
+    test('test getPublicPackageDetail', () async {
+      // TODO
+    });
+
     //Future<OrderPage> listOrders({ String status, String cursor }) async
     test('test listOrders', () async {
       // TODO
@@ -76,6 +81,11 @@ void main() {
     //
     //Future<PackagePage> listPackages({ String branchId, String cursor }) async
     test('test listPackages', () async {
+      // TODO
+    });
+
+    //Future<PublicPackageCatalog> listPublicPackages({ String branchId }) async
+    test('test listPublicPackages', () async {
       // TODO
     });
 
