@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { digest } from '../identity/security';
 import { PaymentProofService } from './payment-proof.service';
+import { ConfigGatedMalwareScanProvider } from './proof-providers';
 
 const principal = {
   userId: 'customer-1',
@@ -41,6 +42,7 @@ describe('PaymentProofService upload lifecycle', () => {
       storage as never,
       {} as never,
       { catalog: jest.fn() } as never,
+      { value: { paymentProof: { maxBytes: 10_000_000 } } } as never,
     );
 
     await expect(service.uploadContent(principal, proof.id, png)).rejects.toThrow(
@@ -65,6 +67,7 @@ describe('PaymentProofService upload lifecycle', () => {
       storage as never,
       {} as never,
       { catalog: jest.fn() } as never,
+      { value: { paymentProof: { maxBytes: 10_000_000 } } } as never,
     );
 
     await expect(service.uploadContent(principal, proof.id, png)).resolves.toMatchObject({
@@ -72,5 +75,28 @@ describe('PaymentProofService upload lifecycle', () => {
       uploadStatus: 'UPLOADED',
     });
     expect(storage.storePrivateObject).not.toHaveBeenCalled();
+  });
+});
+
+describe('payment-proof scanner startup guard', () => {
+  it('accepts the explicit development synthetic scanner', async () => {
+    const scanner = new ConfigGatedMalwareScanProvider(undefined, {
+      value: { paymentProof: { scanDriver: 'synthetic' } },
+    } as never);
+    await expect(scanner.onModuleInit()).resolves.toBeUndefined();
+  });
+
+  it('fails startup when configured ClamAV cannot be reached', async () => {
+    const scanner = new ConfigGatedMalwareScanProvider(undefined, {
+      value: {
+        paymentProof: {
+          scanDriver: 'clamav',
+          clamAvHost: '127.0.0.1',
+          clamAvPort: 1,
+          scanTimeoutMs: 50,
+        },
+      },
+    } as never);
+    await expect(scanner.onModuleInit()).rejects.toThrow('PAYMENT_PROOF_SCANNER_UNAVAILABLE');
   });
 });

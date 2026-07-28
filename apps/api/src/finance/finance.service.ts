@@ -56,6 +56,13 @@ export class FinanceService {
     query: { branchId?: string; from?: string; until?: string },
   ) {
     const { range, purchases } = await this.records(principal, query);
+    const reconcilableStatuses = [
+      'AWAITING_PAYMENT',
+      'PENDING',
+      'ACTION_REQUIRED',
+      'APPROVED',
+      'REJECTED',
+    ];
     const payable = (item: (typeof purchases)[number]) =>
       item.payableAmountRpSnapshot ?? item.priceRpSnapshot;
     const amount = (statuses: string[]) =>
@@ -66,22 +73,12 @@ export class FinanceService {
       (item) =>
         item.paymentProof?.uploadStatus === 'FINALIZED' && item.paymentProof.scanStatus === 'CLEAN',
     );
-    const expectedRp = amount([
-      'AWAITING_PAYMENT',
-      'PENDING',
-      'ACTION_REQUIRED',
-      'APPROVED',
-      'REJECTED',
-    ]);
+    const expectedRp = amount(reconcilableStatuses);
     const approvedRp = purchases
       .filter((item) => item.status === 'APPROVED')
       .reduce((sum, item) => sum + item.priceRpSnapshot, 0);
     const identificationAmountRp = purchases
-      .filter((item) =>
-        ['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED'].includes(
-          item.status,
-        ),
-      )
+      .filter((item) => reconcilableStatuses.includes(item.status))
       .reduce((sum, item) => sum + (item.paymentUniqueCode ?? 0), 0);
     const ledgerRecognizedRp = purchases.reduce(
       (sum, item) => sum + (item.customerPackage?.salePriceRp ?? 0),
@@ -111,14 +108,15 @@ export class FinanceService {
         pendingCount: 0,
         anomalyCount: 0,
       };
-      row.expectedRp += payable(item);
+      if (reconcilableStatuses.includes(item.status)) row.expectedRp += payable(item);
       if (
         item.paymentProof?.uploadStatus === 'FINALIZED' &&
         item.paymentProof.scanStatus === 'CLEAN'
       )
         row.receivedRp += payable(item);
       if (item.status === 'APPROVED') row.approvedRp += item.priceRpSnapshot;
-      row.identificationAmountRp += item.paymentUniqueCode ?? 0;
+      if (reconcilableStatuses.includes(item.status))
+        row.identificationAmountRp += item.paymentUniqueCode ?? 0;
       if (item.status === 'PENDING') row.pendingCount += 1;
       if (
         (item.status === 'APPROVED' && !item.customerPackage) ||

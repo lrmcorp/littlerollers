@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
 import { CustomerOrderService } from './customer-order.service';
@@ -12,6 +15,8 @@ import {
   ConfigGatedObjectStorageProvider,
 } from './proof-providers';
 import { encryptAccountNumber } from './payment-account-security';
+import { LocalPrivateFileStorage } from '../identity/private-file-storage';
+import { FinanceService } from '../finance/finance.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic package purchase MySQL integration', () => {
@@ -25,6 +30,22 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   let catalog: PackageCatalogService;
   let proofs: PaymentProofService;
   let reviews: PaymentReviewService;
+  let scanner: ConfigGatedMalwareScanProvider;
+  let privateRoot: string;
+  let runtime: {
+    value: {
+      privateUploads: { root: string };
+      paymentProof: {
+        maxBytes: number;
+        scanDriver: 'synthetic' | 'clamav';
+        syntheticResult: 'CLEAN' | 'REJECTED';
+        clamAvHost: string | null;
+        clamAvPort: number;
+        scanTimeoutMs: number;
+        abandonedUploadTtlMinutes: number;
+      };
+    };
+  };
   const principal = {
     sessionId: namespace,
     userId: actorId,
@@ -53,8 +74,6 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
     process.env.AUTH_SYNTHETIC_ENABLED = 'true';
-    process.env.PAYMENT_PROOF_SYNTHETIC_ENABLED = 'true';
-    process.env.PAYMENT_PROOF_SYNTHETIC_MAX_BYTES = '10485760';
     await db.$connect();
     await db.user.create({ data: { id: actorId, displayName: 'Synthetic customer' } });
     await db.user.create({ data: { id: reviewerId, displayName: 'Synthetic reviewer' } });
@@ -66,12 +85,29 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     });
     const policy = new PolicyService();
     const idempotency = new IdempotencyService(db as never);
-    const storage = new ConfigGatedObjectStorageProvider();
-    const scanner = new ConfigGatedMalwareScanProvider();
+    privateRoot = await mkdtemp(join(tmpdir(), 'dd-payment-proof-integration-'));
+    runtime = {
+      value: {
+        privateUploads: { root: privateRoot },
+        paymentProof: {
+          maxBytes: 10_000_000,
+          scanDriver: 'synthetic',
+          syntheticResult: 'CLEAN',
+          clamAvHost: null,
+          clamAvPort: 3310,
+          scanTimeoutMs: 15_000,
+          abandonedUploadTtlMinutes: 60,
+        },
+      },
+    };
+    const privateFiles = new LocalPrivateFileStorage(runtime as never);
+    await privateFiles.onModuleInit();
+    const storage = new ConfigGatedObjectStorageProvider(privateFiles);
+    scanner = new ConfigGatedMalwareScanProvider(privateFiles, runtime as never);
     const access = new PackageAccessService(db as never, policy);
     orders = new CustomerOrderService(db as never, idempotency, access);
     catalog = new PackageCatalogService(db as never, access);
-    proofs = new PaymentProofService(db as never, storage, scanner, access);
+    proofs = new PaymentProofService(db as never, storage, scanner, access, runtime as never);
     reviews = new PaymentReviewService(db as never, idempotency, storage, access);
   });
   afterAll(async () => {
@@ -96,6 +132,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, reviewerId] } } });
     await db.$disconnect();
+    await rm(privateRoot, { recursive: true, force: true });
   });
 
   it('creates one pending purchase and outbox event with identical replay', async () => {
@@ -161,7 +198,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         `${namespace}-changed`,
       ),
     ).rejects.toThrow('IDEMPOTENCY_KEY_REUSED');
-    process.env.PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT = 'UNSAFE';
+    runtime.value.paymentProof.syntheticResult = 'REJECTED';
     const unsafeBytes = Buffer.from('%PDF-unsafe!');
     const proof = await proofs.issue(
       principal,
@@ -183,7 +220,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       `${namespace}-unsafe-finalize`,
     );
     expect(finalized.scanStatus).toBe('REJECTED');
-    delete process.env.PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT;
+    runtime.value.paymentProof.syntheticResult = 'CLEAN';
     await expect(
       catalog.create(
         principal,
@@ -268,19 +305,9 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   it('fails closed in production and rejects invalid file metadata', async () => {
     const previous = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
-    await expect(
-      proofs.issue(
-        principal,
-        {
-          branchId,
-          fileName: 'proof.png',
-          mimeType: 'image/png',
-          sizeBytes: 1,
-          sha256: 'c'.repeat(64),
-        },
-        `${namespace}-production`,
-      ),
-    ).rejects.toMatchObject({ code: 'CONFIGURATION_REQUIRED' });
+    await expect(scanner.scanPrivateObject('payment-proofs/not-used')).rejects.toMatchObject({
+      code: 'CONFIGURATION_REQUIRED',
+    });
     process.env.NODE_ENV = previous;
     await expect(
       proofs.issue(
@@ -371,6 +398,112 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       }),
     ).toBe(1);
     expect(pkg.sessionCount).toBe(customerPackage.sessionCountSnapshot);
+  });
+
+  it('completes order, private binary upload, synthetic scan, attach, Finance approval and reconciliation', async () => {
+    const pkg = await db.package.findFirstOrThrow({ where: { branchId } });
+    await db.paymentAccount.create({
+      data: {
+        id: randomUUID(),
+        branchId,
+        activeBranchKey: branchId,
+        bankCode: 'MANDIRI',
+        bankName: 'Bank Mandiri',
+        accountNumberEncrypted: encryptAccountNumber('100023456789'),
+        accountNumberLast4: '6789',
+        accountHolderName: 'Daily Dose Integration',
+        paymentWindowHours: 24,
+      },
+    });
+    const created = await orders.createOrder(
+      principal,
+      { packageId: pkg.id, branchId },
+      'full-order-key',
+      `${namespace}-full-order`,
+    );
+    const order = created.body as unknown as {
+      id: string;
+      version: number;
+      baseAmountRp: number;
+      paymentUniqueCode: number;
+      payableAmountRp: number;
+    };
+    expect(order.payableAmountRp).toBe(order.baseAmountRp + order.paymentUniqueCode);
+
+    const bytes = pngBytes(4096);
+    const proof = await proofs.issue(
+      principal,
+      {
+        orderId: order.id,
+        branchId,
+        packageId: pkg.id,
+        fileName: 'full-flow.png',
+        mimeType: 'image/png',
+        sizeBytes: bytes.length,
+        sha256: sha256(bytes),
+      },
+      `${namespace}-full-proof-issue`,
+    );
+    await proofs.uploadContent(principal, proof.id, bytes);
+    await expect(proofs.uploadContent(principal, proof.id, bytes)).resolves.toMatchObject({
+      uploadStatus: 'UPLOADED',
+    });
+    await proofs.finalize(
+      principal,
+      proof.id,
+      { sha256: sha256(bytes), sizeBytes: bytes.length },
+      `${namespace}-full-proof-finalize`,
+    );
+    await expect(
+      proofs.finalize(
+        principal,
+        proof.id,
+        { sha256: sha256(bytes), sizeBytes: bytes.length },
+        `${namespace}-full-proof-finalize-replay`,
+      ),
+    ).resolves.toMatchObject({ uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' });
+
+    const attached = (await orders.attachOrderProof(
+      principal,
+      order.id,
+      { paymentProofId: proof.id, expectedVersion: order.version },
+      `${namespace}-full-attach`,
+    )) as { status: string; version: number };
+    expect(attached.status).toBe('PENDING');
+    await expect(
+      orders.attachOrderProof(
+        principal,
+        order.id,
+        { paymentProofId: proof.id, expectedVersion: order.version },
+        `${namespace}-full-attach-replay`,
+      ),
+    ).resolves.toMatchObject({ status: 'PENDING', version: attached.version });
+
+    await reviews.decide(
+      reviewer,
+      order.id,
+      'APPROVED',
+      { reasonCode: 'PAYMENT_VERIFIED', expectedVersion: attached.version },
+      'full-decision-key',
+      `${namespace}-full-approve`,
+    );
+    const activated = await db.customerPackage.findUniqueOrThrow({
+      where: { purchaseId: order.id },
+    });
+    expect(activated.salePriceRp).toBe(order.baseAmountRp);
+    expect(await db.ledgerEntry.count({ where: { referenceId: order.id } })).toBe(1);
+
+    const reconciliation = await new FinanceService(db as never).overview(
+      {
+        ...reviewer,
+        capabilities: [...reviewer.capabilities, 'finance:reconcile'],
+      } as never,
+      { branchId },
+    );
+    expect(reconciliation.metrics.identificationAmountRp).toBeGreaterThanOrEqual(
+      order.paymentUniqueCode,
+    );
+    expect(reconciliation.metrics.approvedRp).toBeGreaterThanOrEqual(order.baseAmountRp);
   });
 
   it('enforces separation of duties, reason codes and decided state', async () => {

@@ -96,6 +96,39 @@ profile seed gagal sebelum membuka koneksi database ketika `NODE_ENV=production`
 - A request `branchId` is only a filter; authorization comes from authenticated branch assignments.
 - Real provider/account/secrets, production migration, and release remain PG-1 blocked.
 
+## Deployment VPS dengan Docker Compose
+
+Docker Compose production menjalankan Web, API, worker, MySQL, Redis, ClamAV,
+dan migrasi Prisma. Hanya port Web yang dipublikasikan ke host; database dan API
+tetap berada di network internal Docker.
+
+1. Salin `.env.production.example` menjadi `.env.production`.
+2. Ganti seluruh nilai `CHANGE_ME`, domain `PUBLIC_WEB_BASE_URL`, alamat email,
+   WhatsApp, dan kredensial provider. Password MySQL di `MYSQL_PASSWORD` harus
+   sama dengan password di `DATABASE_URL` (URL-encode bila mengandung karakter
+   khusus).
+3. Jalankan build dan deployment:
+
+   ```bash
+   docker compose --env-file .env.production up -d --build
+   ```
+
+4. Periksa status dan log:
+
+   ```bash
+   docker compose --env-file .env.production ps
+   docker compose --env-file .env.production logs -f api web worker
+   ```
+
+Aplikasi tersedia di port `32120`. Untuk HTTPS, arahkan reverse proxy VPS
+(Caddy, Nginx, atau Traefik) ke `127.0.0.1:32120` dan ubah
+`WEB_BIND_ADDRESS=127.0.0.1`. Jangan menjalankan seed demo di production.
+
+Backup minimal mencakup volume `dailydose_mysql-data` dan
+`dailydose_private-uploads`. Saat memperbarui aplikasi, tarik kode terbaru lalu
+jalankan kembali perintah `up -d --build`; service `migrate` akan menjalankan
+migrasi Prisma sebelum API dan worker dimulai.
+
 ## Troubleshooting
 
 - If native MySQL is unavailable, confirm the service is running and that

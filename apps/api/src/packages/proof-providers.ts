@@ -174,11 +174,15 @@ export class ConfigGatedMalwareScanProvider implements MalwareScanProvider, OnMo
       };
       socket.setTimeout(timeoutMs, fail);
       socket.once('error', fail);
-      socket.once('connect', () => {
+      socket.on('data', (chunk) => {
         if (settled) return;
+        if (!Buffer.from(chunk).toString('utf8').includes('PONG')) return fail();
         settled = true;
         socket.destroy();
         resolveReady();
+      });
+      socket.once('connect', () => {
+        socket.write('zPING\0');
       });
     });
   }

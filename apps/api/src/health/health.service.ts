@@ -89,15 +89,27 @@ export class HealthService implements OnModuleDestroy {
     if (!scanner.clamAvHost) throw new Error('UNREACHABLE');
     await new Promise<void>((resolveReady, rejectReady) => {
       const socket = createConnection({ host: scanner.clamAvHost!, port: scanner.clamAvPort });
-      const failed = () => rejectReady(new Error('UNREACHABLE'));
+      let settled = false;
+      const failed = () => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        rejectReady(new Error('UNREACHABLE'));
+      };
       socket.setTimeout(scanner.scanTimeoutMs, () => socket.destroy());
       socket.once('error', failed);
-      socket.once('close', (hadError) => {
-        if (hadError) failed();
+      socket.once('close', () => {
+        if (!settled) failed();
       });
-      socket.once('connect', () => {
+      socket.on('data', (chunk) => {
+        if (settled) return;
+        if (!Buffer.from(chunk).toString('utf8').includes('PONG')) return failed();
+        settled = true;
         socket.destroy();
         resolveReady();
+      });
+      socket.once('connect', () => {
+        socket.write('zPING\0');
       });
     });
   }

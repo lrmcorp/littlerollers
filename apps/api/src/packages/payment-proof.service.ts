@@ -17,7 +17,7 @@ export class PaymentProofService {
     private readonly storage: ConfigGatedObjectStorageProvider,
     private readonly scanner: ConfigGatedMalwareScanProvider,
     private readonly access: PackageAccessService,
-    private readonly config?: RuntimeConfigService,
+    private readonly config: RuntimeConfigService,
   ) {}
 
   async issue(principal: SessionPrincipal, input: any, correlationId: string) {
@@ -36,13 +36,7 @@ export class PaymentProofService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (!/\.(png|jpe?g|pdf)$/i.test(input.fileName))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const maxBytes =
-      this.config?.value.paymentProof.maxBytes ??
-      Number(
-        process.env.PAYMENT_PROOF_MAX_BYTES ??
-          process.env.PAYMENT_PROOF_SYNTHETIC_MAX_BYTES ??
-          10 * 1024 * 1024,
-      );
+    const maxBytes = this.config.value.paymentProof.maxBytes;
     if (!Number.isInteger(maxBytes) || maxBytes < 1)
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
     if (input.sizeBytes > maxBytes)
