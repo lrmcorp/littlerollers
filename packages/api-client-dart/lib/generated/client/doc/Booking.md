@@ -18,6 +18,8 @@ Name | Type | Description | Notes
 **source_** | **String** |  | 
 **status** | **String** |  | 
 **reservedQuantity** | **int** |  | 
+**cancellationReasonCode** | **String** |  | [optional] 
+**cancelledAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 **version** | **int** |  | 
 **idempotentReplay** | **bool** |  | 

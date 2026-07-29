@@ -18,6 +18,8 @@ const validEnvironment = {
   BOOKING_SYNTHETIC_CUTOFF_HOURS: '2',
   RESCHEDULE_SYNTHETIC_ENABLED: 'true',
   RESCHEDULE_SYNTHETIC_CUTOFF_HOURS: '24',
+  BOOKING_CANCELLATION_ENABLED: 'true',
+  BOOKING_CANCELLATION_CUTOFF_HOURS: '24',
 };
 
 test('loads a complete synthetic local configuration', () => {
@@ -27,6 +29,7 @@ test('loads a complete synthetic local configuration', () => {
   assert.equal(config.quotaEvaluation.syntheticEnabled, true);
   assert.deepEqual(config.booking, { enabled: true, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { enabled: true, cutoffHours: 24 });
+  assert.deepEqual(config.bookingCancellation, { enabled: true, cutoffHours: 24 });
   assert.deepEqual(config.sessionAdjustment, { enabled: true });
   assert.deepEqual(config.rbac, { policySource: 'static', managementEnabled: false });
   assert.deepEqual(config.privateUploads, {
@@ -99,12 +102,15 @@ test('uses only production policy variables in production', () => {
   const config = loadRuntimeConfig({
     ...validEnvironment,
     NODE_ENV: 'production',
+    BOOKING_CANCELLATION_ENABLED: undefined,
+    BOOKING_CANCELLATION_CUTOFF_HOURS: undefined,
     PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
     PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
     PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
   });
   assert.deepEqual(config.booking, { enabled: false, cutoffHours: null });
   assert.deepEqual(config.reschedule, { enabled: false, cutoffHours: null });
+  assert.deepEqual(config.bookingCancellation, { enabled: false, cutoffHours: null });
   assert.deepEqual(config.sessionAdjustment, { enabled: false });
   assert.deepEqual(config.identityReview, { enabled: false });
   const enabled = loadRuntimeConfig({
@@ -117,11 +123,14 @@ test('uses only production policy variables in production', () => {
     BOOKING_CUTOFF_HOURS: '2',
     RESCHEDULE_ENABLED: 'true',
     RESCHEDULE_CUTOFF_HOURS: '24',
+    BOOKING_CANCELLATION_ENABLED: 'true',
+    BOOKING_CANCELLATION_CUTOFF_HOURS: '24',
     SESSION_ADJUSTMENT_ENABLED: 'true',
     IDENTITY_REVIEW_ENABLED: 'true',
   });
   assert.deepEqual(enabled.booking, { enabled: true, cutoffHours: 2 });
   assert.deepEqual(enabled.reschedule, { enabled: true, cutoffHours: 24 });
+  assert.deepEqual(enabled.bookingCancellation, { enabled: true, cutoffHours: 24 });
   assert.deepEqual(enabled.sessionAdjustment, { enabled: true });
   assert.deepEqual(enabled.identityReview, { enabled: true });
   assert.throws(() =>

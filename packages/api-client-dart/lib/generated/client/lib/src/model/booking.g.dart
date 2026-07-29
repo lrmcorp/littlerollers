@@ -85,6 +85,47 @@ _$bookingReservedQuantityEnumValues = BuiltSet<BookingReservedQuantityEnum>(
   const <BookingReservedQuantityEnum>[_$bookingReservedQuantityEnum_number1],
 );
 
+const BookingCancellationReasonCodeEnum
+_$bookingCancellationReasonCodeEnum_PERSONAL_UNAVAILABLE =
+    const BookingCancellationReasonCodeEnum._('PERSONAL_UNAVAILABLE');
+const BookingCancellationReasonCodeEnum
+_$bookingCancellationReasonCodeEnum_CUSTOMER_SCHEDULE_CONFLICT =
+    const BookingCancellationReasonCodeEnum._('CUSTOMER_SCHEDULE_CONFLICT');
+const BookingCancellationReasonCodeEnum
+_$bookingCancellationReasonCodeEnum_WRONG_CLASS_SELECTED =
+    const BookingCancellationReasonCodeEnum._('WRONG_CLASS_SELECTED');
+const BookingCancellationReasonCodeEnum
+_$bookingCancellationReasonCodeEnum_OTHER =
+    const BookingCancellationReasonCodeEnum._('OTHER');
+
+BookingCancellationReasonCodeEnum _$bookingCancellationReasonCodeEnumValueOf(
+  String name,
+) {
+  switch (name) {
+    case 'PERSONAL_UNAVAILABLE':
+      return _$bookingCancellationReasonCodeEnum_PERSONAL_UNAVAILABLE;
+    case 'CUSTOMER_SCHEDULE_CONFLICT':
+      return _$bookingCancellationReasonCodeEnum_CUSTOMER_SCHEDULE_CONFLICT;
+    case 'WRONG_CLASS_SELECTED':
+      return _$bookingCancellationReasonCodeEnum_WRONG_CLASS_SELECTED;
+    case 'OTHER':
+      return _$bookingCancellationReasonCodeEnum_OTHER;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<BookingCancellationReasonCodeEnum>
+_$bookingCancellationReasonCodeEnumValues =
+    BuiltSet<BookingCancellationReasonCodeEnum>(
+      const <BookingCancellationReasonCodeEnum>[
+        _$bookingCancellationReasonCodeEnum_PERSONAL_UNAVAILABLE,
+        _$bookingCancellationReasonCodeEnum_CUSTOMER_SCHEDULE_CONFLICT,
+        _$bookingCancellationReasonCodeEnum_WRONG_CLASS_SELECTED,
+        _$bookingCancellationReasonCodeEnum_OTHER,
+      ],
+    );
+
 Serializer<BookingSource_Enum> _$bookingSourceEnumSerializer =
     _$BookingSource_EnumSerializer();
 Serializer<BookingStatusEnum> _$bookingStatusEnumSerializer =
@@ -92,6 +133,9 @@ Serializer<BookingStatusEnum> _$bookingStatusEnumSerializer =
 Serializer<BookingReservedQuantityEnum>
 _$bookingReservedQuantityEnumSerializer =
     _$BookingReservedQuantityEnumSerializer();
+Serializer<BookingCancellationReasonCodeEnum>
+_$bookingCancellationReasonCodeEnumSerializer =
+    _$BookingCancellationReasonCodeEnumSerializer();
 
 class _$BookingSource_EnumSerializer
     implements PrimitiveSerializer<BookingSource_Enum> {
@@ -196,6 +240,43 @@ class _$BookingReservedQuantityEnumSerializer
   );
 }
 
+class _$BookingCancellationReasonCodeEnumSerializer
+    implements PrimitiveSerializer<BookingCancellationReasonCodeEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PERSONAL_UNAVAILABLE': 'PERSONAL_UNAVAILABLE',
+    'CUSTOMER_SCHEDULE_CONFLICT': 'CUSTOMER_SCHEDULE_CONFLICT',
+    'WRONG_CLASS_SELECTED': 'WRONG_CLASS_SELECTED',
+    'OTHER': 'OTHER',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PERSONAL_UNAVAILABLE': 'PERSONAL_UNAVAILABLE',
+    'CUSTOMER_SCHEDULE_CONFLICT': 'CUSTOMER_SCHEDULE_CONFLICT',
+    'WRONG_CLASS_SELECTED': 'WRONG_CLASS_SELECTED',
+    'OTHER': 'OTHER',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[BookingCancellationReasonCodeEnum];
+  @override
+  final String wireName = 'BookingCancellationReasonCodeEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    BookingCancellationReasonCodeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  BookingCancellationReasonCodeEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BookingCancellationReasonCodeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$Booking extends Booking {
   @override
   final String id;
@@ -218,6 +299,10 @@ class _$Booking extends Booking {
   @override
   final BookingReservedQuantityEnum reservedQuantity;
   @override
+  final BookingCancellationReasonCodeEnum? cancellationReasonCode;
+  @override
+  final DateTime? cancelledAt;
+  @override
   final DateTime createdAt;
   @override
   final int version;
@@ -232,7 +317,7 @@ class _$Booking extends Booking {
   @override
   final BookingClassSlot? classSlot;
   @override
-  final BookingClassSlotClassType? package;
+  final VoucherPackagesInner? package;
   @override
   final BookingAttendance? attendance;
 
@@ -250,6 +335,8 @@ class _$Booking extends Booking {
     required this.source_,
     required this.status,
     required this.reservedQuantity,
+    this.cancellationReasonCode,
+    this.cancelledAt,
     required this.createdAt,
     required this.version,
     required this.idempotentReplay,
@@ -281,6 +368,8 @@ class _$Booking extends Booking {
         source_ == other.source_ &&
         status == other.status &&
         reservedQuantity == other.reservedQuantity &&
+        cancellationReasonCode == other.cancellationReasonCode &&
+        cancelledAt == other.cancelledAt &&
         createdAt == other.createdAt &&
         version == other.version &&
         idempotentReplay == other.idempotentReplay &&
@@ -305,6 +394,8 @@ class _$Booking extends Booking {
     _$hash = $jc(_$hash, source_.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, reservedQuantity.hashCode);
+    _$hash = $jc(_$hash, cancellationReasonCode.hashCode);
+    _$hash = $jc(_$hash, cancelledAt.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
@@ -331,6 +422,8 @@ class _$Booking extends Booking {
           ..add('source_', source_)
           ..add('status', status)
           ..add('reservedQuantity', reservedQuantity)
+          ..add('cancellationReasonCode', cancellationReasonCode)
+          ..add('cancelledAt', cancelledAt)
           ..add('createdAt', createdAt)
           ..add('version', version)
           ..add('idempotentReplay', idempotentReplay)
@@ -391,6 +484,17 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
   set reservedQuantity(BookingReservedQuantityEnum? reservedQuantity) =>
       _$this._reservedQuantity = reservedQuantity;
 
+  BookingCancellationReasonCodeEnum? _cancellationReasonCode;
+  BookingCancellationReasonCodeEnum? get cancellationReasonCode =>
+      _$this._cancellationReasonCode;
+  set cancellationReasonCode(
+    BookingCancellationReasonCodeEnum? cancellationReasonCode,
+  ) => _$this._cancellationReasonCode = cancellationReasonCode;
+
+  DateTime? _cancelledAt;
+  DateTime? get cancelledAt => _$this._cancelledAt;
+  set cancelledAt(DateTime? cancelledAt) => _$this._cancelledAt = cancelledAt;
+
   DateTime? _createdAt;
   DateTime? get createdAt => _$this._createdAt;
   set createdAt(DateTime? createdAt) => _$this._createdAt = createdAt;
@@ -425,10 +529,10 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
   set classSlot(BookingClassSlotBuilder? classSlot) =>
       _$this._classSlot = classSlot;
 
-  BookingClassSlotClassTypeBuilder? _package;
-  BookingClassSlotClassTypeBuilder get package =>
-      _$this._package ??= BookingClassSlotClassTypeBuilder();
-  set package(BookingClassSlotClassTypeBuilder? package) =>
+  VoucherPackagesInnerBuilder? _package;
+  VoucherPackagesInnerBuilder get package =>
+      _$this._package ??= VoucherPackagesInnerBuilder();
+  set package(VoucherPackagesInnerBuilder? package) =>
       _$this._package = package;
 
   BookingAttendanceBuilder? _attendance;
@@ -454,6 +558,8 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
       _source_ = $v.source_;
       _status = $v.status;
       _reservedQuantity = $v.reservedQuantity;
+      _cancellationReasonCode = $v.cancellationReasonCode;
+      _cancelledAt = $v.cancelledAt;
       _createdAt = $v.createdAt;
       _version = $v.version;
       _idempotentReplay = $v.idempotentReplay;
@@ -533,6 +639,8 @@ class BookingBuilder implements Builder<Booking, BookingBuilder> {
               r'Booking',
               'reservedQuantity',
             ),
+            cancellationReasonCode: cancellationReasonCode,
+            cancelledAt: cancelledAt,
             createdAt: BuiltValueNullFieldError.checkNotNull(
               createdAt,
               r'Booking',

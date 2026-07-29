@@ -59,6 +59,7 @@ doc/BranchPeriodPage.md
 doc/BulkCustomerCheckInLinkCommand.md
 doc/BulkCustomerCheckInLinkItem.md
 doc/BulkCustomerCheckInLinkResult.md
+doc/CancelBookingCommand.md
 doc/CapabilityDefinition.md
 doc/CapabilityDefinitionPage.md
 doc/ChallengeAccepted.md
@@ -92,6 +93,7 @@ doc/CreateOrderCommand.md
 doc/CreatePaymentProofUploadRequest.md
 doc/CreatePermissionOverrideCommand.md
 doc/CursorPageMeta.md
+doc/CustomerBookingCancellationOptions.md
 doc/CustomerBookingEligibility.md
 doc/CustomerBookingOptions.md
 doc/CustomerBookingPackage.md
@@ -403,6 +405,7 @@ lib/src/model/branch_period_page.dart
 lib/src/model/bulk_customer_check_in_link_command.dart
 lib/src/model/bulk_customer_check_in_link_item.dart
 lib/src/model/bulk_customer_check_in_link_result.dart
+lib/src/model/cancel_booking_command.dart
 lib/src/model/capability_definition.dart
 lib/src/model/capability_definition_page.dart
 lib/src/model/challenge_accepted.dart
@@ -435,6 +438,7 @@ lib/src/model/create_order_command.dart
 lib/src/model/create_payment_proof_upload_request.dart
 lib/src/model/create_permission_override_command.dart
 lib/src/model/cursor_page_meta.dart
+lib/src/model/customer_booking_cancellation_options.dart
 lib/src/model/customer_booking_eligibility.dart
 lib/src/model/customer_booking_options.dart
 lib/src/model/customer_booking_package.dart
@@ -721,6 +725,7 @@ test/branch_test.dart
 test/bulk_customer_check_in_link_command_test.dart
 test/bulk_customer_check_in_link_item_test.dart
 test/bulk_customer_check_in_link_result_test.dart
+test/cancel_booking_command_test.dart
 test/capability_definition_page_test.dart
 test/capability_definition_test.dart
 test/challenge_accepted_test.dart
@@ -754,6 +759,7 @@ test/create_order_command_test.dart
 test/create_payment_proof_upload_request_test.dart
 test/create_permission_override_command_test.dart
 test/cursor_page_meta_test.dart
+test/customer_booking_cancellation_options_test.dart
 test/customer_booking_eligibility_test.dart
 test/customer_booking_options_test.dart
 test/customer_booking_package_test.dart

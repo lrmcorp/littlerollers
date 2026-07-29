@@ -28,6 +28,8 @@ part 'booking.g.dart';
 /// * [source_] 
 /// * [status] 
 /// * [reservedQuantity] 
+/// * [cancellationReasonCode] 
+/// * [cancelledAt] 
 /// * [createdAt] 
 /// * [version] 
 /// * [idempotentReplay] 
@@ -71,6 +73,13 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
   @BuiltValueField(wireName: r'reservedQuantity')
   BookingReservedQuantityEnum get reservedQuantity;
   // enum reservedQuantityEnum {  1,  };
+
+  @BuiltValueField(wireName: r'cancellationReasonCode')
+  BookingCancellationReasonCodeEnum? get cancellationReasonCode;
+  // enum cancellationReasonCodeEnum {  PERSONAL_UNAVAILABLE,  CUSTOMER_SCHEDULE_CONFLICT,  WRONG_CLASS_SELECTED,  OTHER,  ,  };
+
+  @BuiltValueField(wireName: r'cancelledAt')
+  DateTime? get cancelledAt;
 
   @BuiltValueField(wireName: r'createdAt')
   DateTime get createdAt;
@@ -172,6 +181,20 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       object.reservedQuantity,
       specifiedType: const FullType(BookingReservedQuantityEnum),
     );
+    if (object.cancellationReasonCode != null) {
+      yield r'cancellationReasonCode';
+      yield serializers.serialize(
+        object.cancellationReasonCode,
+        specifiedType: const FullType.nullable(BookingCancellationReasonCodeEnum),
+      );
+    }
+    if (object.cancelledAt != null) {
+      yield r'cancelledAt';
+      yield serializers.serialize(
+        object.cancelledAt,
+        specifiedType: const FullType.nullable(DateTime),
+      );
+    }
     yield r'createdAt';
     yield serializers.serialize(
       object.createdAt,
@@ -322,6 +345,22 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
           ) as BookingReservedQuantityEnum;
           result.reservedQuantity = valueDes;
           break;
+        case r'cancellationReasonCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(BookingCancellationReasonCodeEnum),
+          ) as BookingCancellationReasonCodeEnum?;
+          if (valueDes == null) continue;
+          result.cancellationReasonCode = valueDes;
+          break;
+        case r'cancelledAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(DateTime),
+          ) as DateTime?;
+          if (valueDes == null) continue;
+          result.cancelledAt = valueDes;
+          break;
         case r'createdAt':
           final valueDes = serializers.deserialize(
             value,
@@ -461,5 +500,24 @@ class BookingReservedQuantityEnum extends EnumClass {
 
   static BuiltSet<BookingReservedQuantityEnum> get values => _$bookingReservedQuantityEnumValues;
   static BookingReservedQuantityEnum valueOf(String name) => _$bookingReservedQuantityEnumValueOf(name);
+}
+
+class BookingCancellationReasonCodeEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'PERSONAL_UNAVAILABLE')
+  static const BookingCancellationReasonCodeEnum PERSONAL_UNAVAILABLE = _$bookingCancellationReasonCodeEnum_PERSONAL_UNAVAILABLE;
+  @BuiltValueEnumConst(wireName: r'CUSTOMER_SCHEDULE_CONFLICT')
+  static const BookingCancellationReasonCodeEnum CUSTOMER_SCHEDULE_CONFLICT = _$bookingCancellationReasonCodeEnum_CUSTOMER_SCHEDULE_CONFLICT;
+  @BuiltValueEnumConst(wireName: r'WRONG_CLASS_SELECTED')
+  static const BookingCancellationReasonCodeEnum WRONG_CLASS_SELECTED = _$bookingCancellationReasonCodeEnum_WRONG_CLASS_SELECTED;
+  @BuiltValueEnumConst(wireName: r'OTHER')
+  static const BookingCancellationReasonCodeEnum OTHER = _$bookingCancellationReasonCodeEnum_OTHER;
+
+  static Serializer<BookingCancellationReasonCodeEnum> get serializer => _$bookingCancellationReasonCodeEnumSerializer;
+
+  const BookingCancellationReasonCodeEnum._(String name): super(name);
+
+  static BuiltSet<BookingCancellationReasonCodeEnum> get values => _$bookingCancellationReasonCodeEnumValues;
+  static BookingCancellationReasonCodeEnum valueOf(String name) => _$bookingCancellationReasonCodeEnumValueOf(name);
 }
 

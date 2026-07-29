@@ -12,6 +12,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:read',
     'booking:self:read',
     'booking:self:create',
+    'booking:self:cancel',
     'reschedule:self:read',
     'reschedule:self:request',
   ],

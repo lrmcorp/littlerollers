@@ -6,6 +6,68 @@ part of 'payment_review_item.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum
+_$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE =
+    const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum._(
+      'PERCENTAGE',
+    );
+const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum
+_$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT =
+    const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum._(
+      'FIXED_AMOUNT',
+    );
+
+PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum
+_$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumValueOf(
+  String name,
+) {
+  switch (name) {
+    case 'PERCENTAGE':
+      return _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE;
+    case 'FIXED_AMOUNT':
+      return _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum>
+_$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumValues =
+    BuiltSet<PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum>(const <
+      PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum
+    >[
+      _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE,
+      _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT,
+    ]);
+
+const PaymentReviewItemVoucherDiscountTypeSnapshotEnum
+_$paymentReviewItemVoucherDiscountTypeSnapshotEnum_PERCENTAGE =
+    const PaymentReviewItemVoucherDiscountTypeSnapshotEnum._('PERCENTAGE');
+const PaymentReviewItemVoucherDiscountTypeSnapshotEnum
+_$paymentReviewItemVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT =
+    const PaymentReviewItemVoucherDiscountTypeSnapshotEnum._('FIXED_AMOUNT');
+
+PaymentReviewItemVoucherDiscountTypeSnapshotEnum
+_$paymentReviewItemVoucherDiscountTypeSnapshotEnumValueOf(String name) {
+  switch (name) {
+    case 'PERCENTAGE':
+      return _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_PERCENTAGE;
+    case 'FIXED_AMOUNT':
+      return _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PaymentReviewItemVoucherDiscountTypeSnapshotEnum>
+_$paymentReviewItemVoucherDiscountTypeSnapshotEnumValues =
+    BuiltSet<PaymentReviewItemVoucherDiscountTypeSnapshotEnum>(
+      const <PaymentReviewItemVoucherDiscountTypeSnapshotEnum>[
+        _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_PERCENTAGE,
+        _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT,
+      ],
+    );
+
 const PaymentReviewItemStatusEnum
 _$paymentReviewItemStatusEnum_AWAITING_PAYMENT =
     const PaymentReviewItemStatusEnum._('AWAITING_PAYMENT');
@@ -51,9 +113,90 @@ _$paymentReviewItemStatusEnumValues =
       _$paymentReviewItemStatusEnum_EXPIRED,
     ]);
 
+Serializer<PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum>
+_$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumSerializer =
+    _$PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnumSerializer();
+Serializer<PaymentReviewItemVoucherDiscountTypeSnapshotEnum>
+_$paymentReviewItemVoucherDiscountTypeSnapshotEnumSerializer =
+    _$PaymentReviewItemVoucherDiscountTypeSnapshotEnumSerializer();
 Serializer<PaymentReviewItemStatusEnum>
 _$paymentReviewItemStatusEnumSerializer =
     _$PaymentReviewItemStatusEnumSerializer();
+
+class _$PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnumSerializer
+    implements
+        PrimitiveSerializer<
+          PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum
+        > {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum,
+  ];
+  @override
+  final String wireName =
+      'PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
+class _$PaymentReviewItemVoucherDiscountTypeSnapshotEnumSerializer
+    implements
+        PrimitiveSerializer<PaymentReviewItemVoucherDiscountTypeSnapshotEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    PaymentReviewItemVoucherDiscountTypeSnapshotEnum,
+  ];
+  @override
+  final String wireName = 'PaymentReviewItemVoucherDiscountTypeSnapshotEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PaymentReviewItemVoucherDiscountTypeSnapshotEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PaymentReviewItemVoucherDiscountTypeSnapshotEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PaymentReviewItemVoucherDiscountTypeSnapshotEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
 
 class _$PaymentReviewItemStatusEnumSerializer
     implements PrimitiveSerializer<PaymentReviewItemStatusEnum> {
@@ -120,6 +263,31 @@ class _$PaymentReviewItem extends PaymentReviewItem {
   @override
   final int priceRpSnapshot;
   @override
+  final String? packagePromotionId;
+  @override
+  final String? packagePromotionNameSnapshot;
+  @override
+  final PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  packagePromotionDiscountTypeSnapshot;
+  @override
+  final int? packagePromotionDiscountValueSnapshot;
+  @override
+  final int? packagePromotionDiscountRpSnapshot;
+  @override
+  final int? promotionalPriceRpSnapshot;
+  @override
+  final String? voucherId;
+  @override
+  final String? voucherCodeSnapshot;
+  @override
+  final PurchaseVoucherDiscountTypeSnapshotEnum? voucherDiscountTypeSnapshot;
+  @override
+  final int? voucherDiscountValueSnapshot;
+  @override
+  final int? voucherDiscountRpSnapshot;
+  @override
+  final int? priceAfterDiscountRpSnapshot;
+  @override
   final int? paymentUniqueCode;
   @override
   final int? payableAmountRpSnapshot;
@@ -160,6 +328,18 @@ class _$PaymentReviewItem extends PaymentReviewItem {
     this.paymentProofId,
     required this.packageNameSnapshot,
     required this.priceRpSnapshot,
+    this.packagePromotionId,
+    this.packagePromotionNameSnapshot,
+    this.packagePromotionDiscountTypeSnapshot,
+    this.packagePromotionDiscountValueSnapshot,
+    this.packagePromotionDiscountRpSnapshot,
+    this.promotionalPriceRpSnapshot,
+    this.voucherId,
+    this.voucherCodeSnapshot,
+    this.voucherDiscountTypeSnapshot,
+    this.voucherDiscountValueSnapshot,
+    this.voucherDiscountRpSnapshot,
+    this.priceAfterDiscountRpSnapshot,
     this.paymentUniqueCode,
     this.payableAmountRpSnapshot,
     required this.sessionCountSnapshot,
@@ -196,6 +376,21 @@ class _$PaymentReviewItem extends PaymentReviewItem {
         paymentProofId == other.paymentProofId &&
         packageNameSnapshot == other.packageNameSnapshot &&
         priceRpSnapshot == other.priceRpSnapshot &&
+        packagePromotionId == other.packagePromotionId &&
+        packagePromotionNameSnapshot == other.packagePromotionNameSnapshot &&
+        packagePromotionDiscountTypeSnapshot ==
+            other.packagePromotionDiscountTypeSnapshot &&
+        packagePromotionDiscountValueSnapshot ==
+            other.packagePromotionDiscountValueSnapshot &&
+        packagePromotionDiscountRpSnapshot ==
+            other.packagePromotionDiscountRpSnapshot &&
+        promotionalPriceRpSnapshot == other.promotionalPriceRpSnapshot &&
+        voucherId == other.voucherId &&
+        voucherCodeSnapshot == other.voucherCodeSnapshot &&
+        voucherDiscountTypeSnapshot == other.voucherDiscountTypeSnapshot &&
+        voucherDiscountValueSnapshot == other.voucherDiscountValueSnapshot &&
+        voucherDiscountRpSnapshot == other.voucherDiscountRpSnapshot &&
+        priceAfterDiscountRpSnapshot == other.priceAfterDiscountRpSnapshot &&
         paymentUniqueCode == other.paymentUniqueCode &&
         payableAmountRpSnapshot == other.payableAmountRpSnapshot &&
         sessionCountSnapshot == other.sessionCountSnapshot &&
@@ -224,6 +419,18 @@ class _$PaymentReviewItem extends PaymentReviewItem {
     _$hash = $jc(_$hash, paymentProofId.hashCode);
     _$hash = $jc(_$hash, packageNameSnapshot.hashCode);
     _$hash = $jc(_$hash, priceRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionId.hashCode);
+    _$hash = $jc(_$hash, packagePromotionNameSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountTypeSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountValueSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, promotionalPriceRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherId.hashCode);
+    _$hash = $jc(_$hash, voucherCodeSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountTypeSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountValueSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, priceAfterDiscountRpSnapshot.hashCode);
     _$hash = $jc(_$hash, paymentUniqueCode.hashCode);
     _$hash = $jc(_$hash, payableAmountRpSnapshot.hashCode);
     _$hash = $jc(_$hash, sessionCountSnapshot.hashCode);
@@ -254,6 +461,27 @@ class _$PaymentReviewItem extends PaymentReviewItem {
           ..add('paymentProofId', paymentProofId)
           ..add('packageNameSnapshot', packageNameSnapshot)
           ..add('priceRpSnapshot', priceRpSnapshot)
+          ..add('packagePromotionId', packagePromotionId)
+          ..add('packagePromotionNameSnapshot', packagePromotionNameSnapshot)
+          ..add(
+            'packagePromotionDiscountTypeSnapshot',
+            packagePromotionDiscountTypeSnapshot,
+          )
+          ..add(
+            'packagePromotionDiscountValueSnapshot',
+            packagePromotionDiscountValueSnapshot,
+          )
+          ..add(
+            'packagePromotionDiscountRpSnapshot',
+            packagePromotionDiscountRpSnapshot,
+          )
+          ..add('promotionalPriceRpSnapshot', promotionalPriceRpSnapshot)
+          ..add('voucherId', voucherId)
+          ..add('voucherCodeSnapshot', voucherCodeSnapshot)
+          ..add('voucherDiscountTypeSnapshot', voucherDiscountTypeSnapshot)
+          ..add('voucherDiscountValueSnapshot', voucherDiscountValueSnapshot)
+          ..add('voucherDiscountRpSnapshot', voucherDiscountRpSnapshot)
+          ..add('priceAfterDiscountRpSnapshot', priceAfterDiscountRpSnapshot)
           ..add('paymentUniqueCode', paymentUniqueCode)
           ..add('payableAmountRpSnapshot', payableAmountRpSnapshot)
           ..add('sessionCountSnapshot', sessionCountSnapshot)
@@ -332,6 +560,84 @@ class PaymentReviewItemBuilder
   set priceRpSnapshot(covariant int? priceRpSnapshot) =>
       _$this._priceRpSnapshot = priceRpSnapshot;
 
+  String? _packagePromotionId;
+  String? get packagePromotionId => _$this._packagePromotionId;
+  set packagePromotionId(covariant String? packagePromotionId) =>
+      _$this._packagePromotionId = packagePromotionId;
+
+  String? _packagePromotionNameSnapshot;
+  String? get packagePromotionNameSnapshot =>
+      _$this._packagePromotionNameSnapshot;
+  set packagePromotionNameSnapshot(
+    covariant String? packagePromotionNameSnapshot,
+  ) => _$this._packagePromotionNameSnapshot = packagePromotionNameSnapshot;
+
+  PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  _packagePromotionDiscountTypeSnapshot;
+  PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  get packagePromotionDiscountTypeSnapshot =>
+      _$this._packagePromotionDiscountTypeSnapshot;
+  set packagePromotionDiscountTypeSnapshot(
+    covariant PurchasePackagePromotionDiscountTypeSnapshotEnum?
+    packagePromotionDiscountTypeSnapshot,
+  ) => _$this._packagePromotionDiscountTypeSnapshot =
+      packagePromotionDiscountTypeSnapshot;
+
+  int? _packagePromotionDiscountValueSnapshot;
+  int? get packagePromotionDiscountValueSnapshot =>
+      _$this._packagePromotionDiscountValueSnapshot;
+  set packagePromotionDiscountValueSnapshot(
+    covariant int? packagePromotionDiscountValueSnapshot,
+  ) => _$this._packagePromotionDiscountValueSnapshot =
+      packagePromotionDiscountValueSnapshot;
+
+  int? _packagePromotionDiscountRpSnapshot;
+  int? get packagePromotionDiscountRpSnapshot =>
+      _$this._packagePromotionDiscountRpSnapshot;
+  set packagePromotionDiscountRpSnapshot(
+    covariant int? packagePromotionDiscountRpSnapshot,
+  ) => _$this._packagePromotionDiscountRpSnapshot =
+      packagePromotionDiscountRpSnapshot;
+
+  int? _promotionalPriceRpSnapshot;
+  int? get promotionalPriceRpSnapshot => _$this._promotionalPriceRpSnapshot;
+  set promotionalPriceRpSnapshot(covariant int? promotionalPriceRpSnapshot) =>
+      _$this._promotionalPriceRpSnapshot = promotionalPriceRpSnapshot;
+
+  String? _voucherId;
+  String? get voucherId => _$this._voucherId;
+  set voucherId(covariant String? voucherId) => _$this._voucherId = voucherId;
+
+  String? _voucherCodeSnapshot;
+  String? get voucherCodeSnapshot => _$this._voucherCodeSnapshot;
+  set voucherCodeSnapshot(covariant String? voucherCodeSnapshot) =>
+      _$this._voucherCodeSnapshot = voucherCodeSnapshot;
+
+  PurchaseVoucherDiscountTypeSnapshotEnum? _voucherDiscountTypeSnapshot;
+  PurchaseVoucherDiscountTypeSnapshotEnum? get voucherDiscountTypeSnapshot =>
+      _$this._voucherDiscountTypeSnapshot;
+  set voucherDiscountTypeSnapshot(
+    covariant PurchaseVoucherDiscountTypeSnapshotEnum?
+    voucherDiscountTypeSnapshot,
+  ) => _$this._voucherDiscountTypeSnapshot = voucherDiscountTypeSnapshot;
+
+  int? _voucherDiscountValueSnapshot;
+  int? get voucherDiscountValueSnapshot => _$this._voucherDiscountValueSnapshot;
+  set voucherDiscountValueSnapshot(
+    covariant int? voucherDiscountValueSnapshot,
+  ) => _$this._voucherDiscountValueSnapshot = voucherDiscountValueSnapshot;
+
+  int? _voucherDiscountRpSnapshot;
+  int? get voucherDiscountRpSnapshot => _$this._voucherDiscountRpSnapshot;
+  set voucherDiscountRpSnapshot(covariant int? voucherDiscountRpSnapshot) =>
+      _$this._voucherDiscountRpSnapshot = voucherDiscountRpSnapshot;
+
+  int? _priceAfterDiscountRpSnapshot;
+  int? get priceAfterDiscountRpSnapshot => _$this._priceAfterDiscountRpSnapshot;
+  set priceAfterDiscountRpSnapshot(
+    covariant int? priceAfterDiscountRpSnapshot,
+  ) => _$this._priceAfterDiscountRpSnapshot = priceAfterDiscountRpSnapshot;
+
   int? _paymentUniqueCode;
   int? get paymentUniqueCode => _$this._paymentUniqueCode;
   set paymentUniqueCode(covariant int? paymentUniqueCode) =>
@@ -407,6 +713,21 @@ class PaymentReviewItemBuilder
       _paymentProofId = $v.paymentProofId;
       _packageNameSnapshot = $v.packageNameSnapshot;
       _priceRpSnapshot = $v.priceRpSnapshot;
+      _packagePromotionId = $v.packagePromotionId;
+      _packagePromotionNameSnapshot = $v.packagePromotionNameSnapshot;
+      _packagePromotionDiscountTypeSnapshot =
+          $v.packagePromotionDiscountTypeSnapshot;
+      _packagePromotionDiscountValueSnapshot =
+          $v.packagePromotionDiscountValueSnapshot;
+      _packagePromotionDiscountRpSnapshot =
+          $v.packagePromotionDiscountRpSnapshot;
+      _promotionalPriceRpSnapshot = $v.promotionalPriceRpSnapshot;
+      _voucherId = $v.voucherId;
+      _voucherCodeSnapshot = $v.voucherCodeSnapshot;
+      _voucherDiscountTypeSnapshot = $v.voucherDiscountTypeSnapshot;
+      _voucherDiscountValueSnapshot = $v.voucherDiscountValueSnapshot;
+      _voucherDiscountRpSnapshot = $v.voucherDiscountRpSnapshot;
+      _priceAfterDiscountRpSnapshot = $v.priceAfterDiscountRpSnapshot;
       _paymentUniqueCode = $v.paymentUniqueCode;
       _payableAmountRpSnapshot = $v.payableAmountRpSnapshot;
       _sessionCountSnapshot = $v.sessionCountSnapshot;
@@ -478,6 +799,21 @@ class PaymentReviewItemBuilder
               r'PaymentReviewItem',
               'priceRpSnapshot',
             ),
+            packagePromotionId: packagePromotionId,
+            packagePromotionNameSnapshot: packagePromotionNameSnapshot,
+            packagePromotionDiscountTypeSnapshot:
+                packagePromotionDiscountTypeSnapshot,
+            packagePromotionDiscountValueSnapshot:
+                packagePromotionDiscountValueSnapshot,
+            packagePromotionDiscountRpSnapshot:
+                packagePromotionDiscountRpSnapshot,
+            promotionalPriceRpSnapshot: promotionalPriceRpSnapshot,
+            voucherId: voucherId,
+            voucherCodeSnapshot: voucherCodeSnapshot,
+            voucherDiscountTypeSnapshot: voucherDiscountTypeSnapshot,
+            voucherDiscountValueSnapshot: voucherDiscountValueSnapshot,
+            voucherDiscountRpSnapshot: voucherDiscountRpSnapshot,
+            priceAfterDiscountRpSnapshot: priceAfterDiscountRpSnapshot,
             paymentUniqueCode: paymentUniqueCode,
             payableAmountRpSnapshot: payableAmountRpSnapshot,
             sessionCountSnapshot: BuiltValueNullFieldError.checkNotNull(

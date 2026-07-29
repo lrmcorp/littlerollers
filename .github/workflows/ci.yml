@@ -31,6 +31,8 @@ jobs:
       BOOKING_SYNTHETIC_CUTOFF_HOURS: '2'
       RESCHEDULE_SYNTHETIC_ENABLED: 'true'
       RESCHEDULE_SYNTHETIC_CUTOFF_HOURS: '24'
+      BOOKING_CANCELLATION_ENABLED: 'true'
+      BOOKING_CANCELLATION_CUTOFF_HOURS: '24'
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4

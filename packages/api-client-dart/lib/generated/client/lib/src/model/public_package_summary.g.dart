@@ -27,6 +27,12 @@ abstract mixin class PublicPackageSummaryBuilder {
   int? get priceRp;
   set priceRp(int? priceRp);
 
+  int? get effectivePriceRp;
+  set effectivePriceRp(int? effectivePriceRp);
+
+  PublicPackagePromotionBuilder get promotion;
+  set promotion(PublicPackagePromotionBuilder? promotion);
+
   DateTime? get effectiveUntil;
   set effectiveUntil(DateTime? effectiveUntil);
 
@@ -54,6 +60,10 @@ class _$$PublicPackageSummary extends $PublicPackageSummary {
   @override
   final int priceRp;
   @override
+  final int effectivePriceRp;
+  @override
+  final PublicPackagePromotion? promotion;
+  @override
   final DateTime? effectiveUntil;
   @override
   final PublicClassTypeRef? classType;
@@ -73,6 +83,8 @@ class _$$PublicPackageSummary extends $PublicPackageSummary {
     required this.sessionCount,
     required this.durationDays,
     required this.priceRp,
+    required this.effectivePriceRp,
+    this.promotion,
     this.effectiveUntil,
     this.classType,
     this.publicProfile,
@@ -97,6 +109,8 @@ class _$$PublicPackageSummary extends $PublicPackageSummary {
         sessionCount == other.sessionCount &&
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
+        effectivePriceRp == other.effectivePriceRp &&
+        promotion == other.promotion &&
         effectiveUntil == other.effectiveUntil &&
         classType == other.classType &&
         publicProfile == other.publicProfile &&
@@ -112,6 +126,8 @@ class _$$PublicPackageSummary extends $PublicPackageSummary {
     _$hash = $jc(_$hash, sessionCount.hashCode);
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
+    _$hash = $jc(_$hash, effectivePriceRp.hashCode);
+    _$hash = $jc(_$hash, promotion.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
     _$hash = $jc(_$hash, classType.hashCode);
     _$hash = $jc(_$hash, publicProfile.hashCode);
@@ -129,6 +145,8 @@ class _$$PublicPackageSummary extends $PublicPackageSummary {
           ..add('sessionCount', sessionCount)
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
+          ..add('effectivePriceRp', effectivePriceRp)
+          ..add('promotion', promotion)
           ..add('effectiveUntil', effectiveUntil)
           ..add('classType', classType)
           ..add('publicProfile', publicProfile)
@@ -169,6 +187,17 @@ class $PublicPackageSummaryBuilder
   int? get priceRp => _$this._priceRp;
   set priceRp(covariant int? priceRp) => _$this._priceRp = priceRp;
 
+  int? _effectivePriceRp;
+  int? get effectivePriceRp => _$this._effectivePriceRp;
+  set effectivePriceRp(covariant int? effectivePriceRp) =>
+      _$this._effectivePriceRp = effectivePriceRp;
+
+  PublicPackagePromotionBuilder? _promotion;
+  PublicPackagePromotionBuilder get promotion =>
+      _$this._promotion ??= PublicPackagePromotionBuilder();
+  set promotion(covariant PublicPackagePromotionBuilder? promotion) =>
+      _$this._promotion = promotion;
+
   DateTime? _effectiveUntil;
   DateTime? get effectiveUntil => _$this._effectiveUntil;
   set effectiveUntil(covariant DateTime? effectiveUntil) =>
@@ -203,6 +232,8 @@ class $PublicPackageSummaryBuilder
       _sessionCount = $v.sessionCount;
       _durationDays = $v.durationDays;
       _priceRp = $v.priceRp;
+      _effectivePriceRp = $v.effectivePriceRp;
+      _promotion = $v.promotion?.toBuilder();
       _effectiveUntil = $v.effectiveUntil;
       _classType = $v.classType?.toBuilder();
       _publicProfile = $v.publicProfile?.toBuilder();
@@ -257,6 +288,12 @@ class $PublicPackageSummaryBuilder
               r'$PublicPackageSummary',
               'priceRp',
             ),
+            effectivePriceRp: BuiltValueNullFieldError.checkNotNull(
+              effectivePriceRp,
+              r'$PublicPackageSummary',
+              'effectivePriceRp',
+            ),
+            promotion: _promotion?.build(),
             effectiveUntil: effectiveUntil,
             classType: _classType?.build(),
             publicProfile: _publicProfile?.build(),
@@ -265,6 +302,9 @@ class $PublicPackageSummaryBuilder
     } catch (_) {
       late String _$failedField;
       try {
+        _$failedField = 'promotion';
+        _promotion?.build();
+
         _$failedField = 'classType';
         _classType?.build();
         _$failedField = 'publicProfile';

@@ -114,6 +114,10 @@ class _$Order extends Order {
   @override
   final int baseAmountRp;
   @override
+  final OrderPromotion? promotion;
+  @override
+  final int promotionalPriceRp;
+  @override
   final int? paymentUniqueCode;
   @override
   final int payableAmountRp;
@@ -160,6 +164,8 @@ class _$Order extends Order {
     required this.packageName,
     required this.priceRp,
     required this.baseAmountRp,
+    this.promotion,
+    required this.promotionalPriceRp,
     this.paymentUniqueCode,
     required this.payableAmountRp,
     required this.sessionCount,
@@ -197,6 +203,8 @@ class _$Order extends Order {
         packageName == other.packageName &&
         priceRp == other.priceRp &&
         baseAmountRp == other.baseAmountRp &&
+        promotion == other.promotion &&
+        promotionalPriceRp == other.promotionalPriceRp &&
         paymentUniqueCode == other.paymentUniqueCode &&
         payableAmountRp == other.payableAmountRp &&
         sessionCount == other.sessionCount &&
@@ -227,6 +235,8 @@ class _$Order extends Order {
     _$hash = $jc(_$hash, packageName.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
     _$hash = $jc(_$hash, baseAmountRp.hashCode);
+    _$hash = $jc(_$hash, promotion.hashCode);
+    _$hash = $jc(_$hash, promotionalPriceRp.hashCode);
     _$hash = $jc(_$hash, paymentUniqueCode.hashCode);
     _$hash = $jc(_$hash, payableAmountRp.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
@@ -259,6 +269,8 @@ class _$Order extends Order {
           ..add('packageName', packageName)
           ..add('priceRp', priceRp)
           ..add('baseAmountRp', baseAmountRp)
+          ..add('promotion', promotion)
+          ..add('promotionalPriceRp', promotionalPriceRp)
           ..add('paymentUniqueCode', paymentUniqueCode)
           ..add('payableAmountRp', payableAmountRp)
           ..add('sessionCount', sessionCount)
@@ -315,6 +327,17 @@ class OrderBuilder implements Builder<Order, OrderBuilder> {
   int? _baseAmountRp;
   int? get baseAmountRp => _$this._baseAmountRp;
   set baseAmountRp(int? baseAmountRp) => _$this._baseAmountRp = baseAmountRp;
+
+  OrderPromotionBuilder? _promotion;
+  OrderPromotionBuilder get promotion =>
+      _$this._promotion ??= OrderPromotionBuilder();
+  set promotion(OrderPromotionBuilder? promotion) =>
+      _$this._promotion = promotion;
+
+  int? _promotionalPriceRp;
+  int? get promotionalPriceRp => _$this._promotionalPriceRp;
+  set promotionalPriceRp(int? promotionalPriceRp) =>
+      _$this._promotionalPriceRp = promotionalPriceRp;
 
   int? _paymentUniqueCode;
   int? get paymentUniqueCode => _$this._paymentUniqueCode;
@@ -413,6 +436,8 @@ class OrderBuilder implements Builder<Order, OrderBuilder> {
       _packageName = $v.packageName;
       _priceRp = $v.priceRp;
       _baseAmountRp = $v.baseAmountRp;
+      _promotion = $v.promotion?.toBuilder();
+      _promotionalPriceRp = $v.promotionalPriceRp;
       _paymentUniqueCode = $v.paymentUniqueCode;
       _payableAmountRp = $v.payableAmountRp;
       _sessionCount = $v.sessionCount;
@@ -482,6 +507,12 @@ class OrderBuilder implements Builder<Order, OrderBuilder> {
               r'Order',
               'baseAmountRp',
             ),
+            promotion: _promotion?.build(),
+            promotionalPriceRp: BuiltValueNullFieldError.checkNotNull(
+              promotionalPriceRp,
+              r'Order',
+              'promotionalPriceRp',
+            ),
             paymentUniqueCode: paymentUniqueCode,
             payableAmountRp: BuiltValueNullFieldError.checkNotNull(
               payableAmountRp,
@@ -531,6 +562,9 @@ class OrderBuilder implements Builder<Order, OrderBuilder> {
     } catch (_) {
       late String _$failedField;
       try {
+        _$failedField = 'promotion';
+        _promotion?.build();
+
         _$failedField = 'paymentProofStatus';
         _paymentProofStatus?.build();
 
