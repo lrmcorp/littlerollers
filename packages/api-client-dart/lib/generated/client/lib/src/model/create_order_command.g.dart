@@ -13,13 +13,28 @@ class _$CreateOrderCommand extends CreateOrderCommand {
   final String? branchId;
   @override
   final String? slotId;
+  @override
+  final String? voucherCode;
+  @override
+  final int? expectedPackageVersion;
+  @override
+  final String? expectedPromotionId;
+  @override
+  final int? expectedPromotionVersion;
 
   factory _$CreateOrderCommand([
     void Function(CreateOrderCommandBuilder)? updates,
   ]) => (CreateOrderCommandBuilder()..update(updates))._build();
 
-  _$CreateOrderCommand._({required this.packageId, this.branchId, this.slotId})
-    : super._();
+  _$CreateOrderCommand._({
+    required this.packageId,
+    this.branchId,
+    this.slotId,
+    this.voucherCode,
+    this.expectedPackageVersion,
+    this.expectedPromotionId,
+    this.expectedPromotionVersion,
+  }) : super._();
   @override
   CreateOrderCommand rebuild(
     void Function(CreateOrderCommandBuilder) updates,
@@ -35,7 +50,11 @@ class _$CreateOrderCommand extends CreateOrderCommand {
     return other is CreateOrderCommand &&
         packageId == other.packageId &&
         branchId == other.branchId &&
-        slotId == other.slotId;
+        slotId == other.slotId &&
+        voucherCode == other.voucherCode &&
+        expectedPackageVersion == other.expectedPackageVersion &&
+        expectedPromotionId == other.expectedPromotionId &&
+        expectedPromotionVersion == other.expectedPromotionVersion;
   }
 
   @override
@@ -44,6 +63,10 @@ class _$CreateOrderCommand extends CreateOrderCommand {
     _$hash = $jc(_$hash, packageId.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, slotId.hashCode);
+    _$hash = $jc(_$hash, voucherCode.hashCode);
+    _$hash = $jc(_$hash, expectedPackageVersion.hashCode);
+    _$hash = $jc(_$hash, expectedPromotionId.hashCode);
+    _$hash = $jc(_$hash, expectedPromotionVersion.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -53,7 +76,11 @@ class _$CreateOrderCommand extends CreateOrderCommand {
     return (newBuiltValueToStringHelper(r'CreateOrderCommand')
           ..add('packageId', packageId)
           ..add('branchId', branchId)
-          ..add('slotId', slotId))
+          ..add('slotId', slotId)
+          ..add('voucherCode', voucherCode)
+          ..add('expectedPackageVersion', expectedPackageVersion)
+          ..add('expectedPromotionId', expectedPromotionId)
+          ..add('expectedPromotionVersion', expectedPromotionVersion))
         .toString();
   }
 }
@@ -74,6 +101,25 @@ class CreateOrderCommandBuilder
   String? get slotId => _$this._slotId;
   set slotId(String? slotId) => _$this._slotId = slotId;
 
+  String? _voucherCode;
+  String? get voucherCode => _$this._voucherCode;
+  set voucherCode(String? voucherCode) => _$this._voucherCode = voucherCode;
+
+  int? _expectedPackageVersion;
+  int? get expectedPackageVersion => _$this._expectedPackageVersion;
+  set expectedPackageVersion(int? expectedPackageVersion) =>
+      _$this._expectedPackageVersion = expectedPackageVersion;
+
+  String? _expectedPromotionId;
+  String? get expectedPromotionId => _$this._expectedPromotionId;
+  set expectedPromotionId(String? expectedPromotionId) =>
+      _$this._expectedPromotionId = expectedPromotionId;
+
+  int? _expectedPromotionVersion;
+  int? get expectedPromotionVersion => _$this._expectedPromotionVersion;
+  set expectedPromotionVersion(int? expectedPromotionVersion) =>
+      _$this._expectedPromotionVersion = expectedPromotionVersion;
+
   CreateOrderCommandBuilder() {
     CreateOrderCommand._defaults(this);
   }
@@ -84,6 +130,10 @@ class CreateOrderCommandBuilder
       _packageId = $v.packageId;
       _branchId = $v.branchId;
       _slotId = $v.slotId;
+      _voucherCode = $v.voucherCode;
+      _expectedPackageVersion = $v.expectedPackageVersion;
+      _expectedPromotionId = $v.expectedPromotionId;
+      _expectedPromotionVersion = $v.expectedPromotionVersion;
       _$v = null;
     }
     return this;
@@ -113,6 +163,10 @@ class CreateOrderCommandBuilder
           ),
           branchId: branchId,
           slotId: slotId,
+          voucherCode: voucherCode,
+          expectedPackageVersion: expectedPackageVersion,
+          expectedPromotionId: expectedPromotionId,
+          expectedPromotionVersion: expectedPromotionVersion,
         );
     replace(_$result);
     return _$result;

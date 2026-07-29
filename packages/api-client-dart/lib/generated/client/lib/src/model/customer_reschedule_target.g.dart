@@ -128,7 +128,7 @@ class _$CustomerRescheduleTarget extends CustomerRescheduleTarget {
   @override
   final BookingBranch branch;
   @override
-  final BookingClassSlotClassType classType;
+  final VoucherPackagesInner classType;
 
   factory _$CustomerRescheduleTarget([
     void Function(CustomerRescheduleTargetBuilder)? updates,
@@ -267,10 +267,10 @@ class CustomerRescheduleTargetBuilder
   BookingBranchBuilder get branch => _$this._branch ??= BookingBranchBuilder();
   set branch(covariant BookingBranchBuilder? branch) => _$this._branch = branch;
 
-  BookingClassSlotClassTypeBuilder? _classType;
-  BookingClassSlotClassTypeBuilder get classType =>
-      _$this._classType ??= BookingClassSlotClassTypeBuilder();
-  set classType(covariant BookingClassSlotClassTypeBuilder? classType) =>
+  VoucherPackagesInnerBuilder? _classType;
+  VoucherPackagesInnerBuilder get classType =>
+      _$this._classType ??= VoucherPackagesInnerBuilder();
+  set classType(covariant VoucherPackagesInnerBuilder? classType) =>
       _$this._classType = classType;
 
   CustomerRescheduleTargetBuilder() {

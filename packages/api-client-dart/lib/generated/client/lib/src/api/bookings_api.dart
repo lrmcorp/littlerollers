@@ -12,6 +12,8 @@ import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/booking.dart';
 import 'package:openapi/src/model/booking_command.dart';
 import 'package:openapi/src/model/booking_page.dart';
+import 'package:openapi/src/model/cancel_booking_command.dart';
+import 'package:openapi/src/model/customer_booking_cancellation_options.dart';
 import 'package:openapi/src/model/customer_booking_options.dart';
 import 'package:openapi/src/model/customer_reschedule_options.dart';
 import 'package:openapi/src/model/error_envelope.dart';
@@ -28,6 +30,112 @@ class BookingsApi {
   final Serializers _serializers;
 
   const BookingsApi(this._dio, this._serializers);
+
+  /// cancelCustomerBooking
+  /// Customer-owned idempotent cancellation before H-24. Atomically releases the reservation, updates slot occupancy, revokes active check-in tokens, and emits booking.cancelled.v1 without mutating the ledger.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [idempotencyKey] 
+  /// * [cancelBookingCommand] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Booking] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Booking>> cancelCustomerBooking({ 
+    required String id,
+    required String idempotencyKey,
+    required CancelBookingCommand cancelBookingCommand,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/bookings/{id}/cancel'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(CancelBookingCommand);
+      _bodyData = _serializers.serialize(cancelBookingCommand, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Booking? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(Booking),
+      ) as Booking;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Booking>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
 
   /// createBooking
   /// Atomically creates one booking, one ACTIVE reservation, masked audit, and booking.created.v1. Synthetic H-2 cutoff is explicit configuration; production is fail-closed.
@@ -311,6 +419,87 @@ class BookingsApi {
     }
 
     return Response<Booking>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// getCustomerBookingCancellationOptions
+  /// Returns authoritative customer-owned cancellation eligibility. Exactly at the configured H-24 boundary is no longer eligible.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CustomerBookingCancellationOptions] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CustomerBookingCancellationOptions>> getCustomerBookingCancellationOptions({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/bookings/{id}/cancellation-options'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CustomerBookingCancellationOptions? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(CustomerBookingCancellationOptions),
+      ) as CustomerBookingCancellationOptions;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CustomerBookingCancellationOptions>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

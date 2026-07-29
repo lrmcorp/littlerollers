@@ -137,8 +137,8 @@ abstract mixin class CustomerRescheduleSlotBuilder {
   BookingBranchBuilder get branch;
   set branch(BookingBranchBuilder? branch);
 
-  BookingClassSlotClassTypeBuilder get classType;
-  set classType(BookingClassSlotClassTypeBuilder? classType);
+  VoucherPackagesInnerBuilder get classType;
+  set classType(VoucherPackagesInnerBuilder? classType);
 }
 
 class _$$CustomerRescheduleSlot extends $CustomerRescheduleSlot {
@@ -163,7 +163,7 @@ class _$$CustomerRescheduleSlot extends $CustomerRescheduleSlot {
   @override
   final BookingBranch branch;
   @override
-  final BookingClassSlotClassType classType;
+  final VoucherPackagesInner classType;
 
   factory _$$CustomerRescheduleSlot([
     void Function($CustomerRescheduleSlotBuilder)? updates,
@@ -293,10 +293,10 @@ class $CustomerRescheduleSlotBuilder
   BookingBranchBuilder get branch => _$this._branch ??= BookingBranchBuilder();
   set branch(covariant BookingBranchBuilder? branch) => _$this._branch = branch;
 
-  BookingClassSlotClassTypeBuilder? _classType;
-  BookingClassSlotClassTypeBuilder get classType =>
-      _$this._classType ??= BookingClassSlotClassTypeBuilder();
-  set classType(covariant BookingClassSlotClassTypeBuilder? classType) =>
+  VoucherPackagesInnerBuilder? _classType;
+  VoucherPackagesInnerBuilder get classType =>
+      _$this._classType ??= VoucherPackagesInnerBuilder();
+  set classType(covariant VoucherPackagesInnerBuilder? classType) =>
       _$this._classType = classType;
 
   $CustomerRescheduleSlotBuilder() {

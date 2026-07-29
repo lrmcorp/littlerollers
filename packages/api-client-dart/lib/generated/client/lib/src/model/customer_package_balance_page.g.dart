@@ -10,14 +10,19 @@ class _$CustomerPackageBalancePage extends CustomerPackageBalancePage {
   @override
   final BuiltList<CustomerPackageBalance> items;
   @override
+  final CustomerPackageBalanceSummary summary;
+  @override
   final CursorPageMeta page;
 
   factory _$CustomerPackageBalancePage([
     void Function(CustomerPackageBalancePageBuilder)? updates,
   ]) => (CustomerPackageBalancePageBuilder()..update(updates))._build();
 
-  _$CustomerPackageBalancePage._({required this.items, required this.page})
-    : super._();
+  _$CustomerPackageBalancePage._({
+    required this.items,
+    required this.summary,
+    required this.page,
+  }) : super._();
   @override
   CustomerPackageBalancePage rebuild(
     void Function(CustomerPackageBalancePageBuilder) updates,
@@ -32,6 +37,7 @@ class _$CustomerPackageBalancePage extends CustomerPackageBalancePage {
     if (identical(other, this)) return true;
     return other is CustomerPackageBalancePage &&
         items == other.items &&
+        summary == other.summary &&
         page == other.page;
   }
 
@@ -39,6 +45,7 @@ class _$CustomerPackageBalancePage extends CustomerPackageBalancePage {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
+    _$hash = $jc(_$hash, summary.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -48,6 +55,7 @@ class _$CustomerPackageBalancePage extends CustomerPackageBalancePage {
   String toString() {
     return (newBuiltValueToStringHelper(r'CustomerPackageBalancePage')
           ..add('items', items)
+          ..add('summary', summary)
           ..add('page', page))
         .toString();
   }
@@ -64,6 +72,12 @@ class CustomerPackageBalancePageBuilder
   set items(ListBuilder<CustomerPackageBalance>? items) =>
       _$this._items = items;
 
+  CustomerPackageBalanceSummaryBuilder? _summary;
+  CustomerPackageBalanceSummaryBuilder get summary =>
+      _$this._summary ??= CustomerPackageBalanceSummaryBuilder();
+  set summary(CustomerPackageBalanceSummaryBuilder? summary) =>
+      _$this._summary = summary;
+
   CursorPageMetaBuilder? _page;
   CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
   set page(CursorPageMetaBuilder? page) => _$this._page = page;
@@ -76,6 +90,7 @@ class CustomerPackageBalancePageBuilder
     final $v = _$v;
     if ($v != null) {
       _items = $v.items.toBuilder();
+      _summary = $v.summary.toBuilder();
       _page = $v.page.toBuilder();
       _$v = null;
     }
@@ -102,6 +117,7 @@ class CustomerPackageBalancePageBuilder
           _$v ??
           _$CustomerPackageBalancePage._(
             items: items.build(),
+            summary: summary.build(),
             page: page.build(),
           );
     } catch (_) {
@@ -109,6 +125,8 @@ class CustomerPackageBalancePageBuilder
       try {
         _$failedField = 'items';
         items.build();
+        _$failedField = 'summary';
+        summary.build();
         _$failedField = 'page';
         page.build();
       } catch (e) {

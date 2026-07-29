@@ -27,10 +27,13 @@ jobs:
       QUOTA_EVALUATION_LEASE_MS: '30000'
       QUOTA_EVALUATION_MAX_ATTEMPTS: '5'
       QUOTA_EVALUATION_BACKOFF_MS: '60000'
+      AUTH_SYNTHETIC_ENABLED: 'true'
       BOOKING_SYNTHETIC_ENABLED: 'true'
       BOOKING_SYNTHETIC_CUTOFF_HOURS: '2'
       RESCHEDULE_SYNTHETIC_ENABLED: 'true'
       RESCHEDULE_SYNTHETIC_CUTOFF_HOURS: '24'
+      BOOKING_CANCELLATION_ENABLED: 'true'
+      BOOKING_CANCELLATION_CUTOFF_HOURS: '24'
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -41,6 +44,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Create local environment file for Node CLI
+        run: cp .env.example .env
       - run: pnpm openapi:validate
       - run: pnpm openapi:drift
       - run: pnpm db:generate

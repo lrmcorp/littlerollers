@@ -66,6 +66,7 @@ import 'package:openapi/src/model/branch_period_page.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_item.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_result.dart';
+import 'package:openapi/src/model/cancel_booking_command.dart';
 import 'package:openapi/src/model/capability_definition.dart';
 import 'package:openapi/src/model/capability_definition_page.dart';
 import 'package:openapi/src/model/challenge_accepted.dart';
@@ -98,6 +99,7 @@ import 'package:openapi/src/model/create_order_command.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
 import 'package:openapi/src/model/create_permission_override_command.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
+import 'package:openapi/src/model/customer_booking_cancellation_options.dart';
 import 'package:openapi/src/model/customer_booking_eligibility.dart';
 import 'package:openapi/src/model/customer_booking_options.dart';
 import 'package:openapi/src/model/customer_booking_package.dart';
@@ -380,6 +382,7 @@ part 'serializers.g.dart';
   BulkCustomerCheckInLinkCommand,
   BulkCustomerCheckInLinkItem,
   BulkCustomerCheckInLinkResult,
+  CancelBookingCommand,
   CapabilityDefinition,
   CapabilityDefinitionPage,
   ChallengeAccepted,
@@ -412,6 +415,7 @@ part 'serializers.g.dart';
   CreatePaymentProofUploadRequest,
   CreatePermissionOverrideCommand,
   CursorPageMeta,
+  CustomerBookingCancellationOptions,
   CustomerBookingEligibility,
   CustomerBookingOptions,
   CustomerBookingPackage,

@@ -26,6 +26,10 @@ class _$PublicPackageDetail extends PublicPackageDetail {
   @override
   final int priceRp;
   @override
+  final int effectivePriceRp;
+  @override
+  final PublicPackagePromotion? promotion;
+  @override
   final DateTime? effectiveUntil;
   @override
   final PublicClassTypeRef? classType;
@@ -48,6 +52,8 @@ class _$PublicPackageDetail extends PublicPackageDetail {
     required this.sessionCount,
     required this.durationDays,
     required this.priceRp,
+    required this.effectivePriceRp,
+    this.promotion,
     this.effectiveUntil,
     this.classType,
     this.publicProfile,
@@ -75,6 +81,8 @@ class _$PublicPackageDetail extends PublicPackageDetail {
         sessionCount == other.sessionCount &&
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
+        effectivePriceRp == other.effectivePriceRp &&
+        promotion == other.promotion &&
         effectiveUntil == other.effectiveUntil &&
         classType == other.classType &&
         publicProfile == other.publicProfile &&
@@ -93,6 +101,8 @@ class _$PublicPackageDetail extends PublicPackageDetail {
     _$hash = $jc(_$hash, sessionCount.hashCode);
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
+    _$hash = $jc(_$hash, effectivePriceRp.hashCode);
+    _$hash = $jc(_$hash, promotion.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
     _$hash = $jc(_$hash, classType.hashCode);
     _$hash = $jc(_$hash, publicProfile.hashCode);
@@ -113,6 +123,8 @@ class _$PublicPackageDetail extends PublicPackageDetail {
           ..add('sessionCount', sessionCount)
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
+          ..add('effectivePriceRp', effectivePriceRp)
+          ..add('promotion', promotion)
           ..add('effectiveUntil', effectiveUntil)
           ..add('classType', classType)
           ..add('publicProfile', publicProfile)
@@ -169,6 +181,17 @@ class PublicPackageDetailBuilder
   int? get priceRp => _$this._priceRp;
   set priceRp(covariant int? priceRp) => _$this._priceRp = priceRp;
 
+  int? _effectivePriceRp;
+  int? get effectivePriceRp => _$this._effectivePriceRp;
+  set effectivePriceRp(covariant int? effectivePriceRp) =>
+      _$this._effectivePriceRp = effectivePriceRp;
+
+  PublicPackagePromotionBuilder? _promotion;
+  PublicPackagePromotionBuilder get promotion =>
+      _$this._promotion ??= PublicPackagePromotionBuilder();
+  set promotion(covariant PublicPackagePromotionBuilder? promotion) =>
+      _$this._promotion = promotion;
+
   DateTime? _effectiveUntil;
   DateTime? get effectiveUntil => _$this._effectiveUntil;
   set effectiveUntil(covariant DateTime? effectiveUntil) =>
@@ -206,6 +229,8 @@ class PublicPackageDetailBuilder
       _sessionCount = $v.sessionCount;
       _durationDays = $v.durationDays;
       _priceRp = $v.priceRp;
+      _effectivePriceRp = $v.effectivePriceRp;
+      _promotion = $v.promotion?.toBuilder();
       _effectiveUntil = $v.effectiveUntil;
       _classType = $v.classType?.toBuilder();
       _publicProfile = $v.publicProfile?.toBuilder();
@@ -271,6 +296,12 @@ class PublicPackageDetailBuilder
               r'PublicPackageDetail',
               'priceRp',
             ),
+            effectivePriceRp: BuiltValueNullFieldError.checkNotNull(
+              effectivePriceRp,
+              r'PublicPackageDetail',
+              'effectivePriceRp',
+            ),
+            promotion: _promotion?.build(),
             effectiveUntil: effectiveUntil,
             classType: _classType?.build(),
             publicProfile: _publicProfile?.build(),
@@ -281,6 +312,9 @@ class PublicPackageDetailBuilder
       try {
         _$failedField = 'schedules';
         schedules.build();
+
+        _$failedField = 'promotion';
+        _promotion?.build();
 
         _$failedField = 'classType';
         _classType?.build();

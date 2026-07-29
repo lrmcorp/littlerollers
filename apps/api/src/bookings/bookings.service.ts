@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma, type BookingStatus } from '@prisma/client';
+import { Prisma, type BookingCancellationReasonCode, type BookingStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
@@ -15,8 +15,19 @@ export type BookingCommand = {
   source: 'SELF' | 'ADMIN_ASSISTED';
 };
 
+export type CancelBookingCommand = {
+  reasonCode: BookingCancellationReasonCode;
+  expectedVersion: number;
+};
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PAGE_SIZE = 20;
+const CANCELLATION_REASON_CODES: BookingCancellationReasonCode[] = [
+  'PERSONAL_UNAVAILABLE',
+  'CUSTOMER_SCHEDULE_CONFLICT',
+  'WRONG_CLASS_SELECTED',
+  'OTHER',
+];
 type Cursor = { at: string; id: string };
 type CustomerBookingTimeline = 'UPCOMING' | 'HISTORY';
 type BookingEligibilityReason =
@@ -45,6 +56,14 @@ function decodeCursor(value?: string): Cursor | null {
   }
 }
 
+export function isCancellationEntitled(
+  classStartAt: Date,
+  evaluatedAt: Date,
+  cutoffHours: number,
+): boolean {
+  return evaluatedAt.getTime() < classStartAt.getTime() - cutoffHours * 3_600_000;
+}
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -56,6 +75,13 @@ export class BookingsService {
 
   private syntheticPolicy() {
     const { enabled, cutoffHours } = this.config.value.booking;
+    if (!enabled || cutoffHours === null)
+      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
+    return { cutoffHours };
+  }
+
+  private cancellationPolicy() {
+    const { enabled, cutoffHours } = this.config.value.bookingCancellation;
     if (!enabled || cutoffHours === null)
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
     return { cutoffHours };
@@ -102,6 +128,8 @@ export class BookingsService {
       source: booking.source,
       status: booking.status,
       reservedQuantity: booking.reservedQuantity,
+      cancellationReasonCode: booking.cancellationReasonCode ?? null,
+      cancelledAt: booking.cancelledAt ?? null,
       createdAt: booking.createdAt,
       version: booking.version,
       idempotentReplay: false,
@@ -140,6 +168,196 @@ export class BookingsService {
           }
         : null,
     };
+  }
+
+  async cancellationOptions(principal: SessionPrincipal, bookingId: string) {
+    this.policy.requireCapability(principal.capabilities, 'booking:self:cancel');
+    if (!UUID.test(bookingId)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const policy = this.cancellationPolicy();
+    const booking = await this.db.booking.findFirst({
+      where: { id: bookingId, customerUserId: principal.userId },
+      include: {
+        classSlot: { select: { startAt: true, status: true, timezone: true } },
+        reservation: { select: { status: true } },
+        attendance: { select: { id: true } },
+        reschedules: {
+          where: { status: 'PENDING' },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+    if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const now = new Date();
+    const cutoffAt = new Date(booking.classSlot.startAt.getTime() - policy.cutoffHours * 3_600_000);
+    const pending = booking.status === 'RESCHEDULE_PENDING' || booking.reschedules.length > 0;
+    const unavailableReason = pending
+      ? 'RESCHEDULE_PENDING'
+      : booking.status !== 'BOOKED'
+        ? 'BOOKING_NOT_ACTIVE'
+        : booking.attendance
+          ? 'ATTENDANCE_RECORDED'
+          : booking.reservation.status !== 'ACTIVE'
+            ? 'RESERVATION_NOT_ACTIVE'
+            : !['PUBLISHED', 'CONFIRMED'].includes(booking.classSlot.status)
+              ? 'CLASS_SLOT_UNAVAILABLE'
+              : !isCancellationEntitled(booking.classSlot.startAt, now, policy.cutoffHours)
+                ? 'CANCELLATION_CUTOFF_PASSED'
+                : null;
+    return {
+      bookingId: booking.id,
+      bookingVersion: booking.version,
+      cutoffAt,
+      canCancel: unavailableReason === null,
+      unavailableReason,
+      supportAction: unavailableReason === null ? null : 'CONTACT_STUDIO',
+    };
+  }
+
+  async cancel(
+    principal: SessionPrincipal,
+    bookingId: string,
+    input: CancelBookingCommand,
+    key: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'booking:self:cancel');
+    if (
+      !key ||
+      !UUID.test(bookingId) ||
+      !Number.isInteger(input.expectedVersion) ||
+      input.expectedVersion < 0 ||
+      !CANCELLATION_REASON_CODES.includes(input.reasonCode)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const policy = this.cancellationPolicy();
+    return this.idempotency
+      .execute(
+        {
+          scope: `booking-cancel:${principal.userId}:${bookingId}`,
+          key,
+          payload: input,
+          ttlMs: 86_400_000,
+          leaseMs: 30_000,
+        },
+        async (tx) => {
+          const owned = await tx.booking.findFirst({
+            where: { id: bookingId, customerUserId: principal.userId },
+            select: { id: true, classSlotId: true, reservationId: true },
+          });
+          if (!owned) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+          await tx.$queryRaw`SELECT \`id\` FROM \`Booking\` WHERE \`id\` = ${bookingId} FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` = ${owned.classSlotId} FOR UPDATE`;
+          await tx.$queryRaw`SELECT \`id\` FROM \`SessionReservation\` WHERE \`id\` = ${owned.reservationId} FOR UPDATE`;
+
+          const booking = await tx.booking.findFirst({
+            where: { id: bookingId, customerUserId: principal.userId },
+            include: {
+              classSlot: true,
+              reservation: true,
+              attendance: true,
+              reschedules: { where: { status: 'PENDING' }, select: { id: true }, take: 1 },
+            },
+          });
+          if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          if (booking.version !== input.expectedVersion)
+            throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+          if (booking.status === 'RESCHEDULE_PENDING' || booking.reschedules.length > 0)
+            throw new ApiProblem('PENDING_RESCHEDULE_EXISTS', HttpStatus.CONFLICT);
+          if (booking.status !== 'BOOKED')
+            throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+          if (booking.attendance)
+            throw new ApiProblem('ATTENDANCE_ALREADY_RECORDED', HttpStatus.CONFLICT);
+          if (
+            booking.reservation.status !== 'ACTIVE' ||
+            booking.reservation.classSlotId !== booking.classSlotId ||
+            booking.reservation.customerPackageId !== booking.customerPackageId ||
+            booking.reservation.quantity !== booking.reservedQuantity
+          )
+            throw new ApiProblem('RESERVATION_NOT_ACTIVE', HttpStatus.CONFLICT);
+          if (!['PUBLISHED', 'CONFIRMED'].includes(booking.classSlot.status))
+            throw new ApiProblem('CLASS_SLOT_UNAVAILABLE', HttpStatus.CONFLICT);
+          const now = new Date();
+          if (!isCancellationEntitled(booking.classSlot.startAt, now, policy.cutoffHours))
+            throw new ApiProblem('CANCELLATION_CUTOFF_PASSED', HttpStatus.CONFLICT);
+
+          await tx.sessionReservation.update({
+            where: { id: booking.reservationId },
+            data: { status: 'RELEASED', releasedAt: now },
+          });
+          const remaining = await tx.sessionReservation.aggregate({
+            where: { classSlotId: booking.classSlotId, status: 'ACTIVE' },
+            _sum: { quantity: true },
+          });
+          await tx.classSlot.update({
+            where: { id: booking.classSlotId },
+            data: { bookedCount: remaining._sum.quantity ?? 0 },
+          });
+          await tx.checkInToken.updateMany({
+            where: { bookingId, status: 'ACTIVE' },
+            data: {
+              status: 'REVOKED',
+              revokedAt: now,
+              activeBookingKey: null,
+              version: { increment: 1 },
+            },
+          });
+          const updated = await tx.booking.update({
+            where: { id: bookingId },
+            data: {
+              status: 'CANCELLED',
+              cancellationReasonCode: input.reasonCode,
+              cancelledAt: now,
+              cancelledById: principal.userId,
+              version: { increment: 1 },
+            },
+          });
+          await Promise.all([
+            tx.auditLog.create({
+              data: {
+                id: randomUUID(),
+                actorType: 'USER',
+                actorId: principal.userId,
+                branchId: booking.branchId,
+                action: 'booking.cancelled',
+                objectType: 'Booking',
+                objectId: booking.id,
+                correlationId,
+                beforeMasked: { status: booking.status, version: booking.version },
+                afterMasked: {
+                  status: 'CANCELLED',
+                  reasonCode: input.reasonCode,
+                  version: updated.version,
+                },
+              },
+            }),
+            tx.outboxEvent.create({
+              data: {
+                id: randomUUID(),
+                eventType: 'booking.cancelled.v1',
+                aggregateType: 'Booking',
+                aggregateId: booking.id,
+                correlationId,
+                payload: {
+                  bookingId: booking.id,
+                  classSlotId: booking.classSlotId,
+                  branchId: booking.branchId,
+                },
+              },
+            }),
+          ]);
+          return {
+            status: HttpStatus.OK,
+            body: updated as unknown as Prisma.InputJsonValue,
+          };
+        },
+      )
+      .catch((error: unknown) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034')
+          throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+        throw error;
+      });
   }
 
   async customerOptions(principal: SessionPrincipal, classSlotId: string) {

@@ -68,6 +68,7 @@ models/BranchPeriodPage.ts
 models/BulkCustomerCheckInLinkCommand.ts
 models/BulkCustomerCheckInLinkItem.ts
 models/BulkCustomerCheckInLinkResult.ts
+models/CancelBookingCommand.ts
 models/CapabilityDefinition.ts
 models/CapabilityDefinitionPage.ts
 models/ChallengeAccepted.ts
@@ -100,6 +101,7 @@ models/CreateOrderCommand.ts
 models/CreatePaymentProofUploadRequest.ts
 models/CreatePermissionOverrideCommand.ts
 models/CursorPageMeta.ts
+models/CustomerBookingCancellationOptions.ts
 models/CustomerBookingEligibility.ts
 models/CustomerBookingOptions.ts
 models/CustomerBookingPackage.ts

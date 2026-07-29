@@ -9,6 +9,7 @@ export const EMAIL_TEMPLATE_KEYS = [
   'ORDER_APPROVED_V1',
   'ORDER_REJECTED_V1',
   'BOOKING_CONFIRMED_V1',
+  'BOOKING_CANCELLED_V1',
   'RESCHEDULE_APPROVED_V1',
   'RESCHEDULE_REJECTED_V1',
   'CLASS_CANCELLED_V1',
@@ -83,6 +84,11 @@ const templateCopy: Record<EmailTemplateKey, { subject: string; intro: string; a
     BOOKING_CONFIRMED_V1: {
       subject: 'Booking Daily Dose Pilates berhasil',
       intro: 'Jadwal baru telah ditambahkan ke booking Anda.',
+      action: 'Lihat booking',
+    },
+    BOOKING_CANCELLED_V1: {
+      subject: 'Booking Daily Dose Pilates dibatalkan',
+      intro: 'Booking Anda telah dibatalkan dan slot kelas telah dilepas.',
       action: 'Lihat booking',
     },
     RESCHEDULE_APPROVED_V1: {

@@ -29,6 +29,7 @@ type NotificationSpec = {
   message: string;
   href?: string;
   metadataMasked?: Prisma.InputJsonValue;
+  emailEligible?: boolean;
 };
 
 const payloadOf = (event: OutboxEvent) =>
@@ -52,6 +53,7 @@ export class NotificationProjectionWorker {
       'purchase.approved.v1': 'ORDER_APPROVED_V1',
       'purchase.rejected.v1': 'ORDER_REJECTED_V1',
       'booking.created.v1': 'BOOKING_CONFIRMED_V1',
+      'booking.cancelled.v1': 'BOOKING_CANCELLED_V1',
       'booking.rescheduled.v1': 'RESCHEDULE_APPROVED_V1',
       'booking.reschedule_rejected.v1': 'RESCHEDULE_REJECTED_V1',
       'class.manual_cancelled.v1': 'CLASS_CANCELLED_V1',
@@ -155,7 +157,13 @@ export class NotificationProjectionWorker {
     if (event.aggregateType === 'Booking') {
       const booking = await this.db.booking.findUnique({
         where: { id: event.aggregateId },
-        select: { id: true, customerUserId: true, branchId: true, classSlotId: true },
+        select: {
+          id: true,
+          customerUserId: true,
+          branchId: true,
+          classSlotId: true,
+          classSlot: { select: { instructorUserId: true } },
+        },
       });
       if (!booking) return [];
       if (event.eventType === 'booking.reschedule_requested.v1') {
@@ -170,6 +178,38 @@ export class NotificationProjectionWorker {
           href: '/bookings?rescheduleStatus=PENDING',
           metadataMasked: { bookingId: booking.id },
         }));
+      }
+      if (event.eventType === 'booking.cancelled.v1') {
+        const staff = await this.staffRecipients(['ADMIN', 'MANAGER'], booking.branchId);
+        const operationalIds = new Set([
+          ...(booking.classSlot.instructorUserId ? [booking.classSlot.instructorUserId] : []),
+          ...staff.map(({ id }) => id),
+        ]);
+        operationalIds.delete(booking.customerUserId);
+        return [
+          {
+            userId: booking.customerUserId,
+            branchId: booking.branchId,
+            category: 'BOOKING',
+            tone: 'INFO',
+            title: 'Booking berhasil dibatalkan',
+            message: 'Booking Anda telah dibatalkan dan slot kelas telah dilepas.',
+            href: '/bookings',
+            metadataMasked: { classSlotId: booking.classSlotId },
+            emailEligible: true,
+          },
+          ...[...operationalIds].map((userId) => ({
+            userId,
+            branchId: booking.branchId,
+            category: 'BOOKING' as const,
+            tone: 'INFO' as const,
+            title: 'Customer membatalkan booking',
+            message: 'Satu slot kelas telah dilepas oleh customer.',
+            href: '/workspace/bookings',
+            metadataMasked: { classSlotId: booking.classSlotId },
+            emailEligible: false,
+          })),
+        ];
       }
       const copy: Record<
         string,
@@ -346,7 +386,7 @@ export class NotificationProjectionWorker {
         });
         if (specs?.length) {
           await tx.userNotification.createMany({
-            data: specs.map((spec) => ({
+            data: specs.map(({ emailEligible: _emailEligible, ...spec }) => ({
               id: randomUUID(),
               ...spec,
               sourceEventId: event.id,
@@ -363,6 +403,7 @@ export class NotificationProjectionWorker {
               select: { id: true, email: true },
             });
             for (const spec of specs) {
+              if (spec.emailEligible === false) continue;
               const user = recipients.find(({ id }) => id === spec.userId);
               if (!user?.email) continue;
               const recipient = this.emailConfig?.recipientOverride || user.email;

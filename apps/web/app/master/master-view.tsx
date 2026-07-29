@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   browserMasterClient,
   masterFailure,
@@ -92,6 +92,7 @@ export function MasterView({
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const pendingOperations = useRef(0);
   const [instructor, setInstructor] = useState<LookupOption>();
   const lookupInstructors = useCallback(
     (q: string) =>
@@ -104,6 +105,7 @@ export function MasterView({
   const run = async (action: () => Promise<void>, success: string) => {
     setFailure(undefined);
     setMessage(undefined);
+    pendingOperations.current += 1;
     setLoading(true);
     try {
       await action();
@@ -111,7 +113,8 @@ export function MasterView({
     } catch (error) {
       setFailure(masterFailure(error));
     } finally {
-      setLoading(false);
+      pendingOperations.current = Math.max(0, pendingOperations.current - 1);
+      if (pendingOperations.current === 0) setLoading(false);
     }
   };
 

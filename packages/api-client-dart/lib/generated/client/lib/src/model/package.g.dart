@@ -65,7 +65,47 @@ class _$PackageStatusEnumSerializer
   );
 }
 
-class _$Package extends Package {
+abstract mixin class PackageBuilder {
+  void replace(Package other);
+  void update(void Function(PackageBuilder) updates);
+  String? get id;
+  set id(String? id);
+
+  String? get branchId;
+  set branchId(String? branchId);
+
+  String? get classTypeId;
+  set classTypeId(String? classTypeId);
+
+  String? get businessKey;
+  set businessKey(String? businessKey);
+
+  String? get name;
+  set name(String? name);
+
+  int? get sessionCount;
+  set sessionCount(int? sessionCount);
+
+  int? get durationDays;
+  set durationDays(int? durationDays);
+
+  int? get priceRp;
+  set priceRp(int? priceRp);
+
+  PackageStatusEnum? get status;
+  set status(PackageStatusEnum? status);
+
+  Date? get effectiveFrom;
+  set effectiveFrom(Date? effectiveFrom);
+
+  Date? get effectiveUntil;
+  set effectiveUntil(Date? effectiveUntil);
+
+  int? get version;
+  set version(int? version);
+}
+
+class _$$Package extends $Package {
   @override
   final String id;
   @override
@@ -91,10 +131,10 @@ class _$Package extends Package {
   @override
   final int version;
 
-  factory _$Package([void Function(PackageBuilder)? updates]) =>
-      (PackageBuilder()..update(updates))._build();
+  factory _$$Package([void Function($PackageBuilder)? updates]) =>
+      ($PackageBuilder()..update(updates))._build();
 
-  _$Package._({
+  _$$Package._({
     required this.id,
     required this.branchId,
     required this.classTypeId,
@@ -109,16 +149,16 @@ class _$Package extends Package {
     required this.version,
   }) : super._();
   @override
-  Package rebuild(void Function(PackageBuilder) updates) =>
+  $Package rebuild(void Function($PackageBuilder) updates) =>
       (toBuilder()..update(updates)).build();
 
   @override
-  PackageBuilder toBuilder() => PackageBuilder()..replace(this);
+  $PackageBuilder toBuilder() => $PackageBuilder()..replace(this);
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is Package &&
+    return other is $Package &&
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
@@ -154,7 +194,7 @@ class _$Package extends Package {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'Package')
+    return (newBuiltValueToStringHelper(r'$Package')
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
@@ -171,64 +211,69 @@ class _$Package extends Package {
   }
 }
 
-class PackageBuilder implements Builder<Package, PackageBuilder> {
-  _$Package? _$v;
+class $PackageBuilder
+    implements Builder<$Package, $PackageBuilder>, PackageBuilder {
+  _$$Package? _$v;
 
   String? _id;
   String? get id => _$this._id;
-  set id(String? id) => _$this._id = id;
+  set id(covariant String? id) => _$this._id = id;
 
   String? _branchId;
   String? get branchId => _$this._branchId;
-  set branchId(String? branchId) => _$this._branchId = branchId;
+  set branchId(covariant String? branchId) => _$this._branchId = branchId;
 
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
-  set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+  set classTypeId(covariant String? classTypeId) =>
+      _$this._classTypeId = classTypeId;
 
   String? _businessKey;
   String? get businessKey => _$this._businessKey;
-  set businessKey(String? businessKey) => _$this._businessKey = businessKey;
+  set businessKey(covariant String? businessKey) =>
+      _$this._businessKey = businessKey;
 
   String? _name;
   String? get name => _$this._name;
-  set name(String? name) => _$this._name = name;
+  set name(covariant String? name) => _$this._name = name;
 
   int? _sessionCount;
   int? get sessionCount => _$this._sessionCount;
-  set sessionCount(int? sessionCount) => _$this._sessionCount = sessionCount;
+  set sessionCount(covariant int? sessionCount) =>
+      _$this._sessionCount = sessionCount;
 
   int? _durationDays;
   int? get durationDays => _$this._durationDays;
-  set durationDays(int? durationDays) => _$this._durationDays = durationDays;
+  set durationDays(covariant int? durationDays) =>
+      _$this._durationDays = durationDays;
 
   int? _priceRp;
   int? get priceRp => _$this._priceRp;
-  set priceRp(int? priceRp) => _$this._priceRp = priceRp;
+  set priceRp(covariant int? priceRp) => _$this._priceRp = priceRp;
 
   PackageStatusEnum? _status;
   PackageStatusEnum? get status => _$this._status;
-  set status(PackageStatusEnum? status) => _$this._status = status;
+  set status(covariant PackageStatusEnum? status) => _$this._status = status;
 
   Date? _effectiveFrom;
   Date? get effectiveFrom => _$this._effectiveFrom;
-  set effectiveFrom(Date? effectiveFrom) =>
+  set effectiveFrom(covariant Date? effectiveFrom) =>
       _$this._effectiveFrom = effectiveFrom;
 
   Date? _effectiveUntil;
   Date? get effectiveUntil => _$this._effectiveUntil;
-  set effectiveUntil(Date? effectiveUntil) =>
+  set effectiveUntil(covariant Date? effectiveUntil) =>
       _$this._effectiveUntil = effectiveUntil;
 
   int? _version;
   int? get version => _$this._version;
-  set version(int? version) => _$this._version = version;
+  set version(covariant int? version) => _$this._version = version;
 
-  PackageBuilder() {
-    Package._defaults(this);
+  $PackageBuilder() {
+    $Package._defaults(this);
   }
 
-  PackageBuilder get _$this {
+  $PackageBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
       _id = $v.id;
@@ -249,68 +294,72 @@ class PackageBuilder implements Builder<Package, PackageBuilder> {
   }
 
   @override
-  void replace(Package other) {
-    _$v = other as _$Package;
+  void replace(covariant $Package other) {
+    _$v = other as _$$Package;
   }
 
   @override
-  void update(void Function(PackageBuilder)? updates) {
+  void update(void Function($PackageBuilder)? updates) {
     if (updates != null) updates(this);
   }
 
   @override
-  Package build() => _build();
+  $Package build() => _build();
 
-  _$Package _build() {
+  _$$Package _build() {
     final _$result =
         _$v ??
-        _$Package._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'Package', 'id'),
+        _$$Package._(
+          id: BuiltValueNullFieldError.checkNotNull(id, r'$Package', 'id'),
           branchId: BuiltValueNullFieldError.checkNotNull(
             branchId,
-            r'Package',
+            r'$Package',
             'branchId',
           ),
           classTypeId: BuiltValueNullFieldError.checkNotNull(
             classTypeId,
-            r'Package',
+            r'$Package',
             'classTypeId',
           ),
           businessKey: BuiltValueNullFieldError.checkNotNull(
             businessKey,
-            r'Package',
+            r'$Package',
             'businessKey',
           ),
-          name: BuiltValueNullFieldError.checkNotNull(name, r'Package', 'name'),
+          name: BuiltValueNullFieldError.checkNotNull(
+            name,
+            r'$Package',
+            'name',
+          ),
           sessionCount: BuiltValueNullFieldError.checkNotNull(
             sessionCount,
-            r'Package',
+            r'$Package',
             'sessionCount',
           ),
           durationDays: BuiltValueNullFieldError.checkNotNull(
             durationDays,
-            r'Package',
+            r'$Package',
             'durationDays',
           ),
           priceRp: BuiltValueNullFieldError.checkNotNull(
             priceRp,
-            r'Package',
+            r'$Package',
             'priceRp',
           ),
           status: BuiltValueNullFieldError.checkNotNull(
             status,
-            r'Package',
+            r'$Package',
             'status',
           ),
           effectiveFrom: BuiltValueNullFieldError.checkNotNull(
             effectiveFrom,
-            r'Package',
+            r'$Package',
             'effectiveFrom',
           ),
           effectiveUntil: effectiveUntil,
           version: BuiltValueNullFieldError.checkNotNull(
             version,
-            r'Package',
+            r'$Package',
             'version',
           ),
         );

@@ -27,7 +27,12 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     db as never,
     new IdempotencyService(db as never),
     new PolicyService(),
-    { value: { booking: { enabled: true, cutoffHours: 2 } } } as never,
+    {
+      value: {
+        booking: { enabled: true, cutoffHours: 2 },
+        bookingCancellation: { enabled: true, cutoffHours: 24 },
+      },
+    } as never,
   );
 
   beforeAll(async () => {
@@ -183,6 +188,9 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     await db.outboxEvent.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.idempotencyRecord.deleteMany({ where: { scope: `booking-create:${actorId}` } });
+    await db.idempotencyRecord.deleteMany({
+      where: { scope: { startsWith: 'booking-cancel:' } },
+    });
     await db.booking.deleteMany({ where: { branchId } });
     await db.sessionReservation.deleteMany({
       where: { customerPackageId: { in: [...customerPackageIds] } },
@@ -547,5 +555,91 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       limit: 1,
     });
     expect(secondPage.items[0]?.id).not.toBe(firstPage.items[0]?.id);
+  });
+
+  it('cancels an owned booking idempotently without changing the ledger', async () => {
+    const classSlotId = randomUUID();
+    const reservationId = randomUUID();
+    const bookingId = randomUUID();
+    await db.classSlot.create({
+      data: {
+        id: classSlotId,
+        branchId,
+        classTypeId,
+        startAt: new Date(Date.now() + 30 * 3_600_000),
+        endAt: new Date(Date.now() + 31 * 3_600_000),
+        timezone: 'Asia/Jakarta',
+        minimumQuota: 1,
+        capacity: 5,
+        bookedCount: 1,
+        status: 'PUBLISHED',
+      },
+    });
+    await db.sessionReservation.create({
+      data: {
+        id: reservationId,
+        customerPackageId: customerPackageIds[1],
+        classSlotId,
+        referenceHash: `${namespace}-cancel`,
+      },
+    });
+    await db.booking.create({
+      data: {
+        id: bookingId,
+        branchId,
+        classSlotId,
+        customerUserId: customerIds[1],
+        customerPackageId: customerPackageIds[1],
+        reservationId,
+        createdById: customerIds[1],
+        source: 'SELF',
+      },
+    });
+    const customerPrincipal = {
+      sessionId: `${namespace}-cancel-customer`,
+      userId: customerIds[1],
+      roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+      capabilities: ['booking:self:read', 'booking:self:cancel'],
+      branchIds: [],
+    };
+    const options = await service.cancellationOptions(customerPrincipal, bookingId);
+    const ledgerBefore = await db.ledgerEntry.count({
+      where: { customerPackageId: customerPackageIds[1] },
+    });
+    const first = await service.cancel(
+      customerPrincipal,
+      bookingId,
+      { reasonCode: 'PERSONAL_UNAVAILABLE', expectedVersion: options.bookingVersion },
+      `${namespace}-cancel-key`,
+      `${namespace}-cancel`,
+    );
+    const replay = await service.cancel(
+      customerPrincipal,
+      bookingId,
+      { reasonCode: 'PERSONAL_UNAVAILABLE', expectedVersion: options.bookingVersion },
+      `${namespace}-cancel-key`,
+      `${namespace}-cancel-replay`,
+    );
+    expect(first.replay).toBe(false);
+    expect(replay.replay).toBe(true);
+    expect(await db.booking.findUnique({ where: { id: bookingId } })).toMatchObject({
+      status: 'CANCELLED',
+      cancellationReasonCode: 'PERSONAL_UNAVAILABLE',
+      cancelledById: customerIds[1],
+    });
+    expect(await db.sessionReservation.findUnique({ where: { id: reservationId } })).toMatchObject({
+      status: 'RELEASED',
+    });
+    expect(await db.classSlot.findUnique({ where: { id: classSlotId } })).toMatchObject({
+      bookedCount: 0,
+    });
+    expect(
+      await db.ledgerEntry.count({ where: { customerPackageId: customerPackageIds[1] } }),
+    ).toBe(ledgerBefore);
+    expect(
+      await db.outboxEvent.count({
+        where: { eventType: 'booking.cancelled.v1', aggregateId: bookingId },
+      }),
+    ).toBe(1);
   });
 });

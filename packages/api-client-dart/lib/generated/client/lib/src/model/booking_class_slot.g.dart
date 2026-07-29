@@ -18,7 +18,7 @@ class _$BookingClassSlot extends BookingClassSlot {
   @override
   final String status;
   @override
-  final BookingClassSlotClassType classType;
+  final VoucherPackagesInner classType;
 
   factory _$BookingClassSlot([
     void Function(BookingClassSlotBuilder)? updates,
@@ -102,10 +102,10 @@ class BookingClassSlotBuilder
   String? get status => _$this._status;
   set status(String? status) => _$this._status = status;
 
-  BookingClassSlotClassTypeBuilder? _classType;
-  BookingClassSlotClassTypeBuilder get classType =>
-      _$this._classType ??= BookingClassSlotClassTypeBuilder();
-  set classType(BookingClassSlotClassTypeBuilder? classType) =>
+  VoucherPackagesInnerBuilder? _classType;
+  VoucherPackagesInnerBuilder get classType =>
+      _$this._classType ??= VoucherPackagesInnerBuilder();
+  set classType(VoucherPackagesInnerBuilder? classType) =>
       _$this._classType = classType;
 
   BookingClassSlotBuilder() {
