@@ -14,8 +14,8 @@ export function AuthPageShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="auth-page-shell grid min-h-svh grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)] bg-dd-cream max-[800px]:grid-cols-1">
-      <section className="auth-visual-panel relative isolate min-h-svh overflow-hidden max-[800px]:min-h-[280px]">
+    <main className="auth-page-shell grid min-h-svh w-full min-w-0 max-w-full grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)] bg-dd-cream max-[800px]:grid-cols-[minmax(0,1fr)]">
+      <section className="auth-visual-panel relative isolate min-h-svh min-w-0 overflow-hidden max-[800px]:min-h-[280px]">
         <Image
           className="auth-visual-image -z-20 object-cover"
           src="/images/public/landing/studio-showcase.png"
@@ -37,10 +37,10 @@ export function AuthPageShell({
           </div>
         </div>
       </section>
-      <section className="grid place-items-center p-[clamp(24px,6vw,80px)]">
-        <div className="w-full max-w-[560px] rounded-dd-lg border border-dd-line bg-white/80 p-[clamp(24px,5vw,48px)] shadow-dd-card">
-          <div className="mb-10 flex items-center justify-between gap-5">
-            <BrandMark className="w-40" priority />
+      <section className="grid min-w-0 place-items-center p-[clamp(24px,6vw,80px)]">
+        <div className="w-full min-w-0 max-w-[560px] rounded-dd-lg border border-dd-line bg-white/80 p-[clamp(24px,5vw,48px)] shadow-dd-card">
+          <div className="mb-10 flex min-w-0 flex-wrap items-center justify-between gap-5">
+            <BrandMark className="w-32 sm:w-40" priority />
             <Link className="text-sm font-bold text-dd-forest" href="/sign-in">
               Kembali masuk
             </Link>

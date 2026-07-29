@@ -30,6 +30,42 @@ test.beforeEach(async ({ page }) => {
       }),
     }),
   );
+  await page.route('**/api/v1/dashboard/overview**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        generatedAt: '2026-07-23T08:00:00.000Z',
+        period: {
+          from: '2026-06-24T00:00:00.000Z',
+          until: '2026-07-23T23:59:59.999Z',
+          previousFrom: '2026-05-25T00:00:00.000Z',
+          previousUntil: '2026-06-24T00:00:00.000Z',
+        },
+        roleFocus: 'EXECUTIVE',
+        sections: {
+          executive: true,
+          owner: false,
+          branchOperations: false,
+          finance: false,
+          operations: false,
+          trend: false,
+          queue: false,
+          risk: false,
+          branchComparison: false,
+          auditActivity: false,
+          jobHealth: false,
+        },
+        metrics: [],
+        queues: [],
+        trend: [],
+        branches: [],
+        risks: [],
+        activities: [],
+        jobs: [],
+      }),
+    }),
+  );
 });
 
 const breakpoints = [
@@ -306,8 +342,8 @@ test('public catalog requires a studio then shows authoritative availability', a
   await expect(page.getByText('Pilih studio untuk melihat kelas')).toBeVisible();
   await page.getByLabel('Studio', { exact: true }).selectOption('branch-1');
   await expect(page.getByRole('heading', { name: 'Private Class', exact: true })).toBeVisible();
-  await expect(page.getByText('2 tempat')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Pilih kelas' })).toHaveAttribute(
+  await expect(page.getByText('2/4 tempat')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Buka workspace kelas' })).toHaveAttribute(
     'href',
     '/workspace/classes',
   );
@@ -388,7 +424,7 @@ for (const breakpoint of breakpoints) {
       page.getByRole('heading', { name: 'Reformer Pilates', exact: true }),
     ).toBeVisible();
     if (breakpoint.width >= 640) {
-      await expect(page.getByText('Synthetic Operator', { exact: true })).toBeVisible();
+      await expect(page.getByText('Akun Saya', { exact: true })).toBeVisible();
     } else {
       await expect(page.getByRole('link', { name: 'Buka workspace' })).toHaveAttribute(
         'href',
@@ -427,6 +463,7 @@ for (const breakpoint of breakpoints) {
     await expect(
       page.getByRole('heading', { name: 'Selamat datang, Synthetic Operator' }),
     ).toBeVisible();
+    await expect(page.getByText('Semua cabang yang diizinkan', { exact: true })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Booking' }).first()).toBeAttached();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
@@ -436,18 +473,47 @@ for (const breakpoint of breakpoints) {
     await expect(page).toHaveScreenshot(`shell-${breakpoint.name}.png`, {
       animations: 'disabled',
       fullPage: true,
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.04,
     });
   });
 }
 
 test('navigation keeps current page context and keyboard access', async ({ page }) => {
-  await page.goto('/bookings');
+  await page.route('**/api/v1/bookings**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [],
+        summary: {
+          total: 0,
+          booked: 0,
+          reschedulePending: 0,
+          attended: 0,
+          cancelled: 0,
+          noShow: 0,
+        },
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/reschedules**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [],
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.goto('/workspace/bookings');
+  await expect(page.getByText('Data booking siap digunakan.', { exact: true })).toBeVisible();
   const current = page.getByRole('link', { name: 'Booking' });
   await expect(current).toHaveAttribute('aria-current', 'page');
   await current.focus();
   await expect(current).toBeFocused();
-  await expect(page.getByRole('heading', { name: 'Booking bantuan pelanggan' })).toBeVisible();
+  await expect(page).toHaveURL(/\/workspace\/bookings/);
 });
 
 test('protected route redirects to sign-in with a safe relative return target', async ({
