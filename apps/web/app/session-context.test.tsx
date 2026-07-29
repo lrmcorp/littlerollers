@@ -308,10 +308,8 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
 
-    expect(await screen.findByRole('link', { name: 'Buka akun saya' })).toHaveAttribute(
-      'href',
-      '/account',
-    );
+    const accountLinks = await screen.findAllByRole('link', { name: 'Akun Saya' });
+    expect(accountLinks.some((link) => link.getAttribute('href') === '/account')).toBe(true);
     expect(screen.queryByRole('link', { name: 'Masuk ke akun' })).not.toBeInTheDocument();
   });
 

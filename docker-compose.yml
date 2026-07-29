@@ -1,10 +1,19 @@
-name: dailydose
+name: dailydose-v2
 
 x-app: &app
-  image: dailydose-app:latest
+  image: dailydose-v2-app:${APP_VERSION:-dev}
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
   env_file: ${APP_ENV_FILE:-.env.production}
   restart: unless-stopped
   networks: [dailydose]
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
 
 services:
   mysql:
@@ -49,10 +58,6 @@ services:
 
   migrate:
     <<: *app
-    build:
-      context: .
-      args:
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     restart: "no"
     command: ["node", "apps/api/node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
     depends_on:
@@ -94,8 +99,7 @@ services:
   web:
     <<: *app
     command: ["pnpm", "--filter", "@dailydose/web", "exec", "next", "start", "-p", "32120"]
-    ports:
-      - "${WEB_BIND_ADDRESS:-0.0.0.0}:${WEB_PORT:-32120}:32120"
+    networks: [dailydose, dailydose-proxy]
     depends_on:
       api:
         condition: service_healthy
@@ -115,3 +119,6 @@ volumes:
 networks:
   dailydose:
     driver: bridge
+  dailydose-proxy:
+    name: dailydose-v2-proxy
+    external: true

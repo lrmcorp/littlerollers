@@ -107,35 +107,48 @@ If neither the JAR nor a working Docker daemon is available, the command exits w
 ## Deployment VPS dengan Docker Compose
 
 Docker Compose production menjalankan Web, API, worker, MySQL, Redis, ClamAV,
-dan migrasi Prisma. Hanya port Web yang dipublikasikan ke host; database dan API
-tetap berada di network internal Docker.
+dan migrasi Prisma. Web terhubung ke Nginx Proxy Manager melalui network Docker
+eksternal `dailydose-v2-proxy`; database, Redis, dan API tetap berada di network
+internal Docker.
 
 1. Salin `.env.production.example` menjadi `.env.production`.
 2. Ganti seluruh nilai `CHANGE_ME`, domain `PUBLIC_WEB_BASE_URL`, alamat email,
    WhatsApp, dan kredensial provider. Password MySQL di `MYSQL_PASSWORD` harus
-   sama dengan password di `DATABASE_URL` (URL-encode bila mengandung karakter
-   khusus).
-3. Jalankan build dan deployment:
+   sama dengan password di `DATABASE_URL`. Gunakan password hex agar aman di URL.
+   Buat `APP_VERSION` dari tag release atau short commit, bukan `latest`.
+3. Buat network proxy satu kali dan hubungkan Nginx Proxy Manager yang sudah ada:
 
    ```bash
-   docker compose --env-file .env.production up -d --build
+   docker network inspect dailydose-v2-proxy >/dev/null 2>&1 || \
+     docker network create dailydose-v2-proxy
+   docker network connect dailydose-v2-proxy nginx-proxy-manager 2>/dev/null || true
    ```
 
-4. Periksa status dan log:
+4. Validasi dan jalankan service secara bertahap menggunakan project name eksplisit:
 
    ```bash
-   docker compose --env-file .env.production ps
-   docker compose --env-file .env.production logs -f api web worker
+   docker compose -p dailydose-v2 --env-file .env.production config --quiet
+   docker compose -p dailydose-v2 --env-file .env.production up -d mysql redis clamav
+   docker compose -p dailydose-v2 --env-file .env.production up -d --build migrate
+   docker compose -p dailydose-v2 --env-file .env.production up -d api worker web
+   docker compose -p dailydose-v2 --env-file .env.production ps
    ```
 
-Aplikasi tersedia di port `32120`. Untuk HTTPS, arahkan reverse proxy VPS
-(Caddy, Nginx, atau Traefik) ke `127.0.0.1:32120` dan ubah
-`WEB_BIND_ADDRESS=127.0.0.1`. Jangan menjalankan seed demo di production.
+5. Buat Proxy Host pada Nginx Proxy Manager menuju service:
 
-Backup minimal mencakup volume `dailydose_mysql-data` dan
-`dailydose_private-uploads`. Saat memperbarui aplikasi, tarik kode terbaru lalu
-jalankan kembali perintah `up -d --build`; service `migrate` akan menjalankan
-migrasi Prisma sebelum API dan worker dimulai.
+   ```text
+   web:32120
+   ```
+
+   Pastikan Proxy Host dan service web berada pada network `dailydose-v2-proxy`.
+   Port `32120` tidak dipublikasikan ke host. Jangan menjalankan seed demo di
+   production.
+
+Backup minimal mencakup volume `dailydose-v2_mysql-data` dan
+`dailydose-v2_private-uploads`. Saat memperbarui aplikasi, set `APP_VERSION` ke
+release baru lalu jalankan kembali build dan startup; service `migrate` akan
+menjalankan migrasi Prisma sebelum API dan worker dimulai. Jangan menjalankan
+`docker compose down -v` atau `docker system prune` pada VPS.
 
 ### Email transaksional SMTP
 

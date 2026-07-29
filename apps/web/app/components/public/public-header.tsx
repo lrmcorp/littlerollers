@@ -120,7 +120,7 @@ export function PublicHeader() {
               <Link
                 className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
                 href={customerOnly ? routes.account : routes.workspace}
-                aria-label={customerOnly ? 'Buka akun saya' : 'Buka workspace'}
+                aria-label={customerOnly ? 'Akun Saya' : 'Buka workspace'}
               >
                 <UserRound className="size-5" aria-hidden="true" />
               </Link>
@@ -135,7 +135,7 @@ export function PublicHeader() {
             ) : (
               <details className="relative hidden sm:block">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-dd-sm border border-dd-line bg-white px-3 text-sm font-bold text-dd-forest">
-                  <UserRound className="size-4" /> {session.displayName}
+                  <UserRound className="size-4" /> Akun Saya
                 </summary>
                 <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float">
                   <Link
@@ -168,6 +168,14 @@ export function PublicHeader() {
                   </button>
                 </div>
               </details>
+            )}
+            {!session && (
+              <Link
+                className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-3 text-sm font-bold text-dd-forest no-underline hover:border-dd-forest sm:inline-flex"
+                href={routes.register}
+              >
+                Daftar
+              </Link>
             )}
             <Link
               className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark lg:inline-flex"
@@ -238,6 +246,24 @@ export function PublicHeader() {
             </nav>
 
             <div className="mt-auto grid gap-3 border-t border-dd-line pt-5">
+              {!session && (
+                <>
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    href={routes.signIn}
+                    onClick={close}
+                  >
+                    Masuk
+                  </Link>
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    href={routes.register}
+                    onClick={close}
+                  >
+                    Daftar
+                  </Link>
+                </>
+              )}
               {session && (
                 <Link
                   className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"

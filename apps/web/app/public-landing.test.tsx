@@ -77,12 +77,17 @@ describe('public landing page', () => {
     expect(await screen.findByRole('heading', { name: 'Mat Pilates' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Barre' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Cadillac Pilates' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Customer Demo|Synthetic/i)).not.toBeInTheDocument();
     screen.getAllByRole('link', { name: 'Jelajahi Studio' }).forEach((link) => {
       expect(link).toHaveAttribute('href', '/locations');
     });
     expect(screen.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/sign-in');
+    expect(screen.getByRole('link', { name: 'Daftar' })).toHaveAttribute('href', '/register');
     expect(screen.getAllByRole('link', { name: 'Lihat Paket' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Pilih Paket' })).toHaveAttribute('href', '/packages');
+    expect(screen.getByAltText('Reformer Pilates di Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByAltText('Mat Pilates di Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByAltText('Barre di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Lihat Jadwal' })).toHaveLength(3);
     screen.getAllByRole('link', { name: 'Lihat Jadwal' }).forEach((link) => {
       expect(link).toHaveAttribute('href', '/classes#schedule');

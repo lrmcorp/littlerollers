@@ -5,6 +5,7 @@ export const routes = {
   locations: '/locations',
   contact: '/contact',
   signIn: '/sign-in',
+  register: '/register',
   account: '/account',
   workspace: '/workspace',
   security: '/account/security',

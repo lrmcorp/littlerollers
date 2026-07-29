@@ -89,14 +89,17 @@ export function PublicLanding() {
                 <Link className={primaryButton} href={`${routes.classes}#schedule`}>
                   Lihat Jadwal <span aria-hidden="true">›</span>
                 </Link>
-                <Link className={secondaryButton} href={routes.locations}>
-                  Jelajahi Studio <span aria-hidden="true">›</span>
-                </Link>
                 <Link
-                  className="inline-flex min-h-11 items-center justify-center gap-3 px-3 text-sm font-bold text-dd-forest no-underline"
+                  className={secondaryButton}
                   href={routes.packages}
                 >
                   Lihat Paket <span aria-hidden="true">›</span>
+                </Link>
+                <Link
+                  className="inline-flex min-h-11 items-center justify-center gap-2 px-1 text-sm font-bold text-dd-forest no-underline underline-offset-4 hover:underline"
+                  href={routes.locations}
+                >
+                  Jelajahi Studio <span aria-hidden="true">›</span>
                 </Link>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-dd-muted">
@@ -214,7 +217,7 @@ export function PublicLanding() {
                       src={`/images/public/${heroImageKey}`}
                       fill
                       sizes="260px"
-                      alt=""
+                      alt={`${name} di Daily Dose Pilates`}
                       className="object-cover"
                     />
                   </div>
@@ -317,9 +320,9 @@ export function PublicLanding() {
           className={`${container} my-8 grid items-center gap-8 rounded-dd-lg bg-dd-forest px-[clamp(28px,7vw,96px)] py-9 text-white md:grid-cols-2`}
         >
           <div>
-            <h2 className="font-sans text-3xl">Temukan kelas Pilates yang sesuai untukmu</h2>
+            <h2 className="font-sans text-3xl">Temukan kelas Pilates yang sesuai untuk Anda</h2>
             <p className="mt-2 text-sm text-white/80">
-              Lihat jadwal, pilih studio, dan temukan kelas yang sesuai dengan tujuanmu.
+              Lihat jadwal, pilih studio, dan temukan kelas yang sesuai dengan tujuan Anda.
             </p>
           </div>
           <div className="grid justify-items-center gap-2">

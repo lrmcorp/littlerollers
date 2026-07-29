@@ -168,10 +168,10 @@ export function PublicExperience({ children }: { children: ReactNode }) {
           type="button"
           aria-label="Hubungi Daily Dose melalui WhatsApp"
           onClick={() => (preferred ? openWhatsapp(preferred) : setChooserOpen(true))}
-          className={`public-whatsapp-fab fixed right-4 z-40 grid size-14 min-h-14 w-14 place-items-center rounded-full border border-white/30 bg-[#1f8f5f] p-0 text-white shadow-dd-float transition hover:-translate-y-1 motion-reduce:transform-none sm:right-6 ${
+          className={`public-whatsapp-fab fixed right-3 z-40 grid size-12 min-h-12 w-12 place-items-center rounded-full border border-white/30 bg-[#1f8f5f] p-0 text-white shadow-dd-float transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-dd-forest/25 motion-reduce:transform-none sm:right-6 sm:size-14 sm:min-h-14 sm:w-14 ${
             pathname === '/checkout'
-              ? 'bottom-[calc(6.5rem+env(safe-area-inset-bottom))] sm:bottom-6'
-              : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6'
+              ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-6'
+              : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom))] sm:bottom-6'
           }`}
         >
           <MessageCircle className="size-6" aria-hidden="true" />

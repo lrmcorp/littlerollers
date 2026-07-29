@@ -17,6 +17,14 @@ describe('PublicHeader', () => {
     await user.click(trigger);
     const dialog = screen.getByRole('dialog', { name: 'Menu navigasi' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(dialog).getByRole('link', { name: 'Masuk' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+    expect(within(dialog).getByRole('link', { name: 'Daftar' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
     expect(within(dialog).getByRole('link', { name: 'Paket' })).toHaveAttribute(
       'aria-current',
       'page',
