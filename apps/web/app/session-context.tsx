@@ -360,9 +360,8 @@ export function useSessionContext() {
 
 export function useActiveBranchState(): [string, (id: string) => void] {
   const context = useSessionContext();
-  const [branchId, setBranchId] = useState(context?.activeBranchId ?? '');
-  useEffect(() => {
-    if (context) setBranchId(context.activeBranchId);
-  }, [context, context?.activeBranchId]);
-  return [branchId, setBranchId];
+  const [localBranchId, setLocalBranchId] = useState('');
+  return context
+    ? [context.activeBranchId, context.setActiveBranchId]
+    : [localBranchId, setLocalBranchId];
 }

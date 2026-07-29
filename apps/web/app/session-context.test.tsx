@@ -138,7 +138,7 @@ describe('capability-aware session shell', () => {
       '/workspace/vouchers',
     );
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
-    const commandSearch = screen.getByRole('dialog', { name: 'Pencarian panel' });
+    const commandSearch = await screen.findByRole('dialog', { name: 'Pencarian panel' });
     expect(within(commandSearch).getByText('Paket & promo harga')).toBeVisible();
     expect(within(commandSearch).getByText('Voucher')).toBeVisible();
     expect(canAccessSessionPath(superOwnerSession, '/workspace/packages')).toBe(true);

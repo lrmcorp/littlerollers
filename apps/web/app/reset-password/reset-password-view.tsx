@@ -16,7 +16,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
       description="Gunakan password baru sepanjang 8–128 karakter. Seluruh sesi lama akan dicabut."
     >
       <form
-        className="grid gap-4"
+        className="grid min-w-0 max-w-full gap-4 overflow-x-clip"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -33,11 +33,11 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
             .catch(() => setStatus('error'));
         }}
       >
-        <label className="grid gap-2 text-sm font-bold">
+        <label className="grid min-w-0 gap-2 text-sm font-bold">
           Password baru
-          <span className="relative">
+          <span className="relative min-w-0">
             <input
-              className="min-h-[50px] w-full rounded-dd-sm border border-dd-line px-4 pr-24"
+              className="min-h-[50px] w-full min-w-0 rounded-dd-sm border border-dd-line px-4 pr-24"
               name="password"
               type={show ? 'text' : 'password'}
               minLength={8}
@@ -54,10 +54,10 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
             </button>
           </span>
         </label>
-        <label className="grid gap-2 text-sm font-bold">
+        <label className="grid min-w-0 gap-2 text-sm font-bold">
           Ulangi password baru
           <input
-            className="min-h-[50px] rounded-dd-sm border border-dd-line px-4"
+            className="min-h-[50px] w-full min-w-0 rounded-dd-sm border border-dd-line px-4"
             name="confirmation"
             type={show ? 'text' : 'password'}
             minLength={8}
