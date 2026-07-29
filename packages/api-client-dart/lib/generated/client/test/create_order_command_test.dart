@@ -22,5 +22,10 @@ void main() {
       // TODO
     });
 
+    // String voucherCode
+    test('to test the property `voucherCode`', () async {
+      // TODO
+    });
+
   });
 }

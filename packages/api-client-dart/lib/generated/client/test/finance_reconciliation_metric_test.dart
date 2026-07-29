@@ -38,6 +38,26 @@ void main() {
       // TODO
     });
 
+    // int grossSalesRp
+    test('to test the property `grossSalesRp`', () async {
+      // TODO
+    });
+
+    // int voucherDiscountRp
+    test('to test the property `voucherDiscountRp`', () async {
+      // TODO
+    });
+
+    // int netSalesRp
+    test('to test the property `netSalesRp`', () async {
+      // TODO
+    });
+
+    // int voucherRedemptionCount
+    test('to test the property `voucherRedemptionCount`', () async {
+      // TODO
+    });
+
     // int ledgerDeltaRp
     test('to test the property `ledgerDeltaRp`', () async {
       // TODO

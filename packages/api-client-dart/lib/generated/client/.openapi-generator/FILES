@@ -45,7 +45,6 @@ doc/Booking.md
 doc/BookingAttendance.md
 doc/BookingBranch.md
 doc/BookingClassSlot.md
-doc/BookingClassSlotClassType.md
 doc/BookingCommand.md
 doc/BookingCustomer.md
 doc/BookingManagementSummary.md
@@ -113,6 +112,7 @@ doc/CustomerOrderTimelineItem.md
 doc/CustomerOrderTimelinePage.md
 doc/CustomerPackageBalance.md
 doc/CustomerPackageBalancePage.md
+doc/CustomerPackageBalanceSummary.md
 doc/CustomerRescheduleOptions.md
 doc/CustomerRescheduleSlot.md
 doc/CustomerRescheduleTarget.md
@@ -309,6 +309,15 @@ doc/UserVerificationDocumentSummary.md
 doc/UserVerificationSummary.md
 doc/VersionCommand.md
 doc/VersionedAccessReason.md
+doc/Voucher.md
+doc/VoucherCommand.md
+doc/VoucherPackagesInner.md
+doc/VoucherPage.md
+doc/VoucherPreview.md
+doc/VoucherPreviewCommand.md
+doc/VoucherRedemption.md
+doc/VoucherRedemptionPage.md
+doc/VoucherUpdateCommand.md
 lib/openapi.dart
 lib/src/api.dart
 lib/src/api/access_api.dart
@@ -372,7 +381,6 @@ lib/src/model/booking.dart
 lib/src/model/booking_attendance.dart
 lib/src/model/booking_branch.dart
 lib/src/model/booking_class_slot.dart
-lib/src/model/booking_class_slot_class_type.dart
 lib/src/model/booking_command.dart
 lib/src/model/booking_customer.dart
 lib/src/model/booking_management_summary.dart
@@ -438,6 +446,7 @@ lib/src/model/customer_order_timeline_item.dart
 lib/src/model/customer_order_timeline_page.dart
 lib/src/model/customer_package_balance.dart
 lib/src/model/customer_package_balance_page.dart
+lib/src/model/customer_package_balance_summary.dart
 lib/src/model/customer_reschedule_options.dart
 lib/src/model/customer_reschedule_slot.dart
 lib/src/model/customer_reschedule_target.dart
@@ -626,6 +635,15 @@ lib/src/model/user_verification_document_summary.dart
 lib/src/model/user_verification_summary.dart
 lib/src/model/version_command.dart
 lib/src/model/versioned_access_reason.dart
+lib/src/model/voucher.dart
+lib/src/model/voucher_command.dart
+lib/src/model/voucher_packages_inner.dart
+lib/src/model/voucher_page.dart
+lib/src/model/voucher_preview.dart
+lib/src/model/voucher_preview_command.dart
+lib/src/model/voucher_redemption.dart
+lib/src/model/voucher_redemption_page.dart
+lib/src/model/voucher_update_command.dart
 lib/src/serializers.dart
 pubspec.yaml
 test/accepted_status_test.dart
@@ -669,7 +687,6 @@ test/availability_test.dart
 test/backfill_customer_check_in_request_test.dart
 test/booking_attendance_test.dart
 test/booking_branch_test.dart
-test/booking_class_slot_class_type_test.dart
 test/booking_class_slot_test.dart
 test/booking_command_test.dart
 test/booking_customer_test.dart
@@ -738,6 +755,7 @@ test/customer_order_summary_test.dart
 test/customer_order_timeline_item_test.dart
 test/customer_order_timeline_page_test.dart
 test/customer_package_balance_page_test.dart
+test/customer_package_balance_summary_test.dart
 test/customer_package_balance_test.dart
 test/customer_reschedule_options_test.dart
 test/customer_reschedule_slot_test.dart
@@ -935,3 +953,12 @@ test/user_verification_document_summary_test.dart
 test/user_verification_summary_test.dart
 test/version_command_test.dart
 test/versioned_access_reason_test.dart
+test/voucher_command_test.dart
+test/voucher_packages_inner_test.dart
+test/voucher_page_test.dart
+test/voucher_preview_command_test.dart
+test/voucher_preview_test.dart
+test/voucher_redemption_page_test.dart
+test/voucher_redemption_test.dart
+test/voucher_test.dart
+test/voucher_update_command_test.dart

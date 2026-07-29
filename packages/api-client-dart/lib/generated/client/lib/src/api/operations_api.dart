@@ -228,7 +228,7 @@ class OperationsApi {
   }
 
   /// getHealth
-  /// 
+  /// Authenticated global operations readiness. Requires operations:read and never returns connection details or credentials.
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation

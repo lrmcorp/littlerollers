@@ -5,6 +5,7 @@ import {
   Headers,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -20,6 +21,8 @@ import { PaymentAccountService } from './payment-account.service';
 import { PaymentReviewService } from './payment-review.service';
 import { PaymentProofService } from './payment-proof.service';
 import { VoucherService } from './voucher.service';
+import { ApiProblem } from '../identity/security';
+import { HttpStatus } from '@nestjs/common';
 @Controller()
 @UseGuards(AuthGuard)
 export class PackagesController {
@@ -38,32 +41,53 @@ export class PackagesController {
     @Query('branchId') branchId?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
   ) {
-    return this.vouchers.list(r.principal, { q, status, branchId, cursor, limit });
+    return this.vouchers.list(r.principal, { q, status, branchId, cursor, limit, from, until });
   }
   @Get('vouchers/:id') getVoucher(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.vouchers.detail(r.principal, id);
   }
   @Post('vouchers') createVoucher(
     @Req() r: AuthenticatedRequest,
+    @Headers('idempotency-key') key: string,
     @Body() body: any,
   ) {
-    return this.vouchers.create(r.principal, body, r.correlationId ?? 'unknown');
+    return this.vouchers.create(r.principal, body, key, r.correlationId ?? 'unknown');
+  }
+  @Patch('vouchers/:id') updateVoucher(
+    @Req() r: AuthenticatedRequest,
+    @Headers('idempotency-key') key: string,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.vouchers.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
+  @Get('vouchers/:id/redemptions') voucherRedemptions(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.vouchers.redemptions(r.principal, id, cursor, limit);
   }
   @Post('vouchers/:id/:action') transitionVoucher(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('action') action: 'activate' | 'pause' | 'archive',
+    @Headers('idempotency-key') key: string,
     @Body() body: { expectedVersion: number; reason: string },
   ) {
     const statuses = { activate: 'ACTIVE', pause: 'PAUSED', archive: 'ARCHIVED' } as const;
     const status = statuses[action];
-    if (!status) throw new Error('Unsupported voucher action');
+    if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     return this.vouchers.transition(
       r.principal,
       id,
       status,
       body,
+      key,
       r.correlationId ?? 'unknown',
     );
   }

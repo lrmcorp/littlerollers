@@ -53,7 +53,6 @@ import 'package:openapi/src/model/booking.dart';
 import 'package:openapi/src/model/booking_attendance.dart';
 import 'package:openapi/src/model/booking_branch.dart';
 import 'package:openapi/src/model/booking_class_slot.dart';
-import 'package:openapi/src/model/booking_class_slot_class_type.dart';
 import 'package:openapi/src/model/booking_command.dart';
 import 'package:openapi/src/model/booking_customer.dart';
 import 'package:openapi/src/model/booking_management_summary.dart';
@@ -119,6 +118,7 @@ import 'package:openapi/src/model/customer_order_timeline_item.dart';
 import 'package:openapi/src/model/customer_order_timeline_page.dart';
 import 'package:openapi/src/model/customer_package_balance.dart';
 import 'package:openapi/src/model/customer_package_balance_page.dart';
+import 'package:openapi/src/model/customer_package_balance_summary.dart';
 import 'package:openapi/src/model/customer_reschedule_options.dart';
 import 'package:openapi/src/model/customer_reschedule_slot.dart';
 import 'package:openapi/src/model/customer_reschedule_target.dart';
@@ -306,6 +306,15 @@ import 'package:openapi/src/model/user_verification_document_summary.dart';
 import 'package:openapi/src/model/user_verification_summary.dart';
 import 'package:openapi/src/model/version_command.dart';
 import 'package:openapi/src/model/versioned_access_reason.dart';
+import 'package:openapi/src/model/voucher.dart';
+import 'package:openapi/src/model/voucher_command.dart';
+import 'package:openapi/src/model/voucher_packages_inner.dart';
+import 'package:openapi/src/model/voucher_page.dart';
+import 'package:openapi/src/model/voucher_preview.dart';
+import 'package:openapi/src/model/voucher_preview_command.dart';
+import 'package:openapi/src/model/voucher_redemption.dart';
+import 'package:openapi/src/model/voucher_redemption_page.dart';
+import 'package:openapi/src/model/voucher_update_command.dart';
 
 part 'serializers.g.dart';
 
@@ -349,7 +358,6 @@ part 'serializers.g.dart';
   BookingAttendance,
   BookingBranch,
   BookingClassSlot,
-  BookingClassSlotClassType,
   BookingCommand,
   BookingCustomer,
   BookingManagementSummary,
@@ -415,6 +423,7 @@ part 'serializers.g.dart';
   CustomerOrderTimelinePage,
   CustomerPackageBalance,
   CustomerPackageBalancePage,
+  CustomerPackageBalanceSummary,
   CustomerRescheduleOptions,
   CustomerRescheduleSlot,$CustomerRescheduleSlot,
   CustomerRescheduleTarget,
@@ -602,6 +611,15 @@ part 'serializers.g.dart';
   UserVerificationSummary,
   VersionCommand,
   VersionedAccessReason,
+  Voucher,
+  VoucherCommand,$VoucherCommand,
+  VoucherPackagesInner,
+  VoucherPage,
+  VoucherPreview,
+  VoucherPreviewCommand,
+  VoucherRedemption,
+  VoucherRedemptionPage,
+  VoucherUpdateCommand,
 ])
 Serializers serializers = (_$serializers.toBuilder()
       ..add(AccessReason.serializer)
@@ -613,6 +631,7 @@ Serializers serializers = (_$serializers.toBuilder()
       ..add(PublicScheduleSummary.serializer)
       ..add(Purchase.serializer)
       ..add(SessionBranch.serializer)
+      ..add(VoucherCommand.serializer)
       ..add(const OneOfSerializer())
       ..add(const AnyOfSerializer())
       ..add(const DateSerializer())

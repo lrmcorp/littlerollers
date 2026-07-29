@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **endAt** | [**DateTime**](DateTime.md) |  | 
 **timezone** | **String** |  | 
 **status** | **String** |  | 
-**classType** | [**BookingClassSlotClassType**](BookingClassSlotClassType.md) |  | 
+**classType** | [**VoucherPackagesInner**](VoucherPackagesInner.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

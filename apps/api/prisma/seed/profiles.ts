@@ -9,6 +9,7 @@ import {
   seedInstructorAvailability,
 } from './instructors';
 import { seedAccessControl } from './access-control';
+import { seedVoucherRedemptionFixture, seedVouchers } from './vouchers';
 
 export async function runSeedProfile(ctx: SeedContext) {
   await seedAccessControl(ctx);
@@ -17,8 +18,10 @@ export async function runSeedProfile(ctx: SeedContext) {
   const instructorsByBranch = resolveInstructorIdsByBranch(users);
   await seedInstructorAvailability(ctx, users, catalog.branches);
   const master = await seedCommercialMaster(ctx, catalog, instructorsByBranch);
+  await seedVouchers(ctx, master, users);
   if (ctx.profile !== 'minimal') await seedIdentityVerificationFixtures(ctx, users);
   if (ctx.profile !== 'minimal') await seedOperationalScenarios(ctx, master, users);
+  if (ctx.profile !== 'minimal') await seedVoucherRedemptionFixture(ctx, users);
   if (ctx.profile !== 'minimal') await seedNotifications(ctx, users, master.branches);
   if (ctx.profile === 'volume') await seedVolume(ctx, master, users, 500);
   return {

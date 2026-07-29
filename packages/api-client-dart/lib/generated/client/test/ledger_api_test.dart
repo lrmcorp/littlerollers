@@ -28,7 +28,7 @@ void main() {
       // TODO
     });
 
-    // Branch-scoped adjustment queue ordered by createdAt and id descending.
+    // Branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
     //
     //Future<SessionAdjustmentPage> listSessionAdjustments({ String branchId, String status, String cursor }) async
     test('test listSessionAdjustments', () async {

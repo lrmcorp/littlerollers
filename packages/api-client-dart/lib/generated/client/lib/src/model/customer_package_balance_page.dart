@@ -6,6 +6,7 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/customer_package_balance.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
+import 'package:openapi/src/model/customer_package_balance_summary.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -15,11 +16,15 @@ part 'customer_package_balance_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [summary] 
 /// * [page] 
 @BuiltValue()
 abstract class CustomerPackageBalancePage implements Built<CustomerPackageBalancePage, CustomerPackageBalancePageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<CustomerPackageBalance> get items;
+
+  @BuiltValueField(wireName: r'summary')
+  CustomerPackageBalanceSummary get summary;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -51,6 +56,11 @@ class _$CustomerPackageBalancePageSerializer implements PrimitiveSerializer<Cust
     yield serializers.serialize(
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(CustomerPackageBalance)]),
+    );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(CustomerPackageBalanceSummary),
     );
     yield r'page';
     yield serializers.serialize(
@@ -86,6 +96,13 @@ class _$CustomerPackageBalancePageSerializer implements PrimitiveSerializer<Cust
             specifiedType: const FullType(BuiltList, [FullType(CustomerPackageBalance)]),
           ) as BuiltList<CustomerPackageBalance>;
           result.items.replace(valueDes);
+          break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CustomerPackageBalanceSummary),
+          ) as CustomerPackageBalanceSummary;
+          result.summary.replace(valueDes);
           break;
         case r'page':
           final valueDes = serializers.deserialize(

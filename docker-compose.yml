@@ -12,19 +12,19 @@ x-app: &app
   logging:
     driver: json-file
     options:
-      max-size: "20m"
-      max-file: "5"
+      max-size: '20m'
+      max-file: '5'
 
 services:
   mysql:
     image: mysql:8.4
     env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
-    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}']
       interval: 10s
       timeout: 5s
       retries: 20
@@ -33,11 +33,11 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 20
@@ -49,7 +49,7 @@ services:
     volumes:
       - clamav-data:/var/lib/clamav
     healthcheck:
-      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      test: ['CMD', '/usr/local/bin/clamdcheck.sh']
       interval: 30s
       timeout: 10s
       retries: 20
@@ -58,15 +58,23 @@ services:
 
   migrate:
     <<: *app
-    restart: "no"
-    command: ["node", "apps/api/node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
+    restart: 'no'
+    command:
+      [
+        'node',
+        'apps/api/node_modules/prisma/build/index.js',
+        'migrate',
+        'deploy',
+        '--schema',
+        'apps/api/prisma/schema.prisma',
+      ]
     depends_on:
       mysql:
         condition: service_healthy
 
   api:
     <<: *app
-    command: ["node", "apps/api/dist/main.js"]
+    command: ['node', 'apps/api/dist/main.js']
     volumes:
       - private-uploads:/app/data/private
     depends_on:
@@ -77,7 +85,13 @@ services:
       clamav:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "const socket=require('node:net').connect(32121,'127.0.0.1');socket.setTimeout(3000);socket.once('connect',()=>{socket.end();process.exit(0)});socket.once('timeout',()=>{socket.destroy();process.exit(1)});socket.once('error',()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const socket=require('node:net').connect(32121,'127.0.0.1');socket.setTimeout(3000);socket.once('connect',()=>{socket.end();process.exit(0)});socket.once('timeout',()=>{socket.destroy();process.exit(1)});socket.once('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -85,7 +99,7 @@ services:
 
   worker:
     <<: *app
-    command: ["node", "apps/worker/dist/main.js"]
+    command: ['node', 'apps/worker/dist/main.js']
     volumes:
       - private-uploads:/app/data/private
     depends_on:
@@ -98,13 +112,19 @@ services:
 
   web:
     <<: *app
-    command: ["pnpm", "--filter", "@dailydose/web", "exec", "next", "start", "-p", "32120"]
+    command: ['pnpm', '--filter', '@dailydose/web', 'exec', 'next', 'start', '-p', '32120']
     networks: [dailydose, dailydose-proxy]
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 10

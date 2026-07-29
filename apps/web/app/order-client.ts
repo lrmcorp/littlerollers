@@ -33,6 +33,14 @@ export interface CustomerOrder {
   packageName: string;
   priceRp: number;
   baseAmountRp: number;
+  voucher?: null | {
+    id: string;
+    code: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    discountValue: number;
+    discountRp: number;
+  };
+  priceAfterDiscountRp?: number;
   paymentUniqueCode: number | null;
   payableAmountRp: number;
   sessionCount: number;
@@ -201,6 +209,8 @@ const orderDates = (
   },
 ): CustomerOrder => ({
   ...order,
+  voucher: order.voucher ?? null,
+  priceAfterDiscountRp: order.priceAfterDiscountRp ?? order.baseAmountRp,
   submittedAt: new Date(order.submittedAt),
   decidedAt: order.decidedAt ? new Date(order.decidedAt) : null,
   expiresAt: order.expiresAt ? new Date(order.expiresAt) : null,
@@ -228,7 +238,12 @@ export const browserOrderClient = {
     if (branchId) query.set('branchId', branchId);
     return request<CheckoutOptions>(`/checkout/options?${query.toString()}`);
   },
-  async create(packageId: string, slotId?: string | null, branchId?: string | null) {
+  async create(
+    packageId: string,
+    slotId?: string | null,
+    branchId?: string | null,
+    voucherCode?: string,
+  ) {
     const value = await request<any>('/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
@@ -236,9 +251,24 @@ export const browserOrderClient = {
         packageId,
         ...(slotId ? { slotId } : {}),
         ...(branchId ? { branchId } : {}),
+        ...(voucherCode ? { voucherCode } : {}),
       }),
     });
     return orderDates(value);
+  },
+  async previewVoucher(packageId: string, branchId: string | null | undefined, code: string) {
+    return request<{
+      valid: boolean;
+      voucherId: string;
+      code: string;
+      baseAmountRp: number;
+      discountRp: number;
+      priceAfterDiscountRp: number;
+    }>('/checkout/voucher-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packageId, branchId, code }),
+    });
   },
   async list(filters: CustomerOrderFilters = {}): Promise<CustomerOrderPage> {
     const query = new URLSearchParams();

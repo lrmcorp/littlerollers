@@ -116,6 +116,8 @@ Name | Type | Description  | Notes
 
 
 
+Authenticated global operations readiness. Requires operations:read and never returns connection details or credentials.
+
 ### Example
 ```dart
 import 'package:openapi/api.dart';

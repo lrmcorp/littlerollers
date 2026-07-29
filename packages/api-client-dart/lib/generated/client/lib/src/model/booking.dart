@@ -5,11 +5,11 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/booking_branch.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:openapi/src/model/booking_class_slot_class_type.dart';
 import 'package:openapi/src/model/booking_class_slot.dart';
 import 'package:openapi/src/model/booking_attendance.dart';
 import 'package:openapi/src/model/booking_customer.dart';
 import 'package:openapi/src/model/booking_session_balance.dart';
+import 'package:openapi/src/model/voucher_packages_inner.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -94,7 +94,7 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
   BookingClassSlot? get classSlot;
 
   @BuiltValueField(wireName: r'package')
-  BookingClassSlotClassType? get package;
+  VoucherPackagesInner? get package;
 
   @BuiltValueField(wireName: r'attendance')
   BookingAttendance? get attendance;
@@ -219,7 +219,7 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       yield r'package';
       yield serializers.serialize(
         object.package,
-        specifiedType: const FullType(BookingClassSlotClassType),
+        specifiedType: const FullType(VoucherPackagesInner),
       );
     }
     if (object.attendance != null) {
@@ -374,8 +374,8 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
         case r'package':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BookingClassSlotClassType),
-          ) as BookingClassSlotClassType;
+            specifiedType: const FullType(VoucherPackagesInner),
+          ) as VoucherPackagesInner;
           result.package.replace(valueDes);
           break;
         case r'attendance':

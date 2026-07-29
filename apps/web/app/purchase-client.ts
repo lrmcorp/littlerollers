@@ -14,9 +14,17 @@ import { appLoading, foregroundFetch } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 
 export type PurchasePackage = Package;
-export type ReviewPurchase = PaymentReviewItem;
+type VoucherPaymentSnapshot = {
+  voucherId?: string | null;
+  voucherCodeSnapshot?: string | null;
+  voucherDiscountRpSnapshot?: number | null;
+  priceAfterDiscountRpSnapshot?: number | null;
+};
+export type ReviewPurchase = PaymentReviewItem & VoucherPaymentSnapshot;
 export type ReviewSummary = PaymentReviewSummary;
-export type ReviewDetail = PaymentReviewDetail;
+export type ReviewDetail = Omit<PaymentReviewDetail, 'purchase'> & {
+  purchase: PaymentReviewDetail['purchase'] & VoucherPaymentSnapshot;
+};
 export type ReviewApprovalResult = ApprovalResult;
 
 export interface PaymentReviewFilters {

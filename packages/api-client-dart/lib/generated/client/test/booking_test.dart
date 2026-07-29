@@ -92,7 +92,7 @@ void main() {
       // TODO
     });
 
-    // BookingClassSlotClassType package
+    // VoucherPackagesInner package
     test('to test the property `package`', () async {
       // TODO
     });

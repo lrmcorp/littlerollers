@@ -88,8 +88,7 @@ export class ClassSlotService {
     const isCustomer =
       principal.roles.some((item) => item.role === 'CUSTOMER') &&
       !principal.capabilities.includes('class-slot:manage');
-    if (input.branchId && !isCustomer)
-      this.scope(principal, input.branchId, 'class-slot:read');
+    if (input.branchId && !isCustomer) this.scope(principal, input.branchId, 'class-slot:read');
     const allowed = Object.values(ClassSlotStatus);
     if (input.status && !allowed.includes(input.status as ClassSlotStatus))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
