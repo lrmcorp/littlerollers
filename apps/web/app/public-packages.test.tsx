@@ -125,6 +125,39 @@ describe('public package catalog', () => {
     );
   });
 
+  it('shows the normal price as a semantic deletion when a promotion is live', async () => {
+    const promotedPackage: PublicPackage = {
+      ...packages[0]!,
+      effectivePriceRp: 1_080_000,
+      promotion: {
+        id: 'promotion-1',
+        name: 'Promo Pembukaan',
+        label: 'Promo 10%',
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+        discountRp: 120_000,
+        promotionalPriceRp: 1_080_000,
+        activeFrom: '2026-07-01T00:00:00.000Z',
+        activeUntil: '2026-08-01T00:00:00.000Z',
+        version: 1,
+      },
+    };
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: [promotedPackage] }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    expect(await screen.findByLabelText(/Harga normal Rp\s*1\.200\.000/)).toBeVisible();
+    expect(screen.getByText('Promo 10%')).toBeVisible();
+    expect(screen.getByText(/Rp\s*1\.080\.000/)).toBeVisible();
+    expect(screen.getByText(/Hemat Rp\s*120\.000/)).toBeVisible();
+  });
+
   it('uses friendly locations and role-aware CTA labels', () => {
     expect(publicBranchLocation(branch)).toBe('Jakarta · WIB');
     expect(packageCtaLabel(null)).toBe('Masuk untuk memilih');

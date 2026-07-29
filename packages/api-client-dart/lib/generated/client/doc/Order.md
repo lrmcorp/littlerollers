@@ -16,6 +16,8 @@ Name | Type | Description | Notes
 **packageName** | **String** |  | 
 **priceRp** | **int** |  | 
 **baseAmountRp** | **int** |  | 
+**promotion** | [**OrderPromotion**](OrderPromotion.md) |  | [optional] 
+**promotionalPriceRp** | **int** |  | 
 **paymentUniqueCode** | **int** |  | [optional] 
 **payableAmountRp** | **int** |  | 
 **sessionCount** | **int** |  | 

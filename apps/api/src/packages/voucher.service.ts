@@ -5,6 +5,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
+import { PackagePricingService } from './package-pricing.service';
 
 export const normalizeVoucherCode = (value: unknown) =>
   String(value ?? '')
@@ -47,6 +48,7 @@ export class VoucherService {
     private readonly db: PrismaService,
     private readonly access: PackageAccessService,
     private readonly idempotency: IdempotencyService,
+    private readonly pricing: PackagePricingService,
   ) {}
 
   private requireRead(principal: SessionPrincipal) {
@@ -566,12 +568,23 @@ export class VoucherService {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     const pkg = await this.db.package.findFirst({
       where: { id: input.packageId, status: 'ACTIVE', branch: { active: true } },
-      include: { branch: true },
+      include: {
+        branch: true,
+        promotions: {
+          where: { status: 'ACTIVE' },
+          orderBy: [{ activeFrom: 'desc' }],
+          take: 1,
+        },
+      },
     });
     if (!pkg || (input.branchId && pkg.branchId !== input.branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const code = normalizeVoucherCode(input.code);
     const now = new Date();
+    const activePromotion = pkg.promotions.find(
+      (item) => item.activeFrom <= now && item.activeUntil > now,
+    );
+    const packagePricing = this.pricing.calculate(pkg.priceRp, activePromotion, now);
     const voucher = await this.db.voucher.findFirst({
       where: {
         code,
@@ -587,7 +600,7 @@ export class VoucherService {
       include: { _count: { select: { redemptions: { where: { releasedAt: null } } } } },
     });
     if (!voucher) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (pkg.priceRp < voucher.minimumPurchaseRp)
+    if (packagePricing.effectivePriceRp < voucher.minimumPurchaseRp)
       throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
     const customerUsage = await this.db.voucherRedemption.count({
       where: { voucherId: voucher.id, customerUserId: principal.userId, releasedAt: null },
@@ -597,7 +610,7 @@ export class VoucherService {
     if (voucher.perCustomerUsageLimit !== null && customerUsage >= voucher.perCustomerUsageLimit)
       throw new ApiProblem('VOUCHER_CUSTOMER_LIMIT', HttpStatus.UNPROCESSABLE_ENTITY);
     const discountRp = calculateVoucherDiscount({
-      priceRp: pkg.priceRp,
+      priceRp: packagePricing.effectivePriceRp,
       discountType: voucher.discountType,
       discountValue: voucher.discountValue,
       maxDiscountRp: voucher.maxDiscountRp,
@@ -606,9 +619,12 @@ export class VoucherService {
       valid: true,
       voucherId: voucher.id,
       code: voucher.code,
-      baseAmountRp: pkg.priceRp,
+      packagePriceRp: pkg.priceRp,
+      packagePromotionDiscountRp: packagePricing.promotion?.discountRp ?? 0,
+      promotionalPriceRp: packagePricing.effectivePriceRp,
+      baseAmountRp: packagePricing.effectivePriceRp,
       discountRp,
-      priceAfterDiscountRp: pkg.priceRp - discountRp,
+      priceAfterDiscountRp: packagePricing.effectivePriceRp - discountRp,
     };
   }
 }

@@ -269,6 +269,22 @@ export function CustomerPaymentFlow({
               <dt className="text-sm text-dd-muted">Harga paket</dt>
               <dd className="font-semibold">{rupiah.format(order.baseAmountRp)}</dd>
             </div>
+            {order.promotion && (
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                <dt className="text-sm text-dd-muted">Promo paket · {order.promotion.name}</dt>
+                <dd className="font-semibold text-dd-forest">
+                  -{rupiah.format(order.promotion.discountRp)}
+                </dd>
+              </div>
+            )}
+            {order.promotion && (
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                <dt className="text-sm text-dd-muted">Harga promo</dt>
+                <dd className="font-semibold">
+                  {rupiah.format(order.promotionalPriceRp ?? order.baseAmountRp)}
+                </dd>
+              </div>
+            )}
             {order.voucher && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <dt className="text-sm text-dd-muted">Diskon voucher · {order.voucher.code}</dt>

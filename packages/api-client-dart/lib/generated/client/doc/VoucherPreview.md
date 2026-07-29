@@ -11,6 +11,9 @@ Name | Type | Description | Notes
 **valid** | **bool** |  | 
 **voucherId** | **String** |  | 
 **code** | **String** |  | 
+**packagePriceRp** | **int** |  | 
+**packagePromotionDiscountRp** | **int** |  | 
+**promotionalPriceRp** | **int** |  | 
 **baseAmountRp** | **int** |  | 
 **discountRp** | **int** |  | 
 **priceAfterDiscountRp** | **int** |  | 

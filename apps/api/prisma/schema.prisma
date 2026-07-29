@@ -147,6 +147,13 @@ enum VoucherDiscountType {
   FIXED_AMOUNT
 }
 
+enum PackagePromotionStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum PaymentProofUploadStatus {
   ISSUED
   UPLOADED
@@ -337,6 +344,7 @@ model User {
   purchases                          Purchase[]
   voucherRedemptions                 VoucherRedemption[]
   createdVouchers                    Voucher[]                           @relation("VoucherCreator")
+  createdPackagePromotions           PackagePromotion[]                  @relation("PackagePromotionCreator")
   decidedPurchases                   Purchase[]                          @relation("PurchaseDecisionActor")
   customerPackages                   CustomerPackage[]
   requestedAdjustments               SessionAdjustment[]                 @relation("AdjustmentRequester")
@@ -1049,6 +1057,7 @@ model Package {
   customerPackages CustomerPackage[]
   publicProfile    PackagePublicProfile?
   voucherScopes    VoucherPackageScope[]
+  promotions       PackagePromotion[]
 
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
@@ -1138,6 +1147,12 @@ model Purchase {
   branchId                              String                        @db.Char(36)
   packageId                             String                        @db.Char(36)
   voucherId                             String?                       @db.Char(36)
+  packagePromotionId                    String?                       @db.Char(36)
+  packagePromotionNameSnapshot          String?                       @db.VarChar(160)
+  packagePromotionDiscountTypeSnapshot  VoucherDiscountType?
+  packagePromotionDiscountValueSnapshot Int?
+  packagePromotionDiscountRpSnapshot    Int?
+  promotionalPriceRpSnapshot            Int?
   voucherCodeSnapshot                   String?                       @db.VarChar(64)
   voucherDiscountTypeSnapshot           VoucherDiscountType?
   voucherDiscountValueSnapshot          Int?
@@ -1169,6 +1184,7 @@ model Purchase {
   branch                                Branch                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
   package                               Package                       @relation(fields: [packageId], references: [id], onDelete: Restrict)
   voucher                               Voucher?                      @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  packagePromotion                      PackagePromotion?             @relation(fields: [packagePromotionId], references: [id], onDelete: Restrict)
   paymentProof                          PaymentProof?                 @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
   paymentAccount                        PaymentAccount?               @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict)
   continuationClassSlot                 ClassSlot?                    @relation("PurchaseContinuationSlot", fields: [continuationClassSlotId], references: [id], onDelete: Restrict)
@@ -1182,6 +1198,29 @@ model Purchase {
   @@index([userId, submittedAt])
   @@index([branchId, status])
   @@index([paymentAccountId, status, paymentExpiresAt])
+  @@index([packagePromotionId, submittedAt])
+}
+
+model PackagePromotion {
+  id            String                 @id @db.Char(36)
+  packageId     String                 @db.Char(36)
+  name          String                 @db.VarChar(160)
+  label         String                 @db.VarChar(80)
+  status        PackagePromotionStatus @default(DRAFT)
+  discountType  VoucherDiscountType
+  discountValue Int
+  activeFrom    DateTime
+  activeUntil   DateTime
+  version       Int                    @default(0)
+  createdById   String                 @db.Char(36)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  package       Package                @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  createdBy     User                   @relation("PackagePromotionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  purchases     Purchase[]
+
+  @@index([packageId, status, activeFrom, activeUntil])
+  @@index([status, activeFrom, activeUntil])
 }
 
 model Voucher {

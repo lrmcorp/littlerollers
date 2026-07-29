@@ -45,6 +45,11 @@ void main() {
       // TODO
     });
 
+    //Future<PackagePromotion> createPackagePromotion(String id, String idempotencyKey, PackagePromotionCommand packagePromotionCommand) async
+    test('test createPackagePromotion', () async {
+      // TODO
+    });
+
     // Issues an opaque private upload reference after metadata, order ownership and expiry validation.
     //
     //Future<PaymentProofUploadInstruction> createPaymentProofUpload(CreatePaymentProofUploadRequest createPaymentProofUploadRequest) async
@@ -66,6 +71,11 @@ void main() {
     //
     //Future<CheckoutOptions> getCheckoutOptions(String packageId, { String branchId }) async
     test('test getCheckoutOptions', () async {
+      // TODO
+    });
+
+    //Future<InternalPackageDetail> getInternalPackageDetail(String id) async
+    test('test getInternalPackageDetail', () async {
       // TODO
     });
 
@@ -98,6 +108,16 @@ void main() {
 
     //Future<OrderPage> listOrders({ String status, String cursor, String q, Date from, Date until, int limit }) async
     test('test listOrders', () async {
+      // TODO
+    });
+
+    //Future<PackagePromotionOrderPage> listPackagePromotionOrders(String id, { String cursor }) async
+    test('test listPackagePromotionOrders', () async {
+      // TODO
+    });
+
+    //Future<ListPackagePromotions200Response> listPackagePromotions(String id) async
+    test('test listPackagePromotions', () async {
       // TODO
     });
 
@@ -152,8 +172,18 @@ void main() {
       // TODO
     });
 
+    //Future<PackagePromotion> transitionPackagePromotion(String id, String action, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
+    test('test transitionPackagePromotion', () async {
+      // TODO
+    });
+
     //Future<Voucher> transitionVoucher(String id, String action, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
     test('test transitionVoucher', () async {
+      // TODO
+    });
+
+    //Future<PackagePromotion> updatePackagePromotion(String id, String idempotencyKey, PackagePromotionUpdateCommand packagePromotionUpdateCommand) async
+    test('test updatePackagePromotion', () async {
       // TODO
     });
 

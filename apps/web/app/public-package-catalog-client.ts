@@ -10,11 +10,24 @@ export type PublicPackageBranch = Pick<PublicBranch, 'id' | 'code' | 'name' | 't
   Partial<Pick<PublicBranch, 'publicProfile'>>;
 export type PublicPackage = Omit<
   PublicPackageSummary,
-  'effectiveUntil' | 'classType' | 'branch'
+  'effectiveUntil' | 'classType' | 'branch' | 'promotion' | 'effectivePriceRp'
 > & {
   branchId: string;
   classType: PublicClassTypeRef;
   effectiveUntil: string | null;
+  effectivePriceRp?: number;
+  promotion?: null | {
+    id: string;
+    name: string;
+    label: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    discountValue: number;
+    discountRp: number;
+    promotionalPriceRp: number;
+    activeFrom: string;
+    activeUntil: string;
+    version: number;
+  };
 };
 
 export interface PublicPackageCatalogResult {
@@ -39,6 +52,14 @@ export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
         branchId: item.branch?.id ?? branchId ?? '',
         classType: item.classType as PublicClassTypeRef,
         effectiveUntil: item.effectiveUntil?.toISOString() ?? null,
+        effectivePriceRp: (item as any).effectivePriceRp ?? item.priceRp,
+        promotion: (item as any).promotion
+          ? {
+              ...(item as any).promotion,
+              activeFrom: new Date((item as any).promotion.activeFrom).toISOString(),
+              activeUntil: new Date((item as any).promotion.activeUntil).toISOString(),
+            }
+          : null,
       })),
     };
   },

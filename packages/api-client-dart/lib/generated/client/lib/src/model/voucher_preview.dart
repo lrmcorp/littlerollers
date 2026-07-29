@@ -15,6 +15,9 @@ part 'voucher_preview.g.dart';
 /// * [valid] 
 /// * [voucherId] 
 /// * [code] 
+/// * [packagePriceRp] 
+/// * [packagePromotionDiscountRp] 
+/// * [promotionalPriceRp] 
 /// * [baseAmountRp] 
 /// * [discountRp] 
 /// * [priceAfterDiscountRp] 
@@ -29,6 +32,15 @@ abstract class VoucherPreview implements Built<VoucherPreview, VoucherPreviewBui
 
   @BuiltValueField(wireName: r'code')
   String get code;
+
+  @BuiltValueField(wireName: r'packagePriceRp')
+  int get packagePriceRp;
+
+  @BuiltValueField(wireName: r'packagePromotionDiscountRp')
+  int get packagePromotionDiscountRp;
+
+  @BuiltValueField(wireName: r'promotionalPriceRp')
+  int get promotionalPriceRp;
 
   @BuiltValueField(wireName: r'baseAmountRp')
   int get baseAmountRp;
@@ -76,6 +88,21 @@ class _$VoucherPreviewSerializer implements PrimitiveSerializer<VoucherPreview> 
     yield serializers.serialize(
       object.code,
       specifiedType: const FullType(String),
+    );
+    yield r'packagePriceRp';
+    yield serializers.serialize(
+      object.packagePriceRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'packagePromotionDiscountRp';
+    yield serializers.serialize(
+      object.packagePromotionDiscountRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'promotionalPriceRp';
+    yield serializers.serialize(
+      object.promotionalPriceRp,
+      specifiedType: const FullType(int),
     );
     yield r'baseAmountRp';
     yield serializers.serialize(
@@ -135,6 +162,27 @@ class _$VoucherPreviewSerializer implements PrimitiveSerializer<VoucherPreview> 
             specifiedType: const FullType(String),
           ) as String;
           result.code = valueDes;
+          break;
+        case r'packagePriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.packagePriceRp = valueDes;
+          break;
+        case r'packagePromotionDiscountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.packagePromotionDiscountRp = valueDes;
+          break;
+        case r'promotionalPriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.promotionalPriceRp = valueDes;
           break;
         case r'baseAmountRp':
           final valueDes = serializers.deserialize(

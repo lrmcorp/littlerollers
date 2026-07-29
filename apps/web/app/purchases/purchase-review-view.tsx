@@ -571,6 +571,13 @@ export function PurchaseReviewView({
                 </strong>
                 <p className="text-xs text-dd-muted">
                   Harga {rupiah.format(item.priceRpSnapshot)}
+                  {item.packagePromotionId && (
+                    <>
+                      {' '}
+                      · Promo {item.packagePromotionNameSnapshot} −
+                      {rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0)}
+                    </>
+                  )}
                   {item.voucherCodeSnapshot && (
                     <>
                       {' '}

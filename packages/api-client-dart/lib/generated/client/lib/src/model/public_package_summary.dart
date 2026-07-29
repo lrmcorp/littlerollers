@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/public_branch.dart';
 import 'package:openapi/src/model/public_package_profile.dart';
+import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:openapi/src/model/public_class_type_ref.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -20,6 +21,8 @@ part 'public_package_summary.g.dart';
 /// * [sessionCount] 
 /// * [durationDays] 
 /// * [priceRp] 
+/// * [effectivePriceRp] 
+/// * [promotion] 
 /// * [effectiveUntil] 
 /// * [classType] 
 /// * [publicProfile] 
@@ -43,6 +46,12 @@ abstract class PublicPackageSummary  {
 
   @BuiltValueField(wireName: r'priceRp')
   int get priceRp;
+
+  @BuiltValueField(wireName: r'effectivePriceRp')
+  int get effectivePriceRp;
+
+  @BuiltValueField(wireName: r'promotion')
+  PublicPackagePromotion? get promotion;
 
   @BuiltValueField(wireName: r'effectiveUntil')
   DateTime? get effectiveUntil;
@@ -103,6 +112,16 @@ class _$PublicPackageSummarySerializer implements PrimitiveSerializer<PublicPack
     yield serializers.serialize(
       object.priceRp,
       specifiedType: const FullType(int),
+    );
+    yield r'effectivePriceRp';
+    yield serializers.serialize(
+      object.effectivePriceRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'promotion';
+    yield object.promotion == null ? null : serializers.serialize(
+      object.promotion,
+      specifiedType: const FullType.nullable(PublicPackagePromotion),
     );
     if (object.effectiveUntil != null) {
       yield r'effectiveUntil';
@@ -236,6 +255,21 @@ class _$$PublicPackageSummarySerializer implements PrimitiveSerializer<$PublicPa
             specifiedType: const FullType(int),
           ) as int;
           result.priceRp = valueDes;
+          break;
+        case r'effectivePriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.effectivePriceRp = valueDes;
+          break;
+        case r'promotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PublicPackagePromotion),
+          ) as PublicPackagePromotion?;
+          if (valueDes == null) continue;
+          result.promotion.replace(valueDes);
           break;
         case r'effectiveUntil':
           final valueDes = serializers.deserialize(

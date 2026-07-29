@@ -13,6 +13,12 @@ import type {
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from './components/app-loading';
 import { publicApiStatus, publicGeneratedApi } from './public-api-client';
+import type { PublicPromotionPrice } from './components/public/package-price';
+
+type EffectivePublicPrice = {
+  effectivePriceRp: number;
+  promotion: PublicPromotionPrice | null;
+};
 
 export type PublicProfileBranch = PublicBranch;
 
@@ -31,7 +37,7 @@ export type PublicPackageDetail = Omit<
   effectiveFrom: string;
   effectiveUntil: string | null;
   schedules: RelatedSchedule[];
-};
+} & EffectivePublicPrice;
 
 export type PublicScheduleDetail = Omit<GeneratedPublicScheduleDetail, 'startAt' | 'endAt'> & {
   startAt: string;
@@ -45,7 +51,7 @@ export interface PublicClassDetail {
     Pick<PublicPackageSummary, 'id' | 'name' | 'sessionCount' | 'durationDays' | 'priceRp'> & {
       publicProfile: Pick<PublicPackageProfile, 'summary'>;
       branch: PublicProfileBranch;
-    }
+    } & EffectivePublicPrice
   >;
   schedules: RelatedSchedule[];
 }
@@ -59,7 +65,7 @@ export interface PublicStudioDetail extends Pick<
     Pick<PublicPackageSummary, 'id' | 'name' | 'sessionCount' | 'durationDays' | 'priceRp'> & {
       publicProfile: Pick<PublicPackageProfile, 'summary'>;
       classType: PublicClassTypeRef;
-    }
+    } & EffectivePublicPrice
   >;
   schedules: RelatedSchedule[];
 }
@@ -85,7 +91,7 @@ function classDetailView(item: GeneratedPublicClassDetail): PublicClassDetail {
           branch: PublicBranch;
         } => Boolean(candidate.publicProfile && candidate.branch),
       )
-      .map(({ id, name, sessionCount, durationDays, priceRp, publicProfile, branch }) => ({
+      .map(({ id, name, sessionCount, durationDays, priceRp, publicProfile, branch, ...rest }) => ({
         id,
         name,
         sessionCount,
@@ -93,6 +99,8 @@ function classDetailView(item: GeneratedPublicClassDetail): PublicClassDetail {
         priceRp,
         publicProfile,
         branch,
+        effectivePriceRp: (rest as any).effectivePriceRp ?? priceRp,
+        promotion: (rest as any).promotion ?? null,
       })),
     schedules: item.schedules.map(scheduleView),
   };
@@ -119,15 +127,19 @@ function studioDetailView(item: GeneratedPublicStudioDetail): PublicStudioDetail
           classType: PublicClassTypeRef;
         } => Boolean(candidate.publicProfile && candidate.classType),
       )
-      .map(({ id, name, sessionCount, durationDays, priceRp, publicProfile, classType }) => ({
-        id,
-        name,
-        sessionCount,
-        durationDays,
-        priceRp,
-        publicProfile,
-        classType,
-      })),
+      .map(
+        ({ id, name, sessionCount, durationDays, priceRp, publicProfile, classType, ...rest }) => ({
+          id,
+          name,
+          sessionCount,
+          durationDays,
+          priceRp,
+          publicProfile,
+          classType,
+          effectivePriceRp: (rest as any).effectivePriceRp ?? priceRp,
+          promotion: (rest as any).promotion ?? null,
+        }),
+      ),
     schedules: item.schedules.map(scheduleView),
   };
 }
@@ -140,6 +152,8 @@ export const publicDetailClient = {
     );
     return {
       ...item,
+      effectivePriceRp: (item as any).effectivePriceRp ?? item.priceRp,
+      promotion: (item as any).promotion ?? null,
       effectiveFrom: item.effectiveFrom.toISOString(),
       effectiveUntil: item.effectiveUntil?.toISOString() ?? null,
       schedules: item.schedules.map(scheduleView),

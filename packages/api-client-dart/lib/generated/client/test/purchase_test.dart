@@ -42,6 +42,36 @@ void main() {
       // TODO
     });
 
+    // String packagePromotionId
+    test('to test the property `packagePromotionId`', () async {
+      // TODO
+    });
+
+    // String packagePromotionNameSnapshot
+    test('to test the property `packagePromotionNameSnapshot`', () async {
+      // TODO
+    });
+
+    // String packagePromotionDiscountTypeSnapshot
+    test('to test the property `packagePromotionDiscountTypeSnapshot`', () async {
+      // TODO
+    });
+
+    // int packagePromotionDiscountValueSnapshot
+    test('to test the property `packagePromotionDiscountValueSnapshot`', () async {
+      // TODO
+    });
+
+    // int packagePromotionDiscountRpSnapshot
+    test('to test the property `packagePromotionDiscountRpSnapshot`', () async {
+      // TODO
+    });
+
+    // int promotionalPriceRpSnapshot
+    test('to test the property `promotionalPriceRpSnapshot`', () async {
+      // TODO
+    });
+
     // String voucherId
     test('to test the property `voucherId`', () async {
       // TODO

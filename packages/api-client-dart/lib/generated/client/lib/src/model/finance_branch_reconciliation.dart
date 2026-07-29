@@ -19,6 +19,7 @@ part 'finance_branch_reconciliation.g.dart';
 /// * [approvedRp] 
 /// * [identificationAmountRp] 
 /// * [grossSalesRp] 
+/// * [packagePromotionDiscountRp] 
 /// * [voucherDiscountRp] 
 /// * [netSalesRp] 
 /// * [voucherRedemptionCount] 
@@ -49,6 +50,9 @@ abstract class FinanceBranchReconciliation implements Built<FinanceBranchReconci
 
   @BuiltValueField(wireName: r'grossSalesRp')
   int get grossSalesRp;
+
+  @BuiltValueField(wireName: r'packagePromotionDiscountRp')
+  int get packagePromotionDiscountRp;
 
   @BuiltValueField(wireName: r'voucherDiscountRp')
   int get voucherDiscountRp;
@@ -126,6 +130,11 @@ class _$FinanceBranchReconciliationSerializer implements PrimitiveSerializer<Fin
     yield r'grossSalesRp';
     yield serializers.serialize(
       object.grossSalesRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'packagePromotionDiscountRp';
+    yield serializers.serialize(
+      object.packagePromotionDiscountRp,
       specifiedType: const FullType(int),
     );
     yield r'voucherDiscountRp';
@@ -231,6 +240,13 @@ class _$FinanceBranchReconciliationSerializer implements PrimitiveSerializer<Fin
             specifiedType: const FullType(int),
           ) as int;
           result.grossSalesRp = valueDes;
+          break;
+        case r'packagePromotionDiscountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.packagePromotionDiscountRp = valueDes;
           break;
         case r'voucherDiscountRp':
           final valueDes = serializers.deserialize(

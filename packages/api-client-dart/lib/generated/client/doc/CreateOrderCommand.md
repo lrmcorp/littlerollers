@@ -12,6 +12,9 @@ Name | Type | Description | Notes
 **branchId** | **String** |  | [optional] 
 **slotId** | **String** |  | [optional] 
 **voucherCode** | **String** |  | [optional] 
+**expectedPackageVersion** | **int** |  | [optional] 
+**expectedPromotionId** | **String** |  | [optional] 
+**expectedPromotionVersion** | **int** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

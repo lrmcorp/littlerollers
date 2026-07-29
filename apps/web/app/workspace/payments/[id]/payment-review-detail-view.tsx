@@ -315,6 +315,28 @@ export function PaymentReviewDetailView({
                 <dt className="text-dd-muted">Harga paket</dt>
                 <dd className="mt-1 font-semibold">{rupiah.format(purchase.priceRpSnapshot)}</dd>
               </div>
+              {purchase.packagePromotionId && (
+                <>
+                  <div>
+                    <dt className="text-dd-muted">Promo paket</dt>
+                    <dd className="mt-1 font-semibold">{purchase.packagePromotionNameSnapshot}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-dd-muted">Diskon promo</dt>
+                    <dd className="mt-1 font-semibold text-dd-success">
+                      − {rupiah.format(purchase.packagePromotionDiscountRpSnapshot ?? 0)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-dd-muted">Harga promo</dt>
+                    <dd className="mt-1 font-semibold">
+                      {rupiah.format(
+                        purchase.promotionalPriceRpSnapshot ?? purchase.priceRpSnapshot,
+                      )}
+                    </dd>
+                  </div>
+                </>
+              )}
               {purchase.voucherCodeSnapshot && (
                 <>
                   <div>

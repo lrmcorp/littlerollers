@@ -19,12 +19,7 @@ import {
   publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { PackagePrice } from '../../components/public/package-price';
 
 export function StudioDetailView({
   slug,
@@ -188,7 +183,12 @@ export function StudioDetailView({
                         {pkg.sessionCount} sesi · {pkg.durationDays} hari
                       </small>
                     </span>
-                    <strong>{rupiah.format(pkg.priceRp)}</strong>
+                    <PackagePrice
+                      priceRp={pkg.priceRp}
+                      effectivePriceRp={pkg.effectivePriceRp}
+                      promotion={pkg.promotion}
+                      compact
+                    />
                   </Link>
                 ))}
               </div>

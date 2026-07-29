@@ -74,6 +74,7 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Delivery | [Dynamic RBAC Implementation & UAT Evidence](delivery/23-dynamic-rbac-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
 | Delivery | [Identity User Management Implementation & UAT Evidence](delivery/24-identity-user-management-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
 | Technical | [SMTP Email Delivery Contract](technical/11-smtp-email-delivery.md) | Technical Lead | PO + TL + Ops |
+| Technical | [Package Promotion Pricing](technical/13-package-promotion-pricing.md) | Technical Lead | PO + TL + Finance |
 | Product | [Transactional Email Matrix](product/08-transactional-email-matrix.md) | PM/BA | Product Owner |
 | Operations | [SMTP Email Runbook](operations/01-smtp-email-runbook.md) | Operations | Technical Lead |
 | Operations | [Customer Reschedule Runbook](operations/reschedule-runbook.md) | Operations | Product Owner + Technical Lead |
