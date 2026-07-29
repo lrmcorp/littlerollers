@@ -13,7 +13,7 @@ ALTER TABLE `SessionAdjustment`
     ),
   ADD CONSTRAINT `SessionAdjustment_decision_consistency`
     CHECK (
-      (`status` = 'PENDING' AND `decidedById` IS NULL AND `decisionCode` IS NULL AND `decidedAt` IS NULL) OR
-      (`status` IN ('POSTED', 'REJECTED') AND `decidedById` IS NOT NULL AND
+      (`status` = 'PENDING' AND `decisionCode` IS NULL AND `decidedAt` IS NULL) OR
+      (`status` IN ('POSTED', 'REJECTED') AND
        `decisionCode` IS NOT NULL AND `decidedAt` IS NOT NULL)
     );

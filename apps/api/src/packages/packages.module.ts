@@ -13,6 +13,7 @@ import { PackageCatalogService } from './package-catalog.service';
 import { PaymentAccountService } from './payment-account.service';
 import { PaymentReviewService } from './payment-review.service';
 import { PaymentProofService } from './payment-proof.service';
+import { VoucherService } from './voucher.service';
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
@@ -26,6 +27,7 @@ import { PaymentProofService } from './payment-proof.service';
     PaymentProofService,
     ConfigGatedObjectStorageProvider,
     ConfigGatedMalwareScanProvider,
+    VoucherService,
   ],
 })
 export class PackagesModule {}

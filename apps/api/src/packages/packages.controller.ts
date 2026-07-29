@@ -19,6 +19,7 @@ import { PackageCatalogService } from './package-catalog.service';
 import { PaymentAccountService } from './payment-account.service';
 import { PaymentReviewService } from './payment-review.service';
 import { PaymentProofService } from './payment-proof.service';
+import { VoucherService } from './voucher.service';
 @Controller()
 @UseGuards(AuthGuard)
 export class PackagesController {
@@ -28,7 +29,50 @@ export class PackagesController {
     private readonly paymentAccountsService: PaymentAccountService,
     private readonly paymentReview: PaymentReviewService,
     private readonly paymentProof: PaymentProofService,
+    private readonly vouchers: VoucherService,
   ) {}
+  @Get('vouchers') listVouchers(
+    @Req() r: AuthenticatedRequest,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('branchId') branchId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.vouchers.list(r.principal, { q, status, branchId, cursor, limit });
+  }
+  @Get('vouchers/:id') getVoucher(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
+    return this.vouchers.detail(r.principal, id);
+  }
+  @Post('vouchers') createVoucher(
+    @Req() r: AuthenticatedRequest,
+    @Body() body: any,
+  ) {
+    return this.vouchers.create(r.principal, body, r.correlationId ?? 'unknown');
+  }
+  @Post('vouchers/:id/:action') transitionVoucher(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('action') action: 'activate' | 'pause' | 'archive',
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    const statuses = { activate: 'ACTIVE', pause: 'PAUSED', archive: 'ARCHIVED' } as const;
+    const status = statuses[action];
+    if (!status) throw new Error('Unsupported voucher action');
+    return this.vouchers.transition(
+      r.principal,
+      id,
+      status,
+      body,
+      r.correlationId ?? 'unknown',
+    );
+  }
+  @Post('checkout/voucher-preview') previewVoucher(
+    @Req() r: AuthenticatedRequest,
+    @Body() body: { packageId: string; branchId?: string; code: string },
+  ) {
+    return this.vouchers.preview(r.principal, body);
+  }
   @Get('packages') list(@Req() r: AuthenticatedRequest, @Query('branchId') branchId?: string) {
     return this.catalog.list(r.principal, branchId);
   }
