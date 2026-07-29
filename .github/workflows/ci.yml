@@ -44,7 +44,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Create local environment file for Node CLI
-        run: touch .env
+        run: cp .env.example .env
       - run: pnpm openapi:validate
       - run: pnpm openapi:drift
       - run: pnpm db:generate
