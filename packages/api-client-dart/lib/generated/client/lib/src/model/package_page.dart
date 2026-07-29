@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/package.dart';
+import 'package:openapi/src/model/package_management_summary.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -15,11 +16,15 @@ part 'package_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [summary] 
 /// * [page] 
 @BuiltValue()
 abstract class PackagePage implements Built<PackagePage, PackagePageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<Package> get items;
+
+  @BuiltValueField(wireName: r'summary')
+  PackageManagementSummary get summary;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -51,6 +56,11 @@ class _$PackagePageSerializer implements PrimitiveSerializer<PackagePage> {
     yield serializers.serialize(
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(Package)]),
+    );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(PackageManagementSummary),
     );
     yield r'page';
     yield serializers.serialize(
@@ -86,6 +96,13 @@ class _$PackagePageSerializer implements PrimitiveSerializer<PackagePage> {
             specifiedType: const FullType(BuiltList, [FullType(Package)]),
           ) as BuiltList<Package>;
           result.items.replace(valueDes);
+          break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PackageManagementSummary),
+          ) as PackageManagementSummary;
+          result.summary.replace(valueDes);
           break;
         case r'page':
           final valueDes = serializers.deserialize(

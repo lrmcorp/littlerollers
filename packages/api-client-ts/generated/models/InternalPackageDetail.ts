@@ -20,6 +20,20 @@ import {
     PackagePromotionToJSON,
     PackagePromotionToJSONTyped,
 } from './PackagePromotion';
+import type { SafeAuditActivity } from './SafeAuditActivity';
+import {
+    SafeAuditActivityFromJSON,
+    SafeAuditActivityFromJSONTyped,
+    SafeAuditActivityToJSON,
+    SafeAuditActivityToJSONTyped,
+} from './SafeAuditActivity';
+import type { Package } from './Package';
+import {
+    PackageFromJSON,
+    PackageFromJSONTyped,
+    PackageToJSON,
+    PackageToJSONTyped,
+} from './Package';
 
 /**
  * 
@@ -83,6 +97,18 @@ export interface InternalPackageDetail {
     status: InternalPackageDetailStatusEnum;
     /**
      * 
+     * @type {string}
+     * @memberof InternalPackageDetail
+     */
+    effectiveState?: InternalPackageDetailEffectiveStateEnum;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof InternalPackageDetail
+     */
+    livePromotion?: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof InternalPackageDetail
      */
@@ -105,6 +131,18 @@ export interface InternalPackageDetail {
      * @memberof InternalPackageDetail
      */
     promotions: Array<PackagePromotion>;
+    /**
+     * 
+     * @type {Array<Package>}
+     * @memberof InternalPackageDetail
+     */
+    revisions: Array<Package>;
+    /**
+     * 
+     * @type {Array<SafeAuditActivity>}
+     * @memberof InternalPackageDetail
+     */
+    auditActivity: Array<SafeAuditActivity>;
 }
 
 
@@ -116,6 +154,17 @@ export const InternalPackageDetailStatusEnum = {
     Inactive: 'INACTIVE'
 } as const;
 export type InternalPackageDetailStatusEnum = typeof InternalPackageDetailStatusEnum[keyof typeof InternalPackageDetailStatusEnum];
+
+/**
+ * @export
+ */
+export const InternalPackageDetailEffectiveStateEnum = {
+    Active: 'ACTIVE',
+    Scheduled: 'SCHEDULED',
+    Expired: 'EXPIRED',
+    Inactive: 'INACTIVE'
+} as const;
+export type InternalPackageDetailEffectiveStateEnum = typeof InternalPackageDetailEffectiveStateEnum[keyof typeof InternalPackageDetailEffectiveStateEnum];
 
 
 /**
@@ -134,6 +183,8 @@ export function instanceOfInternalPackageDetail(value: object): value is Interna
     if (!('effectiveFrom' in value) || value['effectiveFrom'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
     if (!('promotions' in value) || value['promotions'] === undefined) return false;
+    if (!('revisions' in value) || value['revisions'] === undefined) return false;
+    if (!('auditActivity' in value) || value['auditActivity'] === undefined) return false;
     return true;
 }
 
@@ -156,10 +207,14 @@ export function InternalPackageDetailFromJSONTyped(json: any, ignoreDiscriminato
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'status': json['status'],
+        'effectiveState': json['effectiveState'] == null ? undefined : json['effectiveState'],
+        'livePromotion': json['livePromotion'] == null ? undefined : json['livePromotion'],
         'effectiveFrom': (new Date(json['effectiveFrom'])),
         'effectiveUntil': json['effectiveUntil'] == null ? undefined : (new Date(json['effectiveUntil'])),
         'version': json['version'],
         'promotions': ((json['promotions'] as Array<any>).map(PackagePromotionFromJSON)),
+        'revisions': ((json['revisions'] as Array<any>).map(PackageFromJSON)),
+        'auditActivity': ((json['auditActivity'] as Array<any>).map(SafeAuditActivityFromJSON)),
     };
 }
 
@@ -183,10 +238,14 @@ export function InternalPackageDetailToJSONTyped(value?: InternalPackageDetail |
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'status': value['status'],
+        'effectiveState': value['effectiveState'],
+        'livePromotion': value['livePromotion'],
         'effectiveFrom': ((value['effectiveFrom']).toISOString().substring(0,10)),
         'effectiveUntil': value['effectiveUntil'] == null ? undefined : ((value['effectiveUntil']).toISOString().substring(0,10)),
         'version': value['version'],
         'promotions': ((value['promotions'] as Array<any>).map(PackagePromotionToJSON)),
+        'revisions': ((value['revisions'] as Array<any>).map(PackageToJSON)),
+        'auditActivity': ((value['auditActivity'] as Array<any>).map(SafeAuditActivityToJSON)),
     };
 }
 

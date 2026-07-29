@@ -17,10 +17,14 @@ Name | Type | Description | Notes
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
 **status** | **String** |  | 
+**effectiveState** | **String** |  | [optional] 
+**livePromotion** | **bool** |  | [optional] 
 **effectiveFrom** | [**Date**](Date.md) |  | 
 **effectiveUntil** | [**Date**](Date.md) |  | [optional] 
 **version** | **int** |  | 
 **promotions** | [**BuiltList&lt;PackagePromotion&gt;**](PackagePromotion.md) |  | 
+**revisions** | [**BuiltList&lt;Package&gt;**](Package.md) |  | 
+**auditActivity** | [**BuiltList&lt;SafeAuditActivity&gt;**](SafeAuditActivity.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

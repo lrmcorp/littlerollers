@@ -14,6 +14,8 @@ part 'branch_command.g.dart';
 /// * [code] 
 /// * [name] 
 /// * [timezone] 
+/// * [supportWhatsappE164] 
+/// * [reason] 
 @BuiltValue()
 abstract class BranchCommand implements Built<BranchCommand, BranchCommandBuilder> {
   @BuiltValueField(wireName: r'code')
@@ -24,6 +26,12 @@ abstract class BranchCommand implements Built<BranchCommand, BranchCommandBuilde
 
   @BuiltValueField(wireName: r'timezone')
   String get timezone;
+
+  @BuiltValueField(wireName: r'supportWhatsappE164')
+  String? get supportWhatsappE164;
+
+  @BuiltValueField(wireName: r'reason')
+  String get reason;
 
   BranchCommand._();
 
@@ -61,6 +69,18 @@ class _$BranchCommandSerializer implements PrimitiveSerializer<BranchCommand> {
     yield r'timezone';
     yield serializers.serialize(
       object.timezone,
+      specifiedType: const FullType(String),
+    );
+    if (object.supportWhatsappE164 != null) {
+      yield r'supportWhatsappE164';
+      yield serializers.serialize(
+        object.supportWhatsappE164,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
       specifiedType: const FullType(String),
     );
   }
@@ -106,6 +126,21 @@ class _$BranchCommandSerializer implements PrimitiveSerializer<BranchCommand> {
             specifiedType: const FullType(String),
           ) as String;
           result.timezone = valueDes;
+          break;
+        case r'supportWhatsappE164':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.supportWhatsappE164 = valueDes;
+          break;
+        case r'reason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reason = valueDes;
           break;
         default:
           unhandled.add(key);

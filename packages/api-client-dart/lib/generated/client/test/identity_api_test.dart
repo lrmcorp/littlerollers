@@ -112,6 +112,13 @@ void main() {
       // TODO
     });
 
+    // Returns active, identity-approved customers with a usable package in the requested branch. Requires booking:create:assisted.
+    //
+    //Future<CustomerLookupPage> lookupCustomers({ String q, String branchId, String cursor, int limit }) async
+    test('test lookupCustomers', () async {
+      // TODO
+    });
+
     // Returns active instructors visible in the requested branch. Requires master:read or class-slot read/manage.
     //
     //Future<LookupPage> lookupInstructors({ String q, String branchId, String cursor, int limit }) async

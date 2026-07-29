@@ -19,6 +19,8 @@ Method | HTTP request | Description
 [**deactivateBranch**](MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
 [**deactivateClassType**](MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
 [**deactivatePaymentAccount**](MasterApi.md#deactivatepaymentaccount) | **POST** /payment-accounts/{id}/deactivate | 
+[**getBranch**](MasterApi.md#getbranch) | **GET** /branches/{id} | 
+[**getPaymentAccount**](MasterApi.md#getpaymentaccount) | **GET** /payment-accounts/{id} | 
 [**getPublicStudioDetail**](MasterApi.md#getpublicstudiodetail) | **GET** /public/studios/{slug} | 
 [**listBranches**](MasterApi.md#listbranches) | **GET** /branches | 
 [**listClassTypes**](MasterApi.md#listclasstypes) | **GET** /class-types | 
@@ -27,10 +29,15 @@ Method | HTTP request | Description
 [**listPaymentAccounts**](MasterApi.md#listpaymentaccounts) | **GET** /payment-accounts | 
 [**listProjectionRates**](MasterApi.md#listprojectionrates) | **GET** /projection-rates | 
 [**listQuotaCapacitySettings**](MasterApi.md#listquotacapacitysettings) | **GET** /quota-capacity-settings | 
+[**reactivateBranch**](MasterApi.md#reactivatebranch) | **POST** /branches/{id}/reactivate | 
+[**reactivateClassType**](MasterApi.md#reactivateclasstype) | **POST** /class-types/{id}/reactivate | 
+[**reactivatePaymentAccount**](MasterApi.md#reactivatepaymentaccount) | **POST** /payment-accounts/{id}/reactivate | 
+[**updateBranch**](MasterApi.md#updatebranch) | **PATCH** /branches/{id} | 
+[**updateClassType**](MasterApi.md#updateclasstype) | **PATCH** /class-types/{id} | 
 
 
 # **createBranch**
-> Branch createBranch(branchCommand)
+> Branch createBranch(idempotencyKey, branchCommand)
 
 
 
@@ -41,10 +48,11 @@ Creates an active branch. Requires master:manage.
 import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
 final BranchCommand branchCommand = ; // BranchCommand | 
 
 try {
-    final response = api.createBranch(branchCommand);
+    final response = api.createBranch(idempotencyKey, branchCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->createBranch: $e\n');
@@ -55,6 +63,7 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
  **branchCommand** | [**BranchCommand**](BranchCommand.md)|  | 
 
 ### Return type
@@ -325,7 +334,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **deactivateBranch**
-> Branch deactivateBranch(id, versionCommand)
+> Branch deactivateBranch(id, idempotencyKey, body)
 
 
 
@@ -335,10 +344,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final VersionCommand versionCommand = ; // VersionCommand | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand body = ; // ReasonedVersionCommand | 
 
 try {
-    final response = api.deactivateBranch(id, versionCommand);
+    final response = api.deactivateBranch(id, idempotencyKey, body);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->deactivateBranch: $e\n');
@@ -350,7 +360,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **versionCommand** | [**VersionCommand**](VersionCommand.md)|  | 
+ **idempotencyKey** | **String**|  | 
+ **body** | **ReasonedVersionCommand**|  | 
 
 ### Return type
 
@@ -368,7 +379,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **deactivateClassType**
-> ClassType deactivateClassType(id, versionCommand)
+> ClassType deactivateClassType(id, idempotencyKey, reasonedVersionCommand)
 
 
 
@@ -378,10 +389,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final VersionCommand versionCommand = ; // VersionCommand | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
 
 try {
-    final response = api.deactivateClassType(id, versionCommand);
+    final response = api.deactivateClassType(id, idempotencyKey, reasonedVersionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->deactivateClassType: $e\n');
@@ -393,7 +405,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **versionCommand** | [**VersionCommand**](VersionCommand.md)|  | 
+ **idempotencyKey** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
 
 ### Return type
 
@@ -411,7 +424,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **deactivatePaymentAccount**
-> PaymentAccount deactivatePaymentAccount(id, reasonedVersionCommand)
+> PaymentAccount deactivatePaymentAccount(id, idempotencyKey, reasonedVersionCommand)
 
 
 
@@ -423,10 +436,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
 final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
 
 try {
-    final response = api.deactivatePaymentAccount(id, reasonedVersionCommand);
+    final response = api.deactivatePaymentAccount(id, idempotencyKey, reasonedVersionCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->deactivatePaymentAccount: $e\n');
@@ -438,6 +452,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
  **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
 
 ### Return type
@@ -451,6 +466,90 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getBranch**
+> BranchManagementDetail getBranch(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getBranch(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->getBranch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**BranchManagementDetail**](BranchManagementDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getPaymentAccount**
+> PaymentAccountDetail getPaymentAccount(id)
+
+
+
+Returns masked account detail and safe dependency count.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getPaymentAccount(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->getPaymentAccount: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**PaymentAccountDetail**](PaymentAccountDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -497,7 +596,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listBranches**
-> BranchPage listBranches()
+> BranchPage listBranches(q, status, cursor, limit)
 
 
 
@@ -506,9 +605,13 @@ No authorization required
 import 'package:openapi/api.dart';
 
 final api = Openapi().getMasterApi();
+final String q = q_example; // String | 
+final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listBranches();
+    final response = api.listBranches(q, status, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling MasterApi->listBranches: $e\n');
@@ -516,7 +619,13 @@ try {
 ```
 
 ### Parameters
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **q** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
@@ -785,6 +894,235 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **reactivateBranch**
+> Branch reactivateBranch(id, idempotencyKey, body)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand body = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.reactivateBranch(id, idempotencyKey, body);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->reactivateBranch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **body** | **ReasonedVersionCommand**|  | 
+
+### Return type
+
+[**Branch**](Branch.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **reactivateClassType**
+> ClassType reactivateClassType(id, idempotencyKey, reasonedVersionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.reactivateClassType(id, idempotencyKey, reasonedVersionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->reactivateClassType: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
+
+### Return type
+
+[**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **reactivatePaymentAccount**
+> PaymentAccount reactivatePaymentAccount(id, idempotencyKey, reasonedVersionCommand)
+
+
+
+Reactivates a historical account only when its branch is active and has no other active payment account.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.reactivatePaymentAccount(id, idempotencyKey, reasonedVersionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->reactivatePaymentAccount: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
+
+### Return type
+
+[**PaymentAccount**](PaymentAccount.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateBranch**
+> Branch updateBranch(id, idempotencyKey, branchUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final BranchUpdateCommand branchUpdateCommand = ; // BranchUpdateCommand | 
+
+try {
+    final response = api.updateBranch(id, idempotencyKey, branchUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->updateBranch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **branchUpdateCommand** | [**BranchUpdateCommand**](BranchUpdateCommand.md)|  | 
+
+### Return type
+
+[**Branch**](Branch.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateClassType**
+> ClassType updateClassType(id, idempotencyKey, classTypeUpdateCommand)
+
+
+
+Updates safe class-type metadata. Branch and business code remain immutable.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ClassTypeUpdateCommand classTypeUpdateCommand = ; // ClassTypeUpdateCommand | 
+
+try {
+    final response = api.updateClassType(id, idempotencyKey, classTypeUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->updateClassType: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **classTypeUpdateCommand** | [**ClassTypeUpdateCommand**](ClassTypeUpdateCommand.md)|  | 
+
+### Return type
+
+[**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

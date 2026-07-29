@@ -12,6 +12,7 @@ import {
 } from '../../booking-client';
 import { AlertBanner } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
+import { SearchSelect, SelectInput } from '../../components/forms';
 import { Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
@@ -278,30 +279,21 @@ export function BookingDetailView({
           </div>
           {options.targets.length ? (
             <>
-              <label className="block text-sm font-semibold" htmlFor="reschedule-target">
-                Jadwal tujuan
-              </label>
-              <select
-                id="reschedule-target"
-                className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3"
+              <SearchSelect
+                label="Jadwal tujuan"
                 value={targetId}
-                onChange={(event) => {
-                  setTargetId(event.target.value);
+                options={options.targets.map((target) => ({
+                  id: target.id,
+                  label: dateTime(target.startAt, target.timezone),
+                  description: `${target.availableCapacity} tempat tersedia`,
+                }))}
+                onChange={(value) => {
+                  setTargetId(value);
                   setConfirming(false);
                 }}
-              >
-                {options.targets.map((target) => (
-                  <option key={target.id} value={target.id}>
-                    {dateTime(target.startAt, target.timezone)} · {target.availableCapacity} tempat
-                  </option>
-                ))}
-              </select>
-              <label className="block text-sm font-semibold" htmlFor="reschedule-reason">
-                Alasan
-              </label>
-              <select
-                id="reschedule-reason"
-                className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3"
+              />
+              <SelectInput
+                label="Alasan"
                 value={reasonCode}
                 onChange={(event) => {
                   setReasonCode(event.target.value as keyof typeof reasonLabels);
@@ -313,7 +305,7 @@ export function BookingDetailView({
                     {label}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
               {confirming && (
                 <AlertBanner
                   tone="warning"

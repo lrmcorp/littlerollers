@@ -9,7 +9,7 @@ void main() {
   group(MasterApi, () {
     // Creates an active branch. Requires master:manage.
     //
-    //Future<Branch> createBranch(BranchCommand branchCommand) async
+    //Future<Branch> createBranch(String idempotencyKey, BranchCommand branchCommand) async
     test('test createBranch', () async {
       // TODO
     });
@@ -48,20 +48,32 @@ void main() {
       // TODO
     });
 
-    //Future<Branch> deactivateBranch(String id, VersionCommand versionCommand) async
+    //Future<Branch> deactivateBranch(String id, String idempotencyKey, ReasonedVersionCommand body) async
     test('test deactivateBranch', () async {
       // TODO
     });
 
-    //Future<ClassType> deactivateClassType(String id, VersionCommand versionCommand) async
+    //Future<ClassType> deactivateClassType(String id, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
     test('test deactivateClassType', () async {
       // TODO
     });
 
     // Blocked while non-expired AWAITING_PAYMENT orders reference the account.
     //
-    //Future<PaymentAccount> deactivatePaymentAccount(String id, ReasonedVersionCommand reasonedVersionCommand) async
+    //Future<PaymentAccount> deactivatePaymentAccount(String id, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
     test('test deactivatePaymentAccount', () async {
+      // TODO
+    });
+
+    //Future<BranchManagementDetail> getBranch(String id) async
+    test('test getBranch', () async {
+      // TODO
+    });
+
+    // Returns masked account detail and safe dependency count.
+    //
+    //Future<PaymentAccountDetail> getPaymentAccount(String id) async
+    test('test getPaymentAccount', () async {
       // TODO
     });
 
@@ -70,7 +82,7 @@ void main() {
       // TODO
     });
 
-    //Future<BranchPage> listBranches() async
+    //Future<BranchPage> listBranches({ String q, String status, String cursor, int limit }) async
     test('test listBranches', () async {
       // TODO
     });
@@ -104,6 +116,35 @@ void main() {
 
     //Future<EffectiveSettingPage> listQuotaCapacitySettings({ String branchId, String cursor }) async
     test('test listQuotaCapacitySettings', () async {
+      // TODO
+    });
+
+    //Future<Branch> reactivateBranch(String id, String idempotencyKey, ReasonedVersionCommand body) async
+    test('test reactivateBranch', () async {
+      // TODO
+    });
+
+    //Future<ClassType> reactivateClassType(String id, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
+    test('test reactivateClassType', () async {
+      // TODO
+    });
+
+    // Reactivates a historical account only when its branch is active and has no other active payment account.
+    //
+    //Future<PaymentAccount> reactivatePaymentAccount(String id, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
+    test('test reactivatePaymentAccount', () async {
+      // TODO
+    });
+
+    //Future<Branch> updateBranch(String id, String idempotencyKey, BranchUpdateCommand branchUpdateCommand) async
+    test('test updateBranch', () async {
+      // TODO
+    });
+
+    // Updates safe class-type metadata. Branch and business code remain immutable.
+    //
+    //Future<ClassType> updateClassType(String id, String idempotencyKey, ClassTypeUpdateCommand classTypeUpdateCommand) async
+    test('test updateClassType', () async {
       // TODO
     });
 

@@ -15,7 +15,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Panel, StatCard } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
+import { Panel, StatCard } from '../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { notifySessionFailure } from '../session-client';
 

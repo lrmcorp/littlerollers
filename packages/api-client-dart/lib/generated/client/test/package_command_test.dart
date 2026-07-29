@@ -52,5 +52,10 @@ void main() {
       // TODO
     });
 
+    // String reason
+    test('to test the property `reason`', () async {
+      // TODO
+    });
+
   });
 }

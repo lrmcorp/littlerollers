@@ -1,33 +1,68 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   browserOperationsClient,
   operationsFailure,
   type NotificationOccurrence,
   type NotificationOccurrencePage,
-  type OperationalJob,
+  type OperationalJobPage,
   type OperationsClient,
 } from '../operations-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
-import { Badge, Button, DataTable, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
-import { controlClassName } from '../components/forms';
+import { Button } from '../components/actions';
+import {
+  Badge,
+  DataTable,
+  FilterBar,
+  Pagination,
+  Panel,
+  StatCard,
+} from '../components/admin/admin-ui';
+import { SelectInput, TextInput } from '../components/forms';
+
+const statusLabel: Record<string, string> = {
+  QUEUED: 'Menunggu',
+  RETRYING: 'Mencoba kembali',
+  RUNNING: 'Sedang berjalan',
+  SUCCEEDED: 'Berhasil',
+  FAILED: 'Gagal',
+  PENDING: 'Menunggu',
+  SENDING: 'Sedang dikirim',
+  ACCEPTED_BY_SMTP: 'Diterima server email',
+  FAILED_RETRYABLE: 'Gagal—dapat dicoba lagi',
+  FAILED_TERMINAL: 'Gagal permanen',
+  EXPIRED: 'Kedaluwarsa',
+  FALLBACK_IN_APP: 'Dialihkan ke notifikasi aplikasi',
+};
+
+const safeFailureLabel = (code?: string | null) =>
+  code ? 'Memerlukan pemeriksaan operasional' : '—';
 
 export function OperationsView({
   client = browserOperationsClient,
+  access,
 }: {
   client?: OperationsClient;
+  access?: { canRecover: boolean };
 }) {
-  const [items, setItems] = useState<OperationalJob[]>([]);
+  const [jobPage, setJobPage] = useState<OperationalJobPage>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [statusFilter, setStatusFilter] = useState('');
+  const [jobCursor, setJobCursor] = useState<string>();
+  const [jobCursorHistory, setJobCursorHistory] = useState<(string | undefined)[]>([]);
   const [emailPage, setEmailPage] = useState<NotificationOccurrencePage>();
   const [emailStatusFilter, setEmailStatusFilter] = useState('');
+  const [emailCursor, setEmailCursor] = useState<string>();
+  const [emailCursorHistory, setEmailCursorHistory] = useState<(string | undefined)[]>([]);
   const [emailRetryReason, setEmailRetryReason] = useState('');
   const sessionContext = useSessionContext();
-  const canRecover = !sessionContext || sessionContext.hasCapability('operations:recover');
+  const canRecover =
+    access?.canRecover ??
+    (sessionContext?.status === 'authenticated' &&
+      sessionContext.hasCapability('operations:recover'));
   const run = async (action: () => Promise<void>, success: string) => {
     setBusy(true);
     setFailure(undefined);
@@ -40,6 +75,32 @@ export function OperationsView({
       setBusy(false);
     }
   };
+  useEffect(() => {
+    let active = true;
+    setBusy(true);
+    setFailure(undefined);
+    Promise.all([
+      client.list(statusFilter || undefined, jobCursor),
+      client.listEmails
+        ? client.listEmails(emailStatusFilter || undefined, emailCursor)
+        : Promise.resolve(undefined),
+    ])
+      .then(([jobs, email]) => {
+        if (!active) return;
+        setJobPage(jobs);
+        if (email) setEmailPage(email);
+      })
+      .catch((error) => {
+        if (active) setFailure(operationsFailure(error));
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, emailCursor, emailStatusFilter, jobCursor, statusFilter]);
+  const items = jobPage?.items ?? [];
   return (
     <section className="space-y-6" aria-labelledby="operations-title">
       <Panel className="p-6 sm:p-8">
@@ -76,33 +137,23 @@ export function OperationsView({
         </div>
       </Panel>
       <FilterBar>
-        <Button
-          disabled={busy}
-          onClick={() =>
-            void run(
-              async () => setItems(await client.list(statusFilter || undefined)),
-              'Job diperbarui.',
-            )
-          }
+        <SelectInput
+          label="Filter status job"
+          aria-label="Filter status job"
+          value={statusFilter}
+          onChange={(event) => {
+            setStatusFilter(event.target.value);
+            setJobCursor(undefined);
+            setJobCursorHistory([]);
+          }}
         >
-          Muat job
-        </Button>
-        <label>
-          Filter status
-          <select
-            className={controlClassName}
-            aria-label="Filter status job"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="">Semua status</option>
-            <option value="QUEUED">QUEUED</option>
-            <option value="RETRYING">RETRYING</option>
-            <option value="RUNNING">RUNNING</option>
-            <option value="SUCCEEDED">SUCCEEDED</option>
-            <option value="FAILED">FAILED</option>
-          </select>
-        </label>
+          <option value="">Semua status</option>
+          {['QUEUED', 'RETRYING', 'RUNNING', 'SUCCEEDED', 'FAILED'].map((status) => (
+            <option key={status} value={status}>
+              {statusLabel[status]}
+            </option>
+          ))}
+        </SelectInput>
       </FilterBar>
       {busy && <Skeleton label="Memuat antrean job" />}
       {failure && <Feedback kind="error">{failure}</Feedback>}
@@ -130,7 +181,7 @@ export function OperationsView({
                         : 'warning'
                   }
                 >
-                  {job.status}
+                  {statusLabel[job.status] ?? 'Status tidak dikenal'}
                 </Badge>
               ),
             },
@@ -140,7 +191,11 @@ export function OperationsView({
               header: 'Percobaan',
               cell: (job) => `${job.attemptCount}/${job.maxAttempts}`,
             },
-            { id: 'failure', header: 'Failure code', cell: (job) => job.lastErrorCode ?? '—' },
+            {
+              id: 'failure',
+              header: 'Kendala',
+              cell: (job) => safeFailureLabel(job.lastErrorCode),
+            },
             {
               id: 'action',
               header: 'Recovery',
@@ -151,12 +206,17 @@ export function OperationsView({
                   onClick={() =>
                     void run(async () => {
                       const result = await client.run(job);
-                      setItems((current) =>
-                        current.map((item) =>
-                          item.id === job.id
-                            ? { ...item, status: 'SUCCEEDED', progress: 100 }
-                            : item,
-                        ),
+                      setJobPage((current) =>
+                        current
+                          ? {
+                              ...current,
+                              items: current.items.map((item) =>
+                                item.id === job.id
+                                  ? { ...item, status: 'SUCCEEDED', progress: 100 }
+                                  : item,
+                              ),
+                            }
+                          : current,
                       );
                       setMessage(`${result.status}: ${result.bookingCount}/${result.minimumQuota}`);
                     }, 'Evaluasi selesai.')
@@ -179,7 +239,7 @@ export function OperationsView({
                         : 'warning'
                   }
                 >
-                  {job.status}
+                  {statusLabel[job.status] ?? 'Status tidak dikenal'}
                 </Badge>
                 <span className="text-xs text-dd-muted">
                   {job.attemptCount}/{job.maxAttempts} percobaan
@@ -187,7 +247,7 @@ export function OperationsView({
               </div>
               <p className="mt-3 text-sm">Due {job.dueAt.toLocaleString('id-ID')}</p>
               {job.lastErrorCode && (
-                <p className="mt-1 font-mono text-xs text-dd-danger">{job.lastErrorCode}</p>
+                <p className="mt-1 text-xs text-dd-danger">{safeFailureLabel(job.lastErrorCode)}</p>
               )}
               <Button
                 className="mt-4 w-full"
@@ -196,10 +256,17 @@ export function OperationsView({
                 onClick={() =>
                   void run(async () => {
                     await client.run(job);
-                    setItems((current) =>
-                      current.map((item) =>
-                        item.id === job.id ? { ...item, status: 'SUCCEEDED', progress: 100 } : item,
-                      ),
+                    setJobPage((current) =>
+                      current
+                        ? {
+                            ...current,
+                            items: current.items.map((item) =>
+                              item.id === job.id
+                                ? { ...item, status: 'SUCCEEDED', progress: 100 }
+                                : item,
+                            ),
+                          }
+                        : current,
                     );
                   }, 'Evaluasi selesai.')
                 }
@@ -210,18 +277,38 @@ export function OperationsView({
           )}
         />
       )}
+      <Pagination
+        hasPrevious={jobCursorHistory.length > 0}
+        hasNext={Boolean(jobPage?.page.nextCursor)}
+        totalLabel={`${items.length.toLocaleString('id-ID')} job pada halaman ini`}
+        onPrevious={() => {
+          const history = [...jobCursorHistory];
+          setJobCursor(history.pop());
+          setJobCursorHistory(history);
+        }}
+        onNext={() => {
+          const next = jobPage?.page.nextCursor;
+          if (!next) return;
+          setJobCursorHistory((current) => [...current, jobCursor]);
+          setJobCursor(next);
+        }}
+      />
       <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Transactional email"
-          title="SMTP delivery dashboard"
-          description="Status tertinggi adalah ACCEPTED_BY_SMTP. Recipient tetap dimasking dan retry manual masuk audit."
-          context={
-            <>
-              <StatusBadge tone="info">NIAGAHOSTER SMTP</StatusBadge>
-              <StatusBadge tone="warning">Dead-letter terlihat</StatusBadge>
-            </>
-          }
-        />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-dd-muted">
+              Email transaksional
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-dd-ink">Pengiriman email</h2>
+            <p className="mt-2 text-sm text-dd-muted">
+              Penerima tetap dimasking dan percobaan ulang manual selalu masuk audit.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge tone="info">SMTP terkonfigurasi</StatusBadge>
+            <StatusBadge tone="warning">Kegagalan terlihat</StatusBadge>
+          </div>
+        </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard label="Pending" value={String(emailPage?.metrics.pendingCount ?? 0)} />
           <StatCard
@@ -243,51 +330,38 @@ export function OperationsView({
         </div>
       </Panel>
       <FilterBar>
-        <Button
-          disabled={busy || !client.listEmails}
-          onClick={() =>
-            void run(async () => {
-              if (!client.listEmails) return;
-              setEmailPage(await client.listEmails(emailStatusFilter || undefined));
-            }, 'Status email diperbarui.')
-          }
+        <SelectInput
+          label="Filter status email"
+          aria-label="Filter status email"
+          value={emailStatusFilter}
+          onChange={(event) => {
+            setEmailStatusFilter(event.target.value);
+            setEmailCursor(undefined);
+            setEmailCursorHistory([]);
+          }}
         >
-          Muat email
-        </Button>
-        <label>
-          Filter status email
-          <select
-            className={controlClassName}
-            aria-label="Filter status email"
-            value={emailStatusFilter}
-            onChange={(event) => setEmailStatusFilter(event.target.value)}
-          >
-            <option value="">Semua status</option>
-            {[
-              'PENDING',
-              'SENDING',
-              'ACCEPTED_BY_SMTP',
-              'FAILED_RETRYABLE',
-              'FAILED_TERMINAL',
-              'EXPIRED',
-              'FALLBACK_IN_APP',
-            ].map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Alasan retry
-          <input
-            className={controlClassName}
-            aria-label="Alasan retry email"
-            value={emailRetryReason}
-            onChange={(event) => setEmailRetryReason(event.target.value)}
-            placeholder="Contoh: credential SMTP sudah diperbaiki"
-          />
-        </label>
+          <option value="">Semua status</option>
+          {[
+            'PENDING',
+            'SENDING',
+            'ACCEPTED_BY_SMTP',
+            'FAILED_RETRYABLE',
+            'FAILED_TERMINAL',
+            'EXPIRED',
+            'FALLBACK_IN_APP',
+          ].map((status) => (
+            <option key={status} value={status}>
+              {statusLabel[status]}
+            </option>
+          ))}
+        </SelectInput>
+        <TextInput
+          label="Alasan mencoba kembali"
+          aria-label="Alasan mencoba kembali pengiriman email"
+          value={emailRetryReason}
+          onChange={(event) => setEmailRetryReason(event.target.value)}
+          placeholder="Contoh: konfigurasi email sudah diperbaiki"
+        />
       </FilterBar>
       {emailPage && emailPage.items.length === 0 ? (
         <EmptyState
@@ -312,24 +386,24 @@ export function OperationsView({
                         : 'warning'
                   }
                 >
-                  {item.status}
+                  {statusLabel[item.status] ?? 'Status tidak dikenal'}
                 </Badge>
               ),
             },
             {
               id: 'recipient',
-              header: 'Recipient',
+              header: 'Penerima',
               cell: (item) => item.recipientMasked,
             },
-            { id: 'event', header: 'Event', cell: (item) => item.eventType },
+            { id: 'event', header: 'Peristiwa', cell: (item) => humanizeEvent(item.eventType) },
             {
               id: 'attempt',
-              header: 'Attempt',
+              header: 'Percobaan',
               cell: (item) => `${item.attemptCount}/${item.maxAttempts}`,
             },
             {
               id: 'action',
-              header: 'Recovery',
+              header: 'Pemulihan',
               cell: (item) => (
                 <Button
                   variant="secondary"
@@ -365,7 +439,7 @@ export function OperationsView({
                     }, 'Retry email dijadwalkan.')
                   }
                 >
-                  Retry email
+                  Coba kirim kembali
                 </Button>
               ),
             },
@@ -374,18 +448,40 @@ export function OperationsView({
             <div>
               <div className="flex items-center justify-between gap-3">
                 <Badge tone={item.status === 'ACCEPTED_BY_SMTP' ? 'success' : 'warning'}>
-                  {item.status}
+                  {statusLabel[item.status] ?? 'Status tidak dikenal'}
                 </Badge>
                 <span className="text-xs text-dd-muted">{item.recipientMasked}</span>
               </div>
-              <p className="mt-3 break-all text-sm">{item.eventType}</p>
+              <p className="mt-3 break-all text-sm">{humanizeEvent(item.eventType)}</p>
               <p className="mt-1 text-xs text-dd-muted">
-                {item.attemptCount}/{item.maxAttempts} attempt · {item.rateLimitWaitCount} wait
+                {item.attemptCount}/{item.maxAttempts} percobaan · {item.rateLimitWaitCount} jeda
               </p>
             </div>
           )}
         />
       ) : null}
+      {emailPage && (
+        <Pagination
+          hasPrevious={emailCursorHistory.length > 0}
+          hasNext={Boolean(emailPage.page.nextCursor)}
+          totalLabel={`${emailPage.items.length.toLocaleString('id-ID')} email pada halaman ini`}
+          onPrevious={() => {
+            const history = [...emailCursorHistory];
+            setEmailCursor(history.pop());
+            setEmailCursorHistory(history);
+          }}
+          onNext={() => {
+            const next = emailPage.page.nextCursor;
+            if (!next) return;
+            setEmailCursorHistory((current) => [...current, emailCursor]);
+            setEmailCursor(next);
+          }}
+        />
+      )}
     </section>
   );
+}
+
+function humanizeEvent(value: string) {
+  return value.replace(/[._-]+/gu, ' ').replace(/\b\w/gu, (character) => character.toUpperCase());
 }

@@ -23,6 +23,7 @@ import type {
   ClassSlotCancellationCommand,
   ClassSlotCommand,
   ClassSlotPage,
+  ClassSlotUpdateCommand,
   ClassSlotVersionCommand,
   ErrorEnvelope,
   PublicClassCatalog,
@@ -47,6 +48,8 @@ import {
     ClassSlotCommandToJSON,
     ClassSlotPageFromJSON,
     ClassSlotPageToJSON,
+    ClassSlotUpdateCommandFromJSON,
+    ClassSlotUpdateCommandToJSON,
     ClassSlotVersionCommandFromJSON,
     ClassSlotVersionCommandToJSON,
     ErrorEnvelopeFromJSON,
@@ -123,6 +126,12 @@ export interface TransitionClassSlotRequest {
     action: TransitionClassSlotActionEnum;
     idempotencyKey: string;
     actionCommand: ActionCommand;
+}
+
+export interface UpdateDraftClassSlotRequest {
+    id: string;
+    idempotencyKey: string;
+    classSlotUpdateCommand: ClassSlotUpdateCommand;
 }
 
 /**
@@ -734,6 +743,72 @@ export class ClassesApi extends runtime.BaseAPI {
      */
     async transitionClassSlot(requestParameters: TransitionClassSlotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClassSlot> {
         const response = await this.transitionClassSlotRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Updates a DRAFT slot and re-snapshots effective capacity. Published or confirmed slots must be cancelled and recreated.
+     */
+    async updateDraftClassSlotRaw(requestParameters: UpdateDraftClassSlotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ClassSlot>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling updateDraftClassSlot().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling updateDraftClassSlot().'
+            );
+        }
+
+        if (requestParameters['classSlotUpdateCommand'] == null) {
+            throw new runtime.RequiredError(
+                'classSlotUpdateCommand',
+                'Required parameter "classSlotUpdateCommand" was null or undefined when calling updateDraftClassSlot().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/class-slots/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ClassSlotUpdateCommandToJSON(requestParameters['classSlotUpdateCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ClassSlotFromJSON(jsonValue));
+    }
+
+    /**
+     * Updates a DRAFT slot and re-snapshots effective capacity. Published or confirmed slots must be cancelled and recreated.
+     */
+    async updateDraftClassSlot(requestParameters: UpdateDraftClassSlotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClassSlot> {
+        const response = await this.updateDraftClassSlotRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

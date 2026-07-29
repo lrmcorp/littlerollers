@@ -8,8 +8,8 @@ import {
   type PurchaseReviewClient,
   type ReviewDetail,
 } from '../../../purchase-client';
-import { Badge, Button, Panel } from '../../../components/admin/admin-ui';
-import { ButtonLink } from '../../../components/actions';
+import { Badge, Panel } from '../../../components/admin/admin-ui';
+import { Button, ButtonLink } from '../../../components/actions';
 import { AlertBanner, useOptionalAppFeedback } from '../../../components/app-feedback';
 import { useSessionContext } from '../../../session-context';
 import { Skeleton } from '../../../ui';
@@ -270,8 +270,18 @@ export function PaymentReviewDetailView({
             <Badge tone={paymentStatusTone(purchase.status)}>
               {statusLabels[purchase.status] ?? purchase.status}
             </Badge>
-            <Button variant="secondary" disabled={loading} onClick={() => void load()}>
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Segarkan
+            <Button
+              variant="secondary"
+              disabled={loading}
+              leadingIcon={
+                <RefreshCw
+                  className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+              }
+              onClick={() => void load()}
+            >
+              Segarkan
             </Button>
           </div>
         </div>
@@ -420,6 +430,7 @@ export function PaymentReviewDetailView({
               </div>
               <Button
                 variant="secondary"
+                leadingIcon={<Eye className="size-4" aria-hidden="true" />}
                 disabled={
                   previewLoading ||
                   !purchase.paymentProof ||
@@ -427,7 +438,6 @@ export function PaymentReviewDetailView({
                 }
                 onClick={() => void loadPreview()}
               >
-                <Eye className="size-4" />{' '}
                 {previewLoading
                   ? 'Memuat…'
                   : previewUrl

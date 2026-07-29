@@ -10,9 +10,23 @@ import {
   useMemo,
   useRef,
   useState,
+  type RefObject,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, IconButton } from './actions';
+
+export type OverlayPhase = 'entering' | 'open' | 'exiting';
+
+export type OverlayMotionConfig = {
+  enterMs: number;
+  exitMs: number;
+};
+
+const overlayMotion: Record<'modal' | 'drawer', OverlayMotionConfig> = {
+  modal: { enterMs: 180, exitMs: 140 },
+  drawer: { enterMs: 220, exitMs: 180 },
+};
 
 export type FeedbackTone = 'success' | 'info' | 'warning' | 'danger';
 
@@ -75,6 +89,82 @@ const newFeedbackId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `feedback-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const dialogStack: string[] = [];
+let originalBodyOverflow = '';
+
+function registerDialog(id: string) {
+  if (dialogStack.includes(id)) return;
+  if (dialogStack.length === 0) {
+    originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+  dialogStack.push(id);
+}
+
+function unregisterDialog(id: string) {
+  const index = dialogStack.lastIndexOf(id);
+  if (index >= 0) dialogStack.splice(index, 1);
+  if (dialogStack.length === 0) document.body.style.overflow = originalBodyOverflow;
+}
+
+function isTopDialog(id: string) {
+  return dialogStack.at(-1) === id;
+}
+
+export function useOverlayInteraction({
+  open,
+  onClose,
+  panelRef,
+}: {
+  open: boolean;
+  onClose(): void;
+  panelRef: RefObject<HTMLElement | null>;
+}) {
+  const overlayId = useId();
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    registerDialog(overlayId);
+    const focusable = () =>
+      Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isTopDialog(overlayId)) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0]!;
+      const last = items.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      unregisterDialog(overlayId);
+      window.removeEventListener('keydown', onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [open, overlayId, panelRef]);
+}
 
 export function messageForApiError(error: unknown): {
   title: string;
@@ -165,6 +255,12 @@ export function Modal({
   closeOnBackdrop = true,
   showCloseButton = true,
   className = '',
+  bodyClassName = '',
+  footer,
+  busy = false,
+  dirty = false,
+  onDirtyClose,
+  placement = 'center',
 }: {
   open: boolean;
   title: string;
@@ -175,15 +271,62 @@ export function Modal({
   closeOnBackdrop?: boolean;
   showCloseButton?: boolean;
   className?: string;
+  bodyClassName?: string;
+  footer?: ReactNode;
+  busy?: boolean;
+  dirty?: boolean;
+  onDirtyClose?: () => boolean | Promise<boolean>;
+  placement?: 'center' | 'right';
 }) {
   const titleId = useId();
   const descriptionId = useId();
+  const dialogId = useId();
   const panelRef = useRef<HTMLElement>(null);
+  const openRef = useRef(open);
+  const [rendered, setRendered] = useState(open);
+  const [phase, setPhase] = useState<OverlayPhase>(open ? 'entering' : 'exiting');
+  const closingRef = useRef(false);
+  const busyRef = useRef(busy);
+  const dirtyRef = useRef(dirty);
+  const onCloseRef = useRef(onClose);
+  const onDirtyCloseRef = useRef(onDirtyClose);
   useEffect(() => {
-    if (!open) return;
+    openRef.current = open;
+    busyRef.current = busy;
+    dirtyRef.current = dirty;
+    onCloseRef.current = onClose;
+    onDirtyCloseRef.current = onDirtyClose;
+  }, [busy, dirty, onClose, onDirtyClose, open]);
+  useEffect(() => {
+    const motion = placement === 'right' ? overlayMotion.drawer : overlayMotion.modal;
+    if (open) {
+      setRendered(true);
+      setPhase('entering');
+      const frame = window.requestAnimationFrame(() => setPhase('open'));
+      return () => window.cancelAnimationFrame(frame);
+    }
+    if (!rendered) return;
+    setPhase('exiting');
+    const timer = window.setTimeout(() => setRendered(false), motion.exitMs);
+    return () => window.clearTimeout(timer);
+  }, [open, placement, rendered]);
+  const requestClose = useCallback(async () => {
+    if (busyRef.current || closingRef.current) return;
+    if (dirtyRef.current) {
+      if (!onDirtyCloseRef.current) return;
+      closingRef.current = true;
+      try {
+        if (!(await onDirtyCloseRef.current())) return;
+      } finally {
+        closingRef.current = false;
+      }
+    }
+    onCloseRef.current();
+  }, []);
+  useEffect(() => {
+    if (!rendered) return;
     const previousFocus = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    registerDialog(dialogId);
     const focusable = () =>
       Array.from(
         panelRef.current?.querySelectorAll<HTMLElement>(
@@ -192,9 +335,10 @@ export function Modal({
       );
     focusable()[0]?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!isTopDialog(dialogId) || !openRef.current) return;
       if (event.key === 'Escape' && closeOnEscape) {
         event.preventDefault();
-        onClose();
+        void requestClose();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -212,17 +356,26 @@ export function Modal({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unregisterDialog(dialogId);
       window.removeEventListener('keydown', onKeyDown);
       previousFocus?.focus();
     };
-  }, [closeOnEscape, onClose, open]);
-  if (!open) return null;
-  return (
+  }, [closeOnEscape, dialogId, rendered, requestClose]);
+  if (!rendered || typeof document === 'undefined') return null;
+  const drawer = placement === 'right';
+  const visible = phase === 'open';
+  return createPortal(
     <div
-      className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-dd-sidebar/60 p-4 backdrop-blur-sm"
+      data-overlay-phase={phase}
+      className={`${
+        drawer
+          ? 'fixed inset-0 z-[120] flex justify-end overflow-hidden bg-dd-sidebar/60 backdrop-blur-sm'
+          : 'fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-dd-sidebar/60 p-4 backdrop-blur-sm'
+      } transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 ${visible ? 'opacity-100' : 'opacity-0'}`}
       onMouseDown={(event) => {
-        if (closeOnBackdrop && event.target === event.currentTarget) onClose();
+        if (closeOnBackdrop && event.target === event.currentTarget && isTopDialog(dialogId)) {
+          void requestClose();
+        }
       }}
     >
       <section
@@ -231,9 +384,17 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`w-full max-w-lg rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-float motion-reduce:transition-none ${className}`}
+        aria-busy={busy || undefined}
+        className={`${
+          drawer
+            ? `flex h-dvh w-full max-w-xl flex-col overflow-hidden border-l border-dd-line bg-dd-surface shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-x-0' : 'translate-x-full'}`
+            : `flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-dd-xl border border-dd-line bg-dd-surface shadow-dd-float transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-[0.98] opacity-0'}`
+        } ${className}`}
       >
-        <header className="mb-5 flex items-start justify-between gap-4">
+        <div
+          data-overlay-header
+          className="flex shrink-0 items-start justify-between gap-4 border-b border-dd-line bg-dd-surface px-5 py-4 sm:px-6"
+        >
           <div>
             <h2 id={titleId} className="text-xl font-semibold text-dd-ink">
               {title}
@@ -248,25 +409,71 @@ export function Modal({
             <IconButton
               label="Tutup dialog"
               variant="ghost"
-              onClick={onClose}
+              onClick={() => void requestClose()}
+              disabled={busy}
               className="size-10 rounded-full border-dd-line bg-white text-dd-muted"
             >
               <X className="size-4" />
             </IconButton>
           )}
-        </header>
-        {children}
+        </div>
+        <div className={`min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 ${bodyClassName}`}>
+          {children}
+        </div>
+        {footer && (
+          <div
+            data-overlay-footer
+            className="shrink-0 border-t border-dd-line bg-dd-surface px-5 py-4 sm:px-6"
+          >
+            {footer}
+          </div>
+        )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 export function Drawer(props: Parameters<typeof Modal>[0]) {
+  return <Modal {...props} placement="right" />;
+}
+
+export function PreviewModal(
+  props: Omit<Parameters<typeof Modal>[0], 'placement'> & { className?: string },
+) {
+  return <Modal {...props} className={`max-w-5xl ${props.className ?? ''}`} />;
+}
+
+export function DestructiveDialog({
+  impact,
+  scope,
+  children,
+  ...props
+}: Omit<Parameters<typeof Modal>[0], 'children'> & {
+  impact: string;
+  scope?: string;
+  children: ReactNode;
+}) {
   return (
     <Modal
       {...props}
-      className={`ml-auto min-h-full max-w-xl rounded-none ${props.className ?? ''}`}
-    />
+      description={
+        props.description ??
+        'Tindakan ini berdampak pada data operasional dan akan dicatat dalam audit log.'
+      }
+    >
+      <div className="mb-5 rounded-dd-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+        <div className="flex gap-3">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+          <div>
+            <strong>Dampak</strong>
+            <p className="mt-1 leading-6">{impact}</p>
+            {scope && <p className="mt-2 font-semibold">Scope: {scope}</p>}
+          </div>
+        </div>
+      </div>
+      {children}
+    </Modal>
   );
 }
 

@@ -20,7 +20,12 @@ import {
   type VerificationSummary,
 } from '../../identity-verification-client';
 import { useSessionContext } from '../../session-context';
-import { messageForApiError, Modal, useAppFeedback } from '../../components/app-feedback';
+import {
+  Drawer,
+  messageForApiError,
+  PreviewModal,
+  useAppFeedback,
+} from '../../components/app-feedback';
 import { Button } from '../../components/actions';
 import {
   clearVerificationContinuation,
@@ -136,7 +141,7 @@ function DocumentPreviewDialog({
 }) {
   const preview = usePrivateDocumentPreview(document.kind);
   return (
-    <Modal
+    <PreviewModal
       open
       title={documentLabels[document.kind]}
       description="Dokumen privat hanya dapat dibuka melalui otorisasi singkat dan sekali pakai."
@@ -161,7 +166,7 @@ function DocumentPreviewDialog({
       <p className="mt-3 text-xs leading-5 text-dd-muted">
         Akses ini bersifat privat, hanya sekali pakai, dan tidak disimpan oleh browser.
       </p>
-    </Modal>
+    </PreviewModal>
   );
 }
 
@@ -180,6 +185,16 @@ function ReplacementDialog({
   const [message, setMessage] = useState('');
   const currentPreview = usePrivateDocumentPreview(document.kind);
   const feedback = useAppFeedback();
+  const confirmDiscard = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan unggah ulang?',
+      message: 'Foto pengganti yang telah dipilih akan dilepas.',
+      confirmLabel: 'Buang foto',
+    });
+  const cancel = async () => {
+    if (!file || (await confirmDiscard())) onClose();
+  };
 
   useEffect(() => {
     if (!file) {
@@ -192,15 +207,35 @@ function ReplacementDialog({
   }, [file]);
 
   return (
-    <Modal
+    <Drawer
       open
       title={`Unggah ulang ${documentLabels[document.kind]}`}
       description="Bandingkan dokumen saat ini dengan foto pengganti sebelum mengirim."
       onClose={onClose}
-      closeOnEscape={state !== 'uploading'}
-      closeOnBackdrop={state !== 'uploading'}
-      showCloseButton={state !== 'uploading'}
-      className="max-h-[92dvh] max-w-xl overflow-y-auto"
+      busy={state === 'uploading'}
+      dirty={Boolean(file)}
+      onDirtyClose={confirmDiscard}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={state === 'uploading'}
+            onClick={() => void cancel()}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            form="identity-replacement-form"
+            disabled={!file || state === 'success'}
+            loading={state === 'uploading'}
+            loadingLabel="Mengunggah…"
+          >
+            {state === 'success' ? 'Dokumen diterima' : 'Kirim dokumen pengganti'}
+          </Button>
+        </div>
+      }
     >
       <div className="rounded-dd-lg bg-dd-surface-muted p-4 text-sm leading-6 text-dd-muted">
         Pastikan gambar tajam, seluruh sisi dokumen terlihat, tidak tertutup pantulan cahaya, dan
@@ -245,6 +280,7 @@ function ReplacementDialog({
       </div>
 
       <form
+        id="identity-replacement-form"
         className="mt-5 grid gap-5"
         onSubmit={async (event) => {
           event.preventDefault();
@@ -332,19 +368,8 @@ function ReplacementDialog({
             {message}
           </p>
         )}
-
-        <Button
-          type="submit"
-          disabled={!file || state === 'uploading' || state === 'success'}
-          size="lg"
-          fullWidth
-          loading={state === 'uploading'}
-          loadingLabel="Mengunggah…"
-        >
-          {state === 'success' ? 'Dokumen diterima' : 'Kirim dokumen pengganti'}
-        </Button>
       </form>
-    </Modal>
+    </Drawer>
   );
 }
 

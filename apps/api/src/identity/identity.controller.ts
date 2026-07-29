@@ -533,6 +533,23 @@ export class IdentityController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('lookups/customers')
+  lookupCustomers(
+    @Req() request: AuthenticatedRequest,
+    @Query('q') q?: string,
+    @Query('branchId') branchId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.users.lookupCustomers(request.principal, {
+      q,
+      branchId,
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @UseGuards(AuthGuard)
   @Get('lookups/instructors')
   lookupInstructors(
     @Req() request: AuthenticatedRequest,

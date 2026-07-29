@@ -306,8 +306,8 @@ test('public catalog requires a studio then shows authoritative availability', a
   await expect(page.getByText('Pilih studio untuk melihat kelas')).toBeVisible();
   await page.getByLabel('Studio', { exact: true }).selectOption('branch-1');
   await expect(page.getByRole('heading', { name: 'Private Class', exact: true })).toBeVisible();
-  await expect(page.getByText('2 tempat')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Pilih kelas' })).toHaveAttribute(
+  await expect(page.getByText('2/4 tempat')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Buka workspace kelas' })).toHaveAttribute(
     'href',
     '/workspace/classes',
   );
@@ -387,10 +387,10 @@ for (const breakpoint of breakpoints) {
     await expect(
       page.getByRole('heading', { name: 'Reformer Pilates', exact: true }),
     ).toBeVisible();
-    if (breakpoint.width >= 640) {
-      await expect(page.getByText('Synthetic Operator', { exact: true })).toBeVisible();
+    if (breakpoint.width >= 1024) {
+      await expect(page.getByText('Akun Saya', { exact: true }).first()).toBeVisible();
     } else {
-      await expect(page.getByRole('link', { name: 'Buka workspace' })).toHaveAttribute(
+      await expect(page.getByRole('link', { name: /Buka workspace/i })).toHaveAttribute(
         'href',
         '/workspace',
       );
@@ -442,12 +442,12 @@ for (const breakpoint of breakpoints) {
 }
 
 test('navigation keeps current page context and keyboard access', async ({ page }) => {
-  await page.goto('/bookings');
+  await page.goto('/workspace/bookings');
   const current = page.getByRole('link', { name: 'Booking' });
   await expect(current).toHaveAttribute('aria-current', 'page');
   await current.focus();
   await expect(current).toBeFocused();
-  await expect(page.getByRole('heading', { name: 'Booking bantuan pelanggan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Manajemen Booking' })).toBeVisible();
 });
 
 test('protected route redirects to sign-in with a safe relative return target', async ({
@@ -491,6 +491,6 @@ test('branch choice persists per tab and a revoked API response ends the session
   await page.reload();
   await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('branch-1');
   await page.route('**/api/v1/**', (route) => route.fulfill({ status: 401, body: '{}' }));
-  await page.goto('/bookings');
-  await expect(page).toHaveURL('/sign-in?returnTo=%2Fbookings');
+  await page.goto('/workspace/bookings');
+  await expect(page).toHaveURL('/sign-in?returnTo=%2Fworkspace%2Fbookings');
 });

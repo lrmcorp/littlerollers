@@ -10,15 +10,9 @@ import {
   type BookingClient,
   type CustomerBookingOptions,
 } from '../../booking-client';
-import {
-  ConfirmationPanel,
-  EmptyState,
-  Feedback,
-  PageHeader,
-  Skeleton,
-  StatusBadge,
-} from '../../ui';
+import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { Button } from '../../components/actions';
+import { Panel } from '../../components/admin/admin-ui';
 import { controlClassName } from '../../components/forms';
 
 const dateTime = (value: Date, timezone: string) =>
@@ -283,7 +277,11 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               </Button>
             </>
           ) : (
-            <ConfirmationPanel title="Review final booking">
+            <Panel
+              className="border-amber-200 bg-dd-warning-soft p-4"
+              aria-label="Review final booking"
+            >
+              <strong className="text-dd-warning">Review final booking</strong>
               <dl className="mt-3 grid gap-3 text-dd-ink sm:grid-cols-2">
                 <div>
                   <dt className="text-xs text-dd-muted">Kelas dan studio</dt>
@@ -329,7 +327,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                   Ya, konfirmasi booking
                 </Button>
               </div>
-            </ConfirmationPanel>
+            </Panel>
           )}
         </form>
       )}

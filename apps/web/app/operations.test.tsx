@@ -20,7 +20,10 @@ const job = {
 describe('OperationsView', () => {
   it('lists retry state and provides an accessible recovery control', async () => {
     const client = {
-      list: vi.fn().mockResolvedValue([job]),
+      list: vi.fn().mockResolvedValue({
+        items: [job],
+        page: { hasMore: false, nextCursor: null },
+      }),
       run: vi.fn().mockResolvedValue({
         classSlotId: '00000000-0000-4000-8000-000000000102',
         previousStatus: 'PUBLISHED',
@@ -31,10 +34,11 @@ describe('OperationsView', () => {
         idempotentReplay: false,
       }),
     };
-    const view = render(<OperationsView client={client} />);
+    const view = render(<OperationsView client={client} access={{ canRecover: true }} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat job' }));
-    expect((await screen.findAllByText('RETRYING'))[0]).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Pengiriman email' })).toBeVisible();
+    expect((await screen.findAllByText('Mencoba kembali'))[0]).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
     await user.click(screen.getAllByRole('button', { name: 'Jalankan recovery' })[0]!);
     expect(client.run).toHaveBeenCalledWith(job);
@@ -56,7 +60,10 @@ describe('OperationsView', () => {
       createdAt: new Date('2026-07-28T00:00:00Z'),
     };
     const client = {
-      list: vi.fn().mockResolvedValue([]),
+      list: vi.fn().mockResolvedValue({
+        items: [],
+        page: { hasMore: false, nextCursor: null },
+      }),
       run: vi.fn(),
       listEmails: vi.fn().mockResolvedValue({
         items: [delivery],
@@ -81,15 +88,14 @@ describe('OperationsView', () => {
         nextAttemptAt: new Date('2026-07-28T01:00:00Z'),
       }),
     };
-    render(<OperationsView client={client} />);
+    render(<OperationsView client={client} access={{ canRecover: true }} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat email' }));
     expect((await screen.findAllByText('cu*****@example.test'))[0]).toBeVisible();
     expect(screen.queryByText('customer@example.test')).not.toBeInTheDocument();
-    const retry = screen.getAllByRole('button', { name: 'Retry email' })[0]!;
+    const retry = screen.getAllByRole('button', { name: 'Coba kirim kembali' })[0]!;
     expect(retry).toBeDisabled();
     await user.type(
-      screen.getByRole('textbox', { name: 'Alasan retry email' }),
+      screen.getByRole('textbox', { name: 'Alasan mencoba kembali pengiriman email' }),
       'Credential SMTP sudah diperbaiki',
     );
     expect(retry).toBeEnabled();

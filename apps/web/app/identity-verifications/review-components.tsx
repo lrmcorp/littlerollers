@@ -8,9 +8,10 @@ import type {
   DocumentScanStatus,
   VerificationDocument,
 } from '../identity-verification-client';
-import { AlertBanner } from '../components/app-feedback';
-import { Badge, Button, Dialog, Panel } from '../components/admin/admin-ui';
-import { SelectInput, controlClassName } from '../components/forms';
+import { Button } from '../components/actions';
+import { AlertBanner, Modal } from '../components/app-feedback';
+import { Badge, Panel } from '../components/admin/admin-ui';
+import { SelectInput, Textarea } from '../components/forms';
 
 export const statusLabels: Record<DocumentReviewStatus, string> = {
   PENDING: 'Menunggu pemeriksaan',
@@ -131,6 +132,7 @@ export function DocumentBadge({ document }: { document?: VerificationDocument })
 export function DocumentReviewCard({
   document,
   previewUrl,
+  previewError,
   previewLoading,
   onPreview,
   onApprove,
@@ -141,6 +143,7 @@ export function DocumentReviewCard({
 }: {
   document?: VerificationDocument;
   previewUrl?: string;
+  previewError?: { title: string; message: string };
   previewLoading: boolean;
   onPreview(document: VerificationDocument): void;
   onApprove(document: VerificationDocument): void;
@@ -190,14 +193,23 @@ export function DocumentReviewCard({
           </div>
         )}
       </div>
+      {previewError && (
+        <AlertBanner tone="danger" title={previewError.title} message={previewError.message} />
+      )}
       {!['DELETED', 'PENDING_DELETION'].includes(document.status) && (
         <Button
           variant="secondary"
+          leadingIcon={<Eye className="size-4" aria-hidden="true" />}
           disabled={previewLoading}
           onClick={() => void onPreview(document)}
         >
-          <Eye className="size-4" />{' '}
-          {previewLoading ? 'Memuat…' : previewUrl ? 'Terbitkan ulang preview' : 'Lihat dokumen'}
+          {previewLoading
+            ? 'Memuat…'
+            : previewError
+              ? 'Coba lagi preview'
+              : previewUrl
+                ? 'Terbitkan ulang preview'
+                : 'Lihat dokumen'}
         </Button>
       )}
       <div className="rounded-dd-md border border-dd-line p-3 text-xs text-dd-muted">
@@ -240,8 +252,13 @@ export function DocumentReviewCard({
           <summary className="cursor-pointer text-sm font-bold text-dd-danger">
             Tindakan lanjutan
           </summary>
-          <Button className="mt-3" variant="danger" onClick={() => onDelete(document)}>
-            <Trash2 className="size-4" /> Hapus file permanen
+          <Button
+            className="mt-3"
+            variant="danger"
+            leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
+            onClick={() => onDelete(document)}
+          >
+            Hapus file permanen
           </Button>
         </details>
       )}
@@ -271,13 +288,25 @@ export function DecisionDialog({
   }, [decision]);
   if (!decision) return null;
   return (
-    <Dialog
+    <Modal
       open
       title={decision.kind === 'approve' ? 'Setujui dokumen' : 'Minta perbaikan dokumen'}
       description={`${kindLabel(decision.document.kind)} · versi ${decision.document.version}`}
       onClose={onClose}
+      busy={submitting}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" disabled={submitting} onClick={onClose}>
+            Batal
+          </Button>
+          <Button type="submit" form="verification-decision-form" loading={submitting}>
+            {decision.kind === 'approve' ? 'Lanjutkan persetujuan' : 'Lanjutkan perbaikan'}
+          </Button>
+        </div>
+      }
     >
       <form
+        id="verification-decision-form"
         className="grid gap-4"
         onSubmit={(event) => {
           event.preventDefault();
@@ -292,51 +321,33 @@ export function DecisionDialog({
       >
         {decision.kind === 'reject' && (
           <>
-            <label className="text-sm font-bold text-dd-ink">
-              Alasan
-              <select
-                className={controlClassName}
-                value={reason}
-                onChange={(event) => setReason(event.target.value as RejectionReason)}
-              >
-                {Object.entries(reasonLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm font-bold text-dd-ink">
-              Catatan
-              <textarea
-                className={controlClassName}
-                name="note"
-                maxLength={500}
-                required={reason === 'OTHER_REQUIRES_NOTE'}
-                placeholder={
-                  reason === 'OTHER_REQUIRES_NOTE' ? 'Jelaskan alasan perbaikan' : 'Opsional'
-                }
-              />
-            </label>
+            <SelectInput
+              label="Alasan"
+              value={reason}
+              onChange={(event) => setReason(event.target.value as RejectionReason)}
+            >
+              {Object.entries(reasonLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </SelectInput>
+            <Textarea
+              label="Catatan"
+              name="note"
+              maxLength={500}
+              required={reason === 'OTHER_REQUIRES_NOTE'}
+              placeholder={
+                reason === 'OTHER_REQUIRES_NOTE' ? 'Jelaskan alasan perbaikan' : 'Opsional'
+              }
+            />
           </>
         )}
         <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning">
           <AlertTriangle className="mr-2 inline size-4" />
           Keputusan dicatat dalam audit dan memberitahu customer.
         </div>
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button disabled={submitting}>
-            {submitting
-              ? 'Menyimpan…'
-              : decision.kind === 'approve'
-                ? 'Lanjutkan persetujuan'
-                : 'Lanjutkan perbaikan'}
-          </Button>
-        </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }

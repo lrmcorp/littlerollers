@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -380,13 +380,26 @@ describe('identity UI', () => {
     expect(await screen.findByRole('heading', { name: 'Roles & Permissions' })).toBeVisible();
     expect(await screen.findByText('Manager cabang.')).toBeVisible();
     expect(screen.getByRole('link', { name: /Daftar pengguna/ })).toHaveAttribute('href', '/users');
-    await userEvent.type(screen.getByLabelText('Cari capability'), 'ledger');
-    expect(screen.getByText('ledger:adjust:decide')).toBeVisible();
-    expect(screen.queryByText('user:read')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Role & Capability/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.queryAllByRole('checkbox', { name: /user:read/ })).toHaveLength(0);
+    await userEvent.type(screen.getByLabelText('Cari capability'), 'user');
+    expect(screen.getByText('user:read')).toBeVisible();
+    expect(screen.queryByText('ledger:adjust:decide')).not.toBeInTheDocument();
     await userEvent.clear(screen.getByLabelText('Cari capability'));
     await userEvent.type(screen.getByLabelText('Cari capability'), 'tidak-ada');
-    expect(screen.queryByText('ledger:adjust:decide')).not.toBeInTheDocument();
+    expect(screen.queryByText('user:read')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /Akses Pengguna/ }));
+    expect(screen.getByRole('tab', { name: /Akses Pengguna/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByLabelText('Cari pengguna')).toBeVisible();
+    expect(window.location.search).toContain('tab=users');
     expect((await axe(matrix.container)).violations).toHaveLength(0);
+    window.history.replaceState({}, '', '/');
   });
 
   it('filters the masked global access audit without exposing credential data', async () => {
@@ -411,12 +424,40 @@ describe('identity UI', () => {
     const view = render(<AuditView client={fake} />);
     await userEvent.type(screen.getByLabelText('Tindakan'), 'security.user');
     await userEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
-    expect((await screen.findAllByText('security.user_roles_changed'))[0]).toBeVisible();
+    expect((await screen.findAllByText('Role dan scope pengguna diubah'))[0]).toBeVisible();
     expect(fake.listAuditLogs).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'security.user' }),
     );
     expect(view.container).not.toHaveTextContent('super-secret-value');
     expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('enables a private audit export only after a valid date range is provided', async () => {
+    const createAuditExport = vi.fn().mockResolvedValue({
+      id: 'export-1',
+      status: 'QUEUED',
+      requestedAt: '2026-07-29T00:00:00.000Z',
+      completedAt: null,
+      expiresAt: '2026-07-30T00:00:00.000Z',
+      rowCount: 0,
+      failureCode: null,
+    });
+    render(<AuditView client={client({ createAuditExport })} />);
+    const exportButton = screen.getByRole('button', { name: 'Buat export' });
+    expect(exportButton).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Dari tanggal'), '2026-07-01');
+    await userEvent.type(screen.getByLabelText('Sampai tanggal'), '2026-07-29');
+    expect(exportButton).toBeEnabled();
+    await userEvent.click(exportButton);
+    await waitFor(() =>
+      expect(createAuditExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: '2026-06-30T17:00:00.000Z',
+          to: '2026-07-29T16:59:59.999Z',
+        }),
+        expect.any(String),
+      ),
+    );
   });
 
   it('keeps password recovery enumeration-safe and validates matching reset values', async () => {
@@ -523,7 +564,7 @@ describe('assignment UI', () => {
     expect(assignmentDialog).toBeVisible();
     const assignmentForm = within(assignmentDialog);
     await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
-    await userEvent.click(await assignmentForm.findByRole('button', { name: /Instructor Satu/ }));
+    await userEvent.click(await assignmentForm.findByRole('option', { name: /Instructor Satu/ }));
     await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
     await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'assignment baru');
     await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
@@ -532,9 +573,18 @@ describe('assignment UI', () => {
     const endDialog = await screen.findByRole('dialog', { name: 'Akhiri assignment' });
     const endForm = within(endDialog);
     await userEvent.type(endForm.getByLabelText(/Efektif berakhir/), '2026-08-10T00:00');
-    await userEvent.type(endForm.getByLabelText(/Alasan/), 'periode selesai');
+    fireEvent.change(endForm.getByLabelText(/Alasan/), {
+      target: { value: 'periode selesai' },
+    });
     await userEvent.click(endForm.getByRole('button', { name: 'Akhiri assignment' }));
-    expect(fake.end).toHaveBeenCalledWith('assignment-1', '2026-08-10T00:00', 3, 'periode selesai');
+    await waitFor(() =>
+      expect(fake.end).toHaveBeenCalledWith(
+        'assignment-1',
+        '2026-08-10T00:00',
+        3,
+        'periode selesai',
+      ),
+    );
   });
 
   it.each([
@@ -558,7 +608,7 @@ describe('assignment UI', () => {
     const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat assignment' });
     const assignmentForm = within(assignmentDialog);
     await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
-    await userEvent.click(await assignmentForm.findByRole('button', { name: /Instructor Satu/ }));
+    await userEvent.click(await assignmentForm.findByRole('option', { name: /Instructor Satu/ }));
     await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
     await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'test failure');
     await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
@@ -585,8 +635,10 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
   listSettings: vi.fn().mockResolvedValue([]),
   createBranch: vi.fn().mockResolvedValue(undefined),
   createClassType: vi.fn().mockResolvedValue(undefined),
+  updateClassType: vi.fn().mockResolvedValue(undefined),
   deactivateBranch: vi.fn().mockResolvedValue(undefined),
   deactivateClassType: vi.fn().mockResolvedValue(undefined),
+  reactivateClassType: vi.fn().mockResolvedValue(undefined),
   createSetting: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
@@ -594,10 +646,14 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
 describe('effective master UI', () => {
   it('is accessible and has no production numeric defaults', async () => {
     const view = render(
-      <MasterView client={masterClient()} access={{ canManage: true, canFinance: true }} />,
+      <AppFeedbackProvider>
+        <MasterView client={masterClient()} access={{ canManage: true, canFinance: true }} />
+      </AppFeedbackProvider>,
     );
     expect((await axe(view.container)).violations).toHaveLength(0);
     await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
+    expect(screen.queryByRole('heading', { name: 'Daftar cabang' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Tipe kelas' })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Minimum peserta/)).toHaveValue(null);
     expect(screen.getByLabelText(/Kapasitas maksimum/)).toHaveValue(null);
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
@@ -622,7 +678,11 @@ describe('effective master UI', () => {
           { id: 'class-1', code: 'REFORMER', name: 'Reformer Pilates', active: true, version: 0 },
         ]),
     });
-    render(<MasterView client={fake} access={{ canManage: true, canFinance: true }} />);
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={fake} access={{ canManage: true, canFinance: true }} />
+      </AppFeedbackProvider>,
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     await screen.findByText('Daily Dose Jakarta');
     await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));

@@ -12,18 +12,11 @@ import {
 } from '../purchase-client';
 import { PageHeader, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
-import {
-  Badge,
-  Button,
-  DataTable,
-  FilterBar,
-  Pagination,
-  Panel,
-} from '../components/admin/admin-ui';
-import { ButtonLink } from '../components/actions';
-import { AlertBanner, Modal, useOptionalAppFeedback } from '../components/app-feedback';
+import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
+import { Button, ButtonLink } from '../components/actions';
+import { AlertBanner, PreviewModal, useOptionalAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
-import { DateInput, SearchInput, SelectInput } from '../components/forms';
+import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
 const statusLabels: Record<string, string> = {
@@ -179,6 +172,10 @@ export function PurchaseReviewView({
   const [previewType, setPreviewType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const requestRef = useRef(0);
+  const cursorTrail =
+    typeof window === 'undefined'
+      ? []
+      : new URLSearchParams(window.location.search).getAll('trail');
 
   const changeFilters = useCallback((patch: Partial<Filters>, replace = false) => {
     setFilters((current) => {
@@ -191,12 +188,31 @@ export function PurchaseReviewView({
         if (next.from) query.set('from', dateInput(next.from));
         if (next.until) query.set('until', dateInput(next.until));
         if (next.cursor) query.set('cursor', next.cursor);
+        if (patch.cursor && patch.cursor !== current.cursor) {
+          const currentTrail = new URLSearchParams(window.location.search).getAll('trail');
+          [...currentTrail, current.cursor ?? '__FIRST__'].forEach((value) =>
+            query.append('trail', value),
+          );
+        }
         const url = `/workspace/payments${query.size ? `?${query}` : ''}`;
         window.history[replace ? 'replaceState' : 'pushState']({}, '', url);
       }
       return { ...next, purchaseId: undefined };
     });
   }, []);
+
+  const previousPage = () => {
+    if (typeof window === 'undefined') return;
+    const query = new URLSearchParams(window.location.search);
+    const trail = query.getAll('trail');
+    const previous = trail.pop();
+    query.delete('trail');
+    trail.forEach((value) => query.append('trail', value));
+    if (!previous || previous === '__FIRST__') query.delete('cursor');
+    else query.set('cursor', previous);
+    window.history.pushState({}, '', `/workspace/payments${query.size ? `?${query}` : ''}`);
+    setFilters(readFilters());
+  };
 
   useEffect(() => {
     const legacyPurchaseId = readFilters().purchaseId;
@@ -380,8 +396,18 @@ export function PurchaseReviewView({
               <span className="text-xs text-dd-muted">
                 {generatedAt ? `Diperbarui ${generatedAt.toLocaleString('id-ID')}` : 'Belum dimuat'}
               </span>
-              <Button variant="secondary" disabled={loading} onClick={() => void load()}>
-                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Segarkan
+              <Button
+                variant="secondary"
+                disabled={loading}
+                leadingIcon={
+                  <RefreshCw
+                    className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                    aria-hidden="true"
+                  />
+                }
+                onClick={() => void load()}
+              >
+                Segarkan
               </Button>
             </div>
           }
@@ -440,20 +466,15 @@ export function PurchaseReviewView({
           ))}
         </SelectInput>
         {branches.length > 1 && !activeBranch && (
-          <SelectInput
+          <SearchSelect
             label="Cabang"
             value={filters.branchId ?? ''}
-            onChange={(event) =>
-              changeFilters({ branchId: event.target.value || undefined, cursor: undefined })
+            placeholder={isGlobal ? 'Semua cabang' : 'Cabang assignment'}
+            options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
+            onChange={(branchId) =>
+              changeFilters({ branchId: branchId || undefined, cursor: undefined })
             }
-          >
-            <option value="">{isGlobal ? 'Semua cabang' : 'Cabang assignment'}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </SelectInput>
+          />
         )}
         <DateInput
           label="Dari"
@@ -476,7 +497,7 @@ export function PurchaseReviewView({
           }
         />
         <Button
-          variant="quiet"
+          variant="ghost"
           onClick={() => {
             setSearch('');
             changeFilters({
@@ -674,14 +695,14 @@ export function PurchaseReviewView({
       />
 
       <Pagination
-        hasPrevious={Boolean(filters.cursor)}
+        hasPrevious={cursorTrail.length > 0}
         hasNext={Boolean(nextCursor)}
         totalLabel={`${items.length} transaksi pada halaman ini`}
-        onPrevious={() => window.history.back()}
+        onPrevious={previousPage}
         onNext={() => changeFilters({ cursor: nextCursor ?? undefined })}
       />
 
-      <Modal
+      <PreviewModal
         open={Boolean(previewItem)}
         title={
           previewItem ? `Bukti pembayaran ${previewItem.customer.displayName}` : 'Bukti pembayaran'
@@ -727,7 +748,7 @@ export function PurchaseReviewView({
             />
           )}
         </div>
-      </Modal>
+      </PreviewModal>
     </section>
   );
 }

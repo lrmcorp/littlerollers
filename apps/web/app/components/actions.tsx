@@ -98,7 +98,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ) : (
         leadingIcon
       )}
-      <span>{loading && loadingLabel ? loadingLabel : children}</span>
+      <span className="inline-flex min-w-0 items-center justify-center gap-2 whitespace-nowrap">
+        {loading && loadingLabel ? loadingLabel : children}
+      </span>
       {!loading && trailingIcon}
     </button>
   );
@@ -127,7 +129,7 @@ export function ButtonLink({
       className={actionClasses({ variant, size, fullWidth, className: className ?? '' })}
     >
       {leadingIcon}
-      <span>{children}</span>
+      <span className="whitespace-nowrap">{children}</span>
       {trailingIcon}
     </Link>
   );

@@ -14,6 +14,9 @@ Name | Type | Description | Notes
 **actorId** | **String** |  | [optional] 
 **branchId** | **String** |  | [optional] 
 **targetUserId** | **String** |  | [optional] 
+**actor** | [**AuditActorProjection**](AuditActorProjection.md) |  | [optional] 
+**target** | [**AuditTargetProjection**](AuditTargetProjection.md) |  | [optional] 
+**branch** | [**AuditBranchProjection**](AuditBranchProjection.md) |  | [optional] 
 **action** | **String** |  | 
 **objectType** | **String** |  | 
 **objectId** | **String** |  | 

@@ -21,7 +21,8 @@ import { routes } from './routes';
 import { canReadPage, frontendPages } from './frontend-pages';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
-import { SelectInput } from './components/forms';
+import { SearchSelect } from './components/forms';
+import { Modal } from './components/app-feedback';
 import {
   CUSTOMER_ACCOUNT_NAVIGATION,
   CUSTOMER_PRIMARY_NAVIGATION,
@@ -395,21 +396,20 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               </button>
               {session && (
                 <div className="!hidden max-w-[220px] md:!block">
-                  <SelectInput
+                  <SearchSelect
+                    label="Cabang aktif"
                     compact
-                    aria-label="Cabang aktif"
-                    title={`${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`}
+                    wrapperClassName="w-[clamp(160px,18vw,220px)] [&>label]:sr-only"
                     value={context?.activeBranchId ?? ''}
-                    onChange={(event) => context?.setActiveBranchId(event.target.value)}
-                    className="w-[clamp(160px,18vw,220px)] font-semibold"
-                  >
-                    <option value="">{canViewAllBranches ? 'Semua cabang' : 'Pilih cabang'}</option>
-                    {session.branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.code} · {branch.name}
-                      </option>
-                    ))}
-                  </SelectInput>
+                    placeholder={canViewAllBranches ? 'Semua cabang' : 'Pilih cabang'}
+                    clearable={canViewAllBranches}
+                    options={session.branches.map((branch) => ({
+                      id: branch.id,
+                      label: branch.name,
+                      description: `${branch.code} · ${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`,
+                    }))}
+                    onChange={(branchId) => context?.setActiveBranchId(branchId)}
+                  />
                 </div>
               )}
               <Link
@@ -489,23 +489,20 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           </div>
           {session && (
             <div className="border-t border-dd-line px-4 py-2 md:hidden">
-              <SelectInput
+              <SearchSelect
+                label="Cabang aktif mobile"
                 compact
-                id="mobile-branch"
-                aria-label="Cabang aktif mobile"
+                wrapperClassName="[&>label]:sr-only"
                 value={context?.activeBranchId ?? ''}
-                onChange={(event) => context?.setActiveBranchId(event.target.value)}
-                className="w-full font-semibold"
-              >
-                <option value="">
-                  {canViewAllBranches ? 'Semua cabang' : 'Pilih cabang aktif'}
-                </option>
-                {session.branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.code} · {branch.name}
-                  </option>
-                ))}
-              </SelectInput>
+                placeholder={canViewAllBranches ? 'Semua cabang' : 'Pilih cabang aktif'}
+                clearable={canViewAllBranches}
+                options={session.branches.map((branch) => ({
+                  id: branch.id,
+                  label: branch.name,
+                  description: branch.code,
+                }))}
+                onChange={(branchId) => context?.setActiveBranchId(branchId)}
+              />
             </div>
           )}
         </header>
@@ -516,50 +513,45 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
-      {commandOpen && (
-        <div
-          className="fixed inset-0 z-[100] grid place-items-start bg-dd-sidebar/55 p-4 pt-[12vh] backdrop-blur-sm"
-          onMouseDown={(event) => event.target === event.currentTarget && setCommandOpen(false)}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Pencarian panel"
-            className="mx-auto w-full max-w-2xl overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-float"
-          >
-            <label className="flex items-center gap-3 border-b border-dd-line px-4">
-              <Search className="size-5 text-dd-muted" />
-              <span className="sr-only">Cari halaman</span>
-              <input
-                autoFocus
-                value={commandQuery}
-                onChange={(event) => setCommandQuery(event.target.value)}
-                placeholder="Cari halaman atau pekerjaan…"
-                className="min-h-14 flex-1 border-0 bg-transparent px-0 shadow-none outline-none"
-              />
-            </label>
-            <div className="max-h-[50vh] overflow-y-auto p-2">
-              {commandPages.length ? (
-                commandPages.map((page) => (
-                  <Link
-                    key={page.href}
-                    href={page.href}
-                    onClick={() => setCommandOpen(false)}
-                    className="block rounded-dd-md px-4 py-3 text-dd-ink no-underline hover:bg-dd-surface-muted"
-                  >
-                    <strong className="block text-sm">{page.label}</strong>
-                    <span className="mt-1 block text-xs text-dd-muted">{page.description}</span>
-                  </Link>
-                ))
-              ) : (
-                <p className="p-8 text-center text-sm text-dd-muted">
-                  Tidak ada halaman yang cocok atau dapat Anda akses.
-                </p>
-              )}
-            </div>
-          </section>
+      <Modal
+        open={commandOpen}
+        title="Pencarian panel"
+        description="Buka halaman yang tersedia sesuai capability akun Anda."
+        className="max-w-2xl"
+        bodyClassName="p-0 sm:p-0"
+        onClose={() => setCommandOpen(false)}
+      >
+        <label className="flex items-center gap-3 border-b border-dd-line px-4">
+          <Search className="size-5 text-dd-muted" aria-hidden="true" />
+          <span className="sr-only">Cari halaman</span>
+          <input
+            autoFocus
+            value={commandQuery}
+            onChange={(event) => setCommandQuery(event.target.value)}
+            placeholder="Cari halaman atau pekerjaan…"
+            className="min-h-14 flex-1 border-0 bg-transparent px-0 shadow-none outline-none"
+          />
+        </label>
+        <div className="max-h-[50vh] overflow-y-auto p-2">
+          {commandPages.length ? (
+            commandPages.map((page) => (
+              <Link
+                key={page.href}
+                href={page.href}
+                onClick={() => setCommandOpen(false)}
+                className="block rounded-dd-md px-4 py-3 text-dd-ink no-underline hover:bg-dd-surface-muted"
+              >
+                <strong className="block text-sm">{page.label}</strong>
+                <span className="mt-1 block text-xs text-dd-muted">{page.description}</span>
+              </Link>
+            ))
+          ) : (
+            <p className="p-8 text-center text-sm text-dd-muted">
+              Tidak ada halaman yang cocok atau dapat Anda akses.
+            </p>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

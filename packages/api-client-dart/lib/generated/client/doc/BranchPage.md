@@ -9,6 +9,7 @@ import 'package:openapi/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **items** | [**BuiltList&lt;Branch&gt;**](Branch.md) |  | 
+**summary** | [**BranchManagementSummary**](BranchManagementSummary.md) |  | 
 **page** | [**CursorPageMeta**](CursorPageMeta.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

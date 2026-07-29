@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationShell } from './application-shell';
 import { Dashboard } from './dashboard';
@@ -78,8 +79,10 @@ describe('capability-aware session shell', () => {
     expect(await screen.findByText('Admin Jakarta')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ledger' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Operations H-24' })).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Cabang aktif')).toHaveValue('');
-    fireEvent.change(screen.getByLabelText('Cabang aktif'), { target: { value: 'branch-2' } });
+    const branchSelect = screen.getByRole('combobox', { name: 'Cabang aktif' });
+    expect(branchSelect).toHaveValue('');
+    await userEvent.click(branchSelect);
+    await userEvent.click(await screen.findByRole('option', { name: /Bandung/ }));
     expect(screen.getByText('Bandung')).toBeInTheDocument();
     expect(sessionStorage.getItem('dd_active_branch')).toBe('branch-2');
 
@@ -92,6 +95,87 @@ describe('capability-aware session shell', () => {
     expect(screen.getByRole('region', { name: 'Menu akun internal' })).toBeVisible();
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole('region', { name: 'Menu akun internal' })).not.toBeInTheDocument();
+  });
+
+  it('shows package promotions and vouchers for a database-authorized Super Owner', async () => {
+    navigation.pathname = '/workspace/payments';
+    const superOwnerSession: WebSession = {
+      ...adminSession,
+      id: 'super-owner-1',
+      displayName: 'Super Owner Daily Dose',
+      roles: ['SUPER_OWNER'],
+      branchIds: [],
+      branches: [],
+      capabilities: [
+        'branch:all',
+        'payment:review',
+        'package-promotion:read',
+        'package-promotion:manage',
+        'voucher:read',
+        'voucher:manage',
+      ],
+    };
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue(superOwnerSession),
+      logout: vi.fn(),
+    };
+
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Antrean pembayaran</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+
+    const navigationRegion = await screen.findByRole('navigation', { name: 'Navigasi utama' });
+    expect(within(navigationRegion).getByRole('link', { name: 'Paket' })).toHaveAttribute(
+      'href',
+      '/workspace/packages',
+    );
+    expect(within(navigationRegion).getByRole('link', { name: 'Voucher' })).toHaveAttribute(
+      'href',
+      '/workspace/vouchers',
+    );
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const commandSearch = screen.getByRole('dialog', { name: 'Pencarian panel' });
+    expect(within(commandSearch).getByText('Paket & promo harga')).toBeVisible();
+    expect(within(commandSearch).getByText('Voucher')).toBeVisible();
+    expect(canAccessSessionPath(superOwnerSession, '/workspace/packages')).toBe(true);
+    expect(canAccessSessionPath(superOwnerSession, '/workspace/vouchers')).toBe(true);
+  });
+
+  it('keeps voucher and promotion routes capability-scoped', () => {
+    expect(canAccessSessionPath(adminSession, '/workspace/vouchers')).toBe(false);
+    expect(canAccessSessionPath(adminSession, '/workspace/packages')).toBe(false);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, roles: ['OWNER'], capabilities: ['voucher:read'] },
+        '/workspace/vouchers',
+      ),
+    ).toBe(true);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, roles: ['OWNER'], capabilities: ['package-promotion:read'] },
+        '/workspace/packages',
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps branch management and its detail route capability-scoped', () => {
+    expect(canAccessSessionPath(adminSession, '/workspace/branches')).toBe(false);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, capabilities: [...adminSession.capabilities, 'master:read'] },
+        '/workspace/branches',
+      ),
+    ).toBe(true);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, capabilities: [...adminSession.capabilities, 'master:manage'] },
+        '/workspace/branches/branch-1',
+      ),
+    ).toBe(true);
   });
 
   it('clears an unauthorized stored branch and redirects a protected route on 401', async () => {

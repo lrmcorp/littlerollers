@@ -6,9 +6,10 @@ import { MasterAccessService } from './master-access.service';
 import { PublicProfileAdminService } from './public-profile-admin.service';
 import { MasterCatalogService } from './master-catalog.service';
 import { EffectiveSettingsService } from './effective-settings.service';
+import { FoundationModule } from '../foundation/foundation.module';
 
 @Module({
-  imports: [DatabaseModule, IdentityModule],
+  imports: [DatabaseModule, FoundationModule, IdentityModule],
   controllers: [MasterController],
   providers: [
     MasterAccessService,

@@ -193,7 +193,8 @@ describe('public package catalog', () => {
     await screen.findByRole('heading', { name: 'Pilates Commitment' });
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1');
 
-    await userEvent.selectOptions(screen.getByLabelText('Tipe kelas'), 'type-private');
+    await userEvent.click(screen.getByRole('combobox', { name: /Tipe kelas/ }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Private Class' }));
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1&classType=type-private');
     expect(screen.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Pilates Routine' })).not.toBeInTheDocument();

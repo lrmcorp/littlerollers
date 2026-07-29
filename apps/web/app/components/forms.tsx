@@ -1,8 +1,13 @@
 'use client';
 
+import { Check, ChevronDown, LoaderCircle, Search, X } from 'lucide-react';
 import {
+  useCallback,
+  useEffect,
   forwardRef,
   useId,
+  useRef,
+  useState,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -104,6 +109,7 @@ export const TextInput = forwardRef<
         {...props}
         ref={ref}
         id={id}
+        aria-label={props['aria-label'] ?? label}
         required={required}
         aria-invalid={Boolean(error) || undefined}
         className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${leadingIcon ? 'pl-9' : ''} ${trailingIcon ? 'pr-9' : ''} ${className}`}
@@ -182,6 +188,7 @@ export const SelectInput = forwardRef<
       {...props}
       ref={ref}
       id={id}
+      aria-label={props['aria-label'] ?? label}
       required={required}
       aria-invalid={Boolean(error) || undefined}
       className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${className}`}
@@ -204,6 +211,422 @@ export const SelectInput = forwardRef<
     input
   );
 });
+
+export type SearchSelectOption = {
+  id: string;
+  label: string;
+  description?: string;
+  disabled?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+export type SearchSelectProps = {
+  label: string;
+  options: SearchSelectOption[];
+  value?: string;
+  defaultValue?: string;
+  name?: string;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  description?: ReactNode;
+  error?: ReactNode;
+  required?: boolean;
+  disabled?: boolean;
+  clearable?: boolean;
+  compact?: boolean;
+  wrapperClassName?: string;
+  loading?: boolean;
+  emptyMessage?: string;
+  loadError?: string;
+  nextCursor?: string;
+  filterOptions?: boolean;
+  onSearchChange?(query: string): void;
+  onLoadMore?(): void;
+  onRetry?(): void;
+  onChange?(value: string, option?: SearchSelectOption): void;
+};
+
+export type AsyncSearchSelectProps = Omit<
+  SearchSelectProps,
+  'options' | 'loading' | 'loadError' | 'nextCursor' | 'filterOptions' | 'onLoadMore' | 'onRetry'
+> & {
+  selectedOption?: SearchSelectOption;
+  debounceMs?: number;
+  loadOptions(
+    query: string,
+    cursor?: string,
+  ): Promise<SearchSelectOption[] | { items: SearchSelectOption[]; nextCursor?: string }>;
+};
+
+export type MultiSearchSelectProps = Omit<
+  SearchSelectProps,
+  'value' | 'defaultValue' | 'onChange' | 'name'
+> & {
+  value: string[];
+  name?: string;
+  onChange(value: string[], options: SearchSelectOption[]): void;
+};
+
+function normalizedSearch(value: string) {
+  return value.trim().toLocaleLowerCase('id-ID');
+}
+
+export function SearchSelect({
+  label,
+  options,
+  value,
+  defaultValue = '',
+  name,
+  placeholder = 'Pilih data',
+  searchPlaceholder = 'Cari…',
+  description,
+  error,
+  required,
+  disabled,
+  clearable = true,
+  compact,
+  wrapperClassName,
+  loading,
+  emptyMessage = 'Data tidak ditemukan.',
+  loadError,
+  nextCursor,
+  filterOptions = true,
+  onSearchChange,
+  onLoadMore,
+  onRetry,
+  onChange,
+}: SearchSelectProps) {
+  const id = useId();
+  const listId = `${id}-listbox`;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const currentValue = value === undefined ? internalValue : value;
+  const selected = options.find((option) => option.id === currentValue);
+  const [query, setQuery] = useState(selected?.label ?? '');
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const normalizedQuery = normalizedSearch(query);
+  const visibleOptions = filterOptions
+    ? options.filter((option) => {
+        if (!normalizedQuery || query === selected?.label) return true;
+        return normalizedSearch(`${option.label} ${option.description ?? ''}`).includes(
+          normalizedQuery,
+        );
+      })
+    : options;
+
+  useEffect(() => {
+    setQuery(selected?.label ?? '');
+  }, [currentValue, selected?.label]);
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setActiveIndex(-1);
+        setQuery(selected?.label ?? '');
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [selected?.label]);
+
+  const commit = useCallback(
+    (option?: SearchSelectOption) => {
+      if (option?.disabled) return;
+      const nextValue = option?.id ?? '';
+      if (value === undefined) setInternalValue(nextValue);
+      setQuery(option?.label ?? '');
+      setOpen(false);
+      setActiveIndex(-1);
+      onChange?.(nextValue, option);
+    },
+    [onChange, value],
+  );
+
+  const move = (direction: 1 | -1) => {
+    if (!visibleOptions.length) return;
+    setActiveIndex((current) => {
+      if (current < 0) return direction > 0 ? 0 : visibleOptions.length - 1;
+      return Math.min(visibleOptions.length - 1, Math.max(0, current + direction));
+    });
+  };
+
+  return (
+    <FormField
+      label={label}
+      htmlFor={id}
+      description={description}
+      error={error}
+      required={required}
+      className={wrapperClassName}
+    >
+      <div ref={rootRef} className="relative min-w-0">
+        {name && <input type="hidden" name={name} value={currentValue} />}
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted"
+            aria-hidden="true"
+          />
+          <input
+            ref={inputRef}
+            id={id}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={open}
+            aria-controls={open ? listId : undefined}
+            aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+            aria-invalid={Boolean(error) || undefined}
+            required={required && !currentValue}
+            disabled={disabled}
+            value={query}
+            placeholder={open ? searchPlaceholder : placeholder}
+            className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} pl-9 pr-16`}
+            onFocus={() => {
+              setOpen(true);
+              setQuery('');
+              onSearchChange?.('');
+            }}
+            onClick={() => setOpen(true)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setOpen(true);
+              setActiveIndex(0);
+              onSearchChange?.(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setOpen(true);
+                move(1);
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                move(-1);
+              } else if (event.key === 'Home' && open) {
+                event.preventDefault();
+                setActiveIndex(0);
+              } else if (event.key === 'End' && open) {
+                event.preventDefault();
+                setActiveIndex(Math.max(0, visibleOptions.length - 1));
+              } else if (event.key === 'Enter' && open && activeIndex >= 0) {
+                event.preventDefault();
+                commit(visibleOptions[activeIndex]);
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                setOpen(false);
+                setActiveIndex(-1);
+                setQuery(selected?.label ?? '');
+              }
+            }}
+          />
+          {clearable && currentValue && !disabled ? (
+            <button
+              type="button"
+              className="absolute right-9 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full border-0 bg-transparent text-dd-muted hover:bg-dd-surface-muted"
+              aria-label={`Hapus pilihan ${label}`}
+              onClick={() => {
+                commit(undefined);
+                inputRef.current?.focus();
+              }}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
+          <ChevronDown
+            className={`pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </div>
+        {open && !disabled && (
+          <div
+            id={listId}
+            role="listbox"
+            className="absolute inset-x-0 top-full z-[140] mt-1 max-h-[min(20rem,45dvh)] overflow-y-auto rounded-dd-md border border-dd-line bg-white p-1 shadow-dd-float"
+          >
+            {loading && (
+              <p className="flex items-center gap-2 px-3 py-3 text-sm text-dd-muted" role="status">
+                <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" /> Memuat…
+              </p>
+            )}
+            {!loading && loadError && (
+              <div className="p-3 text-sm text-dd-danger" role="alert">
+                <p>{loadError}</p>
+                {onRetry && (
+                  <button
+                    type="button"
+                    className="mt-2 font-semibold text-dd-forest underline"
+                    onClick={onRetry}
+                  >
+                    Coba lagi
+                  </button>
+                )}
+              </div>
+            )}
+            {!loading && !loadError && visibleOptions.length === 0 && (
+              <p className="px-3 py-4 text-sm text-dd-muted">{emptyMessage}</p>
+            )}
+            {!loadError &&
+              visibleOptions.map((option, index) => (
+                <button
+                  id={`${listId}-${index}`}
+                  key={option.id}
+                  type="button"
+                  role="option"
+                  aria-selected={option.id === currentValue}
+                  disabled={option.disabled}
+                  className={`flex w-full items-start gap-3 rounded-dd-sm border-0 px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-45 ${index === activeIndex ? 'bg-dd-surface-muted' : 'bg-transparent hover:bg-dd-surface-muted'}`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => commit(option)}
+                >
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-sm text-dd-ink">{option.label}</strong>
+                    {option.description && (
+                      <span className="mt-0.5 block text-xs leading-5 text-dd-muted">
+                        {option.description}
+                      </span>
+                    )}
+                  </span>
+                  {option.id === currentValue && (
+                    <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+                  )}
+                </button>
+              ))}
+            {!loading && nextCursor && onLoadMore && (
+              <button
+                type="button"
+                className="mt-1 w-full rounded-dd-sm border-0 bg-dd-surface-muted px-3 py-2 text-sm font-semibold text-dd-forest"
+                onClick={onLoadMore}
+              >
+                Muat berikutnya
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </FormField>
+  );
+}
+
+export function AsyncSearchSelect({
+  loadOptions,
+  selectedOption,
+  debounceMs = 250,
+  ...props
+}: AsyncSearchSelectProps) {
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState<SearchSelectOption[]>(selectedOption ? [selectedOption] : []);
+  const [nextCursor, setNextCursor] = useState<string>();
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  const requestRef = useRef(0);
+  const loadOptionsRef = useRef(loadOptions);
+  const selectedOptionRef = useRef(selectedOption);
+  useEffect(() => {
+    loadOptionsRef.current = loadOptions;
+    selectedOptionRef.current = selectedOption;
+  }, [loadOptions, selectedOption]);
+
+  const runLoad = useCallback(async (search: string, cursor?: string, append = false) => {
+    const request = ++requestRef.current;
+    setLoading(true);
+    setLoadError(undefined);
+    try {
+      const result = await loadOptionsRef.current(search, cursor);
+      if (request !== requestRef.current) return;
+      const page = Array.isArray(result) ? { items: result, nextCursor: undefined } : result;
+      setItems((current) => {
+        const combined = append ? [...current, ...page.items] : page.items;
+        const pinned = selectedOptionRef.current;
+        if (pinned && !combined.some((item) => item.id === pinned.id)) {
+          combined.unshift(pinned);
+        }
+        return [...new Map(combined.map((item) => [item.id, item])).values()];
+      });
+      setNextCursor(page.nextCursor);
+    } catch {
+      if (request === requestRef.current) setLoadError('Data belum dapat dimuat.');
+    } finally {
+      if (request === requestRef.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void runLoad(query), debounceMs);
+    return () => window.clearTimeout(timer);
+  }, [debounceMs, query, runLoad]);
+
+  return (
+    <SearchSelect
+      {...props}
+      options={items}
+      loading={loading}
+      loadError={loadError}
+      nextCursor={nextCursor}
+      filterOptions={false}
+      onSearchChange={setQuery}
+      onRetry={() => void runLoad(query)}
+      onLoadMore={() => nextCursor && void runLoad(query, nextCursor, true)}
+    />
+  );
+}
+
+export function MultiSearchSelect({
+  value,
+  options,
+  name,
+  onChange,
+  ...props
+}: MultiSearchSelectProps) {
+  const selected = options.filter((option) => value.includes(option.id));
+  const available = options.filter((option) => !value.includes(option.id));
+  return (
+    <div className={props.wrapperClassName}>
+      {name && value.map((item) => <input key={item} type="hidden" name={name} value={item} />)}
+      {selected.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2" aria-label={`${props.label} terpilih`}>
+          {selected.map((option) => (
+            <span
+              key={option.id}
+              className="inline-flex items-center gap-1 rounded-full bg-dd-success-soft px-3 py-1 text-xs font-semibold text-dd-success"
+            >
+              {option.label}
+              <button
+                type="button"
+                className="grid size-5 place-items-center rounded-full border-0 bg-transparent"
+                aria-label={`Hapus ${option.label}`}
+                onClick={() => {
+                  const next = value.filter((item) => item !== option.id);
+                  onChange(
+                    next,
+                    options.filter((item) => next.includes(item.id)),
+                  );
+                }}
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <SearchSelect
+        key={value.join('|')}
+        {...props}
+        wrapperClassName=""
+        options={available}
+        value=""
+        clearable={false}
+        onChange={(item, option) => {
+          if (!item || !option) return;
+          const next = [...value, item];
+          onChange(
+            next,
+            options.filter((candidate) => next.includes(candidate.id)),
+          );
+        }}
+      />
+    </div>
+  );
+}
 
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
@@ -228,6 +651,7 @@ export const Textarea = forwardRef<
       {...props}
       ref={ref}
       id={id}
+      aria-label={props['aria-label'] ?? label}
       required={required}
       aria-invalid={Boolean(error) || undefined}
       className={`${controlClassName} min-h-28 resize-y ${className}`}

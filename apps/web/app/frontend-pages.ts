@@ -186,6 +186,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'neutral',
   },
   {
+    href: '/workspace/branches',
+    label: 'Branch Management',
+    shortLabel: 'Cabang',
+    description: 'Kelola identitas studio, status operasional, dependency, dan profil cabang.',
+    group: 'Administrasi',
+    capabilities: ['master:read'],
+    mutationCapabilities: ['master:manage'],
+    priority: 7,
+    accent: 'brand',
+    icon: 'building',
+  },
+  {
     href: '/master',
     label: 'Master data',
     shortLabel: 'Master',

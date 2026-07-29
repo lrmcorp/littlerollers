@@ -162,7 +162,9 @@ beforeEach(() => {
 
 describe('purchase submission workspace', () => {
   it('requires an explicit branch', () => {
-    render(<PurchaseView client={submissionFake()} />);
+    render(
+      <PurchaseView client={submissionFake()} access={{ isCustomer: true, canSubmit: true }} />,
+    );
     expect(screen.getByText('Cabang aktif wajib dipilih secara eksplisit.')).toBeVisible();
   });
 
@@ -173,6 +175,7 @@ describe('purchase submission workspace', () => {
         client={client}
         branchOverride={branch}
         digestFile={vi.fn().mockResolvedValue('a'.repeat(64))}
+        access={{ isCustomer: true, canSubmit: true }}
       />,
     );
     const user = userEvent.setup();
@@ -199,6 +202,7 @@ describe('purchase submission workspace', () => {
         client={client}
         branchOverride={branch}
         digestFile={vi.fn().mockResolvedValue('a'.repeat(64))}
+        access={{ isCustomer: true, canSubmit: true }}
       />,
     );
     const user = userEvent.setup();

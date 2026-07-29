@@ -17,6 +17,8 @@ Name | Type | Description | Notes
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
 **status** | **String** |  | 
+**effectiveState** | **String** |  | [optional] 
+**livePromotion** | **bool** |  | [optional] 
 **effectiveFrom** | [**Date**](Date.md) |  | 
 **effectiveUntil** | [**Date**](Date.md) |  | [optional] 
 **version** | **int** |  | 

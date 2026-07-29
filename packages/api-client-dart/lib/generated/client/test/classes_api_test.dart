@@ -76,5 +76,12 @@ void main() {
       // TODO
     });
 
+    // Updates a DRAFT slot and re-snapshots effective capacity. Published or confirmed slots must be cancelled and recreated.
+    //
+    //Future<ClassSlot> updateDraftClassSlot(String id, String idempotencyKey, ClassSlotUpdateCommand classSlotUpdateCommand) async
+    test('test updateDraftClassSlot', () async {
+      // TODO
+    });
+
   });
 }

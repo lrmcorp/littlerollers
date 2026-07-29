@@ -12,7 +12,8 @@ import {
 } from '../../../booking-client';
 import { AlertBanner } from '../../../components/app-feedback';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Panel, StatCard } from '../../../components/admin/admin-ui';
+import { Button } from '../../../components/actions';
+import { Badge, Panel, StatCard } from '../../../components/admin/admin-ui';
 import { PageHeader, Skeleton } from '../../../ui';
 import { useSessionContext } from '../../../session-context';
 
@@ -149,8 +150,12 @@ export function StaffBookingDetailView({
               >
                 {statusLabels[booking.status] ?? 'Status booking'}
               </Badge>
-              <Button variant="secondary" disabled={busy} onClick={() => void load()}>
-                <RefreshCw className="size-4" aria-hidden="true" />
+              <Button
+                variant="secondary"
+                disabled={busy}
+                leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+                onClick={() => void load()}
+              >
                 Segarkan
               </Button>
             </div>
@@ -251,8 +256,12 @@ export function StaffBookingDetailView({
             </div>
           </dl>
           {booking.status === 'BOOKED' && context?.hasCapability('attendance:manage') && (
-            <Button className="mt-5" disabled={!canManageAttendance || busy} onClick={issueQr}>
-              <QrCode className="size-4" aria-hidden="true" />
+            <Button
+              className="mt-5"
+              leadingIcon={<QrCode className="size-4" aria-hidden="true" />}
+              disabled={!canManageAttendance || busy}
+              onClick={issueQr}
+            >
               Buat/Kirim QR
             </Button>
           )}

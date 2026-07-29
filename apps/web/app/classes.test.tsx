@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react';
+import { render as rtlRender, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { ClassSlotView } from './classes/class-slot-view';
 import type { ClassSlotClient } from './class-slot-client';
+import { AppFeedbackProvider } from './components/app-feedback';
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
 const now = new Date();
@@ -32,6 +33,7 @@ const workspace = {
 const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   discover: vi.fn().mockResolvedValue(workspace),
   create: vi.fn().mockResolvedValue(slot),
+  update: vi.fn().mockResolvedValue({ ...slot, version: 1 }),
   assign: vi.fn().mockResolvedValue({ ...slot, version: 1 }),
   publish: vi.fn().mockResolvedValue({ ...slot, status: 'PUBLISHED', version: 1 }),
   cancel: vi.fn().mockResolvedValue({ ...slot, status: 'CANCELLED', version: 1 }),
@@ -39,6 +41,8 @@ const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
 });
 const readCapabilities = ['class-slot:read'] as const;
 const manageCapabilities = ['class-slot:read', 'class-slot:manage', 'attendance:manage'] as const;
+const render = (view: React.ReactNode) =>
+  rtlRender(<AppFeedbackProvider>{view}</AppFeedbackProvider>);
 
 describe('ClassSlotView', () => {
   it('defaults to deny when no authoritative capability is available', () => {
@@ -98,12 +102,19 @@ describe('ClassSlotView', () => {
     expect(calendar).toBeVisible();
     expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThanOrEqual(7);
     await user.click(within(calendar).getByRole('button', { name: /Reformer/ }));
-    const dialog = screen.getByRole('dialog', { name: 'Detail kelas' });
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     expect(within(dialog).getAllByText('Ayu Instructor')[0]).toBeVisible();
     await user.click(within(dialog).getByRole('button', { name: 'Publish kelas' }));
+    await user.click(screen.getByRole('button', { name: 'Publikasikan' }));
     expect(client.publish).toHaveBeenCalledWith('slot-1', 0);
     expect(await screen.findByText('Kelas berhasil dipublikasikan.')).toBeVisible();
-    expect((await axe(view.container)).violations).toHaveLength(0);
+    const accessibility = await axe(view.container);
+    expect(
+      accessibility.violations,
+      accessibility.violations
+        .map(({ id, nodes }) => `${id}: ${nodes[0]?.failureSummary}`)
+        .join('\n'),
+    ).toHaveLength(0);
   });
 
   it('creates a draft from branch-local fields without technical IDs', async () => {
@@ -118,13 +129,22 @@ describe('ClassSlotView', () => {
     const user = userEvent.setup();
     await screen.findByText('Belum ada kelas pada minggu ini');
     await user.click(screen.getByRole('button', { name: 'Buat kelas' }));
-    const dialog = screen.getByRole('dialog', { name: 'Buat kelas' });
-    await user.selectOptions(within(dialog).getByLabelText('Class type'), 'type-1');
-    await user.selectOptions(within(dialog).getByLabelText('Instructor'), 'instructor-1');
+    const dialog = screen.getByRole('dialog', { name: 'Buat draft kelas' });
+    const classType = within(dialog).getByRole('combobox', { name: /Tipe kelas/ });
+    await user.click(classType);
+    await user.click(within(dialog).getByRole('option', { name: /Reformer/ }));
+    const instructor = within(dialog).getByRole('combobox', { name: /Instruktur/ });
+    await user.click(instructor);
+    await user.click(within(dialog).getByRole('option', { name: /Ayu Instructor/ }));
     await user.type(within(dialog).getByLabelText('Tanggal'), '2026-07-27');
     await user.type(within(dialog).getByLabelText('Mulai'), '09:00');
     await user.type(within(dialog).getByLabelText('Selesai eksklusif'), '10:00');
     await user.click(within(dialog).getByRole('button', { name: 'Buat draft' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Buat draft kelas?' })).getByRole('button', {
+        name: 'Buat draft',
+      }),
+    );
     expect(client.create).toHaveBeenCalledWith(
       expect.objectContaining({
         branchId: 'branch-1',
@@ -132,6 +152,44 @@ describe('ClassSlotView', () => {
         instructorUserId: 'instructor-1',
         startAt: new Date('2026-07-27T02:00:00.000Z'),
         endAt: new Date('2026-07-27T03:00:00.000Z'),
+      }),
+    );
+  });
+
+  it('edits only a draft with an authoritative version and reason', async () => {
+    const client = fake();
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
+    await user.click(within(dialog).getByRole('button', { name: 'Edit kelas' }));
+    const form = within(dialog).getByRole('form', { name: 'Edit draft kelas' });
+    await user.type(within(form).getByLabelText('Alasan perubahan'), 'Penyesuaian jadwal studio');
+    await user.click(within(form).getByRole('button', { name: 'Simpan perubahan kelas' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Simpan perubahan kelas?' })).getByRole('button', {
+        name: 'Simpan perubahan',
+      }),
+    );
+    expect(client.update).toHaveBeenCalledWith(
+      'slot-1',
+      expect.objectContaining({
+        classTypeId: 'type-1',
+        instructorUserId: 'instructor-1',
+        expectedVersion: 0,
+        reason: 'Penyesuaian jadwal studio',
       }),
     );
   });
@@ -165,12 +223,13 @@ describe('ClassSlotView', () => {
         { name: /Reformer/ },
       ),
     );
-    const dialog = screen.getByRole('dialog', { name: 'Detail kelas' });
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     await user.selectOptions(
       within(dialog).getByLabelText('Alasan pembatalan'),
       'INSTRUCTOR_UNAVAILABLE',
     );
     await user.click(within(dialog).getByRole('button', { name: 'Konfirmasi pembatalan' }));
+    await user.click(screen.getByRole('button', { name: 'Batalkan kelas' }));
     expect(client.cancel).toHaveBeenCalledWith('slot-1', 'INSTRUCTOR_UNAVAILABLE', 0);
     expect(await screen.findByText('Kelas berhasil dibatalkan.')).toBeVisible();
   });

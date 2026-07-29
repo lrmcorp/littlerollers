@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
@@ -15,6 +16,7 @@ export class PaymentAccountService {
   constructor(
     private readonly db: PrismaService,
     private readonly access: PackageAccessService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   async list(principal: SessionPrincipal, branchId?: string) {
@@ -95,6 +97,24 @@ export class PaymentAccountService {
     );
   }
 
+  async detail(principal: SessionPrincipal, id: string) {
+    this.access.paymentAccount(principal);
+    const account = await this.db.paymentAccount.findUnique({
+      where: { id },
+      include: {
+        branch: { select: { id: true, code: true, name: true, active: true } },
+        _count: { select: { purchases: true } },
+      },
+    });
+    if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.access.scope(principal, account.branchId, ['payment-account:read']);
+    return {
+      ...paymentAccountView(account),
+      branch: account.branch,
+      purchaseCount: account._count.purchases,
+    };
+  }
+
   async deactivate(principal: SessionPrincipal, id: string, input: any, correlationId: string) {
     this.access.paymentAccount(principal, true);
     if (!Number.isInteger(input?.expectedVersion) || !input?.reason?.trim())
@@ -137,6 +157,136 @@ export class PaymentAccountService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  async deactivateIdempotent(
+    principal: SessionPrincipal,
+    id: string,
+    input: { expectedVersion: number; reason: string },
+    key: string,
+    correlationId: string,
+  ) {
+    this.access.paymentAccount(principal, true);
+    if (!key || !Number.isInteger(input?.expectedVersion) || input?.reason?.trim().length < 3)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const result = await this.idempotency.execute(
+      {
+        scope: `payment-account-deactivate:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
+      async (tx) => {
+        const account = await tx.paymentAccount.findUnique({ where: { id } });
+        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.access.scope(principal, account.branchId, ['payment-account:manage']);
+        if (!account.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+        if (account.version !== input.expectedVersion)
+          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        const openOrder = await tx.purchase.findFirst({
+          where: {
+            paymentAccountId: id,
+            status: 'AWAITING_PAYMENT',
+            paymentExpiresAt: { gt: new Date() },
+          },
+          select: { id: true },
+        });
+        if (openOrder) throw new ApiProblem('PAYMENT_ACCOUNT_HAS_OPEN_ORDERS', HttpStatus.CONFLICT);
+        const updated = await tx.paymentAccount.update({
+          where: { id, version: input.expectedVersion },
+          data: { active: false, activeBranchKey: null, version: { increment: 1 } },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: newId(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            action: 'PAYMENT_ACCOUNT_DEACTIVATED',
+            objectType: 'PaymentAccount',
+            objectId: id,
+            branchId: account.branchId,
+            correlationId,
+            beforeMasked: { active: true, version: account.version },
+            afterMasked: {
+              active: false,
+              version: updated.version,
+              reasonPresent: true,
+            },
+          },
+        });
+        return { status: 200, body: paymentAccountView(updated) as Prisma.InputJsonValue };
+      },
+    );
+    return result.body;
+  }
+
+  async reactivate(
+    principal: SessionPrincipal,
+    id: string,
+    input: { expectedVersion: number; reason: string },
+    key: string | undefined,
+    correlationId: string,
+  ) {
+    this.access.paymentAccount(principal, true);
+    if (!key || !Number.isInteger(input?.expectedVersion) || input?.reason?.trim().length < 3)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const result = await this.idempotency.execute(
+      {
+        scope: `payment-account-reactivate:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`PaymentAccount\` WHERE \`id\` = ${id} FOR UPDATE`;
+        const account = await tx.paymentAccount.findUnique({
+          where: { id },
+          include: { branch: { select: { active: true } } },
+        });
+        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.access.scope(principal, account.branchId, ['payment-account:manage']);
+        if (!account.branch.active)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (account.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+        if (account.version !== input.expectedVersion)
+          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        const active = await tx.paymentAccount.findFirst({
+          where: { branchId: account.branchId, active: true, id: { not: id } },
+          select: { id: true },
+        });
+        if (active) throw new ApiProblem('ACTIVE_PAYMENT_ACCOUNT_EXISTS', HttpStatus.CONFLICT);
+        const updated = await tx.paymentAccount.update({
+          where: { id, version: input.expectedVersion },
+          data: {
+            active: true,
+            activeBranchKey: account.branchId,
+            version: { increment: 1 },
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: newId(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            action: 'PAYMENT_ACCOUNT_REACTIVATED',
+            objectType: 'PaymentAccount',
+            objectId: id,
+            branchId: account.branchId,
+            correlationId,
+            beforeMasked: { active: false, version: account.version },
+            afterMasked: {
+              active: true,
+              version: updated.version,
+              reasonPresent: true,
+            },
+          },
+        });
+        return { status: 200, body: paymentAccountView(updated) as Prisma.InputJsonValue };
+      },
+    );
+    return result.body;
   }
 }
 

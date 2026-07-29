@@ -5,14 +5,8 @@ import Link from 'next/link';
 import { AlertTriangle, Download, RefreshCw, Scale } from 'lucide-react';
 import { useSessionContext } from '../session-context';
 import { Feedback } from '../ui';
-import {
-  AdminEmptyState,
-  Badge,
-  Button,
-  FilterBar,
-  Panel,
-  StatCard,
-} from '../components/admin/admin-ui';
+import { AdminEmptyState, Badge, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
 import { controlClassName } from '../components/forms';
 
@@ -103,14 +97,19 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         <div className="flex gap-2">
           <Button
             variant="secondary"
+            leadingIcon={<Download className="size-4" aria-hidden="true" />}
             onClick={exportCsv}
             disabled={!data || !context?.hasCapability('finance:export')}
           >
-            <Download className="size-4" />
             Export CSV
           </Button>
-          <Button onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            onClick={() => void load()}
+            disabled={loading}
+            leadingIcon={
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            }
+          >
             Refresh
           </Button>
         </div>

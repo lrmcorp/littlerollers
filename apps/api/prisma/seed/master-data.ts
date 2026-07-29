@@ -505,6 +505,54 @@ export async function seedCommercialMaster(
       });
     }
 
+    const revisionClassTypeId = catalog.classTypes[`${template.code}:REFORMER`];
+    if (revisionClassTypeId) {
+      const revisionBusinessKey = 'REFORMER-REVISION-DEMO';
+      const historicalId = ctx.id('package', `${template.code}:REFORMER:revision-history`);
+      const scheduledId = ctx.id('package', `${template.code}:REFORMER:revision-scheduled`);
+      await ctx.db.package.upsert({
+        where: { id: historicalId },
+        update: {
+          status: 'ACTIVE',
+          effectiveFrom: new Date('2025-01-01'),
+          effectiveUntil: new Date('2026-01-01'),
+        },
+        create: {
+          id: historicalId,
+          branchId,
+          classTypeId: revisionClassTypeId,
+          businessKey: revisionBusinessKey,
+          name: 'Reformer Revision History',
+          sessionCount: 6,
+          durationDays: 45,
+          priceRp: Math.round((960_000 * template.priceMultiplier) / 10_000) * 10_000,
+          effectiveFrom: new Date('2025-01-01'),
+          effectiveUntil: new Date('2026-01-01'),
+          status: 'ACTIVE',
+        },
+      });
+      await ctx.db.package.upsert({
+        where: { id: scheduledId },
+        update: {
+          status: 'ACTIVE',
+          effectiveFrom: new Date('2027-01-01'),
+          effectiveUntil: null,
+        },
+        create: {
+          id: scheduledId,
+          branchId,
+          classTypeId: revisionClassTypeId,
+          businessKey: revisionBusinessKey,
+          name: 'Reformer Revision Scheduled',
+          sessionCount: 6,
+          durationDays: 60,
+          priceRp: Math.round((1_080_000 * template.priceMultiplier) / 10_000) * 10_000,
+          effectiveFrom: new Date('2027-01-01'),
+          status: 'ACTIVE',
+        },
+      });
+    }
+
     const number = template.payment.accountNumber;
     await ctx.db.paymentAccount.upsert({
       where: { activeBranchKey: branchId },

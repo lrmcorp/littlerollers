@@ -148,4 +148,22 @@ describe('professional identity verification queue', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tutup dialog' }));
     expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps the drawer open and can reissue preview after a private-file failure', async () => {
+    const client = createClient();
+    client.readPrivateFile
+      .mockRejectedValueOnce({ response: { status: 404, data: { code: 'NOT_FOUND' } } })
+      .mockResolvedValueOnce(new Blob(['private'], { type: 'image/png' }));
+    renderReview(client);
+    await screen.findAllByText('Ayu Customer');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Periksa' })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Lihat dokumen' })[0]!);
+
+    expect(await screen.findByRole('button', { name: 'Coba lagi preview' })).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Verifikasi · Ayu Customer' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi preview' }));
+    expect(await screen.findByAltText('Preview privat Selfie')).toBeVisible();
+    expect(client.authorizeView).toHaveBeenCalledTimes(2);
+  });
 });

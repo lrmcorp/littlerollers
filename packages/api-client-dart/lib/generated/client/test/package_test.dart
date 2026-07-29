@@ -52,6 +52,16 @@ void main() {
       // TODO
     });
 
+    // String effectiveState
+    test('to test the property `effectiveState`', () async {
+      // TODO
+    });
+
+    // bool livePromotion
+    test('to test the property `livePromotion`', () async {
+      // TODO
+    });
+
     // Date effectiveFrom
     test('to test the property `effectiveFrom`', () async {
       // TODO

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PolicyService } from '../identity/policy.service';
+import { IdempotencyService } from '../foundation/idempotency.service';
 import { EffectiveSettingsService } from './effective-settings.service';
 import { MasterAccessService } from './master-access.service';
 import { MasterCatalogService } from './master-catalog.service';
@@ -15,6 +16,8 @@ databaseDescribe('effective master MySQL integration', () => {
   let settings: EffectiveSettingsService;
   let branchId = '';
   let classTypeId = '';
+  let lifecycleClassTypeId = '';
+  let connected = false;
   const principal = () => ({
     sessionId: 'mst',
     userId: actorId,
@@ -28,8 +31,9 @@ databaseDescribe('effective master MySQL integration', () => {
 
   beforeAll(async () => {
     await db.$connect();
+    connected = true;
     const access = new MasterAccessService(new PolicyService());
-    catalog = new MasterCatalogService(db as never, access);
+    catalog = new MasterCatalogService(db as never, access, new IdempotencyService(db as never));
     settings = new EffectiveSettingsService(db as never, access);
     await db.user.createMany({
       data: [
@@ -51,6 +55,26 @@ databaseDescribe('effective master MySQL integration', () => {
     classTypeId = type.id;
   });
   afterAll(async () => {
+    if (!connected) return;
+    await db.idempotencyRecord.deleteMany({
+      where: {
+        OR: [
+          { scope: { in: [`branch-update:${branchId}`, `branch-transition:${branchId}`] } },
+          ...(lifecycleClassTypeId
+            ? [
+                {
+                  scope: {
+                    in: [
+                      `class-type-update:${lifecycleClassTypeId}`,
+                      `class-type-reactivate:${lifecycleClassTypeId}`,
+                    ],
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+    });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.effectiveConfiguration.deleteMany({ where: { branchId } });
     await db.classType.deleteMany({ where: { branchId } });
@@ -160,5 +184,103 @@ databaseDescribe('effective master MySQL integration', () => {
     await expect(
       catalog.deactivateClassType(principal(), classTypeId, 0, `${namespace}-dependency`),
     ).rejects.toMatchObject({ code: 'ACTIVE_DEPENDENCY' });
+  });
+
+  it('lists branch management summary and protects versioned updates', async () => {
+    const page = await catalog.listBranches(principal(), { q: namespace, status: 'ACTIVE' });
+    expect(page.summary).toMatchObject({ total: 1, active: 1, inactive: 0 });
+    expect(page.items[0]).toMatchObject({ id: branchId, code: namespace.toUpperCase() });
+
+    const detail = await catalog.branchDetail(principal(), branchId);
+    expect(detail.dependencies).toMatchObject({ classTypes: 1 });
+
+    const updated = await catalog.updateBranch(
+      principal(),
+      branchId,
+      {
+        name: 'Integration Branch Updated',
+        timezone: 'Asia/Jakarta',
+        supportWhatsappE164: '+628111111111',
+        expectedVersion: detail.version,
+        reason: 'Memperbarui informasi cabang',
+      },
+      `${namespace}-branch-update`,
+      `${namespace}-branch-update`,
+    );
+    expect(updated).toMatchObject({
+      name: 'Integration Branch Updated',
+      supportWhatsappE164: '+628111111111',
+      version: detail.version + 1,
+    });
+
+    await expect(
+      catalog.updateBranch(
+        principal(),
+        branchId,
+        {
+          name: 'Stale branch',
+          timezone: 'Asia/Jakarta',
+          expectedVersion: detail.version,
+          reason: 'Menguji stale version',
+        },
+        `${namespace}-branch-stale`,
+        `${namespace}-branch-stale`,
+      ),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+  });
+
+  it('updates safe class-type metadata and reactivates an inactive type idempotently', async () => {
+    const item = await catalog.createClassType(
+      principal(),
+      { branchId, code: 'BARRE_TEST', name: 'Barre Test' },
+      `${namespace}-class-lifecycle`,
+    );
+    lifecycleClassTypeId = item.id;
+    const updated = await catalog.updateClassType(
+      principal(),
+      item.id,
+      {
+        name: 'Barre Integration',
+        expectedVersion: item.version,
+        reason: 'Memperbarui nama tipe kelas',
+      },
+      `${namespace}-class-update-key`,
+      `${namespace}-class-update`,
+    );
+    expect(updated).toMatchObject({
+      code: 'BARRE_TEST',
+      branchId,
+      name: 'Barre Integration',
+      version: item.version + 1,
+    });
+
+    const inactive = await catalog.deactivateClassType(
+      principal(),
+      item.id,
+      updated.version,
+      `${namespace}-class-deactivate`,
+    );
+    const reactivated = await catalog.reactivateClassType(
+      principal(),
+      item.id,
+      {
+        expectedVersion: inactive.version,
+        reason: 'Mengaktifkan kembali tipe kelas',
+      },
+      `${namespace}-class-reactivate-key`,
+      `${namespace}-class-reactivate`,
+    );
+    expect(reactivated).toMatchObject({ active: true, version: inactive.version + 1 });
+    const replay = await catalog.reactivateClassType(
+      principal(),
+      item.id,
+      {
+        expectedVersion: inactive.version,
+        reason: 'Mengaktifkan kembali tipe kelas',
+      },
+      `${namespace}-class-reactivate-key`,
+      `${namespace}-class-reactivate-replay`,
+    );
+    expect(replay).toMatchObject({ id: item.id, active: true, version: inactive.version + 1 });
   });
 });

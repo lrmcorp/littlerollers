@@ -6,6 +6,7 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_promotion.dart';
+import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -24,14 +25,24 @@ part 'internal_package_detail.g.dart';
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [status] 
+/// * [effectiveState] 
+/// * [livePromotion] 
 /// * [effectiveFrom] 
 /// * [effectiveUntil] 
 /// * [version] 
 /// * [promotions] 
+/// * [revisions] 
+/// * [auditActivity] 
 @BuiltValue()
 abstract class InternalPackageDetail implements Package, Built<InternalPackageDetail, InternalPackageDetailBuilder> {
   @BuiltValueField(wireName: r'promotions')
   BuiltList<PackagePromotion> get promotions;
+
+  @BuiltValueField(wireName: r'auditActivity')
+  BuiltList<SafeAuditActivity> get auditActivity;
+
+  @BuiltValueField(wireName: r'revisions')
+  BuiltList<Package> get revisions;
 
   InternalPackageDetail._();
 
@@ -61,6 +72,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
       object.branchId,
       specifiedType: const FullType(String),
     );
+    if (object.livePromotion != null) {
+      yield r'livePromotion';
+      yield serializers.serialize(
+        object.livePromotion,
+        specifiedType: const FullType(bool),
+      );
+    }
     if (object.effectiveUntil != null) {
       yield r'effectiveUntil';
       yield serializers.serialize(
@@ -93,6 +111,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
       object.sessionCount,
       specifiedType: const FullType(int),
     );
+    if (object.effectiveState != null) {
+      yield r'effectiveState';
+      yield serializers.serialize(
+        object.effectiveState,
+        specifiedType: const FullType(PackageEffectiveStateEnum),
+      );
+    }
     yield r'businessKey';
     yield serializers.serialize(
       object.businessKey,
@@ -102,6 +127,16 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
     yield serializers.serialize(
       object.name,
       specifiedType: const FullType(String),
+    );
+    yield r'auditActivity';
+    yield serializers.serialize(
+      object.auditActivity,
+      specifiedType: const FullType(BuiltList, [FullType(SafeAuditActivity)]),
+    );
+    yield r'revisions';
+    yield serializers.serialize(
+      object.revisions,
+      specifiedType: const FullType(BuiltList, [FullType(Package)]),
     );
     yield r'id';
     yield serializers.serialize(
@@ -153,6 +188,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
           ) as String;
           result.branchId = valueDes;
           break;
+        case r'livePromotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.livePromotion = valueDes;
+          break;
         case r'effectiveUntil':
           final valueDes = serializers.deserialize(
             value,
@@ -196,6 +238,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
           ) as int;
           result.sessionCount = valueDes;
           break;
+        case r'effectiveState':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PackageEffectiveStateEnum),
+          ) as PackageEffectiveStateEnum;
+          result.effectiveState = valueDes;
+          break;
         case r'businessKey':
           final valueDes = serializers.deserialize(
             value,
@@ -209,6 +258,20 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
             specifiedType: const FullType(String),
           ) as String;
           result.name = valueDes;
+          break;
+        case r'auditActivity':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(SafeAuditActivity)]),
+          ) as BuiltList<SafeAuditActivity>;
+          result.auditActivity.replace(valueDes);
+          break;
+        case r'revisions':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(Package)]),
+          ) as BuiltList<Package>;
+          result.revisions.replace(valueDes);
           break;
         case r'id':
           final valueDes = serializers.deserialize(
@@ -280,5 +343,24 @@ class InternalPackageDetailStatusEnum extends EnumClass {
 
   static BuiltSet<InternalPackageDetailStatusEnum> get values => _$internalPackageDetailStatusEnumValues;
   static InternalPackageDetailStatusEnum valueOf(String name) => _$internalPackageDetailStatusEnumValueOf(name);
+}
+
+class InternalPackageDetailEffectiveStateEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'ACTIVE')
+  static const InternalPackageDetailEffectiveStateEnum ACTIVE = _$internalPackageDetailEffectiveStateEnum_ACTIVE;
+  @BuiltValueEnumConst(wireName: r'SCHEDULED')
+  static const InternalPackageDetailEffectiveStateEnum SCHEDULED = _$internalPackageDetailEffectiveStateEnum_SCHEDULED;
+  @BuiltValueEnumConst(wireName: r'EXPIRED')
+  static const InternalPackageDetailEffectiveStateEnum EXPIRED = _$internalPackageDetailEffectiveStateEnum_EXPIRED;
+  @BuiltValueEnumConst(wireName: r'INACTIVE')
+  static const InternalPackageDetailEffectiveStateEnum INACTIVE = _$internalPackageDetailEffectiveStateEnum_INACTIVE;
+
+  static Serializer<InternalPackageDetailEffectiveStateEnum> get serializer => _$internalPackageDetailEffectiveStateEnumSerializer;
+
+  const InternalPackageDetailEffectiveStateEnum._(String name): super(name);
+
+  static BuiltSet<InternalPackageDetailEffectiveStateEnum> get values => _$internalPackageDetailEffectiveStateEnumValues;
+  static InternalPackageDetailEffectiveStateEnum valueOf(String name) => _$internalPackageDetailEffectiveStateEnumValueOf(name);
 }
 

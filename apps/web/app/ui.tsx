@@ -110,18 +110,6 @@ export function Skeleton({ label = 'Memuat konten' }: { label?: string }) {
   );
 }
 
-export function ConfirmationPanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside
-      className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
-      aria-label={title}
-    >
-      <strong className="block">{title}</strong>
-      <div className="mt-1 leading-6">{children}</div>
-    </aside>
-  );
-}
-
 export function DataRegion({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div

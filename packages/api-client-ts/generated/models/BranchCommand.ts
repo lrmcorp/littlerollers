@@ -37,6 +37,18 @@ export interface BranchCommand {
      * @memberof BranchCommand
      */
     timezone: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof BranchCommand
+     */
+    supportWhatsappE164?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof BranchCommand
+     */
+    reason: string;
 }
 
 /**
@@ -46,6 +58,7 @@ export function instanceOfBranchCommand(value: object): value is BranchCommand {
     if (!('code' in value) || value['code'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('timezone' in value) || value['timezone'] === undefined) return false;
+    if (!('reason' in value) || value['reason'] === undefined) return false;
     return true;
 }
 
@@ -62,6 +75,8 @@ export function BranchCommandFromJSONTyped(json: any, ignoreDiscriminator: boole
         'code': json['code'],
         'name': json['name'],
         'timezone': json['timezone'],
+        'supportWhatsappE164': json['supportWhatsappE164'] == null ? undefined : json['supportWhatsappE164'],
+        'reason': json['reason'],
     };
 }
 
@@ -79,6 +94,8 @@ export function BranchCommandToJSONTyped(value?: BranchCommand | null, ignoreDis
         'code': value['code'],
         'name': value['name'],
         'timezone': value['timezone'],
+        'supportWhatsappE164': value['supportWhatsappE164'],
+        'reason': value['reason'],
     };
 }
 

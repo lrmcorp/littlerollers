@@ -75,6 +75,18 @@ export interface Package {
     status: PackageStatusEnum;
     /**
      * 
+     * @type {string}
+     * @memberof Package
+     */
+    effectiveState?: PackageEffectiveStateEnum;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Package
+     */
+    livePromotion?: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof Package
      */
@@ -102,6 +114,17 @@ export const PackageStatusEnum = {
     Inactive: 'INACTIVE'
 } as const;
 export type PackageStatusEnum = typeof PackageStatusEnum[keyof typeof PackageStatusEnum];
+
+/**
+ * @export
+ */
+export const PackageEffectiveStateEnum = {
+    Active: 'ACTIVE',
+    Scheduled: 'SCHEDULED',
+    Expired: 'EXPIRED',
+    Inactive: 'INACTIVE'
+} as const;
+export type PackageEffectiveStateEnum = typeof PackageEffectiveStateEnum[keyof typeof PackageEffectiveStateEnum];
 
 
 /**
@@ -141,6 +164,8 @@ export function PackageFromJSONTyped(json: any, ignoreDiscriminator: boolean): P
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'status': json['status'],
+        'effectiveState': json['effectiveState'] == null ? undefined : json['effectiveState'],
+        'livePromotion': json['livePromotion'] == null ? undefined : json['livePromotion'],
         'effectiveFrom': (new Date(json['effectiveFrom'])),
         'effectiveUntil': json['effectiveUntil'] == null ? undefined : (new Date(json['effectiveUntil'])),
         'version': json['version'],
@@ -167,6 +192,8 @@ export function PackageToJSONTyped(value?: Package | null, ignoreDiscriminator: 
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'status': value['status'],
+        'effectiveState': value['effectiveState'],
+        'livePromotion': value['livePromotion'],
         'effectiveFrom': ((value['effectiveFrom']).toISOString().substring(0,10)),
         'effectiveUntil': value['effectiveUntil'] === null ? null : ((value['effectiveUntil'] as any)?.toISOString().substring(0,10)),
         'version': value['version'],

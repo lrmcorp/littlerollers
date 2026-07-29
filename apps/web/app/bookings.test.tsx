@@ -1,9 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { bookingFailure, type BookingClient } from './booking-client';
 import { BookingView } from './bookings/booking-view';
+import { AppFeedbackProvider } from './components/app-feedback';
+
+const render = (view: React.ReactNode) =>
+  rtlRender(view, {
+    wrapper: ({ children }) => <AppFeedbackProvider>{children}</AppFeedbackProvider>,
+  });
 
 const branchId = '00000000-0000-4000-8000-000000000202';
 const customerId = '00000000-0000-4000-8000-000000000204';
@@ -99,10 +105,15 @@ function client(overrides: Partial<BookingClient> = {}): BookingClient {
 async function selectBooking(user: ReturnType<typeof userEvent.setup>) {
   if (!screen.queryByRole('form', { name: 'Buat booking bantuan' }))
     await user.click(screen.getByRole('button', { name: 'Buat booking manual' }));
-  await screen.findByRole('option', { name: 'Customer Synthetic' });
-  await user.selectOptions(screen.getByLabelText('Pelanggan'), customerId);
-  await user.selectOptions(screen.getByLabelText('Paket pelanggan'), packageId);
-  await user.selectOptions(screen.getByLabelText('Kelas'), slotId);
+  const customer = await screen.findByRole('combobox', { name: /Pelanggan/ });
+  await user.click(customer);
+  await user.click(await screen.findByRole('option', { name: /Customer Synthetic/ }));
+  const customerPackage = screen.getByRole('combobox', { name: /Paket pelanggan/ });
+  await user.click(customerPackage);
+  await user.click(await screen.findByRole('option', { name: /Paket aktif/ }));
+  const classSlot = screen.getByRole('combobox', { name: /Kelas/ });
+  await user.click(classSlot);
+  await user.click(await screen.findByRole('option', { name: /2 Jan 2027/ }));
 }
 
 describe('BookingView', () => {
@@ -120,6 +131,7 @@ describe('BookingView', () => {
     expect(screen.getByText(/Saldo tersedia berubah dari 8 menjadi 7/)).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Konfirmasi booking satu sesi' }));
+    await user.click(screen.getByRole('button', { name: 'Buat booking' }));
     expect(await screen.findByText(/Booking dibuat/)).toBeInTheDocument();
     expect(bookingClient.create).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'ADMIN_ASSISTED', customerUserId: customerId }),
@@ -137,8 +149,10 @@ describe('BookingView', () => {
     const user = userEvent.setup();
     await selectBooking(user);
     await user.click(screen.getByRole('button', { name: 'Konfirmasi booking satu sesi' }));
+    await user.click(screen.getByRole('button', { name: 'Buat booking' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Kapasitas kelas sudah penuh.');
     await user.click(screen.getByRole('button', { name: 'Konfirmasi booking satu sesi' }));
+    await user.click(screen.getByRole('button', { name: 'Buat booking' }));
     expect(await screen.findByText(/tidak ada reservasi ganda/)).toBeInTheDocument();
     expect(create.mock.calls[0]?.[1]).toBe(create.mock.calls[1]?.[1]);
   });
@@ -188,13 +202,15 @@ describe('BookingView', () => {
     const view = render(<BookingView client={bookingClient} activeBranchId={branchId} />);
     const user = userEvent.setup();
     await selectBooking(user);
-    expect(screen.getByLabelText('Kelas')).toHaveValue(slotId);
+    expect(screen.getByRole('combobox', { name: /Kelas/ })).toHaveValue('2 Jan 2027, 09.00');
     view.rerender(
       <BookingView client={bookingClient} activeBranchId="00000000-0000-4000-8000-000000000299" />,
     );
-    await waitFor(() => expect(screen.getByLabelText('Pelanggan')).toHaveValue(''));
-    expect(screen.getByLabelText('Paket pelanggan')).toHaveValue('');
-    expect(screen.getByLabelText('Kelas')).toHaveValue('');
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: /Pelanggan/ })).toHaveValue(''),
+    );
+    expect(screen.getByRole('combobox', { name: /Paket pelanggan/ })).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: /Kelas/ })).toHaveValue('');
   });
 
   it('maps stable booking problems to safe Indonesian copy', async () => {

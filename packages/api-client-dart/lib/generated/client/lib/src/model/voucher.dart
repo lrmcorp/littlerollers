@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:built_value/json_object.dart';
 import 'package:openapi/src/model/voucher_packages_inner.dart';
 import 'package:built_value/built_value.dart';
@@ -32,6 +33,7 @@ part 'voucher.g.dart';
 /// * [packageIds] 
 /// * [packages] 
 /// * [redeemedCount] 
+/// * [auditActivity] 
 /// * [version] 
 @BuiltValue()
 abstract class Voucher implements Built<Voucher, VoucherBuilder> {
@@ -90,6 +92,9 @@ abstract class Voucher implements Built<Voucher, VoucherBuilder> {
 
   @BuiltValueField(wireName: r'redeemedCount')
   int? get redeemedCount;
+
+  @BuiltValueField(wireName: r'auditActivity')
+  BuiltList<SafeAuditActivity>? get auditActivity;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -225,6 +230,13 @@ class _$VoucherSerializer implements PrimitiveSerializer<Voucher> {
       yield serializers.serialize(
         object.redeemedCount,
         specifiedType: const FullType(int),
+      );
+    }
+    if (object.auditActivity != null) {
+      yield r'auditActivity';
+      yield serializers.serialize(
+        object.auditActivity,
+        specifiedType: const FullType(BuiltList, [FullType(SafeAuditActivity)]),
       );
     }
     yield r'version';
@@ -387,6 +399,13 @@ class _$VoucherSerializer implements PrimitiveSerializer<Voucher> {
             specifiedType: const FullType(int),
           ) as int;
           result.redeemedCount = valueDes;
+          break;
+        case r'auditActivity':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(SafeAuditActivity)]),
+          ) as BuiltList<SafeAuditActivity>;
+          result.auditActivity.replace(valueDes);
           break;
         case r'version':
           final valueDes = serializers.deserialize(

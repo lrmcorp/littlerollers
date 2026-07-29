@@ -99,22 +99,22 @@ export interface VoucherUpdateCommand {
     classTypeId?: string;
     /**
      * 
-     * @type {Array<string>}
+     * @type {Set<string>}
      * @memberof VoucherUpdateCommand
      */
-    packageIds?: Array<string>;
-    /**
-     * 
-     * @type {number}
-     * @memberof VoucherUpdateCommand
-     */
-    expectedVersion: number;
+    packageIds?: Set<string>;
     /**
      * 
      * @type {string}
      * @memberof VoucherUpdateCommand
      */
     reason: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof VoucherUpdateCommand
+     */
+    expectedVersion: number;
 }
 
 
@@ -137,8 +137,8 @@ export function instanceOfVoucherUpdateCommand(value: object): value is VoucherU
     if (!('discountType' in value) || value['discountType'] === undefined) return false;
     if (!('discountValue' in value) || value['discountValue'] === undefined) return false;
     if (!('activeFrom' in value) || value['activeFrom'] === undefined) return false;
-    if (!('expectedVersion' in value) || value['expectedVersion'] === undefined) return false;
     if (!('reason' in value) || value['reason'] === undefined) return false;
+    if (!('expectedVersion' in value) || value['expectedVersion'] === undefined) return false;
     return true;
 }
 
@@ -165,9 +165,9 @@ export function VoucherUpdateCommandFromJSONTyped(json: any, ignoreDiscriminator
         'perCustomerUsageLimit': json['perCustomerUsageLimit'] == null ? undefined : json['perCustomerUsageLimit'],
         'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'classTypeId': json['classTypeId'] == null ? undefined : json['classTypeId'],
-        'packageIds': json['packageIds'] == null ? undefined : json['packageIds'],
-        'expectedVersion': json['expectedVersion'],
+        'packageIds': json['packageIds'] == null ? undefined : new Set(json['packageIds']),
         'reason': json['reason'],
+        'expectedVersion': json['expectedVersion'],
     };
 }
 
@@ -195,9 +195,9 @@ export function VoucherUpdateCommandToJSONTyped(value?: VoucherUpdateCommand | n
         'perCustomerUsageLimit': value['perCustomerUsageLimit'],
         'branchId': value['branchId'],
         'classTypeId': value['classTypeId'],
-        'packageIds': value['packageIds'],
-        'expectedVersion': value['expectedVersion'],
+        'packageIds': value['packageIds'] == null ? undefined : Array.from(value['packageIds'] as Set<any>),
         'reason': value['reason'],
+        'expectedVersion': value['expectedVersion'],
     };
 }
 

@@ -10,6 +10,7 @@ import { publicNavigation, routes } from '../../routes';
 import { isCustomerOnlySession } from '../../session-audience';
 import { useSessionContext } from '../../session-context';
 import { useStudioPreference } from './public-experience';
+import { useOverlayInteraction } from '../app-feedback';
 
 function isCurrent(pathname: string, hash: string, href: string) {
   if (href === '/classes#schedule')
@@ -31,6 +32,8 @@ export function PublicHeader() {
   const customerOnly = isCustomerOnlySession(session);
   const studioPreference = useStudioPreference();
   const [open, setOpen] = useState(false);
+  const [drawerRendered, setDrawerRendered] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -43,43 +46,23 @@ export function PublicHeader() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusable = () =>
-      Array.from(
-        drawerRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      );
-    focusable()[0]?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        triggerRef.current?.focus();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const items = focusable();
-      if (!items.length) return;
-      const first = items[0]!;
-      const last = items.at(-1)!;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKeyDown);
-    };
+    if (open) {
+      setDrawerRendered(true);
+      return;
+    }
+    setDrawerVisible(false);
+    const timer = window.setTimeout(() => setDrawerRendered(false), 180);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
+  useEffect(() => {
+    if (!drawerRendered || !open) return;
+    const frame = window.requestAnimationFrame(() => setDrawerVisible(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [drawerRendered, open]);
+
   const close = () => setOpen(false);
+  useOverlayInteraction({ open, onClose: close, panelRef: drawerRef });
 
   return (
     <>
@@ -198,9 +181,12 @@ export function PublicHeader() {
         </div>
       </header>
 
-      {open && (
+      {drawerRendered && (
         <div
-          className="fixed inset-0 z-[100] bg-dd-sidebar/45 backdrop-blur-sm lg:hidden"
+          data-navigation-overlay-phase={drawerVisible ? 'open' : 'exiting'}
+          className={`fixed inset-0 z-[100] bg-dd-sidebar/45 backdrop-blur-sm transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${
+            drawerVisible ? 'opacity-100' : 'opacity-0'
+          }`}
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) close();
           }}
@@ -208,7 +194,9 @@ export function PublicHeader() {
           <div
             ref={drawerRef}
             id="public-mobile-navigation"
-            className="ml-auto flex h-dvh w-[min(88vw,380px)] flex-col overflow-y-auto bg-dd-paper p-5 shadow-dd-float"
+            className={`ml-auto flex h-dvh w-[min(88vw,380px)] flex-col overflow-y-auto bg-dd-paper p-5 shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${
+              drawerVisible ? 'translate-x-0' : 'translate-x-full'
+            }`}
             role="dialog"
             aria-modal="true"
             aria-label="Menu navigasi"

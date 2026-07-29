@@ -2,6 +2,7 @@ import {
   Configuration,
   OperationsApi,
   type OperationalJob,
+  type OperationalJobPage,
   type NotificationOccurrence,
   type NotificationOccurrencePage,
   type NotificationRetryResult,
@@ -14,11 +15,12 @@ export type {
   NotificationOccurrencePage,
   NotificationRetryResult,
   OperationalJob,
+  OperationalJobPage,
   QuotaEvaluationResult,
 };
 
 export interface OperationsClient {
-  list(status?: string, cursor?: string): Promise<OperationalJob[]>;
+  list(status?: string, cursor?: string): Promise<OperationalJobPage>;
   run(job: OperationalJob): Promise<QuotaEvaluationResult>;
   listEmails?(status?: string, cursor?: string): Promise<NotificationOccurrencePage>;
   retryEmail?(id: string, reason: string): Promise<NotificationRetryResult>;
@@ -26,12 +28,10 @@ export interface OperationsClient {
 
 const api = new OperationsApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 export const browserOperationsClient: OperationsClient = {
-  async list(status, cursor) {
-    return (
-      await appLoading.track(api.listJobs({ status: status as never, cursor }), {
-        label: 'Memuat operasional…',
-      })
-    ).items;
+  list(status, cursor) {
+    return appLoading.track(api.listJobs({ status: status as never, cursor }), {
+      label: 'Memuat operasional…',
+    });
   },
   run(job) {
     return appLoading.track(

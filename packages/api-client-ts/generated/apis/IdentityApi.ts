@@ -20,6 +20,7 @@ import type {
   AuditLogPage,
   AuthorizeIdentityVerificationView200Response,
   ChallengeExpiry,
+  CustomerLookupPage,
   DeleteIdentityVerificationFileRequest,
   EndAssignmentCommand,
   ErrorEnvelope,
@@ -57,6 +58,8 @@ import {
     AuthorizeIdentityVerificationView200ResponseToJSON,
     ChallengeExpiryFromJSON,
     ChallengeExpiryToJSON,
+    CustomerLookupPageFromJSON,
+    CustomerLookupPageToJSON,
     DeleteIdentityVerificationFileRequestFromJSON,
     DeleteIdentityVerificationFileRequestToJSON,
     EndAssignmentCommandFromJSON,
@@ -189,6 +192,13 @@ export interface ListUsersRequest {
     role?: Role;
     audience?: ListUsersAudienceEnum;
     verificationStatus?: ListUsersVerificationStatusEnum;
+}
+
+export interface LookupCustomersRequest {
+    q?: string;
+    branchId?: string;
+    cursor?: string;
+    limit?: number;
 }
 
 export interface LookupInstructorsRequest {
@@ -1152,6 +1162,59 @@ export class IdentityApi extends runtime.BaseAPI {
      */
     async listUsers(requestParameters: ListUsersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserPage> {
         const response = await this.listUsersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns active, identity-approved customers with a usable package in the requested branch. Requires booking:create:assisted.
+     */
+    async lookupCustomersRaw(requestParameters: LookupCustomersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CustomerLookupPage>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        if (requestParameters['branchId'] != null) {
+            queryParameters['branchId'] = requestParameters['branchId'];
+        }
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/lookups/customers`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CustomerLookupPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns active, identity-approved customers with a usable package in the requested branch. Requires booking:create:assisted.
+     */
+    async lookupCustomers(requestParameters: LookupCustomersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CustomerLookupPage> {
+        const response = await this.lookupCustomersRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { DetailDrawer } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
+import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { EmptyState, Feedback, StatusBadge } from '../ui';
-import { controlClassName } from '../components/forms';
+import { controlClassName, SearchSelect, TextInput } from '../components/forms';
 
 type Editable = Record<string, unknown> & { version: number };
 type ProfileData = {
@@ -41,6 +42,9 @@ export function PublicProfileEditor({
 }) {
   const [data, setData] = useState<ProfileData | null>(null);
   const [failure, setFailure] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const feedback = useAppFeedback();
   const [selected, setSelected] = useState<{
     kind: 'branch' | 'class' | 'package';
     id: string;
@@ -84,7 +88,23 @@ export function PublicProfileEditor({
     title: string,
     value: Editable | null,
   ) => {
-    if (value) setSelected({ kind, id, title, value });
+    if (value) {
+      setDirty(false);
+      setSelected({ kind, id, title, value });
+    }
+  };
+  const confirmDiscard = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan perubahan profil publik?',
+      message: 'Konten yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    });
+  const closeEditor = async () => {
+    if (!dirty || (await confirmDiscard())) {
+      setDirty(false);
+      setSelected(null);
+    }
   };
   return (
     <section className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
@@ -104,28 +124,28 @@ export function PublicProfileEditor({
           <p className="mt-2 text-sm text-dd-muted">
             {String(data.branch.publicProfile?.description ?? 'Profil belum lengkap')}
           </p>
-          <button
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-dd-sm bg-dd-forest px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
+            className="mt-4"
             disabled={!canManage || !data.branch.publicProfile}
             onClick={() =>
               edit('branch', data.branch.id, data.branch.name, data.branch.publicProfile)
             }
           >
             Edit profil
-          </button>
+          </Button>
         </article>
         {data.classProfiles.map((profile) => (
           <article className="rounded-dd-md border border-dd-line p-4" key={profile.code}>
             <p className="text-xs font-bold text-dd-forest uppercase">Kelas</p>
             <h3 className="mt-2 text-lg font-semibold">{profile.code}</h3>
             <p className="mt-2 line-clamp-3 text-sm text-dd-muted">{String(profile.summary)}</p>
-            <button
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-dd-sm bg-dd-forest px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            <Button
+              className="mt-4"
               disabled={!canManage}
               onClick={() => edit('class', profile.code, `Kelas ${profile.code}`, profile)}
             >
               Edit profil
-            </button>
+            </Button>
           </article>
         ))}
         {data.branch.classTypes.flatMap((type) =>
@@ -136,49 +156,82 @@ export function PublicProfileEditor({
               <p className="mt-2 line-clamp-3 text-sm text-dd-muted">
                 {String(pkg.publicProfile?.summary ?? 'Profil belum lengkap')}
               </p>
-              <button
-                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-dd-sm bg-dd-forest px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              <Button
+                className="mt-4"
                 disabled={!canManage || !pkg.publicProfile}
                 onClick={() => edit('package', pkg.id, pkg.name, pkg.publicProfile)}
               >
                 Edit profil
-              </button>
+              </Button>
             </article>
           )),
         )}
       </div>
-      <DetailDrawer
+      <Drawer
         open={Boolean(selected)}
         title={selected ? `Edit ${selected.title}` : 'Edit profil'}
-        onClose={() => setSelected(null)}
+        busy={saving}
+        dirty={dirty}
+        onDirtyClose={confirmDiscard}
+        onClose={() => {
+          setDirty(false);
+          setSelected(null);
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => void closeEditor()}
+            >
+              Batal
+            </Button>
+            <Button type="submit" form="public-profile-form" loading={saving}>
+              Simpan profil publik
+            </Button>
+          </div>
+        }
       >
         {selected && (
           <form
+            id="public-profile-form"
             className="grid gap-4"
-            onSubmit={(event) => {
+            onChange={() => setDirty(true)}
+            onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
               const formData = new FormData(form);
               const body = profilePayload(selected.kind, formData);
               const reason = String(formData.get('reason'));
-              void request(
-                `/api/v1/master/public-profiles/${selected.kind}/${encodeURIComponent(selected.id)}`,
-                {
-                  method: 'PATCH',
-                  body: JSON.stringify({
-                    ...body,
-                    expectedVersion: selected.value.version,
-                    reason,
-                  }),
-                },
-              )
-                .then(async () => {
-                  setSelected(null);
-                  await load();
-                })
-                .catch(() =>
-                  setFailure('Profil gagal diperbarui. Muat ulang jika versinya telah berubah.'),
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Simpan profil publik?',
+                message: 'Konten yang dipublikasikan akan digunakan pada halaman customer.',
+                confirmLabel: 'Simpan perubahan',
+              });
+              if (!accepted) return;
+              setSaving(true);
+              try {
+                await request(
+                  `/api/v1/master/public-profiles/${selected.kind}/${encodeURIComponent(selected.id)}`,
+                  {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                      ...body,
+                      expectedVersion: selected.value.version,
+                      reason,
+                    }),
+                  },
                 );
+                setDirty(false);
+                setSelected(null);
+                await load();
+              } catch {
+                setFailure('Profil gagal diperbarui. Muat ulang jika versinya telah berubah.');
+              } finally {
+                setSaving(false);
+              }
             }}
           >
             {typeof selected.value.heroImageKey === 'string' && (
@@ -197,25 +250,16 @@ export function PublicProfileEditor({
               {data.assetKeys.join(', ')}.
             </p>
             <ProfileFields kind={selected.kind} value={selected.value} assetKeys={data.assetKeys} />
-            <label>
-              Alasan perubahan
-              <input
-                className={controlClassName}
-                name="reason"
-                minLength={3}
-                required
-                placeholder="Jelaskan kebutuhan perubahan konten"
-              />
-            </label>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 items-center justify-center rounded-dd-sm bg-dd-forest px-5 text-sm font-semibold text-white hover:bg-dd-forest-dark"
-            >
-              Simpan profil publik
-            </button>
+            <TextInput
+              label="Alasan perubahan"
+              name="reason"
+              minLength={3}
+              required
+              placeholder="Jelaskan kebutuhan perubahan konten"
+            />
           </form>
         )}
-      </DetailDrawer>
+      </Drawer>
     </section>
   );
 }
@@ -341,16 +385,13 @@ function AssetField({
   assetKeys: string[];
 }) {
   return (
-    <label className="text-sm font-semibold text-dd-ink">
-      {label}
-      <select className={fieldClass} name={name} defaultValue={text(value)} required>
-        {assetKeys.map((key) => (
-          <option key={key} value={key}>
-            {key}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SearchSelect
+      name={name}
+      label={label}
+      defaultValue={text(value)}
+      required
+      options={assetKeys.map((key) => ({ id: key, label: key }))}
+    />
   );
 }
 

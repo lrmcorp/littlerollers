@@ -29,7 +29,9 @@ describe('PublicHeader', () => {
     expect(document.body.style.overflow).toBe('hidden');
 
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('dialog', { name: 'Menu navigasi' })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Menu navigasi' })).not.toBeInTheDocument(),
+    );
     expect(trigger).toHaveFocus();
     expect(document.body.style.overflow).toBe('');
     expect((await axe(view.container)).violations).toHaveLength(0);

@@ -38,11 +38,18 @@ export async function seedIdentityVerificationFixtures(
     const id = ctx.id('identity-document', fixture.key);
     const objectKey = `identity/${userId}/${fixture.kind.toLowerCase()}/${id}`;
     const file = await ensurePrivatePngFixture(objectKey);
-    await ctx.db.identityVerificationDocument.upsert({
+    const providerReferenceHash = createHash('sha256').update(objectKey).digest('hex');
+    const document = await ctx.db.identityVerificationDocument.upsert({
       where: { id },
       update: {
+        userId,
+        kind: fixture.kind,
         objectKey,
         checksum: file.checksum,
+        fileName: fixture.kind === 'SELFIE' ? 'selfie-demo.png' : 'ktp-demo.png',
+        mimeType: file.mimeType,
+        sizeBytes: file.sizeBytes,
+        providerReferenceHash,
         status: fixture.status,
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
@@ -64,7 +71,7 @@ export async function seedIdentityVerificationFixtures(
         sizeBytes: file.sizeBytes,
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
-        providerReferenceHash: createHash('sha256').update(objectKey).digest('hex'),
+        providerReferenceHash,
         rejectionReasonCode: fixture.reason,
         rejectionNote: fixture.note,
         uploadedAt: ctx.at(-3),
@@ -72,5 +79,14 @@ export async function seedIdentityVerificationFixtures(
         reviewedAt: fixture.status === 'PENDING' ? null : ctx.at(-2),
       },
     });
+    if (
+      document.objectKey !== objectKey ||
+      document.checksum !== file.checksum ||
+      document.mimeType !== file.mimeType ||
+      document.sizeBytes !== file.sizeBytes ||
+      document.uploadStatus !== 'FINALIZED' ||
+      document.scanStatus !== 'CLEAN'
+    )
+      throw new Error(`IDENTITY_FIXTURE_INTEGRITY_FAILED:${fixture.key}`);
   }
 }

@@ -1,9 +1,19 @@
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LocalPrivateFileStorage } from './private-file-storage';
+import { LocalPrivateFileStorage, resolvePrivateUploadRoot } from './private-file-storage';
 
 describe('LocalPrivateFileStorage', () => {
+  it('resolves the development root consistently from the repository and API workspace', () => {
+    const repositoryRoot = join(tmpdir(), 'repository');
+    expect(resolvePrivateUploadRoot('apps/api/.local-data/private', repositoryRoot)).toBe(
+      join(repositoryRoot, 'apps/api/.local-data/private'),
+    );
+    expect(
+      resolvePrivateUploadRoot('apps/api/.local-data/private', join(repositoryRoot, 'apps', 'api')),
+    ).toBe(join(repositoryRoot, 'apps/api/.local-data/private'));
+  });
+
   it('writes, reads and deletes a scoped private file', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dd-private-'));
     const storage = new LocalPrivateFileStorage({

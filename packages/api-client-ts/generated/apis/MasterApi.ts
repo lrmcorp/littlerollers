@@ -17,10 +17,13 @@ import * as runtime from '../runtime';
 import type {
   Branch,
   BranchCommand,
+  BranchManagementDetail,
   BranchPage,
+  BranchUpdateCommand,
   ClassType,
   ClassTypeCommand,
   ClassTypePage,
+  ClassTypeUpdateCommand,
   EffectiveSettingCommand,
   EffectiveSettingPage,
   ErrorEnvelope,
@@ -29,26 +32,32 @@ import type {
   Page,
   PaymentAccount,
   PaymentAccountCommand,
+  PaymentAccountDetail,
   ProjectionRateCommand,
   PublicStudioDetail,
   QuotaCapacityCommand,
   ReasonedVersionCommand,
   Resource,
-  VersionCommand,
 } from '../models/index';
 import {
     BranchFromJSON,
     BranchToJSON,
     BranchCommandFromJSON,
     BranchCommandToJSON,
+    BranchManagementDetailFromJSON,
+    BranchManagementDetailToJSON,
     BranchPageFromJSON,
     BranchPageToJSON,
+    BranchUpdateCommandFromJSON,
+    BranchUpdateCommandToJSON,
     ClassTypeFromJSON,
     ClassTypeToJSON,
     ClassTypeCommandFromJSON,
     ClassTypeCommandToJSON,
     ClassTypePageFromJSON,
     ClassTypePageToJSON,
+    ClassTypeUpdateCommandFromJSON,
+    ClassTypeUpdateCommandToJSON,
     EffectiveSettingCommandFromJSON,
     EffectiveSettingCommandToJSON,
     EffectiveSettingPageFromJSON,
@@ -65,6 +74,8 @@ import {
     PaymentAccountToJSON,
     PaymentAccountCommandFromJSON,
     PaymentAccountCommandToJSON,
+    PaymentAccountDetailFromJSON,
+    PaymentAccountDetailToJSON,
     ProjectionRateCommandFromJSON,
     ProjectionRateCommandToJSON,
     PublicStudioDetailFromJSON,
@@ -75,11 +86,10 @@ import {
     ReasonedVersionCommandToJSON,
     ResourceFromJSON,
     ResourceToJSON,
-    VersionCommandFromJSON,
-    VersionCommandToJSON,
 } from '../models/index';
 
 export interface CreateBranchRequest {
+    idempotencyKey: string;
     branchCommand: BranchCommand;
 }
 
@@ -110,21 +120,39 @@ export interface CreateQuotaCapacitySettingRequest {
 
 export interface DeactivateBranchRequest {
     id: string;
-    versionCommand: VersionCommand;
+    idempotencyKey: string;
+    body: ReasonedVersionCommand;
 }
 
 export interface DeactivateClassTypeRequest {
     id: string;
-    versionCommand: VersionCommand;
+    idempotencyKey: string;
+    reasonedVersionCommand: ReasonedVersionCommand;
 }
 
 export interface DeactivatePaymentAccountRequest {
     id: string;
+    idempotencyKey: string;
     reasonedVersionCommand: ReasonedVersionCommand;
+}
+
+export interface GetBranchRequest {
+    id: string;
+}
+
+export interface GetPaymentAccountRequest {
+    id: string;
 }
 
 export interface GetPublicStudioDetailRequest {
     slug: string;
+}
+
+export interface ListBranchesRequest {
+    q?: string;
+    status?: ListBranchesStatusEnum;
+    cursor?: string;
+    limit?: number;
 }
 
 export interface ListClassTypesRequest {
@@ -155,6 +183,36 @@ export interface ListQuotaCapacitySettingsRequest {
     cursor?: string;
 }
 
+export interface ReactivateBranchRequest {
+    id: string;
+    idempotencyKey: string;
+    body: ReasonedVersionCommand;
+}
+
+export interface ReactivateClassTypeRequest {
+    id: string;
+    idempotencyKey: string;
+    reasonedVersionCommand: ReasonedVersionCommand;
+}
+
+export interface ReactivatePaymentAccountRequest {
+    id: string;
+    idempotencyKey: string;
+    reasonedVersionCommand: ReasonedVersionCommand;
+}
+
+export interface UpdateBranchRequest {
+    id: string;
+    idempotencyKey: string;
+    branchUpdateCommand: BranchUpdateCommand;
+}
+
+export interface UpdateClassTypeRequest {
+    id: string;
+    idempotencyKey: string;
+    classTypeUpdateCommand: ClassTypeUpdateCommand;
+}
+
 /**
  * 
  */
@@ -164,6 +222,13 @@ export class MasterApi extends runtime.BaseAPI {
      * Creates an active branch. Requires master:manage.
      */
     async createBranchRaw(requestParameters: CreateBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Branch>> {
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling createBranch().'
+            );
+        }
+
         if (requestParameters['branchCommand'] == null) {
             throw new runtime.RequiredError(
                 'branchCommand',
@@ -176,6 +241,10 @@ export class MasterApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -499,10 +568,17 @@ export class MasterApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['versionCommand'] == null) {
+        if (requestParameters['idempotencyKey'] == null) {
             throw new runtime.RequiredError(
-                'versionCommand',
-                'Required parameter "versionCommand" was null or undefined when calling deactivateBranch().'
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling deactivateBranch().'
+            );
+        }
+
+        if (requestParameters['body'] == null) {
+            throw new runtime.RequiredError(
+                'body',
+                'Required parameter "body" was null or undefined when calling deactivateBranch().'
             );
         }
 
@@ -511,6 +587,10 @@ export class MasterApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -529,7 +609,7 @@ export class MasterApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: VersionCommandToJSON(requestParameters['versionCommand']),
+            body: requestParameters['body'] as any,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => BranchFromJSON(jsonValue));
@@ -552,10 +632,17 @@ export class MasterApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['versionCommand'] == null) {
+        if (requestParameters['idempotencyKey'] == null) {
             throw new runtime.RequiredError(
-                'versionCommand',
-                'Required parameter "versionCommand" was null or undefined when calling deactivateClassType().'
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling deactivateClassType().'
+            );
+        }
+
+        if (requestParameters['reasonedVersionCommand'] == null) {
+            throw new runtime.RequiredError(
+                'reasonedVersionCommand',
+                'Required parameter "reasonedVersionCommand" was null or undefined when calling deactivateClassType().'
             );
         }
 
@@ -564,6 +651,10 @@ export class MasterApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -582,7 +673,7 @@ export class MasterApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: VersionCommandToJSON(requestParameters['versionCommand']),
+            body: ReasonedVersionCommandToJSON(requestParameters['reasonedVersionCommand']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ClassTypeFromJSON(jsonValue));
@@ -606,6 +697,13 @@ export class MasterApi extends runtime.BaseAPI {
             );
         }
 
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling deactivatePaymentAccount().'
+            );
+        }
+
         if (requestParameters['reasonedVersionCommand'] == null) {
             throw new runtime.RequiredError(
                 'reasonedVersionCommand',
@@ -618,6 +716,10 @@ export class MasterApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -647,6 +749,94 @@ export class MasterApi extends runtime.BaseAPI {
      */
     async deactivatePaymentAccount(requestParameters: DeactivatePaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentAccount> {
         const response = await this.deactivatePaymentAccountRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getBranchRaw(requestParameters: GetBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BranchManagementDetail>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getBranch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/branches/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BranchManagementDetailFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getBranch(requestParameters: GetBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BranchManagementDetail> {
+        const response = await this.getBranchRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns masked account detail and safe dependency count.
+     */
+    async getPaymentAccountRaw(requestParameters: GetPaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentAccountDetail>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getPaymentAccount().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/payment-accounts/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaymentAccountDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns masked account detail and safe dependency count.
+     */
+    async getPaymentAccount(requestParameters: GetPaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentAccountDetail> {
+        const response = await this.getPaymentAccountRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -687,8 +877,24 @@ export class MasterApi extends runtime.BaseAPI {
 
     /**
      */
-    async listBranchesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BranchPage>> {
+    async listBranchesRaw(requestParameters: ListBranchesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BranchPage>> {
         const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'];
+        }
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -715,8 +921,8 @@ export class MasterApi extends runtime.BaseAPI {
 
     /**
      */
-    async listBranches(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BranchPage> {
-        const response = await this.listBranchesRaw(initOverrides);
+    async listBranches(requestParameters: ListBranchesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BranchPage> {
+        const response = await this.listBranchesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -976,6 +1182,330 @@ export class MasterApi extends runtime.BaseAPI {
         return await response.value();
     }
 
+    /**
+     */
+    async reactivateBranchRaw(requestParameters: ReactivateBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Branch>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling reactivateBranch().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling reactivateBranch().'
+            );
+        }
+
+        if (requestParameters['body'] == null) {
+            throw new runtime.RequiredError(
+                'body',
+                'Required parameter "body" was null or undefined when calling reactivateBranch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/branches/{id}/reactivate`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['body'] as any,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BranchFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async reactivateBranch(requestParameters: ReactivateBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Branch> {
+        const response = await this.reactivateBranchRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async reactivateClassTypeRaw(requestParameters: ReactivateClassTypeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ClassType>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling reactivateClassType().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling reactivateClassType().'
+            );
+        }
+
+        if (requestParameters['reasonedVersionCommand'] == null) {
+            throw new runtime.RequiredError(
+                'reasonedVersionCommand',
+                'Required parameter "reasonedVersionCommand" was null or undefined when calling reactivateClassType().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/class-types/{id}/reactivate`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ReasonedVersionCommandToJSON(requestParameters['reasonedVersionCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ClassTypeFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async reactivateClassType(requestParameters: ReactivateClassTypeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClassType> {
+        const response = await this.reactivateClassTypeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reactivates a historical account only when its branch is active and has no other active payment account.
+     */
+    async reactivatePaymentAccountRaw(requestParameters: ReactivatePaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentAccount>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling reactivatePaymentAccount().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling reactivatePaymentAccount().'
+            );
+        }
+
+        if (requestParameters['reasonedVersionCommand'] == null) {
+            throw new runtime.RequiredError(
+                'reasonedVersionCommand',
+                'Required parameter "reasonedVersionCommand" was null or undefined when calling reactivatePaymentAccount().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/payment-accounts/{id}/reactivate`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ReasonedVersionCommandToJSON(requestParameters['reasonedVersionCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaymentAccountFromJSON(jsonValue));
+    }
+
+    /**
+     * Reactivates a historical account only when its branch is active and has no other active payment account.
+     */
+    async reactivatePaymentAccount(requestParameters: ReactivatePaymentAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentAccount> {
+        const response = await this.reactivatePaymentAccountRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async updateBranchRaw(requestParameters: UpdateBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Branch>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling updateBranch().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling updateBranch().'
+            );
+        }
+
+        if (requestParameters['branchUpdateCommand'] == null) {
+            throw new runtime.RequiredError(
+                'branchUpdateCommand',
+                'Required parameter "branchUpdateCommand" was null or undefined when calling updateBranch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/branches/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BranchUpdateCommandToJSON(requestParameters['branchUpdateCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BranchFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async updateBranch(requestParameters: UpdateBranchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Branch> {
+        const response = await this.updateBranchRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Updates safe class-type metadata. Branch and business code remain immutable.
+     */
+    async updateClassTypeRaw(requestParameters: UpdateClassTypeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ClassType>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling updateClassType().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling updateClassType().'
+            );
+        }
+
+        if (requestParameters['classTypeUpdateCommand'] == null) {
+            throw new runtime.RequiredError(
+                'classTypeUpdateCommand',
+                'Required parameter "classTypeUpdateCommand" was null or undefined when calling updateClassType().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/class-types/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ClassTypeUpdateCommandToJSON(requestParameters['classTypeUpdateCommand']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ClassTypeFromJSON(jsonValue));
+    }
+
+    /**
+     * Updates safe class-type metadata. Branch and business code remain immutable.
+     */
+    async updateClassType(requestParameters: UpdateClassTypeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClassType> {
+        const response = await this.updateClassTypeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
 }
 
 /**
@@ -987,6 +1517,14 @@ export const CreateEffectiveSettingKindEnum = {
     QuotaCapacity: 'quota-capacity'
 } as const;
 export type CreateEffectiveSettingKindEnum = typeof CreateEffectiveSettingKindEnum[keyof typeof CreateEffectiveSettingKindEnum];
+/**
+ * @export
+ */
+export const ListBranchesStatusEnum = {
+    Active: 'ACTIVE',
+    Inactive: 'INACTIVE'
+} as const;
+export type ListBranchesStatusEnum = typeof ListBranchesStatusEnum[keyof typeof ListBranchesStatusEnum];
 /**
  * @export
  */

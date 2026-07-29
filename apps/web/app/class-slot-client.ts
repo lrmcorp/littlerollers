@@ -41,6 +41,17 @@ export interface ClassSlotClient {
     startAt: Date;
     endAt: Date;
   }): Promise<ClassSlot>;
+  update(
+    id: string,
+    input: {
+      classTypeId: string;
+      instructorUserId?: string | null;
+      startAt: Date;
+      endAt: Date;
+      expectedVersion: number;
+      reason: string;
+    },
+  ): Promise<ClassSlot>;
   assign(id: string, instructorUserId: string, expectedVersion: number): Promise<ClassSlot>;
   publish(id: string, expectedVersion: number): Promise<ClassSlot>;
   cancel(
@@ -127,6 +138,16 @@ export const browserClassSlotClient: ClassSlotClient = {
     return appLoading.track(
       api.createClassSlot({ idempotencyKey: key(), classSlotCommand: input }),
       { label: 'Membuat kelas…' },
+    );
+  },
+  update(id, input) {
+    return appLoading.track(
+      api.updateDraftClassSlot({
+        id,
+        idempotencyKey: key(),
+        classSlotUpdateCommand: input,
+      }),
+      { label: 'Menyimpan perubahan kelas…' },
     );
   },
   assign(id, instructorUserId, expectedVersion) {

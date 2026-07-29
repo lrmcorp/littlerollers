@@ -6,7 +6,9 @@ import {
   type RoleCatalogItem,
   type UserRoleSummary,
 } from '../identity-client';
-import { Button, Drawer } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
+import { Drawer, useOptionalAppFeedback } from '../components/app-feedback';
+import { SearchSelect, TextInput } from '../components/forms';
 
 export const roleLabels: Record<ApplicationRole, string> = {
   SUPER_OWNER: 'Super Owner',
@@ -68,22 +70,15 @@ export function RoleSelection({
               </span>
             </label>
             {selected && item.scope === 'BRANCH' && (
-              <label className="mt-3 block text-xs font-bold text-dd-muted">
-                Cabang untuk {roleLabels[item.role]}
-                <select
-                  className={inputClass}
-                  value={value[item.role] ?? ''}
-                  onChange={(event) => onChange({ ...value, [item.role]: event.target.value })}
-                  required
-                >
-                  <option value="">Pilih cabang</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchSelect
+                wrapperClassName="mt-3"
+                label={`Cabang untuk ${roleLabels[item.role]}`}
+                value={value[item.role] ?? ''}
+                required
+                placeholder="Pilih cabang"
+                options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
+                onChange={(branchId) => onChange({ ...value, [item.role]: branchId })}
+              />
             )}
           </div>
         );
@@ -124,7 +119,9 @@ export function InviteUserDrawer({
     roles: { role: ApplicationRole; branchId?: string | null }[];
   }): Promise<void>;
 }) {
+  const feedback = useOptionalAppFeedback();
   const [selection, setSelection] = useState<RoleSelectionValue>({});
+  const [dirty, setDirty] = useState(false);
   const selectedRoles = useMemo(() => rolesFromSelection(roles, selection), [roles, selection]);
   const invalid =
     selectedRoles.length === 0 ||
@@ -140,34 +137,78 @@ export function InviteUserDrawer({
       roles: selectedRoles,
     });
   };
+  const hasChanges = dirty || Object.keys(selection).length > 0;
+  const confirmDiscard = () =>
+    feedback?.confirm({
+      tone: 'warning',
+      title: 'Batalkan pembuatan pengguna?',
+      message: 'Profil dan role yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang input',
+    }) ?? Promise.resolve(true);
+  const cancel = async () => {
+    if (!hasChanges || (await confirmDiscard())) {
+      setDirty(false);
+      setSelection({});
+      onClose();
+    }
+  };
   return (
-    <Drawer open={open} title="Buat pengguna internal" onClose={onClose}>
-      <form className="grid gap-5" aria-label="Buat pengguna internal" onSubmit={submit}>
+    <Drawer
+      open={open}
+      title="Buat pengguna internal"
+      busy={submitting}
+      dirty={hasChanges}
+      onDirtyClose={confirmDiscard}
+      onClose={() => {
+        setDirty(false);
+        setSelection({});
+        onClose();
+      }}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={submitting}
+            onClick={() => void cancel()}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            form="internal-user-create-form"
+            loading={submitting}
+            disabled={invalid}
+          >
+            Buat pengguna dan kirim aktivasi
+          </Button>
+        </div>
+      }
+    >
+      <form
+        id="internal-user-create-form"
+        className="grid gap-5"
+        aria-label="Buat pengguna internal"
+        onChange={() => setDirty(true)}
+        onSubmit={submit}
+      >
         <p className="text-sm leading-6 text-dd-muted">
           Akun dibuat sebagai menunggu aktivasi. Pengguna menentukan password melalui tautan aman.
         </p>
-        <label className="text-sm font-bold text-dd-ink">
-          Nama tampilan
-          <input className={inputClass} name="displayName" minLength={2} maxLength={160} required />
-        </label>
-        <label className="text-sm font-bold text-dd-ink">
-          Email kerja
-          <input className={inputClass} name="email" type="email" autoComplete="off" required />
-        </label>
+        <TextInput
+          label="Nama tampilan"
+          name="displayName"
+          minLength={2}
+          maxLength={160}
+          required
+        />
+        <TextInput label="Email kerja" name="email" type="email" autoComplete="off" required />
         <RoleSelection
           catalog={roles}
           branches={branches}
           value={selection}
           onChange={setSelection}
         />
-        <div className="flex justify-end gap-3 border-t border-dd-line pt-4">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={invalid || submitting}>
-            {submitting ? 'Membuat pengguna…' : 'Buat pengguna dan kirim aktivasi'}
-          </Button>
-        </div>
       </form>
     </Drawer>
   );

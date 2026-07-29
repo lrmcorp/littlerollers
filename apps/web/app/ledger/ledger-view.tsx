@@ -11,19 +11,12 @@ import {
   type LedgerHistory,
   type LedgerSummary,
 } from '../ledger-client';
-import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton } from '../ui';
+import { EmptyState, Feedback, PageHeader, Skeleton } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
-import {
-  Badge,
-  Button,
-  Drawer,
-  FilterBar,
-  Panel,
-  SearchableLookup,
-  StatCard,
-  Tabs,
-} from '../components/admin/admin-ui';
-import { controlClassName } from '../components/forms';
+import { Button } from '../components/actions';
+import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
+import { Badge, FilterBar, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
+import { AsyncSearchSelect, SelectInput, TextInput } from '../components/forms';
 
 type PackageOption = LedgerBalance & { label: string; description: string };
 type PackageStatus = '' | 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
@@ -116,12 +109,9 @@ export function LedgerView({
 }) {
   const [branchId, setBranchId] = useActiveBranchState();
   const sessionContext = useSessionContext();
+  const feedback = useAppFeedback();
   const [workspaceTab, setWorkspaceTab] = useState<'balances' | 'adjustments'>(initialWorkspaceTab);
-  const injectedAccess =
-    access ??
-    (!sessionContext && client !== browserLedgerClient
-      ? { canRequest: true, canDecide: true, canReview: true }
-      : undefined);
+  const injectedAccess = access;
   const canRequest =
     injectedAccess?.canRequest ?? Boolean(sessionContext?.hasCapability('ledger:adjust:request'));
   const canDecide =
@@ -150,11 +140,11 @@ export function LedgerView({
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>();
   const [quantity, setQuantity] = useState('');
   const [reasonCode, setReasonCode] = useState('MIGRATION_CORRECTION');
-  const [requestConfirmation, setRequestConfirmation] = useState(false);
   const [decisionIntent, setDecisionIntent] = useState<{
     item: Adjustment;
     decision: 'approve' | 'reject';
   }>();
+  const [requestOpen, setRequestOpen] = useState(false);
   const [decisionReason, setDecisionReason] = useState('INVALID_EVIDENCE');
 
   const listRequest = useRef(0);
@@ -304,6 +294,80 @@ export function LedgerView({
     setAppliedSearch('');
     setAppliedStatus('');
   };
+  const requestDirty = Boolean(selectedPackage || quantity);
+  const confirmDiscardRequest = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan penyesuaian sesi?',
+      message: 'Customer, paket, dan perubahan sesi yang dipilih akan dikosongkan.',
+      confirmLabel: 'Buang input',
+    });
+  const closeRequest = async () => {
+    if (!requestDirty || (await confirmDiscardRequest())) {
+      setSelectedPackage(undefined);
+      setQuantity('');
+      setRequestOpen(false);
+    }
+  };
+  const submitAdjustmentRequest = async () => {
+    if (!selectedPackage || !quantity || Number(quantity) === 0) return;
+    const projectedAvailable =
+      selectedPackage.ledgerBalance + Number(quantity) - selectedPackage.reserved;
+    const accepted = await feedback.confirm({
+      tone: projectedAvailable < 0 ? 'danger' : 'warning',
+      title: 'Konfirmasi permintaan penyesuaian',
+      message: `${selectedPackage.customer?.displayName ?? 'Customer'} · ${selectedPackage.packageName} · perubahan ${quantity} sesi · saldo tersedia setelah perubahan ${projectedAvailable} sesi · scope ${selectedPackage.branchName ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reasonCode] ?? 'tercatat'}.`,
+      confirmLabel: 'Buat permintaan',
+    });
+    if (!accepted) return;
+    await runMutation(async () => {
+      const payload = {
+        customerPackageId: selectedPackage.id,
+        quantity: Number(quantity),
+        reasonCode,
+      };
+      const signature = JSON.stringify(payload);
+      await client.requestAdjustment(payload, stableRequestKey(signature));
+      requestIntent.current = undefined;
+      setSelectedPackage(undefined);
+      setQuantity('');
+      setRequestOpen(false);
+      setAdjustmentMode('PENDING');
+      await refreshOperationalData();
+      setMessage('Permintaan penyesuaian dibuat dan menunggu keputusan tanpa mengubah saldo.');
+    });
+  };
+  const submitAdjustmentDecision = async () => {
+    if (!decisionIntent) return;
+    const { item, decision } = decisionIntent;
+    const reason = decision === 'approve' ? 'CORRECTION_VERIFIED' : decisionReason;
+    const accepted = await feedback.confirm({
+      tone: decision === 'approve' ? 'warning' : 'danger',
+      title: decision === 'approve' ? 'Setujui penyesuaian sesi' : 'Tolak penyesuaian sesi',
+      message: `${item.customer?.displayName ?? 'Customer'} · perubahan ${item.quantity} sesi · proyeksi tersedia ${item.projectedAvailable ?? 'tidak tersedia'} · scope ${item.branch?.name ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reason] ?? 'tercatat'} · versi ${item.version}.`,
+      confirmLabel: decision === 'approve' ? 'Setujui dan posting' : 'Tolak permintaan',
+    });
+    if (!accepted) return;
+    await runMutation(async () => {
+      const intent = `${item.id}:${decision}:${item.version}:${reason}`;
+      const key = decisionKeys.current.get(intent) ?? crypto.randomUUID();
+      decisionKeys.current.set(intent, key);
+      const result = await client.decideAdjustment(
+        item.id,
+        decision,
+        { reasonCode: reason, expectedVersion: item.version },
+        key,
+      );
+      decisionKeys.current.delete(intent);
+      setDecisionIntent(undefined);
+      await refreshOperationalData();
+      setMessage(
+        result.ledgerEntryId
+          ? `Penyesuaian diposting. Referensi ledger ${result.ledgerEntryId}.`
+          : `Permintaan ${decision === 'approve' ? 'disetujui' : 'ditolak'}.`,
+      );
+    });
+  };
 
   return (
     <section className="space-y-6" aria-labelledby="ledger-title">
@@ -317,9 +381,9 @@ export function LedgerView({
             <Button
               variant="secondary"
               disabled={loading || adjustmentLoading}
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
               onClick={() => void refreshOperationalData()}
             >
-              <RefreshCw className="size-4" aria-hidden="true" />
               Perbarui data
             </Button>
           }
@@ -346,50 +410,44 @@ export function LedgerView({
       {workspaceTab === 'balances' && (
         <>
           <FilterBar>
-            {!sessionContext && (
-              <label className="grid min-w-52 gap-1 text-sm font-semibold">
-                Cabang
-                <input
-                  className={controlClassName}
-                  value={branchId}
-                  onChange={(event) => setBranchId(event.target.value)}
-                  placeholder="ID cabang untuk pengujian"
-                />
-              </label>
-            )}
-            <label className="grid min-w-64 flex-1 gap-1 text-sm font-semibold">
-              Cari customer atau paket
-              <input
-                className={controlClassName}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    applyFilters();
-                  }
-                }}
-                placeholder="Nama customer, paket, atau tipe kelas"
+            {access && !sessionContext && (
+              <TextInput
+                wrapperClassName="min-w-52"
+                label="Cabang"
+                value={branchId}
+                onChange={(event) => setBranchId(event.target.value)}
+                placeholder="ID cabang untuk pengujian"
               />
-            </label>
-            <label className="grid min-w-44 gap-1 text-sm font-semibold">
-              Status paket
-              <select
-                className={controlClassName}
-                value={status}
-                onChange={(event) => setStatus(event.target.value as PackageStatus)}
-              >
-                <option value="">Semua status</option>
-                <option value="ACTIVE">Aktif</option>
-                <option value="EXPIRED">Berakhir</option>
-                <option value="INACTIVE">Tidak aktif</option>
-              </select>
-            </label>
+            )}
+            <TextInput
+              wrapperClassName="min-w-64 flex-1"
+              label="Cari customer atau paket"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  applyFilters();
+                }
+              }}
+              placeholder="Nama customer, paket, atau tipe kelas"
+            />
+            <SelectInput
+              wrapperClassName="min-w-44"
+              label="Status paket"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as PackageStatus)}
+            >
+              <option value="">Semua status</option>
+              <option value="ACTIVE">Aktif</option>
+              <option value="EXPIRED">Berakhir</option>
+              <option value="INACTIVE">Tidak aktif</option>
+            </SelectInput>
             <Button disabled={loading} onClick={applyFilters}>
               Terapkan
             </Button>
             {(appliedSearch || appliedStatus) && (
-              <Button variant="quiet" onClick={resetFilters}>
+              <Button variant="ghost" onClick={resetFilters}>
                 Reset filter
               </Button>
             )}
@@ -486,7 +544,7 @@ export function LedgerView({
                             <BalanceValues item={item} />
                           </td>
                           <td className="px-5 py-4 text-right">
-                            <Button variant="quiet" onClick={() => void openHistory(item)}>
+                            <Button variant="ghost" onClick={() => void openHistory(item)}>
                               Lihat histori
                             </Button>
                           </td>
@@ -518,10 +576,10 @@ export function LedgerView({
                       <Button
                         variant="secondary"
                         className="w-full"
+                        leadingIcon={<History className="size-4" aria-hidden="true" />}
                         onClick={() => void openHistory(item)}
                         aria-label={`Lihat histori ${item.customer?.displayName ?? 'customer'} ${item.packageName ?? 'paket'}`}
                       >
-                        <History className="size-4" aria-hidden="true" />
                         Lihat histori
                       </Button>
                     </li>
@@ -561,127 +619,8 @@ export function LedgerView({
           </div>
 
           {canRequest && (
-            <div className="mt-5 grid gap-4 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 lg:grid-cols-2">
-              <SearchableLookup
-                label="Cari customer atau paket aktif"
-                value={selectedPackage}
-                placeholder="Ketik minimal 2 karakter"
-                load={searchPackages}
-                onChange={(value) => {
-                  setSelectedPackage(value);
-                  setRequestConfirmation(false);
-                  requestIntent.current = undefined;
-                }}
-              />
-              <label className="grid gap-1 text-sm font-semibold">
-                Perubahan sesi
-                <input
-                  className={controlClassName}
-                  type="number"
-                  value={quantity}
-                  onChange={(event) => {
-                    setQuantity(event.target.value);
-                    setRequestConfirmation(false);
-                    requestIntent.current = undefined;
-                  }}
-                  placeholder="Contoh: 2 atau -1"
-                />
-              </label>
-              <label className="grid gap-1 text-sm font-semibold">
-                Alasan
-                <select
-                  className={controlClassName}
-                  value={reasonCode}
-                  onChange={(event) => {
-                    setReasonCode(event.target.value);
-                    setRequestConfirmation(false);
-                    requestIntent.current = undefined;
-                  }}
-                >
-                  {[
-                    'MIGRATION_CORRECTION',
-                    'ATTENDANCE_CORRECTION',
-                    'PACKAGE_COMPENSATION',
-                    'SUPPORT_RECONCILIATION',
-                  ].map((code) => (
-                    <option key={code} value={code}>
-                      {adjustmentReasonLabels[code]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selectedPackage && quantity && Number(quantity) !== 0 && (
-                <div className="rounded-dd-md border border-dd-line bg-white p-4 text-sm">
-                  <strong className="block text-dd-ink">Proyeksi setelah perubahan</strong>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <span>
-                      Saldo <strong>{selectedPackage.ledgerBalance + Number(quantity)}</strong>
-                    </span>
-                    <span>
-                      Tersedia{' '}
-                      <strong>
-                        {selectedPackage.ledgerBalance +
-                          Number(quantity) -
-                          selectedPackage.reserved}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div className="lg:col-span-2">
-                {!requestConfirmation ? (
-                  <Button
-                    disabled={
-                      mutationLoading || !selectedPackage || !quantity || Number(quantity) === 0
-                    }
-                    onClick={() => setRequestConfirmation(true)}
-                  >
-                    Tinjau permintaan
-                  </Button>
-                ) : (
-                  <ConfirmationPanel title="Konfirmasi permintaan penyesuaian">
-                    <p>
-                      {selectedPackage?.customer?.displayName} · {selectedPackage?.packageName} ·
-                      saldo {selectedPackage?.ledgerBalance}, tertahan {selectedPackage?.reserved},
-                      perubahan {quantity}, proyeksi tersedia{' '}
-                      {Number(selectedPackage?.ledgerBalance ?? 0) +
-                        Number(quantity) -
-                        Number(selectedPackage?.reserved ?? 0)}
-                      .
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        disabled={mutationLoading || !selectedPackage}
-                        onClick={() =>
-                          void runMutation(async () => {
-                            const payload = {
-                              customerPackageId: selectedPackage!.id,
-                              quantity: Number(quantity),
-                              reasonCode,
-                            };
-                            const signature = JSON.stringify(payload);
-                            await client.requestAdjustment(payload, stableRequestKey(signature));
-                            requestIntent.current = undefined;
-                            setRequestConfirmation(false);
-                            setSelectedPackage(undefined);
-                            setQuantity('');
-                            setAdjustmentMode('PENDING');
-                            await refreshOperationalData();
-                            setMessage(
-                              'Permintaan penyesuaian dibuat dan menunggu keputusan tanpa mengubah saldo.',
-                            );
-                          })
-                        }
-                      >
-                        Konfirmasi permintaan
-                      </Button>
-                      <Button variant="secondary" onClick={() => setRequestConfirmation(false)}>
-                        Kembali
-                      </Button>
-                    </div>
-                  </ConfirmationPanel>
-                )}
-              </div>
+            <div className="mt-5">
+              <Button onClick={() => setRequestOpen(true)}>Buat permintaan penyesuaian</Button>
             </div>
           )}
 
@@ -812,6 +751,99 @@ export function LedgerView({
       )}
 
       <Drawer
+        open={requestOpen}
+        title="Buat permintaan penyesuaian"
+        description="Permintaan tidak langsung mengubah saldo dan harus diputuskan actor berbeda."
+        busy={mutationLoading}
+        dirty={requestDirty}
+        onDirtyClose={confirmDiscardRequest}
+        onClose={() => {
+          setSelectedPackage(undefined);
+          setQuantity('');
+          setRequestOpen(false);
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={mutationLoading}
+              onClick={() => void closeRequest()}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              loading={mutationLoading}
+              disabled={!selectedPackage || !quantity || Number(quantity) === 0}
+              onClick={() => void submitAdjustmentRequest()}
+            >
+              Tinjau dan buat permintaan
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-4">
+          <AsyncSearchSelect
+            label="Cari customer atau paket aktif"
+            value={selectedPackage?.id ?? ''}
+            selectedOption={selectedPackage}
+            placeholder="Ketik minimal 2 karakter"
+            loadOptions={searchPackages}
+            onChange={(_id, option) => {
+              setSelectedPackage(option as PackageOption | undefined);
+              requestIntent.current = undefined;
+            }}
+          />
+          <TextInput
+            label="Perubahan sesi"
+            type="number"
+            value={quantity}
+            onChange={(event) => {
+              setQuantity(event.target.value);
+              requestIntent.current = undefined;
+            }}
+            placeholder="Contoh: 2 atau -1"
+          />
+          <SelectInput
+            label="Alasan"
+            value={reasonCode}
+            onChange={(event) => {
+              setReasonCode(event.target.value);
+              requestIntent.current = undefined;
+            }}
+          >
+            {[
+              'MIGRATION_CORRECTION',
+              'ATTENDANCE_CORRECTION',
+              'PACKAGE_COMPENSATION',
+              'SUPPORT_RECONCILIATION',
+            ].map((code) => (
+              <option key={code} value={code}>
+                {adjustmentReasonLabels[code]}
+              </option>
+            ))}
+          </SelectInput>
+          {selectedPackage && quantity && Number(quantity) !== 0 && (
+            <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-4 text-sm">
+              <strong className="block text-dd-ink">Proyeksi setelah perubahan</strong>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <span>
+                  Saldo <strong>{selectedPackage.ledgerBalance + Number(quantity)}</strong>
+                </span>
+                <span>
+                  Tersedia{' '}
+                  <strong>
+                    {selectedPackage.ledgerBalance + Number(quantity) - selectedPackage.reserved}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Drawer>
+
+      <Drawer
         open={Boolean(history)}
         title={`Histori sesi · ${history?.balance.customer?.displayName ?? 'Customer'}`}
         onClose={() => setHistory(null)}
@@ -887,72 +919,62 @@ export function LedgerView({
         )}
       </Drawer>
 
-      {decisionIntent && (
-        <Panel className="p-5">
-          <ConfirmationPanel
-            title={`Konfirmasi ${decisionIntent.decision === 'approve' ? 'persetujuan' : 'penolakan'}`}
-          >
-            <p>
+      <Modal
+        open={Boolean(decisionIntent)}
+        title={
+          decisionIntent?.decision === 'approve'
+            ? 'Persetujuan penyesuaian'
+            : 'Penolakan penyesuaian'
+        }
+        description="Keputusan dicatat dalam audit dan tidak dapat dilakukan oleh requester yang sama."
+        busy={mutationLoading}
+        onClose={() => setDecisionIntent(undefined)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              disabled={mutationLoading}
+              onClick={() => setDecisionIntent(undefined)}
+            >
+              Batal
+            </Button>
+            <Button
+              variant={decisionIntent?.decision === 'reject' ? 'danger' : 'primary'}
+              loading={mutationLoading}
+              disabled={
+                decisionIntent?.decision === 'approve' &&
+                decisionIntent.item.eligibleForApproval === false
+              }
+              onClick={() => void submitAdjustmentDecision()}
+            >
+              Konfirmasi keputusan
+            </Button>
+          </div>
+        }
+      >
+        {decisionIntent && (
+          <div className="grid gap-4">
+            <p className="text-sm leading-6 text-dd-muted">
               {decisionIntent.item.customer?.displayName ?? 'Customer'} · perubahan{' '}
               {decisionIntent.item.quantity} · proyeksi tersedia{' '}
               {decisionIntent.item.projectedAvailable ?? '—'}.
             </p>
             {decisionIntent.decision === 'reject' && (
-              <label className="mt-3 grid gap-1 text-sm font-semibold">
-                Alasan penolakan
-                <select
-                  className={controlClassName}
-                  value={decisionReason}
-                  onChange={(event) => setDecisionReason(event.target.value)}
-                >
-                  {['INVALID_EVIDENCE', 'DUPLICATE_REQUEST', 'OUT_OF_SCOPE'].map((code) => (
-                    <option key={code} value={code}>
-                      {adjustmentReasonLabels[code]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                disabled={
-                  mutationLoading ||
-                  (decisionIntent.decision === 'approve' &&
-                    decisionIntent.item.eligibleForApproval === false)
-                }
-                onClick={() =>
-                  void runMutation(async () => {
-                    const { item, decision } = decisionIntent;
-                    const reason = decision === 'approve' ? 'CORRECTION_VERIFIED' : decisionReason;
-                    const intent = `${item.id}:${decision}:${item.version}:${reason}`;
-                    const key = decisionKeys.current.get(intent) ?? crypto.randomUUID();
-                    decisionKeys.current.set(intent, key);
-                    const result = await client.decideAdjustment(
-                      item.id,
-                      decision,
-                      { reasonCode: reason, expectedVersion: item.version },
-                      key,
-                    );
-                    decisionKeys.current.delete(intent);
-                    setDecisionIntent(undefined);
-                    await refreshOperationalData();
-                    setMessage(
-                      result.ledgerEntryId
-                        ? `Penyesuaian diposting. Referensi ledger ${result.ledgerEntryId}.`
-                        : `Permintaan ${decision === 'approve' ? 'disetujui' : 'ditolak'}.`,
-                    );
-                  })
-                }
+              <SelectInput
+                label="Alasan penolakan"
+                value={decisionReason}
+                onChange={(event) => setDecisionReason(event.target.value)}
               >
-                Konfirmasi keputusan
-              </Button>
-              <Button variant="secondary" onClick={() => setDecisionIntent(undefined)}>
-                Batal
-              </Button>
-            </div>
-          </ConfirmationPanel>
-        </Panel>
-      )}
+                {['INVALID_EVIDENCE', 'DUPLICATE_REQUEST', 'OUT_OF_SCOPE'].map((code) => (
+                  <option key={code} value={code}>
+                    {adjustmentReasonLabels[code]}
+                  </option>
+                ))}
+              </SelectInput>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {historyLoading && !history && <Skeleton label="Memuat histori sesi" />}
       {message && !mutationLoading && <Feedback kind="status">{message}</Feedback>}

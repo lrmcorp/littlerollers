@@ -14,20 +14,24 @@ import {
 } from '../identity-verification-client';
 import { PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
+import { Button } from '../components/actions';
 import {
   AdminPageState,
   AdminSkeleton,
   Badge,
-  Button,
   DataTable,
-  DestructiveActionDialog,
-  DetailDrawer,
   FilterBar,
   Pagination,
   Panel,
 } from '../components/admin/admin-ui';
-import { DateInput, SearchInput, controlClassName } from '../components/forms';
-import { AlertBanner, messageForApiError, useAppFeedback } from '../components/app-feedback';
+import { DateInput, SearchInput, Textarea } from '../components/forms';
+import {
+  AlertBanner,
+  DestructiveDialog,
+  Drawer,
+  messageForApiError,
+  useAppFeedback,
+} from '../components/app-feedback';
 import {
   ageLabel,
   DecisionDialog,
@@ -95,6 +99,9 @@ export function IdentityReviewView({
   const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
   const [selected, setSelected] = useState<IdentityVerificationReviewCase>();
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [previewErrors, setPreviewErrors] = useState<
+    Record<string, { title: string; message: string }>
+  >({});
   const previewUrls = useRef(new Set<string>());
   const [previewLoading, setPreviewLoading] = useState<string>();
   const [decision, setDecision] = useState<{
@@ -184,12 +191,18 @@ export function IdentityReviewView({
     for (const url of previewUrls.current) URL.revokeObjectURL(url);
     previewUrls.current.clear();
     setPreviews({});
+    setPreviewErrors({});
     setSelected(undefined);
     setStaleDocumentId(undefined);
   };
 
   const loadPreview = async (document: VerificationDocument) => {
     setPreviewLoading(document.id);
+    setPreviewErrors((current) => {
+      const next = { ...current };
+      delete next[document.id];
+      return next;
+    });
     try {
       const authorization = await client.authorizeView(document.id);
       const blob = await client.readPrivateFile(authorization.url);
@@ -204,6 +217,7 @@ export function IdentityReviewView({
       });
     } catch (cause) {
       const mapped = messageForApiError(cause);
+      setPreviewErrors((current) => ({ ...current, [document.id]: mapped }));
       feedback.showAlert({ tone: 'danger', ...mapped });
     } finally {
       setPreviewLoading(undefined);
@@ -326,8 +340,18 @@ export function IdentityReviewView({
           context={
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
-              <Button variant="secondary" disabled={loading} onClick={() => void load()}>
-                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Segarkan
+              <Button
+                variant="secondary"
+                disabled={loading}
+                leadingIcon={
+                  <RefreshCw
+                    className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                    aria-hidden="true"
+                  />
+                }
+                onClick={() => void load()}
+              >
+                Segarkan
               </Button>
             </div>
           }
@@ -437,7 +461,7 @@ export function IdentityReviewView({
           }}
           wrapperClassName="min-w-40"
         />
-        <Button variant="quiet" onClick={resetFilters}>
+        <Button variant="ghost" onClick={resetFilters}>
           Reset
         </Button>
       </FilterBar>
@@ -550,7 +574,7 @@ export function IdentityReviewView({
         }}
       />
 
-      <DetailDrawer
+      <Drawer
         open={Boolean(selected)}
         title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
         onClose={closeDrawer}
@@ -599,6 +623,7 @@ export function IdentityReviewView({
                     key={documentKind}
                     document={document}
                     previewUrl={document ? previews[document.id] : undefined}
+                    previewError={document ? previewErrors[document.id] : undefined}
                     previewLoading={document ? previewLoading === document.id : false}
                     onPreview={loadPreview}
                     onApprove={(item) => setDecision({ document: item, kind: 'approve' })}
@@ -612,7 +637,7 @@ export function IdentityReviewView({
             </div>
           </div>
         )}
-      </DetailDrawer>
+      </Drawer>
 
       <DecisionDialog
         decision={decision}
@@ -620,34 +645,45 @@ export function IdentityReviewView({
         onClose={() => setDecision(undefined)}
         onSubmit={submitDecision}
       />
-      <DestructiveActionDialog
+      <DestructiveDialog
         open={Boolean(deleteTarget)}
         title="Hapus file identitas secara permanen"
         impact="File privat tidak dapat dipulihkan dan customer mungkin perlu mengunggah dokumen baru."
         scope={selected?.user.displayName}
+        busy={submitting}
         onClose={() => setDeleteTarget(undefined)}
-      >
-        <form className="grid gap-4" onSubmit={submitDeletion}>
-          <label className="text-sm font-bold text-dd-ink">
-            Alasan penghapusan
-            <textarea
-              className={controlClassName}
-              name="reason"
-              minLength={3}
-              maxLength={500}
-              required
-            />
-          </label>
+        footer={
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setDeleteTarget(undefined)}>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              onClick={() => setDeleteTarget(undefined)}
+            >
               Batal
             </Button>
-            <Button variant="danger" disabled={submitting}>
-              <Trash2 className="size-4" /> {submitting ? 'Menghapus…' : 'Hapus permanen'}
+            <Button
+              type="submit"
+              form="identity-document-delete-form"
+              variant="danger"
+              leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
+              loading={submitting}
+            >
+              Hapus permanen
             </Button>
           </div>
+        }
+      >
+        <form id="identity-document-delete-form" className="grid gap-4" onSubmit={submitDeletion}>
+          <Textarea
+            label="Alasan penghapusan"
+            name="reason"
+            minLength={3}
+            maxLength={500}
+            required
+          />
         </form>
-      </DestructiveActionDialog>
+      </DestructiveDialog>
     </section>
   );
 }

@@ -15,6 +15,7 @@ import 'package:openapi/src/model/assignment_page.dart';
 import 'package:openapi/src/model/audit_log_page.dart';
 import 'package:openapi/src/model/authorize_identity_verification_view200_response.dart';
 import 'package:openapi/src/model/challenge_expiry.dart';
+import 'package:openapi/src/model/customer_lookup_page.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
@@ -1773,6 +1774,101 @@ class IdentityApi {
     }
 
     return Response<UserPage>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// lookupCustomers
+  /// Returns active, identity-approved customers with a usable package in the requested branch. Requires booking:create:assisted.
+  ///
+  /// Parameters:
+  /// * [q] 
+  /// * [branchId] - Filter only; never grants authority
+  /// * [cursor] 
+  /// * [limit] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CustomerLookupPage] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CustomerLookupPage>> lookupCustomers({ 
+    String? q,
+    String? branchId,
+    String? cursor,
+    int? limit = 20,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/lookups/customers';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CustomerLookupPage? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(CustomerLookupPage),
+      ) as CustomerLookupPage;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CustomerLookupPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

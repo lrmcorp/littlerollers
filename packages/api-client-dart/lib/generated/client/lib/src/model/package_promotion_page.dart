@@ -5,41 +5,46 @@
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/package_promotion.dart';
+import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
-part 'list_package_promotions200_response.g.dart';
+part 'package_promotion_page.g.dart';
 
-/// ListPackagePromotions200Response
+/// PackagePromotionPage
 ///
 /// Properties:
 /// * [items] 
+/// * [page] 
 @BuiltValue()
-abstract class ListPackagePromotions200Response implements Built<ListPackagePromotions200Response, ListPackagePromotions200ResponseBuilder> {
+abstract class PackagePromotionPage implements Built<PackagePromotionPage, PackagePromotionPageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<PackagePromotion> get items;
 
-  ListPackagePromotions200Response._();
+  @BuiltValueField(wireName: r'page')
+  CursorPageMeta get page;
 
-  factory ListPackagePromotions200Response([void updates(ListPackagePromotions200ResponseBuilder b)]) = _$ListPackagePromotions200Response;
+  PackagePromotionPage._();
+
+  factory PackagePromotionPage([void updates(PackagePromotionPageBuilder b)]) = _$PackagePromotionPage;
 
   @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(ListPackagePromotions200ResponseBuilder b) => b;
+  static void _defaults(PackagePromotionPageBuilder b) => b;
 
   @BuiltValueSerializer(custom: true)
-  static Serializer<ListPackagePromotions200Response> get serializer => _$ListPackagePromotions200ResponseSerializer();
+  static Serializer<PackagePromotionPage> get serializer => _$PackagePromotionPageSerializer();
 }
 
-class _$ListPackagePromotions200ResponseSerializer implements PrimitiveSerializer<ListPackagePromotions200Response> {
+class _$PackagePromotionPageSerializer implements PrimitiveSerializer<PackagePromotionPage> {
   @override
-  final Iterable<Type> types = const [ListPackagePromotions200Response, _$ListPackagePromotions200Response];
+  final Iterable<Type> types = const [PackagePromotionPage, _$PackagePromotionPage];
 
   @override
-  final String wireName = r'ListPackagePromotions200Response';
+  final String wireName = r'PackagePromotionPage';
 
   Iterable<Object?> _serializeProperties(
     Serializers serializers,
-    ListPackagePromotions200Response object, {
+    PackagePromotionPage object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
     yield r'items';
@@ -47,12 +52,17 @@ class _$ListPackagePromotions200ResponseSerializer implements PrimitiveSerialize
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(PackagePromotion)]),
     );
+    yield r'page';
+    yield serializers.serialize(
+      object.page,
+      specifiedType: const FullType(CursorPageMeta),
+    );
   }
 
   @override
   Object serialize(
     Serializers serializers,
-    ListPackagePromotions200Response object, {
+    PackagePromotionPage object, {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
@@ -63,7 +73,7 @@ class _$ListPackagePromotions200ResponseSerializer implements PrimitiveSerialize
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
     required List<Object?> serializedList,
-    required ListPackagePromotions200ResponseBuilder result,
+    required PackagePromotionPageBuilder result,
     required List<Object?> unhandled,
   }) {
     for (var i = 0; i < serializedList.length; i += 2) {
@@ -77,6 +87,13 @@ class _$ListPackagePromotions200ResponseSerializer implements PrimitiveSerialize
           ) as BuiltList<PackagePromotion>;
           result.items.replace(valueDes);
           break;
+        case r'page':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CursorPageMeta),
+          ) as CursorPageMeta;
+          result.page.replace(valueDes);
+          break;
         default:
           unhandled.add(key);
           unhandled.add(value);
@@ -86,12 +103,12 @@ class _$ListPackagePromotions200ResponseSerializer implements PrimitiveSerialize
   }
 
   @override
-  ListPackagePromotions200Response deserialize(
+  PackagePromotionPage deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = ListPackagePromotions200ResponseBuilder();
+    final result = PackagePromotionPageBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

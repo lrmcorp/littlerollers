@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { BranchPublicProfileSummary } from './BranchPublicProfileSummary';
+import {
+    BranchPublicProfileSummaryFromJSON,
+    BranchPublicProfileSummaryFromJSONTyped,
+    BranchPublicProfileSummaryToJSON,
+    BranchPublicProfileSummaryToJSONTyped,
+} from './BranchPublicProfileSummary';
+
 /**
  * 
  * @export
@@ -61,6 +69,12 @@ export interface Branch {
      * @memberof Branch
      */
     version: number;
+    /**
+     * 
+     * @type {BranchPublicProfileSummary}
+     * @memberof Branch
+     */
+    publicProfile?: BranchPublicProfileSummary | null;
 }
 
 /**
@@ -93,6 +107,7 @@ export function BranchFromJSONTyped(json: any, ignoreDiscriminator: boolean): Br
         'supportWhatsappE164': json['supportWhatsappE164'] == null ? undefined : json['supportWhatsappE164'],
         'active': json['active'],
         'version': json['version'],
+        'publicProfile': json['publicProfile'] == null ? undefined : BranchPublicProfileSummaryFromJSON(json['publicProfile']),
     };
 }
 
@@ -114,6 +129,7 @@ export function BranchToJSONTyped(value?: Branch | null, ignoreDiscriminator: bo
         'supportWhatsappE164': value['supportWhatsappE164'],
         'active': value['active'],
         'version': value['version'],
+        'publicProfile': BranchPublicProfileSummaryToJSON(value['publicProfile']),
     };
 }
 

@@ -20,6 +20,7 @@ Method | HTTP request | Description
 [**listPublicClassSchedule**](ClassesApi.md#listpublicclassschedule) | **GET** /public/class-catalog | 
 [**publishClassSlot**](ClassesApi.md#publishclassslot) | **POST** /class-slots/{id}/publish | 
 [**transitionClassSlot**](ClassesApi.md#transitionclassslot) | **POST** /class-slots/{id}/{action} | 
+[**updateDraftClassSlot**](ClassesApi.md#updatedraftclassslot) | **PATCH** /class-slots/{id} | 
 
 
 # **assignClassSlotInstructor**
@@ -511,6 +512,53 @@ Name | Type | Description  | Notes
  **action** | **String**|  | 
  **idempotencyKey** | **String**|  | 
  **actionCommand** | [**ActionCommand**](ActionCommand.md)|  | 
+
+### Return type
+
+[**ClassSlot**](ClassSlot.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateDraftClassSlot**
+> ClassSlot updateDraftClassSlot(id, idempotencyKey, classSlotUpdateCommand)
+
+
+
+Updates a DRAFT slot and re-snapshots effective capacity. Published or confirmed slots must be cancelled and recreated.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getClassesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ClassSlotUpdateCommand classSlotUpdateCommand = ; // ClassSlotUpdateCommand | 
+
+try {
+    final response = api.updateDraftClassSlot(id, idempotencyKey, classSlotUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling ClassesApi->updateDraftClassSlot: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **classSlotUpdateCommand** | [**ClassSlotUpdateCommand**](ClassSlotUpdateCommand.md)|  | 
 
 ### Return type
 

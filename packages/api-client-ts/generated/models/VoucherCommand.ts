@@ -99,10 +99,16 @@ export interface VoucherCommand {
     classTypeId?: string;
     /**
      * 
-     * @type {Array<string>}
+     * @type {Set<string>}
      * @memberof VoucherCommand
      */
-    packageIds?: Array<string>;
+    packageIds?: Set<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof VoucherCommand
+     */
+    reason: string;
 }
 
 
@@ -125,6 +131,7 @@ export function instanceOfVoucherCommand(value: object): value is VoucherCommand
     if (!('discountType' in value) || value['discountType'] === undefined) return false;
     if (!('discountValue' in value) || value['discountValue'] === undefined) return false;
     if (!('activeFrom' in value) || value['activeFrom'] === undefined) return false;
+    if (!('reason' in value) || value['reason'] === undefined) return false;
     return true;
 }
 
@@ -151,7 +158,8 @@ export function VoucherCommandFromJSONTyped(json: any, ignoreDiscriminator: bool
         'perCustomerUsageLimit': json['perCustomerUsageLimit'] == null ? undefined : json['perCustomerUsageLimit'],
         'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'classTypeId': json['classTypeId'] == null ? undefined : json['classTypeId'],
-        'packageIds': json['packageIds'] == null ? undefined : json['packageIds'],
+        'packageIds': json['packageIds'] == null ? undefined : new Set(json['packageIds']),
+        'reason': json['reason'],
     };
 }
 
@@ -179,7 +187,8 @@ export function VoucherCommandToJSONTyped(value?: VoucherCommand | null, ignoreD
         'perCustomerUsageLimit': value['perCustomerUsageLimit'],
         'branchId': value['branchId'],
         'classTypeId': value['classTypeId'],
-        'packageIds': value['packageIds'],
+        'packageIds': value['packageIds'] == null ? undefined : Array.from(value['packageIds'] as Set<any>),
+        'reason': value['reason'],
     };
 }
 

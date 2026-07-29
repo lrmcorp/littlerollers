@@ -26,6 +26,7 @@ Name | Type | Description | Notes
 **packageIds** | **BuiltList&lt;String&gt;** |  | [optional] 
 **packages** | [**BuiltList&lt;VoucherPackagesInner&gt;**](VoucherPackagesInner.md) |  | [optional] 
 **redeemedCount** | **int** |  | [optional] 
+**auditActivity** | [**BuiltList&lt;SafeAuditActivity&gt;**](SafeAuditActivity.md) |  | [optional] 
 **version** | **int** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

@@ -2,7 +2,11 @@ import type { SeedContext } from './context';
 
 export async function seedVouchers(
   ctx: SeedContext,
-  master: { branches: Record<string, string>; packages: Record<string, string> },
+  master: {
+    branches: Record<string, string>;
+    classTypes: Record<string, string>;
+    packages: Record<string, string>;
+  },
   users: Record<string, string>,
 ) {
   if (ctx.profile === 'minimal') return;
@@ -24,6 +28,7 @@ export async function seedVouchers(
     totalUsageLimit?: number;
     perCustomerUsageLimit?: number;
     branchId?: string;
+    classTypeId?: string;
     packageIds: string[];
   }> = [
     {
@@ -72,6 +77,19 @@ export async function seedVouchers(
       minimumPurchaseRp: 1_000_000,
       activeFrom: ctx.at(-5),
       activeUntil: ctx.at(45),
+      packageIds: [],
+    },
+    {
+      key: 'mat-class-type',
+      code: 'MATCLASS',
+      name: 'Voucher khusus Mat Pilates',
+      status: 'ACTIVE' as const,
+      discountType: 'PERCENTAGE' as const,
+      discountValue: 12,
+      activeFrom: ctx.at(-5),
+      activeUntil: ctx.at(45),
+      branchId: master.branches['DD-JKT'],
+      classTypeId: master.classTypes['DD-JKT:MAT'],
       packageIds: [],
     },
     {
@@ -125,6 +143,7 @@ export async function seedVouchers(
         activeFrom: item.activeFrom,
         activeUntil: item.activeUntil,
         branchId: item.branchId ?? null,
+        classTypeId: item.classTypeId ?? null,
         totalUsageLimit: item.totalUsageLimit ?? null,
         perCustomerUsageLimit: item.perCustomerUsageLimit ?? null,
       },
@@ -141,6 +160,7 @@ export async function seedVouchers(
         activeFrom: item.activeFrom,
         activeUntil: item.activeUntil,
         branchId: item.branchId ?? null,
+        classTypeId: item.classTypeId ?? null,
         totalUsageLimit: item.totalUsageLimit ?? null,
         perCustomerUsageLimit: item.perCustomerUsageLimit ?? null,
         createdById: creatorId,

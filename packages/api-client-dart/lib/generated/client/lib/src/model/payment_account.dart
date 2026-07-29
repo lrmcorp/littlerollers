@@ -20,8 +20,8 @@ part 'payment_account.g.dart';
 /// * [paymentWindowHours] 
 /// * [active] 
 /// * [version] 
-@BuiltValue()
-abstract class PaymentAccount implements Built<PaymentAccount, PaymentAccountBuilder> {
+@BuiltValue(instantiable: false)
+abstract class PaymentAccount  {
   @BuiltValueField(wireName: r'id')
   String get id;
 
@@ -49,20 +49,13 @@ abstract class PaymentAccount implements Built<PaymentAccount, PaymentAccountBui
   @BuiltValueField(wireName: r'version')
   int get version;
 
-  PaymentAccount._();
-
-  factory PaymentAccount([void updates(PaymentAccountBuilder b)]) = _$PaymentAccount;
-
-  @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(PaymentAccountBuilder b) => b;
-
   @BuiltValueSerializer(custom: true)
   static Serializer<PaymentAccount> get serializer => _$PaymentAccountSerializer();
 }
 
 class _$PaymentAccountSerializer implements PrimitiveSerializer<PaymentAccount> {
   @override
-  final Iterable<Type> types = const [PaymentAccount, _$PaymentAccount];
+  final Iterable<Type> types = const [PaymentAccount];
 
   @override
   final String wireName = r'PaymentAccount';
@@ -126,6 +119,46 @@ class _$PaymentAccountSerializer implements PrimitiveSerializer<PaymentAccount> 
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+  }
+
+  @override
+  PaymentAccount deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.deserialize(serialized, specifiedType: FullType($PaymentAccount)) as $PaymentAccount;
+  }
+}
+
+/// a concrete implementation of [PaymentAccount], since [PaymentAccount] is not instantiable
+@BuiltValue(instantiable: true)
+abstract class $PaymentAccount implements PaymentAccount, Built<$PaymentAccount, $PaymentAccountBuilder> {
+  $PaymentAccount._();
+
+  factory $PaymentAccount([void Function($PaymentAccountBuilder)? updates]) = _$$PaymentAccount;
+
+  @BuiltValueHook(initializeBuilder: true)
+  static void _defaults($PaymentAccountBuilder b) => b;
+
+  @BuiltValueSerializer(custom: true)
+  static Serializer<$PaymentAccount> get serializer => _$$PaymentAccountSerializer();
+}
+
+class _$$PaymentAccountSerializer implements PrimitiveSerializer<$PaymentAccount> {
+  @override
+  final Iterable<Type> types = const [$PaymentAccount, _$$PaymentAccount];
+
+  @override
+  final String wireName = r'$PaymentAccount';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    $PaymentAccount object, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.serialize(object, specifiedType: FullType(PaymentAccount))!;
   }
 
   void _deserializeProperties(
@@ -212,12 +245,12 @@ class _$PaymentAccountSerializer implements PrimitiveSerializer<PaymentAccount> 
   }
 
   @override
-  PaymentAccount deserialize(
+  $PaymentAccount deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = PaymentAccountBuilder();
+    final result = $PaymentAccountBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

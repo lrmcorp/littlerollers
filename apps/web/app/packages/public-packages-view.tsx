@@ -16,7 +16,6 @@ import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicStatePanel } from '../components/public/public-page';
 import {
   publicContainer,
-  publicField,
   publicPrimaryButton,
   publicSecondaryButton,
 } from '../components/public/public-styles';
@@ -28,6 +27,7 @@ import {
   type PackageAudienceState,
 } from '../session-audience';
 import { useSessionContext } from '../session-context';
+import { SearchSelect } from '../components/forms';
 
 const packageBenefits = [
   'Harga terbaru dan transparan',
@@ -306,27 +306,20 @@ export function PublicPackagesView({
             )}
 
             <div className="mt-3 grid gap-3 rounded-dd-md border border-dd-line bg-white p-3 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <label className="grid gap-2 text-sm font-semibold sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4">
-                Tipe kelas
-                <select
-                  className={publicField}
-                  aria-label="Tipe kelas"
+              <div className="min-w-0">
+                <SearchSelect
+                  label="Tipe kelas"
+                  compact
                   value={classTypeId}
                   disabled={!branchId}
-                  onChange={(event) => {
-                    const selected = event.target.value;
+                  placeholder="Semua tipe kelas"
+                  options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+                  onChange={(selected) => {
                     setClassTypeId(selected);
                     syncCatalogQuery(branchId, selected);
                   }}
-                >
-                  <option value="">Semua tipe kelas</option>
-                  {classTypes.map((item) => (
-                    <option value={item.id} key={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
               {classTypeId && (
                 <button
                   type="button"

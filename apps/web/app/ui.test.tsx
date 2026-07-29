@@ -1,15 +1,7 @@
 import { render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
-import {
-  ConfirmationPanel,
-  DataRegion,
-  EmptyState,
-  Feedback,
-  PageHeader,
-  Skeleton,
-  StatusBadge,
-} from './ui';
+import { DataRegion, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from './ui';
 
 describe('frontend design primitives', () => {
   it('render semantic states without accessibility violations', async () => {
@@ -24,9 +16,6 @@ describe('frontend design primitives', () => {
         <Feedback kind="error">Sesi berakhir. Silakan masuk kembali.</Feedback>
         <EmptyState title="Belum ada data" description="Ubah filter atau buat data baru." />
         <Skeleton />
-        <ConfirmationPanel title="Konfirmasi perubahan">
-          Perubahan berdampak pada satu sesi.
-        </ConfirmationPanel>
         <DataRegion label="Daftar contoh">
           <table>
             <tbody>

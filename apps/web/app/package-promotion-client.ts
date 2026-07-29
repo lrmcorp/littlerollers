@@ -30,9 +30,43 @@ export type InternalPackageRecord = {
   effectiveFrom: string;
   effectiveUntil: string | null;
   version: number;
+  effectiveState?: 'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'INACTIVE';
+  livePromotion?: boolean;
+  _count?: { purchases: number; customerPackages: number };
   branch?: { id: string; code: string; name: string };
   classType?: { id: string; code: string; name: string };
   promotions?: PackagePromotionRecord[];
+  revisions?: Array<{
+    id: string;
+    name: string;
+    sessionCount: number;
+    durationDays: number;
+    priceRp: number;
+    status: 'ACTIVE' | 'INACTIVE';
+    effectiveFrom: string;
+    effectiveUntil: string | null;
+    version: number;
+    effectiveState?: 'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'INACTIVE';
+  }>;
+  auditActivity?: Array<{ id: string; action: string; occurredAt: string }>;
+  publicProfile?: Record<string, unknown> | null;
+};
+
+export type PackageManagementPage = {
+  items: InternalPackageRecord[];
+  summary: Partial<Record<'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'INACTIVE', number>>;
+  page: { hasMore: boolean; nextCursor: string | null };
+};
+
+export type PackageManagementFilters = {
+  branchId?: string;
+  classTypeId?: string;
+  status?: string;
+  effectiveState?: string;
+  q?: string;
+  from?: string;
+  until?: string;
+  cursor?: string;
 };
 
 export type PromotionOrderPage = {
@@ -47,6 +81,10 @@ export type PromotionOrderPage = {
     user: { displayName: string };
     branch: { id: string; name: string };
   }>;
+  page: { hasMore: boolean; nextCursor: string | null };
+};
+export type PackagePromotionPage = {
+  items: PackagePromotionRecord[];
   page: { hasMore: boolean; nextCursor: string | null };
 };
 
@@ -66,15 +104,20 @@ const headers = () => ({
 });
 
 export const browserPackagePromotionClient = {
-  async packages(branchId?: string) {
+  async packages(filters: PackageManagementFilters = {}) {
     const query = new URLSearchParams();
-    if (branchId) query.set('branchId', branchId);
-    return request<{ items: InternalPackageRecord[] }>(
-      `/packages${query.size ? `?${query.toString()}` : ''}`,
-    );
+    for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+    return request<PackageManagementPage>(`/packages${query.size ? `?${query.toString()}` : ''}`);
   },
   detail(id: string) {
     return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}`);
+  },
+  promotions(packageId: string, cursor?: string) {
+    const query = new URLSearchParams();
+    if (cursor) query.set('cursor', cursor);
+    return request<PackagePromotionPage>(
+      `/packages/${encodeURIComponent(packageId)}/promotions${query.size ? `?${query}` : ''}`,
+    );
   },
   create(packageId: string, input: Record<string, unknown>) {
     return request<PackagePromotionRecord>(
@@ -108,5 +151,38 @@ export const browserPackagePromotionClient = {
     return request<PromotionOrderPage>(
       `/package-promotions/${encodeURIComponent(id)}/orders${query.size ? `?${query}` : ''}`,
     );
+  },
+  createPackage(input: Record<string, unknown>) {
+    return request<InternalPackageRecord>('/packages', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(input),
+    });
+  },
+  updatePackage(id: string, input: Record<string, unknown>) {
+    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify(input),
+    });
+  },
+  revisePackage(id: string, input: Record<string, unknown>) {
+    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/revisions`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(input),
+    });
+  },
+  transitionPackage(
+    id: string,
+    action: 'deactivate' | 'reactivate',
+    expectedVersion: number,
+    reason: string,
+  ) {
+    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/${action}`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ expectedVersion, reason }),
+    });
   },
 };

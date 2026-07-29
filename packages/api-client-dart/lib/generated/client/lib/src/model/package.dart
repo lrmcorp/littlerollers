@@ -22,6 +22,8 @@ part 'package.g.dart';
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [status] 
+/// * [effectiveState] 
+/// * [livePromotion] 
 /// * [effectiveFrom] 
 /// * [effectiveUntil] 
 /// * [version] 
@@ -54,6 +56,13 @@ abstract class Package  {
   @BuiltValueField(wireName: r'status')
   PackageStatusEnum get status;
   // enum statusEnum {  ACTIVE,  INACTIVE,  };
+
+  @BuiltValueField(wireName: r'effectiveState')
+  PackageEffectiveStateEnum? get effectiveState;
+  // enum effectiveStateEnum {  ACTIVE,  SCHEDULED,  EXPIRED,  INACTIVE,  };
+
+  @BuiltValueField(wireName: r'livePromotion')
+  bool? get livePromotion;
 
   @BuiltValueField(wireName: r'effectiveFrom')
   Date get effectiveFrom;
@@ -125,6 +134,20 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
       object.status,
       specifiedType: const FullType(PackageStatusEnum),
     );
+    if (object.effectiveState != null) {
+      yield r'effectiveState';
+      yield serializers.serialize(
+        object.effectiveState,
+        specifiedType: const FullType(PackageEffectiveStateEnum),
+      );
+    }
+    if (object.livePromotion != null) {
+      yield r'livePromotion';
+      yield serializers.serialize(
+        object.livePromotion,
+        specifiedType: const FullType(bool),
+      );
+    }
     yield r'effectiveFrom';
     yield serializers.serialize(
       object.effectiveFrom,
@@ -268,6 +291,20 @@ class _$$PackageSerializer implements PrimitiveSerializer<$Package> {
           ) as PackageStatusEnum;
           result.status = valueDes;
           break;
+        case r'effectiveState':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PackageEffectiveStateEnum),
+          ) as PackageEffectiveStateEnum;
+          result.effectiveState = valueDes;
+          break;
+        case r'livePromotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.livePromotion = valueDes;
+          break;
         case r'effectiveFrom':
           final valueDes = serializers.deserialize(
             value,
@@ -332,5 +369,24 @@ class PackageStatusEnum extends EnumClass {
 
   static BuiltSet<PackageStatusEnum> get values => _$packageStatusEnumValues;
   static PackageStatusEnum valueOf(String name) => _$packageStatusEnumValueOf(name);
+}
+
+class PackageEffectiveStateEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'ACTIVE')
+  static const PackageEffectiveStateEnum ACTIVE = _$packageEffectiveStateEnum_ACTIVE;
+  @BuiltValueEnumConst(wireName: r'SCHEDULED')
+  static const PackageEffectiveStateEnum SCHEDULED = _$packageEffectiveStateEnum_SCHEDULED;
+  @BuiltValueEnumConst(wireName: r'EXPIRED')
+  static const PackageEffectiveStateEnum EXPIRED = _$packageEffectiveStateEnum_EXPIRED;
+  @BuiltValueEnumConst(wireName: r'INACTIVE')
+  static const PackageEffectiveStateEnum INACTIVE = _$packageEffectiveStateEnum_INACTIVE;
+
+  static Serializer<PackageEffectiveStateEnum> get serializer => _$packageEffectiveStateEnumSerializer;
+
+  const PackageEffectiveStateEnum._(String name): super(name);
+
+  static BuiltSet<PackageEffectiveStateEnum> get values => _$packageEffectiveStateEnumValues;
+  static PackageEffectiveStateEnum valueOf(String name) => _$packageEffectiveStateEnumValueOf(name);
 }
 

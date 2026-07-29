@@ -5,14 +5,23 @@ import { Plus, TicketPercent } from 'lucide-react';
 import { browserVoucherClient, type VoucherRecord } from '../voucher-client';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
-import { Drawer } from '../components/admin/admin-ui';
-import { TextInput, SelectInput } from '../components/forms';
-import { AlertBanner } from '../components/app-feedback';
-import { DataTable, Badge, Panel, StatCard } from '../components/admin/admin-ui';
+import {
+  MultiSearchSelect,
+  SearchSelect,
+  Textarea,
+  TextInput,
+  SelectInput,
+} from '../components/forms';
+import { AlertBanner, Drawer } from '../components/app-feedback';
+import { DataTable, Badge, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
 import { EmptyState, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
 import { useAppFeedback } from '../components/app-feedback';
-import { browserPurchaseClient, type PurchasePackage } from '../purchase-client';
+import {
+  browserPackagePromotionClient,
+  type InternalPackageRecord,
+} from '../package-promotion-client';
+import { browserMasterClient } from '../master-client';
 
 const labels: Record<string, string> = {
   DRAFT: 'Draft',
@@ -35,12 +44,18 @@ export function VouchersView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [createDirty, setCreateDirty] = useState(false);
   const [summary, setSummary] = useState<Partial<Record<VoucherRecord['status'], number>>>({});
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [packageOptions, setPackageOptions] = useState<PurchasePackage[]>([]);
+  const [cursor, setCursor] = useState<string>();
+  const [cursorHistory, setCursorHistory] = useState<Array<string | undefined>>([]);
+  const [packageOptions, setPackageOptions] = useState<InternalPackageRecord[]>([]);
+  const [classTypes, setClassTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     code: '',
     name: '',
+    description: '',
     discountType: 'PERCENTAGE',
     discountValue: '10',
     maxDiscountRp: '',
@@ -50,14 +65,30 @@ export function VouchersView() {
     totalUsageLimit: '',
     perCustomerUsageLimit: '',
     branchId: '',
-    packageId: '',
+    classTypeId: '',
+    reason: '',
   });
+  const confirmDiscardCreate = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan pembuatan voucher?',
+      message: 'Input voucher yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang input',
+    });
+  const closeCreate = async () => {
+    if (!createDirty || (await confirmDiscardCreate())) {
+      setCreateDirty(false);
+      setCreateOpen(false);
+    }
+  };
   useEffect(() => {
     if (!createOpen || !canManage) return;
     const branchIds = form.branchId
       ? [form.branchId]
       : (session?.session?.branches ?? []).map((branch) => branch.id);
-    void Promise.all(branchIds.map((branchId) => browserPurchaseClient.list(branchId)))
+    void Promise.all(
+      branchIds.map((branchId) => browserPackagePromotionClient.packages({ branchId })),
+    )
       .then((pages) => setPackageOptions(pages.flatMap((page) => page.items)))
       .catch(() => setPackageOptions([]));
   }, [canManage, createOpen, form.branchId, session?.session?.branches]);
@@ -68,7 +99,7 @@ export function VouchersView() {
     setError('');
     try {
       const page = await browserVoucherClient.list({ q, status, cursor });
-      setItems((current) => (cursor ? [...current, ...page.items] : page.items));
+      setItems(page.items);
       setSummary(page.summary ?? {});
       setNextCursor(page.page.nextCursor);
     } catch {
@@ -77,7 +108,7 @@ export function VouchersView() {
       setBusy(false);
     }
   };
-  useEffect(() => void load(), [canRead, q, status]);
+  useEffect(() => void load(cursor), [canRead, cursor, q, status]);
 
   if (!session || session.status === 'loading') return <Skeleton label="Memuat voucher" />;
   if (!canRead)
@@ -104,8 +135,11 @@ export function VouchersView() {
           </p>
         </div>
         {canManage && (
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" /> Buat voucher
+          <Button
+            leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+            onClick={() => setCreateOpen(true)}
+          >
+            Buat voucher
           </Button>
         )}
       </header>
@@ -115,7 +149,11 @@ export function VouchersView() {
             key={value}
             type="button"
             className="text-left"
-            onClick={() => setStatus(status === value ? '' : value)}
+            onClick={() => {
+              setStatus(status === value ? '' : value);
+              setCursor(undefined);
+              setCursorHistory([]);
+            }}
           >
             <StatCard
               label={labels[value] ?? value}
@@ -129,13 +167,21 @@ export function VouchersView() {
         <TextInput
           label="Cari voucher"
           value={q}
-          onChange={(event) => setQ(event.target.value)}
+          onChange={(event) => {
+            setQ(event.target.value);
+            setCursor(undefined);
+            setCursorHistory([]);
+          }}
           placeholder="Kode atau nama voucher"
         />
         <SelectInput
           label="Status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setCursor(undefined);
+            setCursorHistory([]);
+          }}
         >
           <option value="">Semua status</option>
           {Object.entries(labels).map(([value, label]) => (
@@ -228,23 +274,72 @@ export function VouchersView() {
           rowDescription={(item) => `Buka detail voucher ${item.code}`}
         />
       )}
-      {nextCursor && (
-        <div className="flex justify-center">
-          <Button variant="secondary" disabled={busy} onClick={() => void load(nextCursor)}>
-            Muat voucher berikutnya
-          </Button>
-        </div>
-      )}
-      <Drawer open={createOpen} title="Buat voucher" onClose={() => setCreateOpen(false)}>
+      <Pagination
+        hasPrevious={cursorHistory.length > 0}
+        hasNext={Boolean(nextCursor)}
+        totalLabel={`Halaman voucher ${cursorHistory.length + 1}`}
+        onPrevious={() => {
+          const previous = cursorHistory.at(-1);
+          setCursorHistory((current) => current.slice(0, -1));
+          setCursor(previous);
+        }}
+        onNext={() => {
+          if (!nextCursor) return;
+          setCursorHistory((current) => [...current, cursor]);
+          setCursor(nextCursor);
+        }}
+      />
+      <Drawer
+        open={createOpen}
+        title="Buat voucher"
+        onClose={() => {
+          setCreateDirty(false);
+          setCreateOpen(false);
+        }}
+        busy={busy}
+        dirty={createDirty}
+        onDirtyClose={confirmDiscardCreate}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void closeCreate()}
+              disabled={busy}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="voucher-create-form"
+              leadingIcon={<TicketPercent className="size-4" aria-hidden="true" />}
+              loading={busy}
+            >
+              Simpan voucher
+            </Button>
+          </div>
+        }
+      >
         <form
+          id="voucher-create-form"
           className="grid gap-4"
+          onChange={() => setCreateDirty(true)}
           onSubmit={async (event) => {
             event.preventDefault();
+            const accepted = await feedback.confirm({
+              tone: 'warning',
+              title: 'Buat voucher baru?',
+              message:
+                'Voucher disimpan sebagai draft. Scope cabang, class type, dan paket akan menentukan siapa yang dapat menggunakannya.',
+              confirmLabel: 'Buat voucher',
+            });
+            if (!accepted) return;
             setBusy(true);
             try {
               await browserVoucherClient.create({
                 code: form.code,
                 name: form.name,
+                description: form.description,
                 discountType: form.discountType,
                 discountValue: Number(form.discountValue),
                 maxDiscountRp: form.maxDiscountRp ? Number(form.maxDiscountRp) : null,
@@ -256,8 +351,11 @@ export function VouchersView() {
                   ? Number(form.perCustomerUsageLimit)
                   : null,
                 branchId: form.branchId || null,
-                packageIds: form.packageId ? [form.packageId] : [],
+                classTypeId: form.classTypeId || null,
+                packageIds: selectedPackageIds,
+                reason: form.reason,
               });
+              setCreateDirty(false);
               setCreateOpen(false);
               feedback.showToast({
                 tone: 'success',
@@ -283,6 +381,12 @@ export function VouchersView() {
             required
             value={form.name}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
+          />
+          <Textarea
+            label="Deskripsi"
+            value={form.description}
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            description="Penjelasan internal yang aman dan tidak memuat data customer."
           />
           <SelectInput
             label="Tipe diskon"
@@ -329,31 +433,43 @@ export function VouchersView() {
             onChange={(event) => setForm({ ...form, activeUntil: event.target.value })}
             description="Kosongkan jika tidak memiliki batas akhir."
           />
-          <SelectInput
+          <SearchSelect
             label="Scope cabang"
             value={form.branchId}
-            onChange={(event) => setForm({ ...form, branchId: event.target.value })}
-          >
-            <option value="">Semua cabang</option>
-            {(session.session?.branches ?? []).map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </SelectInput>
-          <SelectInput
+            placeholder="Semua cabang"
+            options={(session.session?.branches ?? []).map((branch) => ({
+              id: branch.id,
+              label: branch.name,
+              description: branch.code,
+            }))}
+            onChange={(branchId) => {
+              setForm({ ...form, branchId, classTypeId: '' });
+              setSelectedPackageIds([]);
+              void (branchId
+                ? browserMasterClient.listClassTypes(branchId).then(setClassTypes)
+                : Promise.resolve(setClassTypes([])));
+            }}
+          />
+          <SearchSelect
+            label="Scope tipe kelas"
+            value={form.classTypeId}
+            placeholder="Semua tipe kelas"
+            options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+            onChange={(classTypeId) => setForm({ ...form, classTypeId })}
+            description="Opsional. Kosong berarti seluruh tipe kelas dalam scope."
+          />
+          <MultiSearchSelect
             label="Scope paket"
-            value={form.packageId}
-            onChange={(event) => setForm({ ...form, packageId: event.target.value })}
-            description="Pilih satu paket atau biarkan untuk seluruh paket dalam scope."
-          >
-            <option value="">Semua paket</option>
-            {packageOptions.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </SelectInput>
+            description="Tanpa pilihan berarti voucher berlaku untuk semua paket dalam scope."
+            placeholder="Cari dan pilih paket"
+            value={selectedPackageIds}
+            options={packageOptions.map((item) => ({
+              id: item.id,
+              label: item.name,
+              description: item.branch?.name,
+            }))}
+            onChange={(ids) => setSelectedPackageIds(ids)}
+          />
           <TextInput
             label="Kuota total"
             type="number"
@@ -368,9 +484,13 @@ export function VouchersView() {
             value={form.perCustomerUsageLimit}
             onChange={(event) => setForm({ ...form, perCustomerUsageLimit: event.target.value })}
           />
-          <Button type="submit" disabled={busy}>
-            <TicketPercent className="size-4" /> Simpan voucher
-          </Button>
+          <TextInput
+            label="Alasan pembuatan"
+            minLength={3}
+            required
+            value={form.reason}
+            onChange={(event) => setForm({ ...form, reason: event.target.value })}
+          />
         </form>
       </Drawer>
     </section>

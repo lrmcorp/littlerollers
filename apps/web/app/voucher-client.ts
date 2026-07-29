@@ -19,6 +19,7 @@ export type VoucherRecord = {
   classType: { id: string; name: string } | null;
   packageIds: string[];
   packages?: Array<{ id: string; name: string }>;
+  auditActivity?: Array<{ id: string; action: string; occurredAt: string }>;
   version: number;
 };
 

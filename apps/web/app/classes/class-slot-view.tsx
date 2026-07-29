@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -20,7 +20,9 @@ import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { CreatePanel, DetailPanel } from './class-slot-panels';
 import { classStatusTone, statusLabels } from './class-slot-presenters';
-import { controlClassName } from '../components/forms';
+import { SearchSelect, SelectInput } from '../components/forms';
+import { Button } from '../components/actions';
+import { Drawer, useAppFeedback } from '../components/app-feedback';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
@@ -46,6 +48,7 @@ export function ClassSlotView({
   capabilitiesOverride?: readonly string[];
 }) {
   const sessionContext = useSessionContext();
+  const feedback = useAppFeedback();
   const branch = branchOverride ?? sessionContext?.activeBranch ?? null;
   const sessionBranches = sessionContext?.session?.branches;
   const branches = useMemo(
@@ -72,8 +75,7 @@ export function ClassSlotView({
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const closeButton = useRef<HTMLButtonElement>(null);
-  const opener = useRef<HTMLElement | null>(null);
+  const [panelDirty, setPanelDirty] = useState(false);
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
@@ -119,17 +121,13 @@ export function ClassSlotView({
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (panel) closeButton.current?.focus();
-  }, [panel]);
-
-  const openPanel = (next: NonNullable<Panel>, trigger: HTMLElement) => {
-    opener.current = trigger;
+  const openPanel = (next: NonNullable<Panel>) => {
+    setPanelDirty(false);
     setPanel(next);
   };
   const closePanel = () => {
+    setPanelDirty(false);
     setPanel(null);
-    window.setTimeout(() => opener.current?.focus(), 0);
   };
   const run = async (action: () => Promise<ClassSlot>, success: string) => {
     setBusy(true);
@@ -209,7 +207,7 @@ export function ClassSlotView({
     <button
       className={`calendar-slot calendar-slot-${slot.status.toLowerCase()}`}
       key={slot.id}
-      onClick={(event) => openPanel({ kind: 'detail', slot }, event.currentTarget)}
+      onClick={() => openPanel({ kind: 'detail', slot })}
     >
       <span>
         {formatBranchTime(slot.startAt, slot.timezone)}–
@@ -257,73 +255,60 @@ export function ClassSlotView({
 
       <div className="calendar-toolbar" aria-label="Kontrol timetable">
         <div className="calendar-navigation">
-          <button className="button-quiet" onClick={() => setReference(shiftWeek(reference, -1))}>
+          <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, -1))}>
             ← Minggu sebelumnya
-          </button>
-          <button className="button-quiet" onClick={() => setReference(new Date())}>
+          </Button>
+          <Button variant="secondary" onClick={() => setReference(new Date())}>
             Hari ini
-          </button>
-          <button className="button-quiet" onClick={() => setReference(shiftWeek(reference, 1))}>
+          </Button>
+          <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, 1))}>
             Minggu berikutnya →
-          </button>
+          </Button>
         </div>
         <strong aria-live="polite">{week?.label}</strong>
-        <button
+        <Button
           disabled={!canOperate}
           title={globalMode ? 'Pilih cabang aktif untuk membuat kelas' : undefined}
-          onClick={(event) => openPanel({ kind: 'create' }, event.currentTarget)}
+          onClick={() => openPanel({ kind: 'create' })}
         >
           Buat kelas
-        </button>
+        </Button>
       </div>
 
       <div className="calendar-filters" aria-label="Filter timetable">
-        <label>
-          Status
-          <select
-            className={controlClassName}
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            {statuses.map((status) => (
-              <option value={status} key={status}>
-                {status === 'ALL' ? 'Semua status' : statusLabels[status]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Class type
-          <select
-            className={controlClassName}
-            value={classTypeFilter}
-            onChange={(event) => setClassTypeFilter(event.target.value)}
-          >
-            <option value="">Semua class type</option>
-            {classTypes.map((item) => (
-              <option value={item.id} key={item.id}>
-                {globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}
-                {item.code} · {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Instructor
-          <select
-            className={controlClassName}
-            value={instructorFilter}
-            onChange={(event) => setInstructorFilter(event.target.value)}
-          >
-            <option value="">Semua instructor</option>
-            {instructors.map((item) => (
-              <option value={item.id} key={item.id}>
-                {globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}
-                {item.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectInput
+          label="Status"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+        >
+          {statuses.map((status) => (
+            <option value={status} key={status}>
+              {status === 'ALL' ? 'Semua status' : statusLabels[status]}
+            </option>
+          ))}
+        </SelectInput>
+        <SearchSelect
+          label="Tipe kelas"
+          value={classTypeFilter}
+          placeholder="Semua tipe kelas"
+          options={classTypes.map((item) => ({
+            id: item.id,
+            label: item.name,
+            description: `${globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}${item.code}`,
+          }))}
+          onChange={setClassTypeFilter}
+        />
+        <SearchSelect
+          label="Instruktur"
+          value={instructorFilter}
+          placeholder="Semua instruktur"
+          options={instructors.map((item) => ({
+            id: item.id,
+            label: item.displayName,
+            description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
+          }))}
+          onChange={setInstructorFilter}
+        />
       </div>
 
       {busy && <Skeleton label="Memuat timetable kelas" />}
@@ -364,79 +349,159 @@ export function ClassSlotView({
         </>
       )}
 
-      {panel && (
-        <div
-          className="fixed inset-0 z-[80] bg-dd-sidebar/50 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closePanel();
-          }}
-        >
-          <div
-            className="ml-auto h-full w-full max-w-xl overflow-y-auto border-l border-dd-line bg-dd-surface p-6 shadow-dd-float"
-            aria-label={panel.kind === 'create' ? 'Buat kelas' : 'Detail kelas'}
-            aria-modal="true"
-            role="dialog"
-          >
-            <div className="mb-6 flex items-start justify-between gap-4 border-b border-dd-line pb-4">
-              <div>
-                <p className="eyebrow">
-                  {panel.kind === 'detail' ? branchName(panel.slot.branchId) : branch?.name} ·{' '}
-                  {panel.kind === 'detail' ? panel.slot.timezone : branch?.timezone}
-                </p>
-                <h2>
-                  {panel.kind === 'create'
-                    ? 'Buat draft kelas'
-                    : classTypeName(panel.slot.classTypeId)}
-                </h2>
-              </div>
-              <button ref={closeButton} className="button-quiet" onClick={closePanel}>
-                Tutup
-              </button>
+      <Drawer
+        open={Boolean(panel)}
+        title={
+          panel?.kind === 'create'
+            ? 'Buat draft kelas'
+            : panel?.kind === 'detail'
+              ? classTypeName(panel.slot.classTypeId)
+              : 'Kelas'
+        }
+        description={
+          panel
+            ? `${panel.kind === 'detail' ? branchName(panel.slot.branchId) : branch?.name} · ${
+                panel.kind === 'detail' ? panel.slot.timezone : branch?.timezone
+              }`
+            : undefined
+        }
+        busy={busy}
+        dirty={panel?.kind === 'create' && panelDirty}
+        onDirtyClose={() =>
+          feedback.confirm({
+            tone: 'warning',
+            title: 'Batalkan pembuatan kelas?',
+            message: 'Jadwal yang belum disimpan akan hilang.',
+            confirmLabel: 'Buang input',
+          })
+        }
+        onClose={closePanel}
+        footer={
+          panel?.kind === 'create' ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void (async () => {
+                    if (
+                      !panelDirty ||
+                      (await feedback.confirm({
+                        tone: 'warning',
+                        title: 'Batalkan pembuatan kelas?',
+                        message: 'Jadwal yang belum disimpan akan hilang.',
+                        confirmLabel: 'Buang input',
+                      }))
+                    )
+                      closePanel();
+                  })()
+                }
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                form="class-slot-create-form"
+                loading={busy}
+                disabled={classTypes.length === 0}
+              >
+                Buat draft
+              </Button>
             </div>
-            {panel.kind === 'create' ? (
-              <CreatePanel
-                branchId={branch!.id}
-                timezone={branch!.timezone}
-                classTypes={classTypes}
-                instructors={instructors}
-                busy={busy}
-                onCreate={async (input) => {
-                  await run(() => client.create(input), 'Draft kelas berhasil dibuat.');
-                  closePanel();
-                }}
-              />
-            ) : (
-              <DetailPanel
-                slot={panel.slot}
-                classTypeName={classTypeName(panel.slot.classTypeId)}
-                instructorName={instructorName(panel.slot.instructorUserId)}
-                instructors={instructors}
-                canManage={canOperate}
-                canManageAttendance={canOperateAttendance}
-                busy={busy}
-                onAssign={(instructorId) =>
-                  run(
-                    () => client.assign(panel.slot.id, instructorId, panel.slot.version),
-                    'Instructor berhasil ditetapkan.',
-                  )
-                }
-                onPublish={() =>
-                  run(
-                    () => client.publish(panel.slot.id, panel.slot.version),
-                    'Kelas berhasil dipublikasikan.',
-                  )
-                }
-                onCancel={(reason) =>
-                  run(
-                    () => client.cancel(panel.slot.id, reason, panel.slot.version),
-                    'Kelas berhasil dibatalkan.',
-                  )
-                }
-              />
-            )}
-          </div>
-        </div>
-      )}
+          ) : undefined
+        }
+      >
+        {panel?.kind === 'create' && branch ? (
+          <CreatePanel
+            branchId={branch.id}
+            timezone={branch.timezone}
+            classTypes={classTypes}
+            instructors={instructors}
+            busy={busy}
+            onDirty={() => setPanelDirty(true)}
+            onCreate={async (input) => {
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Buat draft kelas?',
+                message: 'Jadwal akan dibuat sebagai draft pada cabang aktif.',
+                confirmLabel: 'Buat draft',
+              });
+              if (!accepted) return;
+              await run(() => client.create(input), 'Draft kelas berhasil dibuat.');
+              closePanel();
+            }}
+          />
+        ) : panel?.kind === 'detail' ? (
+          <DetailPanel
+            slot={panel.slot}
+            classTypeName={classTypeName(panel.slot.classTypeId)}
+            instructorName={instructorName(panel.slot.instructorUserId)}
+            classTypes={classTypes}
+            instructors={instructors}
+            canManage={canOperate}
+            canManageAttendance={canOperateAttendance}
+            busy={busy}
+            onAssign={async (instructorId) => {
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Tetapkan instruktur?',
+                message: 'Instruktur terpilih akan ditetapkan pada kelas ini.',
+                confirmLabel: 'Tetapkan',
+              });
+              if (accepted)
+                await run(
+                  () => client.assign(panel.slot.id, instructorId, panel.slot.version),
+                  'Instructor berhasil ditetapkan.',
+                );
+            }}
+            onUpdate={async (input) => {
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Simpan perubahan kelas?',
+                message:
+                  'Jadwal draft dan konfigurasi kapasitas akan dihitung ulang. Perubahan dicatat dalam audit.',
+                confirmLabel: 'Simpan perubahan',
+              });
+              if (accepted)
+                await run(
+                  () =>
+                    client.update(panel.slot.id, {
+                      ...input,
+                      expectedVersion: panel.slot.version,
+                    }),
+                  'Draft kelas berhasil diperbarui.',
+                );
+            }}
+            onPublish={async () => {
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Publikasikan kelas?',
+                message: 'Kelas akan tersedia pada katalog dan workflow booking.',
+                confirmLabel: 'Publikasikan',
+              });
+              if (accepted)
+                await run(
+                  () => client.publish(panel.slot.id, panel.slot.version),
+                  'Kelas berhasil dipublikasikan.',
+                );
+            }}
+            onCancel={async (reason) => {
+              const accepted = await feedback.confirm({
+                tone: 'danger',
+                title: 'Batalkan kelas?',
+                message: 'Reservasi aktif akan dilepaskan dan tindakan dicatat dalam audit.',
+                confirmLabel: 'Batalkan kelas',
+              });
+              if (accepted)
+                await run(
+                  () => client.cancel(panel.slot.id, reason, panel.slot.version),
+                  'Kelas berhasil dibatalkan.',
+                );
+            }}
+          />
+        ) : null}
+      </Drawer>
     </section>
   );
 }

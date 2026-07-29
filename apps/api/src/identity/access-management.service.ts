@@ -412,6 +412,7 @@ export class AccessManagementService {
     return this.execute(principal, `role:capabilities:${id}`, key, input, async (tx) => {
       const before = await tx.roleDefinition.findUnique({ where: { id }, include: roleInclude });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      if (before.system) throw new ApiProblem('PROTECTED_ROLE_CHANGE', HttpStatus.CONFLICT);
       const capabilityKeys = [...new Set(input.capabilityKeys)].sort();
       const definitions = await tx.capabilityDefinition.findMany({
         where: { key: { in: capabilityKeys }, active: true },

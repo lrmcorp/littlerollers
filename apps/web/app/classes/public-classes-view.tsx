@@ -19,6 +19,7 @@ import {
   publicSecondaryButton,
 } from '../components/public/public-styles';
 import { useSessionContext } from '../session-context';
+import { SearchSelect } from '../components/forms';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -230,30 +231,24 @@ export function PublicClassesView({
             )}
 
             <div className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
-              <label className="grid gap-2 text-sm font-semibold">
-                Studio
-                <select
-                  className={publicField}
-                  aria-label="Studio"
-                  value={branchId}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setBranchId(value);
-                    setSlots([]);
-                    setDay('');
-                    setClassType('');
-                    updateQuery({ branch: value, studio: '', date: '', classType: '' });
-                    if (value) void load(value);
-                  }}
-                >
-                  <option value="">Pilih studio</option>
-                  {branches.map((item) => (
-                    <option value={item.id} key={item.id}>
-                      {item.name} · {item.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchSelect
+                label="Studio"
+                value={branchId}
+                placeholder="Pilih studio"
+                options={branches.map((item) => ({
+                  id: item.id,
+                  label: item.name,
+                  description: item.code,
+                }))}
+                onChange={(value) => {
+                  setBranchId(value);
+                  setSlots([]);
+                  setDay('');
+                  setClassType('');
+                  updateQuery({ branch: value, studio: '', date: '', classType: '' });
+                  if (value) void load(value);
+                }}
+              />
               <label className="grid gap-2 text-sm font-semibold">
                 Tanggal
                 <input
@@ -268,26 +263,17 @@ export function PublicClassesView({
                   }}
                 />
               </label>
-              <label className="grid gap-2 text-sm font-semibold">
-                Tipe kelas
-                <select
-                  className={publicField}
-                  aria-label="Tipe kelas"
-                  value={classType}
-                  disabled={!branchId}
-                  onChange={(event) => {
-                    setClassType(event.target.value);
-                    updateQuery({ classType: event.target.value });
-                  }}
-                >
-                  <option value="">Semua tipe</option>
-                  {classTypes.map((item) => (
-                    <option value={item.id} key={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchSelect
+                label="Tipe kelas"
+                value={classType}
+                disabled={!branchId}
+                placeholder="Semua tipe"
+                options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+                onChange={(value) => {
+                  setClassType(value);
+                  updateQuery({ classType: value });
+                }}
+              />
               <button
                 className={publicSecondaryButton}
                 type="button"

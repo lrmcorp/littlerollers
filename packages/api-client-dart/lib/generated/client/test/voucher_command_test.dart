@@ -72,8 +72,13 @@ void main() {
       // TODO
     });
 
-    // BuiltList<String> packageIds
+    // BuiltSet<String> packageIds
     test('to test the property `packageIds`', () async {
+      // TODO
+    });
+
+    // String reason
+    test('to test the property `reason`', () async {
       // TODO
     });
 

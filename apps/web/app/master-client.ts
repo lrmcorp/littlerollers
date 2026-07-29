@@ -39,10 +39,23 @@ export interface MasterClient {
   listClassTypes(
     branchId: string,
   ): Promise<Array<{ id: string; code: string; name: string; active: boolean; version: number }>>;
-  createBranch(input: { code: string; name: string; timezone: string }): Promise<void>;
+  createBranch(input: {
+    code: string;
+    name: string;
+    timezone: string;
+    reason?: string;
+  }): Promise<void>;
   createClassType(input: { branchId: string; code: string; name: string }): Promise<void>;
+  updateClassType(
+    id: string,
+    input: { name: string; expectedVersion: number; reason: string },
+  ): Promise<void>;
   deactivateBranch(id: string, expectedVersion: number): Promise<void>;
   deactivateClassType(id: string, expectedVersion: number): Promise<void>;
+  reactivateClassType(
+    id: string,
+    input: { expectedVersion: number; reason: string },
+  ): Promise<void>;
   listSettings(kind: MasterKind, branchId?: string): Promise<MasterSetting[]>;
   createSetting(input: MasterSettingInput): Promise<void>;
 }
@@ -61,24 +74,71 @@ export const browserMasterClient: MasterClient = {
     ).items;
   },
   async createBranch(input) {
-    await appLoading.track(api.createBranch({ branchCommand: input }), {
-      label: 'Membuat cabang…',
-    });
+    await appLoading.track(
+      api.createBranch({
+        idempotencyKey: crypto.randomUUID(),
+        branchCommand: {
+          ...input,
+          reason: input.reason ?? 'Membuat cabang melalui Master Data.',
+        },
+      }),
+      {
+        label: 'Membuat cabang…',
+      },
+    );
   },
   async createClassType(input) {
     await appLoading.track(api.createClassType({ classTypeCommand: input }), {
       label: 'Membuat tipe kelas…',
     });
   },
+  async updateClassType(id, input) {
+    await appLoading.track(
+      api.updateClassType({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        classTypeUpdateCommand: input,
+      }),
+      { label: 'Memperbarui tipe kelas…' },
+    );
+  },
   async deactivateBranch(id, expectedVersion) {
-    await appLoading.track(api.deactivateBranch({ id, versionCommand: { expectedVersion } }), {
-      label: 'Menonaktifkan cabang…',
-    });
+    await appLoading.track(
+      api.deactivateBranch({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        body: {
+          expectedVersion,
+          reason: 'Menonaktifkan cabang melalui Master Data.',
+        },
+      }),
+      { label: 'Menonaktifkan cabang…' },
+    );
   },
   async deactivateClassType(id, expectedVersion) {
-    await appLoading.track(api.deactivateClassType({ id, versionCommand: { expectedVersion } }), {
-      label: 'Menonaktifkan tipe kelas…',
-    });
+    await appLoading.track(
+      api.deactivateClassType({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        reasonedVersionCommand: {
+          expectedVersion,
+          reason: 'Menonaktifkan tipe kelas melalui Master Data.',
+        },
+      }),
+      {
+        label: 'Menonaktifkan tipe kelas…',
+      },
+    );
+  },
+  async reactivateClassType(id, input) {
+    await appLoading.track(
+      api.reactivateClassType({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        reasonedVersionCommand: input,
+      }),
+      { label: 'Mengaktifkan tipe kelas…' },
+    );
   },
   async listSettings(kind, branchId) {
     if (kind === 'INSTRUCTOR_FEE')

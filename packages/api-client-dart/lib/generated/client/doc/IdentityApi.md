@@ -28,6 +28,7 @@ Method | HTTP request | Description
 [**listIdentityVerifications**](IdentityApi.md#listidentityverifications) | **GET** /identity-verifications | 
 [**listUserAudit**](IdentityApi.md#listuseraudit) | **GET** /users/{id}/audit | 
 [**listUsers**](IdentityApi.md#listusers) | **GET** /users | 
+[**lookupCustomers**](IdentityApi.md#lookupcustomers) | **GET** /lookups/customers | 
 [**lookupInstructors**](IdentityApi.md#lookupinstructors) | **GET** /lookups/instructors | 
 [**lookupUsers**](IdentityApi.md#lookupusers) | **GET** /lookups/users | 
 [**reactivateUser**](IdentityApi.md#reactivateuser) | **POST** /users/{id}/reactivate | 
@@ -848,6 +849,55 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**UserPage**](UserPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **lookupCustomers**
+> CustomerLookupPage lookupCustomers(q, branchId, cursor, limit)
+
+
+
+Returns active, identity-approved customers with a usable package in the requested branch. Requires booking:create:assisted.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getIdentityApi();
+final String q = q_example; // String | 
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
+
+try {
+    final response = api.lookupCustomers(q, branchId, cursor, limit);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling IdentityApi->lookupCustomers: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **q** | **String**|  | [optional] 
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
+
+### Return type
+
+[**CustomerLookupPage**](CustomerLookupPage.md)
 
 ### Authorization
 

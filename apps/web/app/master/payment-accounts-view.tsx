@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Feedback, StatusBadge } from '../ui';
-import { Button, Dialog } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
+import { Modal, useAppFeedback } from '../components/app-feedback';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Textarea, TextInput } from '../components/forms';
 
 interface PaymentAccount {
   id: string;
+  branchId: string;
   bankCode: string;
   bankName: string;
   maskedAccountNumber: string;
@@ -22,6 +24,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 export function PaymentAccountsView() {
+  const feedback = useAppFeedback();
   const context = useSessionContext();
   const [branchId] = useActiveBranchState();
   const allowed = context?.hasCapability('payment-account:read');
@@ -30,16 +33,25 @@ export function PaymentAccountsView() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState<PaymentAccount>();
+  const [confirming, setConfirming] = useState<{
+    item: PaymentAccount;
+    action: 'deactivate' | 'reactivate';
+  }>();
+  const [detail, setDetail] = useState<
+    PaymentAccount & {
+      branch?: { code: string; name: string; active: boolean };
+      purchaseCount?: number;
+    }
+  >();
   const [reason, setReason] = useState('');
   const load = async () => {
-    if (!branchId || !allowed) return;
+    if (!allowed) return;
     setLoading(true);
     try {
       setItems(
         (
           await api<{ items: PaymentAccount[] }>(
-            `/payment-accounts?branchId=${encodeURIComponent(branchId)}`,
+            `/payment-accounts${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ''}`,
           )
         ).items,
       );
@@ -89,75 +101,211 @@ export function PaymentAccountsView() {
             <StatusBadge tone={item.active ? 'success' : 'neutral'}>
               {item.active ? 'Aktif' : 'Nonaktif'}
             </StatusBadge>
-            {item.active && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                void (async () => {
+                  setLoading(true);
+                  try {
+                    setDetail(await api(`/payment-accounts/${item.id}`));
+                  } catch {
+                    setError('Detail rekening pembayaran belum dapat dimuat.');
+                  } finally {
+                    setLoading(false);
+                  }
+                })()
+              }
+            >
+              Lihat detail
+            </Button>
+            {item.active ? (
               <Button
                 type="button"
-                variant="quiet"
+                variant="ghost"
                 disabled={!canManage || loading}
                 onClick={() => {
                   setReason('');
-                  setConfirming(item);
+                  setConfirming({ item, action: 'deactivate' });
                 }}
               >
                 Nonaktifkan
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canManage || loading}
+                onClick={() => {
+                  setReason('');
+                  setConfirming({ item, action: 'reactivate' });
+                }}
+              >
+                Aktifkan kembali
               </Button>
             )}
           </span>
         </article>
       ))}
-      {confirming && (
-        <Dialog
-          open
-          title="Nonaktifkan rekening pembayaran"
-          onClose={() => setConfirming(undefined)}
-        >
-          <p className="text-sm text-dd-muted">
-            Rekening {confirming.bankName} · {confirming.maskedAccountNumber} akan dinonaktifkan
-            pada cabang aktif. Pesanan terbuka dapat terpengaruh.
-          </p>
-          <Textarea
-            label="Alasan wajib"
-            wrapperClassName="mt-4"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            minLength={3}
-            required
-          />
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setConfirming(undefined)}>
+      <Modal
+        open={Boolean(confirming)}
+        title={
+          confirming?.action === 'reactivate'
+            ? 'Aktifkan kembali rekening'
+            : 'Nonaktifkan rekening pembayaran'
+        }
+        busy={loading}
+        dirty={Boolean(reason)}
+        onDirtyClose={() =>
+          feedback.confirm({
+            tone: 'warning',
+            title: 'Batalkan penonaktifan rekening?',
+            message: 'Alasan yang belum diproses akan dihapus.',
+            confirmLabel: 'Buang alasan',
+          })
+        }
+        onClose={() => {
+          setReason('');
+          setConfirming(undefined);
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={loading}
+              onClick={() =>
+                void (async () => {
+                  if (
+                    reason &&
+                    !(await feedback.confirm({
+                      tone: 'warning',
+                      title: 'Batalkan penonaktifan rekening?',
+                      message: 'Alasan yang belum diproses akan dihapus.',
+                      confirmLabel: 'Buang alasan',
+                    }))
+                  )
+                    return;
+                  setReason('');
+                  setConfirming(undefined);
+                })()
+              }
+            >
               Batal
             </Button>
             <Button
               type="button"
-              variant="danger"
-              disabled={loading || reason.trim().length < 3}
+              variant={confirming?.action === 'reactivate' ? 'primary' : 'danger'}
+              loading={loading}
+              disabled={!confirming || reason.trim().length < 3}
               onClick={async () => {
+                if (!confirming) return;
                 setLoading(true);
                 try {
-                  await api(`/payment-accounts/${confirming.id}/deactivate`, {
+                  await api(`/payment-accounts/${confirming.item.id}/${confirming.action}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Idempotency-Key': crypto.randomUUID(),
+                    },
                     body: JSON.stringify({
-                      expectedVersion: confirming.version,
+                      expectedVersion: confirming.item.version,
                       reason: reason.trim(),
                     }),
                   });
-                  setMessage('Rekening dinonaktifkan.');
+                  setMessage(
+                    confirming.action === 'reactivate'
+                      ? 'Rekening berhasil diaktifkan kembali.'
+                      : 'Rekening dinonaktifkan.',
+                  );
+                  setReason('');
                   setConfirming(undefined);
                   await load();
                 } catch {
                   setError(
-                    'Rekening tidak dapat dinonaktifkan. Pastikan tidak ada pesanan terbuka.',
+                    confirming.action === 'reactivate'
+                      ? 'Rekening tidak dapat diaktifkan. Pastikan cabang aktif dan belum mempunyai rekening aktif lain.'
+                      : 'Rekening tidak dapat dinonaktifkan. Pastikan tidak ada pesanan terbuka.',
                   );
                   setLoading(false);
                 }
               }}
             >
-              Konfirmasi nonaktifkan
+              {confirming?.action === 'reactivate'
+                ? 'Konfirmasi aktifkan'
+                : 'Konfirmasi nonaktifkan'}
             </Button>
           </div>
-        </Dialog>
-      )}
+        }
+      >
+        {confirming && (
+          <>
+            <p className="text-sm text-dd-muted">
+              Rekening {confirming.item.bankName} · {confirming.item.maskedAccountNumber} akan{' '}
+              {confirming.action === 'reactivate' ? 'diaktifkan kembali' : 'dinonaktifkan'}.
+              {confirming.action === 'deactivate' && ' Pesanan terbuka dapat terpengaruh.'}
+            </p>
+            <Textarea
+              label="Alasan wajib"
+              wrapperClassName="mt-4"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              minLength={3}
+              required
+            />
+          </>
+        )}
+      </Modal>
+      <Modal
+        open={Boolean(detail)}
+        title="Detail rekening pembayaran"
+        onClose={() => setDetail(undefined)}
+        footer={
+          <div className="flex justify-end">
+            <Button type="button" variant="secondary" onClick={() => setDetail(undefined)}>
+              Tutup
+            </Button>
+          </div>
+        }
+      >
+        {detail && (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Cabang</dt>
+              <dd className="mt-1 font-semibold">
+                {detail.branch?.name ?? detail.branchId}
+                {detail.branch?.code ? ` · ${detail.branch.code}` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Status</dt>
+              <dd className="mt-1">{detail.active ? 'Aktif' : 'Nonaktif'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Bank</dt>
+              <dd className="mt-1">{detail.bankName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                Nomor rekening
+              </dt>
+              <dd className="mt-1">{detail.maskedAccountNumber}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                Pemilik rekening
+              </dt>
+              <dd className="mt-1">{detail.accountHolderName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                Transaksi terkait
+              </dt>
+              <dd className="mt-1">{detail.purchaseCount ?? 0}</dd>
+            </div>
+          </dl>
+        )}
+      </Modal>
       {!items.some((item) => item.active) && (
         <form
           className="mt-6 grid gap-4 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-5 sm:grid-cols-2"

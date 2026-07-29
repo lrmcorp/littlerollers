@@ -17,6 +17,7 @@ Name | Type | Description | Notes
 **priceRp** | **int** |  | 
 **effectiveFrom** | [**Date**](Date.md) |  | 
 **effectiveUntil** | [**Date**](Date.md) |  | [optional] 
+**reason** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

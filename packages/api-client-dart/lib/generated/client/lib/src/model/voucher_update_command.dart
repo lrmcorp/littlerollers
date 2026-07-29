@@ -27,13 +27,10 @@ part 'voucher_update_command.g.dart';
 /// * [branchId] 
 /// * [classTypeId] 
 /// * [packageIds] 
-/// * [expectedVersion] 
 /// * [reason] 
+/// * [expectedVersion] 
 @BuiltValue()
 abstract class VoucherUpdateCommand implements VoucherCommand, Built<VoucherUpdateCommand, VoucherUpdateCommandBuilder> {
-  @BuiltValueField(wireName: r'reason')
-  String get reason;
-
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
 
@@ -60,11 +57,6 @@ class _$VoucherUpdateCommandSerializer implements PrimitiveSerializer<VoucherUpd
     VoucherUpdateCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
-    yield r'reason';
-    yield serializers.serialize(
-      object.reason,
-      specifiedType: const FullType(String),
-    );
     if (object.branchId != null) {
       yield r'branchId';
       yield serializers.serialize(
@@ -72,6 +64,11 @@ class _$VoucherUpdateCommandSerializer implements PrimitiveSerializer<VoucherUpd
         specifiedType: const FullType(String),
       );
     }
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
+      specifiedType: const FullType(String),
+    );
     if (object.minimumPurchaseRp != null) {
       yield r'minimumPurchaseRp';
       yield serializers.serialize(
@@ -107,7 +104,7 @@ class _$VoucherUpdateCommandSerializer implements PrimitiveSerializer<VoucherUpd
       yield r'packageIds';
       yield serializers.serialize(
         object.packageIds,
-        specifiedType: const FullType(BuiltList, [FullType(String)]),
+        specifiedType: const FullType(BuiltSet, [FullType(String)]),
       );
     }
     if (object.classTypeId != null) {
@@ -181,19 +178,19 @@ class _$VoucherUpdateCommandSerializer implements PrimitiveSerializer<VoucherUpd
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
-        case r'reason':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.reason = valueDes;
-          break;
         case r'branchId':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
           result.branchId = valueDes;
+          break;
+        case r'reason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reason = valueDes;
           break;
         case r'minimumPurchaseRp':
           final valueDes = serializers.deserialize(
@@ -234,8 +231,8 @@ class _$VoucherUpdateCommandSerializer implements PrimitiveSerializer<VoucherUpd
         case r'packageIds':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(String)]),
-          ) as BuiltList<String>;
+            specifiedType: const FullType(BuiltSet, [FullType(String)]),
+          ) as BuiltSet<String>;
           result.packageIds.replace(valueDes);
           break;
         case r'classTypeId':

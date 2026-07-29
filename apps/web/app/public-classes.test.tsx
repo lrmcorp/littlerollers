@@ -34,7 +34,8 @@ describe('public class catalog', () => {
     const view = render(<PublicClassesView client={client} />);
     expect(await screen.findByText('Pilih studio untuk melihat kelas')).toBeInTheDocument();
     expect(screen.queryByText('Private Class')).not.toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('Studio'), branch.id);
+    await userEvent.click(screen.getByRole('combobox', { name: /Studio/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /Green Garden/ }));
     expect(await screen.findByRole('heading', { name: 'Private Class' })).toBeVisible();
     expect(screen.getByText('2/4 tempat')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lanjutkan booking' })).toHaveAttribute(

@@ -99,8 +99,29 @@ export class PackagesController {
   ) {
     return this.vouchers.preview(r.principal, body);
   }
-  @Get('packages') list(@Req() r: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    return this.catalog.list(r.principal, branchId);
+  @Get('packages') list(
+    @Req() r: AuthenticatedRequest,
+    @Query('branchId') branchId?: string,
+    @Query('classTypeId') classTypeId?: string,
+    @Query('status') status?: string,
+    @Query('effectiveState') effectiveState?: string,
+    @Query('q') q?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.catalog.list(r.principal, {
+      branchId,
+      classTypeId,
+      status,
+      effectiveState,
+      q,
+      from,
+      until,
+      cursor,
+      limit,
+    });
   }
   @Get('packages/:id') packageDetail(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.promotions.packageDetail(r.principal, id);
@@ -108,8 +129,10 @@ export class PackagesController {
   @Get('packages/:id/promotions') packagePromotions(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.promotions.list(r.principal, id);
+    return this.promotions.list(r.principal, id, cursor, limit);
   }
   @Post('packages/:id/promotions') createPackagePromotion(
     @Req() r: AuthenticatedRequest,
@@ -154,14 +177,59 @@ export class PackagesController {
   ) {
     return this.promotions.orders(r.principal, id, cursor, limit);
   }
-  @Post('packages') create(@Req() r: AuthenticatedRequest, @Body() b: any) {
-    return this.catalog.create(r.principal, b, r.correlationId ?? 'unknown');
+  @Post('packages') create(
+    @Req() r: AuthenticatedRequest,
+    @Headers('idempotency-key') key: string,
+    @Body() b: any,
+  ) {
+    return this.catalog.create(r.principal, b, key, r.correlationId ?? 'unknown');
+  }
+  @Patch('packages/:id') updatePackage(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: any,
+  ) {
+    return this.catalog.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
+  @Post('packages/:id/revisions') createPackageRevision(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: any,
+  ) {
+    return this.catalog.revise(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
+  @Post('packages/:id/:action') transitionPackage(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('action') action: 'deactivate' | 'reactivate',
+    @Headers('idempotency-key') key: string,
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    const statuses = { deactivate: 'INACTIVE', reactivate: 'ACTIVE' } as const;
+    const status = statuses[action];
+    if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.catalog.transition(
+      r.principal,
+      id,
+      status,
+      body,
+      key,
+      r.correlationId ?? 'unknown',
+    );
   }
   @Get('payment-accounts') paymentAccounts(
     @Req() r: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
   ) {
     return this.paymentAccountsService.list(r.principal, branchId);
+  }
+  @Get('payment-accounts/:id') paymentAccountDetail(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.paymentAccountsService.detail(r.principal, id);
   }
   @Post('payment-accounts') createPaymentAccount(
     @Req() r: AuthenticatedRequest,
@@ -172,12 +240,30 @@ export class PackagesController {
   @Post('payment-accounts/:id/deactivate') @HttpCode(200) deactivatePaymentAccount(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
     @Body() body: any,
   ) {
-    return this.paymentAccountsService.deactivate(
+    return key
+      ? this.paymentAccountsService.deactivateIdempotent(
+          r.principal,
+          id,
+          body,
+          key,
+          r.correlationId ?? 'unknown',
+        )
+      : this.paymentAccountsService.deactivate(r.principal, id, body, r.correlationId ?? 'unknown');
+  }
+  @Post('payment-accounts/:id/reactivate') @HttpCode(200) reactivatePaymentAccount(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    return this.paymentAccountsService.reactivate(
       r.principal,
       id,
       body,
+      key,
       r.correlationId ?? 'unknown',
     );
   }

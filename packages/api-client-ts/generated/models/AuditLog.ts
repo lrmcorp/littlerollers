@@ -13,6 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AuditTargetProjection } from './AuditTargetProjection';
+import {
+    AuditTargetProjectionFromJSON,
+    AuditTargetProjectionFromJSONTyped,
+    AuditTargetProjectionToJSON,
+    AuditTargetProjectionToJSONTyped,
+} from './AuditTargetProjection';
+import type { AuditActorProjection } from './AuditActorProjection';
+import {
+    AuditActorProjectionFromJSON,
+    AuditActorProjectionFromJSONTyped,
+    AuditActorProjectionToJSON,
+    AuditActorProjectionToJSONTyped,
+} from './AuditActorProjection';
+import type { AuditBranchProjection } from './AuditBranchProjection';
+import {
+    AuditBranchProjectionFromJSON,
+    AuditBranchProjectionFromJSONTyped,
+    AuditBranchProjectionToJSON,
+    AuditBranchProjectionToJSONTyped,
+} from './AuditBranchProjection';
+
 /**
  * 
  * @export
@@ -55,6 +77,24 @@ export interface AuditLog {
      * @memberof AuditLog
      */
     targetUserId?: string | null;
+    /**
+     * 
+     * @type {AuditActorProjection}
+     * @memberof AuditLog
+     */
+    actor?: AuditActorProjection | null;
+    /**
+     * 
+     * @type {AuditTargetProjection}
+     * @memberof AuditLog
+     */
+    target?: AuditTargetProjection | null;
+    /**
+     * 
+     * @type {AuditBranchProjection}
+     * @memberof AuditLog
+     */
+    branch?: AuditBranchProjection | null;
     /**
      * 
      * @type {string}
@@ -135,6 +175,9 @@ export function AuditLogFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'actorId': json['actorId'] == null ? undefined : json['actorId'],
         'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'targetUserId': json['targetUserId'] == null ? undefined : json['targetUserId'],
+        'actor': json['actor'] == null ? undefined : AuditActorProjectionFromJSON(json['actor']),
+        'target': json['target'] == null ? undefined : AuditTargetProjectionFromJSON(json['target']),
+        'branch': json['branch'] == null ? undefined : AuditBranchProjectionFromJSON(json['branch']),
         'action': json['action'],
         'objectType': json['objectType'],
         'objectId': json['objectId'],
@@ -161,6 +204,9 @@ export function AuditLogToJSONTyped(value?: AuditLog | null, ignoreDiscriminator
         'actorId': value['actorId'],
         'branchId': value['branchId'],
         'targetUserId': value['targetUserId'],
+        'actor': AuditActorProjectionToJSON(value['actor']),
+        'target': AuditTargetProjectionToJSON(value['target']),
+        'branch': AuditBranchProjectionToJSON(value['branch']),
         'action': value['action'],
         'objectType': value['objectType'],
         'objectId': value['objectId'],
