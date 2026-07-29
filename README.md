@@ -2,11 +2,21 @@
 
 AI-delivered modular monolith foundation for Daily Dose Pilates. Business and technical documentation lives in [docs](docs/README.md).
 
+## Repository ownership
+
+This repository owns the API, worker, database, Web application, OpenAPI source,
+and generated contract validation. The Flutter Android/iOS application,
+generated mobile client snapshot, OpenAPI manifest, and mobile CI live in the
+standalone
+[dailydose_v2_mobile](https://github.com/ridho15/dailydose_v2_mobile)
+repository.
+
 ## Bootstrap
 
-Prerequisites: Node 24, pnpm 11.7, MySQL 8.4 or newer, and (for mobile work)
-Flutter 3.38.5/Dart 3.10.4. Docker is optional and is not used by the default
-local development flow.
+Prerequisites: Node 24, pnpm 11.7, and MySQL 8.4 or newer. Flutter
+3.38.5/Dart 3.10.4 is only required when validating the generated Dart
+contract. Docker is optional and is not used by the default local development
+flow.
 
 1. Copy `.env.example` to `.env` for local use only.
 2. Start a native MySQL service on `127.0.0.1:3306`.
@@ -28,8 +38,9 @@ local development flow.
 6. Run `npm run dev`, sign in as an OPS or Super Owner account, then open the
    authenticated system status page at `http://localhost:32120/health`.
 7. Run `pnpm check` before handing off changes.
-8. In `packages/api-client-dart` and `apps/mobile`, run `flutter pub get`; then
-   `flutter analyze && flutter test` in the mobile app.
+8. When changing OpenAPI, regenerate the clients and run `dart test` from
+   `packages/api-client-dart`. Mobile analyze, test, and platform builds run in
+   the standalone mobile repository.
 
 The default `npm run dev` starts only the API and Web applications. Start the
 background worker separately with `npm run dev:worker`, or start every

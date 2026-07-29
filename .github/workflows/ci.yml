@@ -56,20 +56,21 @@ jobs:
       - run: pnpm check
       - run: pnpm --filter @dailydose/web exec playwright install --with-deps chromium
       - run: pnpm --filter @dailydose/web test:e2e
-  flutter:
+  dart-contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with: { flutter-version: 3.38.5, channel: stable, cache: true }
       - run: flutter pub get
-        working-directory: packages/api-client-dart
+        working-directory: packages/api-client-dart/lib/generated/client
+      - name: Regenerate built_value files
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: packages/api-client-dart/lib/generated/client
+      - name: Verify generated Dart client drift
+        run: git diff --exit-code -- packages/api-client-dart
       - run: flutter pub get
-        working-directory: apps/mobile
-      - run: flutter analyze
-        working-directory: apps/mobile
-      - run: flutter test
-        working-directory: apps/mobile
+        working-directory: packages/api-client-dart
       - run: dart test
         working-directory: packages/api-client-dart
   secrets:
