@@ -15,6 +15,12 @@ Name | Type | Description | Notes
 **paymentProofId** | **String** |  | [optional] 
 **packageNameSnapshot** | **String** |  | 
 **priceRpSnapshot** | **int** |  | 
+**packagePromotionId** | **String** |  | [optional] 
+**packagePromotionNameSnapshot** | **String** |  | [optional] 
+**packagePromotionDiscountTypeSnapshot** | **String** |  | [optional] 
+**packagePromotionDiscountValueSnapshot** | **int** |  | [optional] 
+**packagePromotionDiscountRpSnapshot** | **int** |  | [optional] 
+**promotionalPriceRpSnapshot** | **int** |  | [optional] 
 **voucherId** | **String** |  | [optional] 
 **voucherCodeSnapshot** | **String** |  | [optional] 
 **voucherDiscountTypeSnapshot** | **String** |  | [optional] 

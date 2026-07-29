@@ -15,16 +15,20 @@ Method | HTTP request | Description
 [**authorizePaymentProofDownload**](PackagesApi.md#authorizepaymentproofdownload) | **POST** /uploads/payment-proofs/{id}/download-authorizations | 
 [**createOrder**](PackagesApi.md#createorder) | **POST** /orders | 
 [**createPackage**](PackagesApi.md#createpackage) | **POST** /packages | 
+[**createPackagePromotion**](PackagesApi.md#createpackagepromotion) | **POST** /packages/{id}/promotions | 
 [**createPaymentProofUpload**](PackagesApi.md#createpaymentproofupload) | **POST** /uploads/payment-proofs | 
 [**createVoucher**](PackagesApi.md#createvoucher) | **POST** /vouchers | 
 [**finalizePaymentProofUpload**](PackagesApi.md#finalizepaymentproofupload) | **POST** /uploads/payment-proofs/{id}/finalize | 
 [**getCheckoutOptions**](PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
+[**getInternalPackageDetail**](PackagesApi.md#getinternalpackagedetail) | **GET** /packages/{id} | 
 [**getOrder**](PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [**getPaymentProofStatus**](PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
 [**getPaymentReviewDetail**](PackagesApi.md#getpaymentreviewdetail) | **GET** /purchases/{id} | 
 [**getPublicPackageDetail**](PackagesApi.md#getpublicpackagedetail) | **GET** /public/package-catalog/{id} | 
 [**getVoucher**](PackagesApi.md#getvoucher) | **GET** /vouchers/{id} | 
 [**listOrders**](PackagesApi.md#listorders) | **GET** /orders | 
+[**listPackagePromotionOrders**](PackagesApi.md#listpackagepromotionorders) | **GET** /package-promotions/{id}/orders | 
+[**listPackagePromotions**](PackagesApi.md#listpackagepromotions) | **GET** /packages/{id}/promotions | 
 [**listPackages**](PackagesApi.md#listpackages) | **GET** /packages | 
 [**listPublicPackages**](PackagesApi.md#listpublicpackages) | **GET** /public/package-catalog | 
 [**listPurchases**](PackagesApi.md#listpurchases) | **GET** /purchases | 
@@ -34,7 +38,9 @@ Method | HTTP request | Description
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
+[**transitionPackagePromotion**](PackagesApi.md#transitionpackagepromotion) | **POST** /package-promotions/{id}/{action} | 
 [**transitionVoucher**](PackagesApi.md#transitionvoucher) | **POST** /vouchers/{id}/{action} | 
+[**updatePackagePromotion**](PackagesApi.md#updatepackagepromotion) | **PATCH** /package-promotions/{id} | 
 [**updateVoucher**](PackagesApi.md#updatevoucher) | **PATCH** /vouchers/{id} | 
 [**uploadPaymentProofContent**](PackagesApi.md#uploadpaymentproofcontent) | **PUT** /uploads/payment-proofs/{id}/content | 
 [**viewAuthorizedPaymentProofContent**](PackagesApi.md#viewauthorizedpaymentproofcontent) | **GET** /uploads/payment-proofs/view-authorizations/{id}/content | 
@@ -302,6 +308,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **createPackagePromotion**
+> PackagePromotion createPackagePromotion(id, idempotencyKey, packagePromotionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final PackagePromotionCommand packagePromotionCommand = ; // PackagePromotionCommand | 
+
+try {
+    final response = api.createPackagePromotion(id, idempotencyKey, packagePromotionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->createPackagePromotion: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **packagePromotionCommand** | [**PackagePromotionCommand**](PackagePromotionCommand.md)|  | 
+
+### Return type
+
+[**PackagePromotion**](PackagePromotion.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **createPaymentProofUpload**
 > PaymentProofUploadInstruction createPaymentProofUpload(createPaymentProofUploadRequest)
 
@@ -466,6 +517,47 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**CheckoutOptions**](CheckoutOptions.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getInternalPackageDetail**
+> InternalPackageDetail getInternalPackageDetail(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getInternalPackageDetail(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getInternalPackageDetail: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**InternalPackageDetail**](InternalPackageDetail.md)
 
 ### Authorization
 
@@ -726,6 +818,90 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**OrderPage**](OrderPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPackagePromotionOrders**
+> PackagePromotionOrderPage listPackagePromotionOrders(id, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listPackagePromotionOrders(id, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listPackagePromotionOrders: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**PackagePromotionOrderPage**](PackagePromotionOrderPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPackagePromotions**
+> ListPackagePromotions200Response listPackagePromotions(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.listPackagePromotions(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listPackagePromotions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**ListPackagePromotions200Response**](ListPackagePromotions200Response.md)
 
 ### Authorization
 
@@ -1151,6 +1327,53 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **transitionPackagePromotion**
+> PackagePromotion transitionPackagePromotion(id, action, idempotencyKey, reasonedVersionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String action = action_example; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.transitionPackagePromotion(id, action, idempotencyKey, reasonedVersionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->transitionPackagePromotion: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **action** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
+
+### Return type
+
+[**PackagePromotion**](PackagePromotion.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **transitionVoucher**
 > Voucher transitionVoucher(id, action, idempotencyKey, reasonedVersionCommand)
 
@@ -1186,6 +1409,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Voucher**](Voucher.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updatePackagePromotion**
+> PackagePromotion updatePackagePromotion(id, idempotencyKey, packagePromotionUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final PackagePromotionUpdateCommand packagePromotionUpdateCommand = ; // PackagePromotionUpdateCommand | 
+
+try {
+    final response = api.updatePackagePromotion(id, idempotencyKey, packagePromotionUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->updatePackagePromotion: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **packagePromotionUpdateCommand** | [**PackagePromotionUpdateCommand**](PackagePromotionUpdateCommand.md)|  | 
+
+### Return type
+
+[**PackagePromotion**](PackagePromotion.md)
 
 ### Authorization
 

@@ -83,6 +83,10 @@ export class FinanceService {
       (sum, item) => sum + (item.voucherDiscountRpSnapshot ?? 0),
       0,
     );
+    const packagePromotionDiscountRp = approvedPurchases.reduce(
+      (sum, item) => sum + (item.packagePromotionDiscountRpSnapshot ?? 0),
+      0,
+    );
     const voucherRedemptionCount = approvedPurchases.filter(
       (item) => item.voucherId !== null,
     ).length;
@@ -105,6 +109,7 @@ export class FinanceService {
         identificationAmountRp: number;
         grossSalesRp: number;
         voucherDiscountRp: number;
+        packagePromotionDiscountRp: number;
         netSalesRp: number;
         voucherRedemptionCount: number;
         pendingCount: number;
@@ -120,6 +125,7 @@ export class FinanceService {
         identificationAmountRp: 0,
         grossSalesRp: 0,
         voucherDiscountRp: 0,
+        packagePromotionDiscountRp: 0,
         netSalesRp: 0,
         voucherRedemptionCount: 0,
         pendingCount: 0,
@@ -134,6 +140,7 @@ export class FinanceService {
       if (item.status === 'APPROVED') {
         row.grossSalesRp += item.priceRpSnapshot;
         row.voucherDiscountRp += item.voucherDiscountRpSnapshot ?? 0;
+        row.packagePromotionDiscountRp += item.packagePromotionDiscountRpSnapshot ?? 0;
         row.netSalesRp += item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot;
         row.approvedRp += item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot;
         if (item.voucherId) row.voucherRedemptionCount += 1;
@@ -160,7 +167,8 @@ export class FinanceService {
         identificationAmountRp,
         grossSalesRp,
         voucherDiscountRp,
-        netSalesRp: grossSalesRp - voucherDiscountRp,
+        packagePromotionDiscountRp,
+        netSalesRp: grossSalesRp - packagePromotionDiscountRp - voucherDiscountRp,
         voucherRedemptionCount,
         ledgerDeltaRp: approvedRp - ledgerRecognizedRp,
         unreconciledCount: purchases.filter(

@@ -24,6 +24,12 @@ part 'payment_review_item.g.dart';
 /// * [paymentProofId] 
 /// * [packageNameSnapshot] 
 /// * [priceRpSnapshot] 
+/// * [packagePromotionId] 
+/// * [packagePromotionNameSnapshot] 
+/// * [packagePromotionDiscountTypeSnapshot] 
+/// * [packagePromotionDiscountValueSnapshot] 
+/// * [packagePromotionDiscountRpSnapshot] 
+/// * [promotionalPriceRpSnapshot] 
 /// * [voucherId] 
 /// * [voucherCodeSnapshot] 
 /// * [voucherDiscountTypeSnapshot] 
@@ -109,6 +115,20 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.branch,
       specifiedType: const FullType(PaymentReviewBranch),
     );
+    if (object.packagePromotionDiscountRpSnapshot != null) {
+      yield r'packagePromotionDiscountRpSnapshot';
+      yield serializers.serialize(
+        object.packagePromotionDiscountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.promotionalPriceRpSnapshot != null) {
+      yield r'promotionalPriceRpSnapshot';
+      yield serializers.serialize(
+        object.promotionalPriceRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     yield r'paymentProof';
     yield object.paymentProof == null ? null : serializers.serialize(
       object.paymentProof,
@@ -164,10 +184,24 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
         specifiedType: const FullType.nullable(String),
       );
     }
+    if (object.packagePromotionNameSnapshot != null) {
+      yield r'packagePromotionNameSnapshot';
+      yield serializers.serialize(
+        object.packagePromotionNameSnapshot,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     if (object.decidedById != null) {
       yield r'decidedById';
       yield serializers.serialize(
         object.decidedById,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.packagePromotionId != null) {
+      yield r'packagePromotionId';
+      yield serializers.serialize(
+        object.packagePromotionId,
         specifiedType: const FullType.nullable(String),
       );
     }
@@ -198,6 +232,13 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.priceRpSnapshot,
       specifiedType: const FullType(int),
     );
+    if (object.packagePromotionDiscountValueSnapshot != null) {
+      yield r'packagePromotionDiscountValueSnapshot';
+      yield serializers.serialize(
+        object.packagePromotionDiscountValueSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     if (object.payableAmountRpSnapshot != null) {
       yield r'payableAmountRpSnapshot';
       yield serializers.serialize(
@@ -239,6 +280,13 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.activationSummary,
       specifiedType: const FullType.nullable(PaymentActivationSummary),
     );
+    if (object.packagePromotionDiscountTypeSnapshot != null) {
+      yield r'packagePromotionDiscountTypeSnapshot';
+      yield serializers.serialize(
+        object.packagePromotionDiscountTypeSnapshot,
+        specifiedType: const FullType.nullable(PurchasePackagePromotionDiscountTypeSnapshotEnum),
+      );
+    }
     if (object.voucherDiscountTypeSnapshot != null) {
       yield r'voucherDiscountTypeSnapshot';
       yield serializers.serialize(
@@ -310,6 +358,22 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           ) as PaymentReviewBranch;
           result.branch.replace(valueDes);
           break;
+        case r'packagePromotionDiscountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.packagePromotionDiscountRpSnapshot = valueDes;
+          break;
+        case r'promotionalPriceRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.promotionalPriceRpSnapshot = valueDes;
+          break;
         case r'paymentProof':
           final valueDes = serializers.deserialize(
             value,
@@ -379,6 +443,14 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           if (valueDes == null) continue;
           result.decisionReasonCode = valueDes;
           break;
+        case r'packagePromotionNameSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.packagePromotionNameSnapshot = valueDes;
+          break;
         case r'decidedById':
           final valueDes = serializers.deserialize(
             value,
@@ -386,6 +458,14 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           ) as String?;
           if (valueDes == null) continue;
           result.decidedById = valueDes;
+          break;
+        case r'packagePromotionId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.packagePromotionId = valueDes;
           break;
         case r'packageId':
           final valueDes = serializers.deserialize(
@@ -422,6 +502,14 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
             specifiedType: const FullType(int),
           ) as int;
           result.priceRpSnapshot = valueDes;
+          break;
+        case r'packagePromotionDiscountValueSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.packagePromotionDiscountValueSnapshot = valueDes;
           break;
         case r'payableAmountRpSnapshot':
           final valueDes = serializers.deserialize(
@@ -476,6 +564,14 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           if (valueDes == null) continue;
           result.activationSummary.replace(valueDes);
           break;
+        case r'packagePromotionDiscountTypeSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PurchasePackagePromotionDiscountTypeSnapshotEnum),
+          ) as PurchasePackagePromotionDiscountTypeSnapshotEnum?;
+          if (valueDes == null) continue;
+          result.packagePromotionDiscountTypeSnapshot = valueDes;
+          break;
         case r'voucherDiscountTypeSnapshot':
           final valueDes = serializers.deserialize(
             value,
@@ -525,6 +621,21 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
     );
     return result.build();
   }
+}
+
+class PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'PERCENTAGE')
+  static const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum PERCENTAGE = _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE;
+  @BuiltValueEnumConst(wireName: r'FIXED_AMOUNT')
+  static const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum FIXED_AMOUNT = _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+
+  static Serializer<PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum> get serializer => _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumSerializer;
+
+  const PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum._(String name): super(name);
+
+  static BuiltSet<PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum> get values => _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumValues;
+  static PaymentReviewItemPackagePromotionDiscountTypeSnapshotEnum valueOf(String name) => _$paymentReviewItemPackagePromotionDiscountTypeSnapshotEnumValueOf(name);
 }
 
 class PaymentReviewItemVoucherDiscountTypeSnapshotEnum extends EnumClass {

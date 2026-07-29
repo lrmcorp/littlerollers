@@ -11,6 +11,9 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **name** | **String** |  | 
 **priceRp** | **int** |  | 
+**effectivePriceRp** | **int** |  | 
+**promotion** | [**PublicPackagePromotion**](PublicPackagePromotion.md) |  | 
+**version** | **int** |  | 
 **sessionCount** | **int** |  | 
 **durationDays** | **int** |  | 
 **branchId** | **String** |  | 

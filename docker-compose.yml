@@ -72,6 +72,14 @@ services:
       mysql:
         condition: service_healthy
 
+  private-storage-init:
+    <<: *app
+    user: '0:0'
+    restart: 'no'
+    command: ['sh', '-c', 'install -d -o 1001 -g 1001 -m 0700 /app/data/private']
+    volumes:
+      - private-uploads:/app/data/private
+
   api:
     <<: *app
     command: ['node', 'apps/api/dist/main.js']
@@ -79,6 +87,8 @@ services:
       - private-uploads:/app/data/private
     depends_on:
       migrate:
+        condition: service_completed_successfully
+      private-storage-init:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
@@ -104,6 +114,8 @@ services:
       - private-uploads:/app/data/private
     depends_on:
       migrate:
+        condition: service_completed_successfully
+      private-storage-init:
         condition: service_completed_successfully
       redis:
         condition: service_healthy

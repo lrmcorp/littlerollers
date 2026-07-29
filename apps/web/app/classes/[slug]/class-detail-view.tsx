@@ -18,12 +18,7 @@ import {
   publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { PackagePrice } from '../../components/public/package-price';
 
 export function ClassDetailView({
   slug,
@@ -161,7 +156,14 @@ export function ClassDetailView({
                     <p className="text-xs font-bold text-dd-forest uppercase">{pkg.branch.name}</p>
                     <h3 className="mt-2 text-xl font-semibold">{pkg.name}</h3>
                     <p className="mt-2 text-sm text-dd-muted">{pkg.publicProfile.summary}</p>
-                    <strong className="mt-4 block">{rupiah.format(pkg.priceRp)}</strong>
+                    <div className="mt-4">
+                      <PackagePrice
+                        priceRp={pkg.priceRp}
+                        effectivePriceRp={pkg.effectivePriceRp}
+                        promotion={pkg.promotion}
+                        sessionCount={pkg.sessionCount}
+                      />
+                    </div>
                     <Link className={`${publicSecondaryButton} mt-4`} href={`/packages/${pkg.id}`}>
                       Lihat detail
                     </Link>

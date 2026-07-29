@@ -38,6 +38,9 @@ docker compose -p dailydose-v2 --env-file .env.production ps
 ```
 
 `migrate` harus selesai dengan exit code `0` sebelum API dan worker digunakan.
+`private-storage-init` berjalan sekali sebagai root untuk membuat root volume
+private dengan mode `0700` dan owner UID/GID `1001`, lalu berhenti dengan exit
+code `0`. API dan worker tetap berjalan sebagai user non-root.
 
 ## Verification
 

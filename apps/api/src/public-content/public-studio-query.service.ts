@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
+import { calculatePackagePromotion } from '../packages/package-pricing.service';
 
 @Injectable()
 export class PublicStudioQueryService {
@@ -36,6 +37,11 @@ export class PublicStudioQueryService {
                 sessionCount: true,
                 durationDays: true,
                 priceRp: true,
+                promotions: {
+                  where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
+                  orderBy: [{ activeFrom: 'desc' as const }],
+                  take: 1,
+                },
                 publicProfile: { select: { summary: true } },
               },
               orderBy: [{ priceRp: 'asc' }],
@@ -73,7 +79,11 @@ export class PublicStudioQueryService {
         }))
         .filter(({ profile }) => profile),
       packages: branch.classTypes.flatMap(({ code, name, packages }) =>
-        packages.map((item) => ({ ...item, classType: { code, name } })),
+        packages.map(({ promotions, ...item }) => ({
+          ...item,
+          ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
+          classType: { code, name },
+        })),
       ),
       schedules: branch.classTypes
         .flatMap(({ code, name, classSlots }) =>

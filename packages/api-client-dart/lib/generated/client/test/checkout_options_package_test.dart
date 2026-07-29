@@ -22,6 +22,21 @@ void main() {
       // TODO
     });
 
+    // int effectivePriceRp
+    test('to test the property `effectivePriceRp`', () async {
+      // TODO
+    });
+
+    // PublicPackagePromotion promotion
+    test('to test the property `promotion`', () async {
+      // TODO
+    });
+
+    // int version
+    test('to test the property `version`', () async {
+      // TODO
+    });
+
     // int sessionCount
     test('to test the property `sessionCount`', () async {
       // TODO

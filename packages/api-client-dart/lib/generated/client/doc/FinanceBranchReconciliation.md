@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **approvedRp** | **int** |  | 
 **identificationAmountRp** | **int** |  | 
 **grossSalesRp** | **int** |  | 
+**packagePromotionDiscountRp** | **int** |  | 
 **voucherDiscountRp** | **int** |  | 
 **netSalesRp** | **int** |  | 
 **voucherRedemptionCount** | **int** |  | 

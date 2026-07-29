@@ -10,6 +10,7 @@ import {
   type PublicPackage,
   type PublicPackageBranch,
 } from '../public-package-catalog-client';
+import { PackagePrice } from '../components/public/package-price';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicStatePanel } from '../components/public/public-page';
@@ -28,12 +29,6 @@ import {
 } from '../session-audience';
 import { useSessionContext } from '../session-context';
 
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
-
 const packageBenefits = [
   'Harga terbaru dan transparan',
   'Masa aktif jelas di setiap paket',
@@ -45,7 +40,8 @@ export function recommendedPackageId(items: PublicPackage[]) {
   return [...items].sort(
     (left, right) =>
       right.sessionCount - left.sessionCount ||
-      left.priceRp / left.sessionCount - right.priceRp / right.sessionCount ||
+      (left.effectivePriceRp ?? left.priceRp) / left.sessionCount -
+        (right.effectivePriceRp ?? right.priceRp) / right.sessionCount ||
       left.id.localeCompare(right.id),
   )[0]!.id;
 }
@@ -417,12 +413,14 @@ export function PublicPackagesView({
                         <p className="mt-1 text-sm text-dd-muted">
                           {packageDescriptor(item, visible, recommendedId)}
                         </p>
-                        <p className="mt-4 text-3xl font-bold tracking-tight">
-                          {rupiah.format(item.priceRp)}
-                        </p>
-                        <p className="mt-1 text-sm text-dd-muted">
-                          {rupiah.format(Math.round(item.priceRp / item.sessionCount))} per sesi
-                        </p>
+                        <div className="mt-4">
+                          <PackagePrice
+                            priceRp={item.priceRp}
+                            effectivePriceRp={item.effectivePriceRp ?? item.priceRp}
+                            promotion={item.promotion}
+                            sessionCount={item.sessionCount}
+                          />
+                        </div>
                         <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-dd-line py-4">
                           <div>
                             <dt className="text-xs text-dd-muted">Jumlah sesi</dt>

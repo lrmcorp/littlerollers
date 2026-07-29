@@ -17,6 +17,7 @@ import {
 import { encryptAccountNumber } from './payment-account-security';
 import { LocalPrivateFileStorage } from '../identity/private-file-storage';
 import { FinanceService } from '../finance/finance.service';
+import { PackagePricingService } from './package-pricing.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic package purchase MySQL integration', () => {
@@ -105,7 +106,12 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     const storage = new ConfigGatedObjectStorageProvider(privateFiles);
     scanner = new ConfigGatedMalwareScanProvider(privateFiles, runtime as never);
     const access = new PackageAccessService(db as never, policy);
-    orders = new CustomerOrderService(db as never, idempotency, access);
+    orders = new CustomerOrderService(
+      db as never,
+      idempotency,
+      access,
+      new PackagePricingService(),
+    );
     catalog = new PackageCatalogService(db as never, access);
     proofs = new PaymentProofService(db as never, storage, scanner, access, runtime as never);
     reviews = new PaymentReviewService(db as never, idempotency, storage, access);

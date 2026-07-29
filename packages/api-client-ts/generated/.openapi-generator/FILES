@@ -170,9 +170,11 @@ models/IdentityVerificationReviewSummary.ts
 models/IdentityVerificationReviewUser.ts
 models/IdentityVerificationSummary.ts
 models/InstructorFeeCommand.ts
+models/InternalPackageDetail.ts
 models/InviteUserRequest.ts
 models/IssueCustomerCheckInLinkCommand.ts
 models/LedgerEntry.ts
+models/ListPackagePromotions200Response.ts
 models/ListPaymentAccounts200Response.ts
 models/LookupOption.ts
 models/LookupOptionMetadata.ts
@@ -200,6 +202,7 @@ models/Order.ts
 models/OrderPage.ts
 models/OrderPaymentAccount.ts
 models/OrderPaymentProofStatus.ts
+models/OrderPromotion.ts
 models/OtherCost.ts
 models/OtherCostCommand.ts
 models/OtherCostPage.ts
@@ -209,6 +212,11 @@ models/Package.ts
 models/PackageCommand.ts
 models/PackageLedgerResult.ts
 models/PackagePage.ts
+models/PackagePromotion.ts
+models/PackagePromotionCommand.ts
+models/PackagePromotionOrderPage.ts
+models/PackagePromotionOrderPageItemsInner.ts
+models/PackagePromotionUpdateCommand.ts
 models/Page.ts
 models/PagePage.ts
 models/PasswordChangeCommand.ts
@@ -247,6 +255,7 @@ models/PublicClassTypeRef.ts
 models/PublicPackageCatalog.ts
 models/PublicPackageDetail.ts
 models/PublicPackageProfile.ts
+models/PublicPackagePromotion.ts
 models/PublicPackageSummary.ts
 models/PublicScheduleDetail.ts
 models/PublicScheduleSummary.ts

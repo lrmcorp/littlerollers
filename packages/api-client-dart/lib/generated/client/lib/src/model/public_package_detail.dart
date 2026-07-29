@@ -8,6 +8,7 @@ import 'package:openapi/src/model/public_branch.dart';
 import 'package:openapi/src/model/public_package_profile.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/public_package_summary.dart';
+import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:openapi/src/model/public_class_type_ref.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -23,6 +24,8 @@ part 'public_package_detail.g.dart';
 /// * [sessionCount] 
 /// * [durationDays] 
 /// * [priceRp] 
+/// * [effectivePriceRp] 
+/// * [promotion] 
 /// * [effectiveUntil] 
 /// * [classType] 
 /// * [publicProfile] 
@@ -85,6 +88,11 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
         specifiedType: const FullType(PublicBranch),
       );
     }
+    yield r'effectivePriceRp';
+    yield serializers.serialize(
+      object.effectivePriceRp,
+      specifiedType: const FullType(int),
+    );
     yield r'durationDays';
     yield serializers.serialize(
       object.durationDays,
@@ -139,6 +147,11 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
       object.priceRp,
       specifiedType: const FullType(int),
     );
+    yield r'promotion';
+    yield object.promotion == null ? null : serializers.serialize(
+      object.promotion,
+      specifiedType: const FullType.nullable(PublicPackagePromotion),
+    );
   }
 
   @override
@@ -183,6 +196,13 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
             specifiedType: const FullType(PublicBranch),
           ) as PublicBranch;
           result.branch = valueDes;
+          break;
+        case r'effectivePriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.effectivePriceRp = valueDes;
           break;
         case r'durationDays':
           final valueDes = serializers.deserialize(
@@ -253,6 +273,14 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
             specifiedType: const FullType(int),
           ) as int;
           result.priceRp = valueDes;
+          break;
+        case r'promotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PublicPackagePromotion),
+          ) as PublicPackagePromotion?;
+          if (valueDes == null) continue;
+          result.promotion.replace(valueDes);
           break;
         default:
           unhandled.add(key);

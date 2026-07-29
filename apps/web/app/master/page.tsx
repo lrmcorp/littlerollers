@@ -18,7 +18,7 @@ export default function MasterPage() {
             Pengelolaan paket memiliki workspace tersendiri agar harga, masa aktif, dan histori
             tetap mudah diaudit.
           </p>
-          <Link className="button-primary inline-flex" href="/packages">
+          <Link className="button-primary inline-flex" href="/workspace/packages">
             Buka workspace Paket
           </Link>
         </section>

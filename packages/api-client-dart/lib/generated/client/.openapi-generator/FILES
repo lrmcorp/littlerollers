@@ -165,10 +165,12 @@ doc/IdentityVerificationReviewSummary.md
 doc/IdentityVerificationReviewUser.md
 doc/IdentityVerificationSummary.md
 doc/InstructorFeeCommand.md
+doc/InternalPackageDetail.md
 doc/InviteUserRequest.md
 doc/IssueCustomerCheckInLinkCommand.md
 doc/LedgerApi.md
 doc/LedgerEntry.md
+doc/ListPackagePromotions200Response.md
 doc/ListPaymentAccounts200Response.md
 doc/LookupOption.md
 doc/LookupOptionMetadata.md
@@ -200,6 +202,7 @@ doc/Order.md
 doc/OrderPage.md
 doc/OrderPaymentAccount.md
 doc/OrderPaymentProofStatus.md
+doc/OrderPromotion.md
 doc/OtherCost.md
 doc/OtherCostCommand.md
 doc/OtherCostPage.md
@@ -209,6 +212,11 @@ doc/Package.md
 doc/PackageCommand.md
 doc/PackageLedgerResult.md
 doc/PackagePage.md
+doc/PackagePromotion.md
+doc/PackagePromotionCommand.md
+doc/PackagePromotionOrderPage.md
+doc/PackagePromotionOrderPageItemsInner.md
+doc/PackagePromotionUpdateCommand.md
 doc/PackagesApi.md
 doc/Page.md
 doc/PagePage.md
@@ -248,6 +256,7 @@ doc/PublicClassTypeRef.md
 doc/PublicPackageCatalog.md
 doc/PublicPackageDetail.md
 doc/PublicPackageProfile.md
+doc/PublicPackagePromotion.md
 doc/PublicPackageSummary.md
 doc/PublicScheduleDetail.md
 doc/PublicScheduleSummary.md
@@ -497,9 +506,11 @@ lib/src/model/identity_verification_review_summary.dart
 lib/src/model/identity_verification_review_user.dart
 lib/src/model/identity_verification_summary.dart
 lib/src/model/instructor_fee_command.dart
+lib/src/model/internal_package_detail.dart
 lib/src/model/invite_user_request.dart
 lib/src/model/issue_customer_check_in_link_command.dart
 lib/src/model/ledger_entry.dart
+lib/src/model/list_package_promotions200_response.dart
 lib/src/model/list_payment_accounts200_response.dart
 lib/src/model/lookup_option.dart
 lib/src/model/lookup_option_metadata.dart
@@ -527,6 +538,7 @@ lib/src/model/order.dart
 lib/src/model/order_page.dart
 lib/src/model/order_payment_account.dart
 lib/src/model/order_payment_proof_status.dart
+lib/src/model/order_promotion.dart
 lib/src/model/other_cost.dart
 lib/src/model/other_cost_command.dart
 lib/src/model/other_cost_page.dart
@@ -536,6 +548,11 @@ lib/src/model/package.dart
 lib/src/model/package_command.dart
 lib/src/model/package_ledger_result.dart
 lib/src/model/package_page.dart
+lib/src/model/package_promotion.dart
+lib/src/model/package_promotion_command.dart
+lib/src/model/package_promotion_order_page.dart
+lib/src/model/package_promotion_order_page_items_inner.dart
+lib/src/model/package_promotion_update_command.dart
 lib/src/model/page.dart
 lib/src/model/page_page.dart
 lib/src/model/password_change_command.dart
@@ -574,6 +591,7 @@ lib/src/model/public_class_type_ref.dart
 lib/src/model/public_package_catalog.dart
 lib/src/model/public_package_detail.dart
 lib/src/model/public_package_profile.dart
+lib/src/model/public_package_promotion.dart
 lib/src/model/public_package_summary.dart
 lib/src/model/public_schedule_detail.dart
 lib/src/model/public_schedule_summary.dart
@@ -809,10 +827,12 @@ test/identity_verification_review_summary_test.dart
 test/identity_verification_review_user_test.dart
 test/identity_verification_summary_test.dart
 test/instructor_fee_command_test.dart
+test/internal_package_detail_test.dart
 test/invite_user_request_test.dart
 test/issue_customer_check_in_link_command_test.dart
 test/ledger_api_test.dart
 test/ledger_entry_test.dart
+test/list_package_promotions200_response_test.dart
 test/list_payment_accounts200_response_test.dart
 test/lookup_option_metadata_test.dart
 test/lookup_option_test.dart
@@ -843,6 +863,7 @@ test/operations_api_test.dart
 test/order_page_test.dart
 test/order_payment_account_test.dart
 test/order_payment_proof_status_test.dart
+test/order_promotion_test.dart
 test/order_test.dart
 test/other_cost_command_test.dart
 test/other_cost_page_test.dart
@@ -852,6 +873,11 @@ test/otp_verify_request_test.dart
 test/package_command_test.dart
 test/package_ledger_result_test.dart
 test/package_page_test.dart
+test/package_promotion_command_test.dart
+test/package_promotion_order_page_items_inner_test.dart
+test/package_promotion_order_page_test.dart
+test/package_promotion_test.dart
+test/package_promotion_update_command_test.dart
 test/package_test.dart
 test/packages_api_test.dart
 test/page_page_test.dart
@@ -892,6 +918,7 @@ test/public_class_type_ref_test.dart
 test/public_package_catalog_test.dart
 test/public_package_detail_test.dart
 test/public_package_profile_test.dart
+test/public_package_promotion_test.dart
 test/public_package_summary_test.dart
 test/public_schedule_detail_test.dart
 test/public_schedule_summary_instructor_test.dart

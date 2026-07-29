@@ -168,9 +168,11 @@ import 'package:openapi/src/model/identity_verification_review_summary.dart';
 import 'package:openapi/src/model/identity_verification_review_user.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
 import 'package:openapi/src/model/instructor_fee_command.dart';
+import 'package:openapi/src/model/internal_package_detail.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
 import 'package:openapi/src/model/issue_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/ledger_entry.dart';
+import 'package:openapi/src/model/list_package_promotions200_response.dart';
 import 'package:openapi/src/model/list_payment_accounts200_response.dart';
 import 'package:openapi/src/model/lookup_option.dart';
 import 'package:openapi/src/model/lookup_option_metadata.dart';
@@ -198,6 +200,7 @@ import 'package:openapi/src/model/order.dart';
 import 'package:openapi/src/model/order_page.dart';
 import 'package:openapi/src/model/order_payment_account.dart';
 import 'package:openapi/src/model/order_payment_proof_status.dart';
+import 'package:openapi/src/model/order_promotion.dart';
 import 'package:openapi/src/model/other_cost.dart';
 import 'package:openapi/src/model/other_cost_command.dart';
 import 'package:openapi/src/model/other_cost_page.dart';
@@ -207,6 +210,11 @@ import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
 import 'package:openapi/src/model/package_page.dart';
+import 'package:openapi/src/model/package_promotion.dart';
+import 'package:openapi/src/model/package_promotion_command.dart';
+import 'package:openapi/src/model/package_promotion_order_page.dart';
+import 'package:openapi/src/model/package_promotion_order_page_items_inner.dart';
+import 'package:openapi/src/model/package_promotion_update_command.dart';
 import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/page_page.dart';
 import 'package:openapi/src/model/password_change_command.dart';
@@ -245,6 +253,7 @@ import 'package:openapi/src/model/public_class_type_ref.dart';
 import 'package:openapi/src/model/public_package_catalog.dart';
 import 'package:openapi/src/model/public_package_detail.dart';
 import 'package:openapi/src/model/public_package_profile.dart';
+import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:openapi/src/model/public_package_summary.dart';
 import 'package:openapi/src/model/public_schedule_detail.dart';
 import 'package:openapi/src/model/public_schedule_summary.dart';
@@ -473,9 +482,11 @@ part 'serializers.g.dart';
   IdentityVerificationReviewUser,
   IdentityVerificationSummary,
   InstructorFeeCommand,
+  InternalPackageDetail,
   InviteUserRequest,
   IssueCustomerCheckInLinkCommand,
   LedgerEntry,
+  ListPackagePromotions200Response,
   ListPaymentAccounts200Response,
   LookupOption,
   LookupOptionMetadata,
@@ -503,15 +514,21 @@ part 'serializers.g.dart';
   OrderPage,
   OrderPaymentAccount,
   OrderPaymentProofStatus,
+  OrderPromotion,
   OtherCost,
   OtherCostCommand,
   OtherCostPage,
   OtpRequest,
   OtpVerifyRequest,
-  Package,
+  Package,$Package,
   PackageCommand,
   PackageLedgerResult,
   PackagePage,
+  PackagePromotion,
+  PackagePromotionCommand,$PackagePromotionCommand,
+  PackagePromotionOrderPage,
+  PackagePromotionOrderPageItemsInner,
+  PackagePromotionUpdateCommand,
   Page,
   PagePage,
   PasswordChangeCommand,
@@ -550,6 +567,7 @@ part 'serializers.g.dart';
   PublicPackageCatalog,
   PublicPackageDetail,
   PublicPackageProfile,
+  PublicPackagePromotion,
   PublicPackageSummary,$PublicPackageSummary,
   PublicScheduleDetail,
   PublicScheduleSummary,$PublicScheduleSummary,
@@ -625,6 +643,8 @@ Serializers serializers = (_$serializers.toBuilder()
       ..add(AccessReason.serializer)
       ..add(CustomerRescheduleSlot.serializer)
       ..add(EffectivePeriod.serializer)
+      ..add(Package.serializer)
+      ..add(PackagePromotionCommand.serializer)
       ..add(PublicBranch.serializer)
       ..add(PublicClassProfile.serializer)
       ..add(PublicPackageSummary.serializer)

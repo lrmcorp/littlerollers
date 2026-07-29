@@ -59,6 +59,19 @@ test.beforeEach(async ({ page }) => {
                 sessionCount: 10,
                 durationDays: 90,
                 priceRp: 1_600_000,
+                effectivePriceRp: 1_440_000,
+                promotion: {
+                  id: 'promotion-reformer-10',
+                  name: 'Reformer Routine 10%',
+                  label: 'Promo 10%',
+                  discountType: 'PERCENTAGE',
+                  discountValue: 10,
+                  discountRp: 160_000,
+                  promotionalPriceRp: 1_440_000,
+                  activeFrom: '2026-07-01T00:00:00.000Z',
+                  activeUntil: '2026-08-31T00:00:00.000Z',
+                  version: 1,
+                },
                 effectiveUntil: null,
                 classType: {
                   id: 'type-reformer',
@@ -179,6 +192,9 @@ for (const viewport of [
     const recommended = page.getByRole('heading', { name: 'Reformer Pilates 10' });
     await expect(recommended).toBeVisible();
     const firstCard = page.locator('main article').first();
+    await expect(firstCard.locator('del')).toContainText('1.600.000');
+    await expect(firstCard.getByText('Promo 10%')).toBeVisible();
+    await expect(firstCard.getByText(/Rp\s*1\.440\.000/)).toBeVisible();
     const top = await firstCard.evaluate((element) => element.getBoundingClientRect().top);
     expect(top).toBeLessThanOrEqual(viewport.maximumCardTop);
     const cardTitleSize = await recommended.evaluate((element) =>

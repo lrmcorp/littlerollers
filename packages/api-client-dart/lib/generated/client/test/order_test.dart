@@ -47,6 +47,16 @@ void main() {
       // TODO
     });
 
+    // OrderPromotion promotion
+    test('to test the property `promotion`', () async {
+      // TODO
+    });
+
+    // int promotionalPriceRp
+    test('to test the property `promotionalPriceRp`', () async {
+      // TODO
+    });
+
     // int paymentUniqueCode
     test('to test the property `paymentUniqueCode`', () async {
       // TODO

@@ -9,6 +9,7 @@ import { AlertBanner, useAppFeedback } from '../components/app-feedback';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
 import { TextInput } from '../components/forms';
+import { PackagePrice } from '../components/public/package-price';
 import {
   browserOrderClient,
   orderError,
@@ -39,6 +40,7 @@ export function CheckoutView() {
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherPreview, setVoucherPreview] = useState<{
     code: string;
+    packagePromotionDiscountRp: number;
     discountRp: number;
     priceAfterDiscountRp: number;
   } | null>(null);
@@ -165,7 +167,14 @@ export function CheckoutView() {
             </div>
             <div className="rounded-dd-lg bg-dd-surface-muted p-4">
               <dt className="text-xs text-dd-muted">Harga paket</dt>
-              <dd className="mt-1 font-semibold">{rupiah.format(options.package.priceRp)}</dd>
+              <dd className="mt-2">
+                <PackagePrice
+                  priceRp={options.package.priceRp}
+                  effectivePriceRp={options.package.effectivePriceRp}
+                  promotion={options.package.promotion}
+                  compact
+                />
+              </dd>
             </div>
           </dl>
         </section>
@@ -236,7 +245,15 @@ export function CheckoutView() {
           </Button>
         </div>
         {voucherPreview && (
-          <dl className="mt-4 grid gap-2 rounded-dd-lg bg-dd-surface-muted p-4 text-sm sm:grid-cols-3">
+          <dl className="mt-4 grid gap-2 rounded-dd-lg bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
+            {voucherPreview.packagePromotionDiscountRp > 0 && (
+              <div>
+                <dt className="text-dd-muted">Promo paket</dt>
+                <dd className="font-semibold text-dd-forest">
+                  -{rupiah.format(voucherPreview.packagePromotionDiscountRp)}
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-dd-muted">Voucher</dt>
               <dd className="font-semibold">{voucherPreview.code}</dd>
@@ -286,6 +303,7 @@ export function CheckoutView() {
                 slot,
                 branchId,
                 voucherPreview?.code,
+                options.package,
               );
               setOrder(created);
               router.replace(`/checkout?order=${encodeURIComponent(created.id)}`);

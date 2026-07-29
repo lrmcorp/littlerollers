@@ -15,6 +15,9 @@ part 'create_order_command.g.dart';
 /// * [branchId] 
 /// * [slotId] 
 /// * [voucherCode] 
+/// * [expectedPackageVersion] 
+/// * [expectedPromotionId] 
+/// * [expectedPromotionVersion] 
 @BuiltValue()
 abstract class CreateOrderCommand implements Built<CreateOrderCommand, CreateOrderCommandBuilder> {
   @BuiltValueField(wireName: r'packageId')
@@ -28,6 +31,15 @@ abstract class CreateOrderCommand implements Built<CreateOrderCommand, CreateOrd
 
   @BuiltValueField(wireName: r'voucherCode')
   String? get voucherCode;
+
+  @BuiltValueField(wireName: r'expectedPackageVersion')
+  int? get expectedPackageVersion;
+
+  @BuiltValueField(wireName: r'expectedPromotionId')
+  String? get expectedPromotionId;
+
+  @BuiltValueField(wireName: r'expectedPromotionVersion')
+  int? get expectedPromotionVersion;
 
   CreateOrderCommand._();
 
@@ -76,6 +88,27 @@ class _$CreateOrderCommandSerializer implements PrimitiveSerializer<CreateOrderC
       yield serializers.serialize(
         object.voucherCode,
         specifiedType: const FullType(String),
+      );
+    }
+    if (object.expectedPackageVersion != null) {
+      yield r'expectedPackageVersion';
+      yield serializers.serialize(
+        object.expectedPackageVersion,
+        specifiedType: const FullType(int),
+      );
+    }
+    if (object.expectedPromotionId != null) {
+      yield r'expectedPromotionId';
+      yield serializers.serialize(
+        object.expectedPromotionId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.expectedPromotionVersion != null) {
+      yield r'expectedPromotionVersion';
+      yield serializers.serialize(
+        object.expectedPromotionVersion,
+        specifiedType: const FullType(int),
       );
     }
   }
@@ -128,6 +161,28 @@ class _$CreateOrderCommandSerializer implements PrimitiveSerializer<CreateOrderC
             specifiedType: const FullType(String),
           ) as String;
           result.voucherCode = valueDes;
+          break;
+        case r'expectedPackageVersion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.expectedPackageVersion = valueDes;
+          break;
+        case r'expectedPromotionId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.expectedPromotionId = valueDes;
+          break;
+        case r'expectedPromotionVersion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.expectedPromotionVersion = valueDes;
           break;
         default:
           unhandled.add(key);

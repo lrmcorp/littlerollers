@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **rejectedRp** | **int** |  | 
 **identificationAmountRp** | **int** | Three-digit transfer identification amount reported separately from package revenue. | 
 **grossSalesRp** | **int** |  | 
+**packagePromotionDiscountRp** | **int** |  | 
 **voucherDiscountRp** | **int** |  | 
 **netSalesRp** | **int** |  | 
 **voucherRedemptionCount** | **int** |  | 

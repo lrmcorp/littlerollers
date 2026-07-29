@@ -8,6 +8,20 @@ export interface CheckoutOptions {
     id: string;
     name: string;
     priceRp: number;
+    effectivePriceRp: number;
+    version: number;
+    promotion: null | {
+      id: string;
+      name: string;
+      label: string;
+      discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+      discountValue: number;
+      discountRp: number;
+      promotionalPriceRp: number;
+      activeFrom: string;
+      activeUntil: string;
+      version: number;
+    };
     sessionCount: number;
     durationDays: number;
     branchId: string;
@@ -40,6 +54,14 @@ export interface CustomerOrder {
     discountValue: number;
     discountRp: number;
   };
+  promotion?: null | {
+    id: string;
+    name: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    discountValue: number;
+    discountRp: number;
+  };
+  promotionalPriceRp?: number;
   priceAfterDiscountRp?: number;
   paymentUniqueCode: number | null;
   payableAmountRp: number;
@@ -243,6 +265,7 @@ export const browserOrderClient = {
     slotId?: string | null,
     branchId?: string | null,
     voucherCode?: string,
+    pricing?: CheckoutOptions['package'],
   ) {
     const value = await request<any>('/orders', {
       method: 'POST',
@@ -252,6 +275,13 @@ export const browserOrderClient = {
         ...(slotId ? { slotId } : {}),
         ...(branchId ? { branchId } : {}),
         ...(voucherCode ? { voucherCode } : {}),
+        ...(pricing
+          ? {
+              expectedPackageVersion: pricing.version,
+              expectedPromotionId: pricing.promotion?.id ?? null,
+              ...(pricing.promotion ? { expectedPromotionVersion: pricing.promotion.version } : {}),
+            }
+          : {}),
       }),
     });
     return orderDates(value);
@@ -262,6 +292,9 @@ export const browserOrderClient = {
       voucherId: string;
       code: string;
       baseAmountRp: number;
+      packagePriceRp: number;
+      packagePromotionDiscountRp: number;
+      promotionalPriceRp: number;
       discountRp: number;
       priceAfterDiscountRp: number;
     }>('/checkout/voucher-preview', {

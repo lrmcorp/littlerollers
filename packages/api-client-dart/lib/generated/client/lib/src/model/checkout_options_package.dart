@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -14,6 +15,9 @@ part 'checkout_options_package.g.dart';
 /// * [id] 
 /// * [name] 
 /// * [priceRp] 
+/// * [effectivePriceRp] 
+/// * [promotion] 
+/// * [version] 
 /// * [sessionCount] 
 /// * [durationDays] 
 /// * [branchId] 
@@ -30,6 +34,15 @@ abstract class CheckoutOptionsPackage implements Built<CheckoutOptionsPackage, C
 
   @BuiltValueField(wireName: r'priceRp')
   int get priceRp;
+
+  @BuiltValueField(wireName: r'effectivePriceRp')
+  int get effectivePriceRp;
+
+  @BuiltValueField(wireName: r'promotion')
+  PublicPackagePromotion? get promotion;
+
+  @BuiltValueField(wireName: r'version')
+  int get version;
 
   @BuiltValueField(wireName: r'sessionCount')
   int get sessionCount;
@@ -85,6 +98,21 @@ class _$CheckoutOptionsPackageSerializer implements PrimitiveSerializer<Checkout
     yield r'priceRp';
     yield serializers.serialize(
       object.priceRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'effectivePriceRp';
+    yield serializers.serialize(
+      object.effectivePriceRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'promotion';
+    yield object.promotion == null ? null : serializers.serialize(
+      object.promotion,
+      specifiedType: const FullType.nullable(PublicPackagePromotion),
+    );
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
       specifiedType: const FullType(int),
     );
     yield r'sessionCount';
@@ -160,6 +188,28 @@ class _$CheckoutOptionsPackageSerializer implements PrimitiveSerializer<Checkout
             specifiedType: const FullType(int),
           ) as int;
           result.priceRp = valueDes;
+          break;
+        case r'effectivePriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.effectivePriceRp = valueDes;
+          break;
+        case r'promotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PublicPackagePromotion),
+          ) as PublicPackagePromotion?;
+          if (valueDes == null) continue;
+          result.promotion.replace(valueDes);
+          break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
           break;
         case r'sessionCount':
           final valueDes = serializers.deserialize(

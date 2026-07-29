@@ -27,5 +27,20 @@ void main() {
       // TODO
     });
 
+    // int expectedPackageVersion
+    test('to test the property `expectedPackageVersion`', () async {
+      // TODO
+    });
+
+    // String expectedPromotionId
+    test('to test the property `expectedPromotionId`', () async {
+      // TODO
+    });
+
+    // int expectedPromotionVersion
+    test('to test the property `expectedPromotionVersion`', () async {
+      // TODO
+    });
+
   });
 }

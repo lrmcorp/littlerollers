@@ -37,6 +37,16 @@ void main() {
       // TODO
     });
 
+    // int effectivePriceRp
+    test('to test the property `effectivePriceRp`', () async {
+      // TODO
+    });
+
+    // PublicPackagePromotion promotion
+    test('to test the property `promotion`', () async {
+      // TODO
+    });
+
     // DateTime effectiveUntil
     test('to test the property `effectiveUntil`', () async {
       // TODO

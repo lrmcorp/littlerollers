@@ -6,6 +6,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
 import { decryptAccountNumber } from './payment-account-security';
+import { PackagePricingService } from './package-pricing.service';
 
 const orderStatuses = [
   'AWAITING_PAYMENT',
@@ -22,6 +23,7 @@ export class CustomerOrderService {
     private readonly db: PrismaService,
     private readonly idem: IdempotencyService,
     private readonly access: PackageAccessService,
+    private readonly pricing: PackagePricingService,
   ) {}
   async checkoutOptions(p: SessionPrincipal, packageId: string, branchId?: string) {
     this.access.catalog(p);
@@ -34,7 +36,15 @@ export class CustomerOrderService {
         effectiveFrom: { lte: now },
         OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
       },
-      include: { branch: true, classType: true },
+      include: {
+        branch: true,
+        classType: true,
+        promotions: {
+          where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
+          orderBy: [{ activeFrom: 'desc' }],
+          take: 1,
+        },
+      },
     });
     if (!pkg?.branch.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (branchId && pkg.branchId !== branchId)
@@ -44,11 +54,15 @@ export class CustomerOrderService {
       orderBy: { createdAt: 'desc' },
     });
     if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
+    const packagePricing = this.pricing.calculate(pkg.priceRp, pkg.promotions[0], now);
     return {
       package: {
         id: pkg.id,
         name: pkg.name,
         priceRp: pkg.priceRp,
+        effectivePriceRp: packagePricing.effectivePriceRp,
+        promotion: packagePricing.promotion,
+        version: pkg.version,
         sessionCount: pkg.sessionCount,
         durationDays: pkg.durationDays,
         branchId: pkg.branchId,
@@ -120,6 +134,16 @@ export class CustomerOrderService {
             discountRp: order.voucherDiscountRpSnapshot,
           }
         : null,
+      promotion: order.packagePromotionId
+        ? {
+            id: order.packagePromotionId,
+            name: order.packagePromotionNameSnapshot,
+            discountType: order.packagePromotionDiscountTypeSnapshot,
+            discountValue: order.packagePromotionDiscountValueSnapshot,
+            discountRp: order.packagePromotionDiscountRpSnapshot,
+          }
+        : null,
+      promotionalPriceRp: order.promotionalPriceRpSnapshot ?? order.priceRpSnapshot,
       priceAfterDiscountRp: order.priceAfterDiscountRpSnapshot ?? order.priceRpSnapshot,
       paymentUniqueCode: order.paymentUniqueCode,
       payableAmountRp,
@@ -248,6 +272,17 @@ export class CustomerOrderService {
           if (!slot || slot.branchId !== pkg.branchId || slot.classTypeId !== pkg.classTypeId)
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         }
+        const activePromotion = await this.pricing.activePromotion(tx, pkg.id, now);
+        const packagePricing = this.pricing.calculate(pkg.priceRp, activePromotion, now);
+        if (
+          (input.expectedPackageVersion !== undefined &&
+            input.expectedPackageVersion !== pkg.version) ||
+          (Object.prototype.hasOwnProperty.call(input, 'expectedPromotionId') &&
+            (input.expectedPromotionId ?? null) !== (activePromotion?.id ?? null)) ||
+          (input.expectedPromotionVersion !== undefined &&
+            input.expectedPromotionVersion !== activePromotion?.version)
+        )
+          throw new ApiProblem('PRICE_CHANGED', HttpStatus.CONFLICT);
         let voucher:
           | {
               id: string;
@@ -280,7 +315,7 @@ export class CustomerOrderService {
             include: { _count: { select: { redemptions: true } } },
           });
           if (!candidate) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
-          if (pkg.priceRp < candidate.minimumPurchaseRp)
+          if (packagePricing.effectivePriceRp < candidate.minimumPurchaseRp)
             throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
           const [totalUsage, customerUsage] = await Promise.all([
             tx.voucherRedemption.count({
@@ -299,12 +334,12 @@ export class CustomerOrderService {
             throw new ApiProblem('VOUCHER_CUSTOMER_LIMIT', HttpStatus.UNPROCESSABLE_ENTITY);
           const rawDiscount =
             candidate.discountType === 'PERCENTAGE'
-              ? Math.floor((pkg.priceRp * candidate.discountValue) / 100)
+              ? Math.floor((packagePricing.effectivePriceRp * candidate.discountValue) / 100)
               : candidate.discountValue;
           const discountRp = Math.min(
             rawDiscount,
             candidate.maxDiscountRp ?? rawDiscount,
-            pkg.priceRp,
+            packagePricing.effectivePriceRp,
           );
           voucher = {
             id: candidate.id,
@@ -312,7 +347,7 @@ export class CustomerOrderService {
             discountType: candidate.discountType,
             discountValue: candidate.discountValue,
             discountRp,
-            priceAfterDiscountRp: pkg.priceRp - discountRp,
+            priceAfterDiscountRp: packagePricing.effectivePriceRp - discountRp,
           };
         }
         const purchaseId = newId();
@@ -332,12 +367,19 @@ export class CustomerOrderService {
             continuationClassSlotId: input.slotId || null,
             packageNameSnapshot: pkg.name,
             priceRpSnapshot: pkg.priceRp,
+            packagePromotionId: packagePricing.promotion?.id,
+            packagePromotionNameSnapshot: packagePricing.promotion?.name,
+            packagePromotionDiscountTypeSnapshot: packagePricing.promotion?.discountType,
+            packagePromotionDiscountValueSnapshot: packagePricing.promotion?.discountValue,
+            packagePromotionDiscountRpSnapshot: packagePricing.promotion?.discountRp,
+            promotionalPriceRpSnapshot: packagePricing.effectivePriceRp,
             voucherId: voucher?.id,
             voucherCodeSnapshot: voucher?.code,
             voucherDiscountTypeSnapshot: voucher?.discountType,
             voucherDiscountValueSnapshot: voucher?.discountValue,
             voucherDiscountRpSnapshot: voucher?.discountRp,
-            priceAfterDiscountRpSnapshot: voucher?.priceAfterDiscountRp ?? pkg.priceRp,
+            priceAfterDiscountRpSnapshot:
+              voucher?.priceAfterDiscountRp ?? packagePricing.effectivePriceRp,
             sessionCountSnapshot: pkg.sessionCount,
             durationDaysSnapshot: pkg.durationDays,
             status: 'AWAITING_PAYMENT',
@@ -348,7 +390,7 @@ export class CustomerOrderService {
         const uniquePayment = await this.reserveUniqueCode(tx, {
           purchaseId,
           paymentAccountId: account.id,
-          priceRp: voucher?.priceAfterDiscountRp ?? pkg.priceRp,
+          priceRp: voucher?.priceAfterDiscountRp ?? packagePricing.effectivePriceRp,
           expiresAt,
         });
         const purchase = await tx.purchase.update({

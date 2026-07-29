@@ -14,6 +14,8 @@ Name | Type | Description | Notes
 **sessionCount** | **int** |  | 
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
+**effectivePriceRp** | **int** |  | 
+**promotion** | [**PublicPackagePromotion**](PublicPackagePromotion.md) |  | 
 **effectiveUntil** | [**DateTime**](DateTime.md) |  | [optional] 
 **classType** | [**PublicClassTypeRef**](PublicClassTypeRef.md) |  | 
 **publicProfile** | [**PublicPackageProfile**](PublicPackageProfile.md) |  | 

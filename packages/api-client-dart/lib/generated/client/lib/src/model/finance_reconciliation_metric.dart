@@ -18,6 +18,7 @@ part 'finance_reconciliation_metric.g.dart';
 /// * [rejectedRp] 
 /// * [identificationAmountRp] - Three-digit transfer identification amount reported separately from package revenue.
 /// * [grossSalesRp] 
+/// * [packagePromotionDiscountRp] 
 /// * [voucherDiscountRp] 
 /// * [netSalesRp] 
 /// * [voucherRedemptionCount] 
@@ -46,6 +47,9 @@ abstract class FinanceReconciliationMetric implements Built<FinanceReconciliatio
 
   @BuiltValueField(wireName: r'grossSalesRp')
   int get grossSalesRp;
+
+  @BuiltValueField(wireName: r'packagePromotionDiscountRp')
+  int get packagePromotionDiscountRp;
 
   @BuiltValueField(wireName: r'voucherDiscountRp')
   int get voucherDiscountRp;
@@ -118,6 +122,11 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
     yield r'grossSalesRp';
     yield serializers.serialize(
       object.grossSalesRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'packagePromotionDiscountRp';
+    yield serializers.serialize(
+      object.packagePromotionDiscountRp,
       specifiedType: const FullType(int),
     );
     yield r'voucherDiscountRp';
@@ -216,6 +225,13 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
             specifiedType: const FullType(int),
           ) as int;
           result.grossSalesRp = valueDes;
+          break;
+        case r'packagePromotionDiscountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.packagePromotionDiscountRp = valueDes;
           break;
         case r'voucherDiscountRp':
           final valueDes = serializers.deserialize(

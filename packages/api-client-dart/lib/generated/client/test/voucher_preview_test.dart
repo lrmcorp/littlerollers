@@ -22,6 +22,21 @@ void main() {
       // TODO
     });
 
+    // int packagePriceRp
+    test('to test the property `packagePriceRp`', () async {
+      // TODO
+    });
+
+    // int packagePromotionDiscountRp
+    test('to test the property `packagePromotionDiscountRp`', () async {
+      // TODO
+    });
+
+    // int promotionalPriceRp
+    test('to test the property `promotionalPriceRp`', () async {
+      // TODO
+    });
+
     // int baseAmountRp
     test('to test the property `baseAmountRp`', () async {
       // TODO

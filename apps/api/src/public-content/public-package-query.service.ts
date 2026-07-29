@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid } from './public-query.validation';
+import { calculatePackagePromotion } from '../packages/package-pricing.service';
 
 @Injectable()
 export class PublicPackageQueryService {
@@ -45,6 +46,11 @@ export class PublicPackageQueryService {
             priceRp: true,
             effectiveUntil: true,
             updatedAt: true,
+            promotions: {
+              where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
+              orderBy: [{ activeFrom: 'desc' as const }],
+              take: 1,
+            },
             classType: { select: { id: true, code: true, name: true } },
           },
           orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
@@ -61,8 +67,9 @@ export class PublicPackageQueryService {
         seen.add(key);
         return true;
       })
-      .map(({ businessKey: _businessKey, updatedAt: _updatedAt, ...item }) => ({
+      .map(({ businessKey: _businessKey, updatedAt: _updatedAt, promotions, ...item }) => ({
         ...item,
+        ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
         branch,
       }))
       .sort(
@@ -96,6 +103,11 @@ export class PublicPackageQueryService {
         priceRp: true,
         effectiveFrom: true,
         effectiveUntil: true,
+        promotions: {
+          where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
+          orderBy: [{ activeFrom: 'desc' as const }],
+          take: 1,
+        },
         publicProfile: {
           select: {
             summary: true,
@@ -139,9 +151,16 @@ export class PublicPackageQueryService {
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       take: 4,
     });
+    const pricing = calculatePackagePromotion({
+      priceRp: item.priceRp,
+      promotion: item.promotions?.[0],
+      now,
+    });
+    const { promotions: _promotions, ...publicItem } = item;
     return {
-      ...item,
-      pricePerSessionRp: Math.round(item.priceRp / item.sessionCount),
+      ...publicItem,
+      ...pricing,
+      pricePerSessionRp: Math.round(pricing.effectivePriceRp / item.sessionCount),
       schedules: schedules.map(({ bookedCount, ...schedule }) => ({
         ...schedule,
         available: Math.max(0, schedule.capacity - bookedCount),

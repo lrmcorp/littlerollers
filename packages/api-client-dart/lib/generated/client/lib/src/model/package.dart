@@ -25,8 +25,8 @@ part 'package.g.dart';
 /// * [effectiveFrom] 
 /// * [effectiveUntil] 
 /// * [version] 
-@BuiltValue()
-abstract class Package implements Built<Package, PackageBuilder> {
+@BuiltValue(instantiable: false)
+abstract class Package  {
   @BuiltValueField(wireName: r'id')
   String get id;
 
@@ -64,20 +64,13 @@ abstract class Package implements Built<Package, PackageBuilder> {
   @BuiltValueField(wireName: r'version')
   int get version;
 
-  Package._();
-
-  factory Package([void updates(PackageBuilder b)]) = _$Package;
-
-  @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(PackageBuilder b) => b;
-
   @BuiltValueSerializer(custom: true)
   static Serializer<Package> get serializer => _$PackageSerializer();
 }
 
 class _$PackageSerializer implements PrimitiveSerializer<Package> {
   @override
-  final Iterable<Type> types = const [Package, _$Package];
+  final Iterable<Type> types = const [Package];
 
   @override
   final String wireName = r'Package';
@@ -158,6 +151,46 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+  }
+
+  @override
+  Package deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.deserialize(serialized, specifiedType: FullType($Package)) as $Package;
+  }
+}
+
+/// a concrete implementation of [Package], since [Package] is not instantiable
+@BuiltValue(instantiable: true)
+abstract class $Package implements Package, Built<$Package, $PackageBuilder> {
+  $Package._();
+
+  factory $Package([void Function($PackageBuilder)? updates]) = _$$Package;
+
+  @BuiltValueHook(initializeBuilder: true)
+  static void _defaults($PackageBuilder b) => b;
+
+  @BuiltValueSerializer(custom: true)
+  static Serializer<$Package> get serializer => _$$PackageSerializer();
+}
+
+class _$$PackageSerializer implements PrimitiveSerializer<$Package> {
+  @override
+  final Iterable<Type> types = const [$Package, _$$Package];
+
+  @override
+  final String wireName = r'$Package';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    $Package object, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.serialize(object, specifiedType: FullType(Package))!;
   }
 
   void _deserializeProperties(
@@ -266,12 +299,12 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
   }
 
   @override
-  Package deserialize(
+  $Package deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = PackageBuilder();
+    final result = $PackageBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

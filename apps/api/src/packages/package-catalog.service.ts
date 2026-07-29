@@ -42,6 +42,10 @@ export class PackageCatalogService {
         OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
       },
       orderBy: [{ branchId: 'asc' }, { effectiveFrom: 'desc' }],
+      include: {
+        branch: { select: { id: true, code: true, name: true } },
+        classType: { select: { id: true, code: true, name: true } },
+      },
     });
     return { items, page: { nextCursor: null, hasMore: false } };
   }

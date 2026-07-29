@@ -21,6 +21,7 @@ import { PaymentAccountService } from './payment-account.service';
 import { PaymentReviewService } from './payment-review.service';
 import { PaymentProofService } from './payment-proof.service';
 import { VoucherService } from './voucher.service';
+import { PackagePromotionService } from './package-promotion.service';
 import { ApiProblem } from '../identity/security';
 import { HttpStatus } from '@nestjs/common';
 @Controller()
@@ -33,6 +34,7 @@ export class PackagesController {
     private readonly paymentReview: PaymentReviewService,
     private readonly paymentProof: PaymentProofService,
     private readonly vouchers: VoucherService,
+    private readonly promotions: PackagePromotionService,
   ) {}
   @Get('vouchers') listVouchers(
     @Req() r: AuthenticatedRequest,
@@ -99,6 +101,58 @@ export class PackagesController {
   }
   @Get('packages') list(@Req() r: AuthenticatedRequest, @Query('branchId') branchId?: string) {
     return this.catalog.list(r.principal, branchId);
+  }
+  @Get('packages/:id') packageDetail(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
+    return this.promotions.packageDetail(r.principal, id);
+  }
+  @Get('packages/:id/promotions') packagePromotions(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.promotions.list(r.principal, id);
+  }
+  @Post('packages/:id/promotions') createPackagePromotion(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: any,
+  ) {
+    return this.promotions.create(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
+  @Patch('package-promotions/:id') updatePackagePromotion(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: any,
+  ) {
+    return this.promotions.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
+  @Post('package-promotions/:id/:action') transitionPackagePromotion(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('action') action: 'activate' | 'pause' | 'archive',
+    @Headers('idempotency-key') key: string,
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    const statuses = { activate: 'ACTIVE', pause: 'PAUSED', archive: 'ARCHIVED' } as const;
+    const status = statuses[action];
+    if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.promotions.transition(
+      r.principal,
+      id,
+      status,
+      body,
+      key,
+      r.correlationId ?? 'unknown',
+    );
+  }
+  @Get('package-promotions/:id/orders') packagePromotionOrders(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.promotions.orders(r.principal, id, cursor, limit);
   }
   @Post('packages') create(@Req() r: AuthenticatedRequest, @Body() b: any) {
     return this.catalog.create(r.principal, b, r.correlationId ?? 'unknown');

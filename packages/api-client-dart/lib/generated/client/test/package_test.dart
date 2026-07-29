@@ -3,7 +3,7 @@ import 'package:openapi/openapi.dart';
 
 // tests for Package
 void main() {
-  final instance = PackageBuilder();
+  //final instance = PackageBuilder();
   // TODO add properties to the builder and call build()
 
   group(Package, () {

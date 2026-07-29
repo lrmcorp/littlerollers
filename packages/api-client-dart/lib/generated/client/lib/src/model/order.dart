@@ -8,6 +8,7 @@ import 'package:openapi/src/model/order_payment_proof_status.dart';
 import 'package:openapi/src/model/customer_order_activation.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/customer_order_timeline_page.dart';
+import 'package:openapi/src/model/order_promotion.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -24,6 +25,8 @@ part 'order.g.dart';
 /// * [packageName] 
 /// * [priceRp] 
 /// * [baseAmountRp] 
+/// * [promotion] 
+/// * [promotionalPriceRp] 
 /// * [paymentUniqueCode] 
 /// * [payableAmountRp] 
 /// * [sessionCount] 
@@ -66,6 +69,12 @@ abstract class Order implements Built<Order, OrderBuilder> {
 
   @BuiltValueField(wireName: r'baseAmountRp')
   int get baseAmountRp;
+
+  @BuiltValueField(wireName: r'promotion')
+  OrderPromotion? get promotion;
+
+  @BuiltValueField(wireName: r'promotionalPriceRp')
+  int get promotionalPriceRp;
 
   @BuiltValueField(wireName: r'paymentUniqueCode')
   int? get paymentUniqueCode;
@@ -184,6 +193,18 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
     yield r'baseAmountRp';
     yield serializers.serialize(
       object.baseAmountRp,
+      specifiedType: const FullType(int),
+    );
+    if (object.promotion != null) {
+      yield r'promotion';
+      yield serializers.serialize(
+        object.promotion,
+        specifiedType: const FullType.nullable(OrderPromotion),
+      );
+    }
+    yield r'promotionalPriceRp';
+    yield serializers.serialize(
+      object.promotionalPriceRp,
       specifiedType: const FullType(int),
     );
     if (object.paymentUniqueCode != null) {
@@ -369,6 +390,21 @@ class _$OrderSerializer implements PrimitiveSerializer<Order> {
             specifiedType: const FullType(int),
           ) as int;
           result.baseAmountRp = valueDes;
+          break;
+        case r'promotion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(OrderPromotion),
+          ) as OrderPromotion?;
+          if (valueDes == null) continue;
+          result.promotion.replace(valueDes);
+          break;
+        case r'promotionalPriceRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.promotionalPriceRp = valueDes;
           break;
         case r'paymentUniqueCode':
           final valueDes = serializers.deserialize(

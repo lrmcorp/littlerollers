@@ -15,6 +15,10 @@ import { notifySessionFailure } from './session-client';
 
 export type PurchasePackage = Package;
 type VoucherPaymentSnapshot = {
+  packagePromotionId?: string | null;
+  packagePromotionNameSnapshot?: string | null;
+  packagePromotionDiscountRpSnapshot?: number | null;
+  promotionalPriceRpSnapshot?: number | null;
   voucherId?: string | null;
   voucherCodeSnapshot?: string | null;
   voucherDiscountRpSnapshot?: number | null;

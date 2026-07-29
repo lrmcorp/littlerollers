@@ -18,6 +18,7 @@ import {
   publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
+import { PackagePrice } from '../../components/public/package-price';
 
 const rupiah = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -70,7 +71,7 @@ export function PackageDetailView({
             facts={
               <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  ['Harga', rupiah.format(item.priceRp)],
+                  ['Harga', rupiah.format(item.effectivePriceRp)],
                   ['Per sesi', rupiah.format(item.pricePerSessionRp)],
                   ['Jumlah', `${item.sessionCount} sesi`],
                   ['Berlaku', `${item.durationDays} hari`],
@@ -94,6 +95,30 @@ export function PackageDetailView({
               </>
             }
           />
+          {item.promotion && (
+            <section className={`${publicContainer} pt-8`} aria-label="Promo paket aktif">
+              <div className="flex flex-col gap-4 rounded-dd-lg border border-dd-brass/50 bg-dd-brass-soft p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold tracking-[0.14em] text-dd-brass-dark uppercase">
+                    {item.promotion.label}
+                  </p>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    Promo berlaku sampai{' '}
+                    {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(
+                      new Date(item.promotion.activeUntil),
+                    )}
+                    .
+                  </p>
+                </div>
+                <PackagePrice
+                  priceRp={item.priceRp}
+                  effectivePriceRp={item.effectivePriceRp}
+                  promotion={item.promotion}
+                  sessionCount={item.sessionCount}
+                />
+              </div>
+            </section>
+          )}
           <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.78fr]`}>
             <div className="grid gap-8">
               <article>

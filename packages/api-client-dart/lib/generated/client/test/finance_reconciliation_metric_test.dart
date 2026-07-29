@@ -43,6 +43,11 @@ void main() {
       // TODO
     });
 
+    // int packagePromotionDiscountRp
+    test('to test the property `packagePromotionDiscountRp`', () async {
+      // TODO
+    });
+
     // int voucherDiscountRp
     test('to test the property `voucherDiscountRp`', () async {
       // TODO
