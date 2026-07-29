@@ -25,10 +25,7 @@ export class MasterAccessService {
   }
 
   branchScope(principal: SessionPrincipal, mutation = false) {
-    return this.policy.capabilityBranchScope(
-      principal,
-      mutation ? 'master:manage' : 'master:read',
-    );
+    return this.policy.capabilityBranchScope(principal, mutation ? 'master:manage' : 'master:read');
   }
 
   audit(

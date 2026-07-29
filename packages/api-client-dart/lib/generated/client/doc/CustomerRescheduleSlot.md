@@ -18,7 +18,7 @@ Name | Type | Description | Notes
 **capacity** | **int** |  | 
 **bookedCount** | **int** |  | 
 **branch** | [**BookingBranch**](BookingBranch.md) |  | 
-**classType** | [**BookingClassSlotClassType**](BookingClassSlotClassType.md) |  | 
+**classType** | [**VoucherPackagesInner**](VoucherPackagesInner.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

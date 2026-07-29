@@ -240,6 +240,5 @@ databaseDescribe('dynamic RBAC MySQL integration', () => {
         {},
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-
   });
 });

@@ -89,10 +89,7 @@ export function PublicLanding() {
                 <Link className={primaryButton} href={`${routes.classes}#schedule`}>
                   Lihat Jadwal <span aria-hidden="true">›</span>
                 </Link>
-                <Link
-                  className={secondaryButton}
-                  href={routes.packages}
-                >
+                <Link className={secondaryButton} href={routes.packages}>
                   Lihat Paket <span aria-hidden="true">›</span>
                 </Link>
                 <Link

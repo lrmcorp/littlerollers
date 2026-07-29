@@ -15,6 +15,10 @@ Name | Type | Description | Notes
 **receivedRp** | **int** |  | 
 **approvedRp** | **int** |  | 
 **identificationAmountRp** | **int** |  | 
+**grossSalesRp** | **int** |  | 
+**voucherDiscountRp** | **int** |  | 
+**netSalesRp** | **int** |  | 
+**voucherRedemptionCount** | **int** |  | 
 **pendingCount** | **int** |  | 
 **anomalyCount** | **int** |  | 
 

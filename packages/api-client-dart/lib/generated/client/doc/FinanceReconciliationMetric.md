@@ -14,6 +14,10 @@ Name | Type | Description | Notes
 **pendingRp** | **int** |  | 
 **rejectedRp** | **int** |  | 
 **identificationAmountRp** | **int** | Three-digit transfer identification amount reported separately from package revenue. | 
+**grossSalesRp** | **int** |  | 
+**voucherDiscountRp** | **int** |  | 
+**netSalesRp** | **int** |  | 
+**voucherRedemptionCount** | **int** |  | 
 **ledgerDeltaRp** | **int** |  | 
 **unreconciledCount** | **int** |  | 
 

@@ -42,6 +42,36 @@ void main() {
       // TODO
     });
 
+    // String voucherId
+    test('to test the property `voucherId`', () async {
+      // TODO
+    });
+
+    // String voucherCodeSnapshot
+    test('to test the property `voucherCodeSnapshot`', () async {
+      // TODO
+    });
+
+    // String voucherDiscountTypeSnapshot
+    test('to test the property `voucherDiscountTypeSnapshot`', () async {
+      // TODO
+    });
+
+    // int voucherDiscountValueSnapshot
+    test('to test the property `voucherDiscountValueSnapshot`', () async {
+      // TODO
+    });
+
+    // int voucherDiscountRpSnapshot
+    test('to test the property `voucherDiscountRpSnapshot`', () async {
+      // TODO
+    });
+
+    // int priceAfterDiscountRpSnapshot
+    test('to test the property `priceAfterDiscountRpSnapshot`', () async {
+      // TODO
+    });
+
     // int paymentUniqueCode
     test('to test the property `paymentUniqueCode`', () async {
       // TODO

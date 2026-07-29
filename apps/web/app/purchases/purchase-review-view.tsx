@@ -569,7 +569,16 @@ export function PurchaseReviewView({
                 <strong>
                   {rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
                 </strong>
-                <p className="text-xs text-dd-muted">Harga {rupiah.format(item.priceRpSnapshot)}</p>
+                <p className="text-xs text-dd-muted">
+                  Harga {rupiah.format(item.priceRpSnapshot)}
+                  {item.voucherCodeSnapshot && (
+                    <>
+                      {' '}
+                      · {item.voucherCodeSnapshot} −
+                      {rupiah.format(item.voucherDiscountRpSnapshot ?? 0)}
+                    </>
+                  )}
+                </p>
               </div>
             ),
           },

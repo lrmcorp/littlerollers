@@ -37,9 +37,7 @@ export class PackageAccessService {
     if (
       !this.policy.hasCapability(principal, 'branch:all', branchId) &&
       !this.policy.hasCapability(principal, 'finance:reconcile', branchId) &&
-      !capabilities.some((capability) =>
-        this.policy.hasCapability(principal, capability, branchId),
-      )
+      !capabilities.some((capability) => this.policy.hasCapability(principal, capability, branchId))
     )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }

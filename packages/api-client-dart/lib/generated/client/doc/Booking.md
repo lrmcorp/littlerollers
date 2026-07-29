@@ -25,7 +25,7 @@ Name | Type | Description | Notes
 **sessionBalance** | [**BookingSessionBalance**](BookingSessionBalance.md) |  | [optional] 
 **branch** | [**BookingBranch**](BookingBranch.md) |  | [optional] 
 **classSlot** | [**BookingClassSlot**](BookingClassSlot.md) |  | [optional] 
-**package** | [**BookingClassSlotClassType**](BookingClassSlotClassType.md) |  | [optional] 
+**package** | [**VoucherPackagesInner**](VoucherPackagesInner.md) |  | [optional] 
 **attendance** | [**BookingAttendance**](BookingAttendance.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

@@ -24,6 +24,12 @@ part 'payment_review_item.g.dart';
 /// * [paymentProofId] 
 /// * [packageNameSnapshot] 
 /// * [priceRpSnapshot] 
+/// * [voucherId] 
+/// * [voucherCodeSnapshot] 
+/// * [voucherDiscountTypeSnapshot] 
+/// * [voucherDiscountValueSnapshot] 
+/// * [voucherDiscountRpSnapshot] 
+/// * [priceAfterDiscountRpSnapshot] 
 /// * [paymentUniqueCode] 
 /// * [payableAmountRpSnapshot] 
 /// * [sessionCountSnapshot] 
@@ -77,6 +83,61 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
     PaymentReviewItem object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
+    if (object.auditReference != null) {
+      yield r'auditReference';
+      yield serializers.serialize(
+        object.auditReference,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.voucherDiscountValueSnapshot != null) {
+      yield r'voucherDiscountValueSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountValueSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.priceAfterDiscountRpSnapshot != null) {
+      yield r'priceAfterDiscountRpSnapshot';
+      yield serializers.serialize(
+        object.priceAfterDiscountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    yield r'branch';
+    yield serializers.serialize(
+      object.branch,
+      specifiedType: const FullType(PaymentReviewBranch),
+    );
+    yield r'paymentProof';
+    yield object.paymentProof == null ? null : serializers.serialize(
+      object.paymentProof,
+      specifiedType: const FullType.nullable(PaymentReviewProof),
+    );
+    if (object.voucherId != null) {
+      yield r'voucherId';
+      yield serializers.serialize(
+        object.voucherId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    yield r'id';
+    yield serializers.serialize(
+      object.id,
+      specifiedType: const FullType(String),
+    );
+    if (object.voucherDiscountRpSnapshot != null) {
+      yield r'voucherDiscountRpSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    yield r'submittedAt';
+    yield serializers.serialize(
+      object.submittedAt,
+      specifiedType: const FullType(DateTime),
+    );
     if (object.paymentProofId != null) {
       yield r'paymentProofId';
       yield serializers.serialize(
@@ -89,10 +150,10 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.branchId,
       specifiedType: const FullType(String),
     );
-    if (object.auditReference != null) {
-      yield r'auditReference';
+    if (object.voucherCodeSnapshot != null) {
+      yield r'voucherCodeSnapshot';
       yield serializers.serialize(
-        object.auditReference,
+        object.voucherCodeSnapshot,
         specifiedType: const FullType.nullable(String),
       );
     }
@@ -115,11 +176,6 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.packageId,
       specifiedType: const FullType(String),
     );
-    yield r'branch';
-    yield serializers.serialize(
-      object.branch,
-      specifiedType: const FullType(PaymentReviewBranch),
-    );
     yield r'userId';
     yield serializers.serialize(
       object.userId,
@@ -137,11 +193,6 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
         specifiedType: const FullType.nullable(DateTime),
       );
     }
-    yield r'paymentProof';
-    yield object.paymentProof == null ? null : serializers.serialize(
-      object.paymentProof,
-      specifiedType: const FullType.nullable(PaymentReviewProof),
-    );
     yield r'priceRpSnapshot';
     yield serializers.serialize(
       object.priceRpSnapshot,
@@ -188,16 +239,13 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       object.activationSummary,
       specifiedType: const FullType.nullable(PaymentActivationSummary),
     );
-    yield r'id';
-    yield serializers.serialize(
-      object.id,
-      specifiedType: const FullType(String),
-    );
-    yield r'submittedAt';
-    yield serializers.serialize(
-      object.submittedAt,
-      specifiedType: const FullType(DateTime),
-    );
+    if (object.voucherDiscountTypeSnapshot != null) {
+      yield r'voucherDiscountTypeSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountTypeSnapshot,
+        specifiedType: const FullType.nullable(PurchaseVoucherDiscountTypeSnapshotEnum),
+      );
+    }
     yield r'customer';
     yield serializers.serialize(
       object.customer,
@@ -231,6 +279,75 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.auditReference = valueDes;
+          break;
+        case r'voucherDiscountValueSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.voucherDiscountValueSnapshot = valueDes;
+          break;
+        case r'priceAfterDiscountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.priceAfterDiscountRpSnapshot = valueDes;
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(PaymentReviewBranch),
+          ) as PaymentReviewBranch;
+          result.branch.replace(valueDes);
+          break;
+        case r'paymentProof':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PaymentReviewProof),
+          ) as PaymentReviewProof?;
+          if (valueDes == null) continue;
+          result.paymentProof.replace(valueDes);
+          break;
+        case r'voucherId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.voucherId = valueDes;
+          break;
+        case r'id':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.id = valueDes;
+          break;
+        case r'voucherDiscountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.voucherDiscountRpSnapshot = valueDes;
+          break;
+        case r'submittedAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.submittedAt = valueDes;
+          break;
         case r'paymentProofId':
           final valueDes = serializers.deserialize(
             value,
@@ -246,13 +363,13 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           ) as String;
           result.branchId = valueDes;
           break;
-        case r'auditReference':
+        case r'voucherCodeSnapshot':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType.nullable(String),
           ) as String?;
           if (valueDes == null) continue;
-          result.auditReference = valueDes;
+          result.voucherCodeSnapshot = valueDes;
           break;
         case r'decisionReasonCode':
           final valueDes = serializers.deserialize(
@@ -277,13 +394,6 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           ) as String;
           result.packageId = valueDes;
           break;
-        case r'branch':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(PaymentReviewBranch),
-          ) as PaymentReviewBranch;
-          result.branch.replace(valueDes);
-          break;
         case r'userId':
           final valueDes = serializers.deserialize(
             value,
@@ -305,14 +415,6 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           ) as DateTime?;
           if (valueDes == null) continue;
           result.paymentExpiresAt = valueDes;
-          break;
-        case r'paymentProof':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType.nullable(PaymentReviewProof),
-          ) as PaymentReviewProof?;
-          if (valueDes == null) continue;
-          result.paymentProof.replace(valueDes);
           break;
         case r'priceRpSnapshot':
           final valueDes = serializers.deserialize(
@@ -374,19 +476,13 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
           if (valueDes == null) continue;
           result.activationSummary.replace(valueDes);
           break;
-        case r'id':
+        case r'voucherDiscountTypeSnapshot':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.id = valueDes;
-          break;
-        case r'submittedAt':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(DateTime),
-          ) as DateTime;
-          result.submittedAt = valueDes;
+            specifiedType: const FullType.nullable(PurchaseVoucherDiscountTypeSnapshotEnum),
+          ) as PurchaseVoucherDiscountTypeSnapshotEnum?;
+          if (valueDes == null) continue;
+          result.voucherDiscountTypeSnapshot = valueDes;
           break;
         case r'customer':
           final valueDes = serializers.deserialize(
@@ -429,6 +525,21 @@ class _$PaymentReviewItemSerializer implements PrimitiveSerializer<PaymentReview
     );
     return result.build();
   }
+}
+
+class PaymentReviewItemVoucherDiscountTypeSnapshotEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'PERCENTAGE')
+  static const PaymentReviewItemVoucherDiscountTypeSnapshotEnum PERCENTAGE = _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_PERCENTAGE;
+  @BuiltValueEnumConst(wireName: r'FIXED_AMOUNT')
+  static const PaymentReviewItemVoucherDiscountTypeSnapshotEnum FIXED_AMOUNT = _$paymentReviewItemVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+
+  static Serializer<PaymentReviewItemVoucherDiscountTypeSnapshotEnum> get serializer => _$paymentReviewItemVoucherDiscountTypeSnapshotEnumSerializer;
+
+  const PaymentReviewItemVoucherDiscountTypeSnapshotEnum._(String name): super(name);
+
+  static BuiltSet<PaymentReviewItemVoucherDiscountTypeSnapshotEnum> get values => _$paymentReviewItemVoucherDiscountTypeSnapshotEnumValues;
+  static PaymentReviewItemVoucherDiscountTypeSnapshotEnum valueOf(String name) => _$paymentReviewItemVoucherDiscountTypeSnapshotEnumValueOf(name);
 }
 
 class PaymentReviewItemStatusEnum extends EnumClass {

@@ -19,6 +19,12 @@ part 'purchase.g.dart';
 /// * [paymentProofId] 
 /// * [packageNameSnapshot] 
 /// * [priceRpSnapshot] 
+/// * [voucherId] 
+/// * [voucherCodeSnapshot] 
+/// * [voucherDiscountTypeSnapshot] 
+/// * [voucherDiscountValueSnapshot] 
+/// * [voucherDiscountRpSnapshot] 
+/// * [priceAfterDiscountRpSnapshot] 
 /// * [paymentUniqueCode] 
 /// * [payableAmountRpSnapshot] 
 /// * [sessionCountSnapshot] 
@@ -53,6 +59,25 @@ abstract class Purchase  {
 
   @BuiltValueField(wireName: r'priceRpSnapshot')
   int get priceRpSnapshot;
+
+  @BuiltValueField(wireName: r'voucherId')
+  String? get voucherId;
+
+  @BuiltValueField(wireName: r'voucherCodeSnapshot')
+  String? get voucherCodeSnapshot;
+
+  @BuiltValueField(wireName: r'voucherDiscountTypeSnapshot')
+  PurchaseVoucherDiscountTypeSnapshotEnum? get voucherDiscountTypeSnapshot;
+  // enum voucherDiscountTypeSnapshotEnum {  PERCENTAGE,  FIXED_AMOUNT,  ,  };
+
+  @BuiltValueField(wireName: r'voucherDiscountValueSnapshot')
+  int? get voucherDiscountValueSnapshot;
+
+  @BuiltValueField(wireName: r'voucherDiscountRpSnapshot')
+  int? get voucherDiscountRpSnapshot;
+
+  @BuiltValueField(wireName: r'priceAfterDiscountRpSnapshot')
+  int? get priceAfterDiscountRpSnapshot;
 
   @BuiltValueField(wireName: r'paymentUniqueCode')
   int? get paymentUniqueCode;
@@ -144,6 +169,48 @@ class _$PurchaseSerializer implements PrimitiveSerializer<Purchase> {
       object.priceRpSnapshot,
       specifiedType: const FullType(int),
     );
+    if (object.voucherId != null) {
+      yield r'voucherId';
+      yield serializers.serialize(
+        object.voucherId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.voucherCodeSnapshot != null) {
+      yield r'voucherCodeSnapshot';
+      yield serializers.serialize(
+        object.voucherCodeSnapshot,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.voucherDiscountTypeSnapshot != null) {
+      yield r'voucherDiscountTypeSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountTypeSnapshot,
+        specifiedType: const FullType.nullable(PurchaseVoucherDiscountTypeSnapshotEnum),
+      );
+    }
+    if (object.voucherDiscountValueSnapshot != null) {
+      yield r'voucherDiscountValueSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountValueSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.voucherDiscountRpSnapshot != null) {
+      yield r'voucherDiscountRpSnapshot';
+      yield serializers.serialize(
+        object.voucherDiscountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.priceAfterDiscountRpSnapshot != null) {
+      yield r'priceAfterDiscountRpSnapshot';
+      yield serializers.serialize(
+        object.priceAfterDiscountRpSnapshot,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     if (object.paymentUniqueCode != null) {
       yield r'paymentUniqueCode';
       yield serializers.serialize(
@@ -331,6 +398,54 @@ class _$$PurchaseSerializer implements PrimitiveSerializer<$Purchase> {
           ) as int;
           result.priceRpSnapshot = valueDes;
           break;
+        case r'voucherId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.voucherId = valueDes;
+          break;
+        case r'voucherCodeSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.voucherCodeSnapshot = valueDes;
+          break;
+        case r'voucherDiscountTypeSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(PurchaseVoucherDiscountTypeSnapshotEnum),
+          ) as PurchaseVoucherDiscountTypeSnapshotEnum?;
+          if (valueDes == null) continue;
+          result.voucherDiscountTypeSnapshot = valueDes;
+          break;
+        case r'voucherDiscountValueSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.voucherDiscountValueSnapshot = valueDes;
+          break;
+        case r'voucherDiscountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.voucherDiscountRpSnapshot = valueDes;
+          break;
+        case r'priceAfterDiscountRpSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.priceAfterDiscountRpSnapshot = valueDes;
+          break;
         case r'paymentUniqueCode':
           final valueDes = serializers.deserialize(
             value,
@@ -449,6 +564,21 @@ class _$$PurchaseSerializer implements PrimitiveSerializer<$Purchase> {
     );
     return result.build();
   }
+}
+
+class PurchaseVoucherDiscountTypeSnapshotEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'PERCENTAGE')
+  static const PurchaseVoucherDiscountTypeSnapshotEnum PERCENTAGE = _$purchaseVoucherDiscountTypeSnapshotEnum_PERCENTAGE;
+  @BuiltValueEnumConst(wireName: r'FIXED_AMOUNT')
+  static const PurchaseVoucherDiscountTypeSnapshotEnum FIXED_AMOUNT = _$purchaseVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+
+  static Serializer<PurchaseVoucherDiscountTypeSnapshotEnum> get serializer => _$purchaseVoucherDiscountTypeSnapshotEnumSerializer;
+
+  const PurchaseVoucherDiscountTypeSnapshotEnum._(String name): super(name);
+
+  static BuiltSet<PurchaseVoucherDiscountTypeSnapshotEnum> get values => _$purchaseVoucherDiscountTypeSnapshotEnumValues;
+  static PurchaseVoucherDiscountTypeSnapshotEnum valueOf(String name) => _$purchaseVoucherDiscountTypeSnapshotEnumValueOf(name);
 }
 
 class PurchaseStatusEnum extends EnumClass {

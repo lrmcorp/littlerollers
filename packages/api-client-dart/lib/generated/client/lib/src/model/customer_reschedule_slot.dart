@@ -5,7 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/booking_branch.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:openapi/src/model/booking_class_slot_class_type.dart';
+import 'package:openapi/src/model/voucher_packages_inner.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -59,7 +59,7 @@ abstract class CustomerRescheduleSlot  {
   BookingBranch get branch;
 
   @BuiltValueField(wireName: r'classType')
-  BookingClassSlotClassType get classType;
+  VoucherPackagesInner get classType;
 
   @BuiltValueSerializer(custom: true)
   static Serializer<CustomerRescheduleSlot> get serializer => _$CustomerRescheduleSlotSerializer();
@@ -130,7 +130,7 @@ class _$CustomerRescheduleSlotSerializer implements PrimitiveSerializer<Customer
     yield r'classType';
     yield serializers.serialize(
       object.classType,
-      specifiedType: const FullType(BookingClassSlotClassType),
+      specifiedType: const FullType(VoucherPackagesInner),
     );
   }
 
@@ -268,8 +268,8 @@ class _$$CustomerRescheduleSlotSerializer implements PrimitiveSerializer<$Custom
         case r'classType':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BookingClassSlotClassType),
-          ) as BookingClassSlotClassType;
+            specifiedType: const FullType(VoucherPackagesInner),
+          ) as VoucherPackagesInner;
           result.classType.replace(valueDes);
           break;
         default:

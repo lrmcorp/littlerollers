@@ -17,6 +17,10 @@ part 'finance_reconciliation_metric.g.dart';
 /// * [pendingRp] 
 /// * [rejectedRp] 
 /// * [identificationAmountRp] - Three-digit transfer identification amount reported separately from package revenue.
+/// * [grossSalesRp] 
+/// * [voucherDiscountRp] 
+/// * [netSalesRp] 
+/// * [voucherRedemptionCount] 
 /// * [ledgerDeltaRp] 
 /// * [unreconciledCount] 
 @BuiltValue()
@@ -39,6 +43,18 @@ abstract class FinanceReconciliationMetric implements Built<FinanceReconciliatio
   /// Three-digit transfer identification amount reported separately from package revenue.
   @BuiltValueField(wireName: r'identificationAmountRp')
   int get identificationAmountRp;
+
+  @BuiltValueField(wireName: r'grossSalesRp')
+  int get grossSalesRp;
+
+  @BuiltValueField(wireName: r'voucherDiscountRp')
+  int get voucherDiscountRp;
+
+  @BuiltValueField(wireName: r'netSalesRp')
+  int get netSalesRp;
+
+  @BuiltValueField(wireName: r'voucherRedemptionCount')
+  int get voucherRedemptionCount;
 
   @BuiltValueField(wireName: r'ledgerDeltaRp')
   int get ledgerDeltaRp;
@@ -97,6 +113,26 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
     yield r'identificationAmountRp';
     yield serializers.serialize(
       object.identificationAmountRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'grossSalesRp';
+    yield serializers.serialize(
+      object.grossSalesRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'voucherDiscountRp';
+    yield serializers.serialize(
+      object.voucherDiscountRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'netSalesRp';
+    yield serializers.serialize(
+      object.netSalesRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'voucherRedemptionCount';
+    yield serializers.serialize(
+      object.voucherRedemptionCount,
       specifiedType: const FullType(int),
     );
     yield r'ledgerDeltaRp';
@@ -173,6 +209,34 @@ class _$FinanceReconciliationMetricSerializer implements PrimitiveSerializer<Fin
             specifiedType: const FullType(int),
           ) as int;
           result.identificationAmountRp = valueDes;
+          break;
+        case r'grossSalesRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.grossSalesRp = valueDes;
+          break;
+        case r'voucherDiscountRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.voucherDiscountRp = valueDes;
+          break;
+        case r'netSalesRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.netSalesRp = valueDes;
+          break;
+        case r'voucherRedemptionCount':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.voucherRedemptionCount = valueDes;
           break;
         case r'ledgerDeltaRp':
           final valueDes = serializers.deserialize(

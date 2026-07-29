@@ -633,6 +633,12 @@ export class PaymentReviewService {
               where: { purchaseId: purchase.id },
             });
           }
+          if (nextStatus === 'REJECTED') {
+            await tx.voucherRedemption.updateMany({
+              where: { purchaseId: purchase.id, releasedAt: null },
+              data: { releasedAt: decidedAt },
+            });
+          }
 
           let customerPackage = null;
           let ledgerEntry = null;
@@ -668,7 +674,7 @@ export class PaymentReviewService {
                 classTypeId: purchase.package.classTypeId,
                 activationDate: effectiveDate,
                 expiryAt: startOfLocalDateUtc(expiryDate, purchase.branch.timezone),
-                salePriceRp: purchase.priceRpSnapshot,
+                salePriceRp: purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
                 sessionCountSnapshot: purchase.sessionCountSnapshot,
                 durationDaysSnapshot: purchase.durationDaysSnapshot,
                 projectionRateRp: Number(rate),

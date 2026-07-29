@@ -52,6 +52,11 @@ void main() {
       // TODO
     });
 
+    //Future<Voucher> createVoucher(String idempotencyKey, VoucherCommand voucherCommand) async
+    test('test createVoucher', () async {
+      // TODO
+    });
+
     //Future<PaymentProof> finalizePaymentProofUpload(String id, String idempotencyKey, FinalizeUploadCommand finalizeUploadCommand) async
     test('test finalizePaymentProofUpload', () async {
       // TODO
@@ -86,6 +91,11 @@ void main() {
       // TODO
     });
 
+    //Future<Voucher> getVoucher(String id) async
+    test('test getVoucher', () async {
+      // TODO
+    });
+
     //Future<OrderPage> listOrders({ String status, String cursor, String q, Date from, Date until, int limit }) async
     test('test listOrders', () async {
       // TODO
@@ -110,6 +120,21 @@ void main() {
       // TODO
     });
 
+    //Future<VoucherRedemptionPage> listVoucherRedemptions(String id, { String cursor }) async
+    test('test listVoucherRedemptions', () async {
+      // TODO
+    });
+
+    //Future<VoucherPage> listVouchers({ String q, String status, Date from, Date until, String branchId, String cursor }) async
+    test('test listVouchers', () async {
+      // TODO
+    });
+
+    //Future<VoucherPreview> previewCheckoutVoucher(VoucherPreviewCommand voucherPreviewCommand) async
+    test('test previewCheckoutVoucher', () async {
+      // TODO
+    });
+
     // Permission-gated rejection. Creates no customer package or ledger entry.
     //
     //Future<Purchase> rejectPurchase(String id, String idempotencyKey, ApprovePurchaseRequest approvePurchaseRequest) async
@@ -124,6 +149,16 @@ void main() {
 
     //Future<Purchase> submitPurchase(String idempotencyKey, SubmitPurchaseRequest submitPurchaseRequest) async
     test('test submitPurchase', () async {
+      // TODO
+    });
+
+    //Future<Voucher> transitionVoucher(String id, String action, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
+    test('test transitionVoucher', () async {
+      // TODO
+    });
+
+    //Future<Voucher> updateVoucher(String id, String idempotencyKey, VoucherUpdateCommand voucherUpdateCommand) async
+    test('test updateVoucher', () async {
       // TODO
     });
 

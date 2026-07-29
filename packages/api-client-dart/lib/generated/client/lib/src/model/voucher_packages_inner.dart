@@ -6,42 +6,42 @@
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
-part 'booking_class_slot_class_type.g.dart';
+part 'voucher_packages_inner.g.dart';
 
-/// BookingClassSlotClassType
+/// VoucherPackagesInner
 ///
 /// Properties:
 /// * [id] 
 /// * [name] 
 @BuiltValue()
-abstract class BookingClassSlotClassType implements Built<BookingClassSlotClassType, BookingClassSlotClassTypeBuilder> {
+abstract class VoucherPackagesInner implements Built<VoucherPackagesInner, VoucherPackagesInnerBuilder> {
   @BuiltValueField(wireName: r'id')
   String get id;
 
   @BuiltValueField(wireName: r'name')
   String get name;
 
-  BookingClassSlotClassType._();
+  VoucherPackagesInner._();
 
-  factory BookingClassSlotClassType([void updates(BookingClassSlotClassTypeBuilder b)]) = _$BookingClassSlotClassType;
+  factory VoucherPackagesInner([void updates(VoucherPackagesInnerBuilder b)]) = _$VoucherPackagesInner;
 
   @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(BookingClassSlotClassTypeBuilder b) => b;
+  static void _defaults(VoucherPackagesInnerBuilder b) => b;
 
   @BuiltValueSerializer(custom: true)
-  static Serializer<BookingClassSlotClassType> get serializer => _$BookingClassSlotClassTypeSerializer();
+  static Serializer<VoucherPackagesInner> get serializer => _$VoucherPackagesInnerSerializer();
 }
 
-class _$BookingClassSlotClassTypeSerializer implements PrimitiveSerializer<BookingClassSlotClassType> {
+class _$VoucherPackagesInnerSerializer implements PrimitiveSerializer<VoucherPackagesInner> {
   @override
-  final Iterable<Type> types = const [BookingClassSlotClassType, _$BookingClassSlotClassType];
+  final Iterable<Type> types = const [VoucherPackagesInner, _$VoucherPackagesInner];
 
   @override
-  final String wireName = r'BookingClassSlotClassType';
+  final String wireName = r'VoucherPackagesInner';
 
   Iterable<Object?> _serializeProperties(
     Serializers serializers,
-    BookingClassSlotClassType object, {
+    VoucherPackagesInner object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
     yield r'id';
@@ -59,7 +59,7 @@ class _$BookingClassSlotClassTypeSerializer implements PrimitiveSerializer<Booki
   @override
   Object serialize(
     Serializers serializers,
-    BookingClassSlotClassType object, {
+    VoucherPackagesInner object, {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
@@ -70,7 +70,7 @@ class _$BookingClassSlotClassTypeSerializer implements PrimitiveSerializer<Booki
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
     required List<Object?> serializedList,
-    required BookingClassSlotClassTypeBuilder result,
+    required VoucherPackagesInnerBuilder result,
     required List<Object?> unhandled,
   }) {
     for (var i = 0; i < serializedList.length; i += 2) {
@@ -100,12 +100,12 @@ class _$BookingClassSlotClassTypeSerializer implements PrimitiveSerializer<Booki
   }
 
   @override
-  BookingClassSlotClassType deserialize(
+  VoucherPackagesInner deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = BookingClassSlotClassTypeBuilder();
+    final result = VoucherPackagesInnerBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

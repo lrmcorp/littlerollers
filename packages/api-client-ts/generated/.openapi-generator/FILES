@@ -55,7 +55,6 @@ models/Booking.ts
 models/BookingAttendance.ts
 models/BookingBranch.ts
 models/BookingClassSlot.ts
-models/BookingClassSlotClassType.ts
 models/BookingCommand.ts
 models/BookingCustomer.ts
 models/BookingManagementSummary.ts
@@ -121,6 +120,7 @@ models/CustomerOrderTimelineItem.ts
 models/CustomerOrderTimelinePage.ts
 models/CustomerPackageBalance.ts
 models/CustomerPackageBalancePage.ts
+models/CustomerPackageBalanceSummary.ts
 models/CustomerRescheduleOptions.ts
 models/CustomerRescheduleSlot.ts
 models/CustomerRescheduleTarget.ts
@@ -308,5 +308,14 @@ models/UserVerificationDocumentSummary.ts
 models/UserVerificationSummary.ts
 models/VersionCommand.ts
 models/VersionedAccessReason.ts
+models/Voucher.ts
+models/VoucherCommand.ts
+models/VoucherPackagesInner.ts
+models/VoucherPage.ts
+models/VoucherPreview.ts
+models/VoucherPreviewCommand.ts
+models/VoucherRedemption.ts
+models/VoucherRedemptionPage.ts
+models/VoucherUpdateCommand.ts
 models/index.ts
 runtime.ts

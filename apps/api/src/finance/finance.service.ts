@@ -76,7 +76,16 @@ export class FinanceService {
     const expectedRp = amount(reconcilableStatuses);
     const approvedRp = purchases
       .filter((item) => item.status === 'APPROVED')
-      .reduce((sum, item) => sum + item.priceRpSnapshot, 0);
+      .reduce((sum, item) => sum + (item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot), 0);
+    const approvedPurchases = purchases.filter((item) => item.status === 'APPROVED');
+    const grossSalesRp = approvedPurchases.reduce((sum, item) => sum + item.priceRpSnapshot, 0);
+    const voucherDiscountRp = approvedPurchases.reduce(
+      (sum, item) => sum + (item.voucherDiscountRpSnapshot ?? 0),
+      0,
+    );
+    const voucherRedemptionCount = approvedPurchases.filter(
+      (item) => item.voucherId !== null,
+    ).length;
     const identificationAmountRp = purchases
       .filter((item) => reconcilableStatuses.includes(item.status))
       .reduce((sum, item) => sum + (item.paymentUniqueCode ?? 0), 0);
@@ -94,6 +103,10 @@ export class FinanceService {
         receivedRp: number;
         approvedRp: number;
         identificationAmountRp: number;
+        grossSalesRp: number;
+        voucherDiscountRp: number;
+        netSalesRp: number;
+        voucherRedemptionCount: number;
         pendingCount: number;
         anomalyCount: number;
       }
@@ -105,6 +118,10 @@ export class FinanceService {
         receivedRp: 0,
         approvedRp: 0,
         identificationAmountRp: 0,
+        grossSalesRp: 0,
+        voucherDiscountRp: 0,
+        netSalesRp: 0,
+        voucherRedemptionCount: 0,
         pendingCount: 0,
         anomalyCount: 0,
       };
@@ -114,7 +131,13 @@ export class FinanceService {
         item.paymentProof.scanStatus === 'CLEAN'
       )
         row.receivedRp += payable(item);
-      if (item.status === 'APPROVED') row.approvedRp += item.priceRpSnapshot;
+      if (item.status === 'APPROVED') {
+        row.grossSalesRp += item.priceRpSnapshot;
+        row.voucherDiscountRp += item.voucherDiscountRpSnapshot ?? 0;
+        row.netSalesRp += item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot;
+        row.approvedRp += item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot;
+        if (item.voucherId) row.voucherRedemptionCount += 1;
+      }
       if (reconcilableStatuses.includes(item.status))
         row.identificationAmountRp += item.paymentUniqueCode ?? 0;
       if (item.status === 'PENDING') row.pendingCount += 1;
@@ -135,6 +158,10 @@ export class FinanceService {
         pendingRp: amount(['PENDING']),
         rejectedRp: amount(['REJECTED', 'ACTION_REQUIRED']),
         identificationAmountRp,
+        grossSalesRp,
+        voucherDiscountRp,
+        netSalesRp: grossSalesRp - voucherDiscountRp,
+        voucherRedemptionCount,
         ledgerDeltaRp: approvedRp - ledgerRecognizedRp,
         unreconciledCount: purchases.filter(
           (item) =>

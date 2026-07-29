@@ -83,6 +83,10 @@ export class CustomerOrderService {
         data: { status: 'EXPIRED', version: { increment: 1 } },
       });
       await tx.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: { in: ids } } });
+      await tx.voucherRedemption.updateMany({
+        where: { purchaseId: { in: ids }, releasedAt: null },
+        data: { releasedAt: new Date() },
+      });
       await tx.purchaseTimelineEvent.createMany({
         data: expired.map((item) => ({
           id: newId(),
@@ -107,6 +111,16 @@ export class CustomerOrderService {
       packageName: order.packageNameSnapshot,
       priceRp: order.priceRpSnapshot,
       baseAmountRp: order.priceRpSnapshot,
+      voucher: order.voucherId
+        ? {
+            id: order.voucherId,
+            code: order.voucherCodeSnapshot,
+            discountType: order.voucherDiscountTypeSnapshot,
+            discountValue: order.voucherDiscountValueSnapshot,
+            discountRp: order.voucherDiscountRpSnapshot,
+          }
+        : null,
+      priceAfterDiscountRp: order.priceAfterDiscountRpSnapshot ?? order.priceRpSnapshot,
       paymentUniqueCode: order.paymentUniqueCode,
       payableAmountRp,
       sessionCount: order.sessionCountSnapshot,
@@ -234,6 +248,73 @@ export class CustomerOrderService {
           if (!slot || slot.branchId !== pkg.branchId || slot.classTypeId !== pkg.classTypeId)
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         }
+        let voucher:
+          | {
+              id: string;
+              code: string;
+              discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+              discountValue: number;
+              discountRp: number;
+              priceAfterDiscountRp: number;
+            }
+          | undefined;
+        const voucherCode = String(input.voucherCode ?? '')
+          .trim()
+          .toUpperCase();
+        if (voucherCode) {
+          await tx.$queryRaw(
+            Prisma.sql`SELECT id FROM Voucher WHERE code = ${voucherCode} FOR UPDATE`,
+          );
+          const candidate = await tx.voucher.findFirst({
+            where: {
+              code: voucherCode,
+              status: 'ACTIVE',
+              activeFrom: { lte: now },
+              OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
+              AND: [
+                { OR: [{ branchId: null }, { branchId: pkg.branchId }] },
+                { OR: [{ classTypeId: null }, { classTypeId: pkg.classTypeId }] },
+                { OR: [{ packages: { none: {} } }, { packages: { some: { packageId: pkg.id } } }] },
+              ],
+            },
+            include: { _count: { select: { redemptions: true } } },
+          });
+          if (!candidate) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
+          if (pkg.priceRp < candidate.minimumPurchaseRp)
+            throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
+          const [totalUsage, customerUsage] = await Promise.all([
+            tx.voucherRedemption.count({
+              where: { voucherId: candidate.id, releasedAt: null },
+            }),
+            tx.voucherRedemption.count({
+              where: { voucherId: candidate.id, customerUserId: p.userId, releasedAt: null },
+            }),
+          ]);
+          if (candidate.totalUsageLimit !== null && totalUsage >= candidate.totalUsageLimit)
+            throw new ApiProblem('VOUCHER_EXHAUSTED', HttpStatus.UNPROCESSABLE_ENTITY);
+          if (
+            candidate.perCustomerUsageLimit !== null &&
+            customerUsage >= candidate.perCustomerUsageLimit
+          )
+            throw new ApiProblem('VOUCHER_CUSTOMER_LIMIT', HttpStatus.UNPROCESSABLE_ENTITY);
+          const rawDiscount =
+            candidate.discountType === 'PERCENTAGE'
+              ? Math.floor((pkg.priceRp * candidate.discountValue) / 100)
+              : candidate.discountValue;
+          const discountRp = Math.min(
+            rawDiscount,
+            candidate.maxDiscountRp ?? rawDiscount,
+            pkg.priceRp,
+          );
+          voucher = {
+            id: candidate.id,
+            code: candidate.code,
+            discountType: candidate.discountType,
+            discountValue: candidate.discountValue,
+            discountRp,
+            priceAfterDiscountRp: pkg.priceRp - discountRp,
+          };
+        }
         const purchaseId = newId();
         const expiresAt = new Date(now.getTime() + account.paymentWindowHours * 3600000);
         await tx.purchase.create({
@@ -251,6 +332,12 @@ export class CustomerOrderService {
             continuationClassSlotId: input.slotId || null,
             packageNameSnapshot: pkg.name,
             priceRpSnapshot: pkg.priceRp,
+            voucherId: voucher?.id,
+            voucherCodeSnapshot: voucher?.code,
+            voucherDiscountTypeSnapshot: voucher?.discountType,
+            voucherDiscountValueSnapshot: voucher?.discountValue,
+            voucherDiscountRpSnapshot: voucher?.discountRp,
+            priceAfterDiscountRpSnapshot: voucher?.priceAfterDiscountRp ?? pkg.priceRp,
             sessionCountSnapshot: pkg.sessionCount,
             durationDaysSnapshot: pkg.durationDays,
             status: 'AWAITING_PAYMENT',
@@ -261,7 +348,7 @@ export class CustomerOrderService {
         const uniquePayment = await this.reserveUniqueCode(tx, {
           purchaseId,
           paymentAccountId: account.id,
-          priceRp: pkg.priceRp,
+          priceRp: voucher?.priceAfterDiscountRp ?? pkg.priceRp,
           expiresAt,
         });
         const purchase = await tx.purchase.update({
@@ -272,6 +359,17 @@ export class CustomerOrderService {
           },
           include: { branch: true, paymentProof: true },
         });
+        if (voucher) {
+          await tx.voucherRedemption.create({
+            data: {
+              id: newId(),
+              voucherId: voucher.id,
+              purchaseId: purchase.id,
+              customerUserId: p.userId,
+              discountRp: voucher.discountRp,
+            },
+          });
+        }
         await tx.purchaseTimelineEvent.createMany({
           data: [
             {
@@ -462,6 +560,11 @@ export class CustomerOrderService {
               sourceKey: `${order.id}:expired:${order.paymentExpiresAt!.toISOString()}`,
               occurredAt: order.paymentExpiresAt!,
             },
+          });
+        if (changed.count)
+          await tx.voucherRedemption.updateMany({
+            where: { purchaseId: order.id, releasedAt: null },
+            data: { releasedAt: new Date() },
           });
       });
       throw new ApiProblem('ORDER_EXPIRED', HttpStatus.CONFLICT);

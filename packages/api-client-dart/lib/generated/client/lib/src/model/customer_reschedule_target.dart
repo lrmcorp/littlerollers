@@ -6,7 +6,7 @@
 import 'package:openapi/src/model/booking_branch.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/customer_reschedule_slot.dart';
-import 'package:openapi/src/model/booking_class_slot_class_type.dart';
+import 'package:openapi/src/model/voucher_packages_inner.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -103,7 +103,7 @@ class _$CustomerRescheduleTargetSerializer implements PrimitiveSerializer<Custom
     yield r'classType';
     yield serializers.serialize(
       object.classType,
-      specifiedType: const FullType(BookingClassSlotClassType),
+      specifiedType: const FullType(VoucherPackagesInner),
     );
     yield r'status';
     yield serializers.serialize(
@@ -204,8 +204,8 @@ class _$CustomerRescheduleTargetSerializer implements PrimitiveSerializer<Custom
         case r'classType':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BookingClassSlotClassType),
-          ) as BookingClassSlotClassType;
+            specifiedType: const FullType(VoucherPackagesInner),
+          ) as VoucherPackagesInner;
           result.classType.replace(valueDes);
           break;
         case r'status':

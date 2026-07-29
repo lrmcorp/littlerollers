@@ -315,6 +315,28 @@ export function PaymentReviewDetailView({
                 <dt className="text-dd-muted">Harga paket</dt>
                 <dd className="mt-1 font-semibold">{rupiah.format(purchase.priceRpSnapshot)}</dd>
               </div>
+              {purchase.voucherCodeSnapshot && (
+                <>
+                  <div>
+                    <dt className="text-dd-muted">Voucher</dt>
+                    <dd className="mt-1 font-semibold">{purchase.voucherCodeSnapshot}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-dd-muted">Diskon voucher</dt>
+                    <dd className="mt-1 font-semibold text-dd-success">
+                      − {rupiah.format(purchase.voucherDiscountRpSnapshot ?? 0)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-dd-muted">Harga setelah diskon</dt>
+                    <dd className="mt-1 font-semibold">
+                      {rupiah.format(
+                        purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
+                      )}
+                    </dd>
+                  </div>
+                </>
+              )}
               <div>
                 <dt className="text-dd-muted">Identifikasi transfer</dt>
                 <dd className="mt-1 font-semibold">

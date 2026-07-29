@@ -32,7 +32,7 @@ void main() {
       // TODO
     });
 
-    // BookingClassSlotClassType classType
+    // VoucherPackagesInner classType
     test('to test the property `classType`', () async {
       // TODO
     });

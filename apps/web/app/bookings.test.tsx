@@ -156,8 +156,7 @@ describe('BookingView', () => {
       );
     render(<BookingView client={client({ list })} activeBranchId={branchId} />);
     const user = userEvent.setup();
-    await screen.findAllByText('Aktif');
-    await user.click(screen.getByRole('button', { name: 'Muat booking berikutnya' }));
+    await user.click(await screen.findByRole('button', { name: 'Muat booking berikutnya' }));
     expect(screen.getAllByText(/Aktif/).length).toBeGreaterThanOrEqual(2);
     expect(list).toHaveBeenLastCalledWith(
       expect.objectContaining({ branchId, cursor: 'cursor-2' }),

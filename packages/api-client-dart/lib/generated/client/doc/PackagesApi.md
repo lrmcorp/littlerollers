@@ -16,19 +16,26 @@ Method | HTTP request | Description
 [**createOrder**](PackagesApi.md#createorder) | **POST** /orders | 
 [**createPackage**](PackagesApi.md#createpackage) | **POST** /packages | 
 [**createPaymentProofUpload**](PackagesApi.md#createpaymentproofupload) | **POST** /uploads/payment-proofs | 
+[**createVoucher**](PackagesApi.md#createvoucher) | **POST** /vouchers | 
 [**finalizePaymentProofUpload**](PackagesApi.md#finalizepaymentproofupload) | **POST** /uploads/payment-proofs/{id}/finalize | 
 [**getCheckoutOptions**](PackagesApi.md#getcheckoutoptions) | **GET** /checkout/options | 
 [**getOrder**](PackagesApi.md#getorder) | **GET** /orders/{id} | 
 [**getPaymentProofStatus**](PackagesApi.md#getpaymentproofstatus) | **GET** /uploads/payment-proofs/{id} | 
 [**getPaymentReviewDetail**](PackagesApi.md#getpaymentreviewdetail) | **GET** /purchases/{id} | 
 [**getPublicPackageDetail**](PackagesApi.md#getpublicpackagedetail) | **GET** /public/package-catalog/{id} | 
+[**getVoucher**](PackagesApi.md#getvoucher) | **GET** /vouchers/{id} | 
 [**listOrders**](PackagesApi.md#listorders) | **GET** /orders | 
 [**listPackages**](PackagesApi.md#listpackages) | **GET** /packages | 
 [**listPublicPackages**](PackagesApi.md#listpublicpackages) | **GET** /public/package-catalog | 
 [**listPurchases**](PackagesApi.md#listpurchases) | **GET** /purchases | 
+[**listVoucherRedemptions**](PackagesApi.md#listvoucherredemptions) | **GET** /vouchers/{id}/redemptions | 
+[**listVouchers**](PackagesApi.md#listvouchers) | **GET** /vouchers | 
+[**previewCheckoutVoucher**](PackagesApi.md#previewcheckoutvoucher) | **POST** /checkout/voucher-preview | 
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
+[**transitionVoucher**](PackagesApi.md#transitionvoucher) | **POST** /vouchers/{id}/{action} | 
+[**updateVoucher**](PackagesApi.md#updatevoucher) | **PATCH** /vouchers/{id} | 
 [**uploadPaymentProofContent**](PackagesApi.md#uploadpaymentproofcontent) | **PUT** /uploads/payment-proofs/{id}/content | 
 [**viewAuthorizedPaymentProofContent**](PackagesApi.md#viewauthorizedpaymentproofcontent) | **GET** /uploads/payment-proofs/view-authorizations/{id}/content | 
 
@@ -338,6 +345,49 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **createVoucher**
+> Voucher createVoucher(idempotencyKey, voucherCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
+final VoucherCommand voucherCommand = ; // VoucherCommand | 
+
+try {
+    final response = api.createVoucher(idempotencyKey, voucherCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->createVoucher: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
+ **voucherCommand** | [**VoucherCommand**](VoucherCommand.md)|  | 
+
+### Return type
+
+[**Voucher**](Voucher.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **finalizePaymentProofUpload**
 > PaymentProof finalizePaymentProofUpload(id, idempotencyKey, finalizeUploadCommand)
 
@@ -596,6 +646,47 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getVoucher**
+> Voucher getVoucher(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getVoucher(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->getVoucher: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**Voucher**](Voucher.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listOrders**
 > OrderPage listOrders(status, cursor, q, from, until, limit)
 
@@ -790,6 +881,141 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listVoucherRedemptions**
+> VoucherRedemptionPage listVoucherRedemptions(id, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listVoucherRedemptions(id, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listVoucherRedemptions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**VoucherRedemptionPage**](VoucherRedemptionPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listVouchers**
+> VoucherPage listVouchers(q, status, from, until, branchId, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String q = q_example; // String | 
+final String status = status_example; // String | 
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listVouchers(q, status, from, until, branchId, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->listVouchers: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **q** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**VoucherPage**](VoucherPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **previewCheckoutVoucher**
+> VoucherPreview previewCheckoutVoucher(voucherPreviewCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final VoucherPreviewCommand voucherPreviewCommand = ; // VoucherPreviewCommand | 
+
+try {
+    final response = api.previewCheckoutVoucher(voucherPreviewCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->previewCheckoutVoucher: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **voucherPreviewCommand** | [**VoucherPreviewCommand**](VoucherPreviewCommand.md)|  | 
+
+### Return type
+
+[**VoucherPreview**](VoucherPreview.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **rejectPurchase**
 > Purchase rejectPurchase(id, idempotencyKey, approvePurchaseRequest)
 
@@ -913,6 +1139,98 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Purchase**](Purchase.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **transitionVoucher**
+> Voucher transitionVoucher(id, action, idempotencyKey, reasonedVersionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String action = action_example; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand reasonedVersionCommand = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.transitionVoucher(id, action, idempotencyKey, reasonedVersionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->transitionVoucher: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **action** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **reasonedVersionCommand** | [**ReasonedVersionCommand**](ReasonedVersionCommand.md)|  | 
+
+### Return type
+
+[**Voucher**](Voucher.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateVoucher**
+> Voucher updateVoucher(id, idempotencyKey, voucherUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final VoucherUpdateCommand voucherUpdateCommand = ; // VoucherUpdateCommand | 
+
+try {
+    final response = api.updateVoucher(id, idempotencyKey, voucherUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->updateVoucher: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **voucherUpdateCommand** | [**VoucherUpdateCommand**](VoucherUpdateCommand.md)|  | 
+
+### Return type
+
+[**Voucher**](Voucher.md)
 
 ### Authorization
 

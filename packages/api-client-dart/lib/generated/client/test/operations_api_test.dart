@@ -19,6 +19,8 @@ void main() {
       // TODO
     });
 
+    // Authenticated global operations readiness. Requires operations:read and never returns connection details or credentials.
+    //
     //Future<HealthResult> getHealth() async
     test('test getHealth', () async {
       // TODO

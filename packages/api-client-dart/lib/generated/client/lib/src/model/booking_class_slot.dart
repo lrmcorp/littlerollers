@@ -3,7 +3,7 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:openapi/src/model/booking_class_slot_class_type.dart';
+import 'package:openapi/src/model/voucher_packages_inner.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -36,7 +36,7 @@ abstract class BookingClassSlot implements Built<BookingClassSlot, BookingClassS
   String get status;
 
   @BuiltValueField(wireName: r'classType')
-  BookingClassSlotClassType get classType;
+  VoucherPackagesInner get classType;
 
   BookingClassSlot._();
 
@@ -89,7 +89,7 @@ class _$BookingClassSlotSerializer implements PrimitiveSerializer<BookingClassSl
     yield r'classType';
     yield serializers.serialize(
       object.classType,
-      specifiedType: const FullType(BookingClassSlotClassType),
+      specifiedType: const FullType(VoucherPackagesInner),
     );
   }
 
@@ -152,8 +152,8 @@ class _$BookingClassSlotSerializer implements PrimitiveSerializer<BookingClassSl
         case r'classType':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BookingClassSlotClassType),
-          ) as BookingClassSlotClassType;
+            specifiedType: const FullType(VoucherPackagesInner),
+          ) as VoucherPackagesInner;
           result.classType.replace(valueDes);
           break;
         default:

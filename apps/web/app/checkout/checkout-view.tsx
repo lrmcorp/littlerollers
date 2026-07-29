@@ -8,6 +8,7 @@ import { CustomerPaymentFlow } from '../components/customer/customer-payment-flo
 import { AlertBanner, useAppFeedback } from '../components/app-feedback';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
+import { TextInput } from '../components/forms';
 import {
   browserOrderClient,
   orderError,
@@ -35,6 +36,13 @@ export function CheckoutView() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherPreview, setVoucherPreview] = useState<{
+    code: string;
+    discountRp: number;
+    priceAfterDiscountRp: number;
+  } | null>(null);
+  const [voucherBusy, setVoucherBusy] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -185,6 +193,70 @@ export function CheckoutView() {
         </aside>
       </div>
 
+      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+        <h2 className="text-lg font-semibold text-dd-ink">Punya voucher?</h2>
+        <p className="mt-1 text-sm text-dd-muted">
+          Masukkan kode voucher sebelum membuat pesanan. Diskon dihitung otomatis oleh sistem.
+        </p>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <TextInput
+            label="Kode voucher"
+            value={voucherCode}
+            onChange={(event) => {
+              setVoucherCode(event.target.value.toUpperCase());
+              setVoucherPreview(null);
+            }}
+            placeholder="Contoh: WELCOME10"
+            wrapperClassName="sm:flex-1"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={voucherBusy || voucherCode.trim().length < 3}
+            loading={voucherBusy}
+            onClick={async () => {
+              setVoucherBusy(true);
+              setError('');
+              try {
+                const result = await browserOrderClient.previewVoucher(
+                  packageId,
+                  branchId,
+                  voucherCode,
+                );
+                setVoucherPreview(result);
+              } catch (cause) {
+                setVoucherPreview(null);
+                setError(orderError(cause));
+              } finally {
+                setVoucherBusy(false);
+              }
+            }}
+          >
+            Terapkan voucher
+          </Button>
+        </div>
+        {voucherPreview && (
+          <dl className="mt-4 grid gap-2 rounded-dd-lg bg-dd-surface-muted p-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-dd-muted">Voucher</dt>
+              <dd className="font-semibold">{voucherPreview.code}</dd>
+            </div>
+            <div>
+              <dt className="text-dd-muted">Diskon</dt>
+              <dd className="font-semibold text-dd-forest">
+                -{rupiah.format(voucherPreview.discountRp)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-dd-muted">Harga setelah diskon</dt>
+              <dd className="font-semibold">
+                {rupiah.format(voucherPreview.priceAfterDiscountRp)}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </section>
+
       <StickyActionBar
         description={
           <p>Pesanan memiliki batas pembayaran {options.paymentAccount.paymentWindowHours} jam.</p>
@@ -209,7 +281,12 @@ export function CheckoutView() {
             setSubmitting(true);
             setError('');
             try {
-              const created = await browserOrderClient.create(packageId, slot, branchId);
+              const created = await browserOrderClient.create(
+                packageId,
+                slot,
+                branchId,
+                voucherPreview?.code,
+              );
               setOrder(created);
               router.replace(`/checkout?order=${encodeURIComponent(created.id)}`);
               feedback.showToast({
