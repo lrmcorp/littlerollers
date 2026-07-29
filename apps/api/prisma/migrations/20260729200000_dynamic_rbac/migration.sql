@@ -113,8 +113,8 @@ CREATE TABLE `UserCapabilityOverride` (
   CONSTRAINT `UserCapabilityOverride_revokedById_fkey`
     FOREIGN KEY (`revokedById`) REFERENCES `User` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `UserCapabilityOverride_revoke_consistency` CHECK (
-    (`revokedAt` IS NULL AND `revokedById` IS NULL AND `revokeReason` IS NULL) OR
-    (`revokedAt` IS NOT NULL AND `revokedById` IS NOT NULL AND `revokeReason` IS NOT NULL)
+    (`revokedAt` IS NULL AND `revokeReason` IS NULL) OR
+    (`revokedAt` IS NOT NULL AND `revokeReason` IS NOT NULL)
   )
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

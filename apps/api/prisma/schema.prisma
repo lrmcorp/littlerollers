@@ -133,6 +133,20 @@ enum PackageStatus {
   INACTIVE
 }
 
+enum VoucherStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+  EXHAUSTED
+  ARCHIVED
+}
+
+enum VoucherDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 enum PaymentProofUploadStatus {
   ISSUED
   UPLOADED
@@ -321,6 +335,8 @@ model User {
   activationInvitation               UserInvitation?                     @relation("InvitationTarget")
   paymentProofs                      PaymentProof[]
   purchases                          Purchase[]
+  voucherRedemptions                 VoucherRedemption[]
+  createdVouchers                    Voucher[]                           @relation("VoucherCreator")
   decidedPurchases                   Purchase[]                          @relation("PurchaseDecisionActor")
   customerPackages                   CustomerPackage[]
   requestedAdjustments               SessionAdjustment[]                 @relation("AdjustmentRequester")
@@ -454,6 +470,7 @@ model Branch {
   customerPackages         CustomerPackage[]
   paymentProofs            PaymentProof[]
   purchases                Purchase[]
+  vouchers                 Voucher[]
   instructorAvailabilities InstructorAvailability[]
   classSlots               ClassSlot[]
   bookings                 Booking[]
@@ -517,6 +534,7 @@ model ClassType {
   branch           Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
   configurations   EffectiveConfiguration[]
   packages         Package[]
+  voucherScopes    Voucher[]
   customerPackages CustomerPackage[]
   classSlots       ClassSlot[]
 
@@ -1030,6 +1048,7 @@ model Package {
   purchases        Purchase[]
   customerPackages CustomerPackage[]
   publicProfile    PackagePublicProfile?
+  voucherScopes    VoucherPackageScope[]
 
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
@@ -1118,6 +1137,12 @@ model Purchase {
   userId                                String                        @db.Char(36)
   branchId                              String                        @db.Char(36)
   packageId                             String                        @db.Char(36)
+  voucherId                             String?                       @db.Char(36)
+  voucherCodeSnapshot                   String?                       @db.VarChar(64)
+  voucherDiscountTypeSnapshot           VoucherDiscountType?
+  voucherDiscountValueSnapshot          Int?
+  voucherDiscountRpSnapshot             Int?
+  priceAfterDiscountRpSnapshot          Int?
   paymentProofId                        String?                       @unique @db.Char(36)
   paymentAccountId                      String?                       @db.Char(36)
   paymentBankNameSnapshot               String?
@@ -1143,6 +1168,7 @@ model Purchase {
   user                                  User                          @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch                                Branch                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
   package                               Package                       @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  voucher                               Voucher?                      @relation(fields: [voucherId], references: [id], onDelete: Restrict)
   paymentProof                          PaymentProof?                 @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
   paymentAccount                        PaymentAccount?               @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict)
   continuationClassSlot                 ClassSlot?                    @relation("PurchaseContinuationSlot", fields: [continuationClassSlotId], references: [id], onDelete: Restrict)
@@ -1150,11 +1176,72 @@ model Purchase {
   customerPackage                       CustomerPackage?
   paymentUniqueCodeReservation          PaymentUniqueCodeReservation?
   timelineEvents                        PurchaseTimelineEvent[]
+  voucherRedemption                     VoucherRedemption?
 
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
   @@index([paymentAccountId, status, paymentExpiresAt])
+}
+
+model Voucher {
+  id                    String                @id @db.Char(36)
+  code                  String                @unique @db.VarChar(64)
+  name                  String                @db.VarChar(160)
+  description           String?               @db.Text
+  status                VoucherStatus         @default(DRAFT)
+  discountType          VoucherDiscountType
+  discountValue         Int
+  maxDiscountRp         Int?
+  minimumPurchaseRp     Int                   @default(0)
+  activeFrom            DateTime
+  activeUntil           DateTime?
+  totalUsageLimit       Int?
+  perCustomerUsageLimit Int?
+  branchId              String?               @db.Char(36)
+  classTypeId           String?               @db.Char(36)
+  version               Int                   @default(0)
+  createdById           String                @db.Char(36)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  branch                Branch?               @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType             ClassType?            @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  createdBy             User                  @relation("VoucherCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  packages              VoucherPackageScope[]
+  redemptions           VoucherRedemption[]
+  purchases             Purchase[]
+
+  @@index([status, activeFrom, activeUntil])
+  @@index([branchId, status])
+  @@index([classTypeId, status])
+}
+
+model VoucherPackageScope {
+  id        String  @id @db.Char(36)
+  voucherId String  @db.Char(36)
+  packageId String  @db.Char(36)
+  voucher   Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
+
+  @@unique([voucherId, packageId])
+  @@index([packageId])
+}
+
+model VoucherRedemption {
+  id             String    @id @db.Char(36)
+  voucherId      String    @db.Char(36)
+  purchaseId     String    @unique @db.Char(36)
+  customerUserId String    @db.Char(36)
+  discountRp     Int
+  redeemedAt     DateTime  @default(now())
+  releasedAt     DateTime?
+  voucher        Voucher   @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  purchase       Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  customer       User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+
+  @@unique([voucherId, customerUserId, purchaseId])
+  @@index([voucherId, redeemedAt])
+  @@index([customerUserId, voucherId, redeemedAt])
 }
 
 model PurchaseTimelineEvent {

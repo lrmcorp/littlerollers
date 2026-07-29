@@ -12,7 +12,7 @@
 ## Deployment and smoke test
 
 1. Deploy with `SESSION_ADJUSTMENT_ENABLED=false` and run the reviewed MySQL migration.
-2. Verify `SessionAdjustment_one_pending_per_package`, decision consistency, snapshot checks, and the unique ledger reference.
+2. Verify `SessionAdjustment_one_pending_per_package`, decision consistency for status/code/time, snapshot checks, and the unique ledger reference. The decider foreign-key invariant is enforced transactionally by the service because MySQL 8.4 does not allow it in a `CHECK` constraint.
 3. In staging, select an active customer package, request a positive and safe negative adjustment, approve/reject with a different actor, and verify the ledger, audit, outbox, in-app notification, and email occurrence.
 4. Record PO/TL/QA/Ops sign-off, then set `SESSION_ADJUSTMENT_ENABLED=true` on the VPS and restart API processes normally.
 
