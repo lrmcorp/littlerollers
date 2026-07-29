@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { accountClient } from './account-client';
-import { PublicLanding } from './public-landing';
+import { classDurationSummary, PublicLanding, studioAreaSummary } from './public-landing';
 
 describe('public landing page', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -85,6 +85,15 @@ describe('public landing page', () => {
     expect(screen.getByRole('link', { name: 'Daftar' })).toHaveAttribute('href', '/register');
     expect(screen.getAllByRole('link', { name: 'Lihat Paket' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Pilih Paket' })).toHaveAttribute('href', '/packages');
+    expect(screen.getByText('2 lokasi')).toBeInTheDocument();
+    expect(screen.getByText('Jakarta & BSD')).toBeInTheDocument();
+    expect(screen.getByText('50 menit')).toBeInTheDocument();
+    expect(
+      screen.getByText('Harga dan paket mengikuti lokasi tempat Anda berlatih.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Gunakan paket aktif untuk memilih jadwal yang tersedia.'),
+    ).toBeInTheDocument();
     expect(screen.getByAltText('Reformer Pilates di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByAltText('Mat Pilates di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByAltText('Barre di Daily Dose Pilates')).toBeInTheDocument();
@@ -95,4 +104,53 @@ describe('public landing page', () => {
     expect(view.container).not.toHaveTextContent(/trial class/i);
     expect((await axe(view.container)).violations).toHaveLength(0);
   }, 30_000);
+
+  it('derives studio areas and class duration without hardcoded location claims', () => {
+    expect(
+      studioAreaSummary([
+        {
+          id: 'one',
+          code: 'ONE',
+          name: 'Daily Dose Jakarta',
+          timezone: 'Asia/Jakarta',
+          supportWhatsappE164: null,
+        },
+        {
+          id: 'two',
+          code: 'TWO',
+          name: 'Daily Dose BSD',
+          timezone: 'Asia/Jakarta',
+          supportWhatsappE164: null,
+        },
+      ]),
+    ).toBe('Jakarta & BSD');
+    expect(
+      classDurationSummary([
+        {
+          code: 'ONE',
+          name: 'One',
+          slug: 'one',
+          summary: 'One',
+          description: 'One',
+          level: 'Semua level',
+          durationMinutes: 45,
+          equipment: [],
+          benefits: [],
+          heroImageKey: 'one.png',
+        },
+        {
+          code: 'TWO',
+          name: 'Two',
+          slug: 'two',
+          summary: 'Two',
+          description: 'Two',
+          level: 'Semua level',
+          durationMinutes: 60,
+          equipment: [],
+          benefits: [],
+          heroImageKey: 'two.png',
+        },
+      ]),
+    ).toBe('45–60 menit');
+  });
 });

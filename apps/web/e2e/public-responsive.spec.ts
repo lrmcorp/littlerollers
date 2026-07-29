@@ -26,6 +26,7 @@ test.beforeEach(async ({ page }) => {
             supportWhatsappE164: '+628111111111',
           },
         ],
+        classes: [],
         fallbackWhatsappE164: '+628111111111',
       }),
     }),
@@ -167,10 +168,64 @@ for (const viewport of viewports) {
   });
 }
 
+for (const viewport of [
+  { width: 1024, height: 900 },
+  { width: 1280, height: 900 },
+  { width: 1440, height: 900 },
+]) {
+  test(`landing editorial sections remain balanced at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+
+    const metrics = await page.evaluate(() => {
+      const measure = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector)!;
+        const heading = element.querySelector<HTMLElement>('h2')!;
+        const rect = element.getBoundingClientRect();
+        const headingRect = heading.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          height: rect.height,
+          headingWidth: headingRect.width,
+          headingHeight: headingRect.height,
+        };
+      };
+
+      const stats = document.querySelector<HTMLElement>('[data-testid="studio-showcase"] dl')!;
+      const journey = document.querySelector<HTMLElement>('[data-testid="package-journey"] ol')!;
+      return {
+        viewportWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        studio: measure('[data-testid="studio-showcase"]'),
+        packageJourney: measure('[data-testid="package-journey"]'),
+        statsWidth: stats.getBoundingClientRect().width,
+        journeyWidth: journey.getBoundingClientRect().width,
+        journeyRows: journey.children.length,
+      };
+    });
+
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewportWidth);
+    expect(metrics.studio.left).toBeGreaterThanOrEqual(24);
+    expect(metrics.studio.right).toBeLessThanOrEqual(metrics.viewportWidth - 24);
+    expect(metrics.studio.headingWidth).toBeGreaterThanOrEqual(360);
+    expect(metrics.studio.headingHeight).toBeLessThanOrEqual(180);
+    expect(metrics.statsWidth).toBeGreaterThanOrEqual(440);
+    expect(metrics.packageJourney.left).toBeGreaterThanOrEqual(24);
+    expect(metrics.packageJourney.right).toBeLessThanOrEqual(metrics.viewportWidth - 24);
+    expect(metrics.packageJourney.headingWidth).toBeGreaterThanOrEqual(360);
+    expect(metrics.packageJourney.headingHeight).toBeLessThanOrEqual(180);
+    expect(metrics.journeyWidth).toBeGreaterThanOrEqual(360);
+    expect(metrics.journeyRows).toBe(3);
+  });
+}
+
 test('mobile navigation uses a modal drawer instead of a horizontal menu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   const trigger = page.getByRole('button', { name: 'Buka menu navigasi' });
+  await expect(trigger).toBeVisible();
   await trigger.click();
   const drawer = page.getByRole('dialog', { name: 'Menu navigasi' });
   await expect(drawer).toBeVisible();
