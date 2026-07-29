@@ -124,7 +124,8 @@ services:
 
   web:
     <<: *app
-    command: ['pnpm', '--filter', '@dailydose/web', 'exec', 'next', 'start', '-p', '32120']
+    working_dir: /app/apps/web
+    command: ['node', 'node_modules/next/dist/bin/next', 'start', '-p', '32120']
     networks: [dailydose, dailydose-proxy]
     depends_on:
       api:
