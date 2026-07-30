@@ -201,6 +201,7 @@ import 'package:openapi/src/model/migration_batch_result.dart';
 import 'package:openapi/src/model/migration_control_totals.dart';
 import 'package:openapi/src/model/migration_source_upload.dart';
 import 'package:openapi/src/model/migration_source_upload_command.dart';
+import 'package:openapi/src/model/mobile_features.dart';
 import 'package:openapi/src/model/money.dart';
 import 'package:openapi/src/model/my_profile.dart';
 import 'package:openapi/src/model/notification_attempt.dart';
@@ -537,6 +538,7 @@ part 'serializers.g.dart';
   MigrationControlTotals,
   MigrationSourceUpload,
   MigrationSourceUploadCommand,
+  MobileFeatures,
   Money,
   MyProfile,
   NotificationAttempt,

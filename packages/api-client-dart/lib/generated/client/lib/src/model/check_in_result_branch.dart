@@ -13,6 +13,7 @@ part 'check_in_result_branch.g.dart';
 /// Properties:
 /// * [code] 
 /// * [name] 
+/// * [timezone] 
 @BuiltValue()
 abstract class CheckInResultBranch implements Built<CheckInResultBranch, CheckInResultBranchBuilder> {
   @BuiltValueField(wireName: r'code')
@@ -20,6 +21,9 @@ abstract class CheckInResultBranch implements Built<CheckInResultBranch, CheckIn
 
   @BuiltValueField(wireName: r'name')
   String get name;
+
+  @BuiltValueField(wireName: r'timezone')
+  String get timezone;
 
   CheckInResultBranch._();
 
@@ -52,6 +56,11 @@ class _$CheckInResultBranchSerializer implements PrimitiveSerializer<CheckInResu
     yield r'name';
     yield serializers.serialize(
       object.name,
+      specifiedType: const FullType(String),
+    );
+    yield r'timezone';
+    yield serializers.serialize(
+      object.timezone,
       specifiedType: const FullType(String),
     );
   }
@@ -90,6 +99,13 @@ class _$CheckInResultBranchSerializer implements PrimitiveSerializer<CheckInResu
             specifiedType: const FullType(String),
           ) as String;
           result.name = valueDes;
+          break;
+        case r'timezone':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.timezone = valueDes;
           break;
         default:
           unhandled.add(key);

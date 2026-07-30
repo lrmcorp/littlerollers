@@ -113,7 +113,7 @@ Name | Type | Description  | Notes
 
 
 
-Admin or Manager consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
+The owning Customer or authorized branch staff consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
 
 ### Example
 ```dart

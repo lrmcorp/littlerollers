@@ -13,6 +13,8 @@ class _$PublicSiteConfig extends PublicSiteConfig {
   final BuiltList<PublicClassMarketingSummary> classes;
   @override
   final String? fallbackWhatsappE164;
+  @override
+  final MobileFeatures mobileFeatures;
 
   factory _$PublicSiteConfig([
     void Function(PublicSiteConfigBuilder)? updates,
@@ -22,6 +24,7 @@ class _$PublicSiteConfig extends PublicSiteConfig {
     required this.branches,
     required this.classes,
     this.fallbackWhatsappE164,
+    required this.mobileFeatures,
   }) : super._();
   @override
   PublicSiteConfig rebuild(void Function(PublicSiteConfigBuilder) updates) =>
@@ -37,7 +40,8 @@ class _$PublicSiteConfig extends PublicSiteConfig {
     return other is PublicSiteConfig &&
         branches == other.branches &&
         classes == other.classes &&
-        fallbackWhatsappE164 == other.fallbackWhatsappE164;
+        fallbackWhatsappE164 == other.fallbackWhatsappE164 &&
+        mobileFeatures == other.mobileFeatures;
   }
 
   @override
@@ -46,6 +50,7 @@ class _$PublicSiteConfig extends PublicSiteConfig {
     _$hash = $jc(_$hash, branches.hashCode);
     _$hash = $jc(_$hash, classes.hashCode);
     _$hash = $jc(_$hash, fallbackWhatsappE164.hashCode);
+    _$hash = $jc(_$hash, mobileFeatures.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -55,7 +60,8 @@ class _$PublicSiteConfig extends PublicSiteConfig {
     return (newBuiltValueToStringHelper(r'PublicSiteConfig')
           ..add('branches', branches)
           ..add('classes', classes)
-          ..add('fallbackWhatsappE164', fallbackWhatsappE164))
+          ..add('fallbackWhatsappE164', fallbackWhatsappE164)
+          ..add('mobileFeatures', mobileFeatures))
         .toString();
   }
 }
@@ -81,6 +87,12 @@ class PublicSiteConfigBuilder
   set fallbackWhatsappE164(String? fallbackWhatsappE164) =>
       _$this._fallbackWhatsappE164 = fallbackWhatsappE164;
 
+  MobileFeaturesBuilder? _mobileFeatures;
+  MobileFeaturesBuilder get mobileFeatures =>
+      _$this._mobileFeatures ??= MobileFeaturesBuilder();
+  set mobileFeatures(MobileFeaturesBuilder? mobileFeatures) =>
+      _$this._mobileFeatures = mobileFeatures;
+
   PublicSiteConfigBuilder() {
     PublicSiteConfig._defaults(this);
   }
@@ -91,6 +103,7 @@ class PublicSiteConfigBuilder
       _branches = $v.branches.toBuilder();
       _classes = $v.classes.toBuilder();
       _fallbackWhatsappE164 = $v.fallbackWhatsappE164;
+      _mobileFeatures = $v.mobileFeatures.toBuilder();
       _$v = null;
     }
     return this;
@@ -118,6 +131,7 @@ class PublicSiteConfigBuilder
             branches: branches.build(),
             classes: classes.build(),
             fallbackWhatsappE164: fallbackWhatsappE164,
+            mobileFeatures: mobileFeatures.build(),
           );
     } catch (_) {
       late String _$failedField;
@@ -126,6 +140,9 @@ class PublicSiteConfigBuilder
         branches.build();
         _$failedField = 'classes';
         classes.build();
+
+        _$failedField = 'mobileFeatures';
+        mobileFeatures.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'PublicSiteConfig',

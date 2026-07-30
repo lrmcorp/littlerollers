@@ -201,6 +201,7 @@ doc/MigrationBatchResult.md
 doc/MigrationControlTotals.md
 doc/MigrationSourceUpload.md
 doc/MigrationSourceUploadCommand.md
+doc/MobileFeatures.md
 doc/Money.md
 doc/MyProfile.md
 doc/NotificationAttempt.md
@@ -561,6 +562,7 @@ lib/src/model/migration_batch_result.dart
 lib/src/model/migration_control_totals.dart
 lib/src/model/migration_source_upload.dart
 lib/src/model/migration_source_upload_command.dart
+lib/src/model/mobile_features.dart
 lib/src/model/money.dart
 lib/src/model/my_profile.dart
 lib/src/model/notification_attempt.dart
@@ -907,6 +909,7 @@ test/migration_batch_result_test.dart
 test/migration_control_totals_test.dart
 test/migration_source_upload_command_test.dart
 test/migration_source_upload_test.dart
+test/mobile_features_test.dart
 test/money_test.dart
 test/my_profile_test.dart
 test/notification_attempt_test.dart

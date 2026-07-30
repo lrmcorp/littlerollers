@@ -17,7 +17,7 @@ void main() {
       // TODO
     });
 
-    // Admin or Manager consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
+    // The owning Customer or authorized branch staff consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
     //
     //Future<CheckInResult> customerCheckIn(String idempotencyKey, TokenCheckInCommand tokenCheckInCommand) async
     test('test customerCheckIn', () async {

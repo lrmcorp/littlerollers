@@ -191,6 +191,8 @@ class _$Voucher extends Voucher {
   @override
   final int? redeemedCount;
   @override
+  final BuiltList<SafeAuditActivity>? auditActivity;
+  @override
   final int version;
 
   factory _$Voucher([void Function(VoucherBuilder)? updates]) =>
@@ -215,6 +217,7 @@ class _$Voucher extends Voucher {
     this.packageIds,
     this.packages,
     this.redeemedCount,
+    this.auditActivity,
     required this.version,
   }) : super._();
   @override
@@ -246,6 +249,7 @@ class _$Voucher extends Voucher {
         packageIds == other.packageIds &&
         packages == other.packages &&
         redeemedCount == other.redeemedCount &&
+        auditActivity == other.auditActivity &&
         version == other.version;
   }
 
@@ -270,6 +274,7 @@ class _$Voucher extends Voucher {
     _$hash = $jc(_$hash, packageIds.hashCode);
     _$hash = $jc(_$hash, packages.hashCode);
     _$hash = $jc(_$hash, redeemedCount.hashCode);
+    _$hash = $jc(_$hash, auditActivity.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -296,6 +301,7 @@ class _$Voucher extends Voucher {
           ..add('packageIds', packageIds)
           ..add('packages', packages)
           ..add('redeemedCount', redeemedCount)
+          ..add('auditActivity', auditActivity)
           ..add('version', version))
         .toString();
   }
@@ -387,6 +393,12 @@ class VoucherBuilder implements Builder<Voucher, VoucherBuilder> {
   set redeemedCount(int? redeemedCount) =>
       _$this._redeemedCount = redeemedCount;
 
+  ListBuilder<SafeAuditActivity>? _auditActivity;
+  ListBuilder<SafeAuditActivity> get auditActivity =>
+      _$this._auditActivity ??= ListBuilder<SafeAuditActivity>();
+  set auditActivity(ListBuilder<SafeAuditActivity>? auditActivity) =>
+      _$this._auditActivity = auditActivity;
+
   int? _version;
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
@@ -416,6 +428,7 @@ class VoucherBuilder implements Builder<Voucher, VoucherBuilder> {
       _packageIds = $v.packageIds?.toBuilder();
       _packages = $v.packages?.toBuilder();
       _redeemedCount = $v.redeemedCount;
+      _auditActivity = $v.auditActivity?.toBuilder();
       _version = $v.version;
       _$v = null;
     }
@@ -487,6 +500,7 @@ class VoucherBuilder implements Builder<Voucher, VoucherBuilder> {
             packageIds: _packageIds?.build(),
             packages: _packages?.build(),
             redeemedCount: redeemedCount,
+            auditActivity: _auditActivity?.build(),
             version: BuiltValueNullFieldError.checkNotNull(
               version,
               r'Voucher',
@@ -500,6 +514,9 @@ class VoucherBuilder implements Builder<Voucher, VoucherBuilder> {
         _packageIds?.build();
         _$failedField = 'packages';
         _packages?.build();
+
+        _$failedField = 'auditActivity';
+        _auditActivity?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'Voucher',

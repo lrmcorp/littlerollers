@@ -75,8 +75,6 @@ class _$VoucherUpdateCommandDiscountTypeEnumSerializer
 
 class _$VoucherUpdateCommand extends VoucherUpdateCommand {
   @override
-  final String reason;
-  @override
   final int expectedVersion;
   @override
   final String code;
@@ -105,14 +103,15 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
   @override
   final String? classTypeId;
   @override
-  final BuiltList<String>? packageIds;
+  final BuiltSet<String>? packageIds;
+  @override
+  final String reason;
 
   factory _$VoucherUpdateCommand([
     void Function(VoucherUpdateCommandBuilder)? updates,
   ]) => (VoucherUpdateCommandBuilder()..update(updates))._build();
 
   _$VoucherUpdateCommand._({
-    required this.reason,
     required this.expectedVersion,
     required this.code,
     required this.name,
@@ -128,6 +127,7 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
     this.branchId,
     this.classTypeId,
     this.packageIds,
+    required this.reason,
   }) : super._();
   @override
   VoucherUpdateCommand rebuild(
@@ -142,7 +142,6 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is VoucherUpdateCommand &&
-        reason == other.reason &&
         expectedVersion == other.expectedVersion &&
         code == other.code &&
         name == other.name &&
@@ -157,13 +156,13 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
         perCustomerUsageLimit == other.perCustomerUsageLimit &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
-        packageIds == other.packageIds;
+        packageIds == other.packageIds &&
+        reason == other.reason;
   }
 
   @override
   int get hashCode {
     var _$hash = 0;
-    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jc(_$hash, expectedVersion.hashCode);
     _$hash = $jc(_$hash, code.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
@@ -179,6 +178,7 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
     _$hash = $jc(_$hash, packageIds.hashCode);
+    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -186,7 +186,6 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'VoucherUpdateCommand')
-          ..add('reason', reason)
           ..add('expectedVersion', expectedVersion)
           ..add('code', code)
           ..add('name', name)
@@ -201,7 +200,8 @@ class _$VoucherUpdateCommand extends VoucherUpdateCommand {
           ..add('perCustomerUsageLimit', perCustomerUsageLimit)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
-          ..add('packageIds', packageIds))
+          ..add('packageIds', packageIds)
+          ..add('reason', reason))
         .toString();
   }
 }
@@ -211,10 +211,6 @@ class VoucherUpdateCommandBuilder
         Builder<VoucherUpdateCommand, VoucherUpdateCommandBuilder>,
         VoucherCommandBuilder {
   _$VoucherUpdateCommand? _$v;
-
-  String? _reason;
-  String? get reason => _$this._reason;
-  set reason(covariant String? reason) => _$this._reason = reason;
 
   int? _expectedVersion;
   int? get expectedVersion => _$this._expectedVersion;
@@ -283,11 +279,15 @@ class VoucherUpdateCommandBuilder
   set classTypeId(covariant String? classTypeId) =>
       _$this._classTypeId = classTypeId;
 
-  ListBuilder<String>? _packageIds;
-  ListBuilder<String> get packageIds =>
-      _$this._packageIds ??= ListBuilder<String>();
-  set packageIds(covariant ListBuilder<String>? packageIds) =>
+  SetBuilder<String>? _packageIds;
+  SetBuilder<String> get packageIds =>
+      _$this._packageIds ??= SetBuilder<String>();
+  set packageIds(covariant SetBuilder<String>? packageIds) =>
       _$this._packageIds = packageIds;
+
+  String? _reason;
+  String? get reason => _$this._reason;
+  set reason(covariant String? reason) => _$this._reason = reason;
 
   VoucherUpdateCommandBuilder() {
     VoucherUpdateCommand._defaults(this);
@@ -296,7 +296,6 @@ class VoucherUpdateCommandBuilder
   VoucherUpdateCommandBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
-      _reason = $v.reason;
       _expectedVersion = $v.expectedVersion;
       _code = $v.code;
       _name = $v.name;
@@ -312,6 +311,7 @@ class VoucherUpdateCommandBuilder
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
       _packageIds = $v.packageIds?.toBuilder();
+      _reason = $v.reason;
       _$v = null;
     }
     return this;
@@ -336,11 +336,6 @@ class VoucherUpdateCommandBuilder
       _$result =
           _$v ??
           _$VoucherUpdateCommand._(
-            reason: BuiltValueNullFieldError.checkNotNull(
-              reason,
-              r'VoucherUpdateCommand',
-              'reason',
-            ),
             expectedVersion: BuiltValueNullFieldError.checkNotNull(
               expectedVersion,
               r'VoucherUpdateCommand',
@@ -380,6 +375,11 @@ class VoucherUpdateCommandBuilder
             branchId: branchId,
             classTypeId: classTypeId,
             packageIds: _packageIds?.build(),
+            reason: BuiltValueNullFieldError.checkNotNull(
+              reason,
+              r'VoucherUpdateCommand',
+              'reason',
+            ),
           );
     } catch (_) {
       late String _$failedField;

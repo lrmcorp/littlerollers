@@ -213,6 +213,7 @@ export 'package:openapi/src/model/migration_batch_result.dart';
 export 'package:openapi/src/model/migration_control_totals.dart';
 export 'package:openapi/src/model/migration_source_upload.dart';
 export 'package:openapi/src/model/migration_source_upload_command.dart';
+export 'package:openapi/src/model/mobile_features.dart';
 export 'package:openapi/src/model/money.dart';
 export 'package:openapi/src/model/my_profile.dart';
 export 'package:openapi/src/model/notification_attempt.dart';

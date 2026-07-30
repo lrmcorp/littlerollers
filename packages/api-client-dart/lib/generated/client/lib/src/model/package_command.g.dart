@@ -25,6 +25,8 @@ class _$PackageCommand extends PackageCommand {
   final Date effectiveFrom;
   @override
   final Date? effectiveUntil;
+  @override
+  final String reason;
 
   factory _$PackageCommand([void Function(PackageCommandBuilder)? updates]) =>
       (PackageCommandBuilder()..update(updates))._build();
@@ -39,6 +41,7 @@ class _$PackageCommand extends PackageCommand {
     required this.priceRp,
     required this.effectiveFrom,
     this.effectiveUntil,
+    required this.reason,
   }) : super._();
   @override
   PackageCommand rebuild(void Function(PackageCommandBuilder) updates) =>
@@ -59,7 +62,8 @@ class _$PackageCommand extends PackageCommand {
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
         effectiveFrom == other.effectiveFrom &&
-        effectiveUntil == other.effectiveUntil;
+        effectiveUntil == other.effectiveUntil &&
+        reason == other.reason;
   }
 
   @override
@@ -74,6 +78,7 @@ class _$PackageCommand extends PackageCommand {
     _$hash = $jc(_$hash, priceRp.hashCode);
     _$hash = $jc(_$hash, effectiveFrom.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
+    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -89,7 +94,8 @@ class _$PackageCommand extends PackageCommand {
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
           ..add('effectiveFrom', effectiveFrom)
-          ..add('effectiveUntil', effectiveUntil))
+          ..add('effectiveUntil', effectiveUntil)
+          ..add('reason', reason))
         .toString();
   }
 }
@@ -136,6 +142,10 @@ class PackageCommandBuilder
   set effectiveUntil(Date? effectiveUntil) =>
       _$this._effectiveUntil = effectiveUntil;
 
+  String? _reason;
+  String? get reason => _$this._reason;
+  set reason(String? reason) => _$this._reason = reason;
+
   PackageCommandBuilder() {
     PackageCommand._defaults(this);
   }
@@ -152,6 +162,7 @@ class PackageCommandBuilder
       _priceRp = $v.priceRp;
       _effectiveFrom = $v.effectiveFrom;
       _effectiveUntil = $v.effectiveUntil;
+      _reason = $v.reason;
       _$v = null;
     }
     return this;
@@ -215,6 +226,11 @@ class PackageCommandBuilder
             'effectiveFrom',
           ),
           effectiveUntil: effectiveUntil,
+          reason: BuiltValueNullFieldError.checkNotNull(
+            reason,
+            r'PackageCommand',
+            'reason',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/public_branch.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/mobile_features.dart';
 import 'package:openapi/src/model/public_class_marketing_summary.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -17,6 +18,7 @@ part 'public_site_config.g.dart';
 /// * [branches] 
 /// * [classes] 
 /// * [fallbackWhatsappE164] 
+/// * [mobileFeatures] 
 @BuiltValue()
 abstract class PublicSiteConfig implements Built<PublicSiteConfig, PublicSiteConfigBuilder> {
   @BuiltValueField(wireName: r'branches')
@@ -27,6 +29,9 @@ abstract class PublicSiteConfig implements Built<PublicSiteConfig, PublicSiteCon
 
   @BuiltValueField(wireName: r'fallbackWhatsappE164')
   String? get fallbackWhatsappE164;
+
+  @BuiltValueField(wireName: r'mobileFeatures')
+  MobileFeatures get mobileFeatures;
 
   PublicSiteConfig._();
 
@@ -65,6 +70,11 @@ class _$PublicSiteConfigSerializer implements PrimitiveSerializer<PublicSiteConf
     yield object.fallbackWhatsappE164 == null ? null : serializers.serialize(
       object.fallbackWhatsappE164,
       specifiedType: const FullType.nullable(String),
+    );
+    yield r'mobileFeatures';
+    yield serializers.serialize(
+      object.mobileFeatures,
+      specifiedType: const FullType(MobileFeatures),
     );
   }
 
@@ -110,6 +120,13 @@ class _$PublicSiteConfigSerializer implements PrimitiveSerializer<PublicSiteConf
           ) as String?;
           if (valueDes == null) continue;
           result.fallbackWhatsappE164 = valueDes;
+          break;
+        case r'mobileFeatures':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(MobileFeatures),
+          ) as MobileFeatures;
+          result.mobileFeatures.replace(valueDes);
           break;
         default:
           unhandled.add(key);

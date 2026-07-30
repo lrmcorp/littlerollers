@@ -203,6 +203,7 @@ models/MigrationBatchResult.ts
 models/MigrationControlTotals.ts
 models/MigrationSourceUpload.ts
 models/MigrationSourceUploadCommand.ts
+models/MobileFeatures.ts
 models/Money.ts
 models/MyProfile.ts
 models/NotificationAttempt.ts

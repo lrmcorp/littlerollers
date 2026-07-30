@@ -71,6 +71,14 @@ export class PublicSiteConfigService {
       branches,
       classes,
       fallbackWhatsappE164: this.runtimeConfig.value.publicSupportWhatsappE164 ?? null,
+      mobileFeatures: {
+        accountRecovery: this.runtimeConfig.value.mobileFeatures.accountRecovery,
+        revokeAllSessions: this.runtimeConfig.value.mobileFeatures.revokeAllSessions,
+        bookingCancellation: this.runtimeConfig.value.bookingCancellation.enabled,
+        reschedule: this.runtimeConfig.value.reschedule.enabled,
+        customerCheckIn: this.runtimeConfig.value.mobileFeatures.customerCheckIn,
+        instructorCheckIn: this.runtimeConfig.value.mobileFeatures.instructorCheckIn,
+      },
     };
   }
 }

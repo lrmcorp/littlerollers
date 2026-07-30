@@ -27,6 +27,12 @@ export interface RuntimeConfig {
     enabled: boolean;
     cutoffHours: number | null;
   };
+  mobileFeatures: {
+    accountRecovery: boolean;
+    revokeAllSessions: boolean;
+    customerCheckIn: boolean;
+    instructorCheckIn: boolean;
+  };
   sessionAdjustment: {
     enabled: boolean;
   };
@@ -240,6 +246,12 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     bookingCancellation: {
       enabled: bookingCancellationEnabled,
       cutoffHours: bookingCancellationCutoffHours,
+    },
+    mobileFeatures: {
+      accountRecovery: env.MOBILE_ACCOUNT_RECOVERY_ENABLED?.trim() === 'true',
+      revokeAllSessions: env.MOBILE_REVOKE_ALL_SESSIONS_ENABLED?.trim() === 'true',
+      customerCheckIn: env.MOBILE_CUSTOMER_CHECK_IN_ENABLED?.trim() === 'true',
+      instructorCheckIn: env.MOBILE_INSTRUCTOR_CHECK_IN_ENABLED?.trim() === 'true',
     },
     sessionAdjustment: {
       enabled:
