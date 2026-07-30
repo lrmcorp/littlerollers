@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef } from 'react';
 import { IconButton } from '../actions';
-import { useOverlayInteraction } from '../app-feedback';
+import { useOverlayInteraction, type OverlayPhase } from '../app-feedback';
 import { BrandMark } from '../public/brand-mark';
 import { useStudioPreference } from '../public/public-experience';
 
@@ -65,11 +65,15 @@ function navigationHref(item: CustomerNavigationItem, approved: boolean) {
 
 export function CustomerNavigation({
   open,
+  rendered,
+  phase,
   approved,
   onClose,
   onLogout,
 }: {
   open: boolean;
+  rendered: boolean;
+  phase: OverlayPhase;
   approved: boolean;
   onClose(): void;
   onLogout(): void | Promise<void>;
@@ -78,25 +82,30 @@ export function CustomerNavigation({
   const studioPreference = useStudioPreference();
   const panel = useRef<HTMLElement>(null);
   useOverlayInteraction({ open, onClose, panelRef: panel });
+  const visible = phase === 'open';
 
   return (
     <>
-      {open && (
-        <button
-          type="button"
-          aria-label="Tutup navigasi akun"
-          className="fixed inset-0 z-40 min-h-0 w-full rounded-none border-0 bg-dd-sidebar/55 p-0 lg:hidden"
-          onClick={onClose}
+      {rendered && (
+        <div
+          aria-hidden="true"
+          className={`fixed inset-0 z-40 bg-dd-sidebar/55 transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${visible ? 'opacity-100' : 'opacity-0'}`}
+          onMouseDown={onClose}
         />
       )}
       <nav
         ref={panel}
         id="customer-navigation"
         aria-label="Navigasi akun"
-        aria-hidden={!open}
-        inert={!open}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar p-5 text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        aria-hidden={!rendered}
+        aria-modal={rendered ? 'true' : undefined}
+        inert={!rendered}
+        role={rendered ? 'dialog' : undefined}
+        data-overlay-phase={rendered ? phase : undefined}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
+          visible ? 'translate-x-0 visible' : '-translate-x-full'
+        } ${
+          rendered ? 'pointer-events-auto' : 'invisible pointer-events-none'
         }`}
       >
         <div className="mb-7 flex items-center justify-between">

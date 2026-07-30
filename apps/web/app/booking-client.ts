@@ -587,7 +587,7 @@ const messages: Record<string, string> = {
   INSUFFICIENT_AVAILABLE_SESSIONS: 'Saldo sesi pelanggan tidak mencukupi.',
   DUPLICATE_ACTIVE_BOOKING: 'Pelanggan sudah memiliki booking aktif untuk kelas ini.',
   RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
-  CONFIGURATION_REQUIRED: 'Konfigurasi booking belum tersedia.',
+  CONFIGURATION_REQUIRED: 'Fitur booking yang diminta belum tersedia.',
   IDEMPOTENCY_KEY_REUSED: 'Permintaan booking berubah. Silakan mulai konfirmasi baru.',
   IDEMPOTENCY_IN_PROGRESS: 'Permintaan yang sama masih diproses. Silakan coba lagi.',
   SESSION_EXPIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -608,7 +608,12 @@ const messages: Record<string, string> = {
   INVALID_STATE_TRANSITION: 'Booking atau kelas tidak berada pada status yang dapat di-check-in.',
 };
 
-export async function bookingFailure(error: unknown): Promise<string> {
+export type BookingProblem = {
+  code: string;
+  message: string;
+};
+
+export async function bookingProblem(error: unknown): Promise<BookingProblem> {
   notifySessionFailure(error);
   const typed = error as {
     code?: string;
@@ -639,5 +644,12 @@ export async function bookingFailure(error: unknown): Promise<string> {
             : status === 400 || status === 422
               ? 'VALIDATION_ERROR'
               : 'OFFLINE_OR_REQUEST_FAILED';
-  return messages[code] ?? messages.OFFLINE_OR_REQUEST_FAILED!;
+  return {
+    code,
+    message: messages[code] ?? messages.OFFLINE_OR_REQUEST_FAILED!,
+  };
+}
+
+export async function bookingFailure(error: unknown): Promise<string> {
+  return (await bookingProblem(error)).message;
 }

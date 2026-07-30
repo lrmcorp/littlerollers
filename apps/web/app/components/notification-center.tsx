@@ -4,7 +4,7 @@ import { Bell, CheckCheck, LoaderCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { browserNotificationClient, type UserNotification } from '../notification-client';
-import { Button } from './actions';
+import { Button, IconButton } from './actions';
 
 const toneDot = {
   success: 'bg-emerald-500',
@@ -13,8 +13,24 @@ const toneDot = {
   danger: 'bg-red-500',
 };
 
-export function NotificationCenter({ compact = false }: { compact?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function NotificationCenter({
+  compact = false,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  compact?: boolean;
+  open?: boolean;
+  onOpenChange?(open: boolean): void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) setInternalOpen(next);
+      onOpenChange?.(next);
+    },
+    [controlledOpen, onOpenChange],
+  );
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [items, setItems] = useState<UserNotification[]>([]);
   const [unread, setUnread] = useState(0);
@@ -70,7 +86,7 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
       window.removeEventListener('pointerdown', close);
       window.removeEventListener('keydown', escape);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   const markRead = async (item: UserNotification) => {
     if (!item.readAt) {
@@ -91,14 +107,14 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="relative" ref={root}>
-      <button
+      <IconButton
         ref={trigger}
-        type="button"
-        aria-label={unread ? `Notifikasi, ${unread} belum dibaca` : 'Notifikasi'}
+        label={unread ? `Notifikasi, ${unread} belum dibaca` : 'Notifikasi'}
+        variant="secondary"
         aria-expanded={open}
         aria-controls="global-notification-center"
-        onClick={() => setOpen((value) => !value)}
-        className="relative grid size-10 min-h-0 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-muted"
+        onClick={() => setOpen(!open)}
+        className="relative rounded-dd-md border-dd-line bg-white text-dd-muted shadow-none"
       >
         <Bell className="size-[18px]" aria-hidden="true" />
         {unread > 0 && (
@@ -106,7 +122,7 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
             {unread > 99 ? '99+' : unread}
           </span>
         )}
-      </button>
+      </IconButton>
       {open && (
         <section
           id="global-notification-center"

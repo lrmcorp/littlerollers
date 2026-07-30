@@ -1,9 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BookingClient, CustomerRescheduleOptions } from '../../booking-client';
 import { BookingDetailView } from './booking-detail-view';
+
+const sessionState = vi.hoisted(() => ({ context: null as any }));
+vi.mock('../../session-context', () => ({
+  useSessionContext: () => sessionState.context,
+}));
 
 const bookingId = '00000000-0000-4000-8000-000000000401';
 const sourceId = '00000000-0000-4000-8000-000000000402';
@@ -85,6 +90,10 @@ const makeClient = (options: CustomerRescheduleOptions): BookingClient => ({
 });
 
 describe('BookingDetailView reschedule customer', () => {
+  beforeEach(() => {
+    sessionState.context = null;
+  });
+
   it('submits an eligible request through an explicit confirmation step', async () => {
     const client = makeClient(eligible);
     vi.mocked(client.rescheduleOptions)
@@ -136,6 +145,68 @@ describe('BookingDetailView reschedule customer', () => {
     render(<BookingDetailView id={bookingId} client={client} />);
 
     expect(await screen.findByRole('heading', { name: 'Reformer' })).toBeVisible();
-    expect(screen.getByText('Konfigurasi booking belum tersedia.')).toBeVisible();
+    expect(screen.getByText('Perubahan jadwal sedang tidak tersedia')).toBeVisible();
+    expect(screen.getByText(/Booking Anda tetap aktif/)).toBeVisible();
+    expect(screen.queryByText('Permintaan belum dapat diproses')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Hubungi studio' })).toHaveAttribute(
+      'href',
+      '/contact',
+    );
+  });
+
+  it('retries only reschedule options without reloading booking detail', async () => {
+    const client = makeClient(eligible);
+    vi.mocked(client.rescheduleOptions)
+      .mockRejectedValueOnce({ code: 'OFFLINE_OR_REQUEST_FAILED' })
+      .mockResolvedValueOnce(eligible);
+    render(<BookingDetailView id={bookingId} client={client} />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Coba lagi' }));
+    expect(await screen.findByRole('button', { name: 'Ajukan reschedule' })).toBeVisible();
+    expect(client.detail).toHaveBeenCalledTimes(1);
+    expect(client.rescheduleOptions).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a blocking error only when booking detail cannot be loaded', async () => {
+    const client = makeClient(eligible);
+    vi.mocked(client.detail).mockRejectedValue({ code: 'RESOURCE_NOT_FOUND' });
+    render(<BookingDetailView id={bookingId} client={client} />);
+
+    expect(await screen.findByRole('heading', { name: 'Booking tidak tersedia' })).toBeVisible();
+    expect(screen.getByText('Detail belum dapat dimuat')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Reformer' })).not.toBeInTheDocument();
+    expect(client.rescheduleOptions).not.toHaveBeenCalled();
+  });
+
+  it('keeps submit failures inside the reschedule form', async () => {
+    const client = makeClient(eligible);
+    vi.mocked(client.requestReschedule).mockRejectedValue({ code: 'TARGET_CLASS_FULL' });
+    render(<BookingDetailView id={bookingId} client={client} />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Ajukan reschedule' }));
+    await user.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
+    await user.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+
+    const form = screen.getByRole('form', { name: 'Pengajuan reschedule' });
+    expect(await within(form).findByText('Permintaan belum dapat diproses')).toBeVisible();
+    expect(within(form).getByText('Kelas tujuan sudah penuh.')).toBeVisible();
+  });
+
+  it('does not request reschedule options without the customer capability', async () => {
+    sessionState.context = {
+      status: 'authenticated',
+      session: { roles: ['CUSTOMER'] },
+      hasCapability: () => false,
+    };
+    const client = makeClient(eligible);
+    render(<BookingDetailView id={bookingId} client={client} />);
+
+    expect(await screen.findByRole('heading', { name: 'Reformer' })).toBeVisible();
+    await waitFor(() => expect(client.detail).toHaveBeenCalledTimes(1));
+    expect(client.rescheduleOptions).not.toHaveBeenCalled();
+    expect(screen.queryByText('Perubahan jadwal sedang tidak tersedia')).not.toBeInTheDocument();
   });
 });

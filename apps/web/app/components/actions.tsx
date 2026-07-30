@@ -135,25 +135,21 @@ export function ButtonLink({
   );
 }
 
-export function IconButton({
-  label,
-  className,
-  children,
-  ...props
-}: Omit<ButtonProps, 'children' | 'aria-label'> & {
-  label: string;
-  children: ReactNode;
-}) {
+export const IconButton = forwardRef<
+  HTMLButtonElement,
+  Omit<ButtonProps, 'children' | 'aria-label'> & { label: string; children: ReactNode }
+>(function IconButton({ label, className, children, ...props }, ref) {
   return (
     <Button
       {...props}
+      ref={ref}
       aria-label={label}
-      className={`size-11 min-h-0 shrink-0 p-0 ${className ?? ''}`}
+      className={`h-11 min-h-11 w-11 min-w-11 shrink-0 p-0 ${className ?? ''}`}
     >
       <span aria-hidden="true">{children}</span>
     </Button>
   );
-}
+});
 
 export function ActionGroup({
   children,

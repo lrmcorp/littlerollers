@@ -2,7 +2,7 @@ import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { bookingFailure, type BookingClient } from './booking-client';
+import { bookingFailure, bookingProblem, type BookingClient } from './booking-client';
 import { BookingView } from './bookings/booking-view';
 import { AppFeedbackProvider } from './components/app-feedback';
 
@@ -219,11 +219,15 @@ describe('BookingView', () => {
       ['INSUFFICIENT_AVAILABLE_SESSIONS', 'Saldo sesi pelanggan tidak mencukupi.'],
       ['DUPLICATE_ACTIVE_BOOKING', 'Pelanggan sudah memiliki booking aktif untuk kelas ini.'],
       ['RESOURCE_NOT_FOUND', 'Data tidak tersedia dalam cabang yang dipilih.'],
-      ['CONFIGURATION_REQUIRED', 'Konfigurasi booking belum tersedia.'],
+      ['CONFIGURATION_REQUIRED', 'Fitur booking yang diminta belum tersedia.'],
       ['IDEMPOTENCY_IN_PROGRESS', 'Permintaan yang sama masih diproses. Silakan coba lagi.'],
       ['SESSION_EXPIRED', 'Sesi berakhir. Silakan masuk kembali.'],
     ] as const;
     for (const [code, message] of cases) expect(await bookingFailure({ code })).toBe(message);
+    expect(await bookingProblem({ code: 'CONFIGURATION_REQUIRED' })).toEqual({
+      code: 'CONFIGURATION_REQUIRED',
+      message: 'Fitur booking yang diminta belum tersedia.',
+    });
     expect(
       await bookingFailure({
         response: new Response(JSON.stringify({ error: { code: 'DUPLICATE_ACTIVE_BOOKING' } }), {

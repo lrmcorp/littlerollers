@@ -10,7 +10,8 @@ import { publicNavigation, routes } from '../../routes';
 import { isCustomerOnlySession } from '../../session-audience';
 import { useSessionContext } from '../../session-context';
 import { useStudioPreference } from './public-experience';
-import { useOverlayInteraction } from '../app-feedback';
+import { useOverlayInteraction, useOverlayPresence } from '../app-feedback';
+import { IconButton } from '../actions';
 
 function isCurrent(pathname: string, hash: string, href: string) {
   if (href === '/classes#schedule')
@@ -32,8 +33,7 @@ export function PublicHeader() {
   const customerOnly = isCustomerOnlySession(session);
   const studioPreference = useStudioPreference();
   const [open, setOpen] = useState(false);
-  const [drawerRendered, setDrawerRendered] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
+  const drawer = useOverlayPresence(open, 'drawer');
   const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -45,28 +45,12 @@ export function PublicHeader() {
     return () => window.removeEventListener('hashchange', update);
   }, [pathname]);
 
-  useEffect(() => {
-    if (open) {
-      setDrawerRendered(true);
-      return;
-    }
-    setDrawerVisible(false);
-    const timer = window.setTimeout(() => setDrawerRendered(false), 180);
-    return () => window.clearTimeout(timer);
-  }, [open]);
-
-  useEffect(() => {
-    if (!drawerRendered || !open) return;
-    const frame = window.requestAnimationFrame(() => setDrawerVisible(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [drawerRendered, open]);
-
   const close = () => setOpen(false);
   useOverlayInteraction({ open, onClose: close, panelRef: drawerRef });
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-dd-line/80 bg-dd-paper/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-dd-line/80 bg-dd-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex min-h-[72px] w-full max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:min-h-[78px] lg:px-8">
           <BrandMark className="w-[142px] shrink-0 sm:w-40" priority />
 
@@ -166,26 +150,26 @@ export function PublicHeader() {
             >
               Lihat Jadwal
             </Link>
-            <button
+            <IconButton
               ref={triggerRef}
-              type="button"
-              className="grid size-11 min-h-0 place-items-center rounded-full border border-dd-line bg-white p-0 text-dd-forest lg:hidden"
-              aria-label="Buka menu navigasi"
+              label="Buka menu navigasi"
+              variant="secondary"
+              className="rounded-full border-dd-line bg-white text-dd-forest shadow-none lg:hidden"
               aria-expanded={open}
               aria-controls="public-mobile-navigation"
               onClick={() => setOpen(true)}
             >
               <Menu className="size-5" aria-hidden="true" />
-            </button>
+            </IconButton>
           </div>
         </div>
       </header>
 
-      {drawerRendered && (
+      {drawer.rendered && (
         <div
-          data-navigation-overlay-phase={drawerVisible ? 'open' : 'exiting'}
+          data-navigation-overlay-phase={drawer.phase}
           className={`fixed inset-0 z-[100] bg-dd-sidebar/45 backdrop-blur-sm transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${
-            drawerVisible ? 'opacity-100' : 'opacity-0'
+            drawer.visible ? 'opacity-100' : 'opacity-0'
           }`}
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) close();
@@ -194,8 +178,8 @@ export function PublicHeader() {
           <div
             ref={drawerRef}
             id="public-mobile-navigation"
-            className={`ml-auto flex h-dvh w-[min(88vw,380px)] flex-col overflow-y-auto bg-dd-paper p-5 shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${
-              drawerVisible ? 'translate-x-0' : 'translate-x-full'
+            className={`ml-auto flex h-dvh w-[min(88vw,380px)] flex-col overflow-y-auto bg-dd-paper pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-5 pr-[max(1.25rem,env(safe-area-inset-right))] pt-[max(1.25rem,env(safe-area-inset-top))] shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${
+              drawer.visible ? 'translate-x-0' : 'translate-x-full'
             }`}
             role="dialog"
             aria-modal="true"
@@ -203,17 +187,17 @@ export function PublicHeader() {
           >
             <div className="flex items-center justify-between gap-4 border-b border-dd-line pb-5">
               <BrandMark className="w-36" />
-              <button
-                type="button"
-                className="grid size-11 min-h-0 place-items-center rounded-full border border-dd-line bg-white p-0 text-dd-forest"
-                aria-label="Tutup menu navigasi"
+              <IconButton
+                label="Tutup menu navigasi"
+                variant="secondary"
+                className="rounded-full border-dd-line bg-white text-dd-forest shadow-none"
                 onClick={() => {
                   close();
                   triggerRef.current?.focus();
                 }}
               >
                 <X className="size-5" aria-hidden="true" />
-              </button>
+              </IconButton>
             </div>
 
             <nav className="grid py-6" aria-label="Navigasi publik mobile">
