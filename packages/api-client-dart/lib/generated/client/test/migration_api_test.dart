@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for MigrationApi
 void main() {
-  final instance = Openapi().getMigrationApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getMigrationApi();
 
   group(MigrationApi, () {
     //Future<MigrationBatchResult> applyMigrationBatch(String id, String idempotencyKey, MigrationBatchActionCommand migrationBatchActionCommand) async

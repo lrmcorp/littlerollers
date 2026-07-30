@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for FinanceApi
 void main() {
-  final instance = Openapi().getFinanceApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getFinanceApi();
 
   group(FinanceApi, () {
     //Future<CloseResult> closeMonth(String idempotencyKey, CloseMonthRequest closeMonthRequest) async

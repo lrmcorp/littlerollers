@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for AuditApi
 void main() {
-  final instance = Openapi().getAuditApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getAuditApi();
 
   group(AuditApi, () {
     //Future<DownloadAuthorization> authorizeAuditExportDownload(String id) async

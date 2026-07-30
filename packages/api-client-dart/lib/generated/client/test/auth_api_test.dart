@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for AuthApi
 void main() {
-  final instance = Openapi().getAuthApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getAuthApi();
 
   group(AuthApi, () {
     //Future<Session> activatePassword(PasswordTokenCommand passwordTokenCommand) async

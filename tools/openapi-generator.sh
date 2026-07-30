@@ -68,12 +68,23 @@ if [ -f "$CUSTOMER_BOOKING_OPTIONS" ]; then
   rm -f "$CUSTOMER_BOOKING_OPTIONS.bak"
 fi
 
+# dart-dio generates API smoke-test stubs that instantiate the client with the
+# relative OpenAPI server URL. Dio requires an absolute URL on native Dart, so
+# keep the generated tests runnable without changing the runtime client's
+# explicit basePathOverride behavior.
+find "$LOCAL_DART_OUTPUT/test" -type f -name '*_api_test.dart' | while IFS= read -r api_test; do
+  sed -i.bak "s/final instance = Openapi()/final instance = Openapi(basePathOverride: 'http:\/\/localhost\/api\/v1')/" "$api_test"
+  rm -f "$api_test.bak"
+done
+
 if [ "$MODE" = sync ]; then
   # Publish only after both generators complete successfully. OpenAPI Generator
   # does not remove files for deleted/inlined schemas, so clean only the source
   # files covered by drift checks while preserving compiled/build_runner output.
   find "$TARGET_TS_OUTPUT" -type f -name '*.ts' ! -name '*.d.ts' -delete
   find "$TARGET_DART_OUTPUT/lib" -type f -name '*.dart' ! -name '*.g.dart' -delete
+  find "$TARGET_DART_OUTPUT/test" -type f -name '*.dart' -delete
+  find "$TARGET_DART_OUTPUT/doc" -type f -name '*.md' -delete
   cp -R "$LOCAL_TS_OUTPUT/." "$TARGET_TS_OUTPUT/"
   cp -R "$LOCAL_DART_OUTPUT/." "$TARGET_DART_OUTPUT/"
   find "$TARGET_DART_OUTPUT/lib/src/model" -type f -name '*.g.dart' | while IFS= read -r generated; do

@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for MasterApi
 void main() {
-  final instance = Openapi().getMasterApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getMasterApi();
 
   group(MasterApi, () {
     // Creates an active branch. Requires master:manage.

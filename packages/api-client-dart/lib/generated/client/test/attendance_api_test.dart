@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for AttendanceApi
 void main() {
-  final instance = Openapi().getAttendanceApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getAttendanceApi();
 
   group(AttendanceApi, () {
     //Future<CheckInResult> backfillCustomerCheckIn(String idempotencyKey, BackfillCustomerCheckInRequest backfillCustomerCheckInRequest) async

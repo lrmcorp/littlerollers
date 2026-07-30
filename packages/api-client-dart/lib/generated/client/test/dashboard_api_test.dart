@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for DashboardApi
 void main() {
-  final instance = Openapi().getDashboardApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getDashboardApi();
 
   group(DashboardApi, () {
     // Customer-owned actionable overview.

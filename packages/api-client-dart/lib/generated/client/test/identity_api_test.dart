@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for IdentityApi
 void main() {
-  final instance = Openapi().getIdentityApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getIdentityApi();
 
   group(IdentityApi, () {
     //Future<AuthorizeIdentityVerificationView200Response> authorizeIdentityVerificationView(String id) async
