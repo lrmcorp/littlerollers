@@ -37,7 +37,17 @@ describe('PublicSiteConfigService', () => {
     const service = new PublicSiteConfigService(
       db as never,
       {
-        value: { publicSupportWhatsappE164: '+622100000000' },
+        value: {
+          publicSupportWhatsappE164: '+622100000000',
+          bookingCancellation: { enabled: false },
+          reschedule: { enabled: true },
+          mobileFeatures: {
+            accountRecovery: false,
+            revokeAllSessions: false,
+            customerCheckIn: true,
+            instructorCheckIn: false,
+          },
+        },
       } as never,
     );
 
@@ -45,6 +55,14 @@ describe('PublicSiteConfigService', () => {
       branches: [{ code: 'DD-JKT', publicProfile: { slug: 'jakarta' } }],
       classes: [{ code: 'REFORMER', name: 'Reformer Pilates' }],
       fallbackWhatsappE164: '+622100000000',
+      mobileFeatures: {
+        accountRecovery: false,
+        revokeAllSessions: false,
+        bookingCancellation: false,
+        reschedule: true,
+        customerCheckIn: true,
+        instructorCheckIn: false,
+      },
     });
     expect(db.branch.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

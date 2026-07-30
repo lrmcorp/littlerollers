@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for ClassesApi
 void main() {
-  final instance = Openapi().getClassesApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getClassesApi();
 
   group(ClassesApi, () {
     //Future<ClassSlot> assignClassSlotInstructor(String id, String idempotencyKey, AssignInstructorCommand assignInstructorCommand) async

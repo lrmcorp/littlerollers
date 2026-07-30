@@ -5,14 +5,18 @@ import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   bookingFailure,
+  bookingProblem,
   browserBookingClient,
   type BookingClient,
+  type BookingProblem,
   type CustomerBookingRecord,
   type CustomerRescheduleOptions,
 } from '../../booking-client';
 import { AlertBanner } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
 import { SearchSelect, SelectInput } from '../../components/forms';
+import { useSessionContext } from '../../session-context';
+import { isCustomerOnlySession } from '../../session-audience';
 import { Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
@@ -52,9 +56,18 @@ export function BookingDetailView({
   id: string;
   client?: BookingClient;
 }) {
+  const context = useSessionContext();
+  const canLoadReschedule =
+    context === null ||
+    (context.status === 'authenticated' &&
+      isCustomerOnlySession(context.session) &&
+      context.hasCapability('reschedule:self:read'));
   const [booking, setBooking] = useState<CustomerBookingRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [detailError, setDetailError] = useState('');
+  const [rescheduleUnavailable, setRescheduleUnavailable] = useState<BookingProblem | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [mutationError, setMutationError] = useState('');
   const [options, setOptions] = useState<CustomerRescheduleOptions | null>(null);
   const [targetId, setTargetId] = useState('');
   const [reasonCode, setReasonCode] = useState<keyof typeof reasonLabels>('PERSONAL_UNAVAILABLE');
@@ -64,27 +77,44 @@ export function BookingDetailView({
   const [rescheduleMessage, setRescheduleMessage] = useState('');
   const intentKey = useRef(newIntentKey());
 
+  const loadRescheduleOptions = useCallback(async () => {
+    if (!canLoadReschedule) {
+      setOptions(null);
+      setRescheduleUnavailable(null);
+      return;
+    }
+    setRescheduleLoading(true);
+    setRescheduleUnavailable(null);
+    try {
+      const optionResult = await client.rescheduleOptions(id);
+      setOptions(optionResult);
+      setTargetId(optionResult.targets[0]?.id ?? '');
+    } catch (cause) {
+      setOptions(null);
+      setTargetId('');
+      setRescheduleUnavailable(await bookingProblem(cause));
+    } finally {
+      setRescheduleLoading(false);
+    }
+  }, [canLoadReschedule, client, id]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setDetailError('');
+    setMutationError('');
     try {
       const bookingResult = await client.detail(id);
       setBooking(bookingResult);
-      try {
-        const optionResult = await client.rescheduleOptions(id);
-        setOptions(optionResult);
-        setTargetId(optionResult.targets[0]?.id ?? '');
-      } catch (cause) {
-        setOptions(null);
-        setError(await bookingFailure(cause));
-      }
+      await loadRescheduleOptions();
     } catch (cause) {
       setBooking(null);
-      setError(await bookingFailure(cause));
+      setOptions(null);
+      setRescheduleUnavailable(null);
+      setDetailError(await bookingFailure(cause));
     } finally {
       setLoading(false);
     }
-  }, [client, id]);
+  }, [client, id, loadRescheduleOptions]);
 
   useEffect(() => {
     void load();
@@ -100,9 +130,9 @@ export function BookingDetailView({
     return (
       <section className="rounded-dd-xl border border-dd-line bg-white p-6">
         <h1 className="text-2xl font-semibold">Booking tidak tersedia</h1>
-        {error && (
+        {detailError && (
           <div className="mt-4">
-            <AlertBanner tone="danger" title="Detail belum dapat dimuat" message={error} />
+            <AlertBanner tone="danger" title="Detail belum dapat dimuat" message={detailError} />
           </div>
         )}
         <div className="mt-5 flex flex-wrap gap-3">
@@ -176,6 +206,28 @@ export function BookingDetailView({
           message="Datang lebih awal dan tunjukkan QR check-in yang dikirim oleh studio."
         />
       )}
+      {rescheduleUnavailable && (
+        <section className="space-y-3" aria-label="Ketersediaan perubahan jadwal">
+          <AlertBanner
+            tone="info"
+            title="Perubahan jadwal sedang tidak tersedia"
+            message="Booking Anda tetap aktif. Coba kembali atau hubungi studio jika Anda memerlukan bantuan untuk mengganti jadwal."
+          />
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="secondary"
+              loading={rescheduleLoading}
+              loadingLabel="Memuat pilihan jadwal…"
+              onClick={() => void loadRescheduleOptions()}
+            >
+              Coba lagi
+            </Button>
+            <ButtonLink href="/contact" variant="secondary">
+              Hubungi studio
+            </ButtonLink>
+          </div>
+        </section>
+      )}
       {options?.latestRequest && (
         <AlertBanner
           tone={
@@ -227,7 +279,13 @@ export function BookingDetailView({
             Pengajuan dapat dibuat sampai tepat H-24. Reservation tetap di kelas ini selama
             permintaan ditinjau.
           </p>
-          <Button className="mt-4" onClick={() => setShowForm(true)}>
+          <Button
+            className="mt-4"
+            onClick={() => {
+              setMutationError('');
+              setShowForm(true);
+            }}
+          >
             Ajukan reschedule
           </Button>
         </section>
@@ -244,7 +302,7 @@ export function BookingDetailView({
               return;
             }
             setSubmitting(true);
-            setError('');
+            setMutationError('');
             void client
               .requestReschedule(
                 {
@@ -265,7 +323,7 @@ export function BookingDetailView({
                 await load();
               })
               .catch(async (cause) => {
-                setError(await bookingFailure(cause));
+                setMutationError(await bookingFailure(cause));
                 setConfirming(false);
               })
               .finally(() => setSubmitting(false));
@@ -313,6 +371,13 @@ export function BookingDetailView({
                   message="Setelah dikirim, jadwal asal tetap berlaku sampai permintaan disetujui oleh studio."
                 />
               )}
+              {mutationError && (
+                <AlertBanner
+                  tone="danger"
+                  title="Permintaan belum dapat diproses"
+                  message={mutationError}
+                />
+              )}
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" loading={submitting} loadingLabel="Mengirim…">
                   {confirming ? 'Kirim permintaan' : 'Tinjau permintaan'}
@@ -322,6 +387,7 @@ export function BookingDetailView({
                   onClick={() => {
                     setShowForm(false);
                     setConfirming(false);
+                    setMutationError('');
                   }}
                 >
                   Batal
@@ -336,9 +402,6 @@ export function BookingDetailView({
             />
           )}
         </form>
-      )}
-      {error && (
-        <AlertBanner tone="danger" title="Permintaan belum dapat diproses" message={error} />
       )}
     </main>
   );

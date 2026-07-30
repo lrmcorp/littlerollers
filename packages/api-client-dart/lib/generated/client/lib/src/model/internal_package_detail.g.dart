@@ -34,9 +34,52 @@ _$internalPackageDetailStatusEnumValues =
       ],
     );
 
+const InternalPackageDetailEffectiveStateEnum
+_$internalPackageDetailEffectiveStateEnum_ACTIVE =
+    const InternalPackageDetailEffectiveStateEnum._('ACTIVE');
+const InternalPackageDetailEffectiveStateEnum
+_$internalPackageDetailEffectiveStateEnum_SCHEDULED =
+    const InternalPackageDetailEffectiveStateEnum._('SCHEDULED');
+const InternalPackageDetailEffectiveStateEnum
+_$internalPackageDetailEffectiveStateEnum_EXPIRED =
+    const InternalPackageDetailEffectiveStateEnum._('EXPIRED');
+const InternalPackageDetailEffectiveStateEnum
+_$internalPackageDetailEffectiveStateEnum_INACTIVE =
+    const InternalPackageDetailEffectiveStateEnum._('INACTIVE');
+
+InternalPackageDetailEffectiveStateEnum
+_$internalPackageDetailEffectiveStateEnumValueOf(String name) {
+  switch (name) {
+    case 'ACTIVE':
+      return _$internalPackageDetailEffectiveStateEnum_ACTIVE;
+    case 'SCHEDULED':
+      return _$internalPackageDetailEffectiveStateEnum_SCHEDULED;
+    case 'EXPIRED':
+      return _$internalPackageDetailEffectiveStateEnum_EXPIRED;
+    case 'INACTIVE':
+      return _$internalPackageDetailEffectiveStateEnum_INACTIVE;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<InternalPackageDetailEffectiveStateEnum>
+_$internalPackageDetailEffectiveStateEnumValues =
+    BuiltSet<InternalPackageDetailEffectiveStateEnum>(
+      const <InternalPackageDetailEffectiveStateEnum>[
+        _$internalPackageDetailEffectiveStateEnum_ACTIVE,
+        _$internalPackageDetailEffectiveStateEnum_SCHEDULED,
+        _$internalPackageDetailEffectiveStateEnum_EXPIRED,
+        _$internalPackageDetailEffectiveStateEnum_INACTIVE,
+      ],
+    );
+
 Serializer<InternalPackageDetailStatusEnum>
 _$internalPackageDetailStatusEnumSerializer =
     _$InternalPackageDetailStatusEnumSerializer();
+Serializer<InternalPackageDetailEffectiveStateEnum>
+_$internalPackageDetailEffectiveStateEnumSerializer =
+    _$InternalPackageDetailEffectiveStateEnumSerializer();
 
 class _$InternalPackageDetailStatusEnumSerializer
     implements PrimitiveSerializer<InternalPackageDetailStatusEnum> {
@@ -71,9 +114,52 @@ class _$InternalPackageDetailStatusEnumSerializer
   );
 }
 
+class _$InternalPackageDetailEffectiveStateEnumSerializer
+    implements PrimitiveSerializer<InternalPackageDetailEffectiveStateEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'ACTIVE': 'ACTIVE',
+    'SCHEDULED': 'SCHEDULED',
+    'EXPIRED': 'EXPIRED',
+    'INACTIVE': 'INACTIVE',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'ACTIVE': 'ACTIVE',
+    'SCHEDULED': 'SCHEDULED',
+    'EXPIRED': 'EXPIRED',
+    'INACTIVE': 'INACTIVE',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    InternalPackageDetailEffectiveStateEnum,
+  ];
+  @override
+  final String wireName = 'InternalPackageDetailEffectiveStateEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    InternalPackageDetailEffectiveStateEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  InternalPackageDetailEffectiveStateEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => InternalPackageDetailEffectiveStateEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 class _$InternalPackageDetail extends InternalPackageDetail {
   @override
   final BuiltList<PackagePromotion> promotions;
+  @override
+  final BuiltList<SafeAuditActivity> auditActivity;
+  @override
+  final BuiltList<Package> revisions;
   @override
   final String id;
   @override
@@ -93,6 +179,10 @@ class _$InternalPackageDetail extends InternalPackageDetail {
   @override
   final PackageStatusEnum status;
   @override
+  final PackageEffectiveStateEnum? effectiveState;
+  @override
+  final bool? livePromotion;
+  @override
   final Date effectiveFrom;
   @override
   final Date? effectiveUntil;
@@ -105,6 +195,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
 
   _$InternalPackageDetail._({
     required this.promotions,
+    required this.auditActivity,
+    required this.revisions,
     required this.id,
     required this.branchId,
     required this.classTypeId,
@@ -114,6 +206,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     required this.durationDays,
     required this.priceRp,
     required this.status,
+    this.effectiveState,
+    this.livePromotion,
     required this.effectiveFrom,
     this.effectiveUntil,
     required this.version,
@@ -132,6 +226,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     if (identical(other, this)) return true;
     return other is InternalPackageDetail &&
         promotions == other.promotions &&
+        auditActivity == other.auditActivity &&
+        revisions == other.revisions &&
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
@@ -141,6 +237,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
         status == other.status &&
+        effectiveState == other.effectiveState &&
+        livePromotion == other.livePromotion &&
         effectiveFrom == other.effectiveFrom &&
         effectiveUntil == other.effectiveUntil &&
         version == other.version;
@@ -150,6 +248,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, promotions.hashCode);
+    _$hash = $jc(_$hash, auditActivity.hashCode);
+    _$hash = $jc(_$hash, revisions.hashCode);
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
@@ -159,6 +259,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, effectiveState.hashCode);
+    _$hash = $jc(_$hash, livePromotion.hashCode);
     _$hash = $jc(_$hash, effectiveFrom.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
@@ -170,6 +272,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
   String toString() {
     return (newBuiltValueToStringHelper(r'InternalPackageDetail')
           ..add('promotions', promotions)
+          ..add('auditActivity', auditActivity)
+          ..add('revisions', revisions)
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
@@ -179,6 +283,8 @@ class _$InternalPackageDetail extends InternalPackageDetail {
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
           ..add('status', status)
+          ..add('effectiveState', effectiveState)
+          ..add('livePromotion', livePromotion)
           ..add('effectiveFrom', effectiveFrom)
           ..add('effectiveUntil', effectiveUntil)
           ..add('version', version))
@@ -197,6 +303,18 @@ class InternalPackageDetailBuilder
       _$this._promotions ??= ListBuilder<PackagePromotion>();
   set promotions(covariant ListBuilder<PackagePromotion>? promotions) =>
       _$this._promotions = promotions;
+
+  ListBuilder<SafeAuditActivity>? _auditActivity;
+  ListBuilder<SafeAuditActivity> get auditActivity =>
+      _$this._auditActivity ??= ListBuilder<SafeAuditActivity>();
+  set auditActivity(covariant ListBuilder<SafeAuditActivity>? auditActivity) =>
+      _$this._auditActivity = auditActivity;
+
+  ListBuilder<Package>? _revisions;
+  ListBuilder<Package> get revisions =>
+      _$this._revisions ??= ListBuilder<Package>();
+  set revisions(covariant ListBuilder<Package>? revisions) =>
+      _$this._revisions = revisions;
 
   String? _id;
   String? get id => _$this._id;
@@ -238,6 +356,16 @@ class InternalPackageDetailBuilder
   PackageStatusEnum? get status => _$this._status;
   set status(covariant PackageStatusEnum? status) => _$this._status = status;
 
+  PackageEffectiveStateEnum? _effectiveState;
+  PackageEffectiveStateEnum? get effectiveState => _$this._effectiveState;
+  set effectiveState(covariant PackageEffectiveStateEnum? effectiveState) =>
+      _$this._effectiveState = effectiveState;
+
+  bool? _livePromotion;
+  bool? get livePromotion => _$this._livePromotion;
+  set livePromotion(covariant bool? livePromotion) =>
+      _$this._livePromotion = livePromotion;
+
   Date? _effectiveFrom;
   Date? get effectiveFrom => _$this._effectiveFrom;
   set effectiveFrom(covariant Date? effectiveFrom) =>
@@ -260,6 +388,8 @@ class InternalPackageDetailBuilder
     final $v = _$v;
     if ($v != null) {
       _promotions = $v.promotions.toBuilder();
+      _auditActivity = $v.auditActivity.toBuilder();
+      _revisions = $v.revisions.toBuilder();
       _id = $v.id;
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
@@ -269,6 +399,8 @@ class InternalPackageDetailBuilder
       _durationDays = $v.durationDays;
       _priceRp = $v.priceRp;
       _status = $v.status;
+      _effectiveState = $v.effectiveState;
+      _livePromotion = $v.livePromotion;
       _effectiveFrom = $v.effectiveFrom;
       _effectiveUntil = $v.effectiveUntil;
       _version = $v.version;
@@ -297,6 +429,8 @@ class InternalPackageDetailBuilder
           _$v ??
           _$InternalPackageDetail._(
             promotions: promotions.build(),
+            auditActivity: auditActivity.build(),
+            revisions: revisions.build(),
             id: BuiltValueNullFieldError.checkNotNull(
               id,
               r'InternalPackageDetail',
@@ -342,6 +476,8 @@ class InternalPackageDetailBuilder
               r'InternalPackageDetail',
               'status',
             ),
+            effectiveState: effectiveState,
+            livePromotion: livePromotion,
             effectiveFrom: BuiltValueNullFieldError.checkNotNull(
               effectiveFrom,
               r'InternalPackageDetail',
@@ -359,6 +495,10 @@ class InternalPackageDetailBuilder
       try {
         _$failedField = 'promotions';
         promotions.build();
+        _$failedField = 'auditActivity';
+        auditActivity.build();
+        _$failedField = 'revisions';
+        revisions.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'InternalPackageDetail',

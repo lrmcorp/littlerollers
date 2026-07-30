@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for BookingsApi
 void main() {
-  final instance = Openapi().getBookingsApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getBookingsApi();
 
   group(BookingsApi, () {
     // Customer-owned idempotent cancellation before H-24. Atomically releases the reservation, updates slot occupancy, revokes active check-in tokens, and emits booking.cancelled.v1 without mutating the ledger.

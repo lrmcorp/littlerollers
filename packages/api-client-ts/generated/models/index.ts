@@ -187,6 +187,7 @@ export * from './MigrationBatchResult';
 export * from './MigrationControlTotals';
 export * from './MigrationSourceUpload';
 export * from './MigrationSourceUploadCommand';
+export * from './MobileFeatures';
 export * from './Money';
 export * from './MyProfile';
 export * from './NotificationAttempt';

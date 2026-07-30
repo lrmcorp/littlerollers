@@ -247,6 +247,12 @@ describe('capability-aware session shell', () => {
       }),
     ).toBe('/classes#schedule');
     expect(defaultSessionDestination(adminSession)).toBe('/workspace');
+    expect(canAccessSessionPath(adminSession, '/bookings')).toBe(false);
+    expect(canAccessSessionPath(adminSession, '/bookings/booking-1')).toBe(false);
+    expect(forbiddenSessionDestination(adminSession, '/bookings')).toBe('/workspace/bookings');
+    expect(forbiddenSessionDestination(adminSession, '/bookings/booking-1')).toBe(
+      '/workspace/bookings/booking-1',
+    );
     expect(
       forbiddenSessionDestination(
         {
@@ -274,6 +280,16 @@ describe('capability-aware session shell', () => {
         roles: ['CUSTOMER', 'ADMIN'],
       }),
     ).toBe('/workspace');
+    expect(
+      canAccessSessionPath(
+        {
+          ...customerSession,
+          roles: ['CUSTOMER', 'ADMIN'],
+          identityVerificationStatus: 'APPROVED',
+        },
+        '/bookings/booking-1',
+      ),
+    ).toBe(false);
 
     expect(resolveSessionDestination(customerSession, '/classes?slot=one')).toBe(
       '/classes?slot=one',
@@ -291,6 +307,18 @@ describe('capability-aware session shell', () => {
         '/bookings',
       ),
     ).toBe('/bookings');
+    expect(
+      canAccessSessionPath(
+        { ...customerSession, identityVerificationStatus: 'APPROVED' },
+        '/workspace/bookings/booking-1',
+      ),
+    ).toBe(false);
+    expect(
+      forbiddenSessionDestination(
+        { ...customerSession, identityVerificationStatus: 'APPROVED' },
+        '/workspace/bookings/booking-1',
+      ),
+    ).toBe('/bookings/booking-1');
   });
 
   it('renders a role-aware dashboard without exposing unavailable workspaces', async () => {
@@ -371,7 +399,7 @@ describe('capability-aware session shell', () => {
     ).toHaveTextContent('Kunjungi situs utama');
 
     fireEvent.click(screen.getByRole('button', { name: 'Buka navigasi akun' }));
-    const mobileNav = screen.getByRole('navigation', { name: 'Navigasi akun' });
+    const mobileNav = screen.getByRole('dialog', { name: 'Navigasi akun' });
     expect(mobileNav).toHaveAttribute('aria-hidden', 'false');
     expect(within(mobileNav).getByRole('link', { name: 'Kunjungi situs utama' })).toHaveAttribute(
       'href',

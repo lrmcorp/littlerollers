@@ -29,7 +29,8 @@ import { frontendPageGroups, frontendPages } from './frontend-pages';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { browserDashboardClient } from './dashboard-client';
-import { useOverlayInteraction } from './components/app-feedback';
+import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
+import { IconButton } from './components/actions';
 
 const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
@@ -54,11 +55,15 @@ const pageIcons: Record<string, LucideIcon> = {
 
 export function AppNavigation({
   mobileOpen = false,
+  mobileRendered = false,
+  mobilePhase = 'exiting',
   collapsed = false,
   onClose,
   onCollapse,
 }: {
   mobileOpen?: boolean;
+  mobileRendered?: boolean;
+  mobilePhase?: OverlayPhase;
   collapsed?: boolean;
   onClose?(): void;
   onCollapse?(): void;
@@ -74,6 +79,7 @@ export function AppNavigation({
         (item.href !== '/workspace' && pathname.startsWith(`${item.href}/`)),
     )?.href;
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
+  const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
   const customerOnly =
     session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
   const customerLinks = [
@@ -93,13 +99,27 @@ export function AppNavigation({
     { href: '/account', label: 'Akun Saya', icon: Users },
   ];
   const navigationRef = useRef<HTMLElement>(null);
-  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+  const mobileVisible = mobilePhase === 'open';
+  const mobileClosed = mobileViewport === true && !mobileRendered;
+  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:visible lg:pointer-events-auto ${mobileVisible ? 'translate-x-0 visible' : '-translate-x-full'} ${mobileRendered ? 'pointer-events-auto' : 'invisible pointer-events-none'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
 
   useOverlayInteraction({
     open: mobileOpen,
     onClose: () => onClose?.(),
     panelRef: navigationRef,
   });
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      setMobileViewport(false);
+      return;
+    }
+    const query = window.matchMedia('(max-width: 1023px)');
+    const update = () => setMobileViewport(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (!session || customerOnly) return;
@@ -123,11 +143,11 @@ export function AppNavigation({
 
   return (
     <>
-      {mobileOpen && (
-        <button
-          aria-label="Tutup navigasi"
-          className="fixed inset-0 z-40 min-h-0 w-full rounded-none border-0 bg-dd-sidebar/55 p-0 lg:hidden"
-          onClick={onClose}
+      {mobileRendered && (
+        <div
+          aria-hidden="true"
+          className={`fixed inset-0 z-40 bg-dd-sidebar/55 transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${mobileVisible ? 'opacity-100' : 'opacity-0'}`}
+          onMouseDown={() => onClose?.()}
         />
       )}
       <nav
@@ -135,9 +155,14 @@ export function AppNavigation({
         id={customerOnly ? 'customer-navigation' : 'workspace-navigation'}
         className={navClass}
         aria-label="Navigasi utama"
+        aria-hidden={mobileClosed || undefined}
+        aria-modal={mobileViewport === true && mobileRendered ? 'true' : undefined}
+        role={mobileViewport === true && mobileRendered ? 'dialog' : undefined}
+        inert={mobileClosed || undefined}
+        data-overlay-phase={mobileRendered ? mobilePhase : undefined}
       >
         <div
-          className={`flex min-h-24 items-center border-b border-white/10 px-5 ${collapsed ? 'lg:justify-center lg:px-2' : 'justify-between'}`}
+          className={`flex min-h-24 items-center border-b border-white/10 pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[env(safe-area-inset-top)] ${collapsed ? 'lg:justify-center lg:px-2 lg:pt-0' : 'justify-between'}`}
         >
           <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
             <BrandMark
@@ -153,17 +178,17 @@ export function AppNavigation({
             )}
           </div>
           {
-            <button
-              type="button"
-              aria-label="Tutup navigasi"
+            <IconButton
+              label="Tutup navigasi"
+              variant="ghost"
               onClick={onClose}
-              className="grid size-9 min-h-0 place-items-center rounded-full border border-white/15 bg-transparent p-0 text-white lg:hidden"
+              className="rounded-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white lg:hidden"
             >
               <X className="size-4" />
-            </button>
+            </IconButton>
           }
         </div>
-        <div className="nav-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5">
+        <div className="workspace-navigation-scroll min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-3 py-5">
           {customerOnly ? (
             <section className="space-y-1" aria-labelledby="nav-customer">
               <h2

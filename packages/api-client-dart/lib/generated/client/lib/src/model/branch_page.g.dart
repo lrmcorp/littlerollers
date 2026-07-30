@@ -10,12 +10,18 @@ class _$BranchPage extends BranchPage {
   @override
   final BuiltList<Branch> items;
   @override
+  final BranchManagementSummary summary;
+  @override
   final CursorPageMeta page;
 
   factory _$BranchPage([void Function(BranchPageBuilder)? updates]) =>
       (BranchPageBuilder()..update(updates))._build();
 
-  _$BranchPage._({required this.items, required this.page}) : super._();
+  _$BranchPage._({
+    required this.items,
+    required this.summary,
+    required this.page,
+  }) : super._();
   @override
   BranchPage rebuild(void Function(BranchPageBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -26,13 +32,17 @@ class _$BranchPage extends BranchPage {
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is BranchPage && items == other.items && page == other.page;
+    return other is BranchPage &&
+        items == other.items &&
+        summary == other.summary &&
+        page == other.page;
   }
 
   @override
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
+    _$hash = $jc(_$hash, summary.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -42,6 +52,7 @@ class _$BranchPage extends BranchPage {
   String toString() {
     return (newBuiltValueToStringHelper(r'BranchPage')
           ..add('items', items)
+          ..add('summary', summary)
           ..add('page', page))
         .toString();
   }
@@ -53,6 +64,12 @@ class BranchPageBuilder implements Builder<BranchPage, BranchPageBuilder> {
   ListBuilder<Branch>? _items;
   ListBuilder<Branch> get items => _$this._items ??= ListBuilder<Branch>();
   set items(ListBuilder<Branch>? items) => _$this._items = items;
+
+  BranchManagementSummaryBuilder? _summary;
+  BranchManagementSummaryBuilder get summary =>
+      _$this._summary ??= BranchManagementSummaryBuilder();
+  set summary(BranchManagementSummaryBuilder? summary) =>
+      _$this._summary = summary;
 
   CursorPageMetaBuilder? _page;
   CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
@@ -66,6 +83,7 @@ class BranchPageBuilder implements Builder<BranchPage, BranchPageBuilder> {
     final $v = _$v;
     if ($v != null) {
       _items = $v.items.toBuilder();
+      _summary = $v.summary.toBuilder();
       _page = $v.page.toBuilder();
       _$v = null;
     }
@@ -89,12 +107,19 @@ class BranchPageBuilder implements Builder<BranchPage, BranchPageBuilder> {
     _$BranchPage _$result;
     try {
       _$result =
-          _$v ?? _$BranchPage._(items: items.build(), page: page.build());
+          _$v ??
+          _$BranchPage._(
+            items: items.build(),
+            summary: summary.build(),
+            page: page.build(),
+          );
     } catch (_) {
       late String _$failedField;
       try {
         _$failedField = 'items';
         items.build();
+        _$failedField = 'summary';
+        summary.build();
         _$failedField = 'page';
         page.build();
       } catch (e) {

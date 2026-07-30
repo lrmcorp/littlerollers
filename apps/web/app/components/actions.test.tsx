@@ -26,7 +26,12 @@ describe('action primitives', () => {
         <Pencil />
       </IconButton>,
     );
-    expect(screen.getByRole('button', { name: 'Edit cabang' })).toHaveClass('size-11');
+    expect(screen.getByRole('button', { name: 'Edit cabang' })).toHaveClass(
+      'h-11',
+      'w-11',
+      'min-h-11',
+      'min-w-11',
+    );
   });
 
   it('replaces the leading icon with a spinner while loading', () => {

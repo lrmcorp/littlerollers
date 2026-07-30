@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for OperationsApi
 void main() {
-  final instance = Openapi().getOperationsApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getOperationsApi();
 
   group(OperationsApi, () {
     //Future<OperationalJobResult> deadLetterOperationalJob(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async

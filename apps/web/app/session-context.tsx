@@ -50,7 +50,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/health', ['operations:read']],
   ['/workspace/classes', ['class-slot:read']],
   ['/operations', ['operations:read']],
-  ['/bookings', ['booking:self:read', 'booking:read']],
+  ['/bookings', ['booking:self:read']],
   ['/check-in-scanner', ['attendance:manage']],
 ];
 
@@ -111,7 +111,10 @@ export function defaultSessionDestination(session: WebSession): string {
 export function forbiddenSessionDestination(session: WebSession, pathname: string): string {
   const customerOnly =
     session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
-  if (customerOnly && pathname.startsWith('/workspace/bookings')) return '/bookings';
+  if (customerOnly && pathname.startsWith('/workspace/bookings'))
+    return `/bookings${pathname.slice('/workspace/bookings'.length)}`;
+  if (!customerOnly && (pathname === '/bookings' || pathname.startsWith('/bookings/')))
+    return `/workspace/bookings${pathname.slice('/bookings'.length)}`;
   if (pathname === '/account/verification' && session.roles.some((role) => internalRoles.has(role)))
     return session.capabilities.includes('identity-verification:read')
       ? '/identity-verifications'
@@ -124,6 +127,9 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
   if (isPublicExperiencePath(path)) return true;
   const customerOnly =
     session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  if (!customerOnly && (path === '/bookings' || path.startsWith('/bookings/'))) return false;
+  if (customerOnly && (path === '/workspace/bookings' || path.startsWith('/workspace/bookings/')))
+    return false;
   if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
   if (

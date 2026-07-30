@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for AccessApi
 void main() {
-  final instance = Openapi().getAccessApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getAccessApi();
 
   group(AccessApi, () {
     //Future<AccessRoleDefinition> createAccessRole(String idempotencyKey, CreateAccessRoleCommand createAccessRoleCommand) async

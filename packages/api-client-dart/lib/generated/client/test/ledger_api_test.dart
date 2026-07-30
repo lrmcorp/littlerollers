@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for LedgerApi
 void main() {
-  final instance = Openapi().getLedgerApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getLedgerApi();
 
   group(LedgerApi, () {
     // Session-authenticated, capability and branch-scoped decision by a different Manager or Super Owner. No MFA is used. Approval atomically revalidates and posts one ADJUST_MANUAL entry.

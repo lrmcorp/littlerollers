@@ -22,5 +22,10 @@ void main() {
       // TODO
     });
 
+    // MobileFeatures mobileFeatures
+    test('to test the property `mobileFeatures`', () async {
+      // TODO
+    });
+
   });
 }

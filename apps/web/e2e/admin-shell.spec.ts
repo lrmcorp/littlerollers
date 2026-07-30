@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 const viewports = [
   { width: 360, height: 800 },
   { width: 390, height: 844 },
+  { width: 479, height: 844 },
   { width: 768, height: 900 },
   { width: 1024, height: 900 },
   { width: 1280, height: 900 },
@@ -78,9 +79,48 @@ for (const viewport of viewports) {
     if (viewport.width >= 1024) {
       await expect(page.getByLabel('Navigasi utama')).toBeVisible();
     } else {
-      const drawerBox = await page.getByLabel('Navigasi utama').boundingBox();
+      const navigation = page.getByLabel('Navigasi utama');
+      const drawerBox = await navigation.boundingBox();
       expect(drawerBox && drawerBox.x + drawerBox.width).toBeLessThanOrEqual(0);
+      await expect(navigation).toHaveAttribute('aria-hidden', 'true');
+      await expect(navigation).toHaveAttribute('inert', '');
+
+      for (const label of [
+        'Buka navigasi',
+        'Cari atau jalankan perintah',
+        'Notifikasi',
+      ]) {
+        const control = page.getByRole('button', { name: label });
+        const box = await control.boundingBox();
+        expect(box?.width).toBeGreaterThanOrEqual(44);
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+      }
+
       await expect(page.getByRole('button', { name: 'Buka navigasi' })).toBeVisible();
+      await page.getByRole('button', { name: 'Buka navigasi' }).click();
+      const drawer = page.getByRole('dialog', { name: 'Navigasi utama' });
+      await expect(drawer).toBeVisible();
+      const navMetrics = await drawer.locator('.workspace-navigation-scroll').evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        groupLefts: Array.from(element.children).map((child) =>
+          Math.round(child.getBoundingClientRect().left),
+        ),
+      }));
+      expect(navMetrics.scrollWidth).toBe(navMetrics.clientWidth);
+      expect(new Set(navMetrics.groupLefts).size).toBe(1);
+      expect(await page.locator('[aria-current="page"]').count()).toBe(1);
+      await drawer.getByRole('button', { name: 'Tutup navigasi' }).click();
+      await expect(navigation).toHaveAttribute('aria-hidden', 'true');
+
+      await expect(page.getByLabel('Cabang aktif mobile')).toHaveCount(1);
+      await page.getByRole('button', { name: 'Menu profil Daily Dose Owner' }).click();
+      const profileMenu = page.getByRole('region', { name: 'Menu akun internal' });
+      await expect(profileMenu.getByText('Akun internal')).toBeVisible();
+      const profileBox = await profileMenu.boundingBox();
+      expect(profileBox?.x).toBeGreaterThanOrEqual(8);
+      expect(profileBox && profileBox.x + profileBox.width).toBeLessThanOrEqual(viewport.width - 8);
+      await page.getByRole('button', { name: 'Menu profil Daily Dose Owner' }).click();
     }
   });
 }

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ChevronDown,
   ChevronRight,
   CircleHelp,
   House,
@@ -22,7 +21,8 @@ import { canReadPage, frontendPages } from './frontend-pages';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
 import { SearchSelect } from './components/forms';
-import { Modal } from './components/app-feedback';
+import { Modal, useOverlayPresence } from './components/app-feedback';
+import { IconButton } from './components/actions';
 import {
   CUSTOMER_ACCOUNT_NAVIGATION,
   CUSTOMER_PRIMARY_NAVIGATION,
@@ -86,6 +86,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const mobileOverlay = useOverlayPresence(mobileOpen, 'drawer');
   const profileRoot = useRef<HTMLDivElement>(null);
   const profileTrigger = useRef<HTMLButtonElement>(null);
   const currentPage = pageForPath(pathname);
@@ -116,11 +118,15 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        setMobileOpen(false);
+        setProfileOpen(false);
+        setNotificationOpen(false);
         setCommandOpen(true);
       }
       if (event.key === 'Escape') {
         setCommandOpen(false);
         setMobileOpen(false);
+        setNotificationOpen(false);
         if (profileOpen) profileTrigger.current?.focus();
         setProfileOpen(false);
       }
@@ -148,21 +154,32 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         </a>
         <CustomerNavigation
           open={mobileOpen}
+          rendered={mobileOverlay.rendered}
+          phase={mobileOverlay.phase}
           approved={approved}
           onClose={() => setMobileOpen(false)}
           onLogout={() => context?.logout()}
         />
-        <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 backdrop-blur-xl">
+        <header
+          className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
+          aria-hidden={mobileOverlay.rendered || undefined}
+          inert={mobileOverlay.rendered || undefined}
+        >
           <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
-            <button
-              type="button"
-              aria-label="Buka navigasi akun"
+            <IconButton
+              label="Buka navigasi akun"
+              variant="secondary"
               aria-controls="customer-navigation"
-              onClick={() => setMobileOpen(true)}
-              className="grid size-10 min-h-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-ink lg:hidden"
+              onClick={() => {
+                setProfileOpen(false);
+                setNotificationOpen(false);
+                setCommandOpen(false);
+                setMobileOpen(true);
+              }}
+              className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
             >
               <Menu className="size-5" />
-            </button>
+            </IconButton>
             <BrandMark
               href="/"
               priority
@@ -223,32 +240,53 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 <CircleHelp className="size-[18px]" />
               </Link>
-              <NotificationCenter compact />
+              <NotificationCenter
+                compact
+                open={notificationOpen}
+                onOpenChange={(open) => {
+                  setNotificationOpen(open);
+                  if (open) {
+                    setProfileOpen(false);
+                    setCommandOpen(false);
+                  }
+                }}
+              />
+              <span className="hidden max-w-40 truncate text-sm font-semibold text-dd-ink xl:block">
+                {session?.displayName}
+              </span>
               <div className="relative" ref={profileRoot}>
-                <button
+                <IconButton
                   ref={profileTrigger}
-                  type="button"
-                  aria-label={`Menu profil ${session?.displayName ?? 'customer'}`}
+                  label={`Menu profil ${session?.displayName ?? 'customer'}`}
+                  variant="secondary"
                   aria-expanded={profileOpen}
                   aria-controls="customer-profile-menu"
-                  onClick={() => setProfileOpen((open) => !open)}
-                  className="flex min-h-10 items-center gap-2 rounded-dd-md border border-dd-line bg-white p-1.5 sm:pr-3"
+                  onClick={() => {
+                    setNotificationOpen(false);
+                    setCommandOpen(false);
+                    setProfileOpen((open) => !open);
+                  }}
+                  className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
                 >
-                  <span className="grid size-7 place-items-center rounded-dd-md bg-dd-sidebar text-white">
+                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-sidebar text-white">
                     <UserRound className="size-4" />
                   </span>
-                  <span className="hidden max-w-32 truncate text-sm font-bold 2xl:block">
-                    {session?.displayName ?? 'Customer'}
-                  </span>
-                  <ChevronDown className="hidden size-3.5 text-dd-muted sm:block" />
-                </button>
+                </IconButton>
                 {profileOpen && (
                   <div
                     id="customer-profile-menu"
                     role="region"
                     aria-label="Menu akun customer"
-                    className="absolute right-0 mt-2 w-64 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
+                    className="absolute right-0 z-[90] mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
                   >
+                    <div className="mb-2 border-b border-dd-line px-3 py-3">
+                      <strong className="block truncate text-sm">
+                        {session?.displayName ?? 'Akun customer'}
+                      </strong>
+                      <span className="mt-1 block text-xs text-dd-muted">
+                        Customer · {session?.preferredBranch?.name ?? 'Studio belum dipilih'}
+                      </span>
+                    </div>
                     {CUSTOMER_ACCOUNT_NAVIGATION.map((item) => {
                       const Icon = item.icon;
                       const locked = Boolean(item.requiresApproval && !approved);
@@ -324,6 +362,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               : 'mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8'
           }
           id="main-content"
+          aria-hidden={mobileOverlay.rendered || undefined}
+          inert={mobileOverlay.rendered || undefined}
         >
           {children}
         </div>
@@ -338,21 +378,32 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       </a>
       <AppNavigation
         mobileOpen={mobileOpen}
+        mobileRendered={mobileOverlay.rendered}
+        mobilePhase={mobileOverlay.phase}
         collapsed={collapsed}
         onClose={() => setMobileOpen(false)}
         onCollapse={() => setCollapsed((value) => !value)}
       />
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 backdrop-blur-xl">
+      <div
+        className="min-w-0 flex-1"
+        aria-hidden={mobileOverlay.rendered || undefined}
+        inert={mobileOverlay.rendered || undefined}
+      >
+        <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 sm:px-6 xl:px-8">
-            <button
-              type="button"
-              aria-label="Buka navigasi"
-              onClick={() => setMobileOpen(true)}
-              className="grid size-10 min-h-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-ink lg:hidden"
+            <IconButton
+              label="Buka navigasi"
+              variant="secondary"
+              onClick={() => {
+                setProfileOpen(false);
+                setNotificationOpen(false);
+                setCommandOpen(false);
+                setMobileOpen(true);
+              }}
+              className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
             >
               <Menu className="size-5" />
-            </button>
+            </IconButton>
             <div className="min-w-0">
               <div
                 className="hidden min-w-0 items-center gap-2 text-xs text-dd-muted sm:flex"
@@ -375,7 +426,11 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             <div className="hidden min-w-0 justify-center xl:flex">
               <button
                 type="button"
-                onClick={() => setCommandOpen(true)}
+                onClick={() => {
+                  setProfileOpen(false);
+                  setNotificationOpen(false);
+                  setCommandOpen(true);
+                }}
                 className="flex min-h-10 w-full max-w-sm items-center justify-start gap-2 rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-sm font-medium text-dd-muted"
               >
                 <Search className="size-4 shrink-0" />
@@ -386,14 +441,18 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <div className="flex min-w-0 items-center justify-end gap-2">
-              <button
-                type="button"
-                aria-label="Cari atau jalankan perintah"
-                onClick={() => setCommandOpen(true)}
-                className="grid size-10 min-h-0 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white p-0 text-dd-muted xl:hidden"
+              <IconButton
+                label="Cari atau jalankan perintah"
+                variant="secondary"
+                onClick={() => {
+                  setProfileOpen(false);
+                  setNotificationOpen(false);
+                  setCommandOpen(true);
+                }}
+                className="rounded-dd-md border-dd-line bg-white text-dd-muted shadow-none xl:hidden"
               >
                 <Search className="size-[18px]" />
-              </button>
+              </IconButton>
               {session && (
                 <div className="!hidden max-w-[220px] md:!block">
                   <SearchSelect
@@ -419,36 +478,48 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 <CircleHelp className="size-[18px]" />
               </Link>
-              <NotificationCenter />
+              <NotificationCenter
+                open={notificationOpen}
+                onOpenChange={(open) => {
+                  setNotificationOpen(open);
+                  if (open) {
+                    setProfileOpen(false);
+                    setCommandOpen(false);
+                  }
+                }}
+              />
+              <span className="hidden max-w-40 truncate text-sm font-semibold text-dd-ink xl:block">
+                {session?.displayName}
+              </span>
               <div className="relative" ref={profileRoot}>
-                <button
+                <IconButton
                   ref={profileTrigger}
-                  type="button"
-                  aria-label={`Menu profil ${session?.displayName ?? 'internal'}`}
+                  label={`Menu profil ${session?.displayName ?? 'internal'}`}
+                  variant="secondary"
                   aria-expanded={profileOpen}
                   aria-controls="workspace-profile-menu"
                   onClick={() => {
+                    setNotificationOpen(false);
+                    setCommandOpen(false);
                     setProfileOpen((open) => !open);
                   }}
-                  className="flex min-h-0 items-center gap-2 rounded-dd-md border border-dd-line bg-white p-1.5 lg:pr-2 2xl:pr-3"
+                  className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
                 >
                   <span className="grid size-8 place-items-center rounded-dd-md bg-dd-sidebar text-white">
                     <UserRound className="size-4" />
                   </span>
-                  <span className="hidden max-w-28 truncate text-sm font-bold 2xl:block">
-                    {session?.displayName ?? 'Internal workspace'}
-                  </span>
-                  <ChevronDown className="hidden size-3.5 text-dd-muted 2xl:block" />
-                </button>
+                </IconButton>
                 {profileOpen && (
                   <div
                     id="workspace-profile-menu"
                     role="region"
                     aria-label="Menu akun internal"
-                    className="absolute right-0 mt-2 w-64 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
+                    className="absolute right-0 z-[90] mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
                   >
                     <div className="border-b border-dd-line px-3 py-3">
-                      <strong className="block text-sm">Akun internal</strong>
+                      <strong className="block truncate text-sm">
+                        {session?.displayName ?? 'Akun internal'}
+                      </strong>
                       <span className="mt-1 block text-xs text-dd-muted">
                         {session?.roles.map((role) => roleLabels[role] ?? role).join(' · ')}
                       </span>

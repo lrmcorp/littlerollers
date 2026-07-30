@@ -29,8 +29,42 @@ final BuiltSet<PackageStatusEnum> _$packageStatusEnumValues =
       _$packageStatusEnum_INACTIVE,
     ]);
 
+const PackageEffectiveStateEnum _$packageEffectiveStateEnum_ACTIVE =
+    const PackageEffectiveStateEnum._('ACTIVE');
+const PackageEffectiveStateEnum _$packageEffectiveStateEnum_SCHEDULED =
+    const PackageEffectiveStateEnum._('SCHEDULED');
+const PackageEffectiveStateEnum _$packageEffectiveStateEnum_EXPIRED =
+    const PackageEffectiveStateEnum._('EXPIRED');
+const PackageEffectiveStateEnum _$packageEffectiveStateEnum_INACTIVE =
+    const PackageEffectiveStateEnum._('INACTIVE');
+
+PackageEffectiveStateEnum _$packageEffectiveStateEnumValueOf(String name) {
+  switch (name) {
+    case 'ACTIVE':
+      return _$packageEffectiveStateEnum_ACTIVE;
+    case 'SCHEDULED':
+      return _$packageEffectiveStateEnum_SCHEDULED;
+    case 'EXPIRED':
+      return _$packageEffectiveStateEnum_EXPIRED;
+    case 'INACTIVE':
+      return _$packageEffectiveStateEnum_INACTIVE;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PackageEffectiveStateEnum> _$packageEffectiveStateEnumValues =
+    BuiltSet<PackageEffectiveStateEnum>(const <PackageEffectiveStateEnum>[
+      _$packageEffectiveStateEnum_ACTIVE,
+      _$packageEffectiveStateEnum_SCHEDULED,
+      _$packageEffectiveStateEnum_EXPIRED,
+      _$packageEffectiveStateEnum_INACTIVE,
+    ]);
+
 Serializer<PackageStatusEnum> _$packageStatusEnumSerializer =
     _$PackageStatusEnumSerializer();
+Serializer<PackageEffectiveStateEnum> _$packageEffectiveStateEnumSerializer =
+    _$PackageEffectiveStateEnumSerializer();
 
 class _$PackageStatusEnumSerializer
     implements PrimitiveSerializer<PackageStatusEnum> {
@@ -65,6 +99,43 @@ class _$PackageStatusEnumSerializer
   );
 }
 
+class _$PackageEffectiveStateEnumSerializer
+    implements PrimitiveSerializer<PackageEffectiveStateEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'ACTIVE': 'ACTIVE',
+    'SCHEDULED': 'SCHEDULED',
+    'EXPIRED': 'EXPIRED',
+    'INACTIVE': 'INACTIVE',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'ACTIVE': 'ACTIVE',
+    'SCHEDULED': 'SCHEDULED',
+    'EXPIRED': 'EXPIRED',
+    'INACTIVE': 'INACTIVE',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[PackageEffectiveStateEnum];
+  @override
+  final String wireName = 'PackageEffectiveStateEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PackageEffectiveStateEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PackageEffectiveStateEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PackageEffectiveStateEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
 abstract mixin class PackageBuilder {
   void replace(Package other);
   void update(void Function(PackageBuilder) updates);
@@ -94,6 +165,12 @@ abstract mixin class PackageBuilder {
 
   PackageStatusEnum? get status;
   set status(PackageStatusEnum? status);
+
+  PackageEffectiveStateEnum? get effectiveState;
+  set effectiveState(PackageEffectiveStateEnum? effectiveState);
+
+  bool? get livePromotion;
+  set livePromotion(bool? livePromotion);
 
   Date? get effectiveFrom;
   set effectiveFrom(Date? effectiveFrom);
@@ -125,6 +202,10 @@ class _$$Package extends $Package {
   @override
   final PackageStatusEnum status;
   @override
+  final PackageEffectiveStateEnum? effectiveState;
+  @override
+  final bool? livePromotion;
+  @override
   final Date effectiveFrom;
   @override
   final Date? effectiveUntil;
@@ -144,6 +225,8 @@ class _$$Package extends $Package {
     required this.durationDays,
     required this.priceRp,
     required this.status,
+    this.effectiveState,
+    this.livePromotion,
     required this.effectiveFrom,
     this.effectiveUntil,
     required this.version,
@@ -168,6 +251,8 @@ class _$$Package extends $Package {
         durationDays == other.durationDays &&
         priceRp == other.priceRp &&
         status == other.status &&
+        effectiveState == other.effectiveState &&
+        livePromotion == other.livePromotion &&
         effectiveFrom == other.effectiveFrom &&
         effectiveUntil == other.effectiveUntil &&
         version == other.version;
@@ -185,6 +270,8 @@ class _$$Package extends $Package {
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, effectiveState.hashCode);
+    _$hash = $jc(_$hash, livePromotion.hashCode);
     _$hash = $jc(_$hash, effectiveFrom.hashCode);
     _$hash = $jc(_$hash, effectiveUntil.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
@@ -204,6 +291,8 @@ class _$$Package extends $Package {
           ..add('durationDays', durationDays)
           ..add('priceRp', priceRp)
           ..add('status', status)
+          ..add('effectiveState', effectiveState)
+          ..add('livePromotion', livePromotion)
           ..add('effectiveFrom', effectiveFrom)
           ..add('effectiveUntil', effectiveUntil)
           ..add('version', version))
@@ -255,6 +344,16 @@ class $PackageBuilder
   PackageStatusEnum? get status => _$this._status;
   set status(covariant PackageStatusEnum? status) => _$this._status = status;
 
+  PackageEffectiveStateEnum? _effectiveState;
+  PackageEffectiveStateEnum? get effectiveState => _$this._effectiveState;
+  set effectiveState(covariant PackageEffectiveStateEnum? effectiveState) =>
+      _$this._effectiveState = effectiveState;
+
+  bool? _livePromotion;
+  bool? get livePromotion => _$this._livePromotion;
+  set livePromotion(covariant bool? livePromotion) =>
+      _$this._livePromotion = livePromotion;
+
   Date? _effectiveFrom;
   Date? get effectiveFrom => _$this._effectiveFrom;
   set effectiveFrom(covariant Date? effectiveFrom) =>
@@ -285,6 +384,8 @@ class $PackageBuilder
       _durationDays = $v.durationDays;
       _priceRp = $v.priceRp;
       _status = $v.status;
+      _effectiveState = $v.effectiveState;
+      _livePromotion = $v.livePromotion;
       _effectiveFrom = $v.effectiveFrom;
       _effectiveUntil = $v.effectiveUntil;
       _version = $v.version;
@@ -351,6 +452,8 @@ class $PackageBuilder
             r'$Package',
             'status',
           ),
+          effectiveState: effectiveState,
+          livePromotion: livePromotion,
           effectiveFrom: BuiltValueNullFieldError.checkNotNull(
             effectiveFrom,
             r'$Package',

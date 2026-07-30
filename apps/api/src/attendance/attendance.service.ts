@@ -18,6 +18,15 @@ export function checkInWindowState(startAt: Date, endAt: Date, now: Date): Check
   return now < endAt ? 'OPEN' : 'EXPIRED';
 }
 
+export function isOwningCustomer(
+  principal: Pick<SessionPrincipal, 'userId' | 'roles'>,
+  customerUserId: string,
+): boolean {
+  return (
+    principal.roles.some(({ role }) => role === 'CUSTOMER') && principal.userId === customerUserId
+  );
+}
+
 function rawTokenFrom(value: string): string {
   const trimmed = value.trim();
   if (RAW_TOKEN.test(trimmed)) return trimmed;
@@ -59,6 +68,21 @@ export class AttendanceService {
       !this.policy.hasCapability(principal, capability, branchId)
     )
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  private authorizeCustomerToken(
+    principal: SessionPrincipal,
+    booking: { branchId: string; customerUserId: string },
+    staffCapability: 'attendance:read' | 'attendance:manage',
+  ) {
+    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
+    if (isCustomer) {
+      if (!isOwningCustomer(principal, booking.customerUserId))
+        throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      return;
+    }
+    this.policy.requireCapability(principal.capabilities, staffCapability);
+    this.requireBranch(principal, booking.branchId, staffCapability);
   }
 
   private tokenStatus(token: {
@@ -280,7 +304,6 @@ export class AttendanceService {
   }
 
   async status(principal: SessionPrincipal, id: string) {
-    this.policy.requireCapability(principal.capabilities, 'attendance:read');
     if (!UUID.test(id)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const token = await this.db.checkInToken.findUnique({
       where: { id },
@@ -291,7 +314,7 @@ export class AttendanceService {
             classSlot: {
               include: {
                 classType: { select: { name: true } },
-                branch: { select: { code: true, name: true } },
+                branch: { select: { code: true, name: true, timezone: true } },
               },
             },
           },
@@ -299,7 +322,7 @@ export class AttendanceService {
       },
     });
     if (!token) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.requireBranch(principal, token.booking.branchId, 'attendance:read');
+    this.authorizeCustomerToken(principal, token.booking, 'attendance:read');
     return {
       id: token.id,
       purpose: token.purpose,
@@ -375,7 +398,6 @@ export class AttendanceService {
     correlationId: string,
     now = new Date(),
   ) {
-    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
     if (!idempotencyKey?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const rawToken = rawTokenFrom(input.token);
@@ -397,7 +419,7 @@ export class AttendanceService {
                 classSlot: {
                   include: {
                     classType: { select: { name: true } },
-                    branch: { select: { code: true, name: true } },
+                    branch: { select: { code: true, name: true, timezone: true } },
                   },
                 },
               },
@@ -405,7 +427,7 @@ export class AttendanceService {
           },
         });
         if (!token) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, token.booking.branchId, 'attendance:manage');
+        this.authorizeCustomerToken(principal, token.booking, 'attendance:manage');
         if (token.status === 'USED' && token.attendance)
           return this.attendanceView(token, token.attendance, true);
         if (token.status === 'REVOKED')
@@ -501,7 +523,7 @@ export class AttendanceService {
           startAt: Date;
           endAt: Date;
           classType: { name: string };
-          branch: { code: string; name: string };
+          branch: { code: string; name: string; timezone: string };
         };
       };
     },

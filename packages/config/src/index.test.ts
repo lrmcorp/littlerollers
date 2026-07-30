@@ -30,6 +30,12 @@ test('loads a complete synthetic local configuration', () => {
   assert.deepEqual(config.booking, { enabled: true, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { enabled: true, cutoffHours: 24 });
   assert.deepEqual(config.bookingCancellation, { enabled: true, cutoffHours: 24 });
+  assert.deepEqual(config.mobileFeatures, {
+    accountRecovery: false,
+    revokeAllSessions: false,
+    customerCheckIn: false,
+    instructorCheckIn: false,
+  });
   assert.deepEqual(config.sessionAdjustment, { enabled: true });
   assert.deepEqual(config.rbac, { policySource: 'static', managementEnabled: false });
   assert.deepEqual(config.privateUploads, {
@@ -111,6 +117,12 @@ test('uses only production policy variables in production', () => {
   assert.deepEqual(config.booking, { enabled: false, cutoffHours: null });
   assert.deepEqual(config.reschedule, { enabled: false, cutoffHours: null });
   assert.deepEqual(config.bookingCancellation, { enabled: false, cutoffHours: null });
+  assert.deepEqual(config.mobileFeatures, {
+    accountRecovery: false,
+    revokeAllSessions: false,
+    customerCheckIn: false,
+    instructorCheckIn: false,
+  });
   assert.deepEqual(config.sessionAdjustment, { enabled: false });
   assert.deepEqual(config.identityReview, { enabled: false });
   const enabled = loadRuntimeConfig({
@@ -127,12 +139,22 @@ test('uses only production policy variables in production', () => {
     BOOKING_CANCELLATION_CUTOFF_HOURS: '24',
     SESSION_ADJUSTMENT_ENABLED: 'true',
     IDENTITY_REVIEW_ENABLED: 'true',
+    MOBILE_ACCOUNT_RECOVERY_ENABLED: 'true',
+    MOBILE_REVOKE_ALL_SESSIONS_ENABLED: 'true',
+    MOBILE_CUSTOMER_CHECK_IN_ENABLED: 'true',
+    MOBILE_INSTRUCTOR_CHECK_IN_ENABLED: 'true',
   });
   assert.deepEqual(enabled.booking, { enabled: true, cutoffHours: 2 });
   assert.deepEqual(enabled.reschedule, { enabled: true, cutoffHours: 24 });
   assert.deepEqual(enabled.bookingCancellation, { enabled: true, cutoffHours: 24 });
   assert.deepEqual(enabled.sessionAdjustment, { enabled: true });
   assert.deepEqual(enabled.identityReview, { enabled: true });
+  assert.deepEqual(enabled.mobileFeatures, {
+    accountRecovery: true,
+    revokeAllSessions: true,
+    customerCheckIn: true,
+    instructorCheckIn: true,
+  });
   assert.throws(() =>
     loadRuntimeConfig({
       ...validEnvironment,

@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for PackagesApi
 void main() {
-  final instance = Openapi().getPackagesApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getPackagesApi();
 
   group(PackagesApi, () {
     // Permission-gated atomic decision. Activation is the approval date in branch timezone; expiry is exclusive at the start of activationDate + durationDays.

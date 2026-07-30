@@ -6,7 +6,38 @@ part of 'payment_account.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-class _$PaymentAccount extends PaymentAccount {
+abstract mixin class PaymentAccountBuilder {
+  void replace(PaymentAccount other);
+  void update(void Function(PaymentAccountBuilder) updates);
+  String? get id;
+  set id(String? id);
+
+  String? get branchId;
+  set branchId(String? branchId);
+
+  String? get bankCode;
+  set bankCode(String? bankCode);
+
+  String? get bankName;
+  set bankName(String? bankName);
+
+  String? get maskedAccountNumber;
+  set maskedAccountNumber(String? maskedAccountNumber);
+
+  String? get accountHolderName;
+  set accountHolderName(String? accountHolderName);
+
+  int? get paymentWindowHours;
+  set paymentWindowHours(int? paymentWindowHours);
+
+  bool? get active;
+  set active(bool? active);
+
+  int? get version;
+  set version(int? version);
+}
+
+class _$$PaymentAccount extends $PaymentAccount {
   @override
   final String id;
   @override
@@ -26,10 +57,10 @@ class _$PaymentAccount extends PaymentAccount {
   @override
   final int version;
 
-  factory _$PaymentAccount([void Function(PaymentAccountBuilder)? updates]) =>
-      (PaymentAccountBuilder()..update(updates))._build();
+  factory _$$PaymentAccount([void Function($PaymentAccountBuilder)? updates]) =>
+      ($PaymentAccountBuilder()..update(updates))._build();
 
-  _$PaymentAccount._({
+  _$$PaymentAccount._({
     required this.id,
     required this.branchId,
     required this.bankCode,
@@ -41,16 +72,16 @@ class _$PaymentAccount extends PaymentAccount {
     required this.version,
   }) : super._();
   @override
-  PaymentAccount rebuild(void Function(PaymentAccountBuilder) updates) =>
+  $PaymentAccount rebuild(void Function($PaymentAccountBuilder) updates) =>
       (toBuilder()..update(updates)).build();
 
   @override
-  PaymentAccountBuilder toBuilder() => PaymentAccountBuilder()..replace(this);
+  $PaymentAccountBuilder toBuilder() => $PaymentAccountBuilder()..replace(this);
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is PaymentAccount &&
+    return other is $PaymentAccount &&
         id == other.id &&
         branchId == other.branchId &&
         bankCode == other.bankCode &&
@@ -80,7 +111,7 @@ class _$PaymentAccount extends PaymentAccount {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'PaymentAccount')
+    return (newBuiltValueToStringHelper(r'$PaymentAccount')
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('bankCode', bankCode)
@@ -94,54 +125,56 @@ class _$PaymentAccount extends PaymentAccount {
   }
 }
 
-class PaymentAccountBuilder
-    implements Builder<PaymentAccount, PaymentAccountBuilder> {
-  _$PaymentAccount? _$v;
+class $PaymentAccountBuilder
+    implements
+        Builder<$PaymentAccount, $PaymentAccountBuilder>,
+        PaymentAccountBuilder {
+  _$$PaymentAccount? _$v;
 
   String? _id;
   String? get id => _$this._id;
-  set id(String? id) => _$this._id = id;
+  set id(covariant String? id) => _$this._id = id;
 
   String? _branchId;
   String? get branchId => _$this._branchId;
-  set branchId(String? branchId) => _$this._branchId = branchId;
+  set branchId(covariant String? branchId) => _$this._branchId = branchId;
 
   String? _bankCode;
   String? get bankCode => _$this._bankCode;
-  set bankCode(String? bankCode) => _$this._bankCode = bankCode;
+  set bankCode(covariant String? bankCode) => _$this._bankCode = bankCode;
 
   String? _bankName;
   String? get bankName => _$this._bankName;
-  set bankName(String? bankName) => _$this._bankName = bankName;
+  set bankName(covariant String? bankName) => _$this._bankName = bankName;
 
   String? _maskedAccountNumber;
   String? get maskedAccountNumber => _$this._maskedAccountNumber;
-  set maskedAccountNumber(String? maskedAccountNumber) =>
+  set maskedAccountNumber(covariant String? maskedAccountNumber) =>
       _$this._maskedAccountNumber = maskedAccountNumber;
 
   String? _accountHolderName;
   String? get accountHolderName => _$this._accountHolderName;
-  set accountHolderName(String? accountHolderName) =>
+  set accountHolderName(covariant String? accountHolderName) =>
       _$this._accountHolderName = accountHolderName;
 
   int? _paymentWindowHours;
   int? get paymentWindowHours => _$this._paymentWindowHours;
-  set paymentWindowHours(int? paymentWindowHours) =>
+  set paymentWindowHours(covariant int? paymentWindowHours) =>
       _$this._paymentWindowHours = paymentWindowHours;
 
   bool? _active;
   bool? get active => _$this._active;
-  set active(bool? active) => _$this._active = active;
+  set active(covariant bool? active) => _$this._active = active;
 
   int? _version;
   int? get version => _$this._version;
-  set version(int? version) => _$this._version = version;
+  set version(covariant int? version) => _$this._version = version;
 
-  PaymentAccountBuilder() {
-    PaymentAccount._defaults(this);
+  $PaymentAccountBuilder() {
+    $PaymentAccount._defaults(this);
   }
 
-  PaymentAccountBuilder get _$this {
+  $PaymentAccountBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
       _id = $v.id;
@@ -159,65 +192,65 @@ class PaymentAccountBuilder
   }
 
   @override
-  void replace(PaymentAccount other) {
-    _$v = other as _$PaymentAccount;
+  void replace(covariant $PaymentAccount other) {
+    _$v = other as _$$PaymentAccount;
   }
 
   @override
-  void update(void Function(PaymentAccountBuilder)? updates) {
+  void update(void Function($PaymentAccountBuilder)? updates) {
     if (updates != null) updates(this);
   }
 
   @override
-  PaymentAccount build() => _build();
+  $PaymentAccount build() => _build();
 
-  _$PaymentAccount _build() {
+  _$$PaymentAccount _build() {
     final _$result =
         _$v ??
-        _$PaymentAccount._(
+        _$$PaymentAccount._(
           id: BuiltValueNullFieldError.checkNotNull(
             id,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'id',
           ),
           branchId: BuiltValueNullFieldError.checkNotNull(
             branchId,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'branchId',
           ),
           bankCode: BuiltValueNullFieldError.checkNotNull(
             bankCode,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'bankCode',
           ),
           bankName: BuiltValueNullFieldError.checkNotNull(
             bankName,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'bankName',
           ),
           maskedAccountNumber: BuiltValueNullFieldError.checkNotNull(
             maskedAccountNumber,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'maskedAccountNumber',
           ),
           accountHolderName: BuiltValueNullFieldError.checkNotNull(
             accountHolderName,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'accountHolderName',
           ),
           paymentWindowHours: BuiltValueNullFieldError.checkNotNull(
             paymentWindowHours,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'paymentWindowHours',
           ),
           active: BuiltValueNullFieldError.checkNotNull(
             active,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'active',
           ),
           version: BuiltValueNullFieldError.checkNotNull(
             version,
-            r'PaymentAccount',
+            r'$PaymentAccount',
             'version',
           ),
         );

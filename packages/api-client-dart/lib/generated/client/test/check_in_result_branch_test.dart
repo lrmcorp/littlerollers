@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // String timezone
+    test('to test the property `timezone`', () async {
+      // TODO
+    });
+
   });
 }

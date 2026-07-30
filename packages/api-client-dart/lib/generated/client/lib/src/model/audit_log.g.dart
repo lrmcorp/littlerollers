@@ -85,6 +85,12 @@ class _$AuditLog extends AuditLog {
   @override
   final String? targetUserId;
   @override
+  final AuditActorProjection? actor;
+  @override
+  final AuditTargetProjection? target;
+  @override
+  final AuditBranchProjection? branch;
+  @override
   final String action;
   @override
   final String objectType;
@@ -107,6 +113,9 @@ class _$AuditLog extends AuditLog {
     this.actorId,
     this.branchId,
     this.targetUserId,
+    this.actor,
+    this.target,
+    this.branch,
     required this.action,
     required this.objectType,
     required this.objectId,
@@ -131,6 +140,9 @@ class _$AuditLog extends AuditLog {
         actorId == other.actorId &&
         branchId == other.branchId &&
         targetUserId == other.targetUserId &&
+        actor == other.actor &&
+        target == other.target &&
+        branch == other.branch &&
         action == other.action &&
         objectType == other.objectType &&
         objectId == other.objectId &&
@@ -148,6 +160,9 @@ class _$AuditLog extends AuditLog {
     _$hash = $jc(_$hash, actorId.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, targetUserId.hashCode);
+    _$hash = $jc(_$hash, actor.hashCode);
+    _$hash = $jc(_$hash, target.hashCode);
+    _$hash = $jc(_$hash, branch.hashCode);
     _$hash = $jc(_$hash, action.hashCode);
     _$hash = $jc(_$hash, objectType.hashCode);
     _$hash = $jc(_$hash, objectId.hashCode);
@@ -167,6 +182,9 @@ class _$AuditLog extends AuditLog {
           ..add('actorId', actorId)
           ..add('branchId', branchId)
           ..add('targetUserId', targetUserId)
+          ..add('actor', actor)
+          ..add('target', target)
+          ..add('branch', branch)
           ..add('action', action)
           ..add('objectType', objectType)
           ..add('objectId', objectId)
@@ -204,6 +222,21 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
   String? _targetUserId;
   String? get targetUserId => _$this._targetUserId;
   set targetUserId(String? targetUserId) => _$this._targetUserId = targetUserId;
+
+  AuditActorProjectionBuilder? _actor;
+  AuditActorProjectionBuilder get actor =>
+      _$this._actor ??= AuditActorProjectionBuilder();
+  set actor(AuditActorProjectionBuilder? actor) => _$this._actor = actor;
+
+  AuditTargetProjectionBuilder? _target;
+  AuditTargetProjectionBuilder get target =>
+      _$this._target ??= AuditTargetProjectionBuilder();
+  set target(AuditTargetProjectionBuilder? target) => _$this._target = target;
+
+  AuditBranchProjectionBuilder? _branch;
+  AuditBranchProjectionBuilder get branch =>
+      _$this._branch ??= AuditBranchProjectionBuilder();
+  set branch(AuditBranchProjectionBuilder? branch) => _$this._branch = branch;
 
   String? _action;
   String? get action => _$this._action;
@@ -244,6 +277,9 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
       _actorId = $v.actorId;
       _branchId = $v.branchId;
       _targetUserId = $v.targetUserId;
+      _actor = $v.actor?.toBuilder();
+      _target = $v.target?.toBuilder();
+      _branch = $v.branch?.toBuilder();
       _action = $v.action;
       _objectType = $v.objectType;
       _objectId = $v.objectId;
@@ -269,46 +305,69 @@ class AuditLogBuilder implements Builder<AuditLog, AuditLogBuilder> {
   AuditLog build() => _build();
 
   _$AuditLog _build() {
-    final _$result =
-        _$v ??
-        _$AuditLog._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'AuditLog', 'id'),
-          occurredAt: BuiltValueNullFieldError.checkNotNull(
-            occurredAt,
-            r'AuditLog',
-            'occurredAt',
-          ),
-          actorType: BuiltValueNullFieldError.checkNotNull(
-            actorType,
-            r'AuditLog',
-            'actorType',
-          ),
-          actorId: actorId,
-          branchId: branchId,
-          targetUserId: targetUserId,
-          action: BuiltValueNullFieldError.checkNotNull(
-            action,
-            r'AuditLog',
-            'action',
-          ),
-          objectType: BuiltValueNullFieldError.checkNotNull(
-            objectType,
-            r'AuditLog',
-            'objectType',
-          ),
-          objectId: BuiltValueNullFieldError.checkNotNull(
-            objectId,
-            r'AuditLog',
-            'objectId',
-          ),
-          beforeMasked: beforeMasked,
-          afterMasked: afterMasked,
-          correlationId: BuiltValueNullFieldError.checkNotNull(
-            correlationId,
-            r'AuditLog',
-            'correlationId',
-          ),
+    _$AuditLog _$result;
+    try {
+      _$result =
+          _$v ??
+          _$AuditLog._(
+            id: BuiltValueNullFieldError.checkNotNull(id, r'AuditLog', 'id'),
+            occurredAt: BuiltValueNullFieldError.checkNotNull(
+              occurredAt,
+              r'AuditLog',
+              'occurredAt',
+            ),
+            actorType: BuiltValueNullFieldError.checkNotNull(
+              actorType,
+              r'AuditLog',
+              'actorType',
+            ),
+            actorId: actorId,
+            branchId: branchId,
+            targetUserId: targetUserId,
+            actor: _actor?.build(),
+            target: _target?.build(),
+            branch: _branch?.build(),
+            action: BuiltValueNullFieldError.checkNotNull(
+              action,
+              r'AuditLog',
+              'action',
+            ),
+            objectType: BuiltValueNullFieldError.checkNotNull(
+              objectType,
+              r'AuditLog',
+              'objectType',
+            ),
+            objectId: BuiltValueNullFieldError.checkNotNull(
+              objectId,
+              r'AuditLog',
+              'objectId',
+            ),
+            beforeMasked: beforeMasked,
+            afterMasked: afterMasked,
+            correlationId: BuiltValueNullFieldError.checkNotNull(
+              correlationId,
+              r'AuditLog',
+              'correlationId',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'actor';
+        _actor?.build();
+        _$failedField = 'target';
+        _target?.build();
+        _$failedField = 'branch';
+        _branch?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'AuditLog',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

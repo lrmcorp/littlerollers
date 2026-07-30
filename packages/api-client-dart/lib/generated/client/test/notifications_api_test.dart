@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for NotificationsApi
 void main() {
-  final instance = Openapi().getNotificationsApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getNotificationsApi();
 
   group(NotificationsApi, () {
     //Future<GetMyNotificationUnreadCount200Response> getMyNotificationUnreadCount() async

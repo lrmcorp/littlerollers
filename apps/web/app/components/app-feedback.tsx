@@ -28,6 +28,27 @@ const overlayMotion: Record<'modal' | 'drawer', OverlayMotionConfig> = {
   drawer: { enterMs: 220, exitMs: 180 },
 };
 
+export function useOverlayPresence(open: boolean, placement: 'modal' | 'drawer' = 'drawer') {
+  const [rendered, setRendered] = useState(open);
+  const [phase, setPhase] = useState<OverlayPhase>(open ? 'entering' : 'exiting');
+
+  useEffect(() => {
+    const motion = overlayMotion[placement];
+    if (open) {
+      setRendered(true);
+      setPhase('entering');
+      const frame = window.requestAnimationFrame(() => setPhase('open'));
+      return () => window.cancelAnimationFrame(frame);
+    }
+    if (!rendered) return;
+    setPhase('exiting');
+    const timer = window.setTimeout(() => setRendered(false), motion.exitMs);
+    return () => window.clearTimeout(timer);
+  }, [open, placement, rendered]);
+
+  return { rendered, phase, visible: phase === 'open' } as const;
+}
+
 export type FeedbackTone = 'success' | 'info' | 'warning' | 'danger';
 
 export type FeedbackAction = {
@@ -283,8 +304,10 @@ export function Modal({
   const dialogId = useId();
   const panelRef = useRef<HTMLElement>(null);
   const openRef = useRef(open);
-  const [rendered, setRendered] = useState(open);
-  const [phase, setPhase] = useState<OverlayPhase>(open ? 'entering' : 'exiting');
+  const { rendered, phase, visible } = useOverlayPresence(
+    open,
+    placement === 'right' ? 'drawer' : 'modal',
+  );
   const closingRef = useRef(false);
   const busyRef = useRef(busy);
   const dirtyRef = useRef(dirty);
@@ -297,19 +320,6 @@ export function Modal({
     onCloseRef.current = onClose;
     onDirtyCloseRef.current = onDirtyClose;
   }, [busy, dirty, onClose, onDirtyClose, open]);
-  useEffect(() => {
-    const motion = placement === 'right' ? overlayMotion.drawer : overlayMotion.modal;
-    if (open) {
-      setRendered(true);
-      setPhase('entering');
-      const frame = window.requestAnimationFrame(() => setPhase('open'));
-      return () => window.cancelAnimationFrame(frame);
-    }
-    if (!rendered) return;
-    setPhase('exiting');
-    const timer = window.setTimeout(() => setRendered(false), motion.exitMs);
-    return () => window.clearTimeout(timer);
-  }, [open, placement, rendered]);
   const requestClose = useCallback(async () => {
     if (busyRef.current || closingRef.current) return;
     if (dirtyRef.current) {
@@ -363,7 +373,6 @@ export function Modal({
   }, [closeOnEscape, dialogId, rendered, requestClose]);
   if (!rendered || typeof document === 'undefined') return null;
   const drawer = placement === 'right';
-  const visible = phase === 'open';
   return createPortal(
     <div
       data-overlay-phase={phase}

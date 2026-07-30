@@ -114,8 +114,11 @@ abstract mixin class VoucherCommandBuilder {
   String? get classTypeId;
   set classTypeId(String? classTypeId);
 
-  ListBuilder<String> get packageIds;
-  set packageIds(ListBuilder<String>? packageIds);
+  SetBuilder<String> get packageIds;
+  set packageIds(SetBuilder<String>? packageIds);
+
+  String? get reason;
+  set reason(String? reason);
 }
 
 class _$$VoucherCommand extends $VoucherCommand {
@@ -146,7 +149,9 @@ class _$$VoucherCommand extends $VoucherCommand {
   @override
   final String? classTypeId;
   @override
-  final BuiltList<String>? packageIds;
+  final BuiltSet<String>? packageIds;
+  @override
+  final String reason;
 
   factory _$$VoucherCommand([void Function($VoucherCommandBuilder)? updates]) =>
       ($VoucherCommandBuilder()..update(updates))._build();
@@ -166,6 +171,7 @@ class _$$VoucherCommand extends $VoucherCommand {
     this.branchId,
     this.classTypeId,
     this.packageIds,
+    required this.reason,
   }) : super._();
   @override
   $VoucherCommand rebuild(void Function($VoucherCommandBuilder) updates) =>
@@ -191,7 +197,8 @@ class _$$VoucherCommand extends $VoucherCommand {
         perCustomerUsageLimit == other.perCustomerUsageLimit &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
-        packageIds == other.packageIds;
+        packageIds == other.packageIds &&
+        reason == other.reason;
   }
 
   @override
@@ -211,6 +218,7 @@ class _$$VoucherCommand extends $VoucherCommand {
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
     _$hash = $jc(_$hash, packageIds.hashCode);
+    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -231,7 +239,8 @@ class _$$VoucherCommand extends $VoucherCommand {
           ..add('perCustomerUsageLimit', perCustomerUsageLimit)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
-          ..add('packageIds', packageIds))
+          ..add('packageIds', packageIds)
+          ..add('reason', reason))
         .toString();
   }
 }
@@ -304,11 +313,15 @@ class $VoucherCommandBuilder
   set classTypeId(covariant String? classTypeId) =>
       _$this._classTypeId = classTypeId;
 
-  ListBuilder<String>? _packageIds;
-  ListBuilder<String> get packageIds =>
-      _$this._packageIds ??= ListBuilder<String>();
-  set packageIds(covariant ListBuilder<String>? packageIds) =>
+  SetBuilder<String>? _packageIds;
+  SetBuilder<String> get packageIds =>
+      _$this._packageIds ??= SetBuilder<String>();
+  set packageIds(covariant SetBuilder<String>? packageIds) =>
       _$this._packageIds = packageIds;
+
+  String? _reason;
+  String? get reason => _$this._reason;
+  set reason(covariant String? reason) => _$this._reason = reason;
 
   $VoucherCommandBuilder() {
     $VoucherCommand._defaults(this);
@@ -331,6 +344,7 @@ class $VoucherCommandBuilder
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
       _packageIds = $v.packageIds?.toBuilder();
+      _reason = $v.reason;
       _$v = null;
     }
     return this;
@@ -389,6 +403,11 @@ class $VoucherCommandBuilder
             branchId: branchId,
             classTypeId: classTypeId,
             packageIds: _packageIds?.build(),
+            reason: BuiltValueNullFieldError.checkNotNull(
+              reason,
+              r'$VoucherCommand',
+              'reason',
+            ),
           );
     } catch (_) {
       late String _$failedField;

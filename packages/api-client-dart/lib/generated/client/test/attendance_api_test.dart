@@ -4,7 +4,7 @@ import 'package:openapi/openapi.dart';
 
 /// tests for AttendanceApi
 void main() {
-  final instance = Openapi().getAttendanceApi();
+  final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getAttendanceApi();
 
   group(AttendanceApi, () {
     //Future<CheckInResult> backfillCustomerCheckIn(String idempotencyKey, BackfillCustomerCheckInRequest backfillCustomerCheckInRequest) async
@@ -17,7 +17,7 @@ void main() {
       // TODO
     });
 
-    // Admin or Manager consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
+    // The owning Customer or authorized branch staff consumes a booking-bound QR token atomically. The valid interval is inclusive at H-30 and exclusive at class end.
     //
     //Future<CheckInResult> customerCheckIn(String idempotencyKey, TokenCheckInCommand tokenCheckInCommand) async
     test('test customerCheckIn', () async {

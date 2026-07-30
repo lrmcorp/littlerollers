@@ -13,6 +13,10 @@ class _$BranchCommand extends BranchCommand {
   final String name;
   @override
   final String timezone;
+  @override
+  final String? supportWhatsappE164;
+  @override
+  final String reason;
 
   factory _$BranchCommand([void Function(BranchCommandBuilder)? updates]) =>
       (BranchCommandBuilder()..update(updates))._build();
@@ -21,6 +25,8 @@ class _$BranchCommand extends BranchCommand {
     required this.code,
     required this.name,
     required this.timezone,
+    this.supportWhatsappE164,
+    required this.reason,
   }) : super._();
   @override
   BranchCommand rebuild(void Function(BranchCommandBuilder) updates) =>
@@ -35,7 +41,9 @@ class _$BranchCommand extends BranchCommand {
     return other is BranchCommand &&
         code == other.code &&
         name == other.name &&
-        timezone == other.timezone;
+        timezone == other.timezone &&
+        supportWhatsappE164 == other.supportWhatsappE164 &&
+        reason == other.reason;
   }
 
   @override
@@ -44,6 +52,8 @@ class _$BranchCommand extends BranchCommand {
     _$hash = $jc(_$hash, code.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, timezone.hashCode);
+    _$hash = $jc(_$hash, supportWhatsappE164.hashCode);
+    _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -53,7 +63,9 @@ class _$BranchCommand extends BranchCommand {
     return (newBuiltValueToStringHelper(r'BranchCommand')
           ..add('code', code)
           ..add('name', name)
-          ..add('timezone', timezone))
+          ..add('timezone', timezone)
+          ..add('supportWhatsappE164', supportWhatsappE164)
+          ..add('reason', reason))
         .toString();
   }
 }
@@ -74,6 +86,15 @@ class BranchCommandBuilder
   String? get timezone => _$this._timezone;
   set timezone(String? timezone) => _$this._timezone = timezone;
 
+  String? _supportWhatsappE164;
+  String? get supportWhatsappE164 => _$this._supportWhatsappE164;
+  set supportWhatsappE164(String? supportWhatsappE164) =>
+      _$this._supportWhatsappE164 = supportWhatsappE164;
+
+  String? _reason;
+  String? get reason => _$this._reason;
+  set reason(String? reason) => _$this._reason = reason;
+
   BranchCommandBuilder() {
     BranchCommand._defaults(this);
   }
@@ -84,6 +105,8 @@ class BranchCommandBuilder
       _code = $v.code;
       _name = $v.name;
       _timezone = $v.timezone;
+      _supportWhatsappE164 = $v.supportWhatsappE164;
+      _reason = $v.reason;
       _$v = null;
     }
     return this;
@@ -120,6 +143,12 @@ class BranchCommandBuilder
             timezone,
             r'BranchCommand',
             'timezone',
+          ),
+          supportWhatsappE164: supportWhatsappE164,
+          reason: BuiltValueNullFieldError.checkNotNull(
+            reason,
+            r'BranchCommand',
+            'reason',
           ),
         );
     replace(_$result);
