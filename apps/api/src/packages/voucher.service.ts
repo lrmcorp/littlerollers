@@ -40,6 +40,7 @@ type VoucherInput = {
   branchId?: string | null;
   classTypeId?: string | null;
   packageIds?: string[];
+  reason?: string;
 };
 
 @Injectable()
@@ -117,7 +118,7 @@ export class VoucherService {
     packageIds: string[] = [],
     classTypeId?: string | null,
   ) {
-    if (branchId) this.access.scope(principal, branchId, ['voucher:read']);
+    if (branchId) this.access.scope(principal, branchId, ['voucher:manage']);
     if (packageIds.length) {
       const packages = await this.db.package.findMany({
         where: { id: { in: packageIds } },
@@ -128,7 +129,7 @@ export class VoucherService {
         (branchId && packages.some((p) => p.branchId !== branchId))
       )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      for (const item of packages) this.access.scope(principal, item.branchId, ['voucher:read']);
+      for (const item of packages) this.access.scope(principal, item.branchId, ['voucher:manage']);
     }
     if (classTypeId) {
       const classType = await this.db.classType.findUnique({
@@ -137,7 +138,7 @@ export class VoucherService {
       });
       if (!classType || (branchId && classType.branchId !== branchId))
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      this.access.scope(principal, classType.branchId, ['voucher:read']);
+      this.access.scope(principal, classType.branchId, ['voucher:manage']);
     }
   }
 
@@ -266,18 +267,26 @@ export class VoucherService {
 
   async detail(principal: SessionPrincipal, id: string) {
     this.requireRead(principal);
-    const voucher = await this.db.voucher.findUnique({
-      where: { id },
-      include: {
-        branch: { select: { id: true, name: true } },
-        classType: { select: { id: true, name: true } },
-        packages: { select: { packageId: true, package: { select: { name: true } } } },
-        _count: { select: { redemptions: true } },
-      },
-    });
+    const [voucher, auditActivity] = await Promise.all([
+      this.db.voucher.findUnique({
+        where: { id },
+        include: {
+          branch: { select: { id: true, name: true } },
+          classType: { select: { id: true, name: true } },
+          packages: { select: { packageId: true, package: { select: { name: true } } } },
+          _count: { select: { redemptions: true } },
+        },
+      }),
+      this.db.auditLog.findMany({
+        where: { objectType: 'Voucher', objectId: id },
+        orderBy: { occurredAt: 'desc' },
+        take: 20,
+        select: { id: true, action: true, occurredAt: true },
+      }),
+    ]);
     if (!voucher) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (voucher.branchId) this.access.scope(principal, voucher.branchId, ['voucher:read']);
-    return this.view(voucher);
+    return { ...this.view(voucher), auditActivity };
   }
 
   async create(
@@ -287,7 +296,8 @@ export class VoucherService {
     correlationId: string,
   ) {
     this.requireManage(principal, input.branchId);
-    if (!key) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (!key || (input.reason?.trim().length ?? 0) < 3)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const parsed = this.validateInput(input);
     await this.ensureScope(principal, input.branchId, input.packageIds, input.classTypeId);
     const result = await this.idempotency.execute(
@@ -332,7 +342,7 @@ export class VoucherService {
             objectType: 'Voucher',
             objectId: created.id,
             correlationId,
-            afterMasked: { code: created.code, status: created.status },
+            afterMasked: { code: created.code, status: created.status, reasonPresent: true },
           },
         });
         return { status: 201, body: this.view(created) as Prisma.InputJsonValue };

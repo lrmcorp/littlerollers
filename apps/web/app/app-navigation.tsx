@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Activity,
   BookOpenCheck,
+  Building2,
   CalendarDays,
   ChevronLeft,
   CircleDollarSign,
@@ -16,8 +17,10 @@ import {
   LayoutDashboard,
   Landmark,
   ListChecks,
+  PackageIcon,
   ScrollText,
   ShieldCheck,
+  TicketPercent,
   Users,
   X,
   type LucideIcon,
@@ -26,6 +29,7 @@ import { frontendPageGroups, frontendPages } from './frontend-pages';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { browserDashboardClient } from './dashboard-client';
+import { useOverlayInteraction } from './components/app-feedback';
 
 const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
@@ -41,6 +45,9 @@ const pageIcons: Record<string, LucideIcon> = {
   '/audit': ScrollText,
   '/assignments': ClipboardCheck,
   '/master': Database,
+  '/workspace/branches': Building2,
+  '/workspace/packages': PackageIcon,
+  '/workspace/vouchers': TicketPercent,
   '/operations': Activity,
   '/health': HeartPulse,
 };
@@ -86,39 +93,13 @@ export function AppNavigation({
     { href: '/account', label: 'Akun Saya', icon: Users },
   ];
   const navigationRef = useRef<HTMLElement>(null);
-  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
 
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const navigation = navigationRef.current;
-    const focusable = navigation?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    focusable?.[0]?.focus();
-    const trap = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose?.();
-        return;
-      }
-      if (event.key !== 'Tab' || !focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    window.addEventListener('keydown', trap);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', trap);
-    };
-  }, [mobileOpen, onClose]);
+  useOverlayInteraction({
+    open: mobileOpen,
+    onClose: () => onClose?.(),
+    panelRef: navigationRef,
+  });
 
   useEffect(() => {
     if (!session || customerOnly) return;

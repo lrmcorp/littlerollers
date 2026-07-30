@@ -40,13 +40,18 @@ void main() {
       // TODO
     });
 
-    //Future<Resource> createPackage(PackageCommand packageCommand) async
+    //Future<Package> createPackage(String idempotencyKey, PackageCommand packageCommand) async
     test('test createPackage', () async {
       // TODO
     });
 
     //Future<PackagePromotion> createPackagePromotion(String id, String idempotencyKey, PackagePromotionCommand packagePromotionCommand) async
     test('test createPackagePromotion', () async {
+      // TODO
+    });
+
+    //Future<Package> createPackageRevision(String id, String idempotencyKey, PackageRevisionCommand packageRevisionCommand) async
+    test('test createPackageRevision', () async {
       // TODO
     });
 
@@ -116,14 +121,14 @@ void main() {
       // TODO
     });
 
-    //Future<ListPackagePromotions200Response> listPackagePromotions(String id) async
+    //Future<PackagePromotionPage> listPackagePromotions(String id, { String cursor, int limit }) async
     test('test listPackagePromotions', () async {
       // TODO
     });
 
-    // Returns ACTIVE packages effective for the requested scoped branch. Commercial periods are half-open [effectiveFrom,effectiveUntil).
+    // Customers receive only active/effective packages. Authorized staff can filter the complete effective history.
     //
-    //Future<PackagePage> listPackages({ String branchId, String cursor }) async
+    //Future<PackagePage> listPackages({ String branchId, String classTypeId, String q, String status, String effectiveState, Date from, Date until, String cursor }) async
     test('test listPackages', () async {
       // TODO
     });
@@ -172,6 +177,11 @@ void main() {
       // TODO
     });
 
+    //Future<Package> transitionPackage(String id, String action, String idempotencyKey, ReasonedVersionCommand body) async
+    test('test transitionPackage', () async {
+      // TODO
+    });
+
     //Future<PackagePromotion> transitionPackagePromotion(String id, String action, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
     test('test transitionPackagePromotion', () async {
       // TODO
@@ -179,6 +189,11 @@ void main() {
 
     //Future<Voucher> transitionVoucher(String id, String action, String idempotencyKey, ReasonedVersionCommand reasonedVersionCommand) async
     test('test transitionVoucher', () async {
+      // TODO
+    });
+
+    //Future<Package> updatePackage(String id, String idempotencyKey, PackageUpdateCommand packageUpdateCommand) async
+    test('test updatePackage', () async {
       // TODO
     });
 

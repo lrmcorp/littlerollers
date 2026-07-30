@@ -12,15 +12,15 @@ import {
 } from '../identity-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
+import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
 import {
-  Badge,
-  Button,
-  DataTable,
-  FilterBar,
-  Panel,
-  SearchableLookup,
-} from '../components/admin/admin-ui';
-import { DateInput, SelectInput, TextInput } from '../components/forms';
+  AsyncSearchSelect,
+  DateInput,
+  SearchSelect,
+  SelectInput,
+  TextInput,
+} from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
   CONFIGURATION_REQUIRED: 'Audit belum dapat dimuat.',
@@ -31,12 +31,26 @@ const failureCopy: Record<UiFailure, string> = {
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
 };
 
+const actionLabels: Record<string, string> = {
+  'payment-proof.viewed': 'Bukti pembayaran dilihat',
+  'security.identity_document_viewed': 'Dokumen identitas dilihat',
+  'security.identity_document_view_authorized': 'Akses dokumen identitas diterbitkan',
+  'security.user_roles_changed': 'Role dan scope pengguna diubah',
+  'security.user_profile_updated': 'Profil pengguna diperbarui',
+};
+
+const humanizeAction = (action: string) =>
+  actionLabels[action] ??
+  action.replace(/[._-]+/gu, ' ').replace(/\b\w/gu, (character) => character.toUpperCase());
+
 export function AuditView({ client = browserIdentityClient }: { client?: IdentityClient }) {
   const context = useSessionContext();
   const [items, setItems] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<UiFailure>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [cursor, setCursor] = useState<string>();
+  const [cursorHistory, setCursorHistory] = useState<Array<string | undefined>>([]);
   const [actor, setActor] = useState<LookupOption>();
   const [target, setTarget] = useState<LookupOption>();
   const [exportJob, setExportJob] = useState<AuditExportSummary>();
@@ -51,6 +65,12 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
     from: '',
     until: '',
   });
+  const exportPeriodError =
+    filters.from && filters.until && filters.from > filters.until
+      ? 'Tanggal awal tidak boleh melewati tanggal akhir.'
+      : !filters.from || !filters.until
+        ? 'Pilih tanggal awal dan tanggal akhir untuk membuat export.'
+        : '';
   const lookup = useCallback(
     (q: string) =>
       client
@@ -59,7 +79,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
     [client, filters.branchId],
   );
 
-  const load = async (cursor?: string) => {
+  const load = async (requestedCursor?: string) => {
     setLoading(true);
     setFailure(undefined);
     try {
@@ -69,9 +89,9 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
         ...(filters.until
           ? { until: new Date(`${filters.until}T23:59:59.999`).toISOString() }
           : {}),
-        cursor,
+        cursor: requestedCursor,
       });
-      setItems(cursor ? (current) => [...current, ...result.items] : result.items);
+      setItems(result.items);
       setNextCursor(result.page.nextCursor);
     } catch (error) {
       setFailure(failureCode(error));
@@ -97,26 +117,30 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
         aria-label="Filter audit akses"
         onSubmit={(event) => {
           event.preventDefault();
+          setCursor(undefined);
+          setCursorHistory([]);
           void load();
         }}
       >
         <FilterBar>
-          <SearchableLookup
+          <AsyncSearchSelect
             label="Aktor"
-            value={actor}
-            load={lookup}
-            onChange={(option) => {
-              setActor(option);
+            value={actor?.id ?? ''}
+            selectedOption={actor}
+            loadOptions={lookup}
+            onChange={(_id, option) => {
+              setActor(option as LookupOption | undefined);
               setFilters({ ...filters, actorId: option?.id ?? '' });
             }}
             placeholder="Cari nama aktor"
           />
-          <SearchableLookup
+          <AsyncSearchSelect
             label="Target pengguna"
-            value={target}
-            load={lookup}
-            onChange={(option) => {
-              setTarget(option);
+            value={target?.id ?? ''}
+            selectedOption={target}
+            loadOptions={lookup}
+            onChange={(_id, option) => {
+              setTarget(option as LookupOption | undefined);
               setFilters({ ...filters, targetUserId: option?.id ?? '' });
             }}
             placeholder="Cari nama target"
@@ -127,18 +151,17 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
             onChange={(event) => setFilters({ ...filters, action: event.target.value })}
             placeholder="Contoh: role pengguna diubah"
           />
-          <SelectInput
+          <SearchSelect
             label="Cabang"
             value={filters.branchId}
-            onChange={(event) => setFilters({ ...filters, branchId: event.target.value })}
-          >
-            <option value="">Semua cabang</option>
-            {(context?.session?.branches ?? []).map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.code} · {branch.name}
-              </option>
-            ))}
-          </SelectInput>
+            placeholder="Semua cabang"
+            options={(context?.session?.branches ?? []).map((branch) => ({
+              id: branch.id,
+              label: branch.name,
+              description: branch.code,
+            }))}
+            onChange={(branchId) => setFilters({ ...filters, branchId })}
+          />
           <DateInput
             label="Dari tanggal"
             value={filters.from}
@@ -179,36 +202,72 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
               header: 'Waktu',
               cell: (item) => new Date(item.occurredAt).toLocaleString('id-ID'),
             },
-            { id: 'action', header: 'Tindakan', cell: (item) => <strong>{item.action}</strong> },
-            { id: 'actor', header: 'Aktor', cell: (item) => item.actorId ?? 'SYSTEM' },
+            {
+              id: 'action',
+              header: 'Tindakan',
+              cell: (item) => <strong>{humanizeAction(item.action)}</strong>,
+            },
+            {
+              id: 'actor',
+              header: 'Aktor',
+              cell: (item) => item.actor?.displayName ?? 'Sistem',
+            },
             {
               id: 'target',
               header: 'Target',
-              cell: (item) =>
-                item.targetUserId ?? (item.objectType === 'User' ? item.objectId : '—'),
+              cell: (item) => item.target?.displayName ?? '—',
             },
-            { id: 'branch', header: 'Cabang', cell: (item) => item.branchId ?? 'Global' },
-            { id: 'reference', header: 'Referensi', cell: (item) => item.correlationId },
+            {
+              id: 'branch',
+              header: 'Cabang',
+              cell: (item) => item.branch?.name ?? 'Global',
+            },
+            {
+              id: 'reference',
+              header: 'Referensi',
+              cell: (item) => (
+                <details>
+                  <summary className="cursor-pointer text-dd-forest">Lihat referensi</summary>
+                  <code className="mt-1 block max-w-48 break-all text-xs">
+                    {item.correlationId}
+                  </code>
+                </details>
+              ),
+            },
           ]}
           mobileCard={(item) => (
             <div>
               <div className="flex items-start justify-between gap-3">
-                <strong>{item.action}</strong>
+                <strong>{humanizeAction(item.action)}</strong>
                 <time className="text-xs text-dd-muted">
                   {new Date(item.occurredAt).toLocaleString('id-ID')}
                 </time>
               </div>
-              <p className="mt-2 text-sm text-dd-muted">Aktor: {item.actorId ?? 'SYSTEM'}</p>
-              <p className="mt-1 text-xs text-dd-muted">Ref: {item.correlationId}</p>
+              <p className="mt-2 text-sm text-dd-muted">
+                Aktor: {item.actor?.displayName ?? 'Sistem'}
+              </p>
+              <p className="mt-1 text-xs text-dd-muted">Cabang: {item.branch?.name ?? 'Global'}</p>
             </div>
           )}
         />
       )}
-      {nextCursor && (
-        <Button variant="secondary" disabled={loading} onClick={() => void load(nextCursor)}>
-          Muat audit berikutnya
-        </Button>
-      )}
+      <Pagination
+        hasPrevious={cursorHistory.length > 0}
+        hasNext={Boolean(nextCursor)}
+        totalLabel={`Halaman audit ${cursorHistory.length + 1}`}
+        onPrevious={() => {
+          const previous = cursorHistory.at(-1);
+          setCursorHistory((current) => current.slice(0, -1));
+          setCursor(previous);
+          void load(previous);
+        }}
+        onNext={() => {
+          if (!nextCursor) return;
+          setCursorHistory((current) => [...current, cursor]);
+          setCursor(nextCursor);
+          void load(nextCursor);
+        }}
+      />
       <Panel className="p-5">
         <h2 className="text-lg font-semibold text-dd-ink">Export audit privat</h2>
         <p className="mt-1 text-sm text-dd-muted">
@@ -232,7 +291,8 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
             onChange={(event) => setExportReason(event.target.value)}
           />
           <Button
-            disabled={loading || exportReason.trim().length < 3 || !filters.from || !filters.until}
+            type="button"
+            disabled={loading || exportReason.trim().length < 3 || Boolean(exportPeriodError)}
             onClick={() =>
               void (async () => {
                 setLoading(true);
@@ -264,6 +324,11 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
             Buat export
           </Button>
         </div>
+        {exportPeriodError && (
+          <p className="mt-3 text-sm text-dd-warning" role="status">
+            {exportPeriodError}
+          </p>
+        )}
         {exportJob && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md bg-dd-surface-muted p-4">
             <div>

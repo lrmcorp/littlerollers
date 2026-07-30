@@ -1,18 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, History, Pencil, Plus, Power, PowerOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../components/actions';
-import { Badge, DataTable, Drawer, Panel } from '../components/admin/admin-ui';
-import { AlertBanner, useAppFeedback } from '../components/app-feedback';
-import { SelectInput, TextInput } from '../components/forms';
+import { Badge, DataTable, Pagination, Panel } from '../components/admin/admin-ui';
+import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
+import { DateInput, SelectInput, TextInput } from '../components/forms';
 import { Skeleton } from '../ui';
 import { useSessionContext } from '../session-context';
 import {
   browserPackagePromotionClient,
   type InternalPackageRecord,
   type PackagePromotionRecord,
+  type PackagePromotionPage,
   type PromotionOrderPage,
 } from '../package-promotion-client';
 
@@ -31,22 +32,66 @@ const stateLabels: Record<string, string> = {
   EXPIRED: 'Berakhir',
 };
 
+type PackageRevision = NonNullable<InternalPackageRecord['revisions']>[number];
+
+function revisionState(item: PackageRevision) {
+  if (item.status !== 'ACTIVE') return 'INACTIVE';
+  const now = Date.now();
+  if (new Date(item.effectiveFrom).getTime() > now) return 'SCHEDULED';
+  if (item.effectiveUntil && new Date(item.effectiveUntil).getTime() <= now) return 'EXPIRED';
+  return 'ACTIVE';
+}
+
+function hasRevisionOverlap(items: PackageRevision[]) {
+  const active = items.filter((item) => item.status === 'ACTIVE');
+  return active.some((left, index) =>
+    active.slice(index + 1).some((right) => {
+      const leftStart = new Date(left.effectiveFrom).getTime();
+      const leftEnd = left.effectiveUntil
+        ? new Date(left.effectiveUntil).getTime()
+        : Number.POSITIVE_INFINITY;
+      const rightStart = new Date(right.effectiveFrom).getTime();
+      const rightEnd = right.effectiveUntil
+        ? new Date(right.effectiveUntil).getTime()
+        : Number.POSITIVE_INFINITY;
+      return leftStart < rightEnd && rightStart < leftEnd;
+    }),
+  );
+}
+
 export function PackagePromotionDetailView({ id }: { id: string }) {
   const session = useSessionContext();
   const feedback = useAppFeedback();
   const [pkg, setPackage] = useState<InternalPackageRecord | null>(null);
+  const [promotionPage, setPromotionPage] = useState<PackagePromotionPage | null>(null);
+  const [promotionCursor, setPromotionCursor] = useState<string>();
+  const [promotionHistory, setPromotionHistory] = useState<Array<string | undefined>>([]);
   const [orders, setOrders] = useState<Record<string, PromotionOrderPage>>({});
+  const [orderCursors, setOrderCursors] = useState<Record<string, string | undefined>>({});
+  const [orderHistory, setOrderHistory] = useState<Record<string, Array<string | undefined>>>({});
+  const [selectedOrderPromotionId, setSelectedOrderPromotionId] = useState<string>();
   const [editor, setEditor] = useState<PackagePromotionRecord | 'new' | null>(null);
+  const [packageEditor, setPackageEditor] = useState<'metadata' | 'revision' | 'lifecycle' | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const canManage =
     session?.status === 'authenticated' && session.hasCapability('package-promotion:manage');
+  const canManagePackage =
+    session?.status === 'authenticated' && session.hasCapability('master:manage');
   const load = () =>
     browserPackagePromotionClient
       .detail(id)
       .then(setPackage)
       .catch(() => setError('Detail paket tidak dapat dimuat.'));
   useEffect(() => void load(), [id]);
+  useEffect(() => {
+    void browserPackagePromotionClient
+      .promotions(id, promotionCursor)
+      .then(setPromotionPage)
+      .catch(() => setError('Histori promo tidak dapat dimuat.'));
+  }, [id, promotionCursor]);
   if (!session || session.status === 'loading') return <Skeleton label="Memuat detail paket" />;
   if (error) return <AlertBanner tone="danger" title="Paket tidak tersedia" message={error} />;
   if (!pkg) return <Skeleton label="Memuat detail paket" />;
@@ -103,31 +148,157 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           </p>
         </div>
         {canManage && (
-          <Button onClick={() => setEditor('new')}>
-            <Plus className="size-4" /> Buat promo
+          <Button
+            leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+            onClick={() => setEditor('new')}
+          >
+            Buat promo
           </Button>
         )}
       </header>
-      <Panel className="grid gap-4 p-5 sm:grid-cols-3">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Panel className="p-5">
+          <h2 className="text-lg font-semibold">Identitas paket</h2>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <PackageInfo label="Nama paket" value={pkg.name} />
+            <PackageInfo label="Business key" value={pkg.businessKey} />
+            <PackageInfo label="Cabang / studio" value={pkg.branch?.name ?? '—'} />
+            <PackageInfo label="Tipe kelas" value={pkg.classType?.name ?? '—'} />
+          </dl>
+          <p className="mt-4 text-xs leading-5 text-dd-muted">
+            Cabang, tipe kelas, dan business key adalah identitas tetap. Jika cabang salah, buat
+            paket baru pada cabang tujuan.
+          </p>
+        </Panel>
+        <Panel className="p-5">
+          <h2 className="text-lg font-semibold">Konfigurasi komersial</h2>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <PackageInfo label="Harga normal" value={rupiah.format(pkg.priceRp)} />
+            <PackageInfo label="Jumlah sesi" value={`${pkg.sessionCount} sesi`} />
+            <PackageInfo label="Masa berlaku" value={`${pkg.durationDays} hari`} />
+            <PackageInfo
+              label="Periode"
+              value={`${new Date(pkg.effectiveFrom).toLocaleDateString('id-ID')} – ${
+                pkg.effectiveUntil
+                  ? new Date(pkg.effectiveUntil).toLocaleDateString('id-ID')
+                  : 'tanpa batas'
+              }`}
+            />
+          </dl>
+        </Panel>
+      </div>
+      <Panel className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
-          <span className="text-xs text-dd-muted">Harga normal</span>
-          <strong className="mt-1 block text-xl">{rupiah.format(pkg.priceRp)}</strong>
+          <h2 className="text-lg font-semibold">Status & lifecycle</h2>
+          <p className="mt-1 text-sm text-dd-muted">
+            {pkg.status === 'ACTIVE'
+              ? 'Paket tersedia sesuai periode efektif.'
+              : 'Paket tidak aktif.'}
+          </p>
         </div>
-        <div>
-          <span className="text-xs text-dd-muted">Status paket</span>
-          <strong className="mt-1 block">
-            {pkg.status === 'ACTIVE' ? 'Aktif' : 'Tidak aktif'}
-          </strong>
+        <Badge tone={pkg.status === 'ACTIVE' ? 'success' : 'neutral'}>
+          {pkg.status === 'ACTIVE' ? 'Aktif' : 'Tidak aktif'}
+        </Badge>
+      </Panel>
+      {canManagePackage && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
+            onClick={() => setPackageEditor('metadata')}
+          >
+            Edit paket
+          </Button>
+          <Button
+            variant="secondary"
+            leadingIcon={<History className="size-4" aria-hidden="true" />}
+            onClick={() => setPackageEditor('revision')}
+          >
+            Buat revisi paket
+          </Button>
+          <Button
+            variant={pkg.status === 'ACTIVE' ? 'danger' : 'primary'}
+            leadingIcon={
+              pkg.status === 'ACTIVE' ? (
+                <PowerOff className="size-4" aria-hidden="true" />
+              ) : (
+                <Power className="size-4" aria-hidden="true" />
+              )
+            }
+            onClick={() => setPackageEditor('lifecycle')}
+          >
+            {pkg.status === 'ACTIVE' ? 'Nonaktifkan paket' : 'Aktifkan kembali'}
+          </Button>
         </div>
-        <div>
-          <span className="text-xs text-dd-muted">Periode paket</span>
-          <strong className="mt-1 block text-sm">
-            {new Date(pkg.effectiveFrom).toLocaleDateString('id-ID')} –{' '}
-            {pkg.effectiveUntil
-              ? new Date(pkg.effectiveUntil).toLocaleDateString('id-ID')
-              : 'tanpa batas'}
-          </strong>
+      )}
+      <Panel className="overflow-hidden p-0">
+        <div className="border-b border-dd-line px-5 py-4">
+          <h2 className="text-lg font-semibold">Riwayat revisi paket</h2>
+          <p className="mt-1 text-sm text-dd-muted">
+            Harga dan sesi lama dipertahankan untuk order yang sudah dibuat.
+          </p>
         </div>
+        {hasRevisionOverlap(pkg.revisions ?? []) && (
+          <div className="px-5 pt-4">
+            <AlertBanner
+              tone="danger"
+              title="Periode revisi bertumpang tindih"
+              message="Jalankan pemeriksaan integritas paket sebelum mengaktifkan atau membuat revisi baru."
+            />
+          </div>
+        )}
+        <DataTable
+          items={pkg.revisions ?? []}
+          rowKey={(item) => item.id}
+          emptyTitle="Belum ada revisi"
+          columns={[
+            { id: 'name', header: 'Nama', cell: (item) => item.name },
+            {
+              id: 'price',
+              header: 'Harga',
+              cell: (item) => rupiah.format(item.priceRp),
+            },
+            {
+              id: 'sessions',
+              header: 'Sesi',
+              cell: (item) => `${item.sessionCount} sesi · ${item.durationDays} hari`,
+            },
+            {
+              id: 'period',
+              header: 'Periode',
+              cell: (item) =>
+                `${new Date(item.effectiveFrom).toLocaleDateString('id-ID')} – ${
+                  item.effectiveUntil
+                    ? new Date(item.effectiveUntil).toLocaleDateString('id-ID')
+                    : 'tanpa batas'
+                }`,
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (item) => {
+                const state = revisionState(item);
+                return (
+                  <Badge
+                    tone={
+                      state === 'ACTIVE' ? 'success' : state === 'SCHEDULED' ? 'warning' : 'neutral'
+                    }
+                  >
+                    {stateLabels[state] ?? 'Tidak aktif'}
+                  </Badge>
+                );
+              },
+            },
+          ]}
+          mobileCard={(item) => (
+            <div className="grid gap-1">
+              <strong>{item.name}</strong>
+              <span>{rupiah.format(item.priceRp)}</span>
+              <span className="text-xs text-dd-muted">
+                {item.sessionCount} sesi · {item.durationDays} hari
+              </span>
+            </div>
+          )}
+        />
       </Panel>
       <Panel className="overflow-hidden p-0">
         <div className="border-b border-dd-line px-5 py-4">
@@ -137,7 +308,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           </p>
         </div>
         <DataTable
-          items={pkg.promotions ?? []}
+          items={promotionPage?.items ?? []}
           rowKey={(item) => item.id}
           emptyTitle="Belum ada promo harga"
           emptyDescription="Buat promo untuk menampilkan harga asli dicoret pada katalog."
@@ -227,9 +398,14 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        void browserPackagePromotionClient
-                          .orders(item.id)
-                          .then((page) => setOrders((current) => ({ ...current, [item.id]: page })))
+                        void (async () => {
+                          const page = await browserPackagePromotionClient.orders(
+                            item.id,
+                            orderCursors[item.id],
+                          );
+                          setOrders((current) => ({ ...current, [item.id]: page }));
+                          setSelectedOrderPromotionId(item.id);
+                        })()
                       }
                     >
                       {orders[item.id]
@@ -252,6 +428,150 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             </div>
           )}
         />
+        <div className="border-t border-dd-line p-4">
+          <Pagination
+            hasPrevious={promotionHistory.length > 0}
+            hasNext={Boolean(promotionPage?.page.hasMore && promotionPage.page.nextCursor)}
+            totalLabel={`Halaman promo ${promotionHistory.length + 1}`}
+            onPrevious={() => {
+              const previous = promotionHistory.at(-1);
+              setPromotionHistory((current) => current.slice(0, -1));
+              setPromotionCursor(previous);
+            }}
+            onNext={() => {
+              const next = promotionPage?.page.nextCursor;
+              if (!next) return;
+              setPromotionHistory((current) => [...current, promotionCursor]);
+              setPromotionCursor(next);
+            }}
+          />
+        </div>
+      </Panel>
+      {selectedOrderPromotionId && orders[selectedOrderPromotionId] && (
+        <Panel className="overflow-hidden p-0">
+          <div className="border-b border-dd-line px-5 py-4">
+            <h2 className="text-lg font-semibold">Pesanan yang memakai promo</h2>
+            <p className="mt-1 text-sm text-dd-muted">
+              Histori menggunakan snapshot harga pada saat pesanan dibuat.
+            </p>
+          </div>
+          <DataTable
+            items={orders[selectedOrderPromotionId]!.items}
+            rowKey={(item) => item.id}
+            emptyTitle="Belum ada pesanan"
+            emptyDescription="Promo ini belum digunakan pada pesanan."
+            columns={[
+              {
+                id: 'customer',
+                header: 'Customer',
+                cell: (item) => (
+                  <div>
+                    <strong>{item.user.displayName}</strong>
+                    <p className="text-xs text-dd-muted">{item.branch.name}</p>
+                  </div>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (item) => <Badge>{item.status}</Badge>,
+              },
+              {
+                id: 'discount',
+                header: 'Diskon promo',
+                cell: (item) => rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0),
+              },
+              {
+                id: 'submitted',
+                header: 'Dibuat',
+                cell: (item) => new Date(item.submittedAt).toLocaleString('id-ID'),
+              },
+            ]}
+            mobileCard={(item) => (
+              <div className="grid gap-1">
+                <strong>{item.user.displayName}</strong>
+                <span className="text-sm text-dd-muted">{item.branch.name}</span>
+                <span>{rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0)}</span>
+              </div>
+            )}
+          />
+          <div className="border-t border-dd-line p-4">
+            <Pagination
+              hasPrevious={(orderHistory[selectedOrderPromotionId]?.length ?? 0) > 0}
+              hasNext={Boolean(
+                orders[selectedOrderPromotionId]!.page.hasMore &&
+                orders[selectedOrderPromotionId]!.page.nextCursor,
+              )}
+              totalLabel={`Halaman pesanan ${(orderHistory[selectedOrderPromotionId]?.length ?? 0) + 1}`}
+              onPrevious={() => {
+                const history = orderHistory[selectedOrderPromotionId] ?? [];
+                const previous = history.at(-1);
+                setOrderHistory((current) => ({
+                  ...current,
+                  [selectedOrderPromotionId]: history.slice(0, -1),
+                }));
+                setOrderCursors((current) => ({
+                  ...current,
+                  [selectedOrderPromotionId]: previous,
+                }));
+                void browserPackagePromotionClient
+                  .orders(selectedOrderPromotionId, previous)
+                  .then((page) =>
+                    setOrders((current) => ({
+                      ...current,
+                      [selectedOrderPromotionId]: page,
+                    })),
+                  );
+              }}
+              onNext={() => {
+                const next = orders[selectedOrderPromotionId]!.page.nextCursor;
+                if (!next) return;
+                const currentCursor = orderCursors[selectedOrderPromotionId];
+                setOrderHistory((current) => ({
+                  ...current,
+                  [selectedOrderPromotionId]: [
+                    ...(current[selectedOrderPromotionId] ?? []),
+                    currentCursor,
+                  ],
+                }));
+                setOrderCursors((current) => ({
+                  ...current,
+                  [selectedOrderPromotionId]: next,
+                }));
+                void browserPackagePromotionClient
+                  .orders(selectedOrderPromotionId, next)
+                  .then((page) =>
+                    setOrders((current) => ({
+                      ...current,
+                      [selectedOrderPromotionId]: page,
+                    })),
+                  );
+              }}
+            />
+          </div>
+        </Panel>
+      )}
+      <Panel className="p-5">
+        <h2 className="text-lg font-semibold">Aktivitas audit</h2>
+        {!pkg.auditActivity?.length ? (
+          <p className="mt-3 text-sm text-dd-muted">Belum ada aktivitas paket.</p>
+        ) : (
+          <ol className="mt-3 grid gap-2">
+            {pkg.auditActivity.map((item) => (
+              <li key={item.id} className="flex justify-between gap-3 border-b border-dd-line py-2">
+                <span className="text-sm font-medium">
+                  {item.action
+                    .replaceAll('_', ' ')
+                    .toLowerCase()
+                    .replace(/^./u, (value) => value.toUpperCase())}
+                </span>
+                <time className="text-xs text-dd-muted">
+                  {new Date(item.occurredAt).toLocaleString('id-ID')}
+                </time>
+              </li>
+            ))}
+          </ol>
+        )}
       </Panel>
       <PromotionEditor
         pkg={pkg}
@@ -267,7 +587,271 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           });
         }}
       />
+      <PackageLifecycleEditor
+        pkg={pkg}
+        mode={packageEditor}
+        onClose={() => setPackageEditor(null)}
+        onSaved={async (updated) => {
+          setPackageEditor(null);
+          if (updated.id !== pkg.id) {
+            window.location.assign(`/workspace/packages/${updated.id}`);
+            return;
+          }
+          await load();
+          feedback.showToast({
+            tone: 'success',
+            title: 'Paket diperbarui',
+            message: 'Perubahan tersimpan dan tercatat pada audit trail.',
+          });
+        }}
+      />
     </section>
+  );
+}
+
+function PackageInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-dd-muted">{label}</dt>
+      <dd className="mt-1 font-semibold text-dd-ink">{value}</dd>
+    </div>
+  );
+}
+
+function PackageLifecycleEditor({
+  pkg,
+  mode,
+  onClose,
+  onSaved,
+}: {
+  pkg: InternalPackageRecord;
+  mode: 'metadata' | 'revision' | 'lifecycle' | null;
+  onClose(): void;
+  onSaved(updated: InternalPackageRecord): Promise<void>;
+}) {
+  const feedback = useAppFeedback();
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [failure, setFailure] = useState('');
+  useEffect(() => {
+    if (!mode) return;
+    setDirty(false);
+    setFailure('');
+  }, [mode]);
+  const confirmDiscard = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan perubahan paket?',
+      message: 'Perubahan yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    });
+  const cancel = async () => {
+    if (!dirty || (await confirmDiscard())) onClose();
+  };
+  const canEditCommercialInPlace =
+    (pkg._count?.purchases ?? 0) === 0 &&
+    (pkg._count?.customerPackages ?? 0) === 0 &&
+    new Date(pkg.effectiveFrom).getTime() > Date.now();
+  return (
+    <Drawer
+      open={Boolean(mode)}
+      title={
+        mode === 'revision'
+          ? 'Buat revisi paket'
+          : mode === 'lifecycle'
+            ? pkg.status === 'ACTIVE'
+              ? 'Nonaktifkan paket'
+              : 'Aktifkan kembali paket'
+            : 'Edit paket'
+      }
+      onClose={onClose}
+      busy={busy}
+      dirty={dirty}
+      onDirtyClose={confirmDiscard}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => void cancel()} disabled={busy}>
+            Batal
+          </Button>
+          <Button type="submit" form="package-lifecycle-form" loading={busy}>
+            Simpan perubahan
+          </Button>
+        </div>
+      }
+    >
+      <form
+        id="package-lifecycle-form"
+        className="grid gap-4"
+        onChange={() => setDirty(true)}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const reason = String(data.get('reason'));
+          const action =
+            mode === 'revision'
+              ? 'membuat revisi komersial baru'
+              : mode === 'lifecycle'
+                ? pkg.status === 'ACTIVE'
+                  ? 'menonaktifkan paket'
+                  : 'mengaktifkan kembali paket'
+                : 'memperbarui paket';
+          const accepted = await feedback.confirm({
+            tone: mode === 'lifecycle' && pkg.status === 'ACTIVE' ? 'danger' : 'warning',
+            title: `Konfirmasi ${action}`,
+            message:
+              mode === 'revision'
+                ? 'Order lama tetap memakai snapshot harga sebelumnya. Periode paket saat ini akan ditutup pada tanggal revisi.'
+                : canEditCommercialInPlace
+                  ? 'Paket belum efektif dan belum digunakan, sehingga konfigurasi komersial dapat diperbarui langsung.'
+                  : 'Paket aktif atau terpakai hanya dapat mengubah metadata nama. Gunakan revisi untuk perubahan komersial.',
+            confirmLabel: 'Lanjutkan',
+          });
+          if (!accepted) return;
+          setBusy(true);
+          setFailure('');
+          try {
+            const updated =
+              mode === 'revision'
+                ? await browserPackagePromotionClient.revisePackage(pkg.id, {
+                    expectedVersion: pkg.version,
+                    name: String(data.get('name')),
+                    sessionCount: Number(data.get('sessionCount')),
+                    durationDays: Number(data.get('durationDays')),
+                    priceRp: Number(data.get('priceRp')),
+                    effectiveFrom: String(data.get('effectiveFrom')),
+                    effectiveUntil: data.get('effectiveUntil') || null,
+                    reason,
+                  })
+                : mode === 'lifecycle'
+                  ? await browserPackagePromotionClient.transitionPackage(
+                      pkg.id,
+                      pkg.status === 'ACTIVE' ? 'deactivate' : 'reactivate',
+                      pkg.version,
+                      reason,
+                    )
+                  : await browserPackagePromotionClient.updatePackage(pkg.id, {
+                      expectedVersion: pkg.version,
+                      name: String(data.get('name')),
+                      ...(canEditCommercialInPlace
+                        ? {
+                            sessionCount: Number(data.get('sessionCount')),
+                            durationDays: Number(data.get('durationDays')),
+                            priceRp: Number(data.get('priceRp')),
+                            effectiveFrom: String(data.get('effectiveFrom')),
+                            effectiveUntil: data.get('effectiveUntil') || null,
+                          }
+                        : {}),
+                      reason,
+                    });
+            setDirty(false);
+            await onSaved(updated);
+          } catch {
+            setFailure(
+              'Data mungkin telah berubah atau periode bertabrakan. Muat ulang dan coba kembali.',
+            );
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {failure && (
+          <AlertBanner tone="danger" title="Perubahan belum tersimpan" message={failure} />
+        )}
+        {mode !== 'lifecycle' && (
+          <TextInput name="name" label="Nama paket" defaultValue={pkg.name} required />
+        )}
+        {mode === 'metadata' && (
+          <>
+            <AlertBanner
+              tone="info"
+              title={
+                canEditCommercialInPlace
+                  ? 'Paket belum digunakan'
+                  : 'Konfigurasi komersial dilindungi'
+              }
+              message={
+                canEditCommercialInPlace
+                  ? 'Harga, sesi, masa berlaku, dan periode dapat diubah sebelum paket mulai efektif.'
+                  : 'Cabang, tipe kelas, business key, harga, sesi, masa berlaku, dan periode tidak dapat diubah langsung. Gunakan revisi paket.'
+              }
+            />
+            <TextInput label="Cabang / studio" value={pkg.branch?.name ?? '—'} disabled />
+            <TextInput label="Tipe kelas" value={pkg.classType?.name ?? '—'} disabled />
+            <TextInput label="Business key" value={pkg.businessKey} disabled />
+            {canEditCommercialInPlace && (
+              <>
+                <TextInput
+                  name="sessionCount"
+                  label="Jumlah sesi"
+                  type="number"
+                  min={1}
+                  defaultValue={pkg.sessionCount}
+                  required
+                />
+                <TextInput
+                  name="durationDays"
+                  label="Masa berlaku (hari)"
+                  type="number"
+                  min={1}
+                  defaultValue={pkg.durationDays}
+                  required
+                />
+                <TextInput
+                  name="priceRp"
+                  label="Harga normal"
+                  type="number"
+                  min={1}
+                  defaultValue={pkg.priceRp}
+                  required
+                />
+                <DateInput
+                  name="effectiveFrom"
+                  label="Mulai berlaku"
+                  defaultValue={pkg.effectiveFrom.slice(0, 10)}
+                  required
+                />
+                <DateInput
+                  name="effectiveUntil"
+                  label="Berakhir"
+                  defaultValue={pkg.effectiveUntil?.slice(0, 10)}
+                />
+              </>
+            )}
+          </>
+        )}
+        {mode === 'revision' && (
+          <>
+            <TextInput
+              name="sessionCount"
+              label="Jumlah sesi"
+              type="number"
+              min={1}
+              defaultValue={pkg.sessionCount}
+              required
+            />
+            <TextInput
+              name="durationDays"
+              label="Masa berlaku (hari)"
+              type="number"
+              min={1}
+              defaultValue={pkg.durationDays}
+              required
+            />
+            <TextInput
+              name="priceRp"
+              label="Harga normal baru"
+              type="number"
+              min={1}
+              defaultValue={pkg.priceRp}
+              required
+            />
+            <DateInput name="effectiveFrom" label="Mulai berlaku" required />
+            <DateInput name="effectiveUntil" label="Berakhir" />
+          </>
+        )}
+        <TextInput name="reason" label="Alasan perubahan" minLength={3} required />
+      </form>
+    </Drawer>
   );
 }
 
@@ -283,18 +867,52 @@ function PromotionEditor({
   onSaved(): Promise<void>;
 }) {
   const current = value && value !== 'new' ? value : null;
+  const feedback = useAppFeedback();
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [failure, setFailure] = useState('');
+  useEffect(() => {
+    if (!value) return;
+    setDirty(false);
+    setFailure('');
+  }, [value]);
+  const confirmDiscard = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan perubahan promo?',
+      message: 'Perubahan yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    });
+  const cancel = async () => {
+    if (!dirty || (await confirmDiscard())) onClose();
+  };
   return (
     <Drawer
       open={Boolean(value)}
       title={current ? 'Edit promo paket' : 'Buat promo paket'}
       onClose={onClose}
+      busy={busy}
+      dirty={dirty}
+      onDirtyClose={confirmDiscard}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => void cancel()} disabled={busy}>
+            Batal
+          </Button>
+          <Button type="submit" form="package-promotion-form" loading={busy}>
+            Simpan promo
+          </Button>
+        </div>
+      }
     >
       <p className="mb-4 text-sm text-dd-muted">
         Harga normal {rupiah.format(pkg.priceRp)}. Promo harus menyisakan minimal Rp1.
       </p>
+      {failure && <AlertBanner tone="danger" title="Promo belum tersimpan" message={failure} />}
       <form
+        id="package-promotion-form"
         className="grid gap-4"
+        onChange={() => setDirty(true)}
         onSubmit={async (event) => {
           event.preventDefault();
           if (busy) return;
@@ -309,11 +927,23 @@ function PromotionEditor({
             reason: String(data.get('reason')),
             ...(current ? { expectedVersion: current.version } : {}),
           };
+          const accepted = await feedback.confirm({
+            tone: 'warning',
+            title: current ? 'Simpan perubahan promo?' : 'Buat promo paket?',
+            message:
+              'Harga katalog dan checkout akan mengikuti promo pada periode aktif yang ditetapkan.',
+            confirmLabel: current ? 'Simpan perubahan' : 'Buat promo',
+          });
+          if (!accepted) return;
           setBusy(true);
+          setFailure('');
           try {
             if (current) await browserPackagePromotionClient.update(current.id, command);
             else await browserPackagePromotionClient.create(pkg.id, command);
+            setDirty(false);
             await onSaved();
+          } catch {
+            setFailure('Konfigurasi promo tidak dapat disimpan. Periksa periode dan coba kembali.');
           } finally {
             setBusy(false);
           }
@@ -363,14 +993,6 @@ function PromotionEditor({
           placeholder="Contoh: Promo pembukaan periode Agustus"
           required
         />
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" loading={busy}>
-            Simpan promo
-          </Button>
-        </div>
       </form>
     </Drawer>
   );

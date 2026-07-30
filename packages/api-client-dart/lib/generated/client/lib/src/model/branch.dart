@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/branch_public_profile_summary.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -18,8 +19,9 @@ part 'branch.g.dart';
 /// * [supportWhatsappE164] 
 /// * [active] 
 /// * [version] 
-@BuiltValue()
-abstract class Branch implements Built<Branch, BranchBuilder> {
+/// * [publicProfile] 
+@BuiltValue(instantiable: false)
+abstract class Branch  {
   @BuiltValueField(wireName: r'id')
   String get id;
 
@@ -41,12 +43,8 @@ abstract class Branch implements Built<Branch, BranchBuilder> {
   @BuiltValueField(wireName: r'version')
   int get version;
 
-  Branch._();
-
-  factory Branch([void updates(BranchBuilder b)]) = _$Branch;
-
-  @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(BranchBuilder b) => b;
+  @BuiltValueField(wireName: r'publicProfile')
+  BranchPublicProfileSummary? get publicProfile;
 
   @BuiltValueSerializer(custom: true)
   static Serializer<Branch> get serializer => _$BranchSerializer();
@@ -54,7 +52,7 @@ abstract class Branch implements Built<Branch, BranchBuilder> {
 
 class _$BranchSerializer implements PrimitiveSerializer<Branch> {
   @override
-  final Iterable<Type> types = const [Branch, _$Branch];
+  final Iterable<Type> types = const [Branch];
 
   @override
   final String wireName = r'Branch';
@@ -101,6 +99,13 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
       object.version,
       specifiedType: const FullType(int),
     );
+    if (object.publicProfile != null) {
+      yield r'publicProfile';
+      yield serializers.serialize(
+        object.publicProfile,
+        specifiedType: const FullType.nullable(BranchPublicProfileSummary),
+      );
+    }
   }
 
   @override
@@ -110,6 +115,46 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+  }
+
+  @override
+  Branch deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.deserialize(serialized, specifiedType: FullType($Branch)) as $Branch;
+  }
+}
+
+/// a concrete implementation of [Branch], since [Branch] is not instantiable
+@BuiltValue(instantiable: true)
+abstract class $Branch implements Branch, Built<$Branch, $BranchBuilder> {
+  $Branch._();
+
+  factory $Branch([void Function($BranchBuilder)? updates]) = _$$Branch;
+
+  @BuiltValueHook(initializeBuilder: true)
+  static void _defaults($BranchBuilder b) => b;
+
+  @BuiltValueSerializer(custom: true)
+  static Serializer<$Branch> get serializer => _$$BranchSerializer();
+}
+
+class _$$BranchSerializer implements PrimitiveSerializer<$Branch> {
+  @override
+  final Iterable<Type> types = const [$Branch, _$$Branch];
+
+  @override
+  final String wireName = r'$Branch';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    $Branch object, {
+    FullType specifiedType = FullType.unspecified,
+  }) {
+    return serializers.serialize(object, specifiedType: FullType(Branch))!;
   }
 
   void _deserializeProperties(
@@ -174,6 +219,14 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
           ) as int;
           result.version = valueDes;
           break;
+        case r'publicProfile':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(BranchPublicProfileSummary),
+          ) as BranchPublicProfileSummary?;
+          if (valueDes == null) continue;
+          result.publicProfile.replace(valueDes);
+          break;
         default:
           unhandled.add(key);
           unhandled.add(value);
@@ -183,12 +236,12 @@ class _$BranchSerializer implements PrimitiveSerializer<Branch> {
   }
 
   @override
-  Branch deserialize(
+  $Branch deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = BranchBuilder();
+    final result = $BranchBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

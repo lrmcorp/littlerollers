@@ -1,9 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { cloneElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import type { LedgerClient } from './ledger-client';
 import { LedgerView } from './ledger/ledger-view';
+import { AppFeedbackProvider } from './components/app-feedback';
 
 const balance = {
   id: 'cp-1',
@@ -35,23 +37,38 @@ const fake = (overrides: Partial<LedgerClient> = {}): LedgerClient => ({
   ...overrides,
 });
 
+const renderLedger = (view: React.ReactElement) =>
+  render(
+    <AppFeedbackProvider>
+      {cloneElement(view, {
+        access: { canRequest: true, canDecide: true, canReview: true },
+      } as never)}
+    </AppFeedbackProvider>,
+  );
+
 describe('synthetic ledger UI', () => {
   it('is accessible and shows total, reserved, available and history', async () => {
-    const view = render(<LedgerView client={fake()} />);
+    const view = renderLedger(<LedgerView client={fake()} />);
     expect((await screen.findAllByText('Nadia Customer')).length).toBeGreaterThan(0);
-    expect((await axe(view.container)).violations).toHaveLength(0);
+    const accessibility = await axe(view.container);
+    expect(
+      accessibility.violations,
+      accessibility.violations
+        .map(({ id, nodes }) => `${id}: ${nodes[0]?.failureSummary}`)
+        .join('\n'),
+    ).toHaveLength(0);
     await userEvent.click(screen.getAllByRole('button', { name: /Lihat histori/ })[0]!);
     expect(await screen.findByText('Aktivasi paket')).toBeInTheDocument();
   });
   it('shows safe invariant and expired states', async () => {
-    render(
+    renderLedger(
       <LedgerView
         client={fake({ list: vi.fn().mockRejectedValue({ response: { status: 409 } }) })}
       />,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Data berubah');
     const expired = { ...balance, status: 'EXPIRED' as const, available: 0 };
-    render(
+    renderLedger(
       <LedgerView
         client={fake({
           list: vi.fn().mockResolvedValue({
@@ -65,16 +82,17 @@ describe('synthetic ledger UI', () => {
   });
   it('creates a controlled pending request without free text', async () => {
     const requestAdjustment = vi.fn().mockResolvedValue({ id: 'adj-1' });
-    const view = render(<LedgerView client={fake({ requestAdjustment })} />);
+    const view = renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
     await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
     const lookup = screen.getByLabelText('Cari customer atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
     await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
-    await userEvent.keyboard('{Enter}');
+    await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));
     await userEvent.type(screen.getByLabelText('Perubahan sesi'), '-2');
     await userEvent.selectOptions(screen.getByLabelText('Alasan'), 'ATTENDANCE_CORRECTION');
-    await userEvent.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau dan buat permintaan' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Buat permintaan' }));
     expect(requestAdjustment).toHaveBeenCalledWith(
       expect.objectContaining({
         customerPackageId: 'cp-1',
@@ -84,7 +102,13 @@ describe('synthetic ledger UI', () => {
       expect.any(String),
     );
     expect(await screen.findByText(/menunggu keputusan tanpa mengubah saldo/)).toBeVisible();
-    expect((await axe(view.container)).violations).toHaveLength(0);
+    const accessibility = await axe(view.container);
+    expect(
+      accessibility.violations,
+      accessibility.violations
+        .map(({ id, nodes }) => `${id}: ${nodes[0]?.failureSummary}`)
+        .join('\n'),
+    ).toHaveLength(0);
   });
 
   it('reviews pending adjustment with explicit controlled decisions', async () => {
@@ -103,10 +127,11 @@ describe('synthetic ledger UI', () => {
       ],
       nextCursor: null,
     });
-    render(<LedgerView client={fake({ listAdjustments, decideAdjustment })} />);
+    renderLedger(<LedgerView client={fake({ listAdjustments, decideAdjustment })} />);
     await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Setujui' }));
     await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi keputusan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Setujui dan posting' }));
     await waitFor(() =>
       expect(decideAdjustment).toHaveBeenCalledWith(
         'adj-1',
@@ -122,17 +147,19 @@ describe('synthetic ledger UI', () => {
       .fn()
       .mockRejectedValueOnce(new Error('network timeout'))
       .mockResolvedValueOnce({ id: 'adj-1' });
-    render(<LedgerView client={fake({ requestAdjustment })} />);
+    renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
     await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
     const lookup = screen.getByLabelText('Cari customer atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
     await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
-    await userEvent.keyboard('{Enter}');
+    await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));
     await userEvent.type(screen.getByLabelText('Perubahan sesi'), '2');
-    await userEvent.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau dan buat permintaan' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Buat permintaan' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Layanan belum dapat dijangkau');
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi permintaan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau dan buat permintaan' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Buat permintaan' }));
     await waitFor(() => expect(requestAdjustment).toHaveBeenCalledTimes(2));
     expect(requestAdjustment.mock.calls[0]?.[1]).toBe(requestAdjustment.mock.calls[1]?.[1]);
   });

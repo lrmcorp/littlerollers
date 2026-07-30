@@ -4,6 +4,7 @@ import { Bell, CheckCheck, LoaderCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { browserNotificationClient, type UserNotification } from '../notification-client';
+import { Button } from './actions';
 
 const toneDot = {
   success: 'bg-emerald-500',
@@ -118,9 +119,11 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
               <span className="text-xs text-dd-muted">{unread} belum dibaca</span>
             </div>
             {unread > 0 && (
-              <button
+              <Button
                 type="button"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-dd-sm border-0 bg-transparent px-2 text-xs font-semibold text-dd-forest"
+                variant="ghost"
+                size="sm"
+                leadingIcon={<CheckCheck className="size-4" aria-hidden="true" />}
                 onClick={() =>
                   void browserNotificationClient.markAllRead().then(() => {
                     setUnread(0);
@@ -130,8 +133,8 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
                   })
                 }
               >
-                <CheckCheck className="size-4" /> Tandai semua
-              </button>
+                Tandai semua
+              </Button>
             )}
           </header>
           <div className="max-h-[min(520px,70dvh)] overflow-y-auto" aria-live="polite">
@@ -144,12 +147,15 @@ export function NotificationCenter({ compact = false }: { compact?: boolean }) {
             {status === 'error' && (
               <div className="p-6 text-center">
                 <p className="text-sm text-dd-muted">Notifikasi belum dapat dimuat.</p>
-                <button
-                  className="mt-3 inline-flex items-center gap-2"
+                <Button
+                  className="mt-3"
+                  variant="secondary"
+                  size="sm"
+                  leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
                   onClick={() => void refresh()}
                 >
-                  <RefreshCw className="size-4" /> Coba lagi
-                </button>
+                  Coba lagi
+                </Button>
               </div>
             )}
             {status === 'ready' && items.length === 0 && (

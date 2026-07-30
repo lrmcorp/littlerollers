@@ -2,20 +2,47 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ApplicationRole, RoleCatalogItem, UserSummary } from '../../identity-client';
+import { Button } from '../../components/actions';
+import { DestructiveDialog, Modal, useOptionalAppFeedback } from '../../components/app-feedback';
+import { FormSection } from '../../components/admin/admin-ui';
+import { Textarea, TextInput } from '../../components/forms';
 import {
-  Button,
-  DestructiveActionDialog,
-  Dialog,
-  FormSection,
-} from '../../components/admin/admin-ui';
-import {
-  inputClass,
   RoleSelection,
   rolesFromSelection,
   roleSummary,
   selectionFromRoles,
   type RoleSelectionValue,
 } from '../user-admin-controls';
+
+function useDialogFormGuard(open: boolean, onClose: () => void, subject: string) {
+  const feedback = useOptionalAppFeedback();
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (open) setDirty(false);
+  }, [open]);
+  const confirmDiscard = () =>
+    feedback?.confirm({
+      tone: 'warning',
+      title: `Batalkan ${subject}?`,
+      message: 'Perubahan yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    }) ?? Promise.resolve(true);
+  return {
+    dirty,
+    setDirty,
+    confirmDiscard,
+    closeImmediately() {
+      setDirty(false);
+      onClose();
+    },
+    async cancel() {
+      if (!dirty || (await confirmDiscard())) {
+        setDirty(false);
+        onClose();
+      }
+    },
+  };
+}
 
 export function ProfileDialog({
   open,
@@ -30,15 +57,36 @@ export function ProfileDialog({
   onClose(): void;
   onSubmit(input: { displayName: string; phoneE164: string | null; reason: string }): Promise<void>;
 }) {
+  const guard = useDialogFormGuard(open, onClose, 'perubahan profil');
   return (
-    <Dialog
+    <Modal
       open={open}
       title="Edit profil staf"
       description="Perubahan profil dicatat dalam audit dan menggunakan versi data terbaru."
-      onClose={onClose}
+      busy={submitting}
+      dirty={guard.dirty}
+      onDirtyClose={guard.confirmDiscard}
+      onClose={guard.closeImmediately}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={submitting}
+            onClick={() => void guard.cancel()}
+          >
+            Batal
+          </Button>
+          <Button type="submit" form="staff-profile-form" loading={submitting}>
+            Simpan profil
+          </Button>
+        </div>
+      }
     >
       <form
+        id="staff-profile-form"
         className="grid gap-4"
+        onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -50,41 +98,24 @@ export function ProfileDialog({
         }}
       >
         <FormSection title="Informasi profil">
-          <label className="text-sm font-bold">
-            Nama tampilan
-            <input
-              className={inputClass}
-              name="displayName"
-              defaultValue={user.displayName}
-              minLength={2}
-              maxLength={160}
-              required
-            />
-          </label>
-          <label className="text-sm font-bold">
-            Nomor WhatsApp
-            <input
-              className={inputClass}
-              name="phoneE164"
-              type="tel"
-              defaultValue={user.phoneE164 ?? ''}
-            />
-          </label>
+          <TextInput
+            label="Nama tampilan"
+            name="displayName"
+            defaultValue={user.displayName}
+            minLength={2}
+            maxLength={160}
+            required
+          />
+          <TextInput
+            label="Nomor WhatsApp"
+            name="phoneE164"
+            type="tel"
+            defaultValue={user.phoneE164 ?? ''}
+          />
         </FormSection>
-        <label className="text-sm font-bold">
-          Alasan perubahan
-          <textarea className={inputClass} name="reason" minLength={3} maxLength={500} required />
-        </label>
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Menyimpan…' : 'Simpan profil'}
-          </Button>
-        </div>
+        <Textarea label="Alasan perubahan" name="reason" minLength={3} maxLength={500} required />
       </form>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -108,6 +139,7 @@ export function RoleDialog({
     reason: string,
   ): Promise<void>;
 }) {
+  const guard = useDialogFormGuard(open, onClose, 'perubahan role');
   const [selection, setSelection] = useState<RoleSelectionValue>(() =>
     selectionFromRoles(user.directRoles),
   );
@@ -122,14 +154,34 @@ export function RoleDialog({
         catalog.find(({ role }) => role === item.role)?.scope === 'BRANCH' && !item.branchId,
     );
   return (
-    <Dialog
+    <Modal
       open={open}
       title="Kelola role dan scope"
       description="Role dari Assignment tidak diubah dari dialog ini."
-      onClose={onClose}
+      busy={submitting}
+      dirty={guard.dirty}
+      onDirtyClose={guard.confirmDiscard}
+      onClose={guard.closeImmediately}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={submitting}
+            onClick={() => void guard.cancel()}
+          >
+            Batal
+          </Button>
+          <Button type="submit" form="staff-role-form" loading={submitting} disabled={invalid}>
+            Simpan role dan cabut sesi
+          </Button>
+        </div>
+      }
     >
       <form
+        id="staff-role-form"
         className="grid gap-4"
+        onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
           void onSubmit(roles, String(new FormData(event.currentTarget).get('reason')));
@@ -139,25 +191,17 @@ export function RoleDialog({
           catalog={catalog}
           branches={branches}
           value={selection}
-          onChange={setSelection}
+          onChange={(value) => {
+            setSelection(value);
+            guard.setDirty(true);
+          }}
         />
-        <label className="text-sm font-bold">
-          Alasan perubahan
-          <textarea className={inputClass} name="reason" minLength={3} maxLength={500} required />
-        </label>
+        <Textarea label="Alasan perubahan" name="reason" minLength={3} maxLength={500} required />
         <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning">
           Hak akses berubah segera dan seluruh sesi pengguna akan dicabut.
         </div>
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={invalid || submitting}>
-            {submitting ? 'Menyimpan…' : 'Simpan role dan cabut sesi'}
-          </Button>
-        </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -172,39 +216,46 @@ export function PasswordDialog({
   onClose(): void;
   onSubmit(email: string, reason: string): Promise<void>;
 }) {
+  const guard = useDialogFormGuard(open, onClose, 'setup password');
   return (
-    <Dialog
+    <Modal
       open={open}
       title="Kirim setup password"
       description="Tautan aman dikirim ke email terverifikasi dan tidak ditampilkan kembali."
-      onClose={onClose}
+      busy={submitting}
+      dirty={guard.dirty}
+      onDirtyClose={guard.confirmDiscard}
+      onClose={guard.closeImmediately}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={submitting}
+            onClick={() => void guard.cancel()}
+          >
+            Batal
+          </Button>
+          <Button type="submit" form="staff-password-form" loading={submitting}>
+            Kirim tautan setup
+          </Button>
+        </div>
+      }
     >
       <form
+        id="staff-password-form"
         className="grid gap-4"
+        onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           void onSubmit(String(data.get('email')), String(data.get('reason')));
         }}
       >
-        <label className="text-sm font-bold">
-          Email terverifikasi
-          <input className={inputClass} name="email" type="email" required />
-        </label>
-        <label className="text-sm font-bold">
-          Alasan
-          <input className={inputClass} name="reason" minLength={3} maxLength={500} required />
-        </label>
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Mengirim…' : 'Kirim tautan setup'}
-          </Button>
-        </div>
+        <TextInput label="Email terverifikasi" name="email" type="email" required />
+        <TextInput label="Alasan" name="reason" minLength={3} maxLength={500} required />
       </form>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -222,8 +273,9 @@ export function StatusDialog({
   onSubmit(reason: string): Promise<void>;
 }) {
   const deactivate = user.status === 'ACTIVE';
+  const guard = useDialogFormGuard(open, onClose, 'perubahan status pengguna');
   return (
-    <DestructiveActionDialog
+    <DestructiveDialog
       open={open}
       title={deactivate ? 'Nonaktifkan pengguna' : 'Aktifkan kembali pengguna'}
       impact={
@@ -232,33 +284,49 @@ export function StatusDialog({
           : 'Pengguna dapat login kembali menggunakan role efektif yang masih tersedia.'
       }
       scope={roleSummary(user.roles).join(', ') || 'Tanpa role'}
-      onClose={onClose}
+      busy={submitting}
+      dirty={guard.dirty}
+      onDirtyClose={guard.confirmDiscard}
+      onClose={guard.closeImmediately}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={submitting}
+            onClick={() => void guard.cancel()}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            form="staff-status-form"
+            variant={deactivate ? 'danger' : 'primary'}
+            loading={submitting}
+          >
+            {deactivate ? 'Konfirmasi nonaktifkan' : 'Konfirmasi aktifkan'}
+          </Button>
+        </div>
+      }
     >
       <form
+        id="staff-status-form"
         className="grid gap-4"
+        onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
           void onSubmit(String(new FormData(event.currentTarget).get('reason')));
         }}
       >
-        <label className="text-sm font-bold">
-          Alasan {deactivate ? 'deaktivasi' : 'reaktivasi'}
-          <textarea className={inputClass} name="reason" minLength={3} maxLength={500} required />
-        </label>
+        <Textarea
+          label={`Alasan ${deactivate ? 'deaktivasi' : 'reaktivasi'}`}
+          name="reason"
+          minLength={3}
+          maxLength={500}
+          required
+        />
         <p className="text-xs text-dd-muted">Expected version: v{user.version}</p>
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" variant={deactivate ? 'danger' : 'primary'} disabled={submitting}>
-            {submitting
-              ? 'Memproses…'
-              : deactivate
-                ? 'Konfirmasi nonaktifkan'
-                : 'Konfirmasi aktifkan'}
-          </Button>
-        </div>
       </form>
-    </DestructiveActionDialog>
+    </DestructiveDialog>
   );
 }

@@ -4,6 +4,9 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/audit_branch_projection.dart';
+import 'package:openapi/src/model/audit_target_projection.dart';
+import 'package:openapi/src/model/audit_actor_projection.dart';
 import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -19,6 +22,9 @@ part 'audit_log.g.dart';
 /// * [actorId] 
 /// * [branchId] 
 /// * [targetUserId] 
+/// * [actor] 
+/// * [target] 
+/// * [branch] 
 /// * [action] 
 /// * [objectType] 
 /// * [objectId] 
@@ -45,6 +51,15 @@ abstract class AuditLog implements Built<AuditLog, AuditLogBuilder> {
 
   @BuiltValueField(wireName: r'targetUserId')
   String? get targetUserId;
+
+  @BuiltValueField(wireName: r'actor')
+  AuditActorProjection? get actor;
+
+  @BuiltValueField(wireName: r'target')
+  AuditTargetProjection? get target;
+
+  @BuiltValueField(wireName: r'branch')
+  AuditBranchProjection? get branch;
 
   @BuiltValueField(wireName: r'action')
   String get action;
@@ -121,6 +136,27 @@ class _$AuditLogSerializer implements PrimitiveSerializer<AuditLog> {
       yield serializers.serialize(
         object.targetUserId,
         specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.actor != null) {
+      yield r'actor';
+      yield serializers.serialize(
+        object.actor,
+        specifiedType: const FullType.nullable(AuditActorProjection),
+      );
+    }
+    if (object.target != null) {
+      yield r'target';
+      yield serializers.serialize(
+        object.target,
+        specifiedType: const FullType.nullable(AuditTargetProjection),
+      );
+    }
+    if (object.branch != null) {
+      yield r'branch';
+      yield serializers.serialize(
+        object.branch,
+        specifiedType: const FullType.nullable(AuditBranchProjection),
       );
     }
     yield r'action';
@@ -224,6 +260,30 @@ class _$AuditLogSerializer implements PrimitiveSerializer<AuditLog> {
           ) as String?;
           if (valueDes == null) continue;
           result.targetUserId = valueDes;
+          break;
+        case r'actor':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(AuditActorProjection),
+          ) as AuditActorProjection?;
+          if (valueDes == null) continue;
+          result.actor.replace(valueDes);
+          break;
+        case r'target':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(AuditTargetProjection),
+          ) as AuditTargetProjection?;
+          if (valueDes == null) continue;
+          result.target.replace(valueDes);
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(AuditBranchProjection),
+          ) as AuditBranchProjection?;
+          if (valueDes == null) continue;
+          result.branch.replace(valueDes);
           break;
         case r'action':
           final valueDes = serializers.deserialize(

@@ -52,6 +52,16 @@ void main() {
       // TODO
     });
 
+    // String effectiveState
+    test('to test the property `effectiveState`', () async {
+      // TODO
+    });
+
+    // bool livePromotion
+    test('to test the property `livePromotion`', () async {
+      // TODO
+    });
+
     // Date effectiveFrom
     test('to test the property `effectiveFrom`', () async {
       // TODO
@@ -69,6 +79,16 @@ void main() {
 
     // BuiltList<PackagePromotion> promotions
     test('to test the property `promotions`', () async {
+      // TODO
+    });
+
+    // BuiltList<Package> revisions
+    test('to test the property `revisions`', () async {
+      // TODO
+    });
+
+    // BuiltList<SafeAuditActivity> auditActivity
+    test('to test the property `auditActivity`', () async {
       // TODO
     });
 

@@ -22,5 +22,15 @@ void main() {
       // TODO
     });
 
+    // String supportWhatsappE164
+    test('to test the property `supportWhatsappE164`', () async {
+      // TODO
+    });
+
+    // String reason
+    test('to test the property `reason`', () async {
+      // TODO
+    });
+
   });
 }

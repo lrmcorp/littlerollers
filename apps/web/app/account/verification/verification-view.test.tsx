@@ -135,7 +135,7 @@ describe('customer verification view', () => {
     await user.upload(screen.getByLabelText('Pilih foto pengganti'), file);
     const submit = screen.getByRole('button', { name: 'Kirim dokumen pengganti' });
     expect(submit).toBeEnabled();
-    fireEvent.submit(submit.closest('form')!);
+    fireEvent.submit(document.getElementById('identity-replacement-form')!);
     await waitFor(() =>
       expect(verificationClient.replace).toHaveBeenCalledWith('SELFIE', {
         file,

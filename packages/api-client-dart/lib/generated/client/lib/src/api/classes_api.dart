@@ -17,6 +17,7 @@ import 'package:openapi/src/model/class_slot.dart';
 import 'package:openapi/src/model/class_slot_cancellation_command.dart';
 import 'package:openapi/src/model/class_slot_command.dart';
 import 'package:openapi/src/model/class_slot_page.dart';
+import 'package:openapi/src/model/class_slot_update_command.dart';
 import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/public_class_catalog.dart';
@@ -1043,6 +1044,112 @@ class ClassesApi {
     try {
       const _type = FullType(ActionCommand);
       _bodyData = _serializers.serialize(actionCommand, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    ClassSlot? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(ClassSlot),
+      ) as ClassSlot;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ClassSlot>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// updateDraftClassSlot
+  /// Updates a DRAFT slot and re-snapshots effective capacity. Published or confirmed slots must be cancelled and recreated.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [idempotencyKey] 
+  /// * [classSlotUpdateCommand] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [ClassSlot] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<ClassSlot>> updateDraftClassSlot({ 
+    required String id,
+    required String idempotencyKey,
+    required ClassSlotUpdateCommand classSlotUpdateCommand,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/class-slots/{id}'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'PATCH',
+      headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(ClassSlotUpdateCommand);
+      _bodyData = _serializers.serialize(classSlotUpdateCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

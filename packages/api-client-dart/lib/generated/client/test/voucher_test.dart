@@ -97,6 +97,11 @@ void main() {
       // TODO
     });
 
+    // BuiltList<SafeAuditActivity> auditActivity
+    test('to test the property `auditActivity`', () async {
+      // TODO
+    });
+
     // int version
     test('to test the property `version`', () async {
       // TODO

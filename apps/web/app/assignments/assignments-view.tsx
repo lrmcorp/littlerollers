@@ -15,21 +15,25 @@ import {
 } from '../assignment-client';
 import { PageHeader } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
+import { Button } from '../components/actions';
+import { DestructiveDialog, Drawer, useOptionalAppFeedback } from '../components/app-feedback';
 import {
-  Button,
   DataTable,
-  DestructiveActionDialog,
-  DetailDrawer,
   FilterBar,
   Pagination,
   Panel,
-  SearchableLookup,
   StatCard,
   Badge,
   AdminPageState,
 } from '../components/admin/admin-ui';
-import { DateInput, SearchInput, SelectInput, Textarea, TextInput } from '../components/forms';
-import { useOptionalAppFeedback } from '../components/app-feedback';
+import {
+  AsyncSearchSelect,
+  DateInput,
+  SearchInput,
+  SelectInput,
+  Textarea,
+  TextInput,
+} from '../components/forms';
 
 const emptySummary: AssignmentManagementSummary = { total: 0, active: 0, ended: 0 };
 
@@ -69,9 +73,7 @@ export function AssignmentsView({
       sessionContext.hasCapability('assignment:manage'));
   const canRead =
     access?.canRead ??
-    (!sessionContext ||
-      (sessionContext.status === 'authenticated' &&
-        sessionContext.hasCapability('assignment:read')));
+    (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('assignment:read'));
   const [items, setItems] = useState<AssignmentManagementItem[]>([]);
   const [summary, setSummary] = useState(emptySummary);
   const [filters, setFilters] = useState<Omit<AssignmentFilters, 'branchId' | 'cursor'>>({});
@@ -148,8 +150,8 @@ export function AssignmentsView({
         header: 'Periode',
         cell: (item: AssignmentManagementItem) => (
           <span className="whitespace-nowrap">
-            {formatDate(item.activeFrom)} –{' '}
-            {item.activeUntil ? formatDate(item.activeUntil) : 'Tanpa akhir'}
+            {formatAssignmentDate(item.activeFrom)} –{' '}
+            {item.activeUntil ? formatAssignmentDate(item.activeUntil) : 'Tanpa akhir'}
           </span>
         ),
       },
@@ -170,7 +172,7 @@ export function AssignmentsView({
           item.status === 'ACTIVE' && canManage ? (
             <Button
               type="button"
-              variant="quiet"
+              variant="ghost"
               onClick={(event) => {
                 event.stopPropagation();
                 setEnding(item);
@@ -207,20 +209,22 @@ export function AssignmentsView({
             <Button
               type="button"
               variant="secondary"
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
               onClick={() => void load()}
               disabled={loading}
             >
-              <RefreshCw className="size-4" /> Segarkan
+              Segarkan
             </Button>
             <Button
               type="button"
+              leadingIcon={<Plus className="size-4" aria-hidden="true" />}
               onClick={() => setCreateOpen(true)}
               disabled={!canManage || !branchId}
               title={
                 !branchId ? 'Pilih cabang aktif di topbar untuk membuat assignment' : undefined
               }
             >
-              <Plus className="size-4" /> Buat assignment
+              Buat assignment
             </Button>
           </>
         }
@@ -278,7 +282,7 @@ export function AssignmentsView({
           <option value="ENDED">Berakhir</option>
         </SelectInput>
         {(filters.q || filters.type || filters.status) && (
-          <Button type="button" variant="quiet" onClick={() => resetPage({})}>
+          <Button type="button" variant="ghost" onClick={() => resetPage({})}>
             Reset filter
           </Button>
         )}
@@ -319,8 +323,8 @@ export function AssignmentsView({
                   </span>
                   <span>
                     <span className="block text-xs text-dd-muted">Periode</span>
-                    {formatDate(item.activeFrom)} –{' '}
-                    {item.activeUntil ? formatDate(item.activeUntil) : 'Tanpa akhir'}
+                    {formatAssignmentDate(item.activeFrom)} –{' '}
+                    {item.activeUntil ? formatAssignmentDate(item.activeUntil) : 'Tanpa akhir'}
                   </span>
                 </div>
                 {item.status === 'ACTIVE' && canManage && (
@@ -415,6 +419,23 @@ function CreateAssignmentDrawer({
   onFailure(value: AssignmentFailure): void;
 }) {
   const feedback = useOptionalAppFeedback();
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const hasChanges = dirty || Boolean(selectedUser);
+  const confirmDiscard = () =>
+    feedback?.confirm({
+      tone: 'warning',
+      title: 'Batalkan assignment?',
+      message: 'Pengguna dan periode yang dipilih akan dikosongkan.',
+      confirmLabel: 'Buang input',
+    }) ?? Promise.resolve(true);
+  const cancel = async () => {
+    if (!hasChanges || (await confirmDiscard())) {
+      setDirty(false);
+      onSelectedUser(undefined);
+      onClose();
+    }
+  };
   const lookup = useCallback(
     async (query: string) =>
       (await client.listUsers(branchId, query)).map((user) => ({
@@ -425,9 +446,38 @@ function CreateAssignmentDrawer({
     [branchId, client],
   );
   return (
-    <DetailDrawer open={open} title="Buat assignment" onClose={onClose}>
+    <Drawer
+      open={open}
+      title="Buat assignment"
+      busy={busy}
+      dirty={hasChanges}
+      onDirtyClose={confirmDiscard}
+      onClose={() => {
+        setDirty(false);
+        onSelectedUser(undefined);
+        onClose();
+      }}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => void cancel()}>
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            form="assignment-create-form"
+            loading={busy}
+            leadingIcon={<UserRoundCheck className="size-4" aria-hidden="true" />}
+            disabled={!selectedUser || !branchId}
+          >
+            Buat assignment
+          </Button>
+        </div>
+      }
+    >
       <form
+        id="assignment-create-form"
         className="grid gap-4"
+        onChange={() => setDirty(true)}
         onSubmit={async (event) => {
           event.preventDefault();
           if (!selectedUser || !branchId) return;
@@ -440,6 +490,7 @@ function CreateAssignmentDrawer({
               confirmLabel: 'Buat assignment',
             })) ?? true;
           if (!confirmed) return;
+          setBusy(true);
           try {
             await client.create({
               userId: selectedUser.id,
@@ -449,20 +500,25 @@ function CreateAssignmentDrawer({
               activeUntil: String(data.get('activeUntil')) || null,
               reason: String(data.get('reason')),
             });
+            setDirty(false);
+            onSelectedUser(undefined);
             await onCreated();
           } catch (error) {
             onFailure(assignmentFailure(error));
+          } finally {
+            setBusy(false);
           }
         }}
       >
         <Panel className="bg-dd-surface-muted p-4 text-sm text-dd-muted">
           Scope cabang: <strong className="text-dd-ink">{branchName}</strong>
         </Panel>
-        <SearchableLookup
+        <AsyncSearchSelect
           label="Pengguna"
-          value={selectedUser}
-          load={lookup}
-          onChange={onSelectedUser}
+          value={selectedUser?.id ?? ''}
+          selectedOption={selectedUser}
+          loadOptions={lookup}
+          onChange={(_id, option) => onSelectedUser(option)}
           placeholder="Ketik minimal 2 karakter"
         />
         <SelectInput label="Tipe assignment" name="assignmentType" defaultValue="INSTRUCTOR">
@@ -476,16 +532,8 @@ function CreateAssignmentDrawer({
           name="activeUntil"
         />
         <Textarea label="Alasan" name="reason" minLength={3} maxLength={500} required />
-        <div className="flex justify-end gap-3 border-t border-dd-line pt-4">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" disabled={!selectedUser || !branchId}>
-            <UserRoundCheck className="size-4" /> Buat assignment
-          </Button>
-        </div>
       </form>
-    </DetailDrawer>
+    </Drawer>
   );
 }
 
@@ -504,16 +552,49 @@ function EndAssignmentDialog({
   onEnded(): Promise<void>;
   onFailure(value: AssignmentFailure): void;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const confirmDiscard = () =>
+    feedback?.confirm({
+      tone: 'warning',
+      title: 'Batalkan akhir assignment?',
+      message: 'Waktu efektif dan alasan yang belum diproses akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    }) ?? Promise.resolve(true);
+  const cancel = async () => {
+    if (!dirty || (await confirmDiscard())) {
+      setDirty(false);
+      onClose();
+    }
+  };
   return (
-    <DestructiveActionDialog
+    <DestructiveDialog
       open={Boolean(item)}
       title="Akhiri assignment"
       impact={`Akses ${item ? typeLabel[item.assignmentType] : ''} berhenti pada awal tanggal efektif.`}
       scope={item?.branch.name}
-      onClose={onClose}
+      busy={busy}
+      dirty={dirty}
+      onDirtyClose={confirmDiscard}
+      onClose={() => {
+        setDirty(false);
+        onClose();
+      }}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => void cancel()}>
+            Batal
+          </Button>
+          <Button type="submit" form="assignment-end-form" variant="danger" loading={busy}>
+            Akhiri assignment
+          </Button>
+        </div>
+      }
     >
       <form
+        id="assignment-end-form"
         className="grid gap-4"
+        onChange={() => setDirty(true)}
         onSubmit={async (event) => {
           event.preventDefault();
           if (!item) return;
@@ -526,6 +607,7 @@ function EndAssignmentDialog({
               confirmLabel: 'Akhiri assignment',
             })) ?? true;
           if (!confirmed) return;
+          setBusy(true);
           try {
             await client.end(
               item.id,
@@ -533,29 +615,25 @@ function EndAssignmentDialog({
               item.version,
               String(data.get('reason')),
             );
+            setDirty(false);
             await onEnded();
           } catch (error) {
             onFailure(assignmentFailure(error));
+          } finally {
+            setBusy(false);
           }
         }}
       >
         <TextInput label="Efektif berakhir" name="effectiveAt" type="datetime-local" required />
         <Textarea label="Alasan" name="reason" minLength={3} maxLength={500} required />
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" variant="danger">
-            Akhiri assignment
-          </Button>
-        </div>
       </form>
-    </DestructiveActionDialog>
+    </DestructiveDialog>
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' }).format(
-    new Date(`${value}T00:00:00Z`),
-  );
+export function formatAssignmentDate(value?: string | null) {
+  if (!value) return 'Tanggal tidak tersedia';
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/u.test(value) ? `${value}T00:00:00Z` : value);
+  if (Number.isNaN(date.getTime())) return 'Tanggal tidak tersedia';
+  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
 }

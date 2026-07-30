@@ -1,4 +1,4 @@
-import { PolicyService } from './policy.service';
+import { PolicyService, ROLE_CAPABILITIES } from './policy.service';
 
 describe('PolicyService role catalog', () => {
   it('derives read-only metadata from mutation capabilities', () => {
@@ -7,6 +7,54 @@ describe('PolicyService role catalog', () => {
     expect(catalog.find(({ role }) => role === 'ADMIN')?.readOnly).toBe(false);
     expect(catalog.find(({ role }) => role === 'OWNER')?.readOnly).toBe(true);
     expect(catalog.find(({ role }) => role === 'CUSTOMER')?.readOnly).toBe(false);
+  });
+
+  it('keeps voucher and package promotion access explicit and duplicate-free', () => {
+    const superOwner = ROLE_CAPABILITIES.SUPER_OWNER;
+    expect(new Set(superOwner).size).toBe(superOwner.length);
+    expect(superOwner).toEqual(
+      expect.arrayContaining([
+        'voucher:read',
+        'voucher:manage',
+        'package-promotion:read',
+        'package-promotion:manage',
+      ]),
+    );
+    expect(ROLE_CAPABILITIES.OWNER).toEqual(
+      expect.arrayContaining(['voucher:read', 'package-promotion:read']),
+    );
+    expect(ROLE_CAPABILITIES.FINANCE).toContain('voucher:read');
+    expect(ROLE_CAPABILITIES.CUSTOMER).toContain('voucher:redeem');
+    for (const role of ['ADMIN', 'MANAGER', 'INSTRUCTOR', 'OPS'] as const) {
+      expect(ROLE_CAPABILITIES[role]).not.toContain('voucher:manage');
+      expect(ROLE_CAPABILITIES[role]).not.toContain('package-promotion:manage');
+    }
+  });
+
+  it('grants Super Owner the administrative matrix without customer or requester duties', () => {
+    const superOwner = ROLE_CAPABILITIES.SUPER_OWNER;
+    expect(superOwner).toEqual(
+      expect.arrayContaining([
+        'role-permission:manage',
+        'user:admin',
+        'branch:all',
+        'master:manage',
+        'voucher:manage',
+        'package-promotion:manage',
+        'payment-account:manage',
+        'payment:decide',
+        'finance:manage',
+        'ledger:adjust:decide',
+        'class-slot:manage',
+        'operations:recover',
+        'booking:create:assisted',
+        'attendance:manage',
+        'reschedule:decide',
+        'identity-verification:decide',
+      ]),
+    );
+    expect(superOwner).not.toContain('customer:self');
+    expect(superOwner).not.toContain('ledger:adjust:request');
   });
 
   it('keeps capability and branch bound together and applies matching deny first', () => {

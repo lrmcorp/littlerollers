@@ -26,6 +26,7 @@ part 'voucher_command.g.dart';
 /// * [branchId] 
 /// * [classTypeId] 
 /// * [packageIds] 
+/// * [reason] 
 @BuiltValue(instantiable: false)
 abstract class VoucherCommand  {
   @BuiltValueField(wireName: r'code')
@@ -69,7 +70,10 @@ abstract class VoucherCommand  {
   String? get classTypeId;
 
   @BuiltValueField(wireName: r'packageIds')
-  BuiltList<String>? get packageIds;
+  BuiltSet<String>? get packageIds;
+
+  @BuiltValueField(wireName: r'reason')
+  String get reason;
 
   @BuiltValueSerializer(custom: true)
   static Serializer<VoucherCommand> get serializer => _$VoucherCommandSerializer();
@@ -172,9 +176,14 @@ class _$VoucherCommandSerializer implements PrimitiveSerializer<VoucherCommand> 
       yield r'packageIds';
       yield serializers.serialize(
         object.packageIds,
-        specifiedType: const FullType(BuiltList, [FullType(String)]),
+        specifiedType: const FullType(BuiltSet, [FullType(String)]),
       );
     }
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
+      specifiedType: const FullType(String),
+    );
   }
 
   @override
@@ -336,9 +345,16 @@ class _$$VoucherCommandSerializer implements PrimitiveSerializer<$VoucherCommand
         case r'packageIds':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(String)]),
-          ) as BuiltList<String>;
+            specifiedType: const FullType(BuiltSet, [FullType(String)]),
+          ) as BuiltSet<String>;
           result.packageIds.replace(valueDes);
+          break;
+        case r'reason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reason = valueDes;
           break;
         default:
           unhandled.add(key);

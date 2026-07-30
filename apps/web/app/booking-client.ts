@@ -20,6 +20,8 @@ export type { Booking, ClassSlot, CustomerPackageBalance, Reschedule };
 export type BookingCustomer = {
   id: string;
   displayName: string;
+  phoneMasked?: string;
+  eligiblePackageCount?: number;
 };
 
 export type BookingDiscovery = {
@@ -324,20 +326,20 @@ export const browserBookingClient: BookingClient = {
     };
   },
   async discover(branchId) {
-    const [users, packages, published, confirmed] = await Promise.all([
-      identity.listUsers({ branchId }),
+    const [customerLookup, packages, published, confirmed] = await Promise.all([
+      identity.lookupCustomers({ branchId, limit: 50 }),
       ledger.listCustomerPackages({ branchId }),
       classes.listClassSlots({ branchId, status: 'PUBLISHED' }),
       classes.listClassSlots({ branchId, status: 'CONFIRMED' }),
     ]);
     const now = Date.now();
     return {
-      customers: users.items
-        .filter((user) => user.status === 'ACTIVE')
-        .map((user) => ({
-          id: user.id,
-          displayName: user.displayName || 'Pelanggan',
-        })),
+      customers: customerLookup.items.map((user) => ({
+        id: user.id,
+        displayName: user.label || 'Pelanggan',
+        phoneMasked: user.description,
+        eligiblePackageCount: user.metadata.eligiblePackageCount,
+      })),
       packages: packages.items.filter(
         (item) =>
           item.branchId === branchId &&

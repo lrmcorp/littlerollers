@@ -16,6 +16,7 @@ Method | HTTP request | Description
 [**createOrder**](PackagesApi.md#createorder) | **POST** /orders | 
 [**createPackage**](PackagesApi.md#createpackage) | **POST** /packages | 
 [**createPackagePromotion**](PackagesApi.md#createpackagepromotion) | **POST** /packages/{id}/promotions | 
+[**createPackageRevision**](PackagesApi.md#createpackagerevision) | **POST** /packages/{id}/revisions | 
 [**createPaymentProofUpload**](PackagesApi.md#createpaymentproofupload) | **POST** /uploads/payment-proofs | 
 [**createVoucher**](PackagesApi.md#createvoucher) | **POST** /vouchers | 
 [**finalizePaymentProofUpload**](PackagesApi.md#finalizepaymentproofupload) | **POST** /uploads/payment-proofs/{id}/finalize | 
@@ -38,8 +39,10 @@ Method | HTTP request | Description
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
+[**transitionPackage**](PackagesApi.md#transitionpackage) | **POST** /packages/{id}/{action} | 
 [**transitionPackagePromotion**](PackagesApi.md#transitionpackagepromotion) | **POST** /package-promotions/{id}/{action} | 
 [**transitionVoucher**](PackagesApi.md#transitionvoucher) | **POST** /vouchers/{id}/{action} | 
+[**updatePackage**](PackagesApi.md#updatepackage) | **PATCH** /packages/{id} | 
 [**updatePackagePromotion**](PackagesApi.md#updatepackagepromotion) | **PATCH** /package-promotions/{id} | 
 [**updateVoucher**](PackagesApi.md#updatevoucher) | **PATCH** /vouchers/{id} | 
 [**uploadPaymentProofContent**](PackagesApi.md#uploadpaymentproofcontent) | **PUT** /uploads/payment-proofs/{id}/content | 
@@ -268,7 +271,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createPackage**
-> Resource createPackage(packageCommand)
+> Package createPackage(idempotencyKey, packageCommand)
 
 
 
@@ -277,10 +280,11 @@ Name | Type | Description  | Notes
 import 'package:openapi/api.dart';
 
 final api = Openapi().getPackagesApi();
+final String idempotencyKey = idempotencyKey_example; // String | 
 final PackageCommand packageCommand = ; // PackageCommand | 
 
 try {
-    final response = api.createPackage(packageCommand);
+    final response = api.createPackage(idempotencyKey, packageCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->createPackage: $e\n');
@@ -291,11 +295,12 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **idempotencyKey** | **String**|  | 
  **packageCommand** | [**PackageCommand**](PackageCommand.md)|  | 
 
 ### Return type
 
-[**Resource**](Resource.md)
+[**Package**](Package.md)
 
 ### Authorization
 
@@ -304,7 +309,7 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -341,6 +346,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**PackagePromotion**](PackagePromotion.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createPackageRevision**
+> Package createPackageRevision(id, idempotencyKey, packageRevisionCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final PackageRevisionCommand packageRevisionCommand = ; // PackageRevisionCommand | 
+
+try {
+    final response = api.createPackageRevision(id, idempotencyKey, packageRevisionCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->createPackageRevision: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **packageRevisionCommand** | [**PackageRevisionCommand**](PackageRevisionCommand.md)|  | 
+
+### Return type
+
+[**Package**](Package.md)
 
 ### Authorization
 
@@ -874,7 +924,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listPackagePromotions**
-> ListPackagePromotions200Response listPackagePromotions(id)
+> PackagePromotionPage listPackagePromotions(id, cursor, limit)
 
 
 
@@ -884,9 +934,11 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getPackagesApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listPackagePromotions(id);
+    final response = api.listPackagePromotions(id, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->listPackagePromotions: $e\n');
@@ -898,10 +950,12 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 
-[**ListPackagePromotions200Response**](ListPackagePromotions200Response.md)
+[**PackagePromotionPage**](PackagePromotionPage.md)
 
 ### Authorization
 
@@ -915,11 +969,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listPackages**
-> PackagePage listPackages(branchId, cursor)
+> PackagePage listPackages(branchId, classTypeId, q, status, effectiveState, from, until, cursor)
 
 
 
-Returns ACTIVE packages effective for the requested scoped branch. Commercial periods are half-open [effectiveFrom,effectiveUntil).
+Customers receive only active/effective packages. Authorized staff can filter the complete effective history.
 
 ### Example
 ```dart
@@ -927,10 +981,16 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getPackagesApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String classTypeId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String q = q_example; // String | 
+final String status = status_example; // String | 
+final String effectiveState = effectiveState_example; // String | 
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
 final String cursor = cursor_example; // String | 
 
 try {
-    final response = api.listPackages(branchId, cursor);
+    final response = api.listPackages(branchId, classTypeId, q, status, effectiveState, from, until, cursor);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling PackagesApi->listPackages: $e\n');
@@ -942,6 +1002,12 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **classTypeId** | **String**|  | [optional] 
+ **q** | **String**|  | [optional] 
+ **status** | **String**|  | [optional] 
+ **effectiveState** | **String**|  | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
  **cursor** | **String**|  | [optional] 
 
 ### Return type
@@ -1327,6 +1393,53 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **transitionPackage**
+> Package transitionPackage(id, action, idempotencyKey, body)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String action = action_example; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final ReasonedVersionCommand body = ; // ReasonedVersionCommand | 
+
+try {
+    final response = api.transitionPackage(id, action, idempotencyKey, body);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->transitionPackage: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **action** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **body** | **ReasonedVersionCommand**|  | 
+
+### Return type
+
+[**Package**](Package.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **transitionPackagePromotion**
 > PackagePromotion transitionPackagePromotion(id, action, idempotencyKey, reasonedVersionCommand)
 
@@ -1409,6 +1522,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Voucher**](Voucher.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updatePackage**
+> Package updatePackage(id, idempotencyKey, packageUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final PackageUpdateCommand packageUpdateCommand = ; // PackageUpdateCommand | 
+
+try {
+    final response = api.updatePackage(id, idempotencyKey, packageUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->updatePackage: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **packageUpdateCommand** | [**PackageUpdateCommand**](PackageUpdateCommand.md)|  | 
+
+### Return type
+
+[**Package**](Package.md)
 
 ### Authorization
 

@@ -1,7 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { AdminPageState, DataTable, DestructiveActionDialog, Pagination } from './admin-ui';
+import { DestructiveDialog } from '../app-feedback';
+import { AdminPageState, DataTable, Pagination } from './admin-ui';
 
 describe('admin UI primitives', () => {
   it('renders semantic desktop rows and mobile cards', async () => {
@@ -32,7 +33,7 @@ describe('admin UI primitives', () => {
       <main>
         <Pagination hasPrevious={false} hasNext onPrevious={previous} onNext={() => undefined} />
         <AdminPageState kind="stale" />
-        <DestructiveActionDialog
+        <DestructiveDialog
           open
           title="Batalkan kelas"
           impact="Booking aktif akan dibatalkan."
@@ -40,7 +41,7 @@ describe('admin UI primitives', () => {
           onClose={() => undefined}
         >
           <button>Konfirmasi</button>
-        </DestructiveActionDialog>
+        </DestructiveDialog>
       </main>,
     );
     expect(getByRole('button', { name: /sebelumnya/i })).toBeDisabled();

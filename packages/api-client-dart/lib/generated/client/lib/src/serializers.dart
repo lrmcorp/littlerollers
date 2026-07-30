@@ -40,10 +40,13 @@ import 'package:openapi/src/model/assignment_management_user.dart';
 import 'package:openapi/src/model/assignment_page.dart';
 import 'package:openapi/src/model/assignment_page_page.dart';
 import 'package:openapi/src/model/attach_order_proof_command.dart';
+import 'package:openapi/src/model/audit_actor_projection.dart';
+import 'package:openapi/src/model/audit_branch_projection.dart';
 import 'package:openapi/src/model/audit_export.dart';
 import 'package:openapi/src/model/audit_export_command.dart';
 import 'package:openapi/src/model/audit_log.dart';
 import 'package:openapi/src/model/audit_log_page.dart';
+import 'package:openapi/src/model/audit_target_projection.dart';
 import 'package:openapi/src/model/auth_security_status.dart';
 import 'package:openapi/src/model/authorize_identity_verification_view200_response.dart';
 import 'package:openapi/src/model/availability.dart';
@@ -59,13 +62,20 @@ import 'package:openapi/src/model/booking_management_summary.dart';
 import 'package:openapi/src/model/booking_page.dart';
 import 'package:openapi/src/model/booking_session_balance.dart';
 import 'package:openapi/src/model/branch.dart';
+import 'package:openapi/src/model/branch_audit_activity.dart';
 import 'package:openapi/src/model/branch_command.dart';
+import 'package:openapi/src/model/branch_dependency_summary.dart';
+import 'package:openapi/src/model/branch_management_detail.dart';
+import 'package:openapi/src/model/branch_management_summary.dart';
 import 'package:openapi/src/model/branch_page.dart';
 import 'package:openapi/src/model/branch_period.dart';
 import 'package:openapi/src/model/branch_period_page.dart';
+import 'package:openapi/src/model/branch_public_profile_summary.dart';
+import 'package:openapi/src/model/branch_update_command.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_item.dart';
 import 'package:openapi/src/model/bulk_customer_check_in_link_result.dart';
+import 'package:openapi/src/model/cancel_booking_command.dart';
 import 'package:openapi/src/model/capability_definition.dart';
 import 'package:openapi/src/model/capability_definition_page.dart';
 import 'package:openapi/src/model/challenge_accepted.dart';
@@ -82,10 +92,12 @@ import 'package:openapi/src/model/class_slot.dart';
 import 'package:openapi/src/model/class_slot_cancellation_command.dart';
 import 'package:openapi/src/model/class_slot_command.dart';
 import 'package:openapi/src/model/class_slot_page.dart';
+import 'package:openapi/src/model/class_slot_update_command.dart';
 import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/class_type.dart';
 import 'package:openapi/src/model/class_type_command.dart';
 import 'package:openapi/src/model/class_type_page.dart';
+import 'package:openapi/src/model/class_type_update_command.dart';
 import 'package:openapi/src/model/close_month_request.dart';
 import 'package:openapi/src/model/close_result.dart';
 import 'package:openapi/src/model/complete_class_command.dart';
@@ -98,6 +110,7 @@ import 'package:openapi/src/model/create_order_command.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
 import 'package:openapi/src/model/create_permission_override_command.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
+import 'package:openapi/src/model/customer_booking_cancellation_options.dart';
 import 'package:openapi/src/model/customer_booking_eligibility.dart';
 import 'package:openapi/src/model/customer_booking_options.dart';
 import 'package:openapi/src/model/customer_booking_package.dart';
@@ -112,6 +125,9 @@ import 'package:openapi/src/model/customer_dashboard_overview_packages_inner.dar
 import 'package:openapi/src/model/customer_dashboard_overview_upcoming_bookings_inner.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_verification.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_verification_documents_inner.dart';
+import 'package:openapi/src/model/customer_lookup_option.dart';
+import 'package:openapi/src/model/customer_lookup_option_metadata.dart';
+import 'package:openapi/src/model/customer_lookup_page.dart';
 import 'package:openapi/src/model/customer_order_activation.dart';
 import 'package:openapi/src/model/customer_order_summary.dart';
 import 'package:openapi/src/model/customer_order_timeline_item.dart';
@@ -172,7 +188,6 @@ import 'package:openapi/src/model/internal_package_detail.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
 import 'package:openapi/src/model/issue_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/ledger_entry.dart';
-import 'package:openapi/src/model/list_package_promotions200_response.dart';
 import 'package:openapi/src/model/list_payment_accounts200_response.dart';
 import 'package:openapi/src/model/lookup_option.dart';
 import 'package:openapi/src/model/lookup_option_metadata.dart';
@@ -209,12 +224,16 @@ import 'package:openapi/src/model/otp_verify_request.dart';
 import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
+import 'package:openapi/src/model/package_management_summary.dart';
 import 'package:openapi/src/model/package_page.dart';
 import 'package:openapi/src/model/package_promotion.dart';
 import 'package:openapi/src/model/package_promotion_command.dart';
 import 'package:openapi/src/model/package_promotion_order_page.dart';
 import 'package:openapi/src/model/package_promotion_order_page_items_inner.dart';
+import 'package:openapi/src/model/package_promotion_page.dart';
 import 'package:openapi/src/model/package_promotion_update_command.dart';
+import 'package:openapi/src/model/package_revision_command.dart';
+import 'package:openapi/src/model/package_update_command.dart';
 import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/page_page.dart';
 import 'package:openapi/src/model/password_change_command.dart';
@@ -224,6 +243,8 @@ import 'package:openapi/src/model/password_setup_request.dart';
 import 'package:openapi/src/model/password_token_command.dart';
 import 'package:openapi/src/model/payment_account.dart';
 import 'package:openapi/src/model/payment_account_command.dart';
+import 'package:openapi/src/model/payment_account_detail.dart';
+import 'package:openapi/src/model/payment_account_detail_all_of_branch.dart';
 import 'package:openapi/src/model/payment_activation_result.dart';
 import 'package:openapi/src/model/payment_activation_summary.dart';
 import 'package:openapi/src/model/payment_proof.dart';
@@ -285,6 +306,7 @@ import 'package:openapi/src/model/revoke_sessions_command.dart';
 import 'package:openapi/src/model/role.dart';
 import 'package:openapi/src/model/role_catalog.dart';
 import 'package:openapi/src/model/role_catalog_item.dart';
+import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/session.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:openapi/src/model/session_adjustment_decision_command.dart';
@@ -354,10 +376,13 @@ part 'serializers.g.dart';
   AssignmentPage,
   AssignmentPagePage,
   AttachOrderProofCommand,
+  AuditActorProjection,
+  AuditBranchProjection,
   AuditExport,
   AuditExportCommand,
   AuditLog,
   AuditLogPage,
+  AuditTargetProjection,
   AuthSecurityStatus,
   AuthorizeIdentityVerificationView200Response,
   Availability,
@@ -372,14 +397,21 @@ part 'serializers.g.dart';
   BookingManagementSummary,
   BookingPage,
   BookingSessionBalance,
-  Branch,
+  Branch,$Branch,
+  BranchAuditActivity,
   BranchCommand,
+  BranchDependencySummary,
+  BranchManagementDetail,
+  BranchManagementSummary,
   BranchPage,
   BranchPeriod,
   BranchPeriodPage,
+  BranchPublicProfileSummary,
+  BranchUpdateCommand,
   BulkCustomerCheckInLinkCommand,
   BulkCustomerCheckInLinkItem,
   BulkCustomerCheckInLinkResult,
+  CancelBookingCommand,
   CapabilityDefinition,
   CapabilityDefinitionPage,
   ChallengeAccepted,
@@ -396,10 +428,12 @@ part 'serializers.g.dart';
   ClassSlotCancellationCommand,
   ClassSlotCommand,
   ClassSlotPage,
+  ClassSlotUpdateCommand,
   ClassSlotVersionCommand,
   ClassType,
   ClassTypeCommand,
   ClassTypePage,
+  ClassTypeUpdateCommand,
   CloseMonthRequest,
   CloseResult,
   CompleteClassCommand,
@@ -412,6 +446,7 @@ part 'serializers.g.dart';
   CreatePaymentProofUploadRequest,
   CreatePermissionOverrideCommand,
   CursorPageMeta,
+  CustomerBookingCancellationOptions,
   CustomerBookingEligibility,
   CustomerBookingOptions,
   CustomerBookingPackage,
@@ -426,6 +461,9 @@ part 'serializers.g.dart';
   CustomerDashboardOverviewUpcomingBookingsInner,
   CustomerDashboardOverviewVerification,
   CustomerDashboardOverviewVerificationDocumentsInner,
+  CustomerLookupOption,
+  CustomerLookupOptionMetadata,
+  CustomerLookupPage,
   CustomerOrderActivation,
   CustomerOrderSummary,
   CustomerOrderTimelineItem,
@@ -486,7 +524,6 @@ part 'serializers.g.dart';
   InviteUserRequest,
   IssueCustomerCheckInLinkCommand,
   LedgerEntry,
-  ListPackagePromotions200Response,
   ListPaymentAccounts200Response,
   LookupOption,
   LookupOptionMetadata,
@@ -523,12 +560,16 @@ part 'serializers.g.dart';
   Package,$Package,
   PackageCommand,
   PackageLedgerResult,
+  PackageManagementSummary,
   PackagePage,
   PackagePromotion,
   PackagePromotionCommand,$PackagePromotionCommand,
   PackagePromotionOrderPage,
   PackagePromotionOrderPageItemsInner,
+  PackagePromotionPage,
   PackagePromotionUpdateCommand,
+  PackageRevisionCommand,
+  PackageUpdateCommand,
   Page,
   PagePage,
   PasswordChangeCommand,
@@ -536,8 +577,10 @@ part 'serializers.g.dart';
   PasswordSessionRequest,
   PasswordSetupRequest,
   PasswordTokenCommand,
-  PaymentAccount,
+  PaymentAccount,$PaymentAccount,
   PaymentAccountCommand,
+  PaymentAccountDetail,
+  PaymentAccountDetailAllOfBranch,
   PaymentActivationResult,
   PaymentActivationSummary,
   PaymentProof,
@@ -599,6 +642,7 @@ part 'serializers.g.dart';
   Role,
   RoleCatalog,
   RoleCatalogItem,
+  SafeAuditActivity,
   Session,
   SessionAdjustment,
   SessionAdjustmentDecisionCommand,
@@ -641,10 +685,12 @@ part 'serializers.g.dart';
 ])
 Serializers serializers = (_$serializers.toBuilder()
       ..add(AccessReason.serializer)
+      ..add(Branch.serializer)
       ..add(CustomerRescheduleSlot.serializer)
       ..add(EffectivePeriod.serializer)
       ..add(Package.serializer)
       ..add(PackagePromotionCommand.serializer)
+      ..add(PaymentAccount.serializer)
       ..add(PublicBranch.serializer)
       ..add(PublicClassProfile.serializer)
       ..add(PublicPackageSummary.serializer)

@@ -238,6 +238,79 @@ export class UserAdministrationService {
     };
   }
 
+  async lookupCustomers(
+    principal: SessionPrincipal,
+    filters: {
+      q?: string;
+      branchId?: string;
+      cursor?: string;
+      limit?: number;
+    },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'booking:create:assisted');
+    const branchId = filters.branchId?.trim();
+    if (!branchId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (!principal.capabilities.includes('branch:all') && !principal.branchIds.includes(branchId))
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const limit = filters.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    const now = new Date();
+    const approvedIdentity = verificationWhere('APPROVED');
+    const users = await this.db.user.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(filters.q?.trim() ? { displayName: { contains: filters.q.trim() } } : {}),
+        ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
+        roles: {
+          some: {
+            ...this.activeRoleWhere(now),
+            role: 'CUSTOMER',
+          },
+        },
+        ...approvedIdentity,
+        customerPackages: {
+          some: {
+            branchId,
+            status: 'ACTIVE',
+            expiryAt: { gt: now },
+          },
+        },
+      },
+      select: {
+        id: true,
+        displayName: true,
+        phoneE164: true,
+        customerPackages: {
+          where: {
+            branchId,
+            status: 'ACTIVE',
+            expiryAt: { gt: now },
+          },
+          select: { id: true },
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: limit + 1,
+    });
+    const hasMore = users.length > limit;
+    const page = users.slice(0, limit);
+    return {
+      items: page.map((user) => ({
+        id: user.id,
+        label: user.displayName,
+        description: user.phoneE164 ? maskLookupPhone(user.phoneE164) : 'Nomor belum tersedia',
+        metadata: {
+          verificationStatus: 'APPROVED' as const,
+          eligiblePackageCount: user.customerPackages.length,
+          branchId,
+        },
+      })),
+      page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
+    };
+  }
+
   async getUser(principal: SessionPrincipal, targetId: string) {
     this.policy.requireCapability(principal.capabilities, 'user:read');
     const user = await this.db.user.findUnique({
@@ -798,8 +871,54 @@ export class UserAdministrationService {
     });
     const hasMore = items.length > 20;
     const page = items.slice(0, 20);
+    const userIds = [
+      ...new Set(
+        page
+          .flatMap((item) => [item.actorId, item.targetUserId])
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const branchIds = [
+      ...new Set(page.map((item) => item.branchId).filter((id): id is string => Boolean(id))),
+    ];
+    const [users, branches] = await Promise.all([
+      userIds.length
+        ? this.db.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, displayName: true },
+          })
+        : [],
+      branchIds.length
+        ? this.db.branch.findMany({
+            where: { id: { in: branchIds } },
+            select: { id: true, code: true, name: true },
+          })
+        : [],
+    ]);
+    const userLabels = new Map(users.map((user) => [user.id, user.displayName]));
+    const branchLabels = new Map(
+      branches.map((branch) => [branch.id, { code: branch.code, name: branch.name }]),
+    );
     return {
-      items: page,
+      items: page.map((item) => ({
+        ...item,
+        actor: item.actorId
+          ? { id: item.actorId, displayName: userLabels.get(item.actorId) ?? 'Pengguna sistem' }
+          : null,
+        target: item.targetUserId
+          ? {
+              id: item.targetUserId,
+              displayName: userLabels.get(item.targetUserId) ?? 'Pengguna tidak tersedia',
+            }
+          : null,
+        branch: item.branchId
+          ? {
+              id: item.branchId,
+              code: branchLabels.get(item.branchId)?.code ?? 'CABANG',
+              name: branchLabels.get(item.branchId)?.name ?? 'Cabang tidak tersedia',
+            }
+          : null,
+      })),
       page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
     };
   }
@@ -886,6 +1005,12 @@ function verificationWhere(status?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED') 
       { NOT: approved },
     ],
   };
+}
+
+function maskLookupPhone(value: string) {
+  const visible = value.replace(/\D/gu, '');
+  if (visible.length < 7) return 'Nomor tersedia';
+  return `${value.startsWith('+') ? '+' : ''}${visible.slice(0, 4)}••••${visible.slice(-3)}`;
 }
 
 function identityVerificationSummary(

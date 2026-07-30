@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
-import { resolve } from 'node:path';
 import { deflateSync } from 'node:zlib';
 import type { RuntimeConfigService } from '../../src/configuration/runtime-config.service';
-import { LocalPrivateFileStorage } from '../../src/identity/private-file-storage';
+import {
+  LocalPrivateFileStorage,
+  resolvePrivateUploadRoot,
+} from '../../src/identity/private-file-storage';
 
 function crc32(input: Buffer): number {
   let crc = 0xffffffff;
@@ -43,7 +45,7 @@ let storage: LocalPrivateFileStorage | undefined;
 
 async function seedStorage(): Promise<LocalPrivateFileStorage> {
   if (storage) return storage;
-  const root = resolve(
+  const root = resolvePrivateUploadRoot(
     process.env.PRIVATE_UPLOAD_ROOT?.trim() || 'apps/api/.local-data/private',
   );
   storage = new LocalPrivateFileStorage({
@@ -56,10 +58,21 @@ async function seedStorage(): Promise<LocalPrivateFileStorage> {
 export async function ensurePrivatePngFixture(objectKey: string) {
   const content = seedDemoPng();
   const privateFiles = await seedStorage();
-  if (!(await privateFiles.exists(objectKey)))
+  const expectedChecksum = createHash('sha256').update(content).digest('hex');
+  if (await privateFiles.exists(objectKey)) {
+    const stream = await privateFiles.read(objectKey);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const actualChecksum = createHash('sha256').update(Buffer.concat(chunks)).digest('hex');
+    if (actualChecksum !== expectedChecksum) {
+      await privateFiles.delete(objectKey);
+      await privateFiles.put({ key: objectKey, content });
+    }
+  } else {
     await privateFiles.put({ key: objectKey, content });
+  }
   return {
-    checksum: createHash('sha256').update(content).digest('hex'),
+    checksum: expectedChecksum,
     mimeType: 'image/png',
     sizeBytes: content.byteLength,
   };

@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { IconButton } from '../actions';
+import { useOverlayInteraction } from '../app-feedback';
 import { BrandMark } from '../public/brand-mark';
 import { useStudioPreference } from '../public/public-experience';
 
@@ -76,37 +77,7 @@ export function CustomerNavigation({
   const pathname = usePathname();
   const studioPreference = useStudioPreference();
   const panel = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const before = document.body.style.overflow;
-    const previousFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = 'hidden';
-    panel.current?.querySelector<HTMLElement>('a,button')?.focus();
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const items = panel.current?.querySelectorAll<HTMLElement>('a,button:not([disabled])');
-      if (!items?.length) return;
-      const first = items[0]!;
-      const last = items[items.length - 1]!;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('keydown', keydown);
-    return () => {
-      document.body.style.overflow = before;
-      window.removeEventListener('keydown', keydown);
-      previousFocus?.focus();
-    };
-  }, [onClose, open]);
+  useOverlayInteraction({ open, onClose, panelRef: panel });
 
   return (
     <>
@@ -124,7 +95,7 @@ export function CustomerNavigation({
         aria-label="Navigasi akun"
         aria-hidden={!open}
         inert={!open}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar p-5 text-white shadow-dd-float transition-transform lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar p-5 text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

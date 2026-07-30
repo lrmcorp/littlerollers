@@ -31,6 +31,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   let catalog: PackageCatalogService;
   let proofs: PaymentProofService;
   let reviews: PaymentReviewService;
+  let idempotency: IdempotencyService;
   let scanner: ConfigGatedMalwareScanProvider;
   let privateRoot: string;
   let runtime: {
@@ -85,7 +86,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       data: { id: classTypeId, branchId, code: 'REFORMER', name: 'Reformer' },
     });
     const policy = new PolicyService();
-    const idempotency = new IdempotencyService(db as never);
+    idempotency = new IdempotencyService(db as never);
     privateRoot = await mkdtemp(join(tmpdir(), 'dd-payment-proof-integration-'));
     runtime = {
       value: {
@@ -112,7 +113,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       access,
       new PackagePricingService(),
     );
-    catalog = new PackageCatalogService(db as never, access);
+    catalog = new PackageCatalogService(db as never, access, idempotency);
     proofs = new PaymentProofService(db as never, storage, scanner, access, runtime as never);
     reviews = new PaymentReviewService(db as never, idempotency, storage, access);
   });
@@ -156,7 +157,9 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         durationDays: 30,
         priceRp: 2000000,
         effectiveFrom: '2026-01-01',
+        reason: 'integration package',
       },
+      `${namespace}-package-key`,
       `${namespace}-package`,
     );
     const cleanBytes = pngBytes(2048);
@@ -469,10 +472,115 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
           durationDays: 2,
           priceRp: 2,
           effectiveFrom: '2026-02-01',
+          reason: 'overlap validation',
         },
+        `${namespace}-overlap-key`,
         `${namespace}-overlap`,
       ),
     ).rejects.toBeDefined();
+  });
+
+  it('updates future metadata and preserves effective history through revision lifecycle', async () => {
+    const created = await catalog.create(
+      principal,
+      {
+        branchId,
+        classTypeId,
+        businessKey: 'PKG-LIFECYCLE',
+        name: 'Lifecycle Package',
+        sessionCount: 4,
+        durationDays: 30,
+        priceRp: 800000,
+        effectiveFrom: '2030-01-01',
+        reason: 'create lifecycle fixture',
+      },
+      `${namespace}-lifecycle-create-key`,
+      `${namespace}-lifecycle-create`,
+    );
+    const updated = await catalog.update(
+      principal,
+      created.id,
+      {
+        name: 'Lifecycle Package Updated',
+        expectedVersion: created.version,
+        reason: 'correct package display name',
+      },
+      `${namespace}-lifecycle-update-key`,
+      `${namespace}-lifecycle-update`,
+    );
+    expect(updated).toMatchObject({
+      id: created.id,
+      name: 'Lifecycle Package Updated',
+      version: created.version + 1,
+    });
+
+    const revision = await catalog.revise(
+      principal,
+      updated.id,
+      {
+        name: 'Lifecycle Package 2031',
+        sessionCount: 6,
+        durationDays: 45,
+        priceRp: 1100000,
+        effectiveFrom: '2031-01-01',
+        expectedVersion: updated.version,
+        reason: 'scheduled commercial revision',
+      },
+      `${namespace}-lifecycle-revision-key`,
+      `${namespace}-lifecycle-revision`,
+    );
+    const previous = await db.package.findUniqueOrThrow({ where: { id: updated.id } });
+    expect(revision).toMatchObject({
+      businessKey: created.businessKey,
+      branchId,
+      classTypeId,
+      sessionCount: 6,
+      priceRp: 1100000,
+    });
+    expect(previous.effectiveUntil?.toISOString()).toBe('2031-01-01T00:00:00.000Z');
+
+    const deactivated = await catalog.transition(
+      principal,
+      revision.id,
+      'INACTIVE',
+      { expectedVersion: revision.version, reason: 'pause scheduled revision' },
+      `${namespace}-lifecycle-deactivate-key`,
+      `${namespace}-lifecycle-deactivate`,
+    );
+    const reactivated = await catalog.transition(
+      principal,
+      revision.id,
+      'ACTIVE',
+      { expectedVersion: deactivated.version, reason: 'restore scheduled revision' },
+      `${namespace}-lifecycle-reactivate-key`,
+      `${namespace}-lifecycle-reactivate`,
+    );
+    expect(reactivated.status).toBe('ACTIVE');
+    await expect(
+      catalog.transition(
+        principal,
+        revision.id,
+        'INACTIVE',
+        { expectedVersion: deactivated.version, reason: 'stale lifecycle request' },
+        `${namespace}-lifecycle-stale-key`,
+        `${namespace}-lifecycle-stale`,
+      ),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+    expect(
+      await db.auditLog.count({
+        where: {
+          correlationId: {
+            in: [
+              `${namespace}-lifecycle-create`,
+              `${namespace}-lifecycle-update`,
+              `${namespace}-lifecycle-revision`,
+              `${namespace}-lifecycle-deactivate`,
+              `${namespace}-lifecycle-reactivate`,
+            ],
+          },
+        },
+      }),
+    ).toBe(5);
   });
 
   it('keeps credentials and raw checksum out of audit evidence', async () => {

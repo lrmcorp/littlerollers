@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/branch.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/branch_management_summary.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -15,11 +16,15 @@ part 'branch_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [summary] 
 /// * [page] 
 @BuiltValue()
 abstract class BranchPage implements Built<BranchPage, BranchPageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<Branch> get items;
+
+  @BuiltValueField(wireName: r'summary')
+  BranchManagementSummary get summary;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -51,6 +56,11 @@ class _$BranchPageSerializer implements PrimitiveSerializer<BranchPage> {
     yield serializers.serialize(
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(Branch)]),
+    );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(BranchManagementSummary),
     );
     yield r'page';
     yield serializers.serialize(
@@ -86,6 +96,13 @@ class _$BranchPageSerializer implements PrimitiveSerializer<BranchPage> {
             specifiedType: const FullType(BuiltList, [FullType(Branch)]),
           ) as BuiltList<Branch>;
           result.items.replace(valueDes);
+          break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BranchManagementSummary),
+          ) as BranchManagementSummary;
+          result.summary.replace(valueDes);
           break;
         case r'page':
           final valueDes = serializers.deserialize(

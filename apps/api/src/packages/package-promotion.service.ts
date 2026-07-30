@@ -107,7 +107,12 @@ export class PackagePromotionService {
     } else this.requireRead(principal);
     const pkg = await this.db.package.findUnique({
       where: { id: packageId },
-      include: { branch: { select: { id: true, code: true, name: true } }, classType: true },
+      include: {
+        branch: { select: { id: true, code: true, name: true } },
+        classType: true,
+        publicProfile: true,
+        _count: { select: { purchases: true, customerPackages: true } },
+      },
     });
     if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (manage) this.requireManage(principal, pkg.branchId);
@@ -117,22 +122,66 @@ export class PackagePromotionService {
 
   async packageDetail(principal: SessionPrincipal, packageId: string) {
     const pkg = await this.packageOrThrow(principal, packageId);
-    const promotions = await this.db.packagePromotion.findMany({
-      where: { packageId },
-      include: { package: true, _count: { select: { purchases: true } } },
-      orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
-    });
-    return { ...pkg, promotions: promotions.map((item) => this.view(item)) };
+    const [promotions, revisions, auditActivity] = await Promise.all([
+      this.db.packagePromotion.findMany({
+        where: { packageId },
+        include: { package: true, _count: { select: { purchases: true } } },
+        orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+      }),
+      this.db.package.findMany({
+        where: {
+          branchId: pkg.branchId,
+          classTypeId: pkg.classTypeId,
+          businessKey: pkg.businessKey,
+        },
+        orderBy: [{ effectiveFrom: 'desc' }, { id: 'desc' }],
+        select: {
+          id: true,
+          name: true,
+          sessionCount: true,
+          durationDays: true,
+          priceRp: true,
+          status: true,
+          effectiveFrom: true,
+          effectiveUntil: true,
+          version: true,
+        },
+      }),
+      this.db.auditLog.findMany({
+        where: {
+          objectType: 'Package',
+          objectId: packageId,
+        },
+        orderBy: { occurredAt: 'desc' },
+        take: 20,
+        select: { id: true, action: true, occurredAt: true },
+      }),
+    ]);
+    return {
+      ...pkg,
+      promotions: promotions.map((item) => this.view(item)),
+      revisions,
+      auditActivity,
+    };
   }
 
-  async list(principal: SessionPrincipal, packageId: string) {
+  async list(principal: SessionPrincipal, packageId: string, cursor?: string, rawLimit?: string) {
     await this.packageOrThrow(principal, packageId);
-    const items = await this.db.packagePromotion.findMany({
+    const limit = Math.min(50, Math.max(1, Number(rawLimit ?? 20)));
+    if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const rows = await this.db.packagePromotion.findMany({
       where: { packageId },
       include: { package: true, _count: { select: { purchases: true } } },
       orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      take: limit + 1,
     });
-    return { items: items.map((item) => this.view(item)) };
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+    return {
+      items: items.map((item) => this.view(item)),
+      page: { hasMore, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
+    };
   }
 
   private async assertNoOverlap(

@@ -13,19 +13,12 @@ import {
   type CustomerPackageBalance,
   type ManagementReschedule,
 } from '../booking-client';
-import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
-import { DateInput, SearchInput, SelectInput } from '../components/forms';
-import {
-  Badge,
-  Button,
-  DataTable,
-  Drawer,
-  FilterBar,
-  Panel,
-  StatCard,
-  Tabs,
-} from '../components/admin/admin-ui';
+import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
+import { Button } from '../components/actions';
+import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { Badge, DataTable, FilterBar, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
 
 const newIntentKey = () => crypto.randomUUID();
 const shortId = (id: string) => id.slice(0, 8);
@@ -72,6 +65,7 @@ export function BookingView({
   const [contextBranchId] = useActiveBranchState();
   const branchId = activeBranchId ?? contextBranchId;
   const sessionContext = useSessionContext();
+  const feedback = useAppFeedback();
   const fixtureClient = client !== browserBookingClient;
   const injectedAccess =
     access ??
@@ -130,6 +124,7 @@ export function BookingView({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
+  const createDirty = Boolean(customerId || packageId || slotId);
   const [checkInIssues, setCheckInIssues] = useState<Record<string, CheckInIssue>>({});
   const intentKey = useRef(newIntentKey());
   const decisionKey = useRef(newIntentKey());
@@ -379,6 +374,13 @@ export function BookingView({
 
   const submit = async () => {
     if (!selectedPackage || !selectedSlot || !selectedCustomer) return;
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Buat booking manual?',
+      message: `${selectedCustomer.displayName} akan memperoleh satu reservasi pada kelas terpilih dan saldo tersedia berkurang satu sesi.`,
+      confirmLabel: 'Buat booking',
+    });
+    if (!accepted) return;
     setBusy(true);
     setFailure(undefined);
     setMessage(undefined);
@@ -399,11 +401,29 @@ export function BookingView({
           : 'Booking dibuat; satu sesi telah direservasi.',
       );
       intentKey.current = newIntentKey();
+      setCustomerId('');
+      setPackageId('');
+      setSlotId('');
       setCreateOpen(false);
     } catch (error) {
       setFailure(await bookingFailure(error));
     } finally {
       setBusy(false);
+    }
+  };
+  const confirmDiscardCreate = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan booking manual?',
+      message: 'Pilihan customer, paket, dan kelas akan dikosongkan.',
+      confirmLabel: 'Buang pilihan',
+    });
+  const closeCreate = async () => {
+    if (!createDirty || (await confirmDiscardCreate())) {
+      setCustomerId('');
+      setPackageId('');
+      setSlotId('');
+      setCreateOpen(false);
     }
   };
 
@@ -505,19 +525,21 @@ export function BookingView({
             <Button
               type="button"
               variant="secondary"
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
               disabled={busy || !canRead}
               onClick={() => void loadWorkspace()}
             >
-              <RefreshCw className="size-4" /> Segarkan
+              Segarkan
             </Button>
             {canCreate && (
               <Button
                 type="button"
+                leadingIcon={<Plus className="size-4" aria-hidden="true" />}
                 disabled={!branchId}
                 title={!branchId ? 'Pilih cabang dari topbar untuk membuat booking' : undefined}
                 onClick={() => setCreateOpen(true)}
               >
-                <Plus className="size-4" /> Buat booking manual
+                Buat booking manual
               </Button>
             )}
           </>
@@ -601,7 +623,7 @@ export function BookingView({
           />
           {(search || statusFilter || from || until) && (
             <Button
-              variant="quiet"
+              variant="ghost"
               onClick={() => {
                 setSearch('');
                 setStatusFilter('');
@@ -618,9 +640,40 @@ export function BookingView({
       <Drawer
         open={createOpen && canCreate && Boolean(branchId)}
         title="Buat booking manual"
-        onClose={() => setCreateOpen(false)}
+        description="Pilih customer, paket aktif, dan kelas dalam cabang operasional."
+        busy={busy}
+        dirty={createDirty}
+        onDirtyClose={confirmDiscardCreate}
+        onClose={() => {
+          setCustomerId('');
+          setPackageId('');
+          setSlotId('');
+          setCreateOpen(false);
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void closeCreate()}
+              disabled={busy}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="assisted-booking-form"
+              loading={busy}
+              disabled={!selectedPackage || !selectedSlot || !selectedCustomer}
+              leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+            >
+              Konfirmasi booking satu sesi
+            </Button>
+          </div>
+        }
       >
         <form
+          id="assisted-booking-form"
           className="grid gap-4"
           aria-label="Buat booking bantuan"
           onSubmit={(event) => {
@@ -633,65 +686,60 @@ export function BookingView({
             <strong>{sessionContext?.activeBranch?.name ?? 'aktif'}</strong>. Sistem memeriksa
             saldo, kapasitas, dan cutoff kembali saat konfirmasi.
           </p>
-          <SelectInput
+          <SearchSelect
             label="Pelanggan"
-            aria-label="Pelanggan"
             value={customerId}
             disabled={busy || customers.length === 0}
-            onChange={(event) => {
-              setCustomerId(event.target.value);
+            placeholder="Pilih pelanggan"
+            options={customers.map((customer) => ({
+              id: customer.id,
+              label: customer.displayName,
+              description:
+                customer.phoneMasked ??
+                `${customer.eligiblePackageCount ?? 0} paket dapat digunakan`,
+            }))}
+            onChange={(value) => {
+              setCustomerId(value);
               setPackageId('');
               setSlotId('');
               resetIntent();
             }}
-          >
-            <option value="">Pilih pelanggan</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.displayName}
-              </option>
-            ))}
-          </SelectInput>
-          <SelectInput
+          />
+          <SearchSelect
             label="Paket pelanggan"
-            aria-label="Paket pelanggan"
             value={packageId}
             disabled={busy || !customerId || customerPackages.length === 0}
-            onChange={(event) => {
-              setPackageId(event.target.value);
+            placeholder="Pilih paket aktif"
+            options={customerPackages.map((item) => ({
+              id: item.id,
+              label: `Paket aktif · ${item.available} sesi tersedia`,
+              description: `${item.reserved} sesi direservasi`,
+            }))}
+            onChange={(value) => {
+              setPackageId(value);
               setSlotId('');
               resetIntent();
             }}
-          >
-            <option value="">Pilih paket aktif</option>
-            {customerPackages.map((item) => (
-              <option key={item.id} value={item.id}>
-                Paket aktif · tersedia {item.available} sesi
-              </option>
-            ))}
-          </SelectInput>
-          <SelectInput
+          />
+          <SearchSelect
             label="Kelas"
-            aria-label="Kelas"
             value={slotId}
             disabled={busy || !packageId || eligibleSlots.length === 0}
-            onChange={(event) => {
-              setSlotId(event.target.value);
+            placeholder="Pilih jadwal kelas"
+            options={eligibleSlots.map((slot) => ({
+              id: slot.id,
+              label: new Intl.DateTimeFormat('id-ID', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: slot.timezone,
+              }).format(slot.startAt),
+              description: `${slot.bookedCount}/${slot.capacity} peserta`,
+            }))}
+            onChange={(value) => {
+              setSlotId(value);
               resetIntent();
             }}
-          >
-            <option value="">Pilih jadwal kelas</option>
-            {eligibleSlots.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {new Intl.DateTimeFormat('id-ID', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                  timeZone: slot.timezone,
-                }).format(slot.startAt)}{' '}
-                · {slot.bookedCount}/{slot.capacity}
-              </option>
-            ))}
-          </SelectInput>
+          />
           {customerId && customerPackages.length === 0 && (
             <Feedback kind="status">
               Pelanggan tidak memiliki paket aktif dengan saldo tersedia.
@@ -701,7 +749,11 @@ export function BookingView({
             <Feedback kind="status">Tidak ada kelas eligible untuk tipe paket ini.</Feedback>
           )}
           {selectedPackage && selectedSlot && selectedCustomer && (
-            <ConfirmationPanel title="Konsekuensi reservasi">
+            <Panel
+              className="border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+              aria-label="Konsekuensi reservasi"
+            >
+              <strong className="mb-1 block">Konsekuensi reservasi</strong>
               <strong>{selectedCustomer.displayName}</strong> akan memakai paket aktif untuk kelas
               pada{' '}
               {new Intl.DateTimeFormat('id-ID', {
@@ -713,14 +765,8 @@ export function BookingView({
               menjadi {selectedPackage.available - 1}; kapasitas menjadi{' '}
               {selectedSlot.bookedCount + 1}/{selectedSlot.capacity}. Tidak ada debit ledger pada
               tahap booking.
-            </ConfirmationPanel>
+            </Panel>
           )}
-          <Button
-            type="submit"
-            disabled={busy || !selectedPackage || !selectedSlot || !selectedCustomer}
-          >
-            <Plus className="size-4" /> Konfirmasi booking satu sesi
-          </Button>
         </form>
       </Drawer>
 
@@ -820,7 +866,11 @@ export function BookingView({
             </Button>
           )}
           {reviewId && (
-            <ConfirmationPanel title="Keputusan reschedule">
+            <Panel
+              className="grid gap-4 border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+              aria-label="Keputusan reschedule"
+            >
+              <strong>Keputusan reschedule</strong>
               Approval memindahkan reservation dari kelas sumber ke target secara atomik. Rejection
               mempertahankan reservation sumber dan tidak mengubah ledger.
               <SelectInput
@@ -851,7 +901,7 @@ export function BookingView({
               >
                 Tolak reschedule
               </Button>
-            </ConfirmationPanel>
+            </Panel>
           )}
         </section>
       )}
@@ -874,25 +924,24 @@ export function BookingView({
             </div>
           </div>
           <FilterBar>
-            <SelectInput
+            <SearchSelect
               label="Jadwal kelas"
               value={rosterSlotId}
-              onChange={(event) => setRosterSlotId(event.target.value)}
+              placeholder="Semua jadwal"
               wrapperClassName="min-w-56 flex-1"
-            >
-              <option value="">Semua jadwal</option>
-              {Array.from(
+              options={Array.from(
                 new Map(
                   items
                     .filter((item) => item.classSlot)
                     .map((item) => [item.classSlot!.id, item.classSlot!]),
                 ).values(),
-              ).map((slot) => (
-                <option key={slot.id} value={slot.id}>
-                  {slot.classType.name} · {formatBookingTime(slot.startAt, slot.timezone)}
-                </option>
-              ))}
-            </SelectInput>
+              ).map((slot) => ({
+                id: slot.id,
+                label: slot.classType.name,
+                description: formatBookingTime(slot.startAt, slot.timezone),
+              }))}
+              onChange={setRosterSlotId}
+            />
             <SelectInput
               label="Status roster"
               value={rosterStatus}
@@ -908,7 +957,7 @@ export function BookingView({
             {(search || rosterSlotId || rosterStatus) && (
               <Button
                 type="button"
-                variant="quiet"
+                variant="ghost"
                 onClick={() => {
                   setSearch('');
                   setRosterSlotId('');
@@ -1058,7 +1107,7 @@ export function BookingView({
                       branchId && (
                         <Button
                           type="button"
-                          variant="quiet"
+                          variant="ghost"
                           disabled={busy}
                           onClick={() => void revokeCheckIn(booking)}
                         >
@@ -1087,7 +1136,7 @@ export function BookingView({
                         </a>
                         <Button
                           type="button"
-                          variant="quiet"
+                          variant="ghost"
                           onClick={() =>
                             void navigator.clipboard.writeText(
                               checkInIssues[booking.id]?.passUrl ?? '',

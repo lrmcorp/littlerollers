@@ -268,6 +268,90 @@ export class ClassSlotService {
     );
   }
 
+  async update(
+    principal: SessionPrincipal,
+    id: string,
+    input: {
+      classTypeId: string;
+      instructorUserId?: string | null;
+      startAt: string;
+      endAt: string;
+      expectedVersion: number;
+      reason: string;
+    },
+    key: string,
+    correlationId: string,
+  ) {
+    this.manage(principal);
+    this.validateKey(key);
+    if (
+      !UUID.test(id) ||
+      !UUID.test(input.classTypeId) ||
+      (input.instructorUserId && !UUID.test(input.instructorUserId)) ||
+      !Number.isInteger(input.expectedVersion) ||
+      input.reason.trim().length < 3 ||
+      input.reason.trim().length > 500
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const startAt = instant(input.startAt);
+    const endAt = instant(input.endAt);
+    if (startAt >= endAt) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.execute(
+      principal,
+      `class-slot:update:${id}`,
+      key,
+      input,
+      HttpStatus.OK,
+      async (tx) => {
+        const current = await this.visible(tx, principal, id);
+        this.requireDraftVersion(current, input.expectedVersion);
+        const [branch, classType] = await Promise.all([
+          tx.branch.findUnique({ where: { id: current.branchId } }),
+          tx.classType.findUnique({ where: { id: input.classTypeId } }),
+        ]);
+        if (!branch?.active || !classType?.active || classType.branchId !== current.branchId)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const configuration = await this.configuration(
+          tx,
+          current.branchId,
+          input.classTypeId,
+          startAt,
+          branch.timezone,
+        );
+        const instructorUserId = input.instructorUserId || null;
+        if (instructorUserId) {
+          await this.instructorCoverage(
+            tx,
+            instructorUserId,
+            current.branchId,
+            startAt,
+            endAt,
+            branch.timezone,
+          );
+          await this.ensureNoInstructorOverlap(tx, instructorUserId, startAt, endAt, current.id);
+        }
+        const slot = await tx.classSlot.update({
+          where: { id: current.id },
+          data: {
+            classTypeId: input.classTypeId,
+            instructorUserId,
+            startAt,
+            endAt,
+            timezone: branch.timezone,
+            minimumQuota: configuration.minimumQuota,
+            capacity: configuration.defaultCapacity,
+            version: { increment: 1 },
+          },
+        });
+        await this.audit(tx, principal, correlationId, 'class.slot.updated', slot, {
+          ...this.view(current),
+          reason: input.reason.trim(),
+        });
+        return this.view(slot);
+      },
+    );
+  }
+
   async publish(
     principal: SessionPrincipal,
     id: string,

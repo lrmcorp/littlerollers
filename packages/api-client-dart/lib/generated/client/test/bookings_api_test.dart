@@ -7,6 +7,13 @@ void main() {
   final instance = Openapi().getBookingsApi();
 
   group(BookingsApi, () {
+    // Customer-owned idempotent cancellation before H-24. Atomically releases the reservation, updates slot occupancy, revokes active check-in tokens, and emits booking.cancelled.v1 without mutating the ledger.
+    //
+    //Future<Booking> cancelCustomerBooking(String id, String idempotencyKey, CancelBookingCommand cancelBookingCommand) async
+    test('test cancelCustomerBooking', () async {
+      // TODO
+    });
+
     // Atomically creates one booking, one ACTIVE reservation, masked audit, and booking.created.v1. Synthetic H-2 cutoff is explicit configuration; production is fail-closed.
     //
     //Future<Booking> createBooking(String idempotencyKey, BookingCommand bookingCommand) async
@@ -25,6 +32,13 @@ void main() {
     //
     //Future<Booking> getBooking(String id) async
     test('test getBooking', () async {
+      // TODO
+    });
+
+    // Returns authoritative customer-owned cancellation eligibility. Exactly at the configured H-24 boundary is no longer eligible.
+    //
+    //Future<CustomerBookingCancellationOptions> getCustomerBookingCancellationOptions(String id) async
+    test('test getCustomerBookingCancellationOptions', () async {
       // TODO
     });
 

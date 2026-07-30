@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { bookingFailure, browserBookingClient, type CheckInResult } from '../booking-client';
-import { Button, Panel } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
+import { Panel } from '../components/admin/admin-ui';
 import { Feedback, PageHeader } from '../ui';
 import { useSessionContext } from '../session-context';
 

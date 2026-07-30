@@ -1,4 +1,5 @@
 import type { ApplicationRole } from '@prisma/client';
+import { ROLE_CAPABILITIES } from '../../src/identity/role-capabilities';
 import type { SeedContext } from './context';
 
 type CapabilitySeed = {
@@ -21,6 +22,7 @@ const capabilities: CapabilitySeed[] = [
   ['availability:self:read', 'Lihat availability sendiri', 'CLASS'],
   ['booking:create:assisted', 'Buat booking bantuan', 'BOOKING', true],
   ['booking:read', 'Lihat booking', 'BOOKING'],
+  ['booking:self:cancel', 'Batalkan booking sendiri', 'BOOKING'],
   ['booking:self:create', 'Buat booking sendiri', 'BOOKING'],
   ['booking:self:read', 'Lihat booking sendiri', 'BOOKING'],
   ['branch:all', 'Semua cabang', 'BRANCH', true],
@@ -47,6 +49,8 @@ const capabilities: CapabilitySeed[] = [
   ['master:read', 'Lihat master data', 'MASTER'],
   ['operations:read', 'Lihat operations', 'OPERATIONS'],
   ['operations:recover', 'Recovery operations', 'OPERATIONS', true],
+  ['package-promotion:manage', 'Kelola promo paket', 'PACKAGE', true],
+  ['package-promotion:read', 'Lihat promo paket', 'PACKAGE'],
   ['package:read', 'Lihat paket', 'PACKAGE'],
   ['payment-account:manage', 'Kelola rekening pembayaran', 'PAYMENT', true],
   ['payment-account:read', 'Lihat rekening pembayaran', 'PAYMENT'],
@@ -62,6 +66,9 @@ const capabilities: CapabilitySeed[] = [
   ['session:revoke', 'Cabut session', 'SECURITY', true],
   ['user:admin', 'Administrasi user', 'USER', true],
   ['user:read', 'Lihat user', 'USER'],
+  ['voucher:manage', 'Kelola voucher', 'VOUCHER', true],
+  ['voucher:read', 'Lihat voucher', 'VOUCHER'],
+  ['voucher:redeem', 'Gunakan voucher', 'VOUCHER'],
 ].map(([key, label, category, sensitive = false, systemOnly = false, globalOnly = false]) => ({
   key: String(key),
   label: String(label),
@@ -89,6 +96,14 @@ const roles: Array<{
 ];
 
 export async function seedAccessControl(ctx: SeedContext) {
+  const definedCapabilities = new Set(capabilities.map(({ key }) => key));
+  const missingCapabilities = Object.values(ROLE_CAPABILITIES)
+    .flat()
+    .filter((key) => !definedCapabilities.has(key));
+  if (missingCapabilities.length)
+    throw new Error(
+      `Missing capability seed metadata: ${[...new Set(missingCapabilities)].sort().join(', ')}`,
+    );
   for (const item of capabilities) {
     const metadata = {
       label: item.label,
@@ -106,7 +121,7 @@ export async function seedAccessControl(ctx: SeedContext) {
     });
   }
   for (const item of roles) {
-    await ctx.db.roleDefinition.upsert({
+    const role = await ctx.db.roleDefinition.upsert({
       where: { systemRole: item.role },
       update: {
         displayName: item.name,
@@ -125,5 +140,20 @@ export async function seedAccessControl(ctx: SeedContext) {
         system: true,
       },
     });
+    for (const capabilityKey of new Set(ROLE_CAPABILITIES[item.role])) {
+      await ctx.db.roleCapability.upsert({
+        where: {
+          roleId_capabilityKey: {
+            roleId: role.id,
+            capabilityKey,
+          },
+        },
+        update: {},
+        create: {
+          roleId: role.id,
+          capabilityKey,
+        },
+      });
+    }
   }
 }

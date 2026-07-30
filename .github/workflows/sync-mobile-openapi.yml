@@ -1,0 +1,90 @@
+name: Sync Mobile OpenAPI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - docs/technical/openapi-v1.yaml
+      - tools/openapi-generator.sh
+
+concurrency:
+  group: sync-mobile-openapi
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Generate pinned clients
+        env:
+          OPENAPI_GENERATOR_JAR: /tmp/openapi-generator-cli-7.15.0.jar
+        run: |
+          curl --fail --location --silent --show-error \
+            https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.15.0/openapi-generator-cli-7.15.0.jar \
+            --output "$OPENAPI_GENERATOR_JAR"
+          echo "4da1a7cdb78c3a43b1eab0648891135e8c3547d2eedba0dd69daf377f865f366  $OPENAPI_GENERATOR_JAR" \
+            | sha256sum --check
+          pnpm openapi:generate
+
+      - uses: actions/checkout@v6
+        with:
+          repository: ridho15/dailydose_v2_mobile
+          token: ${{ secrets.MOBILE_REPO_PAT }}
+          path: mobile
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+
+      - name: Publish contract snapshot and generated Dart client
+        run: |
+          rm -rf mobile/packages/api-client-dart/lib/generated/client
+          cp -R packages/api-client-dart/lib/generated/client mobile/packages/api-client-dart/lib/generated/client
+          cp docs/technical/openapi-v1.yaml mobile/openapi/openapi-v1.yaml
+          version="$(awk '/^[[:space:]]*version:/ { print $2; exit }' docs/technical/openapi-v1.yaml)"
+          checksum="$(sha256sum docs/technical/openapi-v1.yaml | cut -d ' ' -f 1)"
+          mkdir -p mobile/openapi
+          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "sourceRepository": "%s",\n  "sourceCommit": "%s"\n}\n' \
+            "$version" "$checksum" "${{ github.repository }}" "${{ github.sha }}" \
+            > mobile/openapi/manifest.json
+
+      - name: Verify generated client and mobile
+        working-directory: mobile
+        run: |
+          flutter pub get
+          flutter pub get --directory packages/api-client-dart/lib/generated/client
+          dart --directory=packages/api-client-dart/lib/generated/client run build_runner build
+          dart run tools/verify_openapi.dart
+          flutter analyze
+          flutter test
+
+      - name: Create or update mobile contract PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.MOBILE_REPO_PAT }}
+          path: mobile
+          branch: automation/openapi-${{ github.sha }}
+          delete-branch: true
+          commit-message: 'chore: sync OpenAPI from ${{ github.sha }}'
+          title: 'chore: sync OpenAPI from backend'
+          body: |
+            Automated contract synchronization.
+
+            Source: `${{ github.repository }}@${{ github.sha }}`
+          labels: automated,openapi

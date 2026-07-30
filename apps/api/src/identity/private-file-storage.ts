@@ -20,12 +20,23 @@ export interface PrivateFileStorage {
   delete(key: string): Promise<void>;
 }
 
+export function resolvePrivateUploadRoot(
+  configuredRoot: string,
+  workingDirectory = process.cwd(),
+): string {
+  if (isAbsolute(configuredRoot)) return resolve(configuredRoot);
+  const repositoryRoot = workingDirectory.endsWith(`${sep}apps${sep}api`)
+    ? resolve(workingDirectory, '..', '..')
+    : workingDirectory;
+  return resolve(repositoryRoot, configuredRoot);
+}
+
 @Injectable()
 export class LocalPrivateFileStorage implements PrivateFileStorage, OnModuleInit {
   readonly root: string;
 
   constructor(private readonly config: RuntimeConfigService) {
-    this.root = resolve(this.config.value.privateUploads.root);
+    this.root = resolvePrivateUploadRoot(this.config.value.privateUploads.root);
   }
 
   async onModuleInit(): Promise<void> {

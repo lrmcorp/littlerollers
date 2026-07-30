@@ -74,6 +74,9 @@ export interface AuditSummary {
   objectId?: string;
   beforeMasked?: unknown;
   afterMasked?: unknown;
+  actor?: { id: string; displayName: string } | null;
+  target?: { id: string; displayName: string } | null;
+  branch?: { id: string; code: string; name: string } | null;
 }
 
 export interface UserFilters {

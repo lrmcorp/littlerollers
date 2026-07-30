@@ -13,7 +13,8 @@ import {
 import { canReadPage, frontendPages } from './frontend-pages';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
-import { Badge, Button, Panel, StatCard } from './components/admin/admin-ui';
+import { Button } from './components/actions';
+import { Badge, Panel, StatCard } from './components/admin/admin-ui';
 import { DateInput } from './components/forms';
 import {
   browserDashboardClient,
@@ -217,8 +218,14 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             onChange={(event) => setUntil(event.target.value)}
             wrapperClassName="min-w-36"
           />
-          <Button variant="secondary" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="secondary"
+            onClick={() => void load()}
+            disabled={loading}
+            leadingIcon={
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            }
+          >
             Refresh
           </Button>
         </div>

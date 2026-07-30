@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -62,6 +63,28 @@ export class ClassSlotController {
     return this.respond(
       res,
       this.slots.assign(req.principal, id, body, key, req.correlationId ?? 'unknown'),
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body()
+    body: {
+      classTypeId: string;
+      instructorUserId?: string | null;
+      startAt: string;
+      endAt: string;
+      expectedVersion: number;
+      reason: string;
+    },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.respond(
+      res,
+      this.slots.update(req.principal, id, body, key, req.correlationId ?? 'unknown'),
     );
   }
 

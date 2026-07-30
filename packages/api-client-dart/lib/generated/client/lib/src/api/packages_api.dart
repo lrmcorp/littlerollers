@@ -20,15 +20,18 @@ import 'package:openapi/src/model/date.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
 import 'package:openapi/src/model/internal_package_detail.dart';
-import 'package:openapi/src/model/list_package_promotions200_response.dart';
 import 'package:openapi/src/model/order.dart';
 import 'package:openapi/src/model/order_page.dart';
+import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_page.dart';
 import 'package:openapi/src/model/package_promotion.dart';
 import 'package:openapi/src/model/package_promotion_command.dart';
 import 'package:openapi/src/model/package_promotion_order_page.dart';
+import 'package:openapi/src/model/package_promotion_page.dart';
 import 'package:openapi/src/model/package_promotion_update_command.dart';
+import 'package:openapi/src/model/package_revision_command.dart';
+import 'package:openapi/src/model/package_update_command.dart';
 import 'package:openapi/src/model/payment_proof.dart';
 import 'package:openapi/src/model/payment_proof_upload_instruction.dart';
 import 'package:openapi/src/model/payment_proof_view_authorization.dart';
@@ -536,6 +539,7 @@ class PackagesApi {
   /// 
   ///
   /// Parameters:
+  /// * [idempotencyKey] 
   /// * [packageCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -544,9 +548,10 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Resource] as data
+  /// Returns a [Future] containing a [Response] with a [Package] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Resource>> createPackage({ 
+  Future<Response<Package>> createPackage({ 
+    required String idempotencyKey,
     required PackageCommand packageCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -559,6 +564,7 @@ class PackagesApi {
     final _options = Options(
       method: r'POST',
       headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
         ...?headers,
       },
       extra: <String, dynamic>{
@@ -602,14 +608,14 @@ class PackagesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Resource? _responseData;
+    Package? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(Resource),
-      ) as Resource;
+        specifiedType: const FullType(Package),
+      ) as Package;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -621,7 +627,7 @@ class PackagesApi {
       );
     }
 
-    return Response<Resource>(
+    return Response<Package>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -728,6 +734,112 @@ class PackagesApi {
     }
 
     return Response<PackagePromotion>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// createPackageRevision
+  /// 
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [idempotencyKey] 
+  /// * [packageRevisionCommand] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Package] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Package>> createPackageRevision({ 
+    required String id,
+    required String idempotencyKey,
+    required PackageRevisionCommand packageRevisionCommand,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/packages/{id}/revisions'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(PackageRevisionCommand);
+      _bodyData = _serializers.serialize(packageRevisionCommand, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Package? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(Package),
+      ) as Package;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Package>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1820,6 +1932,8 @@ class PackagesApi {
   ///
   /// Parameters:
   /// * [id] 
+  /// * [cursor] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1827,10 +1941,12 @@ class PackagesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [ListPackagePromotions200Response] as data
+  /// Returns a [Future] containing a [Response] with a [PackagePromotionPage] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ListPackagePromotions200Response>> listPackagePromotions({ 
+  Future<Response<PackagePromotionPage>> listPackagePromotions({ 
     required String id,
+    String? cursor,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1857,22 +1973,28 @@ class PackagesApi {
       validateStatus: validateStatus,
     );
 
+    final _queryParameters = <String, dynamic>{
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
+    };
+
     final _response = await _dio.request<Object>(
       _path,
       options: _options,
+      queryParameters: _queryParameters,
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
       onReceiveProgress: onReceiveProgress,
     );
 
-    ListPackagePromotions200Response? _responseData;
+    PackagePromotionPage? _responseData;
 
     try {
       final rawResponse = _response.data;
       _responseData = rawResponse == null ? null : _serializers.deserialize(
         rawResponse,
-        specifiedType: const FullType(ListPackagePromotions200Response),
-      ) as ListPackagePromotions200Response;
+        specifiedType: const FullType(PackagePromotionPage),
+      ) as PackagePromotionPage;
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -1884,7 +2006,7 @@ class PackagesApi {
       );
     }
 
-    return Response<ListPackagePromotions200Response>(
+    return Response<PackagePromotionPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1897,10 +2019,16 @@ class PackagesApi {
   }
 
   /// listPackages
-  /// Returns ACTIVE packages effective for the requested scoped branch. Commercial periods are half-open [effectiveFrom,effectiveUntil).
+  /// Customers receive only active/effective packages. Authorized staff can filter the complete effective history.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
+  /// * [classTypeId] 
+  /// * [q] 
+  /// * [status] 
+  /// * [effectiveState] 
+  /// * [from] 
+  /// * [until] 
   /// * [cursor] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -1913,6 +2041,12 @@ class PackagesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<PackagePage>> listPackages({ 
     String? branchId,
+    String? classTypeId,
+    String? q,
+    String? status,
+    String? effectiveState,
+    Date? from,
+    Date? until,
     String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1942,6 +2076,12 @@ class PackagesApi {
 
     final _queryParameters = <String, dynamic>{
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (classTypeId != null) r'classTypeId': encodeQueryParameter(_serializers, classTypeId, const FullType(String)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
+      if (effectiveState != null) r'effectiveState': encodeQueryParameter(_serializers, effectiveState, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
     };
 
@@ -2778,6 +2918,113 @@ class PackagesApi {
     );
   }
 
+  /// transitionPackage
+  /// 
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [action] 
+  /// * [idempotencyKey] 
+  /// * [body] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Package] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Package>> transitionPackage({ 
+    required String id,
+    required String action,
+    required String idempotencyKey,
+    required ReasonedVersionCommand body,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/packages/{id}/{action}'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString()).replaceAll('{' r'action' '}', encodeQueryParameter(_serializers, action, const FullType(String)).toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = body;
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Package? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(Package),
+      ) as Package;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Package>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// transitionPackagePromotion
   /// 
   ///
@@ -2983,6 +3230,112 @@ class PackagesApi {
     }
 
     return Response<Voucher>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// updatePackage
+  /// 
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [idempotencyKey] 
+  /// * [packageUpdateCommand] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Package] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Package>> updatePackage({ 
+    required String id,
+    required String idempotencyKey,
+    required PackageUpdateCommand packageUpdateCommand,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/packages/{id}'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'PATCH',
+      headers: <String, dynamic>{
+        r'Idempotency-Key': idempotencyKey,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(PackageUpdateCommand);
+      _bodyData = _serializers.serialize(packageUpdateCommand, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Package? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(Package),
+      ) as Package;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Package>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

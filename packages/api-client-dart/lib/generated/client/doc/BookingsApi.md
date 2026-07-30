@@ -9,15 +9,64 @@ All URIs are relative to */api/v1*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
+[**cancelCustomerBooking**](BookingsApi.md#cancelcustomerbooking) | **POST** /bookings/{id}/cancel | 
 [**createBooking**](BookingsApi.md#createbooking) | **POST** /bookings | 
 [**decideReschedule**](BookingsApi.md#decidereschedule) | **POST** /reschedules/{id}/{decision} | 
 [**getBooking**](BookingsApi.md#getbooking) | **GET** /bookings/{id} | 
+[**getCustomerBookingCancellationOptions**](BookingsApi.md#getcustomerbookingcancellationoptions) | **GET** /bookings/{id}/cancellation-options | 
 [**getCustomerBookingOptions**](BookingsApi.md#getcustomerbookingoptions) | **GET** /bookings/options/{classSlotId} | 
 [**getCustomerRescheduleOptions**](BookingsApi.md#getcustomerrescheduleoptions) | **GET** /bookings/{id}/reschedule-options | 
 [**listBookings**](BookingsApi.md#listbookings) | **GET** /bookings | 
 [**listReschedules**](BookingsApi.md#listreschedules) | **GET** /reschedules | 
 [**requestReschedule**](BookingsApi.md#requestreschedule) | **POST** /reschedules | 
 
+
+# **cancelCustomerBooking**
+> Booking cancelCustomerBooking(id, idempotencyKey, cancelBookingCommand)
+
+
+
+Customer-owned idempotent cancellation before H-24. Atomically releases the reservation, updates slot occupancy, revokes active check-in tokens, and emits booking.cancelled.v1 without mutating the ledger.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final CancelBookingCommand cancelBookingCommand = ; // CancelBookingCommand | 
+
+try {
+    final response = api.cancelCustomerBooking(id, idempotencyKey, cancelBookingCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->cancelCustomerBooking: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **cancelBookingCommand** | [**CancelBookingCommand**](CancelBookingCommand.md)|  | 
+
+### Return type
+
+[**Booking**](Booking.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createBooking**
 > Booking createBooking(idempotencyKey, bookingCommand)
@@ -144,6 +193,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Booking**](Booking.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getCustomerBookingCancellationOptions**
+> CustomerBookingCancellationOptions getCustomerBookingCancellationOptions(id)
+
+
+
+Returns authoritative customer-owned cancellation eligibility. Exactly at the configured H-24 boundary is no longer eligible.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getBookingsApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getCustomerBookingCancellationOptions(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling BookingsApi->getCustomerBookingCancellationOptions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**CustomerBookingCancellationOptions**](CustomerBookingCancellationOptions.md)
 
 ### Authorization
 

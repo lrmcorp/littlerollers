@@ -13,7 +13,8 @@ import {
   type UserSummary,
 } from '../../identity-client';
 import type { IdentityVerificationReviewCase } from '../../identity-verification-client';
-import { AdminPageState, Badge, Button, Panel } from '../../components/admin/admin-ui';
+import { Button } from '../../components/actions';
+import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { useSessionContext } from '../../session-context';
 import { roleLabels, roleSummary, statusLabels } from '../user-admin-controls';
@@ -186,8 +187,12 @@ export function UserDetailView({
           }
         />
         <div className="mt-5 flex flex-wrap gap-3">
-          <Button variant="secondary" onClick={() => void load()}>
-            <RefreshCw className="size-4" /> Muat ulang
+          <Button
+            variant="secondary"
+            leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+            onClick={() => void load()}
+          >
+            Muat ulang
           </Button>
           {canAdminStaff && (
             <Button onClick={() => setAction('profile')}>

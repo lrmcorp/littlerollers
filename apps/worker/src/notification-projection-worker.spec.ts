@@ -226,4 +226,77 @@ describe('NotificationProjectionWorker', () => {
       process.env.PUBLIC_WEB_BASE_URL = previousBaseUrl;
     }
   });
+
+  it('notifies customer, assigned instructor, and branch operations but emails only customer', async () => {
+    const previousBaseUrl = process.env.PUBLIC_WEB_BASE_URL;
+    process.env.PUBLIC_WEB_BASE_URL = 'https://dailydosepilates.com';
+    const event = {
+      id: 'event-booking-cancelled',
+      eventType: 'booking.cancelled.v1',
+      aggregateType: 'Booking',
+      aggregateId: 'booking-1',
+      payload: { branchId: 'branch-1' },
+      correlationId: 'correlation-cancelled',
+      status: 'PENDING',
+      occurredAt: new Date(),
+      publishedAt: null,
+      attempts: 0,
+    };
+    const tx = {
+      notificationProjection: { upsert: jest.fn().mockResolvedValue({}) },
+      userNotification: { createMany: jest.fn().mockResolvedValue({ count: 4 }) },
+      user: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'customer-1', email: 'customer@example.test' },
+          { id: 'instructor-1', email: 'instructor@example.test' },
+          { id: 'admin-1', email: 'admin@example.test' },
+          { id: 'manager-1', email: 'manager@example.test' },
+        ]),
+      },
+      notificationOccurrence: { upsert: jest.fn().mockResolvedValue({}) },
+    };
+    const db = {
+      outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
+      booking: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'booking-1',
+          customerUserId: 'customer-1',
+          branchId: 'branch-1',
+          classSlotId: 'slot-1',
+          classSlot: { instructorUserId: 'instructor-1' },
+        }),
+      },
+      user: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }, { id: 'manager-1' }]),
+      },
+      $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
+    };
+    try {
+      await expect(
+        new NotificationProjectionWorker(db as never, 5_000, {
+          encryptionKey: Buffer.alloc(32, 1).toString('base64'),
+          maxAttempts: 5,
+          recipientOverride: null,
+        } as never).poll(),
+      ).resolves.toBe(true);
+      const notifications = tx.userNotification.createMany.mock.calls[0]![0].data;
+      expect(notifications.map(({ userId }: { userId: string }) => userId).sort()).toEqual([
+        'admin-1',
+        'customer-1',
+        'instructor-1',
+        'manager-1',
+      ]);
+      expect(tx.notificationOccurrence.upsert).toHaveBeenCalledTimes(1);
+      expect(tx.notificationOccurrence.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            userId: 'customer-1',
+            templateKey: 'BOOKING_CANCELLED_V1',
+          }),
+        }),
+      );
+    } finally {
+      process.env.PUBLIC_WEB_BASE_URL = previousBaseUrl;
+    }
+  });
 });

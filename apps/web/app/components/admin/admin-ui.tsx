@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useId,
-  useState,
-  type ButtonHTMLAttributes,
-  type HTMLAttributes,
-  type ReactNode,
-} from 'react';
+import { type HTMLAttributes, type ReactNode } from 'react';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -17,8 +10,7 @@ import {
   Minus,
   X,
 } from 'lucide-react';
-import { Drawer as GlobalDrawer, Modal as GlobalModal } from '../app-feedback';
-import { TextInput } from '../forms';
+import { Button } from '../actions';
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -29,28 +21,6 @@ const tones: Record<Tone, string> = {
   danger: 'bg-dd-danger-soft text-dd-danger ring-red-200',
   info: 'bg-dd-info-soft text-dd-info ring-sky-200',
 };
-
-export function Button({
-  variant = 'primary',
-  className = '',
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'quiet' | 'danger';
-}) {
-  const variants = {
-    primary: 'border-dd-forest bg-dd-forest text-white hover:bg-dd-forest-dark',
-    secondary:
-      'border-dd-line bg-white text-dd-ink hover:border-dd-forest hover:bg-dd-surface-muted',
-    quiet: 'border-transparent bg-transparent text-dd-forest hover:bg-dd-brass-soft/55',
-    danger: 'border-dd-danger bg-dd-danger text-white hover:bg-red-800',
-  };
-  return (
-    <button
-      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-dd-md border px-4 py-2 text-sm font-bold transition disabled:pointer-events-none disabled:opacity-50 ${variants[variant]} ${className}`}
-      {...props}
-    />
-  );
-}
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   return (
@@ -219,46 +189,6 @@ export function FilterBar({
   );
 }
 
-export function Drawer({
-  open,
-  title,
-  children,
-  onClose,
-  className,
-}: {
-  open: boolean;
-  title: string;
-  children: ReactNode;
-  onClose(): void;
-  className?: string;
-}) {
-  return (
-    <GlobalDrawer open={open} title={title} onClose={onClose} className={className}>
-      {children}
-    </GlobalDrawer>
-  );
-}
-
-export function Dialog({
-  open,
-  title,
-  description,
-  children,
-  onClose,
-}: {
-  open: boolean;
-  title: string;
-  description?: string;
-  children: ReactNode;
-  onClose(): void;
-}) {
-  return (
-    <GlobalModal open={open} title={title} description={description} onClose={onClose}>
-      {children}
-    </GlobalModal>
-  );
-}
-
 export function FormSection({
   title,
   description,
@@ -391,11 +321,21 @@ export function Pagination({
     >
       <span className="text-sm text-dd-muted">{totalLabel ?? 'Navigasi halaman'}</span>
       <div className="flex gap-2">
-        <Button variant="secondary" disabled={!hasPrevious} onClick={onPrevious}>
-          <ChevronLeft className="size-4" /> Sebelumnya
+        <Button
+          variant="secondary"
+          leadingIcon={<ChevronLeft className="size-4" aria-hidden="true" />}
+          disabled={!hasPrevious}
+          onClick={onPrevious}
+        >
+          Sebelumnya
         </Button>
-        <Button variant="secondary" disabled={!hasNext} onClick={onNext}>
-          Berikutnya <ChevronRight className="size-4" />
+        <Button
+          variant="secondary"
+          trailingIcon={<ChevronRight className="size-4" aria-hidden="true" />}
+          disabled={!hasNext}
+          onClick={onNext}
+        >
+          Berikutnya
         </Button>
       </div>
     </nav>
@@ -417,7 +357,7 @@ export function BulkActionBar({
       <strong className="text-sm">{count.toLocaleString('id-ID')} dipilih</strong>
       <div className="flex flex-wrap items-center gap-2">
         {children}
-        <Button variant="quiet" className="text-white hover:bg-white/10" onClick={onClear}>
+        <Button variant="ghost" className="text-white hover:bg-white/10" onClick={onClear}>
           Batalkan
         </Button>
       </div>
@@ -470,163 +410,6 @@ export function AdminPageState({
         {description ?? copy[1]}
       </p>
       {action && <div className="mt-5">{action}</div>}
-    </div>
-  );
-}
-
-export function DetailDrawer(props: Parameters<typeof Drawer>[0]) {
-  return <Drawer {...props} />;
-}
-
-export function DestructiveActionDialog({
-  open,
-  title,
-  impact,
-  scope,
-  children,
-  onClose,
-}: {
-  open: boolean;
-  title: string;
-  impact: string;
-  scope?: string;
-  children: ReactNode;
-  onClose(): void;
-}) {
-  return (
-    <Dialog
-      open={open}
-      title={title}
-      description="Tindakan ini berdampak pada data operasional dan akan dicatat dalam audit log."
-      onClose={onClose}
-    >
-      <div className="mb-5 rounded-dd-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-        <div className="flex gap-3">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0" />
-          <div>
-            <strong>Dampak</strong>
-            <p className="mt-1 leading-6">{impact}</p>
-            {scope && <p className="mt-2 font-semibold">Scope: {scope}</p>}
-          </div>
-        </div>
-      </div>
-      {children}
-    </Dialog>
-  );
-}
-
-export function SearchableLookup<T extends { id: string; label: string; description?: string }>({
-  label,
-  value,
-  placeholder = 'Cari…',
-  load,
-  onChange,
-}: {
-  label: string;
-  value?: T;
-  placeholder?: string;
-  load(query: string): Promise<T[]>;
-  onChange(value?: T): void;
-}) {
-  const [query, setQuery] = useState(value?.label ?? '');
-  const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const listId = useId();
-  useEffect(() => {
-    setQuery(value?.label ?? '');
-  }, [value]);
-  useEffect(() => {
-    if (query.trim().length < 2 || query === value?.label) {
-      setItems([]);
-      setActiveIndex(-1);
-      return;
-    }
-    let active = true;
-    const timer = window.setTimeout(() => {
-      setLoading(true);
-      void load(query)
-        .then((result) => {
-          if (active) {
-            setItems(result);
-            setActiveIndex(result.length ? 0 : -1);
-          }
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-    }, 250);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [load, query, value?.label]);
-  return (
-    <div className="relative min-w-56">
-      <TextInput
-        label={label}
-        role="combobox"
-        aria-expanded={items.length > 0}
-        aria-controls={listId}
-        aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
-        aria-autocomplete="list"
-        value={query}
-        placeholder={placeholder}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          onChange(undefined);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown' && items.length) {
-            event.preventDefault();
-            setActiveIndex((current) => Math.min(items.length - 1, current + 1));
-          } else if (event.key === 'ArrowUp' && items.length) {
-            event.preventDefault();
-            setActiveIndex((current) => Math.max(0, current - 1));
-          } else if (event.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) {
-            event.preventDefault();
-            onChange(items[activeIndex]);
-            setQuery(items[activeIndex].label);
-            setItems([]);
-          } else if (event.key === 'Escape') {
-            setItems([]);
-            setActiveIndex(-1);
-          }
-        }}
-      />
-      {loading && <span className="absolute right-3 top-9 text-xs text-dd-muted">Memuat…</span>}
-      {items.length > 0 && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute inset-x-0 top-full z-40 mt-1 max-h-64 overflow-auto rounded-dd-md border border-dd-line bg-white p-1 shadow-dd-float"
-        >
-          {items.map((item, index) => (
-            <li
-              id={`${listId}-${index}`}
-              key={item.id}
-              role="option"
-              aria-selected={index === activeIndex}
-            >
-              <button
-                type="button"
-                className="w-full rounded-dd-sm border-0 bg-transparent px-3 py-2 text-left hover:bg-dd-surface-muted"
-                onClick={() => {
-                  onChange(item);
-                  setItems([]);
-                  setActiveIndex(-1);
-                  setQuery(item.label);
-                }}
-              >
-                <strong className="block text-sm">{item.label}</strong>
-                {item.description && (
-                  <span className="text-xs text-dd-muted">{item.description}</span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

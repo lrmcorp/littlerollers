@@ -3,7 +3,7 @@ import 'package:openapi/openapi.dart';
 
 // tests for PaymentAccount
 void main() {
-  final instance = PaymentAccountBuilder();
+  //final instance = PaymentAccountBuilder();
   // TODO add properties to the builder and call build()
 
   group(PaymentAccount, () {

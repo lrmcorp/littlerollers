@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **supportWhatsappE164** | **String** |  | [optional] 
 **active** | **bool** |  | 
 **version** | **int** |  | 
+**publicProfile** | [**BranchPublicProfileSummary**](BranchPublicProfileSummary.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

@@ -23,6 +23,10 @@ export interface RuntimeConfig {
     enabled: boolean;
     cutoffHours: number | null;
   };
+  bookingCancellation: {
+    enabled: boolean;
+    cutoffHours: number | null;
+  };
   sessionAdjustment: {
     enabled: boolean;
   };
@@ -116,6 +120,18 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     throw new Error('CONFIGURATION_MISSING:BOOKING_CUTOFF_HOURS');
   if (rescheduleEnabled && rescheduleCutoffHours === null)
     throw new Error('CONFIGURATION_MISSING:RESCHEDULE_CUTOFF_HOURS');
+  const bookingCancellationEnabled = env.BOOKING_CANCELLATION_ENABLED?.trim() === 'true';
+  const bookingCancellationCutoffValue = env.BOOKING_CANCELLATION_CUTOFF_HOURS?.trim();
+  const bookingCancellationCutoffHours = bookingCancellationCutoffValue
+    ? Number(bookingCancellationCutoffValue)
+    : null;
+  if (
+    bookingCancellationCutoffHours !== null &&
+    (!Number.isInteger(bookingCancellationCutoffHours) || bookingCancellationCutoffHours < 1)
+  )
+    throw new Error('CONFIGURATION_INVALID:BOOKING_CANCELLATION_CUTOFF_HOURS');
+  if (bookingCancellationEnabled && bookingCancellationCutoffHours === null)
+    throw new Error('CONFIGURATION_MISSING:BOOKING_CANCELLATION_CUTOFF_HOURS');
   const rbacPolicySource = env.RBAC_POLICY_SOURCE?.trim() || 'static';
   if (!['static', 'shadow', 'database'].includes(rbacPolicySource))
     throw new Error('CONFIGURATION_INVALID:RBAC_POLICY_SOURCE');
@@ -220,6 +236,10 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     reschedule: {
       enabled: rescheduleEnabled,
       cutoffHours: rescheduleCutoffHours,
+    },
+    bookingCancellation: {
+      enabled: bookingCancellationEnabled,
+      cutoffHours: bookingCancellationCutoffHours,
     },
     sessionAdjustment: {
       enabled:

@@ -37,6 +37,21 @@ void main() {
       // TODO
     });
 
+    // AuditActorProjection actor
+    test('to test the property `actor`', () async {
+      // TODO
+    });
+
+    // AuditTargetProjection target
+    test('to test the property `target`', () async {
+      // TODO
+    });
+
+    // AuditBranchProjection branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
     // String action
     test('to test the property `action`', () async {
       // TODO

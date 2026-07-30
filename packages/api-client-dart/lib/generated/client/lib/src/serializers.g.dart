@@ -11,12 +11,15 @@ Serializers _$serializers =
           ..add($AccessReason.serializer)
           ..add($CustomerRescheduleSlot.serializer)
           ..add($EffectivePeriod.serializer)
+          ..add($Package.serializer)
+          ..add($PackagePromotionCommand.serializer)
           ..add($PublicBranch.serializer)
           ..add($PublicClassProfile.serializer)
           ..add($PublicPackageSummary.serializer)
           ..add($PublicScheduleSummary.serializer)
           ..add($Purchase.serializer)
           ..add($SessionBranch.serializer)
+          ..add($VoucherCommand.serializer)
           ..add(AcceptedStatus.serializer)
           ..add(AccessReasonCode.serializer)
           ..add(AccessRoleAssignmentInput.serializer)
@@ -65,8 +68,8 @@ Serializers _$serializers =
           ..add(BookingAttendance.serializer)
           ..add(BookingAttendanceSource_Enum.serializer)
           ..add(BookingBranch.serializer)
+          ..add(BookingCancellationReasonCodeEnum.serializer)
           ..add(BookingClassSlot.serializer)
-          ..add(BookingClassSlotClassType.serializer)
           ..add(BookingCommand.serializer)
           ..add(BookingCommandSource_Enum.serializer)
           ..add(BookingCustomer.serializer)
@@ -85,6 +88,8 @@ Serializers _$serializers =
           ..add(BulkCustomerCheckInLinkCommand.serializer)
           ..add(BulkCustomerCheckInLinkItem.serializer)
           ..add(BulkCustomerCheckInLinkResult.serializer)
+          ..add(CancelBookingCommand.serializer)
+          ..add(CancelBookingCommandReasonCodeEnum.serializer)
           ..add(CapabilityDefinition.serializer)
           ..add(CapabilityDefinitionPage.serializer)
           ..add(ChallengeAccepted.serializer)
@@ -130,6 +135,11 @@ Serializers _$serializers =
           ..add(CreatePermissionOverrideCommand.serializer)
           ..add(CreatePermissionOverrideCommandEffectEnum.serializer)
           ..add(CursorPageMeta.serializer)
+          ..add(CustomerBookingCancellationOptions.serializer)
+          ..add(CustomerBookingCancellationOptionsSupportActionEnum.serializer)
+          ..add(
+            CustomerBookingCancellationOptionsUnavailableReasonEnum.serializer,
+          )
           ..add(CustomerBookingEligibility.serializer)
           ..add(CustomerBookingEligibilityReasonCodeEnum.serializer)
           ..add(CustomerBookingEligibilityRequiredActionEnum.serializer)
@@ -165,6 +175,7 @@ Serializers _$serializers =
           ..add(CustomerPackageBalance.serializer)
           ..add(CustomerPackageBalancePage.serializer)
           ..add(CustomerPackageBalanceStatusEnum.serializer)
+          ..add(CustomerPackageBalanceSummary.serializer)
           ..add(CustomerRescheduleOptions.serializer)
           ..add(CustomerRescheduleOptionsSupportActionEnum.serializer)
           ..add(CustomerRescheduleOptionsUnavailableReasonEnum.serializer)
@@ -234,10 +245,12 @@ Serializers _$serializers =
           ..add(IdentityVerificationSummary.serializer)
           ..add(IdentityVerificationSummaryStatusEnum.serializer)
           ..add(InstructorFeeCommand.serializer)
+          ..add(InternalPackageDetail.serializer)
           ..add(InviteUserRequest.serializer)
           ..add(IssueCustomerCheckInLinkCommand.serializer)
           ..add(LedgerEntry.serializer)
           ..add(LedgerEntryTypeEnum.serializer)
+          ..add(ListPackagePromotions200Response.serializer)
           ..add(ListPaymentAccounts200Response.serializer)
           ..add(LookupOption.serializer)
           ..add(LookupOptionMetadata.serializer)
@@ -277,6 +290,8 @@ Serializers _$serializers =
           ..add(OrderPaymentProofStatus.serializer)
           ..add(OrderPaymentProofStatusScanStatusEnum.serializer)
           ..add(OrderPaymentProofStatusUploadStatusEnum.serializer)
+          ..add(OrderPromotion.serializer)
+          ..add(OrderPromotionDiscountTypeEnum.serializer)
           ..add(OrderStatusEnum.serializer)
           ..add(OtherCost.serializer)
           ..add(OtherCostCommand.serializer)
@@ -284,10 +299,17 @@ Serializers _$serializers =
           ..add(OtherCostStatusEnum.serializer)
           ..add(OtpRequest.serializer)
           ..add(OtpVerifyRequest.serializer)
-          ..add(Package.serializer)
           ..add(PackageCommand.serializer)
           ..add(PackageLedgerResult.serializer)
           ..add(PackagePage.serializer)
+          ..add(PackagePromotion.serializer)
+          ..add(PackagePromotionCommandDiscountTypeEnum.serializer)
+          ..add(PackagePromotionDiscountTypeEnum.serializer)
+          ..add(PackagePromotionEffectiveStateEnum.serializer)
+          ..add(PackagePromotionOrderPage.serializer)
+          ..add(PackagePromotionOrderPageItemsInner.serializer)
+          ..add(PackagePromotionStatusEnum.serializer)
+          ..add(PackagePromotionUpdateCommand.serializer)
           ..add(PackageStatusEnum.serializer)
           ..add(Page.serializer)
           ..add(PagePage.serializer)
@@ -333,14 +355,18 @@ Serializers _$serializers =
           ..add(PublicPackageCatalog.serializer)
           ..add(PublicPackageDetail.serializer)
           ..add(PublicPackageProfile.serializer)
+          ..add(PublicPackagePromotion.serializer)
+          ..add(PublicPackagePromotionDiscountTypeEnum.serializer)
           ..add(PublicScheduleDetail.serializer)
           ..add(PublicScheduleSummaryInstructor.serializer)
           ..add(PublicScheduleSummaryStatusEnum.serializer)
           ..add(PublicSiteConfig.serializer)
           ..add(PublicStudioDetail.serializer)
           ..add(PublicStudioDetailAllOfClasses.serializer)
+          ..add(PurchasePackagePromotionDiscountTypeSnapshotEnum.serializer)
           ..add(PurchasePage.serializer)
           ..add(PurchaseStatusEnum.serializer)
+          ..add(PurchaseVoucherDiscountTypeSnapshotEnum.serializer)
           ..add(QuotaCapacityCommand.serializer)
           ..add(QuotaEvaluationCommand.serializer)
           ..add(QuotaEvaluationResult.serializer)
@@ -416,6 +442,18 @@ Serializers _$serializers =
           ..add(UserVerificationSummaryStatusEnum.serializer)
           ..add(VersionCommand.serializer)
           ..add(VersionedAccessReason.serializer)
+          ..add(Voucher.serializer)
+          ..add(VoucherCommandDiscountTypeEnum.serializer)
+          ..add(VoucherDiscountTypeEnum.serializer)
+          ..add(VoucherPackagesInner.serializer)
+          ..add(VoucherPage.serializer)
+          ..add(VoucherPreview.serializer)
+          ..add(VoucherPreviewCommand.serializer)
+          ..add(VoucherPreviewValidEnum.serializer)
+          ..add(VoucherRedemption.serializer)
+          ..add(VoucherRedemptionPage.serializer)
+          ..add(VoucherStatusEnum.serializer)
+          ..add(VoucherUpdateCommand.serializer)
           ..addBuilderFactory(
             const FullType(BuiltList, const [
               const FullType(AccessRoleCapability),
@@ -648,6 +686,20 @@ Serializers _$serializers =
             () => ListBuilder<Package>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PackagePromotion)]),
+            () => ListBuilder<PackagePromotion>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PackagePromotion)]),
+            () => ListBuilder<PackagePromotion>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PackagePromotionOrderPageItemsInner),
+            ]),
+            () => ListBuilder<PackagePromotionOrderPageItemsInner>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(PaymentAccount)]),
             () => ListBuilder<PaymentAccount>(),
           )
@@ -858,6 +910,14 @@ Serializers _$serializers =
             () => ListBuilder<String>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [
               const FullType(EffectiveCapabilityGrant),
             ]),
@@ -884,6 +944,16 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(String)]),
             () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(String)]),
+            () => ListBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(VoucherPackagesInner),
+            ]),
+            () => ListBuilder<VoucherPackagesInner>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -942,6 +1012,16 @@ Serializers _$serializers =
               const FullType(UserVerificationDocumentSummary),
             ]),
             () => ListBuilder<UserVerificationDocumentSummary>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Voucher)]),
+            () => ListBuilder<Voucher>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(VoucherRedemption),
+            ]),
+            () => ListBuilder<VoucherRedemption>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltMap, const [

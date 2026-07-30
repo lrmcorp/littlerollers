@@ -76,8 +76,8 @@ export const browserAssignmentClient: AssignmentClient = {
     return {
       items: page.items.map((item) => ({
         ...item,
-        activeFrom: item.activeFrom.toISOString(),
-        activeUntil: item.activeUntil?.toISOString() ?? null,
+        activeFrom: item.activeFrom.toISOString().slice(0, 10),
+        activeUntil: item.activeUntil?.toISOString().slice(0, 10) ?? null,
         user: {
           ...item.user,
           phoneMasked: item.user.phoneMasked ?? null,

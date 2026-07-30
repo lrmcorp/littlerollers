@@ -57,6 +57,16 @@ void main() {
       // TODO
     });
 
+    // String cancellationReasonCode
+    test('to test the property `cancellationReasonCode`', () async {
+      // TODO
+    });
+
+    // DateTime cancelledAt
+    test('to test the property `cancelledAt`', () async {
+      // TODO
+    });
+
     // DateTime createdAt
     test('to test the property `createdAt`', () async {
       // TODO

@@ -6,6 +6,62 @@ part of 'purchase.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
+const PurchasePackagePromotionDiscountTypeSnapshotEnum
+_$purchasePackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE =
+    const PurchasePackagePromotionDiscountTypeSnapshotEnum._('PERCENTAGE');
+const PurchasePackagePromotionDiscountTypeSnapshotEnum
+_$purchasePackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT =
+    const PurchasePackagePromotionDiscountTypeSnapshotEnum._('FIXED_AMOUNT');
+
+PurchasePackagePromotionDiscountTypeSnapshotEnum
+_$purchasePackagePromotionDiscountTypeSnapshotEnumValueOf(String name) {
+  switch (name) {
+    case 'PERCENTAGE':
+      return _$purchasePackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE;
+    case 'FIXED_AMOUNT':
+      return _$purchasePackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PurchasePackagePromotionDiscountTypeSnapshotEnum>
+_$purchasePackagePromotionDiscountTypeSnapshotEnumValues =
+    BuiltSet<PurchasePackagePromotionDiscountTypeSnapshotEnum>(
+      const <PurchasePackagePromotionDiscountTypeSnapshotEnum>[
+        _$purchasePackagePromotionDiscountTypeSnapshotEnum_PERCENTAGE,
+        _$purchasePackagePromotionDiscountTypeSnapshotEnum_FIXED_AMOUNT,
+      ],
+    );
+
+const PurchaseVoucherDiscountTypeSnapshotEnum
+_$purchaseVoucherDiscountTypeSnapshotEnum_PERCENTAGE =
+    const PurchaseVoucherDiscountTypeSnapshotEnum._('PERCENTAGE');
+const PurchaseVoucherDiscountTypeSnapshotEnum
+_$purchaseVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT =
+    const PurchaseVoucherDiscountTypeSnapshotEnum._('FIXED_AMOUNT');
+
+PurchaseVoucherDiscountTypeSnapshotEnum
+_$purchaseVoucherDiscountTypeSnapshotEnumValueOf(String name) {
+  switch (name) {
+    case 'PERCENTAGE':
+      return _$purchaseVoucherDiscountTypeSnapshotEnum_PERCENTAGE;
+    case 'FIXED_AMOUNT':
+      return _$purchaseVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT;
+    default:
+      throw ArgumentError(name);
+  }
+}
+
+final BuiltSet<PurchaseVoucherDiscountTypeSnapshotEnum>
+_$purchaseVoucherDiscountTypeSnapshotEnumValues =
+    BuiltSet<PurchaseVoucherDiscountTypeSnapshotEnum>(
+      const <PurchaseVoucherDiscountTypeSnapshotEnum>[
+        _$purchaseVoucherDiscountTypeSnapshotEnum_PERCENTAGE,
+        _$purchaseVoucherDiscountTypeSnapshotEnum_FIXED_AMOUNT,
+      ],
+    );
+
 const PurchaseStatusEnum _$purchaseStatusEnum_AWAITING_PAYMENT =
     const PurchaseStatusEnum._('AWAITING_PAYMENT');
 const PurchaseStatusEnum _$purchaseStatusEnum_PENDING =
@@ -48,8 +104,85 @@ final BuiltSet<PurchaseStatusEnum> _$purchaseStatusEnumValues =
       _$purchaseStatusEnum_EXPIRED,
     ]);
 
+Serializer<PurchasePackagePromotionDiscountTypeSnapshotEnum>
+_$purchasePackagePromotionDiscountTypeSnapshotEnumSerializer =
+    _$PurchasePackagePromotionDiscountTypeSnapshotEnumSerializer();
+Serializer<PurchaseVoucherDiscountTypeSnapshotEnum>
+_$purchaseVoucherDiscountTypeSnapshotEnumSerializer =
+    _$PurchaseVoucherDiscountTypeSnapshotEnumSerializer();
 Serializer<PurchaseStatusEnum> _$purchaseStatusEnumSerializer =
     _$PurchaseStatusEnumSerializer();
+
+class _$PurchasePackagePromotionDiscountTypeSnapshotEnumSerializer
+    implements
+        PrimitiveSerializer<PurchasePackagePromotionDiscountTypeSnapshotEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    PurchasePackagePromotionDiscountTypeSnapshotEnum,
+  ];
+  @override
+  final String wireName = 'PurchasePackagePromotionDiscountTypeSnapshotEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PurchasePackagePromotionDiscountTypeSnapshotEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PurchasePackagePromotionDiscountTypeSnapshotEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PurchasePackagePromotionDiscountTypeSnapshotEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
+
+class _$PurchaseVoucherDiscountTypeSnapshotEnumSerializer
+    implements PrimitiveSerializer<PurchaseVoucherDiscountTypeSnapshotEnum> {
+  static const Map<String, Object> _toWire = const <String, Object>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+  static const Map<Object, String> _fromWire = const <Object, String>{
+    'PERCENTAGE': 'PERCENTAGE',
+    'FIXED_AMOUNT': 'FIXED_AMOUNT',
+  };
+
+  @override
+  final Iterable<Type> types = const <Type>[
+    PurchaseVoucherDiscountTypeSnapshotEnum,
+  ];
+  @override
+  final String wireName = 'PurchaseVoucherDiscountTypeSnapshotEnum';
+
+  @override
+  Object serialize(
+    Serializers serializers,
+    PurchaseVoucherDiscountTypeSnapshotEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
+
+  @override
+  PurchaseVoucherDiscountTypeSnapshotEnum deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => PurchaseVoucherDiscountTypeSnapshotEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
+}
 
 class _$PurchaseStatusEnumSerializer
     implements PrimitiveSerializer<PurchaseStatusEnum> {
@@ -116,6 +249,52 @@ abstract mixin class PurchaseBuilder {
   int? get priceRpSnapshot;
   set priceRpSnapshot(int? priceRpSnapshot);
 
+  String? get packagePromotionId;
+  set packagePromotionId(String? packagePromotionId);
+
+  String? get packagePromotionNameSnapshot;
+  set packagePromotionNameSnapshot(String? packagePromotionNameSnapshot);
+
+  PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  get packagePromotionDiscountTypeSnapshot;
+  set packagePromotionDiscountTypeSnapshot(
+    PurchasePackagePromotionDiscountTypeSnapshotEnum?
+    packagePromotionDiscountTypeSnapshot,
+  );
+
+  int? get packagePromotionDiscountValueSnapshot;
+  set packagePromotionDiscountValueSnapshot(
+    int? packagePromotionDiscountValueSnapshot,
+  );
+
+  int? get packagePromotionDiscountRpSnapshot;
+  set packagePromotionDiscountRpSnapshot(
+    int? packagePromotionDiscountRpSnapshot,
+  );
+
+  int? get promotionalPriceRpSnapshot;
+  set promotionalPriceRpSnapshot(int? promotionalPriceRpSnapshot);
+
+  String? get voucherId;
+  set voucherId(String? voucherId);
+
+  String? get voucherCodeSnapshot;
+  set voucherCodeSnapshot(String? voucherCodeSnapshot);
+
+  PurchaseVoucherDiscountTypeSnapshotEnum? get voucherDiscountTypeSnapshot;
+  set voucherDiscountTypeSnapshot(
+    PurchaseVoucherDiscountTypeSnapshotEnum? voucherDiscountTypeSnapshot,
+  );
+
+  int? get voucherDiscountValueSnapshot;
+  set voucherDiscountValueSnapshot(int? voucherDiscountValueSnapshot);
+
+  int? get voucherDiscountRpSnapshot;
+  set voucherDiscountRpSnapshot(int? voucherDiscountRpSnapshot);
+
+  int? get priceAfterDiscountRpSnapshot;
+  set priceAfterDiscountRpSnapshot(int? priceAfterDiscountRpSnapshot);
+
   int? get paymentUniqueCode;
   set paymentUniqueCode(int? paymentUniqueCode);
 
@@ -169,6 +348,31 @@ class _$$Purchase extends $Purchase {
   @override
   final int priceRpSnapshot;
   @override
+  final String? packagePromotionId;
+  @override
+  final String? packagePromotionNameSnapshot;
+  @override
+  final PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  packagePromotionDiscountTypeSnapshot;
+  @override
+  final int? packagePromotionDiscountValueSnapshot;
+  @override
+  final int? packagePromotionDiscountRpSnapshot;
+  @override
+  final int? promotionalPriceRpSnapshot;
+  @override
+  final String? voucherId;
+  @override
+  final String? voucherCodeSnapshot;
+  @override
+  final PurchaseVoucherDiscountTypeSnapshotEnum? voucherDiscountTypeSnapshot;
+  @override
+  final int? voucherDiscountValueSnapshot;
+  @override
+  final int? voucherDiscountRpSnapshot;
+  @override
+  final int? priceAfterDiscountRpSnapshot;
+  @override
   final int? paymentUniqueCode;
   @override
   final int? payableAmountRpSnapshot;
@@ -204,6 +408,18 @@ class _$$Purchase extends $Purchase {
     this.paymentProofId,
     required this.packageNameSnapshot,
     required this.priceRpSnapshot,
+    this.packagePromotionId,
+    this.packagePromotionNameSnapshot,
+    this.packagePromotionDiscountTypeSnapshot,
+    this.packagePromotionDiscountValueSnapshot,
+    this.packagePromotionDiscountRpSnapshot,
+    this.promotionalPriceRpSnapshot,
+    this.voucherId,
+    this.voucherCodeSnapshot,
+    this.voucherDiscountTypeSnapshot,
+    this.voucherDiscountValueSnapshot,
+    this.voucherDiscountRpSnapshot,
+    this.priceAfterDiscountRpSnapshot,
     this.paymentUniqueCode,
     this.payableAmountRpSnapshot,
     required this.sessionCountSnapshot,
@@ -235,6 +451,21 @@ class _$$Purchase extends $Purchase {
         paymentProofId == other.paymentProofId &&
         packageNameSnapshot == other.packageNameSnapshot &&
         priceRpSnapshot == other.priceRpSnapshot &&
+        packagePromotionId == other.packagePromotionId &&
+        packagePromotionNameSnapshot == other.packagePromotionNameSnapshot &&
+        packagePromotionDiscountTypeSnapshot ==
+            other.packagePromotionDiscountTypeSnapshot &&
+        packagePromotionDiscountValueSnapshot ==
+            other.packagePromotionDiscountValueSnapshot &&
+        packagePromotionDiscountRpSnapshot ==
+            other.packagePromotionDiscountRpSnapshot &&
+        promotionalPriceRpSnapshot == other.promotionalPriceRpSnapshot &&
+        voucherId == other.voucherId &&
+        voucherCodeSnapshot == other.voucherCodeSnapshot &&
+        voucherDiscountTypeSnapshot == other.voucherDiscountTypeSnapshot &&
+        voucherDiscountValueSnapshot == other.voucherDiscountValueSnapshot &&
+        voucherDiscountRpSnapshot == other.voucherDiscountRpSnapshot &&
+        priceAfterDiscountRpSnapshot == other.priceAfterDiscountRpSnapshot &&
         paymentUniqueCode == other.paymentUniqueCode &&
         payableAmountRpSnapshot == other.payableAmountRpSnapshot &&
         sessionCountSnapshot == other.sessionCountSnapshot &&
@@ -259,6 +490,18 @@ class _$$Purchase extends $Purchase {
     _$hash = $jc(_$hash, paymentProofId.hashCode);
     _$hash = $jc(_$hash, packageNameSnapshot.hashCode);
     _$hash = $jc(_$hash, priceRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionId.hashCode);
+    _$hash = $jc(_$hash, packagePromotionNameSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountTypeSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountValueSnapshot.hashCode);
+    _$hash = $jc(_$hash, packagePromotionDiscountRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, promotionalPriceRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherId.hashCode);
+    _$hash = $jc(_$hash, voucherCodeSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountTypeSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountValueSnapshot.hashCode);
+    _$hash = $jc(_$hash, voucherDiscountRpSnapshot.hashCode);
+    _$hash = $jc(_$hash, priceAfterDiscountRpSnapshot.hashCode);
     _$hash = $jc(_$hash, paymentUniqueCode.hashCode);
     _$hash = $jc(_$hash, payableAmountRpSnapshot.hashCode);
     _$hash = $jc(_$hash, sessionCountSnapshot.hashCode);
@@ -285,6 +528,27 @@ class _$$Purchase extends $Purchase {
           ..add('paymentProofId', paymentProofId)
           ..add('packageNameSnapshot', packageNameSnapshot)
           ..add('priceRpSnapshot', priceRpSnapshot)
+          ..add('packagePromotionId', packagePromotionId)
+          ..add('packagePromotionNameSnapshot', packagePromotionNameSnapshot)
+          ..add(
+            'packagePromotionDiscountTypeSnapshot',
+            packagePromotionDiscountTypeSnapshot,
+          )
+          ..add(
+            'packagePromotionDiscountValueSnapshot',
+            packagePromotionDiscountValueSnapshot,
+          )
+          ..add(
+            'packagePromotionDiscountRpSnapshot',
+            packagePromotionDiscountRpSnapshot,
+          )
+          ..add('promotionalPriceRpSnapshot', promotionalPriceRpSnapshot)
+          ..add('voucherId', voucherId)
+          ..add('voucherCodeSnapshot', voucherCodeSnapshot)
+          ..add('voucherDiscountTypeSnapshot', voucherDiscountTypeSnapshot)
+          ..add('voucherDiscountValueSnapshot', voucherDiscountValueSnapshot)
+          ..add('voucherDiscountRpSnapshot', voucherDiscountRpSnapshot)
+          ..add('priceAfterDiscountRpSnapshot', priceAfterDiscountRpSnapshot)
           ..add('paymentUniqueCode', paymentUniqueCode)
           ..add('payableAmountRpSnapshot', payableAmountRpSnapshot)
           ..add('sessionCountSnapshot', sessionCountSnapshot)
@@ -335,6 +599,84 @@ class $PurchaseBuilder
   int? get priceRpSnapshot => _$this._priceRpSnapshot;
   set priceRpSnapshot(covariant int? priceRpSnapshot) =>
       _$this._priceRpSnapshot = priceRpSnapshot;
+
+  String? _packagePromotionId;
+  String? get packagePromotionId => _$this._packagePromotionId;
+  set packagePromotionId(covariant String? packagePromotionId) =>
+      _$this._packagePromotionId = packagePromotionId;
+
+  String? _packagePromotionNameSnapshot;
+  String? get packagePromotionNameSnapshot =>
+      _$this._packagePromotionNameSnapshot;
+  set packagePromotionNameSnapshot(
+    covariant String? packagePromotionNameSnapshot,
+  ) => _$this._packagePromotionNameSnapshot = packagePromotionNameSnapshot;
+
+  PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  _packagePromotionDiscountTypeSnapshot;
+  PurchasePackagePromotionDiscountTypeSnapshotEnum?
+  get packagePromotionDiscountTypeSnapshot =>
+      _$this._packagePromotionDiscountTypeSnapshot;
+  set packagePromotionDiscountTypeSnapshot(
+    covariant PurchasePackagePromotionDiscountTypeSnapshotEnum?
+    packagePromotionDiscountTypeSnapshot,
+  ) => _$this._packagePromotionDiscountTypeSnapshot =
+      packagePromotionDiscountTypeSnapshot;
+
+  int? _packagePromotionDiscountValueSnapshot;
+  int? get packagePromotionDiscountValueSnapshot =>
+      _$this._packagePromotionDiscountValueSnapshot;
+  set packagePromotionDiscountValueSnapshot(
+    covariant int? packagePromotionDiscountValueSnapshot,
+  ) => _$this._packagePromotionDiscountValueSnapshot =
+      packagePromotionDiscountValueSnapshot;
+
+  int? _packagePromotionDiscountRpSnapshot;
+  int? get packagePromotionDiscountRpSnapshot =>
+      _$this._packagePromotionDiscountRpSnapshot;
+  set packagePromotionDiscountRpSnapshot(
+    covariant int? packagePromotionDiscountRpSnapshot,
+  ) => _$this._packagePromotionDiscountRpSnapshot =
+      packagePromotionDiscountRpSnapshot;
+
+  int? _promotionalPriceRpSnapshot;
+  int? get promotionalPriceRpSnapshot => _$this._promotionalPriceRpSnapshot;
+  set promotionalPriceRpSnapshot(covariant int? promotionalPriceRpSnapshot) =>
+      _$this._promotionalPriceRpSnapshot = promotionalPriceRpSnapshot;
+
+  String? _voucherId;
+  String? get voucherId => _$this._voucherId;
+  set voucherId(covariant String? voucherId) => _$this._voucherId = voucherId;
+
+  String? _voucherCodeSnapshot;
+  String? get voucherCodeSnapshot => _$this._voucherCodeSnapshot;
+  set voucherCodeSnapshot(covariant String? voucherCodeSnapshot) =>
+      _$this._voucherCodeSnapshot = voucherCodeSnapshot;
+
+  PurchaseVoucherDiscountTypeSnapshotEnum? _voucherDiscountTypeSnapshot;
+  PurchaseVoucherDiscountTypeSnapshotEnum? get voucherDiscountTypeSnapshot =>
+      _$this._voucherDiscountTypeSnapshot;
+  set voucherDiscountTypeSnapshot(
+    covariant PurchaseVoucherDiscountTypeSnapshotEnum?
+    voucherDiscountTypeSnapshot,
+  ) => _$this._voucherDiscountTypeSnapshot = voucherDiscountTypeSnapshot;
+
+  int? _voucherDiscountValueSnapshot;
+  int? get voucherDiscountValueSnapshot => _$this._voucherDiscountValueSnapshot;
+  set voucherDiscountValueSnapshot(
+    covariant int? voucherDiscountValueSnapshot,
+  ) => _$this._voucherDiscountValueSnapshot = voucherDiscountValueSnapshot;
+
+  int? _voucherDiscountRpSnapshot;
+  int? get voucherDiscountRpSnapshot => _$this._voucherDiscountRpSnapshot;
+  set voucherDiscountRpSnapshot(covariant int? voucherDiscountRpSnapshot) =>
+      _$this._voucherDiscountRpSnapshot = voucherDiscountRpSnapshot;
+
+  int? _priceAfterDiscountRpSnapshot;
+  int? get priceAfterDiscountRpSnapshot => _$this._priceAfterDiscountRpSnapshot;
+  set priceAfterDiscountRpSnapshot(
+    covariant int? priceAfterDiscountRpSnapshot,
+  ) => _$this._priceAfterDiscountRpSnapshot = priceAfterDiscountRpSnapshot;
 
   int? _paymentUniqueCode;
   int? get paymentUniqueCode => _$this._paymentUniqueCode;
@@ -407,6 +749,21 @@ class $PurchaseBuilder
       _paymentProofId = $v.paymentProofId;
       _packageNameSnapshot = $v.packageNameSnapshot;
       _priceRpSnapshot = $v.priceRpSnapshot;
+      _packagePromotionId = $v.packagePromotionId;
+      _packagePromotionNameSnapshot = $v.packagePromotionNameSnapshot;
+      _packagePromotionDiscountTypeSnapshot =
+          $v.packagePromotionDiscountTypeSnapshot;
+      _packagePromotionDiscountValueSnapshot =
+          $v.packagePromotionDiscountValueSnapshot;
+      _packagePromotionDiscountRpSnapshot =
+          $v.packagePromotionDiscountRpSnapshot;
+      _promotionalPriceRpSnapshot = $v.promotionalPriceRpSnapshot;
+      _voucherId = $v.voucherId;
+      _voucherCodeSnapshot = $v.voucherCodeSnapshot;
+      _voucherDiscountTypeSnapshot = $v.voucherDiscountTypeSnapshot;
+      _voucherDiscountValueSnapshot = $v.voucherDiscountValueSnapshot;
+      _voucherDiscountRpSnapshot = $v.voucherDiscountRpSnapshot;
+      _priceAfterDiscountRpSnapshot = $v.priceAfterDiscountRpSnapshot;
       _paymentUniqueCode = $v.paymentUniqueCode;
       _payableAmountRpSnapshot = $v.payableAmountRpSnapshot;
       _sessionCountSnapshot = $v.sessionCountSnapshot;
@@ -468,6 +825,21 @@ class $PurchaseBuilder
             r'$Purchase',
             'priceRpSnapshot',
           ),
+          packagePromotionId: packagePromotionId,
+          packagePromotionNameSnapshot: packagePromotionNameSnapshot,
+          packagePromotionDiscountTypeSnapshot:
+              packagePromotionDiscountTypeSnapshot,
+          packagePromotionDiscountValueSnapshot:
+              packagePromotionDiscountValueSnapshot,
+          packagePromotionDiscountRpSnapshot:
+              packagePromotionDiscountRpSnapshot,
+          promotionalPriceRpSnapshot: promotionalPriceRpSnapshot,
+          voucherId: voucherId,
+          voucherCodeSnapshot: voucherCodeSnapshot,
+          voucherDiscountTypeSnapshot: voucherDiscountTypeSnapshot,
+          voucherDiscountValueSnapshot: voucherDiscountValueSnapshot,
+          voucherDiscountRpSnapshot: voucherDiscountRpSnapshot,
+          priceAfterDiscountRpSnapshot: priceAfterDiscountRpSnapshot,
           paymentUniqueCode: paymentUniqueCode,
           payableAmountRpSnapshot: payableAmountRpSnapshot,
           sessionCountSnapshot: BuiltValueNullFieldError.checkNotNull(

@@ -292,6 +292,13 @@ enum BookingSource {
   ADMIN_ASSISTED
 }
 
+enum BookingCancellationReasonCode {
+  PERSONAL_UNAVAILABLE
+  CUSTOMER_SCHEDULE_CONFLICT
+  WRONG_CLASS_SELECTED
+  OTHER
+}
+
 enum CheckInTokenStatus {
   ACTIVE
   USED
@@ -353,6 +360,7 @@ model User {
   instructedClassSlots               ClassSlot[]                         @relation("ClassSlotInstructor")
   customerBookings                   Booking[]                           @relation("BookingCustomer")
   createdBookings                    Booking[]                           @relation("BookingActor")
+  cancelledBookings                  Booking[]                           @relation("BookingCanceller")
   requestedReschedules               Reschedule[]                        @relation("RescheduleRequester")
   decidedReschedules                 Reschedule[]                        @relation("RescheduleDecider")
   issuedCheckInTokens                CheckInToken[]                      @relation("CheckInTokenIssuer")
@@ -1371,6 +1379,9 @@ model Booking {
   status            BookingStatus       @default(BOOKED)
   reservedQuantity  Int                 @default(1)
   version           Int                 @default(0)
+  cancellationReasonCode BookingCancellationReasonCode?
+  cancelledAt       DateTime?
+  cancelledById     String?             @db.Char(36)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   branch            Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -1379,6 +1390,7 @@ model Booking {
   customerPackage   CustomerPackage     @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
   reservation       SessionReservation  @relation(fields: [reservationId], references: [id], onDelete: Restrict)
   createdBy         User                @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy       User?               @relation("BookingCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
   reschedules       Reschedule[]
   checkInTokens     CheckInToken[]
   attendance        CustomerAttendance?

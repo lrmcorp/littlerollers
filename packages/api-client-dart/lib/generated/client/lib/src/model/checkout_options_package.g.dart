@@ -14,6 +14,12 @@ class _$CheckoutOptionsPackage extends CheckoutOptionsPackage {
   @override
   final int priceRp;
   @override
+  final int effectivePriceRp;
+  @override
+  final PublicPackagePromotion? promotion;
+  @override
+  final int version;
+  @override
   final int sessionCount;
   @override
   final int durationDays;
@@ -34,6 +40,9 @@ class _$CheckoutOptionsPackage extends CheckoutOptionsPackage {
     required this.id,
     required this.name,
     required this.priceRp,
+    required this.effectivePriceRp,
+    this.promotion,
+    required this.version,
     required this.sessionCount,
     required this.durationDays,
     required this.branchId,
@@ -57,6 +66,9 @@ class _$CheckoutOptionsPackage extends CheckoutOptionsPackage {
         id == other.id &&
         name == other.name &&
         priceRp == other.priceRp &&
+        effectivePriceRp == other.effectivePriceRp &&
+        promotion == other.promotion &&
+        version == other.version &&
         sessionCount == other.sessionCount &&
         durationDays == other.durationDays &&
         branchId == other.branchId &&
@@ -71,6 +83,9 @@ class _$CheckoutOptionsPackage extends CheckoutOptionsPackage {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, priceRp.hashCode);
+    _$hash = $jc(_$hash, effectivePriceRp.hashCode);
+    _$hash = $jc(_$hash, promotion.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
     _$hash = $jc(_$hash, durationDays.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
@@ -87,6 +102,9 @@ class _$CheckoutOptionsPackage extends CheckoutOptionsPackage {
           ..add('id', id)
           ..add('name', name)
           ..add('priceRp', priceRp)
+          ..add('effectivePriceRp', effectivePriceRp)
+          ..add('promotion', promotion)
+          ..add('version', version)
           ..add('sessionCount', sessionCount)
           ..add('durationDays', durationDays)
           ..add('branchId', branchId)
@@ -112,6 +130,21 @@ class CheckoutOptionsPackageBuilder
   int? _priceRp;
   int? get priceRp => _$this._priceRp;
   set priceRp(int? priceRp) => _$this._priceRp = priceRp;
+
+  int? _effectivePriceRp;
+  int? get effectivePriceRp => _$this._effectivePriceRp;
+  set effectivePriceRp(int? effectivePriceRp) =>
+      _$this._effectivePriceRp = effectivePriceRp;
+
+  PublicPackagePromotionBuilder? _promotion;
+  PublicPackagePromotionBuilder get promotion =>
+      _$this._promotion ??= PublicPackagePromotionBuilder();
+  set promotion(PublicPackagePromotionBuilder? promotion) =>
+      _$this._promotion = promotion;
+
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
 
   int? _sessionCount;
   int? get sessionCount => _$this._sessionCount;
@@ -148,6 +181,9 @@ class CheckoutOptionsPackageBuilder
       _id = $v.id;
       _name = $v.name;
       _priceRp = $v.priceRp;
+      _effectivePriceRp = $v.effectivePriceRp;
+      _promotion = $v.promotion?.toBuilder();
+      _version = $v.version;
       _sessionCount = $v.sessionCount;
       _durationDays = $v.durationDays;
       _branchId = $v.branchId;
@@ -173,55 +209,82 @@ class CheckoutOptionsPackageBuilder
   CheckoutOptionsPackage build() => _build();
 
   _$CheckoutOptionsPackage _build() {
-    final _$result =
-        _$v ??
-        _$CheckoutOptionsPackage._(
-          id: BuiltValueNullFieldError.checkNotNull(
-            id,
-            r'CheckoutOptionsPackage',
-            'id',
-          ),
-          name: BuiltValueNullFieldError.checkNotNull(
-            name,
-            r'CheckoutOptionsPackage',
-            'name',
-          ),
-          priceRp: BuiltValueNullFieldError.checkNotNull(
-            priceRp,
-            r'CheckoutOptionsPackage',
-            'priceRp',
-          ),
-          sessionCount: BuiltValueNullFieldError.checkNotNull(
-            sessionCount,
-            r'CheckoutOptionsPackage',
-            'sessionCount',
-          ),
-          durationDays: BuiltValueNullFieldError.checkNotNull(
-            durationDays,
-            r'CheckoutOptionsPackage',
-            'durationDays',
-          ),
-          branchId: BuiltValueNullFieldError.checkNotNull(
-            branchId,
-            r'CheckoutOptionsPackage',
-            'branchId',
-          ),
-          branchName: BuiltValueNullFieldError.checkNotNull(
-            branchName,
-            r'CheckoutOptionsPackage',
-            'branchName',
-          ),
-          classTypeId: BuiltValueNullFieldError.checkNotNull(
-            classTypeId,
-            r'CheckoutOptionsPackage',
-            'classTypeId',
-          ),
-          classTypeName: BuiltValueNullFieldError.checkNotNull(
-            classTypeName,
-            r'CheckoutOptionsPackage',
-            'classTypeName',
-          ),
+    _$CheckoutOptionsPackage _$result;
+    try {
+      _$result =
+          _$v ??
+          _$CheckoutOptionsPackage._(
+            id: BuiltValueNullFieldError.checkNotNull(
+              id,
+              r'CheckoutOptionsPackage',
+              'id',
+            ),
+            name: BuiltValueNullFieldError.checkNotNull(
+              name,
+              r'CheckoutOptionsPackage',
+              'name',
+            ),
+            priceRp: BuiltValueNullFieldError.checkNotNull(
+              priceRp,
+              r'CheckoutOptionsPackage',
+              'priceRp',
+            ),
+            effectivePriceRp: BuiltValueNullFieldError.checkNotNull(
+              effectivePriceRp,
+              r'CheckoutOptionsPackage',
+              'effectivePriceRp',
+            ),
+            promotion: _promotion?.build(),
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'CheckoutOptionsPackage',
+              'version',
+            ),
+            sessionCount: BuiltValueNullFieldError.checkNotNull(
+              sessionCount,
+              r'CheckoutOptionsPackage',
+              'sessionCount',
+            ),
+            durationDays: BuiltValueNullFieldError.checkNotNull(
+              durationDays,
+              r'CheckoutOptionsPackage',
+              'durationDays',
+            ),
+            branchId: BuiltValueNullFieldError.checkNotNull(
+              branchId,
+              r'CheckoutOptionsPackage',
+              'branchId',
+            ),
+            branchName: BuiltValueNullFieldError.checkNotNull(
+              branchName,
+              r'CheckoutOptionsPackage',
+              'branchName',
+            ),
+            classTypeId: BuiltValueNullFieldError.checkNotNull(
+              classTypeId,
+              r'CheckoutOptionsPackage',
+              'classTypeId',
+            ),
+            classTypeName: BuiltValueNullFieldError.checkNotNull(
+              classTypeName,
+              r'CheckoutOptionsPackage',
+              'classTypeName',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'promotion';
+        _promotion?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'CheckoutOptionsPackage',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

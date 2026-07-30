@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { MasterCatalogService } from './master-catalog.service';
 import { EffectiveSettingsService, type SettingInput } from './effective-settings.service';
@@ -12,26 +23,83 @@ export class MasterController {
     private readonly settings: EffectiveSettingsService,
     private readonly publicProfiles: PublicProfileAdminService,
   ) {}
-  @Get('branches') listBranches(@Req() req: AuthenticatedRequest) {
-    return this.catalog.listBranches(req.principal);
+  @Get('branches') listBranches(
+    @Req() req: AuthenticatedRequest,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.catalog.listBranches(req.principal, { q, status, cursor, limit });
+  }
+  @Get('branches/:id') branchDetail(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.catalog.branchDetail(req.principal, id);
   }
   @Post('branches') createBranch(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { code: string; name: string; timezone: string },
+    @Headers('idempotency-key') key: string | undefined,
+    @Body()
+    body: {
+      code: string;
+      name: string;
+      timezone: string;
+      supportWhatsappE164?: string | null;
+      reason?: string;
+    },
   ) {
-    return this.catalog.createBranch(req.principal, body, req.correlationId ?? 'unknown');
+    return this.catalog.createBranch(req.principal, body, req.correlationId ?? 'unknown', key);
   }
   @Post('branches/:id/deactivate') deactivateBranch(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { expectedVersion: number },
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { expectedVersion: number; reason?: string },
   ) {
-    return this.catalog.deactivateBranch(
+    return key
+      ? this.catalog.transitionBranch(
+          req.principal,
+          id,
+          'INACTIVE',
+          { expectedVersion: body.expectedVersion, reason: body.reason ?? 'Menonaktifkan cabang' },
+          key,
+          req.correlationId ?? 'unknown',
+        )
+      : this.catalog.deactivateBranch(
+          req.principal,
+          id,
+          body.expectedVersion,
+          req.correlationId ?? 'unknown',
+        );
+  }
+  @Post('branches/:id/reactivate') reactivateBranch(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    return this.catalog.transitionBranch(
       req.principal,
       id,
-      body.expectedVersion,
+      'ACTIVE',
+      body,
+      key,
       req.correlationId ?? 'unknown',
     );
+  }
+  @Patch('branches/:id') updateBranch(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body()
+    body: {
+      name: string;
+      timezone: string;
+      supportWhatsappE164?: string | null;
+      expectedVersion: number;
+      reason: string;
+    },
+  ) {
+    return this.catalog.updateBranch(req.principal, id, body, key, req.correlationId ?? 'unknown');
   }
   @Get('class-types') listClassTypes(
     @Req() req: AuthenticatedRequest,
@@ -48,12 +116,52 @@ export class MasterController {
   @Post('class-types/:id/deactivate') deactivateClassType(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { expectedVersion: number },
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { expectedVersion: number; reason?: string },
   ) {
-    return this.catalog.deactivateClassType(
+    return key
+      ? this.catalog.deactivateClassTypeIdempotent(
+          req.principal,
+          id,
+          {
+            expectedVersion: body.expectedVersion,
+            reason: body.reason ?? 'Menonaktifkan tipe kelas',
+          },
+          key,
+          req.correlationId ?? 'unknown',
+        )
+      : this.catalog.deactivateClassType(
+          req.principal,
+          id,
+          body.expectedVersion,
+          req.correlationId ?? 'unknown',
+        );
+  }
+  @Patch('class-types/:id') updateClassType(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { name: string; expectedVersion: number; reason: string },
+  ) {
+    return this.catalog.updateClassType(
       req.principal,
       id,
-      body.expectedVersion,
+      body,
+      key,
+      req.correlationId ?? 'unknown',
+    );
+  }
+  @Post('class-types/:id/reactivate') reactivateClassType(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: { expectedVersion: number; reason: string },
+  ) {
+    return this.catalog.reactivateClassType(
+      req.principal,
+      id,
+      body,
+      key,
       req.correlationId ?? 'unknown',
     );
   }

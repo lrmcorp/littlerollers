@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { BookingsService, type BookingCommand } from './bookings.service';
+import {
+  BookingsService,
+  type BookingCommand,
+  type CancelBookingCommand,
+} from './bookings.service';
 import { ReschedulesService } from './reschedules.service';
 
 @Controller('bookings')
@@ -61,6 +65,11 @@ export class BookingsController {
     return this.reschedules.options(request.principal, id);
   }
 
+  @Get(':id/cancellation-options')
+  cancellationOptions(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.bookings.cancellationOptions(request.principal, id);
+  }
+
   @Get(':id')
   detail(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.bookings.detail(request.principal, id);
@@ -75,6 +84,26 @@ export class BookingsController {
   ) {
     const result = await this.bookings.create(
       request.principal,
+      body,
+      key,
+      request.correlationId ?? 'unknown',
+    );
+    response.status(result.status);
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return { ...(result.body as object), idempotentReplay: result.replay };
+  }
+
+  @Post(':id/cancel')
+  async cancel(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: CancelBookingCommand,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.bookings.cancel(
+      request.principal,
+      id,
       body,
       key,
       request.correlationId ?? 'unknown',

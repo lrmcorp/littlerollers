@@ -21,7 +21,8 @@ Name | Type | Description | Notes
 **perCustomerUsageLimit** | **int** |  | [optional] 
 **branchId** | **String** |  | [optional] 
 **classTypeId** | **String** |  | [optional] 
-**packageIds** | **BuiltList&lt;String&gt;** |  | [optional] 
+**packageIds** | **BuiltSet&lt;String&gt;** |  | [optional] 
+**reason** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

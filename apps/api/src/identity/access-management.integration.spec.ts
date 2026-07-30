@@ -190,6 +190,19 @@ databaseDescribe('dynamic RBAC MySQL integration', () => {
       where: { systemRole: 'SUPER_OWNER' },
     });
     await expect(
+      service.replaceRoleCapabilities(
+        principal,
+        superOwnerRole.id,
+        {
+          capabilityKeys: ['role-permission:manage', 'user:admin', 'audit:read', 'branch:all'],
+          expectedVersion: superOwnerRole.version,
+          reasonCode: 'POLICY_UPDATE',
+        },
+        randomUUID(),
+        `${namespace}-fixed-system-role`,
+      ),
+    ).rejects.toMatchObject({ code: 'PROTECTED_ROLE_CHANGE' });
+    await expect(
       service.replaceUserRoles(
         principal,
         actorId,

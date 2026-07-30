@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { accountClient, type PreferredStudio } from '../account-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
+import { SearchSelect, SelectInput } from '../components/forms';
 import {
   publicContainer as container,
   publicPrimaryButton as primary,
@@ -119,20 +120,13 @@ export function LocationsView() {
           <div
             className={`${container} grid grid-cols-[1fr_1fr_1fr_auto] gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1`}
           >
-            <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
-              <span aria-hidden="true">⌖</span>
-              <span className="sr-only">Wilayah</span>
-              <select
-                className="min-h-11 w-full border-0 bg-transparent"
-                value={region}
-                onChange={(event) => setRegion(event.target.value)}
-              >
-                <option>Semua lokasi</option>
-                {regions.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
+            <SearchSelect
+              label="Wilayah"
+              value={region === 'Semua lokasi' ? '' : region}
+              placeholder="Semua lokasi"
+              options={regions.map((item) => ({ id: item, label: item }))}
+              onChange={(value) => setRegion(value || 'Semua lokasi')}
+            />
             <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
               <span aria-hidden="true">⌕</span>
               <span className="sr-only">Cari studio</span>
@@ -160,17 +154,16 @@ export function LocationsView() {
               <p className="m-0 text-sm">
                 <strong>{visibleLocations.length}</strong> studio tersedia
               </p>
-              <label className="flex items-center gap-2 text-sm text-dd-muted">
-                Urutkan
-                <select
-                  className="min-h-11 rounded-dd-sm border border-dd-line bg-white px-3"
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as 'recommended' | 'az')}
-                >
-                  <option value="recommended">Rekomendasi</option>
-                  <option value="az">A–Z</option>
-                </select>
-              </label>
+              <SelectInput
+                compact
+                wrapperClassName="min-w-48"
+                label="Urutkan"
+                value={sort}
+                onChange={(event) => setSort(event.target.value as 'recommended' | 'az')}
+              >
+                <option value="recommended">Rekomendasi</option>
+                <option value="az">A–Z</option>
+              </SelectInput>
             </div>
 
             {loading ? (

@@ -29,6 +29,8 @@
     "db:seed:volume": "SEED_PROFILE=volume node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed.ts",
     "db:seed:audit": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed-audit.ts",
     "db:seed:cleanup": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed-audit.ts --deactivate-residual",
+    "db:packages:audit": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/package-integrity.ts",
+    "db:packages:repair": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/package-integrity.ts --repair",
     "db:setup": "npm run db:generate && npm run db:migrate && npm run db:seed",
     "local:up": "docker compose -f infra/local/docker-compose.yml up -d",
     "local:down": "docker compose -f infra/local/docker-compose.yml down"

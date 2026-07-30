@@ -11,9 +11,17 @@ import {
 import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '../identity-client';
-import { Button, SearchableLookup, Tabs } from '../components/admin/admin-ui';
+import { Tabs } from '../components/admin/admin-ui';
+import { Button, ButtonLink } from '../components/actions';
 import { PublicProfileEditor } from './public-profile-editor';
-import { DateInput, SelectInput, TextInput } from '../components/forms';
+import {
+  AsyncSearchSelect,
+  DateInput,
+  SearchSelect,
+  SelectInput,
+  TextInput,
+} from '../components/forms';
+import { Drawer, useAppFeedback } from '../components/app-feedback';
 
 type Branches = Awaited<ReturnType<MasterClient['listBranches']>>;
 type ClassTypes = Awaited<ReturnType<MasterClient['listClassTypes']>>;
@@ -92,6 +100,11 @@ export function MasterView({
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const [settingSubmitting, setSettingSubmitting] = useState(false);
+  const [editingClassType, setEditingClassType] = useState<ClassTypes[number]>();
+  const [classTypeName, setClassTypeName] = useState('');
+  const [classTypeReason, setClassTypeReason] = useState('');
+  const feedback = useAppFeedback();
   const [instructor, setInstructor] = useState<LookupOption>();
   const lookupInstructors = useCallback(
     (q: string) =>
@@ -138,7 +151,7 @@ export function MasterView({
       setBranches(nextBranches);
       const selectedBranchId =
         nextBranches.find((item) => item.id === branchId && item.active)?.id ??
-        (!sessionContext ? nextBranches.find((item) => item.active)?.id : undefined) ??
+        (access ? nextBranches.find((item) => item.active)?.id : undefined) ??
         '';
       setBranchId(selectedBranchId);
       await loadBranchContent(selectedBranchId);
@@ -203,24 +216,23 @@ export function MasterView({
           />
         </div>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          {!sessionContext && (
-            <SelectInput
+          {access && !sessionContext && (
+            <SearchSelect
               label="Cabang aktif"
               wrapperClassName="min-w-[240px] flex-1"
               value={branchId}
-              onChange={(event) => {
-                const selected = event.target.value;
+              placeholder="Pilih cabang"
+              options={branches.map((item) => ({
+                id: item.id,
+                label: item.name,
+                description: `${item.code}${item.active ? '' : ' · Nonaktif'}`,
+                disabled: !item.active,
+              }))}
+              onChange={(selected) => {
                 setBranchId(selected);
                 void run(() => loadBranchContent(selected), 'Data cabang berhasil dimuat.');
               }}
-            >
-              <option value="">Pilih cabang</option>
-              {branches.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.code}){item.active ? '' : ' — nonaktif'}
-                </option>
-              ))}
-            </SelectInput>
+            />
           )}
           {sessionContext && (
             <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-4 py-3">
@@ -242,33 +254,16 @@ export function MasterView({
 
       <div className="grid gap-6 xl:grid-cols-2">
         {selectedTab === 'branches' && (
-          <form
-            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
-            aria-label="Buat branch"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const form = event.currentTarget;
-              const data = new FormData(form);
-              void run(async () => {
-                await client.createBranch({
-                  code: String(data.get('code')).trim().toUpperCase(),
-                  name: String(data.get('name')).trim(),
-                  timezone: String(data.get('timezone')).trim(),
-                });
-                form.reset();
-                await reloadCurrent();
-              }, 'Cabang berhasil dibuat.');
-            }}
-          >
-            <h2>Tambah cabang</h2>
-            <p className="text-dd-muted">Gunakan kode singkat yang konsisten untuk operasional.</p>
-            <TextInput label="Kode cabang" name="code" placeholder="Contoh: DD-BDG" required />
-            <TextInput label="Nama cabang" name="name" placeholder="Daily Dose Bandung" required />
-            <TextInput label="Zona waktu" name="timezone" defaultValue="Asia/Jakarta" required />
-            <Button type="submit" disabled={!canManage || loading}>
-              Simpan cabang
-            </Button>
-          </form>
+          <section className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card">
+            <h2>Branch Management</h2>
+            <p className="mt-2 text-sm leading-6 text-dd-muted">
+              Pembuatan, detail, dependency, edit, deactivate, dan reactivate cabang kini dikelola
+              pada workspace khusus.
+            </p>
+            <ButtonLink className="mt-4" href="/workspace/branches">
+              Buka Branch Management
+            </ButtonLink>
+          </section>
         )}
 
         {selectedTab === 'classTypes' && (
@@ -309,21 +304,26 @@ export function MasterView({
             event.preventDefault();
             const form = event.currentTarget;
             const data = new FormData(form);
+            setSettingSubmitting(true);
             void run(async () => {
-              await client.createSetting({
-                kind,
-                branchId,
-                classTypeId,
-                instructorUserId: instructor?.id,
-                value: Number(data.get('value')),
-                capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
-                effectiveFrom: String(data.get('effectiveFrom')),
-                effectiveUntil: String(data.get('effectiveUntil')) || undefined,
-                reason: String(data.get('reason')).trim(),
-              });
-              form.reset();
-              setInstructor(undefined);
-              await loadBranchContent(branchId, kind);
+              try {
+                await client.createSetting({
+                  kind,
+                  branchId,
+                  classTypeId,
+                  instructorUserId: instructor?.id,
+                  value: Number(data.get('value')),
+                  capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
+                  effectiveFrom: String(data.get('effectiveFrom')),
+                  effectiveUntil: String(data.get('effectiveUntil')) || undefined,
+                  reason: String(data.get('reason')).trim(),
+                });
+                form.reset();
+                setInstructor(undefined);
+                await loadBranchContent(branchId, kind);
+              } finally {
+                setSettingSubmitting(false);
+              }
             }, 'Konfigurasi efektif berhasil dibuat.');
           }}
         >
@@ -354,27 +354,27 @@ export function MasterView({
                   </option>
                 ))}
               </SelectInput>
-              <SelectInput
+              <SearchSelect
                 label="Tipe kelas"
                 value={classTypeId}
-                onChange={(event) => setClassTypeId(event.target.value)}
-                required
-              >
-                <option value="">Pilih tipe kelas</option>
-                {classTypes
+                placeholder="Pilih tipe kelas"
+                options={classTypes
                   .filter((item) => item.active)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.code})
-                    </option>
-                  ))}
-              </SelectInput>
+                  .map((item) => ({
+                    id: item.id,
+                    label: item.name,
+                    description: item.code,
+                  }))}
+                onChange={setClassTypeId}
+                required
+              />
               {kind === 'INSTRUCTOR_FEE' && (
-                <SearchableLookup<LookupOption>
+                <AsyncSearchSelect
                   label="Instructor aktif"
-                  value={instructor}
-                  load={lookupInstructors}
-                  onChange={setInstructor}
+                  value={instructor?.id ?? ''}
+                  selectedOption={instructor}
+                  loadOptions={lookupInstructors}
+                  onChange={(_id, option) => setInstructor(option as LookupOption | undefined)}
                   placeholder="Cari nama instructor"
                 />
               )}
@@ -414,154 +414,269 @@ export function MasterView({
               (kind === 'INSTRUCTOR_FEE' && !instructor) ||
               !canManage ||
               ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance) ||
-              loading
+              settingSubmitting
             }
           >
-            Simpan konfigurasi
+            {settingSubmitting ? 'Menyimpan…' : 'Simpan konfigurasi'}
           </Button>
         </form>
       )}
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section
-          className={`${selectedTab === 'branches' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-          aria-labelledby="branch-list-title"
-        >
-          <h2 id="branch-list-title">Daftar cabang</h2>
-          {branches.length ? (
-            <ul className="grid list-none gap-3 p-0">
-              {branches.map((item) => (
-                <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <strong>{item.name}</strong>
-                      <div className="text-sm text-dd-muted">
-                        {item.code} · {item.timezone}
+        {selectedTab === 'branches' && (
+          <section
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            aria-labelledby="branch-list-title"
+          >
+            <h2 id="branch-list-title">Daftar cabang</h2>
+            {branches.length ? (
+              <ul className="grid list-none gap-3 p-0">
+                {branches.map((item) => (
+                  <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <strong>{item.name}</strong>
+                        <div className="text-sm text-dd-muted">
+                          {item.code} · {item.timezone}
+                        </div>
                       </div>
+                      <StatusBadge tone={item.active ? 'success' : 'neutral'}>
+                        {item.active ? 'Aktif' : 'Nonaktif'}
+                      </StatusBadge>
                     </div>
-                    <StatusBadge tone={item.active ? 'success' : 'neutral'}>
-                      {item.active ? 'Aktif' : 'Nonaktif'}
-                    </StatusBadge>
-                  </div>
-                  {item.active && (
-                    <Button
+                    <ButtonLink
                       className="mt-3"
+                      size="sm"
                       variant="secondary"
-                      type="button"
-                      disabled={!canManage || loading}
-                      onClick={() =>
-                        void run(async () => {
-                          await client.deactivateBranch(item.id, item.version);
-                          await reloadCurrent();
-                        }, 'Cabang berhasil dinonaktifkan.')
-                      }
+                      href={`/workspace/branches/${item.id}`}
                     >
-                      Nonaktifkan cabang
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              title="Belum ada cabang"
-              description="Muat data atau tambahkan cabang baru."
-            />
-          )}
-        </section>
+                      Lihat detail cabang
+                    </ButtonLink>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                title="Belum ada cabang"
+                description="Muat data atau tambahkan cabang baru."
+              />
+            )}
+          </section>
+        )}
 
-        <section
-          className={`${selectedTab === 'classTypes' ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-          aria-labelledby="class-list-title"
-        >
-          <h2 id="class-list-title">Tipe kelas</h2>
-          {classTypes.length ? (
-            <ul className="grid list-none gap-3 p-0">
-              {classTypes.map((item) => (
-                <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <strong>{item.name}</strong>
-                      <div className="text-sm text-dd-muted">{item.code}</div>
+        {selectedTab === 'classTypes' && (
+          <section
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            aria-labelledby="class-list-title"
+          >
+            <h2 id="class-list-title">Tipe kelas</h2>
+            {classTypes.length ? (
+              <ul className="grid list-none gap-3 p-0">
+                {classTypes.map((item) => (
+                  <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <strong>{item.name}</strong>
+                        <div className="text-sm text-dd-muted">{item.code}</div>
+                      </div>
+                      <StatusBadge tone={item.active ? 'success' : 'neutral'}>
+                        {item.active ? 'Aktif' : 'Nonaktif'}
+                      </StatusBadge>
                     </div>
-                    <StatusBadge tone={item.active ? 'success' : 'neutral'}>
-                      {item.active ? 'Aktif' : 'Nonaktif'}
-                    </StatusBadge>
-                  </div>
-                  {item.active && (
-                    <Button
-                      className="mt-3"
-                      variant="secondary"
-                      type="button"
-                      disabled={!canManage || loading}
-                      onClick={() =>
-                        void run(async () => {
-                          await client.deactivateClassType(item.id, item.version);
-                          await loadBranchContent(branchId);
-                        }, 'Tipe kelas berhasil dinonaktifkan.')
-                      }
-                    >
-                      Nonaktifkan tipe kelas
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              title="Belum ada tipe kelas"
-              description="Pilih cabang dan tambahkan tipe kelas."
-            />
-          )}
-        </section>
+                    {item.active && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          type="button"
+                          disabled={!canManage || loading}
+                          onClick={() => {
+                            setEditingClassType(item);
+                            setClassTypeName(item.name);
+                            setClassTypeReason('');
+                          }}
+                        >
+                          Edit tipe kelas
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          type="button"
+                          disabled={!canManage || loading}
+                          onClick={() =>
+                            void run(async () => {
+                              await client.deactivateClassType(item.id, item.version);
+                              await loadBranchContent(branchId);
+                            }, 'Tipe kelas berhasil dinonaktifkan.')
+                          }
+                        >
+                          Nonaktifkan
+                        </Button>
+                      </div>
+                    )}
+                    {!item.active && (
+                      <Button
+                        className="mt-3"
+                        variant="secondary"
+                        type="button"
+                        disabled={!canManage || loading}
+                        onClick={() =>
+                          void (async () => {
+                            const confirmed = await feedback.confirm({
+                              title: 'Aktifkan kembali tipe kelas?',
+                              message: `${item.name} kembali tersedia untuk konfigurasi dan kelas baru.`,
+                              confirmLabel: 'Aktifkan kembali',
+                            });
+                            if (!confirmed) return;
+                            await run(async () => {
+                              await client.reactivateClassType(item.id, {
+                                expectedVersion: item.version,
+                                reason: 'Mengaktifkan kembali tipe kelas melalui Master Data.',
+                              });
+                              await loadBranchContent(branchId);
+                            }, 'Tipe kelas berhasil diaktifkan kembali.');
+                          })()
+                        }
+                      >
+                        Aktifkan kembali
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                title="Belum ada tipe kelas"
+                description="Pilih cabang dan tambahkan tipe kelas."
+              />
+            )}
+          </section>
+        )}
       </div>
 
-      <section
-        className={`${['projection', 'capacity', 'fees'].includes(selectedTab) ? '' : '!hidden'} rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card`}
-        aria-labelledby="setting-list-title"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="setting-list-title">{kindLabels[kind]}</h2>
-            <p className="text-dd-muted">Riwayat konfigurasi untuk cabang yang dipilih.</p>
-          </div>
-          <StatusBadge tone="info">{settings.length} versi</StatusBadge>
-        </div>
-        {settings.length ? (
-          <div className="overflow-x-auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tipe kelas</th>
-                  <th>Nilai</th>
-                  <th>Mulai</th>
-                  <th>Sampai</th>
-                  <th>Versi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {settings.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      {classTypes.find((type) => type.id === item.classTypeId)?.name ??
-                        item.classTypeId}
-                    </td>
-                    <td>{settingValue(item)}</td>
-                    <td>{dateValue(item.effectiveFrom)}</td>
-                    <td>{dateValue(item.effectiveUntil)}</td>
-                    <td>v{item.version}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            title="Belum ada konfigurasi"
-            description="Pilih cabang lalu tambahkan konfigurasi efektif pertama."
-          />
+      <Drawer
+        open={Boolean(editingClassType)}
+        title="Edit tipe kelas"
+        description="Nama dapat diperbarui. Kode dan cabang tetap agar histori kelas konsisten."
+        busy={loading}
+        dirty={Boolean(
+          editingClassType &&
+          (classTypeName.trim() !== editingClassType.name || classTypeReason.trim()),
         )}
-      </section>
+        onClose={() => {
+          setEditingClassType(undefined);
+          setClassTypeReason('');
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={loading}
+              onClick={() => setEditingClassType(undefined)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              loading={loading}
+              disabled={
+                !editingClassType ||
+                classTypeName.trim().length < 2 ||
+                classTypeReason.trim().length < 3
+              }
+              onClick={() =>
+                void (async () => {
+                  if (!editingClassType) return;
+                  const confirmed = await feedback.confirm({
+                    title: 'Simpan perubahan tipe kelas?',
+                    message: `Nama ${editingClassType.code} akan diperbarui tanpa mengubah kode atau cabang.`,
+                    confirmLabel: 'Simpan perubahan',
+                  });
+                  if (!confirmed) return;
+                  await run(async () => {
+                    await client.updateClassType(editingClassType.id, {
+                      name: classTypeName.trim(),
+                      expectedVersion: editingClassType.version,
+                      reason: classTypeReason.trim(),
+                    });
+                    setEditingClassType(undefined);
+                    setClassTypeReason('');
+                    await loadBranchContent(branchId);
+                  }, 'Tipe kelas berhasil diperbarui.');
+                })()
+              }
+            >
+              Simpan perubahan
+            </Button>
+          </div>
+        }
+      >
+        {editingClassType && (
+          <div className="grid gap-4">
+            <TextInput label="Kode kelas" value={editingClassType.code} disabled />
+            <TextInput
+              label="Nama kelas"
+              value={classTypeName}
+              onChange={(event) => setClassTypeName(event.target.value)}
+            />
+            <TextInput
+              label="Alasan perubahan"
+              value={classTypeReason}
+              onChange={(event) => setClassTypeReason(event.target.value)}
+              minLength={3}
+              required
+            />
+          </div>
+        )}
+      </Drawer>
+
+      {['projection', 'capacity', 'fees'].includes(selectedTab) && (
+        <section
+          className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+          aria-labelledby="setting-list-title"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 id="setting-list-title">{kindLabels[kind]}</h2>
+              <p className="text-dd-muted">Riwayat konfigurasi untuk cabang yang dipilih.</p>
+            </div>
+            <StatusBadge tone="info">{settings.length} versi</StatusBadge>
+          </div>
+          {settings.length ? (
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipe kelas</th>
+                    <th>Nilai</th>
+                    <th>Mulai</th>
+                    <th>Sampai</th>
+                    <th>Versi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settings.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        {classTypes.find((type) => type.id === item.classTypeId)?.name ??
+                          item.classTypeId}
+                      </td>
+                      <td>{settingValue(item)}</td>
+                      <td>{dateValue(item.effectiveFrom)}</td>
+                      <td>{dateValue(item.effectiveUntil)}</td>
+                      <td>v{item.version}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Belum ada konfigurasi"
+              description="Pilih cabang lalu tambahkan konfigurasi efektif pertama."
+            />
+          )}
+        </section>
+      )}
       {selectedTab === 'publicProfiles' && (
         <PublicProfileEditor branchId={branchId} canManage={canManage} />
       )}

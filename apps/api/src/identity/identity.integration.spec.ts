@@ -25,6 +25,11 @@ databaseDescribe('identity MySQL integration', () => {
   const targetId = randomUUID();
   const otpUserId = randomUUID();
   const assignmentUserId = randomUUID();
+  const lookupCustomerId = randomUUID();
+  const lookupClassTypeId = randomUUID();
+  const lookupPackageId = randomUUID();
+  const lookupPurchaseId = randomUUID();
+  const lookupCustomerPackageId = randomUUID();
   const reviewStatuses = [
     'PENDING',
     'APPROVED',
@@ -62,11 +67,86 @@ databaseDescribe('identity MySQL integration', () => {
     await db.branch.create({
       data: { id: branchId, code: namespace, name: namespace, timezone: 'Asia/Jakarta' },
     });
+    await db.classType.create({
+      data: {
+        id: lookupClassTypeId,
+        branchId,
+        code: `${namespace}-REFORMER`,
+        name: 'Lookup Reformer',
+      },
+    });
+    await db.package.create({
+      data: {
+        id: lookupPackageId,
+        branchId,
+        classTypeId: lookupClassTypeId,
+        businessKey: `${namespace}-LOOKUP`,
+        name: 'Lookup Package',
+        sessionCount: 5,
+        durationDays: 30,
+        priceRp: 500_000,
+        effectiveFrom: new Date('2026-01-01'),
+      },
+    });
     await db.user.create({ data: { id: inviterId, displayName: 'Integration inviter' } });
     await db.userRole.create({
       data: { userId: inviterId, branchId: null, role: 'SUPER_OWNER', activeFrom: new Date() },
     });
     await db.user.create({ data: { id: assignmentUserId, displayName: 'Assignment target' } });
+    await db.user.create({
+      data: {
+        id: lookupCustomerId,
+        displayName: 'Eligible Lookup Customer',
+        phoneE164: '+628788880001',
+      },
+    });
+    await db.userRole.create({
+      data: { userId: lookupCustomerId, role: 'CUSTOMER', activeFrom: new Date() },
+    });
+    await db.identityVerificationDocument.createMany({
+      data: (['SELFIE', 'KTP_FRONT'] as const).map((kind) => ({
+        id: randomUUID(),
+        userId: lookupCustomerId,
+        kind,
+        status: 'APPROVED' as const,
+        checksum: digest(`${namespace}:${lookupCustomerId}:${kind}`),
+        fileName: `${kind.toLowerCase()}.png`,
+        mimeType: 'image/png',
+        sizeBytes: 1024,
+        uploadStatus: 'FINALIZED' as const,
+        scanStatus: 'CLEAN' as const,
+      })),
+    });
+    await db.purchase.create({
+      data: {
+        id: lookupPurchaseId,
+        userId: lookupCustomerId,
+        branchId,
+        packageId: lookupPackageId,
+        packageNameSnapshot: 'Lookup Package',
+        priceRpSnapshot: 500_000,
+        sessionCountSnapshot: 5,
+        durationDaysSnapshot: 30,
+        status: 'APPROVED',
+        idempotencyKeyHash: digest(`${namespace}:lookup-purchase`),
+      },
+    });
+    await db.customerPackage.create({
+      data: {
+        id: lookupCustomerPackageId,
+        purchaseId: lookupPurchaseId,
+        customerUserId: lookupCustomerId,
+        branchId,
+        packageId: lookupPackageId,
+        classTypeId: lookupClassTypeId,
+        activationDate: new Date(),
+        expiryAt: new Date(Date.now() + 30 * 86_400_000),
+        salePriceRp: 500_000,
+        sessionCountSnapshot: 5,
+        durationDaysSnapshot: 30,
+        projectionRateRp: 100_000,
+      },
+    });
     await db.user.create({ data: { id: otpUserId, displayName: 'Integration OTP user' } });
     await db.user.createMany({
       data: reviewFixtures.map(({ userId, displayName, phoneE164 }) => ({
@@ -137,10 +217,13 @@ databaseDescribe('identity MySQL integration', () => {
         targetId,
         otpUserId,
         assignmentUserId,
+        lookupCustomerId,
         ...reviewFixtures.map(({ userId }) => userId),
         ...users.map(({ id }) => id),
       ]),
     ];
+    await db.customerPackage.deleteMany({ where: { id: lookupCustomerPackageId } });
+    await db.purchase.deleteMany({ where: { id: lookupPurchaseId } });
     await db.auditLog.deleteMany({
       where: {
         OR: [
@@ -169,6 +252,8 @@ databaseDescribe('identity MySQL integration', () => {
     await db.userRole.deleteMany({ where: { userId: { in: userIds } } });
     await db.assignment.deleteMany({ where: { userId: { in: userIds } } });
     await db.user.deleteMany({ where: { id: { in: userIds } } });
+    await db.package.deleteMany({ where: { id: lookupPackageId } });
+    await db.classType.deleteMany({ where: { id: lookupClassTypeId } });
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.rateLimitCounter.deleteMany({
       where: {
@@ -450,6 +535,35 @@ databaseDescribe('identity MySQL integration', () => {
       users.lookupUsers(
         { ...principal, capabilities: ['class-slot:read'], branchIds: [] },
         { branchId, instructorsOnly: true },
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns only approved customers with a usable package for assisted booking', async () => {
+    const result = await users.lookupCustomers(
+      {
+        ...principal,
+        capabilities: [...principal.capabilities, 'booking:create:assisted'],
+      },
+      { branchId, q: 'Eligible Lookup' },
+    );
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: lookupCustomerId,
+        label: 'Eligible Lookup Customer',
+        description: expect.stringContaining('••••'),
+        metadata: expect.objectContaining({
+          verificationStatus: 'APPROVED',
+          eligiblePackageCount: 1,
+          branchId,
+        }),
+      }),
+    ]);
+    expect(result.items.some(({ id }) => id === inviterId)).toBe(false);
+    await expect(
+      users.lookupCustomers(
+        { ...principal, capabilities: ['booking:create:assisted'], branchIds: [] },
+        { branchId },
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });

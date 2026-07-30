@@ -16,15 +16,15 @@ import {
 import {
   AdminPageState,
   Badge,
-  Button,
   DataTable,
   FilterBar,
   Pagination,
 } from '../components/admin/admin-ui';
+import { Button } from '../components/actions';
 import { Feedback, PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { InviteUserDrawer, roleLabels, roleSummary, statusLabels } from './user-admin-controls';
-import { controlClassName } from '../components/forms';
+import { SearchInput, SearchSelect, SelectInput } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
   CONFIGURATION_REQUIRED: 'Layanan identitas belum dapat dihubungi.',
@@ -173,8 +173,11 @@ export function UsersView({
         />
         <div className="mt-5 flex flex-wrap gap-3">
           {canAdmin && (
-            <Button onClick={() => setInviteOpen(true)}>
-              <Plus className="size-4" /> Buat pengguna internal
+            <Button
+              leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+              onClick={() => setInviteOpen(true)}
+            >
+              Buat pengguna internal
             </Button>
           )}
           {canAdmin && (
@@ -260,88 +263,67 @@ export function UsersView({
       </div>
 
       <FilterBar>
-        <label className="text-sm font-bold text-dd-ink">
-          Cari nama
-          <input
-            className={controlClassName}
-            value={draftSearch}
-            onChange={(event) => setDraftSearch(event.target.value)}
-            placeholder="Nama pengguna"
+        <SearchInput
+          label="Cari nama"
+          value={draftSearch}
+          onChange={(event) => setDraftSearch(event.target.value)}
+          placeholder="Nama pengguna"
+        />
+        <SelectInput
+          label="Status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            resetPage();
+          }}
+        >
+          <option value="">Semua status</option>
+          <option value="PENDING_ACTIVATION">Menunggu aktivasi</option>
+          <option value="ACTIVE">Aktif</option>
+          <option value="INACTIVE">Nonaktif</option>
+        </SelectInput>
+        {audience === 'STAFF' && (
+          <SearchSelect
+            label="Role"
+            value={role}
+            placeholder="Semua role"
+            options={catalog.map((item) => ({
+              id: item.role,
+              label: roleLabels[item.role],
+              description: item.scope === 'BRANCH' ? 'Scope cabang' : 'Scope global',
+            }))}
+            onChange={(value) => {
+              setRole(value);
+              resetPage();
+            }}
           />
-        </label>
-        <label className="text-sm font-bold text-dd-ink">
-          Status
-          <select
-            className={controlClassName}
-            value={status}
+        )}
+        {audience === 'STAFF' && branches.length > 0 && (
+          <SearchSelect
+            label="Cabang"
+            value={branchId}
+            placeholder="Semua cabang dalam scope"
+            options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
+            onChange={(value) => {
+              setBranchId(value);
+              resetPage();
+            }}
+          />
+        )}
+        {audience === 'CUSTOMER' && canReadIdentity && (
+          <SelectInput
+            label="Status verifikasi"
+            value={verificationStatus}
             onChange={(event) => {
-              setStatus(event.target.value);
+              setVerificationStatus(event.target.value);
               resetPage();
             }}
           >
             <option value="">Semua status</option>
-            <option value="PENDING_ACTIVATION">Menunggu aktivasi</option>
-            <option value="ACTIVE">Aktif</option>
-            <option value="INACTIVE">Nonaktif</option>
-          </select>
-        </label>
-        {audience === 'STAFF' && (
-          <label className="text-sm font-bold text-dd-ink">
-            Role
-            <select
-              className={controlClassName}
-              value={role}
-              onChange={(event) => {
-                setRole(event.target.value);
-                resetPage();
-              }}
-            >
-              <option value="">Semua role</option>
-              {catalog.map((item) => (
-                <option key={item.role} value={item.role}>
-                  {roleLabels[item.role]}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {audience === 'STAFF' && branches.length > 0 && (
-          <label className="text-sm font-bold text-dd-ink">
-            Cabang
-            <select
-              className={controlClassName}
-              value={branchId}
-              onChange={(event) => {
-                setBranchId(event.target.value);
-                resetPage();
-              }}
-            >
-              <option value="">Semua cabang dalam scope</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {audience === 'CUSTOMER' && canReadIdentity && (
-          <label className="text-sm font-bold text-dd-ink">
-            Status verifikasi
-            <select
-              className={controlClassName}
-              value={verificationStatus}
-              onChange={(event) => {
-                setVerificationStatus(event.target.value);
-                resetPage();
-              }}
-            >
-              <option value="">Semua status</option>
-              <option value="PENDING">Menunggu pemeriksaan</option>
-              <option value="ACTION_REQUIRED">Perlu perbaikan</option>
-              <option value="APPROVED">Terverifikasi</option>
-            </select>
-          </label>
+            <option value="PENDING">Menunggu pemeriksaan</option>
+            <option value="ACTION_REQUIRED">Perlu perbaikan</option>
+            <option value="APPROVED">Terverifikasi</option>
+          </SelectInput>
         )}
         <Button
           onClick={() => {
@@ -353,7 +335,7 @@ export function UsersView({
         </Button>
         {(search || status || role || branchId || verificationStatus) && (
           <Button
-            variant="quiet"
+            variant="ghost"
             onClick={() => {
               setDraftSearch('');
               setSearch('');

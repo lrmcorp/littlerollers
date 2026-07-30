@@ -3,7 +3,7 @@ import 'package:openapi/openapi.dart';
 
 // tests for Branch
 void main() {
-  final instance = BranchBuilder();
+  //final instance = BranchBuilder();
   // TODO add properties to the builder and call build()
 
   group(Branch, () {
@@ -39,6 +39,11 @@ void main() {
 
     // int version
     test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // BranchPublicProfileSummary publicProfile
+    test('to test the property `publicProfile`', () async {
       // TODO
     });
 

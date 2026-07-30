@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   ArrowRight,
+  Check,
+  ChevronDown,
   Copy,
   LockKeyhole,
   Plus,
@@ -22,8 +23,16 @@ import {
   type OverrideEffect,
   type UserAccess,
 } from '../../access-client';
-import { useAppFeedback } from '../../components/app-feedback';
-import { SearchInput } from '../../components/forms';
+import { AlertBanner, Drawer, useAppFeedback } from '../../components/app-feedback';
+import { Button, ButtonLink } from '../../components/actions';
+import {
+  SearchInput,
+  SearchSelect,
+  SelectInput,
+  Textarea,
+  TextInput,
+} from '../../components/forms';
+import { Panel, Tabs } from '../../components/admin/admin-ui';
 import {
   browserIdentityClient,
   type IdentityClient,
@@ -52,9 +61,52 @@ type RoleDraft = {
 };
 
 type RoleAssignmentDraft = { roleId: string; branchId: string | null };
+type WorkspaceTab = 'roles' | 'users';
+type RoleCatalogFilter = 'ACTIVE' | 'INACTIVE' | 'SYSTEM' | 'CUSTOM';
 
 const idempotencyKey = () => crypto.randomUUID();
 const normalized = (items: string[]) => [...new Set(items)].sort();
+
+const CATEGORY_LABELS: Record<string, string> = {
+  ACCESS: 'Akses dan permission',
+  ASSIGNMENT: 'Assignment',
+  ATTENDANCE: 'Kehadiran',
+  AUDIT: 'Audit',
+  BOOKING: 'Booking',
+  BRANCH: 'Cabang',
+  CLASS: 'Kelas',
+  CUSTOMER: 'Customer',
+  DASHBOARD: 'Dashboard',
+  FINANCE: 'Finance',
+  IDENTITY: 'Verifikasi identitas',
+  LEDGER: 'Ledger dan sesi',
+  MASTER: 'Master Data',
+  OPERATIONS: 'Operasional sistem',
+  PACKAGE: 'Paket dan promo',
+  PAYMENT: 'Pembayaran',
+  RESCHEDULE: 'Reschedule',
+  SECURITY: 'Keamanan',
+  USER: 'Pengguna',
+  VOUCHER: 'Voucher',
+};
+
+function categoryLabel(value: string) {
+  return CATEGORY_LABELS[value] ?? value.replaceAll('_', ' ').toLowerCase();
+}
+
+function initialUrlState() {
+  if (typeof window === 'undefined')
+    return { tab: 'roles' as WorkspaceTab, role: '', user: '', roleFilter: 'ACTIVE' as const };
+  const params = new URLSearchParams(window.location.search);
+  return {
+    tab: params.get('tab') === 'users' ? ('users' as const) : ('roles' as const),
+    role: params.get('role') ?? '',
+    user: params.get('user') ?? '',
+    roleFilter: (['ACTIVE', 'INACTIVE', 'SYSTEM', 'CUSTOM'].includes(params.get('roleFilter') ?? '')
+      ? params.get('roleFilter')
+      : 'ACTIVE') as RoleCatalogFilter,
+  };
+}
 
 function errorMessage(code: string) {
   const messages: Record<string, string> = {
@@ -99,6 +151,7 @@ export function RolePermissionsView({
 }) {
   const resolvedIdentityClient = identityClient ?? client ?? browserIdentityClient;
   const feedback = useAppFeedback();
+  const [urlState, setUrlState] = useState(initialUrlState);
   const [roles, setRoles] = useState<AccessRole[]>([]);
   const [capabilities, setCapabilities] = useState<CapabilityDefinition[]>([]);
   const [branches, setBranches] = useState<
@@ -107,6 +160,9 @@ export function RolePermissionsView({
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [roleDraft, setRoleDraft] = useState<RoleDraft | null>(null);
   const [creatingRole, setCreatingRole] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [roleSearch, setRoleSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleCatalogFilter>(urlState.roleFilter);
   const [capabilitySearch, setCapabilitySearch] = useState('');
   const [category, setCategory] = useState('');
   const [reasonCode, setReasonCode] = useState('POLICY_UPDATE');
@@ -125,6 +181,8 @@ export function RolePermissionsView({
   const [overrideBranchId, setOverrideBranchId] = useState('');
 
   const selectedRole = roles.find(({ id }) => id === selectedRoleId) ?? null;
+  const roleDrawerOpen = editorOpen && Boolean(roleDraft);
+  const fixedSystemRole = Boolean(selectedRole?.system && !creatingRole);
   const categories = useMemo(
     () => [...new Set(capabilities.map(({ category }) => category))].sort(),
     [capabilities],
@@ -138,10 +196,64 @@ export function RolePermissionsView({
       (!role.systemRole ||
         ['ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'SUPER_OWNER'].includes(role.systemRole)),
   );
+  const visibleRoles = useMemo(() => {
+    const query = roleSearch.trim().toLowerCase();
+    return roles.filter((role) => {
+      const matchesQuery =
+        !query ||
+        role.displayName.toLowerCase().includes(query) ||
+        role.code.toLowerCase().includes(query) ||
+        role.description.toLowerCase().includes(query);
+      const matchesFilter =
+        roleFilter === 'ACTIVE'
+          ? role.active
+          : roleFilter === 'INACTIVE'
+            ? !role.active
+            : roleFilter === 'SYSTEM'
+              ? role.system && role.active
+              : !role.system && role.active;
+      return matchesQuery && matchesFilter;
+    });
+  }, [roleFilter, roleSearch, roles]);
+  const selectedCapabilityKeys = useMemo(
+    () => new Set(selectedRole?.capabilities.map(({ key }) => key) ?? []),
+    [selectedRole],
+  );
+  const capabilityGroups = useMemo(() => {
+    const groups = new Map<string, CapabilityDefinition[]>();
+    visibleCapabilities
+      .filter((capability) => selectedCapabilityKeys.has(capability.key))
+      .forEach((capability) => {
+        const items = groups.get(capability.category) ?? [];
+        items.push(capability);
+        groups.set(capability.category, items);
+      });
+    return [...groups.entries()].sort(([left], [right]) =>
+      categoryLabel(left).localeCompare(categoryLabel(right), 'id-ID'),
+    );
+  }, [selectedCapabilityKeys, visibleCapabilities]);
+
+  function updateUrl(next: Partial<typeof urlState>, replace = false) {
+    const merged = { ...urlState, ...next };
+    setUrlState(merged);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (merged.tab === 'roles') params.delete('tab');
+    else params.set('tab', merged.tab);
+    if (merged.role) params.set('role', merged.role);
+    else params.delete('role');
+    if (merged.user) params.set('user', merged.user);
+    else params.delete('user');
+    if (merged.roleFilter === 'ACTIVE') params.delete('roleFilter');
+    else params.set('roleFilter', merged.roleFilter);
+    const href = `${window.location.pathname}${params.size ? `?${params}` : ''}`;
+    window.history[replace ? 'replaceState' : 'pushState']({}, '', href);
+  }
 
   function beginRole(role: AccessRole) {
     setSelectedRoleId(role.id);
     setCreatingRole(false);
+    setEditorOpen(false);
     setRoleDraft({
       code: role.code,
       displayName: role.displayName,
@@ -149,6 +261,7 @@ export function RolePermissionsView({
       scope: role.scope,
       capabilityKeys: role.capabilities.map(({ key }) => key),
     });
+    updateUrl({ role: role.id });
   }
 
   async function load() {
@@ -163,8 +276,23 @@ export function RolePermissionsView({
       setRoles(nextRoles);
       setCapabilities(nextCapabilities);
       setBranches(nextBranches.filter(({ active }) => active));
-      const selected = nextRoles.find(({ id }) => id === selectedRoleId) ?? nextRoles[0];
-      if (selected) beginRole(selected);
+      const selected =
+        nextRoles.find(({ id }) => id === selectedRoleId || id === urlState.role) ??
+        nextRoles.find(({ active }) => active) ??
+        nextRoles[0];
+      if (selected) {
+        setSelectedRoleId(selected.id);
+        setCreatingRole(false);
+        setRoleDraft({
+          code: selected.code,
+          displayName: selected.displayName,
+          description: selected.description,
+          scope: selected.scope,
+          capabilityKeys: selected.capabilities.map(({ key }) => key),
+        });
+        updateUrl({ role: selected.id }, true);
+      }
+      if (urlState.user) await loadUser(urlState.user);
     } catch (error) {
       setFailure(accessFailureCode(error));
     } finally {
@@ -175,6 +303,18 @@ export function RolePermissionsView({
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    const restore = () => {
+      const next = initialUrlState();
+      setUrlState(next);
+      setRoleFilter(next.roleFilter);
+      if (next.role && roles.some(({ id }) => id === next.role)) setSelectedRoleId(next.role);
+      if (next.user && next.user !== selectedUserId) void loadUser(next.user);
+    };
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, [roles, selectedUserId]);
 
   async function saveRole() {
     if (!roleDraft) return;
@@ -235,6 +375,7 @@ export function RolePermissionsView({
         beginRole(next);
       }
       setNote('');
+      setEditorOpen(false);
       feedback.showToast({
         tone: 'success',
         title: 'Role tersimpan',
@@ -249,6 +390,7 @@ export function RolePermissionsView({
 
   function createRoleFrom(source?: AccessRole) {
     setCreatingRole(true);
+    setEditorOpen(true);
     setSelectedRoleId('');
     setRoleDraft({
       code: source ? `${source.code}_COPY` : '',
@@ -262,6 +404,19 @@ export function RolePermissionsView({
               !systemOnly && (source.scope === 'GLOBAL' || !globalOnly),
           )
           .map(({ key }) => key) ?? [],
+    });
+  }
+
+  function editSelectedRole() {
+    if (!selectedRole || selectedRole.system) return;
+    setCreatingRole(false);
+    setEditorOpen(true);
+    setRoleDraft({
+      code: selectedRole.code,
+      displayName: selectedRole.displayName,
+      description: selectedRole.description,
+      scope: selectedRole.scope,
+      capabilityKeys: selectedRole.capabilities.map(({ key }) => key),
     });
   }
 
@@ -298,6 +453,7 @@ export function RolePermissionsView({
 
   async function loadUser(userId: string) {
     setSelectedUserId(userId);
+    updateUrl({ tab: 'users', user: userId });
     setFailure('');
     try {
       const result = await accessClient.getUserAccess(userId);
@@ -407,610 +563,1060 @@ export function RolePermissionsView({
     }
   }
 
+  async function closeEditor() {
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Tutup tanpa menyimpan?',
+      message: 'Perubahan pada custom role belum disimpan.',
+      confirmLabel: 'Tutup editor',
+    });
+    if (!accepted) return;
+    setEditorOpen(false);
+    setCreatingRole(false);
+    if (selectedRole) beginRole(selectedRole);
+  }
+
   return (
-    <section className="space-y-6" aria-labelledby="roles-permissions-title">
-      <div className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card sm:p-8">
+    <section className="space-y-5" aria-labelledby="roles-permissions-title">
+      <Panel className="p-5 sm:p-6">
         <PageHeader
           eyebrow="Administrasi akses"
           title="Roles & Permissions"
           titleId="roles-permissions-title"
-          description="Super Owner mengelola system role, custom role, assignment langsung, dan GRANT/DENY user. Semua mutation diaudit dan mencabut session terdampak."
+          description="Kelola katalog role, scope cabang, dan akses efektif pengguna. Setiap perubahan diaudit dan mencabut session terdampak."
           context={
-            <>
-              <StatusBadge tone="success">Database-managed RBAC</StatusBadge>
-              <StatusBadge tone="info">Super Owner only</StatusBadge>
-            </>
+            <div className="grid justify-items-start gap-3 sm:justify-items-end">
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge tone="success">RBAC dari database</StatusBadge>
+                <StatusBadge tone="info">Khusus Super Owner</StatusBadge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink
+                  href="/users"
+                  variant="secondary"
+                  trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+                >
+                  Daftar pengguna
+                </ButtonLink>
+                <ButtonLink
+                  href="/audit"
+                  variant="secondary"
+                  trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+                >
+                  Audit akses
+                </ButtonLink>
+              </div>
+            </div>
           }
         />
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link className="button-quiet" href="/users">
-            Daftar pengguna <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
-          <Link className="button-quiet" href="/audit">
-            Audit akses
-          </Link>
-        </div>
-      </div>
+      </Panel>
+
+      <Tabs
+        value={urlState.tab}
+        items={[
+          {
+            value: 'roles',
+            label: 'Role & Capability',
+            count: roles.filter((role) => role.active).length,
+          },
+          { value: 'users', label: 'Akses Pengguna' },
+        ]}
+        onChange={(value) => updateUrl({ tab: value as WorkspaceTab })}
+      />
 
       {failure && <Feedback kind="error">{errorMessage(failure)}</Feedback>}
       {loading ? (
         <Skeleton label="Memuat role dan capability" />
       ) : failure === 'FORBIDDEN' ? null : (
         <>
-          <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="rounded-dd-xl border border-dd-line bg-white p-4 shadow-dd-card">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg">Katalog role</h2>
-                <button
-                  className="button-quiet min-h-10 px-3"
-                  type="button"
-                  onClick={() => createRoleFrom()}
-                >
-                  <Plus className="size-4" /> Baru
-                </button>
-              </div>
-              <div className="mt-4 grid gap-2">
-                {roles.map((role) => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    className={`rounded-dd-lg border p-3 text-left ${
-                      role.id === selectedRoleId
-                        ? 'border-dd-forest bg-dd-surface-muted'
-                        : 'border-dd-line'
-                    }`}
-                    onClick={() => beginRole(role)}
+          {urlState.tab === 'roles' && (
+            <section className="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+              <aside className="self-start rounded-dd-xl border border-dd-line bg-white p-4 shadow-dd-card xl:sticky xl:top-24">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-semibold">Katalog role</h2>
+                    <p className="mt-1 text-xs text-dd-muted">
+                      {visibleRoles.length} role ditampilkan
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+                    onClick={() => createRoleFrom()}
                   >
-                    <span className="flex items-center justify-between gap-2">
-                      <strong className="text-sm">{role.displayName}</strong>
-                      <span className="flex items-center gap-2">
-                        {!role.active && <StatusBadge tone="neutral">Nonaktif</StatusBadge>}
-                        {role.protected && <LockKeyhole className="size-4 text-dd-muted" />}
-                      </span>
-                    </span>
-                    <span className="mt-1 block font-mono text-xs text-dd-muted">{role.code}</span>
-                    <span className="mt-2 block text-xs text-dd-muted">
-                      {role.scope === 'GLOBAL' ? 'Global' : 'Per cabang'} · {role.affectedUsers}{' '}
-                      user
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </aside>
-
-            {roleDraft ? (
-              <div className="space-y-5">
-                <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="eyebrow">
-                        {creatingRole ? 'Custom role baru' : 'Konfigurasi role'}
-                      </p>
-                      <h2>{creatingRole ? 'Buat role' : selectedRole?.displayName}</h2>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedRole && (
-                        <button
-                          className="button-quiet"
-                          type="button"
-                          onClick={() => createRoleFrom(selectedRole)}
-                        >
-                          <Copy className="size-4" /> Clone
-                        </button>
-                      )}
-                      <StatusBadge tone={selectedRole?.system ? 'info' : 'neutral'}>
-                        {selectedRole?.system ? 'System role' : 'Custom role'}
-                      </StatusBadge>
-                      {selectedRole && !selectedRole.active && (
-                        <StatusBadge tone="neutral">Nonaktif</StatusBadge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2 text-sm font-bold">
-                      Kode immutable
-                      <input
-                        value={roleDraft.code}
-                        disabled={!creatingRole}
-                        maxLength={64}
-                        onChange={(event) =>
-                          setRoleDraft({
-                            ...roleDraft,
-                            code: event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''),
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-2 text-sm font-bold">
-                      Scope immutable
-                      <select
-                        value={roleDraft.scope}
-                        disabled={!creatingRole}
-                        onChange={(event) => {
-                          const scope = event.target.value as 'GLOBAL' | 'BRANCH';
-                          setRoleDraft({
-                            ...roleDraft,
-                            scope,
-                            capabilityKeys:
-                              scope === 'BRANCH'
-                                ? roleDraft.capabilityKeys.filter(
-                                    (key) =>
-                                      !capabilities.find((item) => item.key === key)?.globalOnly,
-                                  )
-                                : roleDraft.capabilityKeys,
-                          });
-                        }}
-                      >
-                        <option value="GLOBAL">Global</option>
-                        <option value="BRANCH">Per cabang</option>
-                      </select>
-                    </label>
-                    <label className="grid gap-2 text-sm font-bold">
-                      Nama role
-                      <input
-                        value={roleDraft.displayName}
-                        disabled={Boolean(selectedRole && !selectedRole.active)}
-                        maxLength={160}
-                        onChange={(event) =>
-                          setRoleDraft({ ...roleDraft, displayName: event.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-2 text-sm font-bold md:col-span-2">
-                      Deskripsi
-                      <textarea
-                        value={roleDraft.description}
-                        disabled={Boolean(selectedRole && !selectedRole.active)}
-                        maxLength={500}
-                        rows={3}
-                        onChange={(event) =>
-                          setRoleDraft({ ...roleDraft, description: event.target.value })
-                        }
-                      />
-                    </label>
-                  </div>
-                </section>
-
-                <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div className="min-w-64 flex-1">
-                      <SearchInput
-                        id="capability-search"
-                        label="Cari capability"
-                        description="Cari key, label, atau deskripsi."
-                        placeholder="Contoh: ledger:adjust"
-                        value={capabilitySearch}
-                        leadingIcon={<Search className="size-4" />}
-                        onChange={(event) => setCapabilitySearch(event.target.value)}
-                      />
-                    </div>
-                    <label className="grid min-w-48 gap-2 text-sm font-bold">
-                      Kategori
-                      <select
-                        value={category}
-                        onChange={(event) => setCategory(event.target.value)}
-                      >
-                        <option value="">Semua kategori</option>
-                        {categories.map((value) => (
-                          <option key={value}>{value}</option>
-                        ))}
-                      </select>
-                    </label>
-                    {(category || capabilitySearch) && (
-                      <button
-                        className="button-quiet"
-                        type="button"
-                        onClick={() => {
-                          setCategory('');
-                          setCapabilitySearch('');
-                        }}
-                      >
-                        <X className="size-4" /> Bersihkan
-                      </button>
-                    )}
-                  </div>
-                  <p className="mt-4 text-sm text-dd-muted">
-                    {visibleCapabilities.length} dari {capabilities.length} capability ·{' '}
-                    {roleDraft.capabilityKeys.length} dipilih
-                  </p>
-                  <div className="mt-3 grid max-h-[560px] gap-2 overflow-y-auto pr-1">
-                    {visibleCapabilities.map((capability) => {
-                      const protectedCapability =
-                        capability.systemOnly && selectedRole?.systemRole !== 'SUPER_OWNER';
-                      const invalidScope = capability.globalOnly && roleDraft.scope === 'BRANCH';
-                      return (
-                        <label
-                          key={capability.key}
-                          className="flex gap-3 rounded-dd-lg border border-dd-line p-3"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-1 size-4"
-                            checked={roleDraft.capabilityKeys.includes(capability.key)}
-                            disabled={
-                              protectedCapability ||
-                              invalidScope ||
-                              Boolean(selectedRole && !selectedRole.active)
-                            }
-                            onChange={(event) =>
-                              setRoleDraft({
-                                ...roleDraft,
-                                capabilityKeys: event.target.checked
-                                  ? normalized([...roleDraft.capabilityKeys, capability.key])
-                                  : roleDraft.capabilityKeys.filter(
-                                      (value) => value !== capability.key,
-                                    ),
-                              })
-                            }
-                          />
-                          <span className="min-w-0">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <strong className="font-mono text-xs">{capability.key}</strong>
-                              {capability.sensitive && (
-                                <StatusBadge tone="warning">Sensitif</StatusBadge>
-                              )}
-                              {capability.globalOnly && (
-                                <StatusBadge tone="info">Global only</StatusBadge>
-                              )}
-                              {capability.systemOnly && (
-                                <StatusBadge tone="danger">SUPER_OWNER only</StatusBadge>
-                              )}
-                            </span>
-                            <span className="mt-1 block text-sm">{capability.label}</span>
-                            <span className="block text-xs leading-5 text-dd-muted">
-                              {capability.description}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2 text-sm font-bold">
-                      Alasan perubahan
-                      <select
-                        value={reasonCode}
-                        onChange={(event) => setReasonCode(event.target.value)}
-                      >
-                        {REASONS.map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="grid gap-2 text-sm font-bold">
-                      Catatan opsional
-                      <input
-                        value={note}
-                        maxLength={500}
-                        placeholder="Tidak ditulis mentah ke log"
-                        onChange={(event) => setNote(event.target.value)}
-                      />
-                    </label>
-                  </div>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      className="button-primary"
-                      type="button"
-                      disabled={saving || Boolean(selectedRole && !selectedRole.active)}
-                      onClick={() => void saveRole()}
-                    >
-                      <ShieldCheck className="size-4" />
-                      {saving ? 'Menyimpan…' : creatingRole ? 'Review & buat' : 'Review & simpan'}
-                    </button>
-                    {selectedRole && !selectedRole.system && selectedRole.active && (
-                      <button
-                        className="button-quiet text-dd-danger"
-                        type="button"
-                        onClick={() => void deactivateRole()}
-                      >
-                        Nonaktifkan role
-                      </button>
-                    )}
-                  </div>
-                </section>
-              </div>
-            ) : (
-              <EmptyState
-                title="Pilih atau buat role"
-                description="Pilih role untuk melihat metadata dan capability."
-              />
-            )}
-          </section>
-
-          <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="eyebrow">Effective permissions user</p>
-                <h2>Assignment & override</h2>
-                <p className="mt-1 text-sm text-dd-muted">
-                  DENY lebih kuat daripada GRANT dan role. Override tetap aktif sampai dicabut.
-                </p>
-              </div>
-              <UserRoundCog className="size-6 text-dd-forest" />
-            </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <SearchInput
-                  id="access-user-search"
-                  label="Cari user"
-                  description="Cari nama, email, atau nomor telepon."
-                  placeholder="Nama customer atau staf"
-                  value={userSearch}
-                  onChange={(event) => setUserSearch(event.target.value)}
+                    Buat
+                  </Button>
+                </div>
+                <div className="mt-4 grid gap-3">
+                  <SearchInput
+                    label="Cari role"
+                    compact
+                    placeholder="Nama atau kode role"
+                    value={roleSearch}
+                    leadingIcon={<Search className="size-4" aria-hidden="true" />}
+                    onChange={(event) => setRoleSearch(event.target.value)}
+                  />
+                  <SelectInput
+                    label="Tampilkan"
+                    compact
+                    value={roleFilter}
+                    onChange={(event) => {
+                      const value = event.target.value as RoleCatalogFilter;
+                      setRoleFilter(value);
+                      updateUrl({ roleFilter: value });
+                    }}
+                  >
+                    <option value="ACTIVE">Role aktif</option>
+                    <option value="SYSTEM">System role</option>
+                    <option value="CUSTOM">Custom role</option>
+                    <option value="INACTIVE">Role nonaktif</option>
+                  </SelectInput>
+                </div>
+                <SearchSelect
+                  wrapperClassName="mt-4 xl:hidden"
+                  label="Role terpilih"
+                  value={
+                    visibleRoles.some((role) => role.id === selectedRoleId) ? selectedRoleId : ''
+                  }
+                  placeholder="Pilih role"
+                  options={visibleRoles.map((role) => ({
+                    id: role.id,
+                    label: role.displayName,
+                    description: role.scope === 'GLOBAL' ? 'Scope global' : 'Scope per cabang',
+                  }))}
+                  onChange={(value) => {
+                    const role = visibleRoles.find((item) => item.id === value);
+                    if (role) beginRole(role);
+                  }}
                 />
-              </div>
-              <button className="button-primary" type="button" onClick={() => void searchUsers()}>
-                <Search className="size-4" /> Cari
-              </button>
-            </div>
-            {userOptions.length > 0 && (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {userOptions.map((user) => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    className={`rounded-dd-lg border p-3 text-left ${
-                      selectedUserId === user.id ? 'border-dd-forest' : 'border-dd-line'
-                    }`}
-                    onClick={() => void loadUser(user.id)}
-                  >
-                    <strong className="block text-sm">{user.label}</strong>
-                    <span className="block text-xs text-dd-muted">{user.description}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {userAccess && (
-              <div className="mt-6 grid gap-5 xl:grid-cols-2">
-                <section className="rounded-dd-lg border border-dd-line p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3>{userAccess.user.displayName}</h3>
-                      <p className="text-xs text-dd-muted">
-                        {userAccess.user.status} · version {userAccess.user.version}
-                      </p>
-                    </div>
+                <div className="mt-4 hidden max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto pr-1 xl:grid">
+                  {visibleRoles.map((role) => (
                     <button
-                      className="button-quiet min-h-10 px-3"
+                      key={role.id}
                       type="button"
-                      onClick={() => void loadUser(userAccess.user.id)}
+                      aria-pressed={role.id === selectedRoleId}
+                      className={`rounded-dd-lg border p-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest ${
+                        role.id === selectedRoleId
+                          ? 'border-dd-forest bg-dd-surface-muted ring-1 ring-dd-forest/15'
+                          : 'border-dd-line bg-white hover:border-dd-forest/40'
+                      }`}
+                      onClick={() => beginRole(role)}
                     >
-                      <RefreshCw className="size-4" /> Refresh
+                      <span className="flex items-center justify-between gap-2">
+                        <strong className="text-sm">{role.displayName}</strong>
+                        <span className="flex items-center gap-2">
+                          {!role.active && <StatusBadge tone="neutral">Nonaktif</StatusBadge>}
+                          {role.protected && <LockKeyhole className="size-4 text-dd-muted" />}
+                        </span>
+                      </span>
+                      <span className="mt-1 block text-xs text-dd-muted">
+                        {role.scope === 'GLOBAL' ? 'Scope global' : 'Scope per cabang'} ·{' '}
+                        {role.affectedUsers} pengguna
+                      </span>
+                      <span className="mt-2 block font-mono text-[11px] text-dd-muted/80">
+                        {role.code}
+                      </span>
                     </button>
-                  </div>
-                  <h4 className="mt-5 text-sm">Role langsung</h4>
-                  <div className="mt-2 grid gap-2">
-                    {assignableRoles.map((role) => {
-                      const assignments = roleAssignments.filter(
-                        ({ roleId }) => roleId === role.id,
-                      );
-                      return (
-                        <div
-                          key={role.id}
-                          className="rounded-dd-lg border border-dd-line p-3 text-sm"
+                  ))}
+                  {visibleRoles.length === 0 && (
+                    <p className="rounded-dd-lg border border-dashed border-dd-line p-4 text-sm text-dd-muted">
+                      Tidak ada role yang sesuai dengan filter.
+                    </p>
+                  )}
+                </div>
+              </aside>
+
+              {selectedRole && roleDraft ? (
+                <div className="space-y-5">
+                  <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="eyebrow">
+                          {creatingRole ? 'Custom role baru' : 'Konfigurasi role'}
+                        </p>
+                        <h2>{creatingRole ? 'Buat role' : selectedRole?.displayName}</h2>
+                        {!creatingRole && selectedRole?.description && (
+                          <p className="mt-2 max-w-2xl text-sm leading-6 text-dd-muted">
+                            {selectedRole.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedRole && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            leadingIcon={<Copy className="size-4" aria-hidden="true" />}
+                            onClick={() => createRoleFrom(selectedRole)}
+                          >
+                            Duplikasi
+                          </Button>
+                        )}
+                        {selectedRole && !selectedRole.system && selectedRole.active && (
+                          <>
+                            <Button
+                              size="sm"
+                              leadingIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+                              onClick={editSelectedRole}
+                            >
+                              Edit custom role
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => void deactivateRole()}
+                            >
+                              Nonaktifkan
+                            </Button>
+                          </>
+                        )}
+                        <StatusBadge tone={selectedRole?.system ? 'info' : 'neutral'}>
+                          {selectedRole?.system ? 'System role' : 'Custom role'}
+                        </StatusBadge>
+                        {selectedRole && !selectedRole.active && (
+                          <StatusBadge tone="neutral">Nonaktif</StatusBadge>
+                        )}
+                      </div>
+                    </div>
+                    {!creatingRole ? (
+                      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+                        <Metadata label="Kode role" value={roleDraft.code} mono />
+                        <Metadata
+                          label="Scope"
+                          value={roleDraft.scope === 'GLOBAL' ? 'Global' : 'Per cabang'}
+                        />
+                        <Metadata
+                          label="Pengguna aktif"
+                          value={`${selectedRole?.affectedUsers ?? 0} pengguna`}
+                        />
+                      </dl>
+                    ) : (
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <TextInput
+                          label="Kode role"
+                          description={
+                            creatingRole
+                              ? 'Huruf kapital, angka, dan underscore.'
+                              : 'Immutable setelah dibuat.'
+                          }
+                          value={roleDraft.code}
+                          disabled={!creatingRole}
+                          maxLength={64}
+                          onChange={(event) =>
+                            setRoleDraft({
+                              ...roleDraft,
+                              code: event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''),
+                            })
+                          }
+                        />
+                        <SelectInput
+                          label="Scope"
+                          description={
+                            creatingRole ? 'Tentukan jangkauan role.' : 'Immutable setelah dibuat.'
+                          }
+                          value={roleDraft.scope}
+                          disabled={!creatingRole}
+                          onChange={(event) => {
+                            const scope = event.target.value as 'GLOBAL' | 'BRANCH';
+                            setRoleDraft({
+                              ...roleDraft,
+                              scope,
+                              capabilityKeys:
+                                scope === 'BRANCH'
+                                  ? roleDraft.capabilityKeys.filter(
+                                      (key) =>
+                                        !capabilities.find((item) => item.key === key)?.globalOnly,
+                                    )
+                                  : roleDraft.capabilityKeys,
+                            });
+                          }}
                         >
-                          <div className="flex items-center gap-3 font-bold">
-                            {role.scope === 'GLOBAL' && (
+                          <option value="GLOBAL">Global</option>
+                          <option value="BRANCH">Per cabang</option>
+                        </SelectInput>
+                        <TextInput
+                          label="Nama role"
+                          value={roleDraft.displayName}
+                          disabled={Boolean(selectedRole && !selectedRole.active)}
+                          maxLength={160}
+                          onChange={(event) =>
+                            setRoleDraft({ ...roleDraft, displayName: event.target.value })
+                          }
+                        />
+                        <Textarea
+                          wrapperClassName="md:col-span-2"
+                          label="Deskripsi"
+                          value={roleDraft.description}
+                          disabled={Boolean(selectedRole && !selectedRole.active)}
+                          maxLength={500}
+                          onChange={(event) =>
+                            setRoleDraft({ ...roleDraft, description: event.target.value })
+                          }
+                        />
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="min-w-64 flex-1">
+                        <SearchInput
+                          id="capability-search"
+                          label="Cari capability"
+                          description="Cari key, label, atau deskripsi."
+                          placeholder="Contoh: ledger:adjust"
+                          value={capabilitySearch}
+                          leadingIcon={<Search className="size-4" />}
+                          onChange={(event) => setCapabilitySearch(event.target.value)}
+                        />
+                      </div>
+                      <SearchSelect
+                        wrapperClassName="min-w-48"
+                        label="Kategori"
+                        value={category}
+                        placeholder="Semua kategori"
+                        options={categories.map((value) => ({
+                          id: value,
+                          label: categoryLabel(value),
+                        }))}
+                        onChange={setCategory}
+                      />
+                      {(category || capabilitySearch) && (
+                        <Button
+                          variant="ghost"
+                          leadingIcon={<X className="size-4" aria-hidden="true" />}
+                          onClick={() => {
+                            setCategory('');
+                            setCapabilitySearch('');
+                          }}
+                        >
+                          Bersihkan
+                        </Button>
+                      )}
+                    </div>
+                    <p className="mt-4 text-sm text-dd-muted">
+                      {visibleCapabilities.length} dari {capabilities.length} capability ·{' '}
+                      {roleDraft.capabilityKeys.length} dipilih
+                    </p>
+                    {!creatingRole && (
+                      <div className="mt-4">
+                        <AlertBanner
+                          tone="info"
+                          title={
+                            selectedRole?.system
+                              ? 'Capability system role bersifat tetap'
+                              : 'Ringkasan capability custom role'
+                          }
+                          message={
+                            selectedRole?.system
+                              ? 'Matrix ini hanya dapat dibaca. Kelola siapa yang memperoleh role dan scope melalui tab Akses Pengguna.'
+                              : 'Gunakan Edit custom role untuk mengubah capability dengan confirmation dan audit.'
+                          }
+                        />
+                      </div>
+                    )}
+                    {!creatingRole ? (
+                      <div className="mt-4 grid gap-3">
+                        {capabilityGroups.map(([group, items], index) => (
+                          <details
+                            key={group}
+                            open={Boolean(category || capabilitySearch || index === 0)}
+                            className="group rounded-dd-lg border border-dd-line"
+                          >
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest">
+                              <span>
+                                <strong className="text-sm">{categoryLabel(group)}</strong>
+                                <span className="ml-2 text-xs text-dd-muted">
+                                  {items.length} capability aktif
+                                </span>
+                              </span>
+                              <ChevronDown
+                                className="size-4 text-dd-muted transition group-open:rotate-180"
+                                aria-hidden="true"
+                              />
+                            </summary>
+                            <div className="grid gap-2 border-t border-dd-line p-3 sm:grid-cols-2">
+                              {items.map((capability) => (
+                                <article
+                                  key={capability.key}
+                                  className="flex gap-3 rounded-dd-md bg-dd-surface-muted p-3"
+                                >
+                                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-dd-success-soft text-dd-success">
+                                    <Check className="size-3.5" aria-hidden="true" />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="flex flex-wrap items-center gap-2">
+                                      <strong className="text-sm">{capability.label}</strong>
+                                      {capability.sensitive && (
+                                        <StatusBadge tone="warning">Sensitif</StatusBadge>
+                                      )}
+                                      {capability.globalOnly && (
+                                        <StatusBadge tone="info">Hanya global</StatusBadge>
+                                      )}
+                                    </span>
+                                    <span className="mt-1 block text-xs leading-5 text-dd-muted">
+                                      {capability.description}
+                                    </span>
+                                    <code className="mt-2 block break-all text-[11px] text-dd-muted/80">
+                                      {capability.key}
+                                    </code>
+                                  </span>
+                                </article>
+                              ))}
+                            </div>
+                          </details>
+                        ))}
+                        {capabilityGroups.length === 0 && (
+                          <EmptyState
+                            title="Capability tidak ditemukan"
+                            description="Ubah pencarian atau kategori untuk melihat capability role ini."
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3 grid max-h-[560px] gap-2 overflow-y-auto pr-1">
+                        {visibleCapabilities.map((capability) => {
+                          const protectedCapability =
+                            capability.systemOnly && selectedRole?.systemRole !== 'SUPER_OWNER';
+                          const invalidScope =
+                            capability.globalOnly && roleDraft.scope === 'BRANCH';
+                          return (
+                            <label
+                              key={capability.key}
+                              className="flex gap-3 rounded-dd-lg border border-dd-line p-3"
+                            >
                               <input
                                 type="checkbox"
-                                className="size-4"
-                                aria-label={`${role.displayName} ${role.code}`}
-                                checked={assignments.some(({ branchId }) => branchId === null)}
+                                className="mt-1 size-4"
+                                checked={roleDraft.capabilityKeys.includes(capability.key)}
+                                disabled={
+                                  fixedSystemRole ||
+                                  protectedCapability ||
+                                  invalidScope ||
+                                  Boolean(selectedRole && !selectedRole.active)
+                                }
                                 onChange={(event) =>
-                                  toggleAssignment(role, event.target.checked, null)
+                                  setRoleDraft({
+                                    ...roleDraft,
+                                    capabilityKeys: event.target.checked
+                                      ? normalized([...roleDraft.capabilityKeys, capability.key])
+                                      : roleDraft.capabilityKeys.filter(
+                                          (value) => value !== capability.key,
+                                        ),
+                                  })
                                 }
                               />
-                            )}
-                            {role.displayName}
-                            <span className="font-mono text-xs text-dd-muted">{role.code}</span>
-                          </div>
-                          {role.scope === 'BRANCH' && (
-                            <fieldset className="mt-3 grid gap-2">
-                              <legend className="text-xs font-bold">Cabang</legend>
-                              {branches.map((branch) => (
-                                <label key={branch.id} className="flex items-center gap-2 text-xs">
-                                  <input
-                                    type="checkbox"
-                                    className="size-4"
-                                    aria-label={`${role.displayName} · ${branch.code}`}
-                                    checked={assignments.some(
-                                      ({ branchId }) => branchId === branch.id,
-                                    )}
-                                    onChange={(event) =>
-                                      toggleAssignment(role, event.target.checked, branch.id)
-                                    }
-                                  />
-                                  {branch.code} — {branch.name}
-                                </label>
-                              ))}
-                            </fieldset>
+                              <span className="min-w-0">
+                                <span className="flex flex-wrap items-center gap-2">
+                                  <strong className="font-mono text-xs">{capability.key}</strong>
+                                  {capability.sensitive && (
+                                    <StatusBadge tone="warning">Sensitif</StatusBadge>
+                                  )}
+                                  {capability.globalOnly && (
+                                    <StatusBadge tone="info">Hanya global</StatusBadge>
+                                  )}
+                                  {capability.systemOnly && (
+                                    <StatusBadge tone="danger">Khusus Super Owner</StatusBadge>
+                                  )}
+                                </span>
+                                <span className="mt-1 block text-sm">{capability.label}</span>
+                                <span className="block text-xs leading-5 text-dd-muted">
+                                  {capability.description}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {creatingRole && !editorOpen && (
+                      <>
+                        <div className="mt-5 grid gap-4 md:grid-cols-2">
+                          <SelectInput
+                            label="Alasan perubahan"
+                            value={reasonCode}
+                            onChange={(event) => setReasonCode(event.target.value)}
+                          >
+                            {REASONS.map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </SelectInput>
+                          <TextInput
+                            label="Catatan opsional"
+                            value={note}
+                            maxLength={500}
+                            placeholder="Tidak ditulis mentah ke log"
+                            onChange={(event) => setNote(event.target.value)}
+                          />
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          <Button
+                            loading={saving}
+                            loadingLabel="Menyimpan…"
+                            leadingIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+                            disabled={Boolean(selectedRole && !selectedRole.active)}
+                            onClick={() => void saveRole()}
+                          >
+                            {creatingRole ? 'Review & buat' : 'Review & simpan'}
+                          </Button>
+                          {selectedRole && !selectedRole.system && selectedRole.active && (
+                            <Button variant="danger" onClick={() => void deactivateRole()}>
+                              Nonaktifkan role
+                            </Button>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                  {userAccess.roleAssignments.some(({ source }) => source === 'ASSIGNMENT') && (
-                    <div className="mt-4 rounded-dd-lg bg-dd-surface-muted p-3 text-sm">
-                      <strong>Role dari lifecycle/assignment</strong>
-                      <ul className="mt-2 list-disc pl-5 text-dd-muted">
-                        {userAccess.roleAssignments
-                          .filter(({ source }) => source === 'ASSIGNMENT')
-                          .map((item) => (
-                            <li key={item.id}>
-                              {item.displayName} · {item.branch?.name ?? 'Global'}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
-                  <button
-                    className="button-primary mt-4"
-                    type="button"
-                    disabled={roleAssignments.some(
-                      ({ roleId, branchId }) =>
-                        roles.find((role) => role.id === roleId)?.scope === 'BRANCH' && !branchId,
+                      </>
                     )}
-                    onClick={() => void saveUserRoles()}
-                  >
-                    Review & ganti role
-                  </button>
-                </section>
+                  </section>
+                </div>
+              ) : (
+                <EmptyState
+                  title="Pilih atau buat role"
+                  description="Pilih role untuk melihat metadata dan capability."
+                />
+              )}
+            </section>
+          )}
 
-                <section className="rounded-dd-lg border border-dd-line p-4">
-                  <h3>Permission override</h3>
-                  <div className="mt-4 grid gap-3">
-                    <label className="grid gap-2 text-sm font-bold">
-                      Capability
-                      <select
+          {urlState.tab === 'users' && (
+            <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="eyebrow">Akses efektif pengguna</p>
+                  <h2>Assignment dan override</h2>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    Penolakan akses lebih kuat daripada pemberian role. Override tetap aktif sampai
+                    dicabut.
+                  </p>
+                </div>
+                <UserRoundCog className="size-6 text-dd-forest" />
+              </div>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <SearchInput
+                    id="access-user-search"
+                    label="Cari pengguna"
+                    description="Cari nama, email, atau nomor telepon."
+                    placeholder="Nama customer atau staf"
+                    value={userSearch}
+                    onChange={(event) => setUserSearch(event.target.value)}
+                  />
+                </div>
+                <Button
+                  leadingIcon={<Search className="size-4" aria-hidden="true" />}
+                  onClick={() => void searchUsers()}
+                >
+                  Cari pengguna
+                </Button>
+              </div>
+              {userOptions.length > 0 && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {userOptions.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className={`rounded-dd-lg border p-3 text-left ${
+                        selectedUserId === user.id ? 'border-dd-forest' : 'border-dd-line'
+                      }`}
+                      onClick={() => void loadUser(user.id)}
+                    >
+                      <strong className="block text-sm">{user.label}</strong>
+                      <span className="block text-xs text-dd-muted">{user.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!userAccess && (
+                <div className="mt-6">
+                  <EmptyState
+                    title="Pilih pengguna"
+                    description="Cari dan pilih pengguna untuk melihat role, scope, serta permission efektif."
+                  />
+                </div>
+              )}
+              {userAccess && (
+                <div className="mt-6 grid gap-5 xl:grid-cols-2">
+                  <section className="rounded-dd-lg border border-dd-line p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3>{userAccess.user.displayName}</h3>
+                        <p className="text-xs text-dd-muted">
+                          {userAccess.user.status === 'ACTIVE'
+                            ? 'Aktif'
+                            : userAccess.user.status === 'INACTIVE'
+                              ? 'Nonaktif'
+                              : 'Menunggu aktivasi'}{' '}
+                          · Versi {userAccess.user.version}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+                        type="button"
+                        onClick={() => void loadUser(userAccess.user.id)}
+                      >
+                        Muat ulang
+                      </Button>
+                    </div>
+                    <h4 className="mt-5 text-sm">Role langsung</h4>
+                    <div className="mt-2 grid gap-2">
+                      {assignableRoles.map((role) => {
+                        const assignments = roleAssignments.filter(
+                          ({ roleId }) => roleId === role.id,
+                        );
+                        return (
+                          <div
+                            key={role.id}
+                            className="rounded-dd-lg border border-dd-line p-3 text-sm"
+                          >
+                            <div className="flex items-center gap-3 font-bold">
+                              {role.scope === 'GLOBAL' && (
+                                <input
+                                  type="checkbox"
+                                  className="size-4"
+                                  aria-label={`${role.displayName} ${role.code}`}
+                                  checked={assignments.some(({ branchId }) => branchId === null)}
+                                  onChange={(event) =>
+                                    toggleAssignment(role, event.target.checked, null)
+                                  }
+                                />
+                              )}
+                              {role.displayName}
+                              <span className="font-mono text-xs text-dd-muted">{role.code}</span>
+                            </div>
+                            {role.scope === 'BRANCH' && (
+                              <fieldset className="mt-3 grid gap-2">
+                                <legend className="text-xs font-bold">Cabang</legend>
+                                {branches.map((branch) => (
+                                  <label
+                                    key={branch.id}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="size-4"
+                                      aria-label={`${role.displayName} · ${branch.code}`}
+                                      checked={assignments.some(
+                                        ({ branchId }) => branchId === branch.id,
+                                      )}
+                                      onChange={(event) =>
+                                        toggleAssignment(role, event.target.checked, branch.id)
+                                      }
+                                    />
+                                    {branch.code} — {branch.name}
+                                  </label>
+                                ))}
+                              </fieldset>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {userAccess.roleAssignments.some(({ source }) => source === 'ASSIGNMENT') && (
+                      <div className="mt-4 rounded-dd-lg bg-dd-surface-muted p-3 text-sm">
+                        <strong>Role dari lifecycle/assignment</strong>
+                        <ul className="mt-2 list-disc pl-5 text-dd-muted">
+                          {userAccess.roleAssignments
+                            .filter(({ source }) => source === 'ASSIGNMENT')
+                            .map((item) => (
+                              <li key={item.id}>
+                                {item.displayName} · {item.branch?.name ?? 'Global'}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    <Button
+                      className="mt-4"
+                      leadingIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+                      disabled={roleAssignments.some(
+                        ({ roleId, branchId }) =>
+                          roles.find((role) => role.id === roleId)?.scope === 'BRANCH' && !branchId,
+                      )}
+                      onClick={() => void saveUserRoles()}
+                    >
+                      Review perubahan role
+                    </Button>
+                  </section>
+
+                  <section className="rounded-dd-lg border border-dd-line p-4">
+                    <h3>Permission override</h3>
+                    <div className="mt-4 grid gap-3">
+                      <SearchSelect
+                        label="Capability"
                         value={overrideCapability}
-                        onChange={(event) => {
-                          const key = event.target.value;
+                        placeholder="Pilih capability"
+                        options={capabilities
+                          .filter(({ systemOnly }) => !systemOnly)
+                          .map((item) => ({
+                            id: item.key,
+                            label: item.label,
+                            description: item.key,
+                          }))}
+                        onChange={(key) => {
                           setOverrideCapability(key);
                           if (capabilities.find((item) => item.key === key)?.globalOnly)
                             setOverrideBranchId('');
                         }}
-                      >
-                        <option value="">Pilih capability</option>
-                        {capabilities
-                          .filter(({ systemOnly }) => !systemOnly)
-                          .map((item) => (
-                            <option key={item.key} value={item.key}>
-                              {item.key} — {item.label}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="grid gap-2 text-sm font-bold">
-                        Efek
-                        <select
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <SelectInput
+                          label="Efek"
                           value={overrideEffect}
                           onChange={(event) =>
                             setOverrideEffect(event.target.value as OverrideEffect)
                           }
                         >
-                          <option value="GRANT">GRANT</option>
-                          <option value="DENY">DENY</option>
-                        </select>
-                      </label>
-                      <label className="grid gap-2 text-sm font-bold">
-                        Scope
-                        <select
+                          <option value="GRANT">Berikan akses</option>
+                          <option value="DENY">Tolak akses</option>
+                        </SelectInput>
+                        <SearchSelect
+                          label="Scope"
                           value={overrideBranchId}
+                          placeholder="Global"
                           disabled={
                             capabilities.find((item) => item.key === overrideCapability)?.globalOnly
                           }
-                          onChange={(event) => setOverrideBranchId(event.target.value)}
-                        >
-                          <option value="">Global</option>
-                          {branches.map((branch) => (
-                            <option key={branch.id} value={branch.id}>
-                              {branch.code} — {branch.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          options={branches.map((branch) => ({
+                            id: branch.id,
+                            label: branch.name,
+                            description: branch.code,
+                          }))}
+                          onChange={setOverrideBranchId}
+                        />
+                      </div>
+                      <Button
+                        variant={overrideEffect === 'DENY' ? 'danger' : 'primary'}
+                        disabled={!overrideCapability}
+                        onClick={() => void createOverride()}
+                      >
+                        Review permission override
+                      </Button>
                     </div>
-                    <button
-                      className="button-primary"
-                      type="button"
-                      disabled={!overrideCapability}
-                      onClick={() => void createOverride()}
-                    >
-                      Tambahkan override
-                    </button>
-                  </div>
-                  <div className="mt-5 grid gap-2">
-                    {userAccess.overrides.length === 0 ? (
-                      <p className="text-sm text-dd-muted">Belum ada override aktif.</p>
-                    ) : (
-                      userAccess.overrides.map((override) => (
-                        <article
-                          key={override.id}
-                          className="rounded-dd-lg border border-dd-line p-3"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <StatusBadge tone={override.effect === 'DENY' ? 'danger' : 'success'}>
-                                {override.effect}
-                              </StatusBadge>
-                              <strong className="ml-2 font-mono text-xs">
-                                {override.capabilityKey}
-                              </strong>
-                              <p className="mt-2 text-xs text-dd-muted">
-                                {override.branch?.name ?? 'Global'} · {override.reasonCode}
-                              </p>
+                    <div className="mt-5 grid gap-2">
+                      {userAccess.overrides.length === 0 ? (
+                        <p className="text-sm text-dd-muted">Belum ada override aktif.</p>
+                      ) : (
+                        userAccess.overrides.map((override) => (
+                          <article
+                            key={override.id}
+                            className="rounded-dd-lg border border-dd-line p-3"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <StatusBadge
+                                  tone={override.effect === 'DENY' ? 'danger' : 'success'}
+                                >
+                                  {override.effect}
+                                </StatusBadge>
+                                <strong className="ml-2 font-mono text-xs">
+                                  {override.capabilityKey}
+                                </strong>
+                                <p className="mt-2 text-xs text-dd-muted">
+                                  {override.branch?.name ?? 'Global'} · {override.reasonCode}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void revokeOverride(override)}
+                              >
+                                Cabut
+                              </Button>
                             </div>
-                            <button
-                              className="button-quiet min-h-9 px-3 text-xs"
-                              type="button"
-                              onClick={() => void revokeOverride(override)}
-                            >
-                              Cabut
-                            </button>
-                          </div>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                </section>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                  </section>
 
-                <section className="rounded-dd-lg border border-dd-line p-4 xl:col-span-2">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3>Effective permission</h3>
-                    <Link
-                      className="text-sm font-bold text-dd-forest"
-                      href={`/audit?targetUserId=${userAccess.user.id}`}
-                    >
-                      Lihat audit history <ArrowRight className="inline size-4" />
-                    </Link>
-                  </div>
-                  <p className="mt-1 text-xs text-dd-muted">
-                    Hasil per capability dan cabang. DENIED selalu mengalahkan role maupun GRANT.
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {[
-                      ...new Map(
-                        userAccess.effective.grants.map((grant) => [
-                          `${grant.capability}:${grant.branchId ?? 'GLOBAL'}`,
-                          grant,
-                        ]),
-                      ).values(),
-                    ].map((grant) => {
-                      const denied = userAccess.effective.denials.some(
-                        (item) =>
-                          item.capability === grant.capability &&
-                          (item.branchId === null || item.branchId === grant.branchId),
-                      );
-                      const branch =
-                        branches.find(({ id }) => id === grant.branchId)?.code ?? 'GLOBAL';
-                      return (
-                        <article
-                          key={`${grant.capability}:${grant.branchId ?? 'GLOBAL'}`}
-                          className="rounded-dd-lg border border-dd-line p-3"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <strong className="font-mono text-xs">{grant.capability}</strong>
-                            <StatusBadge tone={denied ? 'danger' : 'success'}>
-                              {denied ? 'DENIED' : 'GRANTED'}
-                            </StatusBadge>
-                          </div>
-                          <p className="mt-2 text-xs text-dd-muted">
-                            {branch} · {grant.source}
-                          </p>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              </div>
-            )}
-          </section>
+                  <section className="rounded-dd-lg border border-dd-line p-4 xl:col-span-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3>Permission efektif</h3>
+                      <ButtonLink
+                        variant="secondary"
+                        size="sm"
+                        href={`/audit?targetUserId=${userAccess.user.id}`}
+                        trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+                      >
+                        Lihat audit pengguna
+                      </ButtonLink>
+                    </div>
+                    <p className="mt-1 text-xs text-dd-muted">
+                      Hasil per capability dan cabang. Penolakan selalu mengalahkan role maupun
+                      pemberian akses.
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {[
+                        ...new Map(
+                          userAccess.effective.grants.map((grant) => [
+                            `${grant.capability}:${grant.branchId ?? 'GLOBAL'}`,
+                            grant,
+                          ]),
+                        ).values(),
+                      ].map((grant) => {
+                        const denied = userAccess.effective.denials.some(
+                          (item) =>
+                            item.capability === grant.capability &&
+                            (item.branchId === null || item.branchId === grant.branchId),
+                        );
+                        const branch =
+                          branches.find(({ id }) => id === grant.branchId)?.code ?? 'GLOBAL';
+                        return (
+                          <article
+                            key={`${grant.capability}:${grant.branchId ?? 'GLOBAL'}`}
+                            className="rounded-dd-lg border border-dd-line p-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <strong className="font-mono text-xs">{grant.capability}</strong>
+                              <StatusBadge tone={denied ? 'danger' : 'success'}>
+                                {denied ? 'Ditolak' : 'Diberikan'}
+                              </StatusBadge>
+                            </div>
+                            <p className="mt-2 text-xs text-dd-muted">
+                              {branch} ·{' '}
+                              {grant.source === 'SYSTEM_ROLE'
+                                ? 'System role'
+                                : grant.source === 'CUSTOM_ROLE'
+                                  ? 'Custom role'
+                                  : 'Permission override'}
+                            </p>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              )}
+            </section>
+          )}
         </>
       )}
+      <Drawer
+        open={roleDrawerOpen}
+        title={creatingRole ? 'Buat custom role' : `Edit ${selectedRole?.displayName ?? 'role'}`}
+        description="Atur metadata, scope, dan capability. Perubahan akan dikonfirmasi dan dicatat dalam audit."
+        busy={saving}
+        dirty
+        onDirtyClose={async () => {
+          const accepted = await feedback.confirm({
+            tone: 'warning',
+            title: 'Tutup tanpa menyimpan?',
+            message: 'Perubahan pada custom role belum disimpan.',
+            confirmLabel: 'Tutup editor',
+          });
+          if (accepted) {
+            setEditorOpen(false);
+            setCreatingRole(false);
+          }
+          return accepted;
+        }}
+        onClose={() => {
+          setEditorOpen(false);
+          setCreatingRole(false);
+        }}
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" disabled={saving} onClick={() => void closeEditor()}>
+              Batal
+            </Button>
+            <Button
+              loading={saving}
+              loadingLabel="Menyimpan…"
+              leadingIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+              disabled={!roleDraft?.code.trim() || !roleDraft.displayName.trim()}
+              onClick={() => void saveRole()}
+            >
+              {creatingRole ? 'Review & buat role' : 'Review & simpan'}
+            </Button>
+          </div>
+        }
+      >
+        {roleDraft && (
+          <div className="grid gap-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextInput
+                label="Kode role"
+                description={
+                  creatingRole
+                    ? 'Gunakan huruf kapital, angka, dan underscore.'
+                    : 'Kode immutable setelah role dibuat.'
+                }
+                value={roleDraft.code}
+                disabled={!creatingRole}
+                maxLength={64}
+                onChange={(event) =>
+                  setRoleDraft({
+                    ...roleDraft,
+                    code: event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''),
+                  })
+                }
+              />
+              <SelectInput
+                label="Scope"
+                description={
+                  creatingRole ? 'Tentukan jangkauan role.' : 'Scope immutable setelah role dibuat.'
+                }
+                value={roleDraft.scope}
+                disabled={!creatingRole}
+                onChange={(event) => {
+                  const scope = event.target.value as 'GLOBAL' | 'BRANCH';
+                  setRoleDraft({
+                    ...roleDraft,
+                    scope,
+                    capabilityKeys:
+                      scope === 'BRANCH'
+                        ? roleDraft.capabilityKeys.filter(
+                            (key) => !capabilities.find((item) => item.key === key)?.globalOnly,
+                          )
+                        : roleDraft.capabilityKeys,
+                  });
+                }}
+              >
+                <option value="GLOBAL">Global</option>
+                <option value="BRANCH">Per cabang</option>
+              </SelectInput>
+              <TextInput
+                wrapperClassName="sm:col-span-2"
+                label="Nama role"
+                value={roleDraft.displayName}
+                maxLength={160}
+                onChange={(event) =>
+                  setRoleDraft({ ...roleDraft, displayName: event.target.value })
+                }
+              />
+              <Textarea
+                wrapperClassName="sm:col-span-2"
+                label="Deskripsi"
+                value={roleDraft.description}
+                maxLength={500}
+                onChange={(event) =>
+                  setRoleDraft({ ...roleDraft, description: event.target.value })
+                }
+              />
+            </div>
+
+            <div className="border-t border-dd-line pt-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SearchInput
+                  label="Cari capability"
+                  placeholder="Nama, deskripsi, atau key"
+                  value={capabilitySearch}
+                  onChange={(event) => setCapabilitySearch(event.target.value)}
+                />
+                <SearchSelect
+                  label="Kategori"
+                  value={category}
+                  placeholder="Semua kategori"
+                  options={categories.map((value) => ({
+                    id: value,
+                    label: categoryLabel(value),
+                  }))}
+                  onChange={setCategory}
+                />
+              </div>
+              <p className="mt-3 text-sm text-dd-muted">
+                {roleDraft.capabilityKeys.length} capability dipilih
+              </p>
+              <div className="mt-3 grid gap-2">
+                {visibleCapabilities.map((capability) => {
+                  const protectedCapability = capability.systemOnly;
+                  const invalidScope = capability.globalOnly && roleDraft.scope === 'BRANCH';
+                  return (
+                    <label
+                      key={capability.key}
+                      className={`flex gap-3 rounded-dd-lg border p-3 ${
+                        protectedCapability || invalidScope
+                          ? 'border-dd-line bg-stone-50 opacity-60'
+                          : 'border-dd-line bg-white hover:border-dd-forest/40'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1 size-4 accent-dd-forest"
+                        checked={roleDraft.capabilityKeys.includes(capability.key)}
+                        disabled={protectedCapability || invalidScope}
+                        onChange={(event) =>
+                          setRoleDraft({
+                            ...roleDraft,
+                            capabilityKeys: event.target.checked
+                              ? normalized([...roleDraft.capabilityKeys, capability.key])
+                              : roleDraft.capabilityKeys.filter(
+                                  (value) => value !== capability.key,
+                                ),
+                          })
+                        }
+                      />
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <strong className="text-sm">{capability.label}</strong>
+                          {capability.sensitive && (
+                            <StatusBadge tone="warning">Sensitif</StatusBadge>
+                          )}
+                          {capability.globalOnly && (
+                            <StatusBadge tone="info">Hanya global</StatusBadge>
+                          )}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-dd-muted">
+                          {capability.description}
+                        </span>
+                        <code className="mt-2 block break-all text-[11px] text-dd-muted/80">
+                          {capability.key}
+                        </code>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-4 border-t border-dd-line pt-5 sm:grid-cols-2">
+              <SelectInput
+                label="Alasan perubahan"
+                value={reasonCode}
+                onChange={(event) => setReasonCode(event.target.value)}
+              >
+                {REASONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </SelectInput>
+              <TextInput
+                label="Catatan opsional"
+                value={note}
+                maxLength={500}
+                placeholder="Tidak ditulis mentah ke log"
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </Drawer>
     </section>
+  );
+}
+
+function Metadata({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+      <dt className="text-xs font-bold uppercase tracking-[0.1em] text-dd-muted">{label}</dt>
+      <dd className={`mt-2 text-sm font-semibold text-dd-ink ${mono ? 'font-mono' : ''}`}>
+        {value}
+      </dd>
+    </div>
   );
 }

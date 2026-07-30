@@ -9,7 +9,7 @@ import 'package:built_value/serializer.dart';
 
 part 'package_command.g.dart';
 
-/// Synthetic fixtures must supply every commercial value explicitly; no production defaults are implied.
+/// PackageCommand
 ///
 /// Properties:
 /// * [branchId] 
@@ -21,6 +21,7 @@ part 'package_command.g.dart';
 /// * [priceRp] 
 /// * [effectiveFrom] 
 /// * [effectiveUntil] 
+/// * [reason] 
 @BuiltValue()
 abstract class PackageCommand implements Built<PackageCommand, PackageCommandBuilder> {
   @BuiltValueField(wireName: r'branchId')
@@ -49,6 +50,9 @@ abstract class PackageCommand implements Built<PackageCommand, PackageCommandBui
 
   @BuiltValueField(wireName: r'effectiveUntil')
   Date? get effectiveUntil;
+
+  @BuiltValueField(wireName: r'reason')
+  String get reason;
 
   PackageCommand._();
 
@@ -120,6 +124,11 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
         specifiedType: const FullType.nullable(Date),
       );
     }
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
+      specifiedType: const FullType(String),
+    );
   }
 
   @override
@@ -206,6 +215,13 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
           ) as Date?;
           if (valueDes == null) continue;
           result.effectiveUntil = valueDes;
+          break;
+        case r'reason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reason = valueDes;
           break;
         default:
           unhandled.add(key);

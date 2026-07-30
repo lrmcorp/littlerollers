@@ -41,7 +41,9 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/account/packages', ['customer:self']],
   ['/workspace/payments', ['payment:review', 'purchase:review']],
   ['/workspace/bookings', ['booking:read', 'reschedule:read']],
+  ['/workspace/branches', ['master:read', 'master:manage']],
   ['/workspace/packages', ['package-promotion:read', 'package-promotion:manage']],
+  ['/workspace/vouchers', ['voucher:read', 'voucher:manage']],
   ['/purchases', ['package:read', 'payment:review', 'purchase:review']],
   ['/finance', ['finance:reconcile']],
   ['/ledger', ['ledger:read']],
@@ -358,9 +360,8 @@ export function useSessionContext() {
 
 export function useActiveBranchState(): [string, (id: string) => void] {
   const context = useSessionContext();
-  const [branchId, setBranchId] = useState(context?.activeBranchId ?? '');
-  useEffect(() => {
-    if (context) setBranchId(context.activeBranchId);
-  }, [context, context?.activeBranchId]);
-  return [branchId, setBranchId];
+  const [localBranchId, setLocalBranchId] = useState('');
+  return context
+    ? [context.activeBranchId, context.setActiveBranchId]
+    : [localBranchId, setLocalBranchId];
 }

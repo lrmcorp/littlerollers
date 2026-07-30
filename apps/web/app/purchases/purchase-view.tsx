@@ -8,10 +8,12 @@ import {
   type PurchaseClient,
   type PurchasePackage,
 } from '../purchase-client';
-import { ConfirmationPanel, EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import type { PaymentProof, Purchase } from '@dailydose/api-client-ts/generated';
 import { controlClassName } from '../components/forms';
+import { Button } from '../components/actions';
+import { Panel } from '../components/admin/admin-ui';
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
 const scanLabels: Record<string, string> = {
@@ -26,13 +28,20 @@ export function PurchaseView({
   client = browserPurchaseClient,
   branchOverride,
   digestFile = sha256File,
+  access,
 }: {
   client?: PurchaseClient;
   branchOverride?: { id: string; name: string; timezone: string };
   digestFile?: (file: File) => Promise<string>;
+  access?: { isCustomer: boolean; canSubmit: boolean };
 }) {
   const sessionContext = useSessionContext();
-  const isCustomer = !sessionContext || sessionContext.session?.roles.includes('CUSTOMER');
+  const isCustomer =
+    access?.isCustomer ??
+    Boolean(
+      sessionContext?.status === 'authenticated' &&
+      sessionContext.session?.roles.includes('CUSTOMER'),
+    );
   const [flowBranch, setFlowBranch] = useState<{
     id: string;
     name: string;
@@ -41,7 +50,12 @@ export function PurchaseView({
   const [requestedPackageId, setRequestedPackageId] = useState('');
   const [continuationSlot, setContinuationSlot] = useState('');
   const branch = branchOverride ?? sessionContext?.activeBranch ?? flowBranch;
-  const canSubmit = !sessionContext || sessionContext.hasCapability('package:read');
+  const canSubmit =
+    access?.canSubmit ??
+    Boolean(
+      sessionContext?.status === 'authenticated' &&
+      sessionContext.hasCapability('customer:self', 'package:read'),
+    );
   const authorityKey = sessionContext?.session?.id ?? 'test';
   const [packages, setPackages] = useState<PurchasePackage[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -273,7 +287,11 @@ export function PurchaseView({
         </div>
       )}
       {selected && proof?.scanStatus === 'CLEAN' && !purchase && (
-        <ConfirmationPanel title="Konfirmasi pengajuan purchase">
+        <Panel
+          className="grid gap-3 border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+          aria-label="Konfirmasi pengajuan purchase"
+        >
+          <strong>Konfirmasi pengajuan purchase</strong>
           <p>
             {selected.name} · {selected.sessionCount} sesi selama {selected.durationDays} hari.
           </p>
@@ -281,7 +299,7 @@ export function PurchaseView({
             Total pembayaran {rupiah.format(selected.priceRp)}. Purchase akan berstatus menunggu
             review.
           </p>
-          <button
+          <Button
             disabled={loading || !canSubmit}
             onClick={() =>
               void run(async () => {
@@ -298,8 +316,8 @@ export function PurchaseView({
             }
           >
             Kirim pengajuan
-          </button>
-        </ConfirmationPanel>
+          </Button>
+        </Panel>
       )}
       {purchase && (
         <Feedback kind="status">
