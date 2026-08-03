@@ -16,6 +16,7 @@ part 'adjustment_decision_result.g.dart';
 /// * [adjustment] 
 /// * [ledgerEntry] 
 /// * [resultingBalance] 
+/// * [auditReference] 
 /// * [idempotentReplay] 
 @BuiltValue()
 abstract class AdjustmentDecisionResult implements Built<AdjustmentDecisionResult, AdjustmentDecisionResultBuilder> {
@@ -27,6 +28,9 @@ abstract class AdjustmentDecisionResult implements Built<AdjustmentDecisionResul
 
   @BuiltValueField(wireName: r'resultingBalance')
   int? get resultingBalance;
+
+  @BuiltValueField(wireName: r'auditReference')
+  String? get auditReference;
 
   @BuiltValueField(wireName: r'idempotentReplay')
   bool get idempotentReplay;
@@ -71,6 +75,13 @@ class _$AdjustmentDecisionResultSerializer implements PrimitiveSerializer<Adjust
       yield serializers.serialize(
         object.resultingBalance,
         specifiedType: const FullType.nullable(int),
+      );
+    }
+    if (object.auditReference != null) {
+      yield r'auditReference';
+      yield serializers.serialize(
+        object.auditReference,
+        specifiedType: const FullType.nullable(String),
       );
     }
     yield r'idempotentReplay';
@@ -123,6 +134,14 @@ class _$AdjustmentDecisionResultSerializer implements PrimitiveSerializer<Adjust
           ) as int?;
           if (valueDes == null) continue;
           result.resultingBalance = valueDes;
+          break;
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.auditReference = valueDes;
           break;
         case r'idempotentReplay':
           final valueDes = serializers.deserialize(

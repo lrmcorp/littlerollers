@@ -46,7 +46,7 @@ export class FinanceService {
         paymentProof: { select: { uploadStatus: true, scanStatus: true } },
         customerPackage: { select: { id: true, salePriceRp: true } },
       },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
     });
     return { range, purchases };
   }
@@ -182,7 +182,7 @@ export class FinanceService {
 
   async anomalies(
     principal: SessionPrincipal,
-    query: { branchId?: string; from?: string; until?: string },
+    query: { branchId?: string; from?: string; until?: string; cursor?: string; limit?: string },
   ) {
     const { purchases } = await this.records(principal, query);
     const staleBefore = Date.now() - 24 * 60 * 60 * 1000;
@@ -206,6 +206,24 @@ export class FinanceService {
         return [{ ...base, code: 'PROOF_NOT_READY', severity: 'WARNING' }];
       return [];
     });
-    return { generatedAt: new Date(), items, total: items.length };
+    const limit = query.limit === undefined ? 20 : Number(query.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const start = query.cursor
+      ? items.findIndex((item) => item.purchaseId === query.cursor) + 1
+      : 0;
+    if (query.cursor && start === 0)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const pageItems = items.slice(start, start + limit);
+    const hasMore = start + pageItems.length < items.length;
+    return {
+      generatedAt: new Date(),
+      items: pageItems,
+      total: items.length,
+      page: {
+        hasMore,
+        nextCursor: hasMore ? (pageItems.at(-1)?.purchaseId ?? null) : null,
+      },
+    };
   }
 }

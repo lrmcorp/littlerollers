@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/cursor_page_meta.dart';
 import 'package:openapi/src/model/finance_anomaly.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -16,6 +17,7 @@ part 'get_finance_reconciliation_anomalies200_response.g.dart';
 /// * [generatedAt] 
 /// * [items] 
 /// * [total] 
+/// * [page] 
 @BuiltValue()
 abstract class GetFinanceReconciliationAnomalies200Response implements Built<GetFinanceReconciliationAnomalies200Response, GetFinanceReconciliationAnomalies200ResponseBuilder> {
   @BuiltValueField(wireName: r'generatedAt')
@@ -26,6 +28,9 @@ abstract class GetFinanceReconciliationAnomalies200Response implements Built<Get
 
   @BuiltValueField(wireName: r'total')
   int get total;
+
+  @BuiltValueField(wireName: r'page')
+  CursorPageMeta get page;
 
   GetFinanceReconciliationAnomalies200Response._();
 
@@ -64,6 +69,11 @@ class _$GetFinanceReconciliationAnomalies200ResponseSerializer implements Primit
     yield serializers.serialize(
       object.total,
       specifiedType: const FullType(int),
+    );
+    yield r'page';
+    yield serializers.serialize(
+      object.page,
+      specifiedType: const FullType(CursorPageMeta),
     );
   }
 
@@ -108,6 +118,13 @@ class _$GetFinanceReconciliationAnomalies200ResponseSerializer implements Primit
             specifiedType: const FullType(int),
           ) as int;
           result.total = valueDes;
+          break;
+        case r'page':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CursorPageMeta),
+          ) as CursorPageMeta;
+          result.page.replace(valueDes);
           break;
         default:
           unhandled.add(key);

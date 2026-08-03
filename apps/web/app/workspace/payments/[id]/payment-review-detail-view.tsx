@@ -8,7 +8,7 @@ import {
   type PurchaseReviewClient,
   type ReviewDetail,
 } from '../../../purchase-client';
-import { Badge, Panel } from '../../../components/admin/admin-ui';
+import { Badge, Pagination, Panel } from '../../../components/admin/admin-ui';
 import { Button, ButtonLink } from '../../../components/actions';
 import { AlertBanner, useOptionalAppFeedback } from '../../../components/app-feedback';
 import { useSessionContext } from '../../../session-context';
@@ -75,6 +75,8 @@ export function PaymentReviewDetailView({
   const [previewType, setPreviewType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [usageCursor, setUsageCursor] = useState<string>();
+  const [usageCursorHistory, setUsageCursorHistory] = useState<string[]>([]);
   const backHref = safePaymentReturnTo(returnTo);
 
   const load = useCallback(async () => {
@@ -83,6 +85,8 @@ export function PaymentReviewDetailView({
     setError('');
     try {
       setDetail(await client.detail(id));
+      setUsageCursor(undefined);
+      setUsageCursorHistory([]);
     } catch (cause) {
       setError(purchaseFailure(cause));
     } finally {
@@ -115,19 +119,16 @@ export function PaymentReviewDetailView({
     }
   };
 
-  const loadMoreUsage = async () => {
-    const cursor = detail?.usageHistory.page.nextCursor;
-    if (!detail || !cursor) return;
+  const loadUsagePage = async (cursor?: string) => {
+    if (!detail) return;
     setUsageLoading(true);
     try {
       const next = await client.detail(id, cursor);
       setDetail({
         ...detail,
-        usageHistory: {
-          items: [...detail.usageHistory.items, ...next.usageHistory.items],
-          page: next.usageHistory.page,
-        },
+        usageHistory: next.usageHistory,
       });
+      setUsageCursor(cursor);
     } catch (cause) {
       setError(purchaseFailure(cause));
     } finally {
@@ -612,16 +613,24 @@ export function PaymentReviewDetailView({
                     <p className="p-4 text-sm text-dd-muted">Belum ada histori penggunaan sesi.</p>
                   )}
                 </div>
-                {detail.usageHistory.page.hasMore && (
-                  <Button
-                    className="mt-4"
-                    variant="secondary"
-                    disabled={usageLoading}
-                    onClick={() => void loadMoreUsage()}
-                  >
-                    {usageLoading ? 'Memuat…' : 'Muat histori berikutnya'}
-                  </Button>
-                )}
+                <div className="mt-4">
+                  <Pagination
+                    hasPrevious={usageCursorHistory.length > 0 && !usageLoading}
+                    hasNext={Boolean(detail.usageHistory.page.nextCursor) && !usageLoading}
+                    totalLabel={`Halaman ${usageCursorHistory.length + 1} · ${detail.usageHistory.items.length.toLocaleString('id-ID')} aktivitas`}
+                    onPrevious={() => {
+                      const previous = usageCursorHistory.at(-1) ?? '';
+                      setUsageCursorHistory((current) => current.slice(0, -1));
+                      void loadUsagePage(previous || undefined);
+                    }}
+                    onNext={() => {
+                      const next = detail.usageHistory.page.nextCursor;
+                      if (!next) return;
+                      setUsageCursorHistory((current) => [...current, usageCursor ?? '']);
+                      void loadUsagePage(next);
+                    }}
+                  />
+                </div>
               </>
             ) : (
               <p className="mt-4 text-sm text-dd-muted">

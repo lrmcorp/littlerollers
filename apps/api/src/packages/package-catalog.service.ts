@@ -38,9 +38,12 @@ export class PackageCatalogService {
       until?: string;
       cursor?: string;
       limit?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.access.catalog(principal);
+    if (query.includeHistorical && !principal.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     const customer =
       principal.roles.some(({ role }) => role === 'CUSTOMER') &&
       !principal.capabilities.includes('branch:all') &&
@@ -83,6 +86,7 @@ export class PackageCatalogService {
               : {};
     const baseWhere: Prisma.PackageWhereInput = {
       AND: [
+        query.includeHistorical ? {} : { historical: false },
         query.branchId
           ? { branchId: query.branchId }
           : customer

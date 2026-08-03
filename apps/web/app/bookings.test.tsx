@@ -157,23 +157,38 @@ describe('BookingView', () => {
     expect(create.mock.calls[0]?.[1]).toBe(create.mock.calls[1]?.[1]);
   });
 
-  it('loads stable booking pagination without duplicates', async () => {
+  it('navigates stable booking pages forward and backward without accumulating rows', async () => {
     const second = { ...booking, id: '00000000-0000-4000-8000-000000000210' };
     const list = vi
       .fn()
       .mockImplementation(({ cursor }: { cursor?: string }) =>
         Promise.resolve(
           cursor === 'cursor-2'
-            ? { items: [booking, second], nextCursor: null }
+            ? { items: [second], nextCursor: null }
             : { items: [booking], nextCursor: 'cursor-2' },
         ),
       );
     render(<BookingView client={client({ list })} activeBranchId={branchId} />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Muat booking berikutnya' }));
-    expect(screen.getAllByText(/Aktif/).length).toBeGreaterThanOrEqual(2);
-    expect(list).toHaveBeenLastCalledWith(
-      expect.objectContaining({ branchId, cursor: 'cursor-2' }),
+    expect(await screen.findByRole('navigation', { name: 'Paginasi data' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Sebelumnya' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ branchId, cursor: 'cursor-2' }),
+      ),
+    );
+    expect(
+      screen
+        .getAllByRole('link', { name: 'Lihat detail' })
+        .every((link) => link.getAttribute('href')?.includes(second.id)),
+    ).toBe(true);
+    expect(screen.getByRole('button', { name: 'Berikutnya' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Sebelumnya' }));
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ branchId, cursor: undefined }),
+      ),
     );
   });
 
@@ -190,10 +205,12 @@ describe('BookingView', () => {
       );
     render(<BookingView client={client({ list })} activeBranchId="" />);
     const user = userEvent.setup();
-    await screen.findByRole('button', { name: 'Muat booking berikutnya' });
-    await user.click(screen.getByRole('button', { name: 'Muat booking berikutnya' }));
-    expect(list).toHaveBeenLastCalledWith(
-      expect.objectContaining({ branchId: undefined, cursor: 'global-cursor' }),
+    await screen.findByRole('navigation', { name: 'Paginasi data' });
+    await user.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ branchId: undefined, cursor: 'global-cursor' }),
+      ),
     );
   });
 

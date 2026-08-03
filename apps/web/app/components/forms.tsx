@@ -267,6 +267,18 @@ export type MultiSearchSelectProps = Omit<
   onChange(value: string[], options: SearchSelectOption[]): void;
 };
 
+export type AsyncMultiSearchSelectProps = Omit<
+  AsyncSearchSelectProps,
+  'value' | 'defaultValue' | 'onChange' | 'name' | 'selectedOption'
+> & {
+  value: string[];
+  name?: string;
+  selectedOptions?: SearchSelectOption[];
+  onChange(value: string[], options: SearchSelectOption[]): void;
+};
+
+const emptySearchSelectOptions: SearchSelectOption[] = [];
+
 function normalizedSearch(value: string) {
   return value.trim().toLocaleLowerCase('id-ID');
 }
@@ -567,6 +579,89 @@ export function AsyncSearchSelect({
       onRetry={() => void runLoad(query)}
       onLoadMore={() => nextCursor && void runLoad(query, nextCursor, true)}
     />
+  );
+}
+
+export function AsyncMultiSearchSelect({
+  value,
+  name,
+  selectedOptions = emptySearchSelectOptions,
+  loadOptions,
+  onChange,
+  ...props
+}: AsyncMultiSearchSelectProps) {
+  const [knownOptions, setKnownOptions] = useState<SearchSelectOption[]>(selectedOptions);
+
+  useEffect(() => {
+    setKnownOptions((current) => [
+      ...new Map([...current, ...selectedOptions].map((option) => [option.id, option])).values(),
+    ]);
+  }, [selectedOptions]);
+
+  const selected = value
+    .map((id) => knownOptions.find((option) => option.id === id))
+    .filter((option): option is SearchSelectOption => Boolean(option));
+
+  return (
+    <div className={props.wrapperClassName}>
+      {name && value.map((item) => <input key={item} type="hidden" name={name} value={item} />)}
+      {selected.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2" aria-label={`${props.label} terpilih`}>
+          {selected.map((option) => (
+            <span
+              key={option.id}
+              className="inline-flex items-center gap-1 rounded-full bg-dd-success-soft px-3 py-1 text-xs font-semibold text-dd-success"
+            >
+              {option.label}
+              <button
+                type="button"
+                className="grid size-5 place-items-center rounded-full border-0 bg-transparent"
+                aria-label={`Hapus ${option.label}`}
+                onClick={() => {
+                  const next = value.filter((item) => item !== option.id);
+                  onChange(
+                    next,
+                    knownOptions.filter((item) => next.includes(item.id)),
+                  );
+                }}
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <AsyncSearchSelect
+        key={value.join('|')}
+        {...props}
+        wrapperClassName=""
+        value=""
+        clearable={false}
+        loadOptions={async (query, cursor) => {
+          const result = await loadOptions(query, cursor);
+          const page = Array.isArray(result) ? { items: result, nextCursor: undefined } : result;
+          const available = page.items.filter((option) => !value.includes(option.id));
+          setKnownOptions((current) => [
+            ...new Map([...current, ...page.items].map((option) => [option.id, option])).values(),
+          ]);
+          return { items: available, nextCursor: page.nextCursor };
+        }}
+        onChange={(item, option) => {
+          if (!item || !option) return;
+          const next = [...value, item];
+          const options = [
+            ...new Map(
+              [...knownOptions, option].map((candidate) => [candidate.id, candidate]),
+            ).values(),
+          ];
+          setKnownOptions(options);
+          onChange(
+            next,
+            options.filter((candidate) => next.includes(candidate.id)),
+          );
+        }}
+      />
+    </div>
   );
 }
 

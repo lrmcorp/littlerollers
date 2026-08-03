@@ -37,6 +37,21 @@ void main() {
       // TODO
     });
 
+    // String referenceLabel
+    test('to test the property `referenceLabel`', () async {
+      // TODO
+    });
+
+    // String bookingId
+    test('to test the property `bookingId`', () async {
+      // TODO
+    });
+
+    // int balanceAfter
+    test('to test the property `balanceAfter`', () async {
+      // TODO
+    });
+
     // String reason
     test('to test the property `reason`', () async {
       // TODO

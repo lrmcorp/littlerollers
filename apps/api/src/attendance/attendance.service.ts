@@ -1,10 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const RAW_TOKEN = /^[A-Za-z0-9_-]{43}$/u;
@@ -60,6 +61,7 @@ export class AttendanceService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
@@ -506,6 +508,20 @@ export class AttendanceService {
               classSlotId: token.booking.classSlotId,
             },
             correlationId,
+          },
+        });
+        await this.pilotOutbox?.record(tx, {
+          branchId: token.booking.branchId,
+          aggregateType: 'CustomerAttendance',
+          aggregateId: attendance.id,
+          operation: 'CHECK_IN',
+          correlationId,
+          occurredAt: attendance.checkedInAt,
+          payload: {
+            attendanceId: attendance.id,
+            bookingId: token.bookingId,
+            customerUserId: token.booking.customerUserId,
+            classSlotId: token.booking.classSlotId,
           },
         });
         return this.attendanceView(token, attendance, false);

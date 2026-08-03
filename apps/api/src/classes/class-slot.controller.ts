@@ -28,8 +28,16 @@ export class ClassSlotController {
     @Query('from') from?: string,
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
-    return this.slots.list(req.principal, { branchId, status, from, until, cursor });
+    return this.slots.list(req.principal, {
+      branchId,
+      status,
+      from,
+      until,
+      cursor,
+      includeHistorical: includeHistorical === 'true',
+    });
   }
 
   @Post()

@@ -3,7 +3,7 @@ import { cloneElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import type { LedgerClient } from './ledger-client';
+import { browserLedgerClient, type LedgerClient } from './ledger-client';
 import { LedgerView } from './ledger/ledger-view';
 import { AppFeedbackProvider } from './components/app-feedback';
 
@@ -32,6 +32,7 @@ const fake = (overrides: Partial<LedgerClient> = {}): LedgerClient => ({
     nextCursor: null,
   }),
   listAdjustments: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+  getAdjustment: vi.fn(),
   requestAdjustment: vi.fn(),
   decideAdjustment: vi.fn(),
   ...overrides,
@@ -47,7 +48,7 @@ const renderLedger = (view: React.ReactElement) =>
   );
 
 describe('synthetic ledger UI', () => {
-  it('is accessible and shows total, reserved, available and history', async () => {
+  it('is accessible and links each authoritative balance to its detail history', async () => {
     const view = renderLedger(<LedgerView client={fake()} />);
     expect((await screen.findAllByText('Nadia Customer')).length).toBeGreaterThan(0);
     const accessibility = await axe(view.container);
@@ -57,8 +58,9 @@ describe('synthetic ledger UI', () => {
         .map(({ id, nodes }) => `${id}: ${nodes[0]?.failureSummary}`)
         .join('\n'),
     ).toHaveLength(0);
-    await userEvent.click(screen.getAllByRole('button', { name: /Lihat histori/ })[0]!);
-    expect(await screen.findByText('Aktivasi paket')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /Lihat detail sesi|Lihat histori/ })[0],
+    ).toHaveAttribute('href', '/ledger/cp-1?returnTo=%2Fledger');
   });
   it('shows safe invariant and expired states', async () => {
     renderLedger(
@@ -83,7 +85,7 @@ describe('synthetic ledger UI', () => {
   it('creates a controlled pending request without free text', async () => {
     const requestAdjustment = vi.fn().mockResolvedValue({ id: 'adj-1' });
     const view = renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
-    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
     const lookup = screen.getByLabelText('Cari customer atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
@@ -128,7 +130,7 @@ describe('synthetic ledger UI', () => {
       nextCursor: null,
     });
     renderLedger(<LedgerView client={fake({ listAdjustments, decideAdjustment })} />);
-    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Setujui' }));
     await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi keputusan' }));
     await userEvent.click(screen.getByRole('button', { name: 'Setujui dan posting' }));
@@ -148,7 +150,7 @@ describe('synthetic ledger UI', () => {
       .mockRejectedValueOnce(new Error('network timeout'))
       .mockResolvedValueOnce({ id: 'adj-1' });
     renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
-    await userEvent.click(screen.getByRole('tab', { name: /Session Adjustment/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
     const lookup = screen.getByLabelText('Cari customer atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
@@ -162,5 +164,33 @@ describe('synthetic ledger UI', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Buat permintaan' }));
     await waitFor(() => expect(requestAdjustment).toHaveBeenCalledTimes(2));
     expect(requestAdjustment.mock.calls[0]?.[1]).toBe(requestAdjustment.mock.calls[1]?.[1]);
+  });
+});
+
+describe('browser ledger transport', () => {
+  it('hydrates JSON timestamps before the view formats them', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              ...balance,
+              activationDate: '2026-01-01T00:00:00.000Z',
+              expiryAt: '2026-12-01T00:00:00.000Z',
+            },
+          ],
+          page: { nextCursor: null },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await browserLedgerClient.list();
+
+    expect(result.items[0]?.activationDate).toBeInstanceOf(Date);
+    expect(result.items[0]?.expiryAt).toBeInstanceOf(Date);
+    expect(result.summary.available).toBe(8);
+    vi.unstubAllGlobals();
   });
 });

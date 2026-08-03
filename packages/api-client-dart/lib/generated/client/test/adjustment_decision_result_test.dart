@@ -22,6 +22,11 @@ void main() {
       // TODO
     });
 
+    // String auditReference
+    test('to test the property `auditReference`', () async {
+      // TODO
+    });
+
     // bool idempotentReplay
     test('to test the property `idempotentReplay`', () async {
       // TODO

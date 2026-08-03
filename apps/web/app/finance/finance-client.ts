@@ -6,26 +6,57 @@ import {
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
 
-export type FinanceData = { overview: FinanceReconciliationOverview; anomalies: FinanceAnomaly[] };
+export type FinanceAnomalyPage = {
+  items: FinanceAnomaly[];
+  total: number;
+  page: { hasMore: boolean; nextCursor: string | null };
+};
+export type FinanceData = {
+  overview: FinanceReconciliationOverview;
+  anomalies: FinanceAnomalyPage;
+};
 export interface FinanceClient {
-  load(input: { branchId?: string; from: string; until: string }): Promise<FinanceData>;
+  overview(input: {
+    branchId?: string;
+    from: string;
+    until: string;
+  }): Promise<FinanceReconciliationOverview>;
+  anomalies(
+    input: { branchId?: string; from: string; until: string },
+    cursor?: string,
+  ): Promise<FinanceAnomalyPage>;
 }
 
 const api = new FinanceApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 export const browserFinanceClient: FinanceClient = {
-  async load(input) {
+  async overview(input) {
     const request = {
       branchId: input.branchId,
       from: new Date(`${input.from}T00:00:00.000Z`),
       until: new Date(`${input.until}T00:00:00.000Z`),
     };
-    const [overview, anomalies] = await appLoading.track(
-      Promise.all([
-        api.getFinanceReconciliationOverview(request),
-        api.getFinanceReconciliationAnomalies(request),
-      ]),
-      { label: 'Memuat rekonsiliasi…' },
+    return appLoading.track(api.getFinanceReconciliationOverview(request), {
+      label: 'Memuat rekonsiliasi…',
+    });
+  },
+  async anomalies(input, cursor) {
+    const result = await appLoading.track(
+      api.getFinanceReconciliationAnomalies({
+        branchId: input.branchId,
+        from: new Date(`${input.from}T00:00:00.000Z`),
+        until: new Date(`${input.until}T00:00:00.000Z`),
+        cursor,
+        limit: 20,
+      }),
+      { label: 'Memuat anomali rekonsiliasi…' },
     );
-    return { overview, anomalies: anomalies.items };
+    return {
+      items: result.items,
+      total: result.total,
+      page: {
+        hasMore: result.page.hasMore,
+        nextCursor: result.page.nextCursor ?? null,
+      },
+    };
   },
 };

@@ -12,6 +12,12 @@ void main() {
       // TODO
     });
 
+    // Opaque cursor for the previous page. An empty string represents the first page.
+    // String previousCursor
+    test('to test the property `previousCursor`', () async {
+      // TODO
+    });
+
     // bool hasMore
     test('to test the property `hasMore`', () async {
       // TODO

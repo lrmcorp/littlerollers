@@ -138,6 +138,7 @@ import 'package:openapi/src/model/customer_package_balance_summary.dart';
 import 'package:openapi/src/model/customer_reschedule_options.dart';
 import 'package:openapi/src/model/customer_reschedule_slot.dart';
 import 'package:openapi/src/model/customer_reschedule_target.dart';
+import 'package:openapi/src/model/customer_session_usage_summary.dart';
 import 'package:openapi/src/model/dashboard_activity_item.dart';
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
@@ -148,6 +149,7 @@ import 'package:openapi/src/model/dashboard_risk_item.dart';
 import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
 import 'package:openapi/src/model/decide_correction_request.dart';
+import 'package:openapi/src/model/decide_internal_v1_migration_resolution_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/effective_capability_denial.dart';
@@ -300,6 +302,7 @@ import 'package:openapi/src/model/reschedule_decision_command.dart';
 import 'package:openapi/src/model/reschedule_decision_result.dart';
 import 'package:openapi/src/model/reschedule_page.dart';
 import 'package:openapi/src/model/reschedule_request_command.dart';
+import 'package:openapi/src/model/reservation_item.dart';
 import 'package:openapi/src/model/reservation_summary.dart';
 import 'package:openapi/src/model/resource.dart';
 import 'package:openapi/src/model/revoke_customer_check_in_token_command.dart';
@@ -312,6 +315,7 @@ import 'package:openapi/src/model/session.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:openapi/src/model/session_adjustment_decision_command.dart';
 import 'package:openapi/src/model/session_adjustment_page.dart';
+import 'package:openapi/src/model/session_adjustment_summary.dart';
 import 'package:openapi/src/model/session_branch.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
@@ -475,6 +479,7 @@ part 'serializers.g.dart';
   CustomerRescheduleOptions,
   CustomerRescheduleSlot,$CustomerRescheduleSlot,
   CustomerRescheduleTarget,
+  CustomerSessionUsageSummary,
   DashboardActivityItem,
   DashboardBranchPerformance,
   DashboardMetric,
@@ -485,6 +490,7 @@ part 'serializers.g.dart';
   DashboardSections,
   DashboardTrendPoint,
   DecideCorrectionRequest,
+  DecideInternalV1MigrationResolutionRequest,
   DeleteIdentityVerificationFileRequest,
   DownloadAuthorization,
   EffectiveCapabilityDenial,
@@ -637,6 +643,7 @@ part 'serializers.g.dart';
   RescheduleDecisionResult,
   ReschedulePage,
   RescheduleRequestCommand,
+  ReservationItem,
   ReservationSummary,
   Resource,
   RevokeCustomerCheckInTokenCommand,
@@ -649,6 +656,7 @@ part 'serializers.g.dart';
   SessionAdjustment,
   SessionAdjustmentDecisionCommand,
   SessionAdjustmentPage,
+  SessionAdjustmentSummary,
   SessionBranch,$SessionBranch,
   SubmitPurchaseRequest,
   TimeRangeCommand,

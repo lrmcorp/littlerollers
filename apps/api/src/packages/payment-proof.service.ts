@@ -9,6 +9,7 @@ import {
   ConfigGatedObjectStorageProvider,
 } from './proof-providers';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
+import { recordPilotRollbackOutbox } from '../migration/pilot-rollback-outbox.service';
 
 @Injectable()
 export class PaymentProofService {
@@ -196,6 +197,22 @@ export class PaymentProofService {
         proof.branchId,
         correlationId,
       );
+      await recordPilotRollbackOutbox(tx, {
+        branchId: proof.branchId,
+        aggregateType: 'PaymentProof',
+        aggregateId: proof.id,
+        operation: 'FINALIZE',
+        correlationId,
+        occurredAt: record.finalizedAt ?? new Date(),
+        payload: {
+          paymentProofId: proof.id,
+          checksum: input.sha256.toLowerCase(),
+          mimeType: proof.mimeType,
+          sizeBytes: proof.sizeBytes,
+          kind: 'PAYMENT_PROOF',
+          version: record.version,
+        },
+      });
       return record;
     });
     return {
@@ -265,6 +282,22 @@ export class PaymentProofService {
           current.branchId,
           correlationId,
         );
+        await recordPilotRollbackOutbox(tx, {
+          branchId: current.branchId,
+          aggregateType: 'PaymentProof',
+          aggregateId: next.id,
+          operation: 'ATTACH_TO_PURCHASE',
+          correlationId,
+          payload: {
+            paymentProofId: next.id,
+            purchaseId,
+            checksumReference: next.checksum,
+            mimeType: next.mimeType,
+            sizeBytes: next.sizeBytes,
+            kind: 'PAYMENT_PROOF',
+            version: changed.version,
+          },
+        });
         return changed;
       });
     } catch {

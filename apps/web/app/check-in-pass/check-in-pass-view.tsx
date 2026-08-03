@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import { Button } from '../components/actions';
 
 export function CheckInPassView() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,9 +60,9 @@ export function CheckInPassView() {
               className="mx-auto mt-6 rounded-dd-md bg-white p-3"
               aria-label="QR check-in"
             />
-            <button type="button" className="mt-4" onClick={downloadQr}>
+            <Button type="button" className="mx-auto mt-4" onClick={downloadQr}>
               Download QR
-            </button>
+            </Button>
             <p className="mt-4 text-xs text-dd-muted">
               Pass terenkripsi · jangan teruskan ke pihak lain
             </p>

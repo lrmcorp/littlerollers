@@ -17,6 +17,7 @@ Name | Type | Description | Notes
 **decidedById** | **String** |  | [optional] 
 **decidedBy** | [**AdjustmentActor**](AdjustmentActor.md) |  | [optional] 
 **decisionCode** | **String** |  | [optional] 
+**decisionNote** | **String** |  | [optional] 
 **status** | **String** |  | 
 **ledgerBalanceAtRequest** | **int** |  | [optional] 
 **reservedAtRequest** | **int** |  | [optional] 
@@ -32,6 +33,7 @@ Name | Type | Description | Notes
 **eligibleForApproval** | **bool** |  | [optional] 
 **eligibilityReason** | **String** |  | [optional] 
 **ledgerEntryId** | **String** |  | [optional] 
+**auditReference** | **String** |  | [optional] 
 **version** | **int** |  | 
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 **decidedAt** | [**DateTime**](DateTime.md) |  | [optional] 

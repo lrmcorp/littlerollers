@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import {
   Prisma,
   type RescheduleDecisionReasonCode,
@@ -12,6 +12,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
 export type RescheduleRequestCommand = {
   bookingId: string;
@@ -72,6 +73,7 @@ export class ReschedulesService {
     private readonly idempotency: IdempotencyService,
     private readonly policy: PolicyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private syntheticPolicy() {
@@ -462,6 +464,20 @@ export class ReschedulesService {
               },
             },
           });
+          await this.pilotOutbox?.record(tx, {
+            branchId: booking.branchId,
+            aggregateType: 'Booking',
+            aggregateId: booking.id,
+            operation: 'RESCHEDULE_REQUEST',
+            correlationId,
+            payload: {
+              bookingId: booking.id,
+              rescheduleId: reschedule.id,
+              sourceClassSlotId: source.id,
+              targetClassSlotId: target.id,
+              reasonCode: input.reasonCode,
+            },
+          });
           return {
             status: HttpStatus.CREATED,
             body: reschedule as unknown as Prisma.InputJsonValue,
@@ -557,6 +573,18 @@ export class ReschedulesService {
                 },
               }),
             ]);
+            await this.pilotOutbox?.record(tx, {
+              branchId: booking.branchId,
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              operation: 'RESCHEDULE_REJECT',
+              correlationId,
+              payload: {
+                bookingId: booking.id,
+                rescheduleId: id,
+                reasonCode: input.reasonCode,
+              },
+            });
             return {
               status: HttpStatus.OK,
               body: {
@@ -674,6 +702,21 @@ export class ReschedulesService {
               },
             }),
           ]);
+          await this.pilotOutbox?.record(tx, {
+            branchId: booking.branchId,
+            aggregateType: 'Booking',
+            aggregateId: booking.id,
+            operation: 'RESCHEDULE_APPROVE',
+            correlationId,
+            occurredAt: now,
+            payload: {
+              bookingId: booking.id,
+              rescheduleId: id,
+              sourceClassSlotId: source.id,
+              targetClassSlotId: target.id,
+              reasonCode: input.reasonCode,
+            },
+          });
           return {
             status: HttpStatus.OK,
             body: {

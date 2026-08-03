@@ -10,6 +10,7 @@ coverage/
 apps/web/test-results/
 apps/web/playwright-report/
 .generated/
+.cache/
 packages/api-client-ts/generated/**/*.d.ts
 packages/api-client-ts/generated/**/*.js
 packages/api-client-ts/generated/**/*.js.map
@@ -24,7 +25,11 @@ apps/mobile/.idea/
 packages/api-client-dart/.dart_tool/
 infra/local/data/
 .local-data/
+.migration-integration/
+.migration-rehearsal/
 apps/api/.local-data/
+.migration-spool/
+*.binlog.enc
 Archive.zip
 .DS_Store
 **/.DS_Store

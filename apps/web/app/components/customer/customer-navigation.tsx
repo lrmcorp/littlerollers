@@ -104,9 +104,7 @@ export function CustomerNavigation({
         data-overlay-phase={rendered ? phase : undefined}
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
           visible ? 'translate-x-0 visible' : '-translate-x-full'
-        } ${
-          rendered ? 'pointer-events-auto' : 'invisible pointer-events-none'
-        }`}
+        } ${rendered ? 'pointer-events-auto' : 'invisible pointer-events-none'}`}
       >
         <div className="mb-7 flex items-center justify-between">
           <BrandMark

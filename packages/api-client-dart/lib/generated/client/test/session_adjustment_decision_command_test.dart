@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // String note
+    test('to test the property `note`', () async {
+      // TODO
+    });
+
     // int expectedVersion
     test('to test the property `expectedVersion`', () async {
       // TODO

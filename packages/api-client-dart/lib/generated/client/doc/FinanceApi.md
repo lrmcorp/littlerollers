@@ -154,7 +154,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getFinanceReconciliationAnomalies**
-> GetFinanceReconciliationAnomalies200Response getFinanceReconciliationAnomalies(branchId, from, until)
+> GetFinanceReconciliationAnomalies200Response getFinanceReconciliationAnomalies(branchId, from, until, cursor, limit)
 
 
 
@@ -168,9 +168,11 @@ final api = Openapi().getFinanceApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final Date from = 2013-10-20; // Date | 
 final Date until = 2013-10-20; // Date | 
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.getFinanceReconciliationAnomalies(branchId, from, until);
+    final response = api.getFinanceReconciliationAnomalies(branchId, from, until, cursor, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling FinanceApi->getFinanceReconciliationAnomalies: $e\n');
@@ -184,6 +186,8 @@ Name | Type | Description  | Notes
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **from** | **Date**|  | [optional] 
  **until** | **Date**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 

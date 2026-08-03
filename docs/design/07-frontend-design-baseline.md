@@ -33,7 +33,7 @@ Implementasi otoritatif token berada di `apps/web/app/globals.css`. Logo memakai
 | Application shell | logo, grouped navigation, environment, topbar, workspace | sidebar desktop; rail tablet; horizontal navigation mobile |
 | Role-aware dashboard | greeting, assurance/expiry, active branch, capability-filtered work cards, session summary | tidak menampilkan halaman di luar capability; branch tidak dipilih otomatis |
 | Page header | eyebrow, title, description, context | branch/role/timezone/MFA ditempatkan pada context |
-| Button | primary, destructive/secondary melalui konteks aksi | label berbentuk kata kerja; disabled bukan satu-satunya penjelasan |
+| Button | primary, destructive/secondary melalui konteks aksi | CTA proses wajib memakai `Button`/`ButtonLink`; native button hanya untuk tab, toggle, atau icon control dengan style eksplisit; label berbentuk kata kerja; disabled bukan satu-satunya penjelasan |
 | Form field | label, control, hint/error | label programatik; error aman dan fokus dapat dipindahkan |
 | Status badge | neutral/info/success/warning/danger | wajib memiliki teks; warna bukan satu-satunya sinyal |
 | Feedback/banner | status/error/warning/info | async memakai live region; error memakai alert |

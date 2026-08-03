@@ -264,6 +264,17 @@ export function RolePermissionsView({
     updateUrl({ role: role.id });
   }
 
+  async function loadActiveBranches() {
+    const items: Awaited<ReturnType<MasterClient['listBranches']>>['items'] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await masterClient.listBranches({ status: 'ACTIVE', cursor, limit: 50 });
+      items.push(...page.items);
+      cursor = page.page.nextCursor ?? undefined;
+    } while (cursor);
+    return items;
+  }
+
   async function load() {
     setLoading(true);
     setFailure('');
@@ -271,7 +282,7 @@ export function RolePermissionsView({
       const [nextRoles, nextCapabilities, nextBranches] = await Promise.all([
         accessClient.listRoles(),
         accessClient.listCapabilities({ active: true }),
-        masterClient.listBranches(),
+        loadActiveBranches(),
       ]);
       setRoles(nextRoles);
       setCapabilities(nextCapabilities);

@@ -45,8 +45,18 @@ export class PackagesController {
     @Query('limit') limit?: string,
     @Query('from') from?: string,
     @Query('until') until?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
-    return this.vouchers.list(r.principal, { q, status, branchId, cursor, limit, from, until });
+    return this.vouchers.list(r.principal, {
+      q,
+      status,
+      branchId,
+      cursor,
+      limit,
+      from,
+      until,
+      includeHistorical: includeHistorical === 'true',
+    });
   }
   @Get('vouchers/:id') getVoucher(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.vouchers.detail(r.principal, id);
@@ -110,6 +120,7 @@ export class PackagesController {
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.catalog.list(r.principal, {
       branchId,
@@ -121,6 +132,7 @@ export class PackagesController {
       until,
       cursor,
       limit,
+      includeHistorical: includeHistorical === 'true',
     });
   }
   @Get('packages/:id') packageDetail(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
@@ -131,6 +143,7 @@ export class PackagesController {
     @Param('id') id: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.promotions.list(r.principal, id, cursor, limit);
   }
@@ -298,6 +311,7 @@ export class PackagesController {
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.customerOrders.listOrders(r.principal, {
       status,
@@ -306,6 +320,7 @@ export class PackagesController {
       until,
       cursor,
       limit,
+      includeHistorical: includeHistorical === 'true',
     });
   }
   @Get('orders/:id') order(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
@@ -362,6 +377,7 @@ export class PackagesController {
     @Query('from') from?: string,
     @Query('until') until?: string,
     @Query('purchaseId') purchaseId?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.paymentReview.list(r.principal, {
       branchId,
@@ -372,6 +388,7 @@ export class PackagesController {
       from,
       until,
       purchaseId,
+      includeHistorical: includeHistorical === 'true',
     });
   }
   @Get('purchases/:id') getPurchaseReview(

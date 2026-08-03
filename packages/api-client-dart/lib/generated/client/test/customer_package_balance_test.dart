@@ -82,6 +82,11 @@ void main() {
       // TODO
     });
 
+    // CustomerSessionUsageSummary usage
+    test('to test the property `usage`', () async {
+      // TODO
+    });
+
     // int salePriceRp
     test('to test the property `salePriceRp`', () async {
       // TODO

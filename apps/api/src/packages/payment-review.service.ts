@@ -1,10 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, PurchaseStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId, syntheticConfigSeconds } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 import { PackageAccessService } from './package-access.service';
 import { ConfigGatedObjectStorageProvider } from './proof-providers';
 
@@ -15,6 +16,7 @@ export class PaymentReviewService {
     private readonly idempotency: IdempotencyService,
     private readonly storage: ConfigGatedObjectStorageProvider,
     private readonly access: PackageAccessService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   async list(
@@ -28,12 +30,15 @@ export class PaymentReviewService {
       from?: string;
       until?: string;
       purchaseId?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     const reviewer =
       principal.capabilities.includes('payment:review') ||
       principal.capabilities.includes('purchase:review');
     this.access.review(principal);
+    if (query.includeHistorical && !principal.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     if (query.branchId)
       this.access.scope(principal, query.branchId, ['payment:review', 'purchase:review']);
 
@@ -63,6 +68,7 @@ export class PaymentReviewService {
     const search = query.q?.trim();
     const summaryWhere: Prisma.PurchaseWhereInput = {
       ...scope,
+      ...(query.includeHistorical ? {} : { historical: false }),
       ...(search
         ? {
             OR: [
@@ -756,6 +762,21 @@ export class PaymentReviewService {
             { reasonCode: input.reasonCode!, notePresent: Boolean(note) },
           );
           const purchaseWithAudit = { ...updated, auditReference: audit.id };
+          await this.pilotOutbox?.record(tx, {
+            branchId: purchase.branchId,
+            aggregateType: 'Purchase',
+            aggregateId: purchase.id,
+            operation: 'DECIDE',
+            correlationId,
+            occurredAt: decidedAt,
+            payload: {
+              purchaseId: purchase.id,
+              status: nextStatus,
+              reasonCode: input.reasonCode!,
+              customerPackageId: customerPackage?.id ?? null,
+              sessionCount: customerPackage?.sessionCountSnapshot ?? null,
+            },
+          });
           return {
             status: 200,
             body: (decision === 'APPROVED'

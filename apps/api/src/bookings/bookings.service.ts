@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type BookingCancellationReasonCode, type BookingStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -7,6 +7,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
 export type BookingCommand = {
   classSlotId: string;
@@ -71,6 +72,7 @@ export class BookingsService {
     private readonly idempotency: IdempotencyService,
     private readonly policy: PolicyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private syntheticPolicy() {
@@ -346,6 +348,21 @@ export class BookingsService {
                 },
               },
             }),
+            this.pilotOutbox?.record(tx, {
+              branchId: booking.branchId,
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              operation: 'CANCEL',
+              correlationId,
+              occurredAt: now,
+              payload: {
+                bookingId: booking.id,
+                customerUserId: booking.customerUserId,
+                classSlotId: booking.classSlotId,
+                customerPackageId: booking.customerPackageId,
+                reasonCode: input.reasonCode,
+              },
+            }),
           ]);
           return {
             status: HttpStatus.OK,
@@ -476,9 +493,12 @@ export class BookingsService {
       classSlotId?: string;
       customerId?: string;
       limit?: number;
+      includeHistorical?: boolean;
     },
   ) {
     const customer = this.isCustomer(principal);
+    if (query.includeHistorical)
+      this.policy.requireCapability(principal.capabilities, 'migration:read');
     this.policy.requireCapability(
       principal.capabilities,
       customer ? 'booking:self:read' : 'booking:read',
@@ -545,6 +565,7 @@ export class BookingsService {
         : {};
     const queryText = query.q?.trim();
     const commonWhere: Prisma.BookingWhereInput = {
+      ...(query.includeHistorical ? {} : { historical: false }),
       ...(customer ? { customerUserId: principal.userId } : {}),
       ...(query.branchId
         ? { branchId: query.branchId }
@@ -648,7 +669,7 @@ export class BookingsService {
       }),
       this.db.booking.groupBy({
         by: ['status'],
-        where: commonWhere,
+        where: timeline ? { AND: [commonWhere, timelineWhere] } : commonWhere,
         _count: { _all: true },
       }),
     ]);
@@ -933,6 +954,20 @@ export class BookingsService {
                 aggregateId: booking.id,
                 correlationId,
                 payload: { bookingId: booking.id, classSlotId: slot.id, branchId: slot.branchId },
+              },
+            }),
+            this.pilotOutbox?.record(tx, {
+              branchId: slot.branchId,
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              operation: 'CREATE',
+              correlationId,
+              payload: {
+                bookingId: booking.id,
+                customerUserId,
+                classSlotId: slot.id,
+                customerPackageId: customerPackage.id,
+                source: input.source,
               },
             }),
           ]);

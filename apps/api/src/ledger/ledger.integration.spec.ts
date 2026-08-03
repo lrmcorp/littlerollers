@@ -197,9 +197,19 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
       ledgerBalance: 10,
       reserved: 2,
       available: 8,
+      usage: {
+        initialSessions: 10,
+        usedSessions: 0,
+        reversedSessions: 0,
+        adjustmentDelta: 0,
+      },
+      packageName: 'Ten sessions',
+      branchName: 'Ledger branch',
     });
     expect(result.reservations.activeQuantity).toBe(2);
+    expect(result.reservations.items).toHaveLength(2);
     expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]).toMatchObject({ balanceAfter: 10, referenceLabel: 'Aktivasi paket' });
   });
 
   it('lists customer-owned and branch-scoped balances without foreign leakage', async () => {
@@ -215,11 +225,13 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     expect(own.items).toHaveLength(1);
     expect(own.items[0]).not.toHaveProperty('customer');
     expect(scoped.items).toHaveLength(1);
-    expect(scoped.summary).toEqual({
+    expect(scoped.summary).toMatchObject({
       packageCount: 1,
+      activePackageCount: 1,
       ledgerBalance: 10,
       reserved: 2,
       available: 8,
+      usedSessions: 0,
     });
     expect(scoped.items[0]).toMatchObject({
       customer: { id: customerId, displayName: 'Ledger customer', phoneMasked: null },
@@ -290,20 +302,43 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     expect(await db.ledgerEntry.count({ where: { customerPackageId } })).toBe(before);
     const id = (requested.body as { id: string }).id;
     expect(requested.body).toMatchObject({ ledgerBalanceAtRequest: 10, reservedAtRequest: 2 });
+    const queue = await service.listAdjustments(
+      manager,
+      branchId,
+      'PENDING',
+      undefined,
+      'Ledger customer',
+      customerId,
+      undefined,
+      undefined,
+      '10',
+    );
+    expect(queue.summary).toMatchObject({ total: 1, pending: 1, posted: 0, rejected: 0 });
+    expect(queue.items[0]).toMatchObject({ id, customer: { id: customerId } });
+    expect(await service.adjustmentDetail(manager, id)).toMatchObject({
+      id,
+      currentBalance: 10,
+      projectedLedgerBalance: 8,
+    });
     const decided = await service.decideAdjustment(
       manager,
       id,
       'approve',
-      { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 0 },
+      { reasonCode: 'CORRECTION_VERIFIED', note: 'Saldo telah diverifikasi.', expectedVersion: 0 },
       `${namespace}-decision`,
       namespace,
     );
     expect((decided.body as { resultingBalance: number }).resultingBalance).toBe(8);
+    expect(decided.body).toMatchObject({ auditReference: namespace });
     expect(
       await db.ledgerEntry.count({ where: { customerPackageId, type: 'ADJUST_MANUAL' } }),
     ).toBe(1);
     const detail = await service.detail(customer, customerPackageId);
     expect(detail.balance).toMatchObject({ ledgerBalance: 8, reserved: 2, available: 6 });
+    expect(await service.adjustmentDetail(manager, id)).toMatchObject({
+      decisionNote: 'Saldo telah diverifikasi.',
+      auditReference: namespace,
+    });
   });
 
   it('rejects self-decision and unsafe post-balance', async () => {

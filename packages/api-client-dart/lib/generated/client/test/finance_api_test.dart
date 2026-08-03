@@ -24,7 +24,7 @@ void main() {
 
     // Actionable reconciliation anomalies without private proof contents.
     //
-    //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until }) async
+    //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until, String cursor, int limit }) async
     test('test getFinanceReconciliationAnomalies', () async {
       // TODO
     });

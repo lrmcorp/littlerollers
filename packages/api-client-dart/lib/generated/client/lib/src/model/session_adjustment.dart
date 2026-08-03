@@ -24,6 +24,7 @@ part 'session_adjustment.g.dart';
 /// * [decidedById] 
 /// * [decidedBy] 
 /// * [decisionCode] 
+/// * [decisionNote] 
 /// * [status] 
 /// * [ledgerBalanceAtRequest] 
 /// * [reservedAtRequest] 
@@ -39,6 +40,7 @@ part 'session_adjustment.g.dart';
 /// * [eligibleForApproval] 
 /// * [eligibilityReason] 
 /// * [ledgerEntryId] 
+/// * [auditReference] 
 /// * [version] 
 /// * [createdAt] 
 /// * [decidedAt] 
@@ -72,6 +74,9 @@ abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdju
   @BuiltValueField(wireName: r'decisionCode')
   SessionAdjustmentDecisionCodeEnum? get decisionCode;
   // enum decisionCodeEnum {  CORRECTION_VERIFIED,  INVALID_EVIDENCE,  DUPLICATE_REQUEST,  OUT_OF_SCOPE,  ,  };
+
+  @BuiltValueField(wireName: r'decisionNote')
+  String? get decisionNote;
 
   @BuiltValueField(wireName: r'status')
   SessionAdjustmentStatusEnum get status;
@@ -118,6 +123,9 @@ abstract class SessionAdjustment implements Built<SessionAdjustment, SessionAdju
 
   @BuiltValueField(wireName: r'ledgerEntryId')
   String? get ledgerEntryId;
+
+  @BuiltValueField(wireName: r'auditReference')
+  String? get auditReference;
 
   @BuiltValueField(wireName: r'version')
   int get version;
@@ -202,6 +210,13 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       yield serializers.serialize(
         object.decisionCode,
         specifiedType: const FullType.nullable(SessionAdjustmentDecisionCodeEnum),
+      );
+    }
+    if (object.decisionNote != null) {
+      yield r'decisionNote';
+      yield serializers.serialize(
+        object.decisionNote,
+        specifiedType: const FullType.nullable(String),
       );
     }
     yield r'status';
@@ -304,6 +319,13 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
       yield r'ledgerEntryId';
       yield serializers.serialize(
         object.ledgerEntryId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.auditReference != null) {
+      yield r'auditReference';
+      yield serializers.serialize(
+        object.auditReference,
         specifiedType: const FullType.nullable(String),
       );
     }
@@ -413,6 +435,14 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           if (valueDes == null) continue;
           result.decisionCode = valueDes;
           break;
+        case r'decisionNote':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.decisionNote = valueDes;
+          break;
         case r'status':
           final valueDes = serializers.deserialize(
             value,
@@ -521,6 +551,14 @@ class _$SessionAdjustmentSerializer implements PrimitiveSerializer<SessionAdjust
           ) as String?;
           if (valueDes == null) continue;
           result.ledgerEntryId = valueDes;
+          break;
+        case r'auditReference':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.auditReference = valueDes;
           break;
         case r'version':
           final valueDes = serializers.deserialize(

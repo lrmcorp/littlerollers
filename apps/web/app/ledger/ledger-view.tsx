@@ -1,22 +1,29 @@
 'use client';
 
-import { ArrowDown, ArrowUp, History, RefreshCw, UsersRound } from 'lucide-react';
+import { History, RefreshCw, UsersRound } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   browserLedgerClient,
   ledgerFailure,
   type Adjustment,
+  type AdjustmentSummary,
   type LedgerBalance,
   type LedgerClient,
-  type LedgerHistory,
   type LedgerSummary,
 } from '../ledger-client';
 import { EmptyState, Feedback, PageHeader, Skeleton } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
-import { Badge, FilterBar, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
-import { AsyncSearchSelect, SelectInput, TextInput } from '../components/forms';
+import { Badge, FilterBar, Pagination, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
+import {
+  AsyncSearchSelect,
+  DateInput,
+  SelectInput,
+  Textarea,
+  TextInput,
+} from '../components/forms';
 
 type PackageOption = LedgerBalance & { label: string; description: string };
 type PackageStatus = '' | 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
@@ -38,14 +45,6 @@ const adjustmentStatus: Record<
   PENDING: { label: 'Menunggu keputusan', tone: 'warning' },
   POSTED: { label: 'Diposting', tone: 'success' },
   REJECTED: { label: 'Ditolak', tone: 'danger' },
-};
-
-const ledgerTypeLabels: Record<string, string> = {
-  PURCHASE: 'Aktivasi paket',
-  MIGRATION_OPENING: 'Saldo awal migrasi',
-  ADJUST_MANUAL: 'Penyesuaian manual',
-  BOOKING_DEBIT: 'Pemakaian sesi',
-  REFUND: 'Pengembalian sesi',
 };
 
 const adjustmentReasonLabels: Record<string, string> = {
@@ -101,17 +100,53 @@ export function LedgerView({
   initialWorkspaceTab = 'balances',
   onWorkspaceTabChange,
   access,
+  adjustmentsOnly = false,
+  customerUserId,
+  initialAdjustmentMode = 'PENDING',
+  onAdjustmentModeChange,
+  initialSearch = '',
+  initialStatus = '',
+  initialCursor = '',
+  onBalanceFiltersChange,
+  onBalancePageChange,
+  initialAdjustmentSearch = '',
+  initialAdjustmentFrom = '',
+  initialAdjustmentUntil = '',
+  initialAdjustmentCursor = '',
+  onAdjustmentFiltersChange,
 }: {
   client?: LedgerClient;
   initialWorkspaceTab?: 'balances' | 'adjustments';
   onWorkspaceTabChange?(value: 'balances' | 'adjustments'): void;
   access?: { canRequest: boolean; canDecide: boolean; canReview: boolean };
+  adjustmentsOnly?: boolean;
+  customerUserId?: string;
+  initialAdjustmentMode?: AdjustmentMode;
+  onAdjustmentModeChange?(value: AdjustmentMode): void;
+  initialSearch?: string;
+  initialStatus?: PackageStatus;
+  onBalanceFiltersChange?(search: string, status: PackageStatus): void;
+  initialCursor?: string;
+  onBalancePageChange?(cursor: string): void;
+  initialAdjustmentSearch?: string;
+  initialAdjustmentFrom?: string;
+  initialAdjustmentUntil?: string;
+  initialAdjustmentCursor?: string;
+  onAdjustmentFiltersChange?(filters: {
+    q: string;
+    from: string;
+    until: string;
+    cursor: string;
+  }): void;
 }) {
   const [branchId, setBranchId] = useActiveBranchState();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnTo = `${pathname ?? '/ledger'}${searchParams?.size ? `?${searchParams.toString()}` : ''}`;
   const sessionContext = useSessionContext();
   const feedback = useAppFeedback();
   const [workspaceTab, setWorkspaceTab] = useState<'balances' | 'adjustments'>(initialWorkspaceTab);
-  const injectedAccess = access;
+  const injectedAccess = process.env.NODE_ENV === 'test' ? access : undefined;
   const canRequest =
     injectedAccess?.canRequest ?? Boolean(sessionContext?.hasCapability('ledger:adjust:request'));
   const canDecide =
@@ -122,20 +157,29 @@ export function LedgerView({
   const [items, setItems] = useState<LedgerBalance[]>([]);
   const [summary, setSummary] = useState<LedgerSummary | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>();
-  const [history, setHistory] = useState<LedgerHistory | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [status, setStatus] = useState<PackageStatus>('');
-  const [appliedStatus, setAppliedStatus] = useState<PackageStatus>('');
+  const [previousCursor, setPreviousCursor] = useState<string | null>();
+  const [balanceCursor, setBalanceCursor] = useState(initialCursor);
+  const [search, setSearch] = useState(initialSearch);
+  const [appliedSearch, setAppliedSearch] = useState(initialSearch);
+  const [status, setStatus] = useState<PackageStatus>(initialStatus);
+  const [appliedStatus, setAppliedStatus] = useState<PackageStatus>(initialStatus);
   const [loading, setLoading] = useState(true);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>('PENDING');
+  const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>(initialAdjustmentMode);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
+  const [adjustmentSummary, setAdjustmentSummary] = useState<AdjustmentSummary | null>(null);
   const [adjustmentCursor, setAdjustmentCursor] = useState<string | null>();
+  const [adjustmentPreviousCursor, setAdjustmentPreviousCursor] = useState<string | null>();
+  const [activeAdjustmentCursor, setActiveAdjustmentCursor] = useState(initialAdjustmentCursor);
+  const [adjustmentSearch, setAdjustmentSearch] = useState(initialAdjustmentSearch);
+  const [appliedAdjustmentSearch, setAppliedAdjustmentSearch] = useState(initialAdjustmentSearch);
+  const [adjustmentFrom, setAdjustmentFrom] = useState(initialAdjustmentFrom);
+  const [appliedAdjustmentFrom, setAppliedAdjustmentFrom] = useState(initialAdjustmentFrom);
+  const [adjustmentUntil, setAdjustmentUntil] = useState(initialAdjustmentUntil);
+  const [appliedAdjustmentUntil, setAppliedAdjustmentUntil] = useState(initialAdjustmentUntil);
   const [adjustmentLoading, setAdjustmentLoading] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>();
   const [quantity, setQuantity] = useState('');
@@ -146,6 +190,7 @@ export function LedgerView({
   }>();
   const [requestOpen, setRequestOpen] = useState(false);
   const [decisionReason, setDecisionReason] = useState('INVALID_EVIDENCE');
+  const [decisionNote, setDecisionNote] = useState('');
 
   const listRequest = useRef(0);
   const adjustmentRequest = useRef(0);
@@ -153,6 +198,15 @@ export function LedgerView({
   const decisionKeys = useRef(new Map<string, string>());
 
   useEffect(() => setWorkspaceTab(initialWorkspaceTab), [initialWorkspaceTab]);
+  useEffect(() => setAdjustmentMode(initialAdjustmentMode), [initialAdjustmentMode]);
+  useEffect(() => setBalanceCursor(initialCursor), [initialCursor]);
+  useEffect(() => setActiveAdjustmentCursor(initialAdjustmentCursor), [initialAdjustmentCursor]);
+  useEffect(() => {
+    setSearch(initialSearch);
+    setAppliedSearch(initialSearch);
+    setStatus(initialStatus);
+    setAppliedStatus(initialStatus);
+  }, [initialSearch, initialStatus]);
 
   const stableRequestKey = (signature: string) => {
     if (requestIntent.current?.signature !== signature)
@@ -160,50 +214,70 @@ export function LedgerView({
     return requestIntent.current.key;
   };
 
-  const loadBalances = useCallback(
-    async (cursor?: string) => {
-      const request = ++listRequest.current;
-      setLoading(true);
-      setError('');
-      try {
-        const result = await client.list(
-          branchId || undefined,
-          cursor,
-          appliedSearch || undefined,
-          appliedStatus || undefined,
-        );
-        if (request !== listRequest.current) return;
-        setItems((current) => (cursor ? [...current, ...result.items] : result.items));
-        setSummary(result.summary);
-        setNextCursor(result.nextCursor ?? null);
-      } catch (cause) {
-        if (request === listRequest.current) setError(await ledgerFailure(cause));
-      } finally {
-        if (request === listRequest.current) setLoading(false);
-      }
-    },
-    [appliedSearch, appliedStatus, branchId, client],
-  );
+  const loadBalances = useCallback(async () => {
+    const request = ++listRequest.current;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await client.list(
+        branchId || undefined,
+        balanceCursor || undefined,
+        appliedSearch || undefined,
+        appliedStatus || undefined,
+        customerUserId,
+      );
+      if (request !== listRequest.current) return;
+      setItems(result.items);
+      setSummary(result.summary);
+      setNextCursor(result.nextCursor ?? null);
+      setPreviousCursor(result.previousCursor ?? null);
+    } catch (cause) {
+      if (request === listRequest.current) setError(await ledgerFailure(cause));
+    } finally {
+      if (request === listRequest.current) setLoading(false);
+    }
+  }, [appliedSearch, appliedStatus, balanceCursor, branchId, client, customerUserId]);
 
-  const loadAdjustments = useCallback(
-    async (cursor?: string) => {
-      if (!canReview) return;
-      const request = ++adjustmentRequest.current;
-      setAdjustmentLoading(true);
-      setError('');
-      try {
-        const result = await client.listAdjustments(branchId || undefined, adjustmentMode, cursor);
-        if (request !== adjustmentRequest.current) return;
-        setAdjustments((current) => (cursor ? [...current, ...result.items] : result.items));
-        setAdjustmentCursor(result.nextCursor ?? null);
-      } catch (cause) {
-        if (request === adjustmentRequest.current) setError(await ledgerFailure(cause));
-      } finally {
-        if (request === adjustmentRequest.current) setAdjustmentLoading(false);
-      }
-    },
-    [adjustmentMode, branchId, canReview, client],
-  );
+  const loadAdjustments = useCallback(async () => {
+    if (!canReview) return;
+    const request = ++adjustmentRequest.current;
+    setAdjustmentLoading(true);
+    setError('');
+    try {
+      const result = await client.listAdjustments(
+        branchId || undefined,
+        adjustmentMode,
+        activeAdjustmentCursor || undefined,
+        appliedAdjustmentSearch || undefined,
+        customerUserId,
+        appliedAdjustmentFrom
+          ? new Date(`${appliedAdjustmentFrom}T00:00:00`).toISOString()
+          : undefined,
+        appliedAdjustmentUntil
+          ? new Date(`${appliedAdjustmentUntil}T00:00:00`).toISOString()
+          : undefined,
+      );
+      if (request !== adjustmentRequest.current) return;
+      setAdjustments(result.items);
+      setAdjustmentSummary(result.summary ?? null);
+      setAdjustmentCursor(result.nextCursor ?? null);
+      setAdjustmentPreviousCursor(result.previousCursor ?? null);
+    } catch (cause) {
+      if (request === adjustmentRequest.current) setError(await ledgerFailure(cause));
+    } finally {
+      if (request === adjustmentRequest.current) setAdjustmentLoading(false);
+    }
+  }, [
+    activeAdjustmentCursor,
+    adjustmentMode,
+    appliedAdjustmentFrom,
+    appliedAdjustmentSearch,
+    appliedAdjustmentUntil,
+    branchId,
+    canReview,
+    client,
+    customerUserId,
+  ]);
 
   useEffect(() => {
     listRequest.current += 1;
@@ -211,49 +285,29 @@ export function LedgerView({
     setItems([]);
     setSummary(null);
     setNextCursor(null);
-    setHistory(null);
+    setPreviousCursor(null);
     setAdjustments([]);
+    setAdjustmentSummary(null);
     setAdjustmentCursor(null);
+    setAdjustmentPreviousCursor(null);
     setSelectedPackage(undefined);
-    void loadBalances();
+    if (!adjustmentsOnly) void loadBalances();
     if (canReview) void loadAdjustments();
   }, [
     branchId,
     appliedSearch,
     appliedStatus,
+    balanceCursor,
     adjustmentMode,
+    activeAdjustmentCursor,
+    appliedAdjustmentSearch,
+    appliedAdjustmentFrom,
+    appliedAdjustmentUntil,
     canReview,
+    adjustmentsOnly,
     loadAdjustments,
     loadBalances,
   ]);
-
-  const openHistory = async (item: LedgerBalance) => {
-    setHistoryLoading(true);
-    setError('');
-    try {
-      setHistory(await client.detail(item.id));
-    } catch (cause) {
-      setError(await ledgerFailure(cause));
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
-  const loadMoreHistory = async () => {
-    if (!history?.nextCursor) return;
-    setHistoryLoading(true);
-    try {
-      const next = await client.detail(history.balance.id, history.nextCursor);
-      setHistory({
-        ...next,
-        entries: [...history.entries, ...next.entries],
-      });
-    } catch (cause) {
-      setError(await ledgerFailure(cause));
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
 
   const searchPackages = useCallback(
     async (query: string) => {
@@ -284,8 +338,11 @@ export function LedgerView({
   };
 
   const applyFilters = () => {
-    setAppliedSearch(search.trim());
+    const normalized = search.trim();
+    setAppliedSearch(normalized);
     setAppliedStatus(status);
+    setBalanceCursor('');
+    onBalanceFiltersChange?.(normalized, status);
   };
 
   const resetFilters = () => {
@@ -293,6 +350,8 @@ export function LedgerView({
     setStatus('');
     setAppliedSearch('');
     setAppliedStatus('');
+    setBalanceCursor('');
+    onBalanceFiltersChange?.('', '');
   };
   const requestDirty = Boolean(selectedPackage || quantity);
   const confirmDiscardRequest = () =>
@@ -355,16 +414,19 @@ export function LedgerView({
       const result = await client.decideAdjustment(
         item.id,
         decision,
-        { reasonCode: reason, expectedVersion: item.version },
+        {
+          reasonCode: reason,
+          note: decisionNote.trim() || undefined,
+          expectedVersion: item.version,
+        },
         key,
       );
       decisionKeys.current.delete(intent);
       setDecisionIntent(undefined);
+      setDecisionNote('');
       await refreshOperationalData();
       setMessage(
-        result.ledgerEntryId
-          ? `Penyesuaian diposting. Referensi ledger ${result.ledgerEntryId}.`
-          : `Permintaan ${decision === 'approve' ? 'disetujui' : 'ditolak'}.`,
+        `Permintaan ${decision === 'approve' ? 'disetujui dan diposting' : 'ditolak'}${result.auditReference ? ` · referensi audit ${result.auditReference}` : ''}.`,
       );
     });
   };
@@ -373,10 +435,14 @@ export function LedgerView({
     <section className="space-y-6" aria-labelledby="ledger-title">
       <Panel className="p-6 sm:p-8">
         <PageHeader
-          eyebrow="Operasional customer"
-          title="Sesi customer"
+          eyebrow={adjustmentsOnly ? 'Kontrol saldo' : 'Operasional customer'}
+          title={adjustmentsOnly ? 'Penyesuaian Sesi' : 'Sesi Customer'}
           titleId="ledger-title"
-          description="Pantau saldo paket dan sesi tertahan, lalu proses penyesuaian sesuai permission dan cakupan cabang."
+          description={
+            adjustmentsOnly
+              ? 'Tinjau permintaan perubahan sesi sesuai permission, scope cabang, dan separation of duties.'
+              : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan ledger authoritative.'
+          }
           context={
             <Button
               variant="secondary"
@@ -390,27 +456,29 @@ export function LedgerView({
         />
       </Panel>
 
-      <Tabs
-        items={[
-          { value: 'balances', label: 'Saldo & Riwayat', count: summary?.packageCount },
-          {
-            value: 'adjustments',
-            label: 'Session Adjustment',
-            count: adjustmentMode === 'PENDING' ? adjustments.length : undefined,
-          },
-        ]}
-        value={workspaceTab}
-        onChange={(value) => {
-          const next = value as 'balances' | 'adjustments';
-          setWorkspaceTab(next);
-          onWorkspaceTabChange?.(next);
-        }}
-      />
+      {!adjustmentsOnly && (
+        <Tabs
+          items={[
+            { value: 'balances', label: 'Saldo & Riwayat', count: summary?.packageCount },
+            {
+              value: 'adjustments',
+              label: 'Penyesuaian Sesi',
+              count: adjustmentMode === 'PENDING' ? adjustments.length : undefined,
+            },
+          ]}
+          value={workspaceTab}
+          onChange={(value) => {
+            const next = value as 'balances' | 'adjustments';
+            setWorkspaceTab(next);
+            onWorkspaceTabChange?.(next);
+          }}
+        />
+      )}
 
-      {workspaceTab === 'balances' && (
+      {!adjustmentsOnly && workspaceTab === 'balances' && (
         <>
           <FilterBar>
-            {access && !sessionContext && (
+            {injectedAccess && !sessionContext && (
               <TextInput
                 wrapperClassName="min-w-52"
                 label="Cabang"
@@ -459,11 +527,10 @@ export function LedgerView({
               aria-label="Ringkasan sesi"
             >
               <StatCard
-                label="Paket customer"
-                value={summary.packageCount.toLocaleString('id-ID')}
-                helper="Seluruh hasil sesuai filter"
+                label="Paket aktif"
+                value={(summary.activePackageCount ?? summary.packageCount).toLocaleString('id-ID')}
+                helper={`${summary.expiringSoon ?? 0} segera berakhir`}
               />
-              <StatCard label="Saldo sesi" value={summary.ledgerBalance.toLocaleString('id-ID')} />
               <StatCard
                 label="Sesi tertahan"
                 value={summary.reserved.toLocaleString('id-ID')}
@@ -473,6 +540,10 @@ export function LedgerView({
                 label="Sesi tersedia"
                 value={summary.available.toLocaleString('id-ID')}
                 tone="success"
+              />
+              <StatCard
+                label="Sesi terpakai"
+                value={(summary.usedSessions ?? 0).toLocaleString('id-ID')}
               />
             </section>
           ) : (
@@ -544,9 +615,12 @@ export function LedgerView({
                             <BalanceValues item={item} />
                           </td>
                           <td className="px-5 py-4 text-right">
-                            <Button variant="ghost" onClick={() => void openHistory(item)}>
-                              Lihat histori
-                            </Button>
+                            <ButtonLink
+                              variant="ghost"
+                              href={`/ledger/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                            >
+                              Lihat detail sesi
+                            </ButtonLink>
                           </td>
                         </tr>
                       ))}
@@ -573,36 +647,42 @@ export function LedgerView({
                       <div className="my-4 rounded-dd-md bg-dd-surface-muted p-3">
                         <BalanceValues item={item} />
                       </div>
-                      <Button
+                      <ButtonLink
                         variant="secondary"
                         className="w-full"
                         leadingIcon={<History className="size-4" aria-hidden="true" />}
-                        onClick={() => void openHistory(item)}
+                        href={`/ledger/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}
                         aria-label={`Lihat histori ${item.customer?.displayName ?? 'customer'} ${item.packageName ?? 'paket'}`}
                       >
-                        Lihat histori
-                      </Button>
+                        Lihat detail sesi
+                      </ButtonLink>
                     </li>
                   ))}
                 </ul>
               </>
             )}
-            {nextCursor && (
-              <div className="border-t border-dd-line p-4 text-center">
-                <Button
-                  variant="secondary"
-                  disabled={loading}
-                  onClick={() => void loadBalances(nextCursor)}
-                >
-                  Muat paket berikutnya
-                </Button>
-              </div>
-            )}
+            <div className="border-t border-dd-line p-4">
+              <Pagination
+                hasPrevious={balanceCursor !== ''}
+                hasNext={Boolean(nextCursor)}
+                totalLabel={`${summary?.packageCount ?? items.length} paket customer`}
+                onPrevious={() => {
+                  const previous = previousCursor ?? '';
+                  setBalanceCursor(previous);
+                  onBalancePageChange?.(previous);
+                }}
+                onNext={() => {
+                  if (!nextCursor) return;
+                  setBalanceCursor(nextCursor);
+                  onBalancePageChange?.(nextCursor);
+                }}
+              />
+            </div>
           </Panel>
         </>
       )}
 
-      {(canRequest || canReview) && workspaceTab === 'adjustments' && (
+      {(canRequest || canReview) && (adjustmentsOnly || workspaceTab === 'adjustments') && (
         <Panel className="p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -624,15 +704,88 @@ export function LedgerView({
             </div>
           )}
 
+          {!canRequest && canDecide && (
+            <div className="mt-5">
+              <Feedback kind="status">
+                Anda berperan sebagai approver. Permintaan dibuat oleh Admin dan harus diputuskan
+                oleh actor berbeda agar pemisahan tugas tetap terjaga.
+              </Feedback>
+            </div>
+          )}
+
           {canReview && (
             <div className="mt-6">
+              <FilterBar>
+                <TextInput
+                  wrapperClassName="min-w-56 flex-1"
+                  label="Cari customer atau paket"
+                  value={adjustmentSearch}
+                  onChange={(event) => setAdjustmentSearch(event.target.value)}
+                />
+                <DateInput
+                  label="Dari tanggal"
+                  value={adjustmentFrom}
+                  onChange={(event) => setAdjustmentFrom(event.target.value)}
+                />
+                <DateInput
+                  label="Sampai tanggal"
+                  value={adjustmentUntil}
+                  onChange={(event) => setAdjustmentUntil(event.target.value)}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const normalized = adjustmentSearch.trim();
+                    setAppliedAdjustmentSearch(normalized);
+                    setAppliedAdjustmentFrom(adjustmentFrom);
+                    setAppliedAdjustmentUntil(adjustmentUntil);
+                    setActiveAdjustmentCursor('');
+                    onAdjustmentFiltersChange?.({
+                      q: normalized,
+                      from: adjustmentFrom,
+                      until: adjustmentUntil,
+                      cursor: '',
+                    });
+                  }}
+                >
+                  Terapkan filter
+                </Button>
+              </FilterBar>
+              {adjustmentSummary && (
+                <section
+                  className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                  aria-label="Ringkasan penyesuaian sesi"
+                >
+                  <StatCard label="Total permintaan" value={String(adjustmentSummary.total)} />
+                  <StatCard
+                    label="Menunggu keputusan"
+                    value={String(adjustmentSummary.pending)}
+                    tone="warning"
+                  />
+                  <StatCard
+                    label="Diposting"
+                    value={String(adjustmentSummary.posted)}
+                    tone="success"
+                  />
+                  <StatCard
+                    label="Ditolak"
+                    value={String(adjustmentSummary.rejected)}
+                    tone="danger"
+                  />
+                </section>
+              )}
               <Tabs
                 items={[
                   { value: 'PENDING', label: 'Menunggu keputusan' },
                   { value: 'HISTORY', label: 'Riwayat' },
                 ]}
                 value={adjustmentMode}
-                onChange={(value) => setAdjustmentMode(value as AdjustmentMode)}
+                onChange={(value) => {
+                  const next = value as AdjustmentMode;
+                  setAdjustmentMode(next);
+                  setActiveAdjustmentCursor('');
+                  onAdjustmentModeChange?.(next);
+                }}
               />
 
               {adjustmentLoading && adjustments.length === 0 ? (
@@ -713,17 +866,33 @@ export function LedgerView({
                           </Feedback>
                         </div>
                       )}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <ButtonLink
+                          variant="ghost"
+                          href={`/ledger/adjustments/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                        >
+                          Lihat detail
+                        </ButtonLink>
+                      </div>
                       {item.status === 'PENDING' && canDecide && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Button
                             disabled={item.eligibleForApproval === false}
-                            onClick={() => setDecisionIntent({ item, decision: 'approve' })}
+                            onClick={() => {
+                              setDecisionReason('CORRECTION_VERIFIED');
+                              setDecisionNote('');
+                              setDecisionIntent({ item, decision: 'approve' });
+                            }}
                           >
                             Setujui
                           </Button>
                           <Button
                             variant="secondary"
-                            onClick={() => setDecisionIntent({ item, decision: 'reject' })}
+                            onClick={() => {
+                              setDecisionReason('INVALID_EVIDENCE');
+                              setDecisionNote('');
+                              setDecisionIntent({ item, decision: 'reject' });
+                            }}
                           >
                             Tolak
                           </Button>
@@ -734,17 +903,33 @@ export function LedgerView({
                 </ul>
               )}
 
-              {adjustmentCursor && (
-                <div className="mt-4 text-center">
-                  <Button
-                    variant="secondary"
-                    disabled={adjustmentLoading}
-                    onClick={() => void loadAdjustments(adjustmentCursor)}
-                  >
-                    Muat penyesuaian berikutnya
-                  </Button>
-                </div>
-              )}
+              <div className="mt-4">
+                <Pagination
+                  hasPrevious={activeAdjustmentCursor !== ''}
+                  hasNext={Boolean(adjustmentCursor)}
+                  totalLabel={`${adjustmentSummary?.total ?? adjustments.length} penyesuaian`}
+                  onPrevious={() => {
+                    const previous = adjustmentPreviousCursor ?? '';
+                    setActiveAdjustmentCursor(previous);
+                    onAdjustmentFiltersChange?.({
+                      q: appliedAdjustmentSearch,
+                      from: appliedAdjustmentFrom,
+                      until: appliedAdjustmentUntil,
+                      cursor: previous,
+                    });
+                  }}
+                  onNext={() => {
+                    if (!adjustmentCursor) return;
+                    setActiveAdjustmentCursor(adjustmentCursor);
+                    onAdjustmentFiltersChange?.({
+                      q: appliedAdjustmentSearch,
+                      from: appliedAdjustmentFrom,
+                      until: appliedAdjustmentUntil,
+                      cursor: adjustmentCursor,
+                    });
+                  }}
+                />
+              </div>
             </div>
           )}
         </Panel>
@@ -843,82 +1028,6 @@ export function LedgerView({
         </div>
       </Drawer>
 
-      <Drawer
-        open={Boolean(history)}
-        title={`Histori sesi · ${history?.balance.customer?.displayName ?? 'Customer'}`}
-        onClose={() => setHistory(null)}
-      >
-        {history && (
-          <div className="space-y-4">
-            <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <strong className="text-dd-ink">{history.balance.packageName ?? 'Paket'}</strong>
-                  <span className="mt-1 block text-sm text-dd-muted">
-                    {history.balance.branchName ?? 'Cabang'} · berakhir{' '}
-                    {date(history.balance.expiryAt)}
-                  </span>
-                </div>
-                <Badge tone={packageStatus[history.balance.status].tone}>
-                  {packageStatus[history.balance.status].label}
-                </Badge>
-              </div>
-              <div className="mt-4">
-                <BalanceValues item={history.balance} />
-              </div>
-            </div>
-
-            <ol className="grid gap-3" aria-label="Histori sesi">
-              {history.entries.map((entry) => {
-                const positive = entry.quantity > 0;
-                const EntryIcon = positive ? ArrowUp : ArrowDown;
-                return (
-                  <li
-                    key={entry.id}
-                    className="flex gap-3 rounded-dd-md border border-dd-line bg-white p-4"
-                  >
-                    <span
-                      className={`grid size-9 shrink-0 place-items-center rounded-full ${
-                        positive
-                          ? 'bg-dd-success-soft text-dd-success'
-                          : 'bg-dd-warning-soft text-dd-warning'
-                      }`}
-                    >
-                      <EntryIcon className="size-4" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <strong className="text-sm text-dd-ink">
-                          {ledgerTypeLabels[entry.type] ?? 'Perubahan sesi'}
-                        </strong>
-                        <strong className={positive ? 'text-dd-success' : 'text-dd-warning'}>
-                          {positive ? '+' : ''}
-                          {entry.quantity}
-                        </strong>
-                      </div>
-                      <span className="mt-1 block text-xs text-dd-muted">
-                        {date(entry.occurredAt, true)}
-                        {entry.referenceType ? ` · ${entry.referenceType}` : ''}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-            {history.nextCursor && (
-              <Button
-                variant="secondary"
-                className="w-full"
-                disabled={historyLoading}
-                onClick={() => void loadMoreHistory()}
-              >
-                Muat histori berikutnya
-              </Button>
-            )}
-          </div>
-        )}
-      </Drawer>
-
       <Modal
         open={Boolean(decisionIntent)}
         title={
@@ -928,13 +1037,20 @@ export function LedgerView({
         }
         description="Keputusan dicatat dalam audit dan tidak dapat dilakukan oleh requester yang sama."
         busy={mutationLoading}
-        onClose={() => setDecisionIntent(undefined)}
+        dirty={Boolean(decisionNote)}
+        onClose={() => {
+          setDecisionIntent(undefined);
+          setDecisionNote('');
+        }}
         footer={
           <div className="flex justify-end gap-2">
             <Button
               variant="secondary"
               disabled={mutationLoading}
-              onClick={() => setDecisionIntent(undefined)}
+              onClick={() => {
+                setDecisionIntent(undefined);
+                setDecisionNote('');
+              }}
             >
               Batal
             </Button>
@@ -959,24 +1075,31 @@ export function LedgerView({
               {decisionIntent.item.quantity} · proyeksi tersedia{' '}
               {decisionIntent.item.projectedAvailable ?? '—'}.
             </p>
-            {decisionIntent.decision === 'reject' && (
-              <SelectInput
-                label="Alasan penolakan"
-                value={decisionReason}
-                onChange={(event) => setDecisionReason(event.target.value)}
-              >
-                {['INVALID_EVIDENCE', 'DUPLICATE_REQUEST', 'OUT_OF_SCOPE'].map((code) => (
-                  <option key={code} value={code}>
-                    {adjustmentReasonLabels[code]}
-                  </option>
-                ))}
-              </SelectInput>
-            )}
+            <SelectInput
+              label="Alasan keputusan"
+              value={decisionReason}
+              onChange={(event) => setDecisionReason(event.target.value)}
+            >
+              {(decisionIntent.decision === 'approve'
+                ? ['CORRECTION_VERIFIED']
+                : ['INVALID_EVIDENCE', 'DUPLICATE_REQUEST', 'OUT_OF_SCOPE']
+              ).map((code) => (
+                <option key={code} value={code}>
+                  {adjustmentReasonLabels[code]}
+                </option>
+              ))}
+            </SelectInput>
+            <Textarea
+              label="Catatan keputusan (opsional)"
+              value={decisionNote}
+              maxLength={500}
+              onChange={(event) => setDecisionNote(event.target.value)}
+              description={`${decisionNote.length}/500 karakter. Catatan aman akan disimpan pada keputusan.`}
+            />
           </div>
         )}
       </Modal>
 
-      {historyLoading && !history && <Skeleton label="Memuat histori sesi" />}
       {message && !mutationLoading && <Feedback kind="status">{message}</Feedback>}
       {error && <Feedback kind="error">{error}</Feedback>}
     </section>

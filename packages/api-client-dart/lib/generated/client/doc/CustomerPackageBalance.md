@@ -23,6 +23,7 @@ Name | Type | Description | Notes
 **ledgerBalance** | **int** |  | 
 **reserved** | **int** |  | 
 **available** | **int** |  | 
+**usage** | [**CustomerSessionUsageSummary**](CustomerSessionUsageSummary.md) |  | 
 **salePriceRp** | **int** |  | 
 **sessionCountSnapshot** | **int** |  | 
 **durationDaysSnapshot** | **int** |  | 

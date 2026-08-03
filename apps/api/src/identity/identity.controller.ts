@@ -503,6 +503,7 @@ export class IdentityController {
     @Query('role') role?: import('@prisma/client').ApplicationRole,
     @Query('audience') audience?: 'STAFF' | 'CUSTOMER',
     @Query('verificationStatus') verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED',
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.users.listUsers(request.principal, {
       branchId,
@@ -512,6 +513,7 @@ export class IdentityController {
       role,
       audience,
       verificationStatus,
+      includeHistorical: includeHistorical === 'true',
     });
   }
 
@@ -702,8 +704,9 @@ export class IdentityController {
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
     @Query('cursor') cursor?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
-    return this.users.listUserAudit(request.principal, id, cursor);
+    return this.users.listUserAudit(request.principal, id, cursor, includeHistorical === 'true');
   }
 
   @UseGuards(AuthGuard)
@@ -718,6 +721,7 @@ export class IdentityController {
     @Query('from') from?: string,
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.users.listAuditLogs(request.principal, {
       actorId,
@@ -728,6 +732,7 @@ export class IdentityController {
       from,
       until,
       cursor,
+      includeHistorical: includeHistorical === 'true',
     });
   }
 

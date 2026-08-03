@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { ClassSlotView } from './classes/class-slot-view';
 import type { ClassSlotClient } from './class-slot-client';
+import type { BookingClient, BookingPage } from './booking-client';
 import { AppFeedbackProvider } from './components/app-feedback';
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
@@ -204,6 +205,59 @@ describe('ClassSlotView', () => {
       />,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Konfigurasi quota atau capacity');
+  });
+
+  it('loads a capability-scoped roster for the selected class slot', async () => {
+    const rosterPage = {
+      items: [
+        {
+          id: 'booking-1',
+          status: 'BOOKED',
+          customer: {
+            id: 'customer-1',
+            displayName: 'Customer Demo',
+            phoneMasked: '+62••••1234',
+          },
+          package: { id: 'package-1', name: 'Reformer 10' },
+          sessionBalance: { ledgerBalance: 8, reserved: 1, available: 7 },
+        },
+      ],
+      summary: {
+        total: 1,
+        booked: 1,
+        reschedulePending: 0,
+        attended: 0,
+        cancelled: 0,
+        noShow: 0,
+      },
+      nextCursor: null,
+    } as unknown as BookingPage;
+    const bookingClient: Pick<BookingClient, 'list'> = {
+      list: vi.fn().mockResolvedValue(rosterPage),
+    };
+    render(
+      <ClassSlotView
+        client={fake()}
+        bookingClient={bookingClient}
+        branchOverride={branch}
+        capabilitiesOverride={[...manageCapabilities, 'booking:read']}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
+    expect((await within(dialog).findAllByText('Customer Demo')).length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText('+62••••1234').length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText(/7 sesi tersedia/).length).toBeGreaterThan(0);
+    expect(bookingClient.list).toHaveBeenCalledWith(
+      expect.objectContaining({ classSlotId: 'slot-1', limit: 10 }),
+    );
   });
 
   it('cancels with the controlled reason and authoritative version', async () => {

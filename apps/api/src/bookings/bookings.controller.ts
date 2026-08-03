@@ -45,6 +45,7 @@ export class BookingsController {
     @Query('classSlotId') classSlotId?: string,
     @Query('customerId') customerId?: string,
     @Query('limit') limit?: string,
+    @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.bookings.list(request.principal, {
       branchId,
@@ -57,6 +58,7 @@ export class BookingsController {
       classSlotId,
       customerId,
       limit: limit ? Number(limit) : undefined,
+      includeHistorical: includeHistorical === 'true',
     });
   }
 

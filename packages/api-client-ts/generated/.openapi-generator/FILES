@@ -140,6 +140,7 @@ models/CustomerPackageBalanceSummary.ts
 models/CustomerRescheduleOptions.ts
 models/CustomerRescheduleSlot.ts
 models/CustomerRescheduleTarget.ts
+models/CustomerSessionUsageSummary.ts
 models/DashboardActivityItem.ts
 models/DashboardBranchPerformance.ts
 models/DashboardMetric.ts
@@ -150,6 +151,7 @@ models/DashboardRiskItem.ts
 models/DashboardSections.ts
 models/DashboardTrendPoint.ts
 models/DecideCorrectionRequest.ts
+models/DecideInternalV1MigrationResolutionRequest.ts
 models/DeleteIdentityVerificationFileRequest.ts
 models/DownloadAuthorization.ts
 models/EffectiveCapabilityDenial.ts
@@ -302,6 +304,7 @@ models/RescheduleDecisionCommand.ts
 models/RescheduleDecisionResult.ts
 models/ReschedulePage.ts
 models/RescheduleRequestCommand.ts
+models/ReservationItem.ts
 models/ReservationSummary.ts
 models/Resource.ts
 models/RevokeCustomerCheckInTokenCommand.ts
@@ -314,6 +317,7 @@ models/Session.ts
 models/SessionAdjustment.ts
 models/SessionAdjustmentDecisionCommand.ts
 models/SessionAdjustmentPage.ts
+models/SessionAdjustmentSummary.ts
 models/SessionBranch.ts
 models/SubmitPurchaseRequest.ts
 models/TimeRangeCommand.ts

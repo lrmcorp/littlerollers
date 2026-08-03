@@ -18,7 +18,15 @@ import { useActiveBranchState, useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
-import { Badge, DataTable, FilterBar, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
+import {
+  Badge,
+  DataTable,
+  FilterBar,
+  Pagination,
+  Panel,
+  StatCard,
+  Tabs,
+} from '../components/admin/admin-ui';
 
 const newIntentKey = () => crypto.randomUUID();
 const shortId = (id: string) => id.slice(0, 8);
@@ -114,6 +122,8 @@ export function BookingView({
   const [selectedRosterIds, setSelectedRosterIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'bookings' | 'reschedules' | 'attendance'>(initialTab);
   const [createOpen, setCreateOpen] = useState(false);
+  const [cursor, setCursor] = useState<string | undefined>(initialCursor);
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>();
   const [reschedules, setReschedules] = useState<ManagementReschedule[]>([]);
   const [rescheduleCursor, setRescheduleCursor] = useState<string | null>();
@@ -128,7 +138,6 @@ export function BookingView({
   const [checkInIssues, setCheckInIssues] = useState<Record<string, CheckInIssue>>({});
   const intentKey = useRef(newIntentKey());
   const decisionKey = useRef(newIntentKey());
-  const ignoredCursorSync = useRef<string | undefined>(undefined);
   const lastFilterSignature = useRef(
     JSON.stringify({
       q: initialFilters?.q ?? '',
@@ -141,6 +150,7 @@ export function BookingView({
   );
 
   useEffect(() => setActiveTab(initialTab), [initialTab]);
+  useEffect(() => setCursor(initialCursor), [initialCursor]);
   useEffect(() => {
     const next = {
       q: initialFilters?.q ?? '',
@@ -177,6 +187,8 @@ export function BookingView({
     };
     const signature = JSON.stringify(value);
     if (signature === lastFilterSignature.current) return;
+    setCursor(undefined);
+    setCursorHistory([]);
     const timer = window.setTimeout(() => {
       lastFilterSignature.current = signature;
       onFiltersChange(value);
@@ -235,7 +247,7 @@ export function BookingView({
           q: search.trim() || undefined,
           from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
           until: until ? new Date(`${until}T23:59:59.999`).toISOString() : undefined,
-          cursor: initialCursor,
+          cursor,
           classSlotId: activeTab === 'attendance' ? rosterSlotId || undefined : undefined,
         }),
         canReview
@@ -263,10 +275,6 @@ export function BookingView({
   };
 
   useEffect(() => {
-    if (initialCursor && ignoredCursorSync.current === initialCursor) {
-      ignoredCursorSync.current = undefined;
-      return;
-    }
     const timer = window.setTimeout(() => void loadWorkspace(), 0);
     return () => window.clearTimeout(timer);
     // Data follows global branch and the active status filter.
@@ -281,7 +289,7 @@ export function BookingView({
     rosterStatus,
     activeTab,
     canRead,
-    initialCursor,
+    cursor,
     initialRescheduleCursor,
   ]);
 
@@ -343,33 +351,19 @@ export function BookingView({
     }
   };
 
-  const loadMore = async () => {
-    if (!nextCursor) return;
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      const cursor = nextCursor;
-      const page = await client.list({
-        branchId: branchId || undefined,
-        status: activeTab === 'attendance' ? rosterStatus || undefined : statusFilter || undefined,
-        q: search.trim() || undefined,
-        from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
-        until: until ? new Date(`${until}T23:59:59.999`).toISOString() : undefined,
-        cursor,
-        classSlotId: activeTab === 'attendance' ? rosterSlotId || undefined : undefined,
-      });
-      setItems((current) => [
-        ...current,
-        ...page.items.filter((item) => !current.some(({ id }) => id === item.id)),
-      ]);
-      setNextCursor(page.nextCursor);
-      if (cursor) ignoredCursorSync.current = cursor;
-      onCursorChange?.(cursor);
-    } catch (error) {
-      setFailure(await bookingFailure(error));
-    } finally {
-      setBusy(false);
-    }
+  const openNextPage = () => {
+    if (!nextCursor || busy) return;
+    setCursorHistory((current) => [...current, cursor ?? '']);
+    setCursor(nextCursor);
+    onCursorChange?.(nextCursor);
+  };
+
+  const openPreviousPage = () => {
+    if (cursorHistory.length === 0 || busy) return;
+    const previous = cursorHistory.at(-1) ?? '';
+    setCursorHistory((current) => current.slice(0, -1));
+    setCursor(previous || undefined);
+    onCursorChange?.(previous || undefined);
   };
 
   const submit = async () => {
@@ -570,6 +564,8 @@ export function BookingView({
         value={activeTab}
         onChange={(value) => {
           const next = value as 'bookings' | 'reschedules' | 'attendance';
+          setCursor(undefined);
+          setCursorHistory([]);
           setActiveTab(next);
           onTabChange?.(next);
         }}
@@ -1204,16 +1200,13 @@ export function BookingView({
               </div>
             )}
           />
-          {nextCursor && (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void loadMore()}
-            >
-              Muat booking berikutnya
-            </Button>
-          )}
+          <Pagination
+            hasPrevious={cursorHistory.length > 0}
+            hasNext={Boolean(nextCursor)}
+            totalLabel={`Halaman ${cursorHistory.length + 1} · ${items.length.toLocaleString('id-ID')} data dari ${summary.total.toLocaleString('id-ID')} booking`}
+            onPrevious={openPreviousPage}
+            onNext={openNextPage}
+          />
         </>
       )}
     </section>

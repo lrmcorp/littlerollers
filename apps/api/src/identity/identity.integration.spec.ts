@@ -14,6 +14,8 @@ import { IdentityReviewQueryService } from './identity-review-query.service';
 import { AssignmentService } from './assignment.service';
 import { UserAdministrationService } from './user-administration.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { hash as hashBcrypt } from 'bcryptjs';
+import { canonicalEmailHash } from './credential-security';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -30,6 +32,10 @@ databaseDescribe('identity MySQL integration', () => {
   const lookupPackageId = randomUUID();
   const lookupPurchaseId = randomUUID();
   const lookupCustomerPackageId = randomUUID();
+  const passwordUserId = randomUUID();
+  const passwordEmail = `${namespace}-password@example.test`;
+  const passwordEmailHash = canonicalEmailHash(passwordEmail);
+  const passwordFingerprint = `${namespace}-password-origin`;
   const reviewStatuses = [
     'PENDING',
     'APPROVED',
@@ -56,6 +62,7 @@ databaseDescribe('identity MySQL integration', () => {
     process.env.RBAC_POLICY_SOURCE = 'static';
     process.env.NODE_ENV = 'test';
     process.env.AUTH_SYNTHETIC_ENABLED = 'true';
+    process.env.AUTH_PASSWORD_ENABLED = 'true';
     process.env.AUTH_SYNTHETIC_OTP_CODE = '123456';
     process.env.AUTH_SYNTHETIC_RECOVERY_PROOF = 'recovery-proof';
     await db.$connect();
@@ -148,6 +155,26 @@ databaseDescribe('identity MySQL integration', () => {
       },
     });
     await db.user.create({ data: { id: otpUserId, displayName: 'Integration OTP user' } });
+    await db.user.create({ data: { id: passwordUserId, displayName: 'Migrated password user' } });
+    await db.identity.create({
+      data: {
+        id: randomUUID(),
+        userId: passwordUserId,
+        provider: 'EMAIL_PASSWORD',
+        subjectHash: passwordEmailHash,
+        verifiedAt: new Date(),
+      },
+    });
+    await db.passwordCredential.create({
+      data: {
+        id: randomUUID(),
+        userId: passwordUserId,
+        emailHash: passwordEmailHash,
+        passwordHash: (await hashBcrypt('legacy-password-123', 10)).replace(/^\$2b\$/u, '$2y$'),
+        verifiedAt: new Date(),
+        passwordChangedAt: new Date(),
+      },
+    });
     await db.user.createMany({
       data: reviewFixtures.map(({ userId, displayName, phoneE164 }) => ({
         id: userId,
@@ -218,6 +245,7 @@ databaseDescribe('identity MySQL integration', () => {
         otpUserId,
         assignmentUserId,
         lookupCustomerId,
+        passwordUserId,
         ...reviewFixtures.map(({ userId }) => userId),
         ...users.map(({ id }) => id),
       ]),
@@ -243,6 +271,7 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.identityVerificationDocument.deleteMany({ where: { userId: { in: userIds } } });
     await db.identity.deleteMany({ where: { userId: { in: userIds } } });
+    await db.passwordCredential.deleteMany({ where: { userId: { in: userIds } } });
     await db.passwordActionToken.deleteMany({
       where: {
         OR: [{ userId: { in: userIds } }, { invitation: { invitedById: inviterId } }],
@@ -257,7 +286,14 @@ databaseDescribe('identity MySQL integration', () => {
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.rateLimitCounter.deleteMany({
       where: {
-        subjectHash: { in: [digest('+628111111111'), digest('+628222222222')] },
+        subjectHash: {
+          in: [
+            digest('+628111111111'),
+            digest('+628222222222'),
+            passwordEmailHash,
+            digest(passwordFingerprint),
+          ],
+        },
       },
     });
     await db.$disconnect();
@@ -281,6 +317,30 @@ databaseDescribe('identity MySQL integration', () => {
     ],
     branchIds: [branchId],
   };
+
+  it('logs in with a migrated bcrypt credential and upgrades it exactly once', async () => {
+    const first = await service.authenticatePassword(
+      { email: passwordEmail, password: 'legacy-password-123', channel: 'WEB' },
+      `${namespace}-password-login-1`,
+      passwordFingerprint,
+    );
+    expect(first.user.id).toBe(passwordUserId);
+    const upgraded = await db.passwordCredential.findUniqueOrThrow({
+      where: { userId: passwordUserId },
+    });
+    expect(upgraded.passwordHash).toMatch(/^\$argon2id\$/u);
+
+    await service.authenticatePassword(
+      { email: passwordEmail, password: 'legacy-password-123', channel: 'WEB' },
+      `${namespace}-password-login-2`,
+      passwordFingerprint,
+    );
+    expect(
+      await db.auditLog.count({
+        where: { actorId: passwordUserId, action: 'security.password_hash_upgraded' },
+      }),
+    ).toBe(1);
+  });
 
   it('lists every identity lifecycle status with search, masking, summary and cursor pagination', async () => {
     for (const fixture of reviewFixtures) {

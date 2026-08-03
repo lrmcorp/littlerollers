@@ -23,8 +23,11 @@ import {
 } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
+  AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
   CONFIGURATION_REQUIRED: 'Audit belum dapat dimuat.',
+  INTERNAL_ERROR: 'Audit mengalami gangguan internal.',
   RATE_LIMITED: 'Terlalu banyak permintaan. Coba kembali nanti.',
+  SERVICE_UNAVAILABLE: 'Layanan audit tidak dapat dihubungi.',
   FORBIDDEN: 'Anda tidak memiliki permission untuk melihat audit.',
   IDENTITY_CONFLICT: 'Filter audit tidak dapat diterapkan.',
   STALE_VERSION: 'Data audit berubah. Muat ulang.',

@@ -7,27 +7,37 @@ export function AuthPageShell({
   title,
   description,
   children,
+  compactMobileVisual = false,
+  visualSrc = '/images/public/landing/studio-showcase.png',
+  loginLabel = 'Kembali masuk',
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children: React.ReactNode;
+  compactMobileVisual?: boolean;
+  visualSrc?: string;
+  loginLabel?: string;
 }) {
   return (
-    <main className="auth-page-shell grid min-h-svh w-full min-w-0 max-w-full grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)] bg-dd-cream max-[800px]:grid-cols-[minmax(0,1fr)]">
-      <section className="auth-visual-panel relative isolate min-h-svh min-w-0 overflow-hidden max-[800px]:min-h-[280px]">
-        <Image
-          className="auth-visual-image -z-20 object-cover"
-          src="/images/public/landing/studio-showcase.png"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 800px) 100vw, 40vw"
-        />
-        <div className="auth-visual-overlay absolute inset-0 -z-10" />
-        <div className="absolute inset-x-8 bottom-10 text-white">
+    <main
+      className={`auth-page-shell grid min-h-svh w-full min-w-0 max-w-full grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)] bg-dd-cream max-[800px]:grid-cols-[minmax(0,1fr)] ${compactMobileVisual ? 'auth-page-shell--compact-mobile' : ''}`}
+    >
+      <section className="auth-visual-panel sticky top-0 isolate h-svh min-h-svh min-w-0 self-start overflow-hidden max-[800px]:relative max-[800px]:h-auto max-[800px]:min-h-[280px]">
+        <div className="absolute inset-0 -z-10">
+          <Image
+            className="auth-visual-image object-cover"
+            src={visualSrc}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 800px) 100vw, 40vw"
+          />
+          <div className="auth-visual-overlay absolute inset-0" />
+        </div>
+        <div className="auth-visual-copy absolute inset-x-8 bottom-10 text-white">
           <p className="text-xs font-bold tracking-[0.14em] uppercase">Daily Dose Pilates</p>
-          <p className="max-w-md font-sans text-[clamp(2.3rem,4vw,4.5rem)] leading-none">
+          <p className="auth-visual-tagline max-w-md font-sans text-[clamp(2.3rem,4vw,4.5rem)] leading-none">
             Bergerak tenang, terhubung dengan aman.
           </p>
           <div className="auth-trust-row" aria-label="Keunggulan keamanan">
@@ -41,8 +51,11 @@ export function AuthPageShell({
         <div className="w-full min-w-0 max-w-[560px] rounded-dd-lg border border-dd-line bg-white/80 p-[clamp(24px,5vw,48px)] shadow-dd-card">
           <div className="mb-10 flex min-w-0 flex-wrap items-center justify-between gap-5">
             <BrandMark className="w-32 sm:w-40" priority />
-            <Link className="text-sm font-bold text-dd-forest" href="/sign-in">
-              Kembali masuk
+            <Link
+              className="inline-flex min-h-11 items-center rounded-dd-sm px-2 text-sm font-bold text-dd-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+              href="/sign-in"
+            >
+              {loginLabel}
             </Link>
           </div>
           <p className="text-xs font-bold tracking-[0.12em] text-dd-forest uppercase">{eyebrow}</p>

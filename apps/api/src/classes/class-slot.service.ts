@@ -82,9 +82,18 @@ export class ClassSlotService {
 
   async list(
     principal: SessionPrincipal,
-    input: { branchId?: string; status?: string; from?: string; until?: string; cursor?: string },
+    input: {
+      branchId?: string;
+      status?: string;
+      from?: string;
+      until?: string;
+      cursor?: string;
+      includeHistorical?: boolean;
+    },
   ) {
     this.policy.requireCapability(principal.capabilities, 'class-slot:read');
+    if (input.includeHistorical)
+      this.policy.requireCapability(principal.capabilities, 'migration:read');
     const isCustomer =
       principal.roles.some((item) => item.role === 'CUSTOMER') &&
       !principal.capabilities.includes('class-slot:manage');
@@ -103,6 +112,7 @@ export class ClassSlotService {
     const branchScope = this.policy.capabilityBranchScope(principal, 'class-slot:read');
     const items = await this.db.classSlot.findMany({
       where: {
+        ...(input.includeHistorical ? {} : { historical: false }),
         ...(input.branchId
           ? { branchId: input.branchId }
           : isCustomer

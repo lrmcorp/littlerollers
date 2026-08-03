@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -48,5 +49,66 @@ describe('LocalPrivateFileStorage', () => {
     await expect(publicStorage.onModuleInit()).rejects.toThrow(
       'PRIVATE_UPLOAD_ROOT_MUST_NOT_BE_PUBLIC',
     );
+  });
+
+  it('creates and safely replays a checksum-verified compatibility alias', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dd-private-'));
+    const storage = new LocalPrivateFileStorage({
+      value: { privateUploads: { root } },
+    } as never);
+    await storage.onModuleInit();
+    const content = Buffer.from('immutable-payment-proof');
+    const checksum = createHash('sha256').update(content).digest('hex');
+    await storage.put({ key: 'payment-proofs/source', content });
+    await expect(
+      storage.createAlias({
+        sourceKey: 'payment-proofs/source',
+        aliasKey: 'v1-compat/private/rb_abc123.pdf',
+        expectedChecksum: checksum,
+        expectedSizeBytes: content.length,
+      }),
+    ).resolves.toMatchObject({ checksum, replay: false });
+    await expect(
+      storage.createAlias({
+        sourceKey: 'payment-proofs/source',
+        aliasKey: 'v1-compat/private/rb_abc123.pdf',
+        expectedChecksum: checksum,
+        expectedSizeBytes: content.length,
+      }),
+    ).resolves.toMatchObject({ checksum, replay: true });
+    expect(await readFile(join(root, 'v1-compat/private/rb_abc123.pdf'), 'utf8')).toBe(
+      content.toString(),
+    );
+  });
+
+  it('fails closed when source or existing alias metadata differs', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dd-private-'));
+    const storage = new LocalPrivateFileStorage({
+      value: { privateUploads: { root } },
+    } as never);
+    await storage.onModuleInit();
+    const source = Buffer.from('source');
+    const checksum = createHash('sha256').update(source).digest('hex');
+    await storage.put({ key: 'identity/source', content: source });
+    await expect(
+      storage.createAlias({
+        sourceKey: 'identity/source',
+        aliasKey: 'v1-compat/private/rb_conflict.jpg',
+        expectedChecksum: '0'.repeat(64),
+        expectedSizeBytes: source.length,
+      }),
+    ).rejects.toThrow('PILOT_MEDIA_SOURCE_MISMATCH');
+    await storage.put({
+      key: 'v1-compat/private/rb_conflict.jpg',
+      content: Buffer.from('different'),
+    });
+    await expect(
+      storage.createAlias({
+        sourceKey: 'identity/source',
+        aliasKey: 'v1-compat/private/rb_conflict.jpg',
+        expectedChecksum: checksum,
+        expectedSizeBytes: source.length,
+      }),
+    ).rejects.toThrow('PILOT_MEDIA_ALIAS_MISMATCH');
   });
 });

@@ -61,10 +61,60 @@ describe('customer booking timeline', () => {
 
     render(<CustomerBookingsView client={client} />);
     expect(await screen.findByText('Reformer Pilates')).toBeVisible();
-    expect(client.list).toHaveBeenCalledWith({ timeline: 'UPCOMING' });
+    expect(client.list).toHaveBeenCalledWith({
+      timeline: 'UPCOMING',
+      cursor: undefined,
+      limit: 20,
+    });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Riwayat' }));
     expect(await screen.findByText('Status kehadiran sedang diproses')).toBeVisible();
-    await waitFor(() => expect(client.list).toHaveBeenCalledWith({ timeline: 'HISTORY' }));
+    await waitFor(() =>
+      expect(client.list).toHaveBeenCalledWith({
+        timeline: 'HISTORY',
+        cursor: undefined,
+        limit: 20,
+      }),
+    );
+  });
+
+  it('navigates across more than twenty bookings without appending duplicate cards', async () => {
+    const first = Array.from({ length: 20 }, (_, index) =>
+      record({
+        id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        classSlot: {
+          ...record().classSlot!,
+          classType: { ...record().classSlot!.classType, name: `Kelas ${index + 1}` },
+        },
+      }),
+    );
+    const second = Array.from({ length: 5 }, (_, index) =>
+      record({
+        id: `10000000-0000-4000-8000-${String(index + 21).padStart(12, '0')}`,
+        classSlot: {
+          ...record().classSlot!,
+          classType: { ...record().classSlot!.classType, name: `Kelas ${index + 21}` },
+        },
+      }),
+    );
+    const client = {
+      list: vi.fn(({ cursor }: { cursor?: string }) =>
+        Promise.resolve(
+          cursor
+            ? { items: second, nextCursor: null, summary: { total: 25 } }
+            : { items: first, nextCursor: 'booking-20', summary: { total: 25 } },
+        ),
+      ),
+    } as unknown as BookingClient;
+
+    render(<CustomerBookingsView client={client} />);
+    expect(await screen.findByText('Kelas 1')).toBeVisible();
+    expect(screen.getByText('Halaman 1 · 20 data dari 25 booking')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    expect(await screen.findByText('Kelas 21')).toBeVisible();
+    expect(screen.queryByText('Kelas 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Halaman 2 · 5 data dari 25 booking')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Sebelumnya' }));
+    expect(await screen.findByText('Kelas 1')).toBeVisible();
   });
 });

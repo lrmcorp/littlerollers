@@ -12,5 +12,10 @@ void main() {
       // TODO
     });
 
+    // BuiltList<ReservationItem> items
+    test('to test the property `items`', () async {
+      // TODO
+    });
+
   });
 }

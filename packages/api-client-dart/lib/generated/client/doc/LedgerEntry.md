@@ -14,6 +14,9 @@ Name | Type | Description | Notes
 **quantity** | **int** |  | 
 **referenceType** | **String** |  | 
 **referenceId** | **String** |  | 
+**referenceLabel** | **String** |  | [optional] 
+**bookingId** | **String** |  | [optional] 
+**balanceAfter** | **int** |  | [optional] 
 **reason** | **String** |  | [optional] 
 **occurredAt** | [**DateTime**](DateTime.md) |  | 
 

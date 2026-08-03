@@ -3,19 +3,25 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/reservation_item.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'reservation_summary.g.dart';
 
-/// Read-only future-booking-compatible reservation summary; no booking mutation is implemented by US-LED-01.
+/// Authoritative active reservations with safe booking and class projections.
 ///
 /// Properties:
 /// * [activeQuantity] 
+/// * [items] 
 @BuiltValue()
 abstract class ReservationSummary implements Built<ReservationSummary, ReservationSummaryBuilder> {
   @BuiltValueField(wireName: r'activeQuantity')
   int get activeQuantity;
+
+  @BuiltValueField(wireName: r'items')
+  BuiltList<ReservationItem> get items;
 
   ReservationSummary._();
 
@@ -44,6 +50,11 @@ class _$ReservationSummarySerializer implements PrimitiveSerializer<ReservationS
     yield serializers.serialize(
       object.activeQuantity,
       specifiedType: const FullType(int),
+    );
+    yield r'items';
+    yield serializers.serialize(
+      object.items,
+      specifiedType: const FullType(BuiltList, [FullType(ReservationItem)]),
     );
   }
 
@@ -74,6 +85,13 @@ class _$ReservationSummarySerializer implements PrimitiveSerializer<ReservationS
             specifiedType: const FullType(int),
           ) as int;
           result.activeQuantity = valueDes;
+          break;
+        case r'items':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(ReservationItem)]),
+          ) as BuiltList<ReservationItem>;
+          result.items.replace(valueDes);
           break;
         default:
           unhandled.add(key);

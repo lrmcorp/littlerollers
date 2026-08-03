@@ -28,6 +28,7 @@ import {
   canonicalEmailHash,
   hashPassword,
   normalizeEmail,
+  passwordHashNeedsUpgrade,
   verifyPassword,
 } from './credential-security';
 import {
@@ -607,6 +608,32 @@ export class IdentityService {
         );
     if (!credential || !valid || credential.user.status !== 'ACTIVE')
       throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
+    if (passwordHashNeedsUpgrade(credential.passwordHash)) {
+      const upgradedHash = await hashPassword(input.password);
+      await this.db.$transaction(async (tx) => {
+        const upgraded = await tx.passwordCredential.updateMany({
+          where: {
+            id: credential.id,
+            version: credential.version,
+            passwordHash: credential.passwordHash,
+          },
+          data: {
+            passwordHash: upgradedHash,
+            passwordChangedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        if (upgraded.count === 1)
+          await this.audit(tx, {
+            actorId: credential.userId,
+            action: 'security.password_hash_upgraded',
+            objectType: 'PasswordCredential',
+            objectId: credential.id,
+            correlationId,
+            after: { algorithm: 'ARGON2ID', previousAlgorithm: 'BCRYPT' },
+          });
+      });
+    }
     const session = await this.issueSession(credential.userId, input.channel);
     await this.audit(this.db, {
       actorId: credential.userId,
@@ -720,6 +747,16 @@ export class IdentityService {
       this.rateLimit.consume('PASSWORD_RESET_SUBJECT', emailHash, 5, 900),
       this.rateLimit.consume('PASSWORD_RESET_ORIGIN', digest(requestFingerprint), 30, 900),
     ]);
+    if (await this.passwordMutationLockedForPilot()) {
+      await this.audit(this.db, {
+        action: 'security.password_reset_deferred_for_migration',
+        objectType: 'PasswordActionToken',
+        objectId: digest(`${emailHash}:${correlationId}`),
+        correlationId,
+        after: { accepted: true, reasonCode: 'PILOT_ROLLBACK_PROTECTION' },
+      });
+      return { status: 'ACCEPTED' as const };
+    }
     const credential = await this.db.passwordCredential.findUnique({ where: { emailHash } });
     if (credential)
       try {
@@ -742,6 +779,8 @@ export class IdentityService {
 
   async resetPassword(token: string, password: string, correlationId = 'unknown') {
     if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    if (await this.passwordMutationLockedForPilot())
+      throw new ApiProblem('PILOT_PASSWORD_CHANGE_LOCKED', HttpStatus.LOCKED, true);
     const action = await this.db.passwordActionToken.findUnique({
       where: { tokenHash: digest(token) },
     });
@@ -787,6 +826,8 @@ export class IdentityService {
     correlationId = 'unknown',
   ) {
     if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    if (await this.passwordMutationLockedForPilot())
+      throw new ApiProblem('PILOT_PASSWORD_CHANGE_LOCKED', HttpStatus.LOCKED, true);
     const credential = await this.db.passwordCredential.findUnique({
       where: { userId: principal.userId },
     });
@@ -812,6 +853,14 @@ export class IdentityService {
       });
     });
     return { status: 'CHANGED' as const };
+  }
+
+  private async passwordMutationLockedForPilot(): Promise<boolean> {
+    return (
+      (await this.db.migrationBranchCutover.count({
+        where: { status: { in: ['FREEZING', 'DRAINING', 'V2_ACTIVE', 'ROLLING_BACK'] } },
+      })) > 0
+    );
   }
 
   async requestPasswordSetup(

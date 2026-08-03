@@ -56,6 +56,12 @@ export type BookingListFilters = {
 export type BookingRosterItem = CustomerBookingRecord;
 export type BookingRosterPage = BookingPage;
 export type BookingRosterSummary = NonNullable<BookingPage['summary']>;
+export type ClassSlotRoster = BookingPage;
+export type ClassSlotRosterSummary = BookingRosterSummary & {
+  active: number;
+  capacity: number;
+  availableCapacity: number;
+};
 export type BulkCheckInIssueResult = Awaited<
   ReturnType<NonNullable<BookingClient['issueBulkCheckIns']>>
 >;

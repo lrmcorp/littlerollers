@@ -17,6 +17,7 @@ import { Button, ButtonLink } from '../components/actions';
 import { useTrackedRouter } from '../components/app-loading';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Pagination } from '../components/admin/admin-ui';
 
 const rupiah = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -72,6 +73,7 @@ export function OrdersView() {
   const until = searchParams.get('until') ?? '';
   const cursor = searchParams.get('cursor') ?? '';
   const [draftQuery, setDraftQuery] = useState(q);
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
   const [data, setData] = useState<CustomerOrderPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,7 +84,10 @@ export function OrdersView() {
       if (value) next.set(key, value);
       else next.delete(key);
     }
-    if (!keepCursor) next.delete('cursor');
+    if (!keepCursor) {
+      next.delete('cursor');
+      setCursorHistory([]);
+    }
     router.replace(`${pathname}${next.size ? `?${next.toString()}` : ''}`, { scroll: false });
   };
 
@@ -250,24 +255,21 @@ export function OrdersView() {
               </Link>
             ))}
           </div>
-          <div className="flex items-center justify-between gap-3">
-            {cursor ? (
-              <Button type="button" variant="secondary" onClick={() => router.back()}>
-                Kembali ke hasil sebelumnya
-              </Button>
-            ) : (
-              <span />
-            )}
-            {data.page.hasMore && data.page.nextCursor && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => updateFilters({ cursor: data.page.nextCursor! }, true)}
-              >
-                Pesanan berikutnya
-              </Button>
-            )}
-          </div>
+          <Pagination
+            hasPrevious={cursorHistory.length > 0}
+            hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
+            totalLabel={`Halaman ${cursorHistory.length + 1} · ${data.items.length.toLocaleString('id-ID')} data dari ${summary.total.toLocaleString('id-ID')} pesanan`}
+            onPrevious={() => {
+              const previous = cursorHistory.at(-1) ?? '';
+              setCursorHistory((current) => current.slice(0, -1));
+              updateFilters({ cursor: previous }, true);
+            }}
+            onNext={() => {
+              if (!data.page.nextCursor) return;
+              setCursorHistory((current) => [...current, cursor]);
+              updateFilters({ cursor: data.page.nextCursor! }, true);
+            }}
+          />
         </>
       )}
     </main>

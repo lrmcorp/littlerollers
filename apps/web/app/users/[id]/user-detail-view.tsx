@@ -13,7 +13,13 @@ import {
   type UserSummary,
 } from '../../identity-client';
 import type { IdentityVerificationReviewCase } from '../../identity-verification-client';
-import { Button } from '../../components/actions';
+import {
+  browserLedgerClient,
+  ledgerFailure,
+  type LedgerBalance,
+  type LedgerClient,
+} from '../../ledger-client';
+import { Button, ButtonLink } from '../../components/actions';
 import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { useSessionContext } from '../../session-context';
@@ -23,8 +29,11 @@ import { PasswordDialog, ProfileDialog, RoleDialog, StatusDialog } from './user-
 type DetailAction = 'profile' | 'roles' | 'password' | 'status' | null;
 
 const failureCopy: Record<UiFailure, string> = {
+  AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
   CONFIGURATION_REQUIRED: 'Layanan identitas belum dapat dihubungi.',
+  INTERNAL_ERROR: 'Layanan identitas mengalami gangguan internal.',
   RATE_LIMITED: 'Terlalu banyak permintaan. Coba kembali nanti.',
+  SERVICE_UNAVAILABLE: 'Layanan identitas tidak dapat dihubungi.',
   FORBIDDEN: 'Anda tidak memiliki izin untuk membuka pengguna ini.',
   IDENTITY_CONFLICT: 'Data pengguna berubah atau tindakan tidak dapat diterapkan.',
   STALE_VERSION: 'Data pengguna telah berubah. Muat ulang detail sebelum mencoba kembali.',
@@ -48,10 +57,12 @@ function maskPhone(value: string | null) {
 export function UserDetailView({
   id,
   client = browserIdentityClient,
+  ledgerClient = browserLedgerClient,
   capabilitiesOverride,
 }: {
   id: string;
   client?: IdentityClient;
+  ledgerClient?: LedgerClient;
   capabilitiesOverride?: readonly string[];
 }) {
   const context = useSessionContext();
@@ -59,6 +70,7 @@ export function UserDetailView({
   const sessionReady = Boolean(capabilitiesOverride || context?.session);
   const canAdmin = sessionReady && capabilities.includes('user:admin');
   const canAudit = sessionReady && capabilities.includes('audit:read');
+  const canReadLedger = sessionReady && capabilities.includes('ledger:read');
   const globalCapabilities =
     capabilitiesOverride ??
     context?.session?.globalCapabilities ??
@@ -69,6 +81,9 @@ export function UserDetailView({
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
   const [audit, setAudit] = useState<AuditSummary[]>([]);
   const [verification, setVerification] = useState<IdentityVerificationReviewCase>();
+  const [sessionPackages, setSessionPackages] = useState<LedgerBalance[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<UiFailure>();
@@ -82,6 +97,18 @@ export function UserDetailView({
     setNotFound(false);
     try {
       const nextUser = await client.getUser(id);
+      if (nextUser.audience === 'CUSTOMER' && canReadLedger) {
+        setSessionLoading(true);
+        setSessionError('');
+        void ledgerClient
+          .list(undefined, undefined, undefined, undefined, id)
+          .then((result) => setSessionPackages(result.items))
+          .catch(async (cause) => setSessionError(await ledgerFailure(cause)))
+          .finally(() => setSessionLoading(false));
+      } else {
+        setSessionPackages([]);
+        setSessionError('');
+      }
       const [roles, nextAudit, nextVerification] = await Promise.all([
         client.roleCatalog(),
         canAudit ? client.listAudit(id) : Promise.resolve([]),
@@ -100,7 +127,7 @@ export function UserDetailView({
     } finally {
       setLoading(false);
     }
-  }, [canAudit, canReadIdentity, client, id]);
+  }, [canAudit, canReadIdentity, canReadLedger, client, id, ledgerClient]);
 
   useEffect(() => void load(), [load]);
 
@@ -272,6 +299,80 @@ export function UserDetailView({
             )}
           </Panel>
 
+          {user.audience === 'CUSTOMER' && canReadLedger && (
+            <Panel className="p-5 sm:p-6" aria-labelledby="customer-sessions-heading">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 id="customer-sessions-heading" className="text-lg font-bold text-dd-ink">
+                    Paket &amp; Sesi
+                  </h2>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    Saldo berasal dari ledger dan reservation aktif, bukan perhitungan browser.
+                  </p>
+                </div>
+                <ButtonLink
+                  variant="secondary"
+                  href={`/ledger?customerUserId=${encodeURIComponent(user.id)}`}
+                >
+                  Lihat seluruh paket customer
+                </ButtonLink>
+              </div>
+              {sessionLoading ? (
+                <div className="mt-5">
+                  <Skeleton label="Memuat paket dan sesi customer" />
+                </div>
+              ) : sessionError ? (
+                <div className="mt-5">
+                  <Feedback kind="error">{sessionError}</Feedback>
+                  <Button className="mt-3" variant="secondary" onClick={() => void load()}>
+                    Coba lagi
+                  </Button>
+                </div>
+              ) : sessionPackages.length === 0 ? (
+                <p className="mt-5 rounded-dd-md bg-dd-surface-muted p-4 text-sm text-dd-muted">
+                  Customer belum memiliki paket yang dapat ditampilkan.
+                </p>
+              ) : (
+                <ul className="mt-5 grid gap-3">
+                  {sessionPackages.map((item) => (
+                    <li key={item.id} className="rounded-dd-md border border-dd-line p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <strong className="text-dd-ink">
+                            {item.packageName ?? 'Paket customer'}
+                          </strong>
+                          <p className="mt-1 text-xs text-dd-muted">
+                            {item.branchName ?? 'Cabang'} · {item.classTypeName ?? 'Tipe kelas'} ·
+                            berakhir {item.expiryAt.toLocaleDateString('id-ID')}
+                          </p>
+                        </div>
+                        <Badge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                          {item.status === 'ACTIVE'
+                            ? 'Aktif'
+                            : item.status === 'EXPIRED'
+                              ? 'Berakhir'
+                              : 'Tidak aktif'}
+                        </Badge>
+                      </div>
+                      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <SessionValue
+                          label="Sesi awal"
+                          value={item.usage?.initialSessions ?? item.sessionCountSnapshot ?? 0}
+                        />
+                        <SessionValue label="Terpakai" value={item.usage?.usedSessions ?? 0} />
+                        <SessionValue label="Tertahan" value={item.reserved} />
+                        <SessionValue label="Tersedia" value={item.available} highlight />
+                      </dl>
+                      <ButtonLink className="mt-4" variant="ghost" href={`/ledger/${item.id}`}>
+                        Lihat detail sesi
+                      </ButtonLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          )}
+
           {user.audience === 'CUSTOMER' && (
             <Panel className="p-5 sm:p-6" aria-labelledby="identity-verification-heading">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -442,6 +543,25 @@ export function UserDetailView({
         }
       />
     </section>
+  );
+}
+
+function SessionValue({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="rounded-dd-sm bg-dd-surface-muted p-3">
+      <dt className="text-xs text-dd-muted">{label}</dt>
+      <dd className={`mt-1 text-lg font-bold ${highlight ? 'text-dd-success' : 'text-dd-ink'}`}>
+        {value}
+      </dd>
+    </div>
   );
 }
 

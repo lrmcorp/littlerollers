@@ -475,7 +475,7 @@ export class DashboardService {
           key: 'adjustments',
           label: 'Adjustment menunggu',
           count: pendingAdjustments,
-          href: '/ledger?tab=adjustments&status=PENDING',
+          href: '/ledger/adjustments?status=PENDING',
           capabilities: ['ledger:adjust:read'],
         },
         {

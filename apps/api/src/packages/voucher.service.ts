@@ -184,9 +184,12 @@ export class VoucherService {
       limit?: string;
       from?: string;
       until?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.requireRead(principal);
+    if (query.includeHistorical && !principal.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     if (query.branchId) this.access.scope(principal, query.branchId, ['voucher:read']);
     const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)));
     if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -203,6 +206,7 @@ export class VoucherService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const scopeWhere: Prisma.VoucherWhereInput = {
       AND: [
+        ...(query.includeHistorical ? [] : [{ historical: false }]),
         ...(q
           ? [{ OR: [{ code: { contains: q.toUpperCase() } }, { name: { contains: q } }] }]
           : []),

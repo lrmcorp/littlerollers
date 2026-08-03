@@ -22,13 +22,48 @@ void main() {
       // TODO
     });
 
+    //Future decideInternalV1MigrationResolution(String id, String idempotencyKey, String xMigrationStepUp, DecideInternalV1MigrationResolutionRequest decideInternalV1MigrationResolutionRequest) async
+    test('test decideInternalV1MigrationResolution', () async {
+      // TODO
+    });
+
     //Future<MigrationSourceUpload> finalizeMigrationSourceUpload(String id, String idempotencyKey, FinalizeUploadCommand finalizeUploadCommand) async
     test('test finalizeMigrationSourceUpload', () async {
       // TODO
     });
 
+    //Future getInternalV1MigrationBatch(String id) async
+    test('test getInternalV1MigrationBatch', () async {
+      // TODO
+    });
+
+    //Future getInternalV1MigrationCdcOverview() async
+    test('test getInternalV1MigrationCdcOverview', () async {
+      // TODO
+    });
+
     //Future<MigrationBatchResult> getMigrationBatch(String id) async
     test('test getMigrationBatch', () async {
+      // TODO
+    });
+
+    //Future listInternalV1MigrationBatches() async
+    test('test listInternalV1MigrationBatches', () async {
+      // TODO
+    });
+
+    //Future listInternalV1MigrationControlTotals(String id) async
+    test('test listInternalV1MigrationControlTotals', () async {
+      // TODO
+    });
+
+    //Future listInternalV1MigrationRejects(String id, { String status, String cursor }) async
+    test('test listInternalV1MigrationRejects', () async {
+      // TODO
+    });
+
+    //Future listInternalV1MigrationResolutions(String id, { String status, String cursor }) async
+    test('test listInternalV1MigrationResolutions', () async {
       // TODO
     });
 

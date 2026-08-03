@@ -101,6 +101,32 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       : session?.branches.length
         ? 'Cabang assignment'
         : 'Scope belum tersedia';
+  const canViewAssignedBranches = Boolean(
+    !canViewAllBranches && (session?.branches.length ?? 0) > 1,
+  );
+  const aggregateBranchLabel = canViewAllBranches
+    ? 'Semua cabang'
+    : canViewAssignedBranches
+      ? 'Semua cabang assignment'
+      : null;
+  const branchOptions = session
+    ? [
+        ...(aggregateBranchLabel
+          ? [
+              {
+                id: '__ALL_BRANCHES__',
+                label: aggregateBranchLabel,
+                description: 'Mode baca lintas cabang',
+              },
+            ]
+          : []),
+        ...session.branches.map((branch) => ({
+          id: branch.id,
+          label: branch.name,
+          description: `${branch.code} · ${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`,
+        })),
+      ]
+    : [];
   const commandPages = useMemo(
     () =>
       session
@@ -460,14 +486,12 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     compact
                     wrapperClassName="w-[clamp(160px,18vw,220px)] [&>label]:sr-only"
                     value={context?.activeBranchId ?? ''}
-                    placeholder={canViewAllBranches ? 'Semua cabang' : 'Pilih cabang'}
-                    clearable={canViewAllBranches}
-                    options={session.branches.map((branch) => ({
-                      id: branch.id,
-                      label: branch.name,
-                      description: `${branch.code} · ${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`,
-                    }))}
-                    onChange={(branchId) => context?.setActiveBranchId(branchId)}
+                    placeholder={aggregateBranchLabel ?? 'Pilih cabang'}
+                    clearable={false}
+                    options={branchOptions}
+                    onChange={(branchId) =>
+                      context?.setActiveBranchId(branchId === '__ALL_BRANCHES__' ? '' : branchId)
+                    }
                   />
                 </div>
               )}
@@ -565,14 +589,18 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 compact
                 wrapperClassName="[&>label]:sr-only"
                 value={context?.activeBranchId ?? ''}
-                placeholder={canViewAllBranches ? 'Semua cabang' : 'Pilih cabang aktif'}
-                clearable={canViewAllBranches}
-                options={session.branches.map((branch) => ({
-                  id: branch.id,
-                  label: branch.name,
-                  description: branch.code,
+                placeholder={aggregateBranchLabel ?? 'Pilih cabang aktif'}
+                clearable={false}
+                options={branchOptions.map((option) => ({
+                  ...option,
+                  description:
+                    option.id === '__ALL_BRANCHES__'
+                      ? option.description
+                      : session.branches.find((branch) => branch.id === option.id)?.code,
                 }))}
-                onChange={(branchId) => context?.setActiveBranchId(branchId)}
+                onChange={(branchId) =>
+                  context?.setActiveBranchId(branchId === '__ALL_BRANCHES__' ? '' : branchId)
+                }
               />
             </div>
           )}

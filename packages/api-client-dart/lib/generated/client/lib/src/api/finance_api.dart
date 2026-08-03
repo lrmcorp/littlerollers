@@ -356,6 +356,8 @@ class FinanceApi {
   /// * [branchId] - Filter only; never grants authority
   /// * [from] 
   /// * [until] 
+  /// * [cursor] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -369,6 +371,8 @@ class FinanceApi {
     String? branchId,
     Date? from,
     Date? until,
+    String? cursor,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -399,6 +403,8 @@ class FinanceApi {
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
       if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(

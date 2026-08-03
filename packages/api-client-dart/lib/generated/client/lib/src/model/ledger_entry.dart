@@ -18,6 +18,9 @@ part 'ledger_entry.g.dart';
 /// * [quantity] 
 /// * [referenceType] 
 /// * [referenceId] 
+/// * [referenceLabel] 
+/// * [bookingId] 
+/// * [balanceAfter] 
 /// * [reason] 
 /// * [occurredAt] 
 @BuiltValue()
@@ -40,6 +43,15 @@ abstract class LedgerEntry implements Built<LedgerEntry, LedgerEntryBuilder> {
 
   @BuiltValueField(wireName: r'referenceId')
   String get referenceId;
+
+  @BuiltValueField(wireName: r'referenceLabel')
+  String? get referenceLabel;
+
+  @BuiltValueField(wireName: r'bookingId')
+  String? get bookingId;
+
+  @BuiltValueField(wireName: r'balanceAfter')
+  int? get balanceAfter;
 
   @BuiltValueField(wireName: r'reason')
   String? get reason;
@@ -100,6 +112,27 @@ class _$LedgerEntrySerializer implements PrimitiveSerializer<LedgerEntry> {
       object.referenceId,
       specifiedType: const FullType(String),
     );
+    if (object.referenceLabel != null) {
+      yield r'referenceLabel';
+      yield serializers.serialize(
+        object.referenceLabel,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.bookingId != null) {
+      yield r'bookingId';
+      yield serializers.serialize(
+        object.bookingId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.balanceAfter != null) {
+      yield r'balanceAfter';
+      yield serializers.serialize(
+        object.balanceAfter,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
     if (object.reason != null) {
       yield r'reason';
       yield serializers.serialize(
@@ -176,6 +209,30 @@ class _$LedgerEntrySerializer implements PrimitiveSerializer<LedgerEntry> {
             specifiedType: const FullType(String),
           ) as String;
           result.referenceId = valueDes;
+          break;
+        case r'referenceLabel':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.referenceLabel = valueDes;
+          break;
+        case r'bookingId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.bookingId = valueDes;
+          break;
+        case r'balanceAfter':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.balanceAfter = valueDes;
           break;
         case r'reason':
           final valueDes = serializers.deserialize(

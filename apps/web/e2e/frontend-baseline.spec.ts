@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { hideNextDevelopmentAffordances } from './e2e-visual-helpers';
+import { hideNextDevelopmentAffordances, selectSearchOption } from './e2e-visual-helpers';
 
 test.beforeEach(async ({ page }) => {
   await hideNextDevelopmentAffordances(page);
@@ -30,6 +30,66 @@ test.beforeEach(async ({ page }) => {
       }),
     }),
   );
+  await page.route('**/api/v1/dashboard/overview**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        generatedAt: new Date().toISOString(),
+        period: {
+          from: '2026-07-01T00:00:00.000Z',
+          until: '2026-07-30T23:59:59.999Z',
+          previousFrom: '2026-06-01T00:00:00.000Z',
+          previousUntil: '2026-06-30T23:59:59.999Z',
+        },
+        roleFocus: 'EXECUTIVE',
+        sections: {
+          executive: true,
+          owner: false,
+          branchOperations: false,
+          finance: false,
+          operations: false,
+          trend: true,
+          queue: true,
+          risk: true,
+          branchComparison: true,
+          auditActivity: true,
+          jobHealth: true,
+        },
+        metrics: [],
+        queues: [],
+        trend: [],
+        branches: [],
+        risks: [],
+        activities: [],
+        jobs: [],
+      }),
+    }),
+  );
+  for (const endpoint of ['bookings', 'reschedules', 'class-slots']) {
+    await page.route(`**/api/v1/${endpoint}**`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [],
+          ...(endpoint === 'bookings'
+            ? {
+                summary: {
+                  total: 0,
+                  booked: 0,
+                  reschedulePending: 0,
+                  attended: 0,
+                  cancelled: 0,
+                  noShow: 0,
+                },
+              }
+            : {}),
+          page: { hasMore: false, nextCursor: null },
+        }),
+      }),
+    );
+  }
 });
 
 const breakpoints = [
@@ -183,7 +243,9 @@ test('super owner manages users while permissions remain read-only', async ({ pa
   await page.getByRole('button', { name: 'Kelola role' }).click();
   await page.getByRole('checkbox', { name: /Admin cabang/ }).uncheck();
   await page.getByRole('checkbox', { name: /Manager cabang/ }).check();
-  await page.getByLabel('Cabang untuk Manager cabang').selectOption('branch-1');
+  const roleDialog = page.getByRole('dialog', { name: 'Kelola role dan scope' });
+  await roleDialog.locator('input[role="combobox"]').fill('Jakarta');
+  await roleDialog.getByRole('option', { name: 'Jakarta' }).click();
   await page.getByLabel('Alasan perubahan').fill('promosi operasional');
   await page.getByRole('button', { name: 'Simpan role dan cabut sesi' }).click();
   await expect(page.getByText(/Role dan scope berhasil diperbarui/)).toBeVisible();
@@ -304,7 +366,7 @@ test('public catalog requires a studio then shows authoritative availability', a
   });
   await page.goto('/classes');
   await expect(page.getByText('Pilih studio untuk melihat kelas')).toBeVisible();
-  await page.getByLabel('Studio', { exact: true }).selectOption('branch-1');
+  await selectSearchOption(page, 'Studio', 'Green Garden');
   await expect(page.getByRole('heading', { name: 'Private Class', exact: true })).toBeVisible();
   await expect(page.getByText('2/4 tempat')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Buka workspace kelas' })).toHaveAttribute(
@@ -427,7 +489,12 @@ for (const breakpoint of breakpoints) {
     await expect(
       page.getByRole('heading', { name: 'Selamat datang, Synthetic Operator' }),
     ).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeVisible();
+    const navigation = page.locator('[aria-label="Navigasi utama"]');
+    if (breakpoint.width >= 1024) await expect(navigation).toBeVisible();
+    else {
+      await expect(navigation).toHaveAttribute('aria-hidden', 'true');
+      await expect(navigation).toHaveAttribute('inert', '');
+    }
     await expect(page.getByRole('link', { name: 'Booking' }).first()).toBeAttached();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
 
@@ -447,7 +514,7 @@ test('navigation keeps current page context and keyboard access', async ({ page 
   await expect(current).toHaveAttribute('aria-current', 'page');
   await current.focus();
   await expect(current).toBeFocused();
-  await expect(page.getByRole('heading', { name: 'Manajemen Booking' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Manajemen Booking', exact: true })).toBeVisible();
 });
 
 test('protected route redirects to sign-in with a safe relative return target', async ({
@@ -478,7 +545,7 @@ test('navigation hides capabilities that are not effective', async ({ page }) =>
     }),
   );
   await page.goto('/workspace');
-  await expect(page.getByRole('link', { name: 'Ledger', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sesi Customer', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pengguna', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Operations H-24' })).toHaveCount(0);
 });
@@ -487,9 +554,9 @@ test('branch choice persists per tab and a revoked API response ends the session
   page,
 }) => {
   await page.goto('/workspace');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await page.reload();
-  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('branch-1');
+  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
   await page.route('**/api/v1/**', (route) => route.fulfill({ status: 401, body: '{}' }));
   await page.goto('/workspace/bookings');
   await expect(page).toHaveURL('/sign-in?returnTo=%2Fworkspace%2Fbookings');

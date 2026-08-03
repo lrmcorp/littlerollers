@@ -23,6 +23,7 @@ import { classStatusTone, statusLabels } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { browserBookingClient, type BookingClient } from '../booking-client';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
@@ -41,11 +42,13 @@ export function ClassSlotView({
   branchOverride,
   branchesOverride,
   capabilitiesOverride,
+  bookingClient = browserBookingClient,
 }: {
   client?: ClassSlotClient;
   branchOverride?: BranchOption;
   branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
+  bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
 }) {
   const sessionContext = useSessionContext();
   const feedback = useAppFeedback();
@@ -60,6 +63,7 @@ export function ClassSlotView({
   const canRead = capabilities.includes('class-slot:read');
   const canManage = capabilities.includes('class-slot:manage');
   const canManageAttendance = capabilities.includes('attendance:manage');
+  const canReadBookings = capabilities.includes('booking:read');
   const canViewAllBranches = capabilities.includes('branch:all');
   const globalMode = !branch && canViewAllBranches;
   const canOperate = Boolean(branch && canManage);
@@ -213,11 +217,14 @@ export function ClassSlotView({
         {formatBranchTime(slot.startAt, slot.timezone)}–
         {formatBranchTime(slot.endAt, slot.timezone)}
       </span>
-      <strong>{classTypeName(slot.classTypeId)}</strong>
+      <StatusBadge tone="info">
+        <span>Tipe kelas ·</span> <span>{classTypeName(slot.classTypeId)}</span>
+      </StatusBadge>
       <small>{instructorName(slot.instructorUserId)}</small>
       {globalMode && <small>{branchName(slot.branchId)}</small>}
       <small>
-        {slot.bookedCount}/{slot.capacity} terisi · min. {slot.minimumQuota}
+        {slot.bookedCount} peserta · {Math.max(0, slot.capacity - slot.bookedCount)} tempat tersedia
+        {' · '}min. {slot.minimumQuota}
       </small>
       <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
     </button>
@@ -366,6 +373,7 @@ export function ClassSlotView({
             : undefined
         }
         busy={busy}
+        className={panel?.kind === 'detail' ? 'max-w-4xl' : undefined}
         dirty={panel?.kind === 'create' && panelDirty}
         onDirtyClose={() =>
           feedback.confirm({
@@ -441,6 +449,8 @@ export function ClassSlotView({
             instructors={instructors}
             canManage={canOperate}
             canManageAttendance={canOperateAttendance}
+            canReadBookings={canReadBookings}
+            bookingClient={bookingClient}
             busy={busy}
             onAssign={async (instructorId) => {
               const accepted = await feedback.confirm({

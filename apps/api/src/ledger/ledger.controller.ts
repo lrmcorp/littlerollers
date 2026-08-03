@@ -46,8 +46,28 @@ export class LedgerController {
     @Query('branchId') branchId?: string,
     @Query('status') status?: 'PENDING' | 'POSTED' | 'REJECTED' | 'HISTORY',
     @Query('cursor') cursor?: string,
+    @Query('q') q?: string,
+    @Query('customerUserId') customerUserId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.ledger.listAdjustments(request.principal, branchId, status, cursor);
+    return this.ledger.listAdjustments(
+      request.principal,
+      branchId,
+      status,
+      cursor,
+      q,
+      customerUserId,
+      from,
+      until,
+      limit,
+    );
+  }
+
+  @Get('session-adjustments/:id')
+  adjustmentDetail(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.ledger.adjustmentDetail(request.principal, id);
   }
 
   @Post('session-adjustments')
@@ -74,7 +94,7 @@ export class LedgerController {
     @Param('id') id: string,
     @Param('decision') decision: 'approve' | 'reject',
     @Headers('idempotency-key') key: string,
-    @Body() body: { reasonCode: string; expectedVersion: number },
+    @Body() body: { reasonCode: string; note?: string; expectedVersion: number },
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.ledger.decideAdjustment(

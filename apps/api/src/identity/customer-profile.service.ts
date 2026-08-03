@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { ApiProblem, newId } from './security';
+import { recordPilotRollbackOutbox } from '../migration/pilot-rollback-outbox.service';
 
 @Injectable()
 export class CustomerProfileService {
@@ -98,6 +99,24 @@ export class CustomerProfileService {
           },
         },
       });
+      const rollbackBranchId =
+        input.preferredBranchId !== undefined
+          ? input.preferredBranchId
+          : (before.preferredBranch?.id ?? null);
+      if (rollbackBranchId)
+        await recordPilotRollbackOutbox(tx, {
+          branchId: rollbackBranchId,
+          aggregateType: 'CustomerProfile',
+          aggregateId: principal.userId,
+          operation: 'UPDATE',
+          correlationId,
+          payload: {
+            userId: principal.userId,
+            displayName,
+            preferredBranchId: rollbackBranchId,
+            version: before.version + 1,
+          },
+        });
     });
     return this.get(principal);
   }

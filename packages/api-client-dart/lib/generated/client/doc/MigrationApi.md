@@ -12,8 +12,15 @@ Method | HTTP request | Description
 [**applyMigrationBatch**](MigrationApi.md#applymigrationbatch) | **POST** /migration-batches/{id}/apply | 
 [**createMigrationBatch**](MigrationApi.md#createmigrationbatch) | **POST** /migration-batches | 
 [**createMigrationSourceUpload**](MigrationApi.md#createmigrationsourceupload) | **POST** /uploads/migration-sources | 
+[**decideInternalV1MigrationResolution**](MigrationApi.md#decideinternalv1migrationresolution) | **POST** /internal/migrations/resolutions/{id}/decision | 
 [**finalizeMigrationSourceUpload**](MigrationApi.md#finalizemigrationsourceupload) | **POST** /uploads/migration-sources/{id}/finalize | 
+[**getInternalV1MigrationBatch**](MigrationApi.md#getinternalv1migrationbatch) | **GET** /internal/migrations/batches/{id} | 
+[**getInternalV1MigrationCdcOverview**](MigrationApi.md#getinternalv1migrationcdcoverview) | **GET** /internal/migrations/cdc | 
 [**getMigrationBatch**](MigrationApi.md#getmigrationbatch) | **GET** /migration-batches/{id} | 
+[**listInternalV1MigrationBatches**](MigrationApi.md#listinternalv1migrationbatches) | **GET** /internal/migrations/batches | 
+[**listInternalV1MigrationControlTotals**](MigrationApi.md#listinternalv1migrationcontroltotals) | **GET** /internal/migrations/batches/{id}/control-totals | 
+[**listInternalV1MigrationRejects**](MigrationApi.md#listinternalv1migrationrejects) | **GET** /internal/migrations/batches/{id}/rejects | 
+[**listInternalV1MigrationResolutions**](MigrationApi.md#listinternalv1migrationresolutions) | **GET** /internal/migrations/batches/{id}/resolutions | 
 [**listMigrationBatches**](MigrationApi.md#listmigrationbatches) | **GET** /migration-batches | 
 [**reconcileMigrationBatch**](MigrationApi.md#reconcilemigrationbatch) | **POST** /migration-batches/{id}/reconcile | 
 [**rollbackMigrationBatch**](MigrationApi.md#rollbackmigrationbatch) | **POST** /migration-batches/{id}/rollback | 
@@ -152,6 +159,52 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **decideInternalV1MigrationResolution**
+> decideInternalV1MigrationResolution(id, idempotencyKey, xMigrationStepUp, decideInternalV1MigrationResolutionRequest)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final String xMigrationStepUp = xMigrationStepUp_example; // String | Short-lived secret; never log or persist in browser storage.
+final DecideInternalV1MigrationResolutionRequest decideInternalV1MigrationResolutionRequest = ; // DecideInternalV1MigrationResolutionRequest | 
+
+try {
+    api.decideInternalV1MigrationResolution(id, idempotencyKey, xMigrationStepUp, decideInternalV1MigrationResolutionRequest);
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->decideInternalV1MigrationResolution: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **xMigrationStepUp** | **String**| Short-lived secret; never log or persist in browser storage. | 
+ **decideInternalV1MigrationResolutionRequest** | [**DecideInternalV1MigrationResolutionRequest**](DecideInternalV1MigrationResolutionRequest.md)|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **finalizeMigrationSourceUpload**
 > MigrationSourceUpload finalizeMigrationSourceUpload(id, idempotencyKey, finalizeUploadCommand)
 
@@ -197,6 +250,82 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getInternalV1MigrationBatch**
+> getInternalV1MigrationBatch(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    api.getInternalV1MigrationBatch(id);
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->getInternalV1MigrationBatch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getInternalV1MigrationCdcOverview**
+> getInternalV1MigrationCdcOverview()
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+
+try {
+    api.getInternalV1MigrationCdcOverview();
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->getInternalV1MigrationCdcOverview: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getMigrationBatch**
 > MigrationBatchResult getMigrationBatch(id)
 
@@ -235,6 +364,170 @@ Name | Type | Description  | Notes
 
  - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listInternalV1MigrationBatches**
+> listInternalV1MigrationBatches()
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+
+try {
+    api.listInternalV1MigrationBatches();
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->listInternalV1MigrationBatches: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listInternalV1MigrationControlTotals**
+> listInternalV1MigrationControlTotals(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    api.listInternalV1MigrationControlTotals(id);
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->listInternalV1MigrationControlTotals: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listInternalV1MigrationRejects**
+> listInternalV1MigrationRejects(id, status, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    api.listInternalV1MigrationRejects(id, status, cursor);
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->listInternalV1MigrationRejects: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listInternalV1MigrationResolutions**
+> listInternalV1MigrationResolutions(id, status, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMigrationApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String status = status_example; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    api.listInternalV1MigrationResolutions(id, status, cursor);
+} catch on DioException (e) {
+    print('Exception when calling MigrationApi->listInternalV1MigrationResolutions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **status** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json, application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

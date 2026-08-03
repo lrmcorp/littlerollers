@@ -1,9 +1,10 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 import { PackageAccessService } from './package-access.service';
 import { decryptAccountNumber } from './payment-account-security';
 import { PackagePricingService } from './package-pricing.service';
@@ -24,6 +25,7 @@ export class CustomerOrderService {
     private readonly idem: IdempotencyService,
     private readonly access: PackageAccessService,
     private readonly pricing: PackagePricingService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
   async checkoutOptions(p: SessionPrincipal, packageId: string, branchId?: string) {
     this.access.catalog(p);
@@ -401,17 +403,17 @@ export class CustomerOrderService {
           },
           include: { branch: true, paymentProof: true },
         });
-        if (voucher) {
-          await tx.voucherRedemption.create({
-            data: {
-              id: newId(),
-              voucherId: voucher.id,
-              purchaseId: purchase.id,
-              customerUserId: p.userId,
-              discountRp: voucher.discountRp,
-            },
-          });
-        }
+        const voucherRedemption = voucher
+          ? await tx.voucherRedemption.create({
+              data: {
+                id: newId(),
+                voucherId: voucher.id,
+                purchaseId: purchase.id,
+                customerUserId: p.userId,
+                discountRp: voucher.discountRp,
+              },
+            })
+          : null;
         await tx.purchaseTimelineEvent.createMany({
           data: [
             {
@@ -449,6 +451,38 @@ export class CustomerOrderService {
           pkg.branchId,
           correlationId,
         );
+        await this.pilotOutbox?.record(tx, {
+          branchId: pkg.branchId,
+          aggregateType: 'Purchase',
+          aggregateId: purchase.id,
+          operation: 'CREATE',
+          correlationId,
+          occurredAt: purchase.submittedAt,
+          payload: {
+            purchaseId: purchase.id,
+            customerUserId: p.userId,
+            packageId: pkg.id,
+            status: purchase.status,
+            payableAmountRp: purchase.payableAmountRpSnapshot,
+            voucherId: voucher?.id ?? null,
+          },
+        });
+        if (voucher && voucherRedemption) {
+          await this.pilotOutbox?.record(tx, {
+            branchId: pkg.branchId,
+            aggregateType: 'VoucherRedemption',
+            aggregateId: voucherRedemption.id,
+            operation: 'REDEEM',
+            correlationId,
+            occurredAt: purchase.submittedAt,
+            payload: {
+              purchaseId: purchase.id,
+              voucherId: voucher.id,
+              customerUserId: p.userId,
+              discountRp: voucher.discountRp,
+            },
+          });
+        }
         return { status: 201, body: this.orderView(purchase, true) as Prisma.InputJsonValue };
       },
     );
@@ -463,9 +497,12 @@ export class CustomerOrderService {
       until?: string;
       cursor?: string;
       limit?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.access.catalog(p);
+    if (filters.includeHistorical && !p.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     await this.expireOwnOrders(p.userId);
     if (filters.status && !orderStatuses.includes(filters.status as (typeof orderStatuses)[number]))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -494,6 +531,7 @@ export class CustomerOrderService {
     if (filters.cursor && !cursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const baseWhere: Prisma.PurchaseWhereInput = {
       userId: p.userId,
+      ...(filters.includeHistorical ? {} : { historical: false }),
       ...(q
         ? {
             OR: [{ packageNameSnapshot: { contains: q } }, { branch: { name: { contains: q } } }],
@@ -675,6 +713,23 @@ export class CustomerOrderService {
         order.branchId,
         correlationId,
       );
+      await this.pilotOutbox?.record(tx, {
+        branchId: order.branchId,
+        aggregateType: 'PaymentProof',
+        aggregateId: proof.id,
+        operation: 'ATTACH_TO_PURCHASE',
+        correlationId,
+        occurredAt: proof.finalizedAt ?? new Date(),
+        payload: {
+          paymentProofId: proof.id,
+          purchaseId: order.id,
+          checksumReference: proof.checksum,
+          mimeType: proof.mimeType,
+          sizeBytes: proof.sizeBytes,
+          kind: 'PAYMENT_PROOF',
+          version: updated.version,
+        },
+      });
       return this.orderView(updated, true);
     });
   }
@@ -764,6 +819,39 @@ export class CustomerOrderService {
           pkg.branchId,
           correlationId,
         );
+        await this.pilotOutbox?.record(tx, {
+          branchId: pkg.branchId,
+          aggregateType: 'Purchase',
+          aggregateId: purchase.id,
+          operation: 'CREATE',
+          correlationId,
+          occurredAt: purchase.submittedAt,
+          payload: {
+            purchaseId: purchase.id,
+            customerUserId: p.userId,
+            packageId: pkg.id,
+            status: purchase.status,
+            payableAmountRp: purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot,
+            voucherId: null,
+          },
+        });
+        await this.pilotOutbox?.record(tx, {
+          branchId: pkg.branchId,
+          aggregateType: 'PaymentProof',
+          aggregateId: proof.id,
+          operation: 'ATTACH_TO_PURCHASE',
+          correlationId,
+          occurredAt: proof.finalizedAt ?? purchase.submittedAt,
+          payload: {
+            paymentProofId: proof.id,
+            purchaseId: purchase.id,
+            checksumReference: proof.checksum,
+            mimeType: proof.mimeType,
+            sizeBytes: proof.sizeBytes,
+            kind: 'PAYMENT_PROOF',
+            version: purchase.version,
+          },
+        });
         return { status: 201, body: purchase as unknown as Prisma.InputJsonValue };
       },
     );

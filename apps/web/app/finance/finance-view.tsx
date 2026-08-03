@@ -5,7 +5,14 @@ import Link from 'next/link';
 import { AlertTriangle, Download, RefreshCw, Scale } from 'lucide-react';
 import { useSessionContext } from '../session-context';
 import { Feedback } from '../ui';
-import { AdminEmptyState, Badge, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
+import {
+  AdminEmptyState,
+  Badge,
+  FilterBar,
+  Pagination,
+  Panel,
+  StatCard,
+} from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
 import { controlClassName } from '../components/forms';
@@ -24,19 +31,48 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const [data, setData] = useState<FinanceData>();
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [anomalyCursor, setAnomalyCursor] = useState<string>();
+  const [anomalyCursorHistory, setAnomalyCursorHistory] = useState<string[]>([]);
   const allowed = context?.hasCapability('finance:reconcile');
   const load = useCallback(async () => {
     if (!allowed) return;
     setLoading(true);
     setFailed(false);
     try {
-      setData(await client.load({ branchId: context?.activeBranchId || undefined, from, until }));
+      const input = { branchId: context?.activeBranchId || undefined, from, until };
+      const [overview, anomalies] = await Promise.all([
+        client.overview(input),
+        client.anomalies(input),
+      ]);
+      setData({ overview, anomalies });
+      setAnomalyCursor(undefined);
+      setAnomalyCursorHistory([]);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
   }, [allowed, client, context?.activeBranchId, from, until]);
+
+  const loadAnomalyPage = async (cursor?: string) => {
+    if (!allowed || !data) return false;
+    setLoading(true);
+    setFailed(false);
+    try {
+      const anomalies = await client.anomalies(
+        { branchId: context?.activeBranchId || undefined, from, until },
+        cursor,
+      );
+      setData({ ...data, anomalies });
+      setAnomalyCursor(cursor);
+      return true;
+    } catch {
+      setFailed(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     void load();
   }, [load]);
@@ -237,13 +273,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </p>
               <h2 className="mt-1 text-xl font-semibold">Perlu pemeriksaan</h2>
             </div>
-            <Badge tone={data?.anomalies.length ? 'danger' : 'success'}>
-              {data?.anomalies.length ?? 0}
+            <Badge tone={data?.anomalies.total ? 'danger' : 'success'}>
+              {data?.anomalies.total ?? 0}
             </Badge>
           </div>
           <div className="mt-4 space-y-3">
-            {data?.anomalies.length ? (
-              data.anomalies.map((item) => (
+            {data?.anomalies.items.length ? (
+              data.anomalies.items.map((item) => (
                 <Link
                   href={item.href}
                   key={`${item.purchaseId}-${item.code}`}
@@ -264,6 +300,29 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </p>
             )}
           </div>
+          {data && (
+            <div className="mt-4">
+              <Pagination
+                hasPrevious={anomalyCursorHistory.length > 0 && !loading}
+                hasNext={Boolean(data.anomalies.page.nextCursor) && !loading}
+                totalLabel={`Halaman ${anomalyCursorHistory.length + 1} · ${data.anomalies.items.length.toLocaleString('id-ID')} data dari ${data.anomalies.total.toLocaleString('id-ID')} anomali`}
+                onPrevious={() => {
+                  const previous = anomalyCursorHistory.at(-1) ?? '';
+                  void loadAnomalyPage(previous || undefined).then((loaded) => {
+                    if (loaded) setAnomalyCursorHistory((current) => current.slice(0, -1));
+                  });
+                }}
+                onNext={() => {
+                  const next = data.anomalies.page.nextCursor;
+                  if (!next) return;
+                  void loadAnomalyPage(next).then((loaded) => {
+                    if (loaded)
+                      setAnomalyCursorHistory((current) => [...current, anomalyCursor ?? '']);
+                  });
+                }}
+              />
+            </div>
+          )}
         </Panel>
       </div>
       <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">

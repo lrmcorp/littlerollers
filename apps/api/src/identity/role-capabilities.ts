@@ -46,6 +46,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:manage',
     'booking:read',
     'booking:create:assisted',
+    'reschedule:read',
+    'reschedule:decide',
     'attendance:read',
     'attendance:manage',
   ],
@@ -66,6 +68,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ],
   SUPER_OWNER: [
     'role-permission:manage',
+    'migration:read',
+    'migration:resolve',
     'audit:read',
     'user:read',
     'user:admin',

@@ -20,7 +20,16 @@ services:
     image: mysql:8.4
     env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
-    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --binlog-row-image=FULL
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

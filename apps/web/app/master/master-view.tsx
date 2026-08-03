@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   browserMasterClient,
   masterFailure,
@@ -11,19 +11,21 @@ import {
 import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '../identity-client';
-import { Tabs } from '../components/admin/admin-ui';
+import { Pagination, Tabs } from '../components/admin/admin-ui';
 import { Button, ButtonLink } from '../components/actions';
 import { PublicProfileEditor } from './public-profile-editor';
 import {
   AsyncSearchSelect,
   DateInput,
+  SearchInput,
   SearchSelect,
   SelectInput,
   TextInput,
 } from '../components/forms';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 
-type Branches = Awaited<ReturnType<MasterClient['listBranches']>>;
+type BranchPage = Awaited<ReturnType<MasterClient['listBranches']>>;
+type Branches = BranchPage['items'];
 type ClassTypes = Awaited<ReturnType<MasterClient['listClassTypes']>>;
 export type MasterTab =
   | 'branches'
@@ -86,15 +88,23 @@ export function MasterView({
   const [selectedTab, setSelectedTab] = useState<MasterTab>(activeTab);
   useEffect(() => setSelectedTab(activeTab), [activeTab]);
   const sessionContext = useSessionContext();
+  const testAccess = process.env.NODE_ENV === 'test' ? access : undefined;
   const canManage =
-    access?.canManage ??
+    testAccess?.canManage ??
     (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('master:manage'));
   const canFinance =
-    access?.canFinance ??
+    testAccess?.canFinance ??
     (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('finance:manage'));
   const [classTypeId, setClassTypeId] = useState('');
   const [kind, setKind] = useState<MasterKind>('QUOTA_CAPACITY');
   const [branches, setBranches] = useState<Branches>([]);
+  const [branchCursor, setBranchCursor] = useState<string>();
+  const [branchCursorHistory, setBranchCursorHistory] = useState<string[]>([]);
+  const [branchNextCursor, setBranchNextCursor] = useState<string | null>();
+  const [branchSummary, setBranchSummary] = useState({ total: 0, active: 0, inactive: 0 });
+  const [branchSearch, setBranchSearch] = useState('');
+  const [branchStatus, setBranchStatus] = useState<'' | 'ACTIVE' | 'INACTIVE'>('');
+  const branchFilterInitialized = useRef(false);
   const [classTypes, setClassTypes] = useState<ClassTypes>([]);
   const [settings, setSettings] = useState<MasterSetting[]>([]);
   const [message, setMessage] = useState<string>();
@@ -145,23 +155,55 @@ export function MasterView({
       setClassTypeId(nextClassTypes.find((item) => item.active)?.id ?? '');
   };
 
+  const loadBranchPage = async (pageCursor?: string) => {
+    const page = await client.listBranches({
+      q: branchSearch.trim() || undefined,
+      status: branchStatus || undefined,
+      cursor: pageCursor,
+      limit: 20,
+    });
+    setBranches(page.items);
+    setBranchSummary(page.summary);
+    setBranchNextCursor(page.page.nextCursor);
+    setBranchCursor(pageCursor);
+    return page;
+  };
+
   const load = async () =>
     run(async () => {
-      const nextBranches = await client.listBranches();
-      setBranches(nextBranches);
+      const page = await loadBranchPage();
+      setBranchCursorHistory([]);
+      const nextBranches = page.items;
       const selectedBranchId =
         nextBranches.find((item) => item.id === branchId && item.active)?.id ??
-        (access ? nextBranches.find((item) => item.active)?.id : undefined) ??
+        (branchId || undefined) ??
+        (testAccess ? nextBranches.find((item) => item.active)?.id : undefined) ??
         '';
       setBranchId(selectedBranchId);
       await loadBranchContent(selectedBranchId);
     }, 'Master data berhasil dimuat.');
 
   const reloadCurrent = async () => {
-    const nextBranches = await client.listBranches();
-    setBranches(nextBranches);
+    await loadBranchPage(branchCursor);
     await loadBranchContent(branchId);
   };
+
+  useEffect(() => {
+    if (!sessionContext && !testAccess) return;
+    if (!branchFilterInitialized.current) {
+      branchFilterInitialized.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setBranchCursorHistory([]);
+      void run(async () => {
+        await loadBranchPage();
+      }, 'Daftar cabang diperbarui.');
+    }, 250);
+    return () => window.clearTimeout(timer);
+    // Filter list cabang tidak mengubah konteks cabang aktif.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchSearch, branchStatus]);
 
   useEffect(() => {
     if (sessionContext) {
@@ -216,18 +258,37 @@ export function MasterView({
           />
         </div>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          {access && !sessionContext && (
-            <SearchSelect
+          {testAccess && !sessionContext && (
+            <AsyncSearchSelect
               label="Cabang aktif"
               wrapperClassName="min-w-[240px] flex-1"
               value={branchId}
               placeholder="Pilih cabang"
-              options={branches.map((item) => ({
-                id: item.id,
-                label: item.name,
-                description: `${item.code}${item.active ? '' : ' · Nonaktif'}`,
-                disabled: !item.active,
-              }))}
+              selectedOption={
+                branches.find((item) => item.id === branchId)
+                  ? {
+                      id: branchId,
+                      label: branches.find((item) => item.id === branchId)!.name,
+                      description: branches.find((item) => item.id === branchId)!.code,
+                    }
+                  : undefined
+              }
+              loadOptions={async (q, cursor) => {
+                const page = await client.listBranches({
+                  q: q.trim() || undefined,
+                  status: 'ACTIVE',
+                  cursor,
+                  limit: 20,
+                });
+                return {
+                  items: page.items.map((item) => ({
+                    id: item.id,
+                    label: item.name,
+                    description: item.code,
+                  })),
+                  nextCursor: page.page.nextCursor ?? undefined,
+                };
+              }}
               onChange={(selected) => {
                 setBranchId(selected);
                 void run(() => loadBranchContent(selected), 'Data cabang berhasil dimuat.');
@@ -245,7 +306,7 @@ export function MasterView({
             </div>
           )}
           <Button type="button" variant="secondary" onClick={load} disabled={loading}>
-            {loading ? 'Memuat…' : sessionContext ? 'Refresh master data' : 'Muat master data'}
+            {loading ? 'Memuat…' : testAccess ? 'Muat master data' : 'Refresh master data'}
           </Button>
         </div>
         {message && <Feedback kind="status">{message}</Feedback>}
@@ -429,32 +490,72 @@ export function MasterView({
             aria-labelledby="branch-list-title"
           >
             <h2 id="branch-list-title">Daftar cabang</h2>
+            <div className="my-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+              <SearchInput
+                label="Cari cabang"
+                value={branchSearch}
+                placeholder="Kode, nama, area, atau kota"
+                onChange={(event) => setBranchSearch(event.currentTarget.value)}
+              />
+              <SelectInput
+                label="Status cabang"
+                value={branchStatus}
+                onChange={(event) =>
+                  setBranchStatus(event.currentTarget.value as '' | 'ACTIVE' | 'INACTIVE')
+                }
+              >
+                <option value="">Semua status</option>
+                <option value="ACTIVE">Aktif</option>
+                <option value="INACTIVE">Nonaktif</option>
+              </SelectInput>
+            </div>
             {branches.length ? (
-              <ul className="grid list-none gap-3 p-0">
-                {branches.map((item) => (
-                  <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <strong>{item.name}</strong>
-                        <div className="text-sm text-dd-muted">
-                          {item.code} · {item.timezone}
+              <>
+                <ul className="grid list-none gap-3 p-0">
+                  {branches.map((item) => (
+                    <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <strong>{item.name}</strong>
+                          <div className="text-sm text-dd-muted">
+                            {item.code} · {item.timezone}
+                          </div>
                         </div>
+                        <StatusBadge tone={item.active ? 'success' : 'neutral'}>
+                          {item.active ? 'Aktif' : 'Nonaktif'}
+                        </StatusBadge>
                       </div>
-                      <StatusBadge tone={item.active ? 'success' : 'neutral'}>
-                        {item.active ? 'Aktif' : 'Nonaktif'}
-                      </StatusBadge>
-                    </div>
-                    <ButtonLink
-                      className="mt-3"
-                      size="sm"
-                      variant="secondary"
-                      href={`/workspace/branches/${item.id}`}
-                    >
-                      Lihat detail cabang
-                    </ButtonLink>
-                  </li>
-                ))}
-              </ul>
+                      <ButtonLink
+                        className="mt-3"
+                        size="sm"
+                        variant="secondary"
+                        href={`/workspace/branches/${item.id}`}
+                      >
+                        Lihat detail cabang
+                      </ButtonLink>
+                    </li>
+                  ))}
+                </ul>
+                <Pagination
+                  hasPrevious={branchCursorHistory.length > 0 && !loading}
+                  hasNext={Boolean(branchNextCursor) && !loading}
+                  totalLabel={`Halaman ${branchCursorHistory.length + 1} · ${branches.length.toLocaleString('id-ID')} data dari ${branchSummary.total.toLocaleString('id-ID')} cabang`}
+                  onPrevious={() => {
+                    const previous = branchCursorHistory.at(-1) ?? '';
+                    void run(async () => {
+                      await loadBranchPage(previous || undefined);
+                      setBranchCursorHistory((current) => current.slice(0, -1));
+                    }, 'Halaman cabang sebelumnya dimuat.');
+                  }}
+                  onNext={() => {
+                    if (!branchNextCursor) return;
+                    void run(async () => {
+                      await loadBranchPage(branchNextCursor);
+                      setBranchCursorHistory((current) => [...current, branchCursor ?? '']);
+                    }, 'Halaman cabang berikutnya dimuat.');
+                  }}
+                />
+              </>
             ) : (
               <EmptyState
                 title="Belum ada cabang"

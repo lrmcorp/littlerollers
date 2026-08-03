@@ -14,7 +14,13 @@ const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:32121';
 export default defineConfig({
   testDir: './e2e',
   snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
-  use: { baseURL: playwrightBaseUrl, ...devices['Desktop Chrome'] },
+  use: {
+    baseURL: playwrightBaseUrl,
+    ...devices['Desktop Chrome'],
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+  },
   webServer: [
     {
       command: 'pnpm --dir ../api start:e2e',

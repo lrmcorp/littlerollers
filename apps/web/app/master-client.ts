@@ -25,17 +25,26 @@ export interface MasterSettingInput {
   effectiveUntil?: string;
   reason: string;
 }
+export type MasterBranch = {
+  id: string;
+  code: string;
+  name: string;
+  timezone: string;
+  active: boolean;
+  version: number;
+};
+export type MasterBranchPage = {
+  items: MasterBranch[];
+  summary: { total: number; active: number; inactive: number };
+  page: { hasMore: boolean; nextCursor: string | null };
+};
 export interface MasterClient {
-  listBranches(): Promise<
-    Array<{
-      id: string;
-      code: string;
-      name: string;
-      timezone: string;
-      active: boolean;
-      version: number;
-    }>
-  >;
+  listBranches(input?: {
+    q?: string;
+    status?: 'ACTIVE' | 'INACTIVE';
+    cursor?: string;
+    limit?: number;
+  }): Promise<MasterBranchPage>;
   listClassTypes(
     branchId: string,
   ): Promise<Array<{ id: string; code: string; name: string; active: boolean; version: number }>>;
@@ -63,8 +72,16 @@ export interface MasterClient {
 const api = new MasterApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
 export const browserMasterClient: MasterClient = {
-  async listBranches() {
-    return (await appLoading.track(api.listBranches(), { label: 'Memuat cabang…' })).items;
+  async listBranches(input = {}) {
+    const result = await appLoading.track(api.listBranches(input), { label: 'Memuat cabang…' });
+    return {
+      items: result.items,
+      summary: result.summary,
+      page: {
+        hasMore: result.page.hasMore,
+        nextCursor: result.page.nextCursor ?? null,
+      },
+    };
   },
   async listClassTypes(branchId) {
     return (

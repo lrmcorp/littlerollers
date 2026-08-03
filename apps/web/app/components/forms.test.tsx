@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AsyncSearchSelect,
+  AsyncMultiSearchSelect,
   DateInput,
   MultiSearchSelect,
   RadioCard,
@@ -86,6 +87,46 @@ describe('Tailwind form primitives', () => {
     expect(onMultiChange).toHaveBeenCalledWith(
       ['reformer'],
       [expect.objectContaining({ id: 'reformer' })],
+    );
+  });
+
+  it('loads additional async multi-select options beyond the first twenty records', async () => {
+    const user = userEvent.setup();
+    const loadOptions = vi.fn((_query: string, cursor?: string) =>
+      Promise.resolve(
+        cursor
+          ? {
+              items: Array.from({ length: 5 }, (_, index) => ({
+                id: `package-${index + 21}`,
+                label: `Paket ${index + 21}`,
+              })),
+            }
+          : {
+              items: Array.from({ length: 20 }, (_, index) => ({
+                id: `package-${index + 1}`,
+                label: `Paket ${index + 1}`,
+              })),
+              nextCursor: 'package-20',
+            },
+      ),
+    );
+    const onChange = vi.fn();
+    render(
+      <AsyncMultiSearchSelect
+        label="Scope paket"
+        value={[]}
+        loadOptions={loadOptions}
+        onChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Scope paket' }));
+    expect(await screen.findByRole('option', { name: 'Paket 1' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Muat berikutnya' }));
+    await user.click(await screen.findByRole('option', { name: 'Paket 25' }));
+    expect(onChange).toHaveBeenCalledWith(
+      ['package-25'],
+      [expect.objectContaining({ id: 'package-25' })],
     );
   });
 });
