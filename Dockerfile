@@ -14,8 +14,10 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
+ARG API_BASE_URL="http://api:32121"
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ENV NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED=false
+ENV API_BASE_URL=$API_BASE_URL
 
 RUN pnpm --filter @dailydose/api exec prisma generate --schema prisma/schema.prisma \
     && pnpm build
