@@ -1,0 +1,26 @@
+{
+  "batchId": "6314152b-e312-49f9-9d24-7d156a5b3a22",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "AuditLog": 1,
+    "AccountingAccount": 1,
+    "DeferredMediaReference:bukti_bayar": 1,
+    "JournalEntry": 1,
+    "DeferredMediaReference:struk": 1,
+    "DeferredMediaReference:image": 4,
+    "UserCapabilityOverride": 1,
+    "UserNotification": 1,
+    "DeferredMediaReference:bukti_pembayaran": 1,
+    "CapabilityDefinition": 1,
+    "RoleCapability": 1,
+    "DeferredMediaReference:foto": 1,
+    "DeferredMediaReference:ktp": 1,
+    "DeferredMediaReference:selfie": 1,
+    "CustomerVoucherEntitlement": 1,
+    "VoucherRedemption": 1,
+    "Voucher": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

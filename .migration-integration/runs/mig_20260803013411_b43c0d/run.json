@@ -1,0 +1,11 @@
+{
+  "runId": "mig_20260803013411_b43c0d",
+  "project": "ddmig_mig_20260803013411_b43c0d",
+  "composeEnvironment": {
+    "MIGRATION_SOURCE_PORT": "63428",
+    "MIGRATION_TARGET_PORT": "63429"
+  },
+  "status": "FAILED",
+  "step": "PHASE_BRANCH_MASTER",
+  "failureCode": "PRISMA_P2010"
+}

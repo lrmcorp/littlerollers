@@ -1,0 +1,23 @@
+{
+  "id": "6314152b-e312-49f9-9d24-7d156a5b3a22",
+  "sourceSystem": "DAILYDOSE_V1",
+  "sourceSnapshotAt": "2026-08-03T04:58:48.068Z",
+  "sourceChecksum": "fb66be934d0df48d7908b534935211cea56b0b474c132bbbfd87e6f40efeee15",
+  "storageManifestChecksum": null,
+  "mappingVersion": "v1.0.0",
+  "phase": "voucher-finance-audit-media",
+  "status": "COMPLETED",
+  "delta": false,
+  "parentBatchId": null,
+  "startedAt": "2026-08-03T04:59:07.275Z",
+  "completedAt": "2026-08-03T04:59:07.350Z",
+  "failureCode": null,
+  "createdAt": "2026-08-03T04:59:07.058Z",
+  "updatedAt": "2026-08-03T04:59:07.351Z",
+  "_count": {
+    "sourceKeys": 20,
+    "rejects": 0,
+    "controlTotals": 66,
+    "resolutions": 0
+  }
+}

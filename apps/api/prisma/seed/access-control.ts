@@ -47,6 +47,8 @@ const capabilities: CapabilitySeed[] = [
   ['ledger:read', 'Lihat ledger', 'LEDGER'],
   ['master:manage', 'Kelola master data', 'MASTER', true],
   ['master:read', 'Lihat master data', 'MASTER'],
+  ['migration:read', 'Lihat status migrasi', 'MIGRATION', true, true, true],
+  ['migration:resolve', 'Selesaikan migrasi', 'MIGRATION', true, true, true],
   ['operations:read', 'Lihat operations', 'OPERATIONS'],
   ['operations:recover', 'Recovery operations', 'OPERATIONS', true],
   ['package-promotion:manage', 'Kelola promo paket', 'PACKAGE', true],
@@ -85,15 +87,15 @@ const roles: Array<{
   description: string;
   scope: 'GLOBAL' | 'BRANCH';
 }> = [
-  { id: '10000000-0000-4000-8000-000000000001', role: 'CUSTOMER', name: 'Customer', description: 'Akses mandiri customer.', scope: 'GLOBAL' },
-  { id: '10000000-0000-4000-8000-000000000002', role: 'INSTRUCTOR', name: 'Instructor', description: 'Akses instruktur per cabang.', scope: 'BRANCH' },
-  { id: '10000000-0000-4000-8000-000000000003', role: 'ADMIN', name: 'Admin', description: 'Operasi harian cabang.', scope: 'BRANCH' },
-  { id: '10000000-0000-4000-8000-000000000004', role: 'MANAGER', name: 'Manager', description: 'Keputusan operasional cabang.', scope: 'BRANCH' },
-  { id: '10000000-0000-4000-8000-000000000005', role: 'OWNER', name: 'Owner', description: 'Pengawasan cabang.', scope: 'BRANCH' },
-  { id: '10000000-0000-4000-8000-000000000006', role: 'SUPER_OWNER', name: 'Super Owner', description: 'Kendali global seluruh sistem.', scope: 'GLOBAL' },
-  { id: '10000000-0000-4000-8000-000000000007', role: 'FINANCE', name: 'Finance', description: 'Operasi finance global.', scope: 'GLOBAL' },
-  { id: '10000000-0000-4000-8000-000000000008', role: 'OPS', name: 'Operations', description: 'Monitoring dan recovery operasional.', scope: 'GLOBAL' },
-];
+    { id: '10000000-0000-4000-8000-000000000001', role: 'CUSTOMER', name: 'Customer', description: 'Akses mandiri customer.', scope: 'GLOBAL' },
+    { id: '10000000-0000-4000-8000-000000000002', role: 'INSTRUCTOR', name: 'Instructor', description: 'Akses instruktur per cabang.', scope: 'BRANCH' },
+    { id: '10000000-0000-4000-8000-000000000003', role: 'ADMIN', name: 'Admin', description: 'Operasi harian cabang.', scope: 'BRANCH' },
+    { id: '10000000-0000-4000-8000-000000000004', role: 'MANAGER', name: 'Manager', description: 'Keputusan operasional cabang.', scope: 'BRANCH' },
+    { id: '10000000-0000-4000-8000-000000000005', role: 'OWNER', name: 'Owner', description: 'Pengawasan cabang.', scope: 'BRANCH' },
+    { id: '10000000-0000-4000-8000-000000000006', role: 'SUPER_OWNER', name: 'Super Owner', description: 'Kendali global seluruh sistem.', scope: 'GLOBAL' },
+    { id: '10000000-0000-4000-8000-000000000007', role: 'FINANCE', name: 'Finance', description: 'Operasi finance global.', scope: 'GLOBAL' },
+    { id: '10000000-0000-4000-8000-000000000008', role: 'OPS', name: 'Operations', description: 'Monitoring dan recovery operasional.', scope: 'GLOBAL' },
+  ];
 
 export async function seedAccessControl(ctx: SeedContext) {
   const definedCapabilities = new Set(capabilities.map(({ key }) => key));
