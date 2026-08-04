@@ -12,6 +12,7 @@ import { ButtonLink } from '../components/actions';
 const MASTER_TABS: MasterTab[] = [
   'branches',
   'classTypes',
+  'venues',
   'packages',
   'projection',
   'capacity',

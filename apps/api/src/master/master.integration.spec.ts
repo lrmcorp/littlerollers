@@ -62,22 +62,31 @@ databaseDescribe('effective master MySQL integration', () => {
           { scope: { in: [`branch-update:${branchId}`, `branch-transition:${branchId}`] } },
           ...(lifecycleClassTypeId
             ? [
-                {
-                  scope: {
-                    in: [
-                      `class-type-update:${lifecycleClassTypeId}`,
-                      `class-type-reactivate:${lifecycleClassTypeId}`,
-                    ],
-                  },
+              {
+                scope: {
+                  in: [
+                    `class-type-update:${lifecycleClassTypeId}`,
+                    `class-type-reactivate:${lifecycleClassTypeId}`,
+                  ],
                 },
-              ]
+              },
+            ]
             : []),
         ],
       },
     });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.effectiveConfiguration.deleteMany({ where: { branchId } });
-    await db.classType.deleteMany({ where: { branchId } });
+    await db.classTypeBranchScope.deleteMany({ where: { branchId } });
+
+    await db.classType.deleteMany({
+      where: {
+        id: {
+          in: [classTypeId, lifecycleClassTypeId].filter(Boolean),
+        },
+      },
+    });
+
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId] } } });
     await db.$disconnect();
@@ -249,7 +258,7 @@ databaseDescribe('effective master MySQL integration', () => {
     );
     expect(updated).toMatchObject({
       code: 'BARRE_TEST',
-      branchId,
+      branchId: null,
       name: 'Barre Integration',
       version: item.version + 1,
     });
