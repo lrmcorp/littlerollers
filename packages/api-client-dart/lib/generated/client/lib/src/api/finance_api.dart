@@ -21,6 +21,7 @@ import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
 import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
+import 'package:openapi/src/model/legacy_financial_entry_page.dart';
 import 'package:openapi/src/model/other_cost.dart';
 import 'package:openapi/src/model/other_cost_command.dart';
 import 'package:openapi/src/model/other_cost_page.dart';
@@ -622,6 +623,104 @@ class FinanceApi {
     }
 
     return Response<FinancialReportPage>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// listLegacyFinancialEntries
+  /// Historical single-entry v1 cashflow, explicitly separated from new v2 double-entry journals.
+  ///
+  /// Parameters:
+  /// * [branchId] - Filter only; never grants authority
+  /// * [from] 
+  /// * [until] 
+  /// * [cursor] 
+  /// * [limit] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LegacyFinancialEntryPage] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LegacyFinancialEntryPage>> listLegacyFinancialEntries({ 
+    String? branchId,
+    Date? from,
+    Date? until,
+    String? cursor,
+    int? limit = 20,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/finance/reconciliation/legacy-cashflow';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(Date)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(Date)),
+      if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LegacyFinancialEntryPage? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(LegacyFinancialEntryPage),
+      ) as LegacyFinancialEntryPage;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LegacyFinancialEntryPage>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

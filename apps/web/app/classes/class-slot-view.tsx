@@ -8,6 +8,7 @@ import {
   type ClassSlotClient,
   type ClassTypeOption,
   type InstructorOption,
+  type StudioOption,
 } from '../class-slot-client';
 import {
   formatBranchDay,
@@ -72,6 +73,7 @@ export function ClassSlotView({
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
+  const [studios, setStudios] = useState<StudioOption[]>([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [classTypeFilter, setClassTypeFilter] = useState('');
   const [instructorFilter, setInstructorFilter] = useState('');
@@ -102,6 +104,7 @@ export function ClassSlotView({
       setSlots(workspace.slots);
       setClassTypes(workspace.classTypes);
       setInstructors(workspace.instructors);
+      setStudios(workspace.studios);
     } catch (error) {
       setFailure(classSlotFailure(error));
       setSlots([]);
@@ -114,6 +117,7 @@ export function ClassSlotView({
     setSlots([]);
     setClassTypes([]);
     setInstructors([]);
+    setStudios([]);
     setClassTypeFilter('');
     setInstructorFilter('');
     setPanel(null);
@@ -412,7 +416,7 @@ export function ClassSlotView({
                 type="submit"
                 form="class-slot-create-form"
                 loading={busy}
-                disabled={classTypes.length === 0}
+                disabled={classTypes.length === 0 || studios.length === 0}
               >
                 Buat draft
               </Button>
@@ -426,6 +430,7 @@ export function ClassSlotView({
             timezone={branch.timezone}
             classTypes={classTypes}
             instructors={instructors}
+            studios={studios.filter((studio) => studio.branchId === branch.id)}
             busy={busy}
             onDirty={() => setPanelDirty(true)}
             onCreate={async (input) => {

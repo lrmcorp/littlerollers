@@ -8,7 +8,12 @@ import {
   type CheckInIssue,
   type CustomerBookingRecord,
 } from '../booking-client';
-import type { ClassSlot, ClassTypeOption, InstructorOption } from '../class-slot-client';
+import type {
+  ClassSlot,
+  ClassTypeOption,
+  InstructorOption,
+  StudioOption,
+} from '../class-slot-client';
 import { formatBranchTime, zonedLocalDateTime } from '../class-time';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
@@ -27,6 +32,7 @@ export function CreatePanel({
   timezone,
   classTypes,
   instructors,
+  studios,
   busy,
   formId = 'class-slot-create-form',
   onDirty,
@@ -36,12 +42,15 @@ export function CreatePanel({
   timezone: string;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
+  studios: StudioOption[];
   busy: boolean;
   formId?: string;
   onDirty?(): void;
   onCreate(input: {
     branchId: string;
     classTypeId: string;
+    studioId: string;
+    roomId?: string;
     instructorUserId?: string;
     startAt: Date;
     endAt: Date;
@@ -50,6 +59,8 @@ export function CreatePanel({
   const [summary, setSummary] = useState(
     'Pilih tanggal dan waktu. Quota/capacity akan diambil dari konfigurasi efektif backend.',
   );
+  const [studioId, setStudioId] = useState('');
+  const rooms = studios.find((studio) => studio.id === studioId)?.rooms ?? [];
   return (
     <form
       id={formId}
@@ -75,6 +86,8 @@ export function CreatePanel({
           void onCreate({
             branchId,
             classTypeId: String(data.get('classTypeId')),
+            studioId: String(data.get('studioId')),
+            roomId: String(data.get('roomId')) || undefined,
             instructorUserId: String(data.get('instructorUserId')) || undefined,
             startAt,
             endAt,
@@ -93,6 +106,31 @@ export function CreatePanel({
           id: item.id,
           label: item.name,
           description: item.code,
+        }))}
+      />
+      <SearchSelect
+        label="Area Studio"
+        name="studioId"
+        required
+        value={studioId}
+        placeholder="Pilih area studio"
+        options={studios.map((item) => ({
+          id: item.id,
+          label: item.name,
+          description: item.code,
+        }))}
+        onChange={setStudioId}
+      />
+      <SearchSelect
+        key={studioId || 'no-studio'}
+        label="Ruangan"
+        name="roomId"
+        disabled={!studioId || rooms.length === 0}
+        placeholder={rooms.length ? 'Opsional' : 'Tidak ada ruangan aktif'}
+        options={rooms.map((item) => ({
+          id: item.id,
+          label: item.name,
+          description: `${item.code}${item.capacity ? ` · kapasitas ${item.capacity}` : ''}`,
         }))}
       />
       <SearchSelect

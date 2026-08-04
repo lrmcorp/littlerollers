@@ -30,6 +30,15 @@ const workspace = {
   slots: [slot],
   classTypes: [{ id: 'type-1', code: 'REF', name: 'Reformer' }],
   instructors: [{ id: 'instructor-1', displayName: 'Ayu Instructor' }],
+  studios: [
+    {
+      id: 'studio-1',
+      branchId: 'branch-1',
+      code: 'MAIN',
+      name: 'Area Studio Utama',
+      rooms: [],
+    },
+  ],
 };
 const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   discover: vi.fn().mockResolvedValue(workspace),
@@ -134,6 +143,9 @@ describe('ClassSlotView', () => {
     const classType = within(dialog).getByRole('combobox', { name: /Tipe kelas/ });
     await user.click(classType);
     await user.click(within(dialog).getByRole('option', { name: /Reformer/ }));
+    const studio = within(dialog).getByRole('combobox', { name: /Area Studio/ });
+    await user.click(studio);
+    await user.click(within(dialog).getByRole('option', { name: /Area Studio Utama/ }));
     const instructor = within(dialog).getByRole('combobox', { name: /Instruktur/ });
     await user.click(instructor);
     await user.click(within(dialog).getByRole('option', { name: /Ayu Instructor/ }));
@@ -150,6 +162,7 @@ describe('ClassSlotView', () => {
       expect.objectContaining({
         branchId: 'branch-1',
         classTypeId: 'type-1',
+        studioId: 'studio-1',
         instructorUserId: 'instructor-1',
         startAt: new Date('2026-07-27T02:00:00.000Z'),
         endAt: new Date('2026-07-27T03:00:00.000Z'),

@@ -143,7 +143,7 @@ const environment = {
   DATABASE_URL: targetUrl,
   V1_DATABASE_URL: sourceUrl,
   V1_ROLLBACK_DATABASE_URL: rollbackUrl,
-  V1_MAPPING_VERSION: 'v1.0.0',
+  V1_MAPPING_VERSION: '2.0.0',
   V1_MIGRATION_MEDIA_MODE: 'metadata-only',
   V1_SNAPSHOT_AT: snapshotCompletedAt,
   V1_SNAPSHOT_STARTED_AT: snapshotStartedAt,

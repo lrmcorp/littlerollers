@@ -41,6 +41,13 @@ void main() {
       // TODO
     });
 
+    // Historical single-entry v1 cashflow, explicitly separated from new v2 double-entry journals.
+    //
+    //Future<LegacyFinancialEntryPage> listLegacyFinancialEntries({ String branchId, Date from, Date until, String cursor, int limit }) async
+    test('test listLegacyFinancialEntries', () async {
+      // TODO
+    });
+
     //Future<OtherCostPage> listOtherCosts(String period, { String branchId, String cursor }) async
     test('test listOtherCosts', () async {
       // TODO

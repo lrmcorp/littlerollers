@@ -35,7 +35,7 @@ export class MasterAccessService {
     action: string,
     objectType: string,
     objectId: string,
-    branchId: string,
+    branchId: string | null,
     before?: Prisma.InputJsonValue,
     after?: Prisma.InputJsonValue,
   ) {

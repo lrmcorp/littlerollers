@@ -14,7 +14,12 @@ void main() {
       // TODO
     });
 
-    // Creates an active class type in one visible branch. Requires master:manage.
+    //Future<Studio> createBranchStudio(String id, StudioCommand studioCommand) async
+    test('test createBranchStudio', () async {
+      // TODO
+    });
+
+    // Creates one global class type. Optional branchIds create explicit availability scopes; no active branch selection is required.
     //
     //Future<ClassType> createClassType(ClassTypeCommand classTypeCommand) async
     test('test createClassType', () async {
@@ -45,6 +50,11 @@ void main() {
 
     //Future<Resource> createQuotaCapacitySetting(QuotaCapacityCommand quotaCapacityCommand) async
     test('test createQuotaCapacitySetting', () async {
+      // TODO
+    });
+
+    //Future<Room> createStudioRoom(String id, RoomCommand roomCommand) async
+    test('test createStudioRoom', () async {
       // TODO
     });
 
@@ -79,6 +89,11 @@ void main() {
 
     //Future<PublicStudioDetail> getPublicStudioDetail(String slug) async
     test('test getPublicStudioDetail', () async {
+      // TODO
+    });
+
+    //Future<StudioPage> listBranchStudios(String id) async
+    test('test listBranchStudios', () async {
       // TODO
     });
 
@@ -119,6 +134,11 @@ void main() {
       // TODO
     });
 
+    //Future<RoomPage> listStudioRooms(String id) async
+    test('test listStudioRooms', () async {
+      // TODO
+    });
+
     //Future<Branch> reactivateBranch(String id, String idempotencyKey, ReasonedVersionCommand body) async
     test('test reactivateBranch', () async {
       // TODO
@@ -136,6 +156,13 @@ void main() {
       // TODO
     });
 
+    // Replaces the explicit Studio/Cabang availability scopes for a global class type. \"All\" is expanded by the client to the active branch IDs at decision time.
+    //
+    //Future<ClassType> replaceClassTypeBranchScopes(String id, ClassTypeScopeCommand classTypeScopeCommand) async
+    test('test replaceClassTypeBranchScopes', () async {
+      // TODO
+    });
+
     //Future<Branch> updateBranch(String id, String idempotencyKey, BranchUpdateCommand branchUpdateCommand) async
     test('test updateBranch', () async {
       // TODO
@@ -145,6 +172,16 @@ void main() {
     //
     //Future<ClassType> updateClassType(String id, String idempotencyKey, ClassTypeUpdateCommand classTypeUpdateCommand) async
     test('test updateClassType', () async {
+      // TODO
+    });
+
+    //Future<Room> updateRoom(String id, RoomUpdateCommand roomUpdateCommand) async
+    test('test updateRoom', () async {
+      // TODO
+    });
+
+    //Future<Studio> updateStudio(String id, StudioUpdateCommand studioUpdateCommand) async
+    test('test updateStudio', () async {
       // TODO
     });
 

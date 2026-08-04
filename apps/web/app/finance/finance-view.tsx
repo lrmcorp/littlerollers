@@ -8,6 +8,7 @@ import { Feedback } from '../ui';
 import {
   AdminEmptyState,
   Badge,
+  DataTable,
   FilterBar,
   Pagination,
   Panel,
@@ -33,6 +34,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const [failed, setFailed] = useState(false);
   const [anomalyCursor, setAnomalyCursor] = useState<string>();
   const [anomalyCursorHistory, setAnomalyCursorHistory] = useState<string[]>([]);
+  const [legacyCursor, setLegacyCursor] = useState<string>();
+  const [legacyCursorHistory, setLegacyCursorHistory] = useState<string[]>([]);
   const allowed = context?.hasCapability('finance:reconcile');
   const load = useCallback(async () => {
     if (!allowed) return;
@@ -40,13 +43,16 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
     setFailed(false);
     try {
       const input = { branchId: context?.activeBranchId || undefined, from, until };
-      const [overview, anomalies] = await Promise.all([
+      const [overview, anomalies, legacyCashflow] = await Promise.all([
         client.overview(input),
         client.anomalies(input),
+        client.legacyCashflow(input),
       ]);
-      setData({ overview, anomalies });
+      setData({ overview, anomalies, legacyCashflow });
       setAnomalyCursor(undefined);
       setAnomalyCursorHistory([]);
+      setLegacyCursor(undefined);
+      setLegacyCursorHistory([]);
     } catch {
       setFailed(true);
     } finally {
@@ -65,6 +71,25 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       );
       setData({ ...data, anomalies });
       setAnomalyCursor(cursor);
+      return true;
+    } catch {
+      setFailed(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  const loadLegacyPage = async (cursor?: string) => {
+    if (!allowed || !data) return false;
+    setLoading(true);
+    setFailed(false);
+    try {
+      const legacyCashflow = await client.legacyCashflow(
+        { branchId: context?.activeBranchId || undefined, from, until },
+        cursor,
+      );
+      setData({ ...data, legacyCashflow });
+      setLegacyCursor(cursor);
       return true;
     } catch {
       setFailed(true);
@@ -325,6 +350,81 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           )}
         </Panel>
       </div>
+      <Panel className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              Data historis v1
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">Legacy cashflow</h2>
+            <p className="mt-1 text-sm text-dd-muted">
+              Income/expense single-entry v1 ditampilkan terpisah dari jurnal double-entry v2.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Badge tone="success">
+              Income {money.format(data?.legacyCashflow.summary.INCOME?.amountRp ?? 0)}
+            </Badge>
+            <Badge tone="warning">
+              Expense {money.format(data?.legacyCashflow.summary.EXPENSE?.amountRp ?? 0)}
+            </Badge>
+          </div>
+        </div>
+        <DataTable
+          items={data?.legacyCashflow.items ?? []}
+          loading={loading}
+          rowKey={(item) => item.id}
+          emptyTitle="Belum ada legacy cashflow"
+          emptyDescription="Tidak ada jurnal v1 pada periode dan scope ini."
+          columns={[
+            {
+              id: 'date',
+              header: 'Tanggal',
+              cell: (item) => item.occurredAt.toLocaleDateString('id-ID'),
+            },
+            {
+              id: 'type',
+              header: 'Tipe',
+              cell: (item) => (
+                <Badge tone={item.type === 'INCOME' ? 'success' : 'warning'}>
+                  {item.type === 'INCOME' ? 'Income' : 'Expense'}
+                </Badge>
+              ),
+            },
+            { id: 'description', header: 'Deskripsi', cell: (item) => item.description ?? '—' },
+            {
+              id: 'branch',
+              header: 'Studio/Cabang',
+              cell: (item) => item.branch?.name ?? 'Global',
+            },
+            { id: 'amount', header: 'Nominal', cell: (item) => money.format(item.amountRp) },
+          ]}
+        />
+        {data && (
+          <div className="border-t border-dd-line p-4">
+            <Pagination
+              previousAriaLabel="Legacy cashflow sebelumnya"
+              nextAriaLabel="Legacy cashflow berikutnya"
+              hasPrevious={legacyCursorHistory.length > 0 && !loading}
+              hasNext={Boolean(data.legacyCashflow.page.nextCursor) && !loading}
+              totalLabel={`Halaman ${legacyCursorHistory.length + 1} · ${data.legacyCashflow.items.length.toLocaleString('id-ID')} data dari ${data.legacyCashflow.total.toLocaleString('id-ID')} legacy entry`}
+              onPrevious={() => {
+                const previous = legacyCursorHistory.at(-1) ?? '';
+                void loadLegacyPage(previous || undefined).then((loaded) => {
+                  if (loaded) setLegacyCursorHistory((current) => current.slice(0, -1));
+                });
+              }}
+              onNext={() => {
+                const next = data.legacyCashflow.page.nextCursor;
+                if (!next) return;
+                void loadLegacyPage(next).then((loaded) => {
+                  if (loaded) setLegacyCursorHistory((current) => [...current, legacyCursor ?? '']);
+                });
+              }}
+            />
+          </div>
+        )}
+      </Panel>
       <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <strong>Antrean keputusan pembayaran</strong>

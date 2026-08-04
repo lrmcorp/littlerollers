@@ -153,6 +153,8 @@ export class ClassSlotService {
     input: {
       branchId: string;
       classTypeId: string;
+      studioId: string;
+      roomId?: string;
       instructorUserId?: string;
       startAt: string;
       endAt: string;
@@ -165,6 +167,8 @@ export class ClassSlotService {
     if (
       !UUID.test(input.branchId) ||
       !UUID.test(input.classTypeId) ||
+      !UUID.test(input.studioId) ||
+      (input.roomId && !UUID.test(input.roomId)) ||
       (input.instructorUserId && !UUID.test(input.instructorUserId))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -179,11 +183,23 @@ export class ClassSlotService {
       HttpStatus.CREATED,
       async (tx) => {
         this.scope(principal, input.branchId, 'class-slot:manage');
-        const [branch, classType] = await Promise.all([
+        const [branch, classType, studio, room] = await Promise.all([
           tx.branch.findUnique({ where: { id: input.branchId } }),
-          tx.classType.findUnique({ where: { id: input.classTypeId } }),
+          tx.classType.findUnique({
+            where: { id: input.classTypeId },
+            include: { branchScopes: { where: { branchId: input.branchId, active: true } } },
+          }),
+          tx.studio.findUnique({ where: { id: input.studioId } }),
+          input.roomId ? tx.room.findUnique({ where: { id: input.roomId } }) : null,
         ]);
-        if (!branch?.active || !classType?.active || classType.branchId !== branch.id)
+        if (
+          !branch?.active ||
+          !classType?.active ||
+          classType.branchScopes.length !== 1 ||
+          !studio?.active ||
+          studio.branchId !== branch.id ||
+          (input.roomId && (!room?.active || room.studioId !== studio.id))
+        )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const config = await this.configuration(
           tx,
@@ -208,6 +224,8 @@ export class ClassSlotService {
             id: newId(),
             branchId: branch.id,
             classTypeId: classType.id,
+            studioId: studio.id,
+            roomId: room?.id,
             instructorUserId: input.instructorUserId,
             startAt,
             endAt,

@@ -17,6 +17,32 @@ import {
 export const controlClassName =
   'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-100';
 
+export function CheckboxInput({
+  label,
+  description,
+  className = '',
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+  label: ReactNode;
+  description?: ReactNode;
+}) {
+  return (
+    <label
+      className={`flex items-start gap-3 rounded-dd-sm border border-dd-line p-3 ${className}`}
+    >
+      <input
+        {...props}
+        type="checkbox"
+        className="mt-0.5 size-4 shrink-0 accent-dd-forest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+      />
+      <span className="grid gap-0.5 text-sm">
+        <span className="font-medium text-dd-ink">{label}</span>
+        {description && <span className="text-xs text-dd-muted">{description}</span>}
+      </span>
+    </label>
+  );
+}
+
 export function FieldHint({ id, children }: { id?: string; children: ReactNode }) {
   return (
     <p id={id} className="text-xs leading-5 text-dd-muted">

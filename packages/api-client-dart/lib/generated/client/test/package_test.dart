@@ -22,6 +22,21 @@ void main() {
       // TODO
     });
 
+    // BuiltList<PackageBranchScope> branchScopes
+    test('to test the property `branchScopes`', () async {
+      // TODO
+    });
+
+    // BuiltList<PackageClassTypeScope> classTypeScopes
+    test('to test the property `classTypeScopes`', () async {
+      // TODO
+    });
+
+    // BuiltList<PackageRevision> revisions
+    test('to test the property `revisions`', () async {
+      // TODO
+    });
+
     // String businessKey
     test('to test the property `businessKey`', () async {
       // TODO

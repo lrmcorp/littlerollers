@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -34,6 +35,55 @@ export class MasterController {
   }
   @Get('branches/:id') branchDetail(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.catalog.branchDetail(req.principal, id);
+  }
+  @Get('branches/:id/studios') listStudios(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.listStudios(req.principal, id);
+  }
+  @Post('branches/:id/studios') createStudio(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      code: string;
+      name: string;
+      equipmentText?: string | null;
+      contactPhoneE164?: string | null;
+    },
+  ) {
+    return this.catalog.createStudio(req.principal, id, body, req.correlationId ?? 'unknown');
+  }
+  @Patch('studios/:id') updateStudio(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name: string;
+      equipmentText?: string | null;
+      contactPhoneE164?: string | null;
+      active?: boolean;
+    },
+  ) {
+    return this.catalog.updateStudio(req.principal, id, body, req.correlationId ?? 'unknown');
+  }
+  @Get('studios/:id/rooms') listRooms(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.catalog.listRooms(req.principal, id);
+  }
+  @Post('studios/:id/rooms') createRoom(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { code: string; name: string; capacity?: number | null },
+  ) {
+    return this.catalog.createRoom(req.principal, id, body, req.correlationId ?? 'unknown');
+  }
+  @Patch('rooms/:id') updateRoom(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { name: string; capacity?: number | null; active?: boolean },
+  ) {
+    return this.catalog.updateRoom(req.principal, id, body, req.correlationId ?? 'unknown');
   }
   @Post('branches') createBranch(
     @Req() req: AuthenticatedRequest,
@@ -109,9 +159,31 @@ export class MasterController {
   }
   @Post('class-types') createClassType(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { branchId: string; code: string; name: string },
+    @Body()
+    body: {
+      code: string;
+      name: string;
+      description?: string | null;
+      modality?: 'GROUP' | 'PRIVATE' | 'HYBRID' | 'UNKNOWN_LEGACY';
+      defaultDurationMinutes?: number;
+      defaultMinimumQuota?: number;
+      defaultCapacity?: number;
+      branchIds?: string[];
+    },
   ) {
     return this.catalog.createClassType(req.principal, body, req.correlationId ?? 'unknown');
+  }
+  @Put('class-types/:id/scopes') replaceClassTypeScopes(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { branchIds: string[]; expectedVersion: number; reason: string },
+  ) {
+    return this.catalog.replaceClassTypeScopes(
+      req.principal,
+      id,
+      body,
+      req.correlationId ?? 'unknown',
+    );
   }
   @Post('class-types/:id/deactivate') deactivateClassType(
     @Req() req: AuthenticatedRequest,

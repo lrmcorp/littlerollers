@@ -35,18 +35,27 @@ export type InternalPackageRecord = {
   _count?: { purchases: number; customerPackages: number };
   branch?: { id: string; code: string; name: string };
   classType?: { id: string; code: string; name: string };
+  branchScopes?: Array<{
+    id: string;
+    branchId: string;
+    active: boolean;
+    branch?: { id: string; code: string; name: string };
+  }>;
+  classTypeScopes?: Array<{
+    id: string;
+    classTypeId: string;
+    active: boolean;
+    classType?: { id: string; code: string; name: string };
+  }>;
   promotions?: PackagePromotionRecord[];
   revisions?: Array<{
     id: string;
-    name: string;
+    revisionNumber: number;
     sessionCount: number;
     durationDays: number;
     priceRp: number;
-    status: 'ACTIVE' | 'INACTIVE';
     effectiveFrom: string;
     effectiveUntil: string | null;
-    version: number;
-    effectiveState?: 'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'INACTIVE';
   }>;
   auditActivity?: Array<{ id: string; action: string; occurredAt: string }>;
   publicProfile?: Record<string, unknown> | null;
@@ -169,6 +178,13 @@ export const browserPackagePromotionClient = {
   revisePackage(id: string, input: Record<string, unknown>) {
     return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/revisions`, {
       method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(input),
+    });
+  },
+  replacePackageScopes(id: string, input: Record<string, unknown>) {
+    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/scopes`, {
+      method: 'PUT',
       headers: headers(),
       body: JSON.stringify(input),
     });

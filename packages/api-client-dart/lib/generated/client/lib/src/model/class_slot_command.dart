@@ -13,6 +13,8 @@ part 'class_slot_command.g.dart';
 /// Properties:
 /// * [branchId] 
 /// * [classTypeId] 
+/// * [studioId] 
+/// * [roomId] 
 /// * [instructorUserId] 
 /// * [startAt] - RFC3339 with numeric offset or Z
 /// * [endAt] - Exclusive RFC3339 boundary with numeric offset or Z
@@ -23,6 +25,12 @@ abstract class ClassSlotCommand implements Built<ClassSlotCommand, ClassSlotComm
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'studioId')
+  String get studioId;
+
+  @BuiltValueField(wireName: r'roomId')
+  String? get roomId;
 
   @BuiltValueField(wireName: r'instructorUserId')
   String? get instructorUserId;
@@ -68,6 +76,18 @@ class _$ClassSlotCommandSerializer implements PrimitiveSerializer<ClassSlotComma
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    yield r'studioId';
+    yield serializers.serialize(
+      object.studioId,
+      specifiedType: const FullType(String),
+    );
+    if (object.roomId != null) {
+      yield r'roomId';
+      yield serializers.serialize(
+        object.roomId,
+        specifiedType: const FullType(String),
+      );
+    }
     if (object.instructorUserId != null) {
       yield r'instructorUserId';
       yield serializers.serialize(
@@ -121,6 +141,20 @@ class _$ClassSlotCommandSerializer implements PrimitiveSerializer<ClassSlotComma
             specifiedType: const FullType(String),
           ) as String;
           result.classTypeId = valueDes;
+          break;
+        case r'studioId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.studioId = valueDes;
+          break;
+        case r'roomId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.roomId = valueDes;
           break;
         case r'instructorUserId':
           final valueDes = serializers.deserialize(

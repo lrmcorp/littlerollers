@@ -110,42 +110,34 @@ export class PackagePromotionService {
       include: {
         branch: { select: { id: true, code: true, name: true } },
         classType: true,
+        branchScopes: {
+          where: { active: true },
+          include: { branch: { select: { id: true, code: true, name: true } } },
+        },
+        classTypeScopes: {
+          where: { active: true },
+          include: { classType: { select: { id: true, code: true, name: true } } },
+        },
+        revisions: { orderBy: { revisionNumber: 'desc' } },
         publicProfile: true,
         _count: { select: { purchases: true, customerPackages: true } },
       },
     });
     if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    if (manage) this.requireManage(principal, pkg.branchId);
-    else this.scope(principal, pkg.branchId);
+    for (const packageScope of pkg.branchScopes) {
+      if (manage) this.requireManage(principal, packageScope.branchId);
+      else this.scope(principal, packageScope.branchId);
+    }
     return pkg;
   }
 
   async packageDetail(principal: SessionPrincipal, packageId: string) {
     const pkg = await this.packageOrThrow(principal, packageId);
-    const [promotions, revisions, auditActivity] = await Promise.all([
+    const [promotions, auditActivity] = await Promise.all([
       this.db.packagePromotion.findMany({
         where: { packageId },
         include: { package: true, _count: { select: { purchases: true } } },
         orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
-      }),
-      this.db.package.findMany({
-        where: {
-          branchId: pkg.branchId,
-          classTypeId: pkg.classTypeId,
-          businessKey: pkg.businessKey,
-        },
-        orderBy: [{ effectiveFrom: 'desc' }, { id: 'desc' }],
-        select: {
-          id: true,
-          name: true,
-          sessionCount: true,
-          durationDays: true,
-          priceRp: true,
-          status: true,
-          effectiveFrom: true,
-          effectiveUntil: true,
-          version: true,
-        },
       }),
       this.db.auditLog.findMany({
         where: {
@@ -160,7 +152,6 @@ export class PackagePromotionService {
     return {
       ...pkg,
       promotions: promotions.map((item) => this.view(item)),
-      revisions,
       auditActivity,
     };
   }

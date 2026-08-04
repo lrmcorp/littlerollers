@@ -11,6 +11,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
   const adminId = randomUUID();
   const customerIds = [randomUUID(), randomUUID()] as const;
   const branchId = randomUUID();
+  const studioId = randomUUID();
   const classTypeId = randomUUID();
   const packageId = randomUUID();
   const customerPackageIds = [randomUUID(), randomUUID()] as const;
@@ -59,6 +60,9 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     await db.branch.create({
       data: { id: branchId, code: namespace, name: 'Reschedule branch', timezone: 'Asia/Jakarta' },
     });
+    await db.studio.create({
+      data: { id: studioId, branchId, code: 'MAIN', name: 'Reschedule main studio' },
+    });
     await db.classType.create({
       data: { id: classTypeId, branchId, code: 'RESCHEDULE', name: 'Reschedule class' },
     });
@@ -82,6 +86,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           id,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + (48 + index * 4) * 3_600_000),
           endAt: new Date(now + (49 + index * 4) * 3_600_000),
           timezone: 'Asia/Jakarta',
@@ -94,6 +99,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           id,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + (72 + index * 4) * 3_600_000),
           endAt: new Date(now + (73 + index * 4) * 3_600_000),
           timezone: 'Asia/Jakarta',
@@ -193,6 +199,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     await db.classSlot.deleteMany({ where: { branchId } });
     await db.package.delete({ where: { id: packageId } });
     await db.classType.delete({ where: { id: classTypeId } });
+    await db.studio.delete({ where: { id: studioId } });
     await db.branch.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [adminId, ...customerIds] } } });
     await db.$disconnect();

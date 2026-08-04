@@ -61,7 +61,7 @@ export function bsdQuotaJobFixture(
 
 export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>) {
   const customerId = users.customer!; const financeId = users.finance!; const managerId = users.manager!; const instructorId = users.instructor!;
-  const branchId = master.branches['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
+  const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
   const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
     where: { branchId, active: true },
@@ -74,7 +74,7 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   const slots: Record<string, string> = {};
   for (const item of statuses) {
     const id = ctx.id('class-slot', item.key); slots[item.key] = id;
-    await ctx.db.classSlot.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked }, create: { id, branchId, classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
+    await ctx.db.classSlot.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked }, create: { id, branchId, studioId, classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
   }
   const purchaseStatuses: PurchaseStatus[] = ['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED'];
   const purchases: Record<string, string> = {};
@@ -293,6 +293,7 @@ async function seedBsdOperationalScenarios(
   const branchId = master.branches['DD-BSD']!;
   const classTypeId = master.classTypes['DD-BSD:REFORMER']!;
   const packageId = master.packages['DD-BSD:REFORMER:10']!;
+  const studioId = master.studios['DD-BSD']!;
   const customerId = users.customer!;
   const managerId = users['manager-bsd']!;
   const financeId = users.finance!;
@@ -318,6 +319,7 @@ async function seedBsdOperationalScenarios(
       create: {
         id,
         branchId,
+        studioId,
         classTypeId,
         instructorUserId: instructorId,
         startAt: ctx.at(slot.day, 10),
@@ -583,14 +585,14 @@ async function seedBsdOperationalScenarios(
 }
 
 export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>, count = 500) {
-  const branchId = master.branches['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:MAT']!; const packageId = master.packages['DD-JKT:MAT:8']!;
+  const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:MAT']!; const packageId = master.packages['DD-JKT:MAT:8']!;
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
   for (let index = 0; index < count; index++) {
     const customerId = ctx.id('volume-user', index); const purchaseId = ctx.id('volume-purchase', index); const customerPackageId = ctx.id('volume-customer-package', index);
     const slotId = ctx.id('volume-slot', index); const reservationId = ctx.id('volume-reservation', index); const bookingId = ctx.id('volume-booking', index);
     await ctx.db.user.upsert({ where: { id: customerId }, update: { displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}` }, create: { id: customerId, displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}`, status: 'ACTIVE' } });
     await ctx.db.userRole.upsert({ where: { id: ctx.id('volume-role', index) }, update: { userId: customerId, role: 'CUSTOMER' }, create: { id: ctx.id('volume-role', index), userId: customerId, role: 'CUSTOMER', activeFrom: new Date('2026-01-01') } });
-    await ctx.db.classSlot.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
+    await ctx.db.classSlot.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, studioId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
     await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: { timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
     await seedPurchaseTimeline(ctx, purchaseId, [
       { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-(index % 90), index % 12) },

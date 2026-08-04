@@ -26,7 +26,7 @@ export class EffectiveSettingsService {
   constructor(
     private readonly db: PrismaService,
     private readonly access: MasterAccessService,
-  ) {}
+  ) { }
 
   async list(principal: SessionPrincipal, kind: SettingKind, branchId?: string) {
     this.access.authorize(principal);
@@ -72,12 +72,29 @@ export class EffectiveSettingsService {
             WHERE \`id\` = ${input.classTypeId}
             FOR UPDATE
           `;
-          const [branch, classType] = await Promise.all([
-            tx.branch.findUnique({ where: { id: input.branchId } }),
-            tx.classType.findUnique({ where: { id: input.classTypeId } }),
+          const [branch, classType, classTypeScope] = await Promise.all([
+            tx.branch.findUnique({
+              where: { id: input.branchId },
+            }),
+            tx.classType.findUnique({
+              where: { id: input.classTypeId },
+            }),
+            tx.classTypeBranchScope.findUnique({
+              where: {
+                classTypeId_branchId: {
+                  classTypeId: input.classTypeId,
+                  branchId: input.branchId,
+                },
+              },
+              select: {
+                active: true,
+              },
+            }),
           ]);
-          if (!branch?.active || !classType?.active || classType.branchId !== input.branchId)
+
+          if (!branch?.active || !classType?.active || !classTypeScope?.active) {
             throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+          }
           if (input.kind === 'INSTRUCTOR_FEE') {
             const user = await tx.user.findUnique({ where: { id: input.instructorUserId! } });
             if (!user || user.status !== 'ACTIVE')

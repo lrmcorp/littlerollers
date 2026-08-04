@@ -97,8 +97,10 @@ models/ClassSlotPage.ts
 models/ClassSlotUpdateCommand.ts
 models/ClassSlotVersionCommand.ts
 models/ClassType.ts
+models/ClassTypeBranchScopesInner.ts
 models/ClassTypeCommand.ts
 models/ClassTypePage.ts
+models/ClassTypeScopeCommand.ts
 models/ClassTypeUpdateCommand.ts
 models/CloseMonthRequest.ts
 models/CloseResult.ts
@@ -192,6 +194,11 @@ models/InternalPackageDetail.ts
 models/InviteUserRequest.ts
 models/IssueCustomerCheckInLinkCommand.ts
 models/LedgerEntry.ts
+models/LegacyFinancialEntry.ts
+models/LegacyFinancialEntryActor.ts
+models/LegacyFinancialEntryPage.ts
+models/LegacyFinancialEntryPageSummaryValue.ts
+models/LegacyFinancialEntryPurchase.ts
 models/ListPaymentAccounts200Response.ts
 models/LookupOption.ts
 models/LookupOptionMetadata.ts
@@ -227,6 +234,9 @@ models/OtherCostPage.ts
 models/OtpRequest.ts
 models/OtpVerifyRequest.ts
 models/Package.ts
+models/PackageBranchScope.ts
+models/PackageBranchScopeBranch.ts
+models/PackageClassTypeScope.ts
 models/PackageCommand.ts
 models/PackageLedgerResult.ts
 models/PackageManagementSummary.ts
@@ -237,7 +247,9 @@ models/PackagePromotionOrderPage.ts
 models/PackagePromotionOrderPageItemsInner.ts
 models/PackagePromotionPage.ts
 models/PackagePromotionUpdateCommand.ts
+models/PackageRevision.ts
 models/PackageRevisionCommand.ts
+models/PackageScopeCommand.ts
 models/PackageUpdateCommand.ts
 models/Page.ts
 models/PagePage.ts
@@ -312,6 +324,10 @@ models/RevokeSessionsCommand.ts
 models/Role.ts
 models/RoleCatalog.ts
 models/RoleCatalogItem.ts
+models/Room.ts
+models/RoomCommand.ts
+models/RoomPage.ts
+models/RoomUpdateCommand.ts
 models/SafeAuditActivity.ts
 models/Session.ts
 models/SessionAdjustment.ts
@@ -319,6 +335,10 @@ models/SessionAdjustmentDecisionCommand.ts
 models/SessionAdjustmentPage.ts
 models/SessionAdjustmentSummary.ts
 models/SessionBranch.ts
+models/Studio.ts
+models/StudioCommand.ts
+models/StudioPage.ts
+models/StudioUpdateCommand.ts
 models/SubmitPurchaseRequest.ts
 models/TimeRangeCommand.ts
 models/TokenCheckInCommand.ts

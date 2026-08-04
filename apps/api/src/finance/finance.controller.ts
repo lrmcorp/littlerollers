@@ -23,4 +23,13 @@ export class FinanceController {
   ) {
     return this.finance.anomalies(request.principal, query);
   }
+
+  @Get('legacy-cashflow')
+  legacyCashflow(
+    @Req() request: AuthenticatedRequest,
+    @Query()
+    query: { branchId?: string; from?: string; until?: string; cursor?: string; limit?: string },
+  ) {
+    return this.finance.legacyCashflow(request.principal, query);
+  }
 }

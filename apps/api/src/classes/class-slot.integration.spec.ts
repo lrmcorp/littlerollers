@@ -19,6 +19,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     instructorId = randomUUID(),
     customerId = randomUUID(),
     branchId = randomUUID(),
+    studioId = randomUUID(),
     classTypeId = randomUUID(),
     assignmentId = randomUUID(),
     availabilityId = randomUUID(),
@@ -48,8 +49,14 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     await db.branch.create({
       data: { id: branchId, code: namespace, name: 'Synthetic branch', timezone: 'Asia/Jakarta' },
     });
+    await db.studio.create({
+      data: { id: studioId, branchId, code: 'MAIN', name: 'Synthetic main studio' },
+    });
     await db.classType.create({
       data: { id: classTypeId, branchId, code: 'REFORMER', name: 'Reformer' },
+    });
+    await db.classTypeBranchScope.create({
+      data: { id: randomUUID(), classTypeId, branchId },
     });
     await db.assignment.create({
       data: {
@@ -112,6 +119,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     await db.instructorAvailability.delete({ where: { id: availabilityId } });
     await db.assignment.delete({ where: { id: assignmentId } });
     await db.classType.delete({ where: { id: classTypeId } });
+    await db.studio.delete({ where: { id: studioId } });
     await db.branch.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId, customerId] } } });
     await db.$disconnect();
@@ -123,6 +131,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
       {
         branchId,
         classTypeId,
+        studioId,
         startAt: '2026-08-01T09:00:00+07:00',
         endAt: '2026-08-01T10:00:00+07:00',
       },
@@ -248,6 +257,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         {
           branchId,
           classTypeId,
+          studioId,
           instructorUserId: instructorId,
           startAt: `2026-08-01T${hour}:00:00+07:00`,
           endAt: `2026-08-01T${hour + 1}:00:00+07:00`,
@@ -355,6 +365,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
       {
         branchId,
         classTypeId,
+        studioId,
         instructorUserId: instructorId,
         startAt: '2026-08-01T11:00:00+07:00',
         endAt: '2026-08-01T12:00:00+07:00',
@@ -368,6 +379,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         {
           branchId,
           classTypeId,
+          studioId,
           instructorUserId: instructorId,
           startAt: '2026-08-01T11:30:00+07:00',
           endAt: '2026-08-01T12:30:00+07:00',
@@ -386,6 +398,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         {
           branchId,
           classTypeId,
+          studioId,
           instructorUserId: instructorId,
           startAt: '2026-08-03T09:00:00+07:00',
           endAt: '2026-08-03T10:00:00+07:00',

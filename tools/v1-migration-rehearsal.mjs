@@ -85,7 +85,7 @@ export function validateRehearsalEnvironment(environment) {
   for (const key of requiredKeys) required(environment[key], `${key}_REQUIRED`);
   if (environment.V1_MIGRATION_MEDIA_MODE !== 'metadata-only')
     throw new Error('V1_MIGRATION_MEDIA_MODE_MUST_BE_METADATA_ONLY');
-  if (environment.V1_MAPPING_VERSION !== 'v1.0.0')
+  if (environment.V1_MAPPING_VERSION !== '2.0.0')
     throw new Error('V1_MAPPING_VERSION_NOT_APPROVED');
   if (environment.V1_REHEARSAL_CONFIRMATION !== 'REHEARSAL_1_DATABASE_ONLY')
     throw new Error('V1_REHEARSAL_CONFIRMATION_REQUIRED');

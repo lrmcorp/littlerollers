@@ -14,7 +14,7 @@ const validEnvironment = {
   V1_SNAPSHOT_STARTED_AT: '2026-08-03T01:00:00.000Z',
   V1_SNAPSHOT_COMPLETED_AT: '2026-08-03T01:00:05.000Z',
   V1_SNAPSHOT_GTID: 'fixture:1-100',
-  V1_MAPPING_VERSION: 'v1.0.0',
+  V1_MAPPING_VERSION: '2.0.0',
   V1_MIGRATION_MEDIA_MODE: 'metadata-only',
   V1_BRANCH_CODES: '{"1":"SYN"}',
   V1_BRANCH_TIMEZONES: '{"1":"Asia/Jakarta"}',
@@ -77,7 +77,7 @@ test('rejects an inconsistent snapshot window or unapproved mapping', () => {
     /V1_SNAPSHOT_WINDOW_INVALID/u,
   );
   assert.throws(
-    () => validateRehearsalEnvironment({ ...validEnvironment, V1_MAPPING_VERSION: 'v2' }),
+    () => validateRehearsalEnvironment({ ...validEnvironment, V1_MAPPING_VERSION: '1.0.0' }),
     /V1_MAPPING_VERSION_NOT_APPROVED/u,
   );
 });

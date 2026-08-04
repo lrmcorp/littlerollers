@@ -19,10 +19,25 @@ export interface InstructorOption {
   displayName: string;
   branchId?: string;
 }
+export interface RoomOption {
+  id: string;
+  studioId: string;
+  code: string;
+  name: string;
+  capacity?: number | null;
+}
+export interface StudioOption {
+  id: string;
+  branchId: string;
+  code: string;
+  name: string;
+  rooms: RoomOption[];
+}
 export interface ClassWorkspace {
   slots: ClassSlot[];
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
+  studios: StudioOption[];
   nextCursor?: string | null;
 }
 export interface ClassSlotClient {
@@ -37,6 +52,8 @@ export interface ClassSlotClient {
   create(input: {
     branchId: string;
     classTypeId: string;
+    studioId: string;
+    roomId?: string;
     instructorUserId?: string;
     startAt: Date;
     endAt: Date;
@@ -81,12 +98,13 @@ export const browserClassSlotClient: ClassSlotClient = {
         }),
         Promise.all(
           scopedBranches.map(async (branch) => {
-            const [classTypes, users, assignments] = await Promise.all([
+            const [classTypes, users, assignments, studios] = await Promise.all([
               master.listClassTypes({ branchId: branch.id }),
               identity.listUsers({ branchId: branch.id }),
               identity.listAssignments({ branchId: branch.id }),
+              master.listBranchStudios({ id: branch.id }),
             ]);
-            return { branch, classTypes, users, assignments };
+            return { branch, classTypes, users, assignments, studios };
           }),
         ),
       ]),
@@ -132,6 +150,25 @@ export const browserClassSlotClient: ClassSlotClient = {
       nextCursor: slots.page.nextCursor,
       classTypes: classTypeOptions,
       instructors: [...new Map(instructorOptions.map((item) => [item.id, item])).values()],
+      studios: branchWorkspaces.flatMap(({ branch, studios }) =>
+        studios.items
+          .filter((studio) => studio.active)
+          .map((studio) => ({
+            id: studio.id,
+            branchId: branch.id,
+            code: studio.code,
+            name: studio.name,
+            rooms: (studio.rooms ?? [])
+              .filter((room) => room.active)
+              .map(({ id, studioId, code, name, capacity }) => ({
+                id,
+                studioId,
+                code,
+                name,
+                capacity,
+              })),
+          })),
+      ),
     };
   },
   create(input) {

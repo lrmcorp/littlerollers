@@ -47,7 +47,13 @@ describe('Finance anomaly pagination', () => {
         page: { hasMore: !cursor, nextCursor: cursor ? null : 'purchase-20' },
       }),
     );
-    const client = { overview, anomalies } as FinanceClient;
+    const legacyCashflow = vi.fn().mockResolvedValue({
+      items: [],
+      total: 0,
+      summary: {},
+      page: { hasMore: false, nextCursor: null },
+    });
+    const client = { overview, anomalies, legacyCashflow } as FinanceClient;
 
     render(<FinanceView client={client} />);
     expect(await screen.findByText('Halaman 1 · 20 data dari 25 anomali')).toBeVisible();

@@ -3,6 +3,7 @@ import {
   FinanceApi,
   type FinanceAnomaly,
   type FinanceReconciliationOverview,
+  type LegacyFinancialEntryPage,
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
 
@@ -14,6 +15,7 @@ export type FinanceAnomalyPage = {
 export type FinanceData = {
   overview: FinanceReconciliationOverview;
   anomalies: FinanceAnomalyPage;
+  legacyCashflow: LegacyFinancialEntryPage;
 };
 export interface FinanceClient {
   overview(input: {
@@ -25,6 +27,10 @@ export interface FinanceClient {
     input: { branchId?: string; from: string; until: string },
     cursor?: string,
   ): Promise<FinanceAnomalyPage>;
+  legacyCashflow(
+    input: { branchId?: string; from: string; until: string },
+    cursor?: string,
+  ): Promise<LegacyFinancialEntryPage>;
 }
 
 const api = new FinanceApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
@@ -58,5 +64,17 @@ export const browserFinanceClient: FinanceClient = {
         nextCursor: result.page.nextCursor ?? null,
       },
     };
+  },
+  legacyCashflow(input, cursor) {
+    return appLoading.track(
+      api.listLegacyFinancialEntries({
+        branchId: input.branchId,
+        from: new Date(`${input.from}T00:00:00.000Z`),
+        until: new Date(`${input.until}T00:00:00.000Z`),
+        cursor,
+        limit: 20,
+      }),
+      { label: 'Memuat legacy cashflow…' },
+    );
   },
 };

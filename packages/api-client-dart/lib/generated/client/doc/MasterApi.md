@@ -10,18 +10,21 @@ All URIs are relative to */api/v1*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**createBranch**](MasterApi.md#createbranch) | **POST** /branches | 
+[**createBranchStudio**](MasterApi.md#createbranchstudio) | **POST** /branches/{id}/studios | 
 [**createClassType**](MasterApi.md#createclasstype) | **POST** /class-types | 
 [**createEffectiveSetting**](MasterApi.md#createeffectivesetting) | **POST** /master-settings/{kind} | 
 [**createInstructorFee**](MasterApi.md#createinstructorfee) | **POST** /instructor-fees | 
 [**createPaymentAccount**](MasterApi.md#createpaymentaccount) | **POST** /payment-accounts | 
 [**createProjectionRate**](MasterApi.md#createprojectionrate) | **POST** /projection-rates | 
 [**createQuotaCapacitySetting**](MasterApi.md#createquotacapacitysetting) | **POST** /quota-capacity-settings | 
+[**createStudioRoom**](MasterApi.md#createstudioroom) | **POST** /studios/{id}/rooms | 
 [**deactivateBranch**](MasterApi.md#deactivatebranch) | **POST** /branches/{id}/deactivate | 
 [**deactivateClassType**](MasterApi.md#deactivateclasstype) | **POST** /class-types/{id}/deactivate | 
 [**deactivatePaymentAccount**](MasterApi.md#deactivatepaymentaccount) | **POST** /payment-accounts/{id}/deactivate | 
 [**getBranch**](MasterApi.md#getbranch) | **GET** /branches/{id} | 
 [**getPaymentAccount**](MasterApi.md#getpaymentaccount) | **GET** /payment-accounts/{id} | 
 [**getPublicStudioDetail**](MasterApi.md#getpublicstudiodetail) | **GET** /public/studios/{slug} | 
+[**listBranchStudios**](MasterApi.md#listbranchstudios) | **GET** /branches/{id}/studios | 
 [**listBranches**](MasterApi.md#listbranches) | **GET** /branches | 
 [**listClassTypes**](MasterApi.md#listclasstypes) | **GET** /class-types | 
 [**listEffectiveSettings**](MasterApi.md#listeffectivesettings) | **GET** /master-settings/{kind} | 
@@ -29,11 +32,15 @@ Method | HTTP request | Description
 [**listPaymentAccounts**](MasterApi.md#listpaymentaccounts) | **GET** /payment-accounts | 
 [**listProjectionRates**](MasterApi.md#listprojectionrates) | **GET** /projection-rates | 
 [**listQuotaCapacitySettings**](MasterApi.md#listquotacapacitysettings) | **GET** /quota-capacity-settings | 
+[**listStudioRooms**](MasterApi.md#liststudiorooms) | **GET** /studios/{id}/rooms | 
 [**reactivateBranch**](MasterApi.md#reactivatebranch) | **POST** /branches/{id}/reactivate | 
 [**reactivateClassType**](MasterApi.md#reactivateclasstype) | **POST** /class-types/{id}/reactivate | 
 [**reactivatePaymentAccount**](MasterApi.md#reactivatepaymentaccount) | **POST** /payment-accounts/{id}/reactivate | 
+[**replaceClassTypeBranchScopes**](MasterApi.md#replaceclasstypebranchscopes) | **PUT** /class-types/{id}/scopes | 
 [**updateBranch**](MasterApi.md#updatebranch) | **PATCH** /branches/{id} | 
 [**updateClassType**](MasterApi.md#updateclasstype) | **PATCH** /class-types/{id} | 
+[**updateRoom**](MasterApi.md#updateroom) | **PATCH** /rooms/{id} | 
+[**updateStudio**](MasterApi.md#updatestudio) | **PATCH** /studios/{id} | 
 
 
 # **createBranch**
@@ -81,12 +88,55 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **createBranchStudio**
+> Studio createBranchStudio(id, studioCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final StudioCommand studioCommand = ; // StudioCommand | 
+
+try {
+    final response = api.createBranchStudio(id, studioCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->createBranchStudio: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **studioCommand** | [**StudioCommand**](StudioCommand.md)|  | 
+
+### Return type
+
+[**Studio**](Studio.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **createClassType**
 > ClassType createClassType(classTypeCommand)
 
 
 
-Creates an active class type in one visible branch. Requires master:manage.
+Creates one global class type. Optional branchIds create explicit availability scopes; no active branch selection is required.
 
 ### Example
 ```dart
@@ -321,6 +371,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Resource**](Resource.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createStudioRoom**
+> Room createStudioRoom(id, roomCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final RoomCommand roomCommand = ; // RoomCommand | 
+
+try {
+    final response = api.createStudioRoom(id, roomCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->createStudioRoom: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **roomCommand** | [**RoomCommand**](RoomCommand.md)|  | 
+
+### Return type
+
+[**Room**](Room.md)
 
 ### Authorization
 
@@ -587,6 +680,47 @@ Name | Type | Description  | Notes
 ### Authorization
 
 No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listBranchStudios**
+> StudioPage listBranchStudios(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.listBranchStudios(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->listBranchStudios: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**StudioPage**](StudioPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
 
 ### HTTP request headers
 
@@ -898,6 +1032,47 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listStudioRooms**
+> RoomPage listStudioRooms(id)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.listStudioRooms(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->listStudioRooms: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**RoomPage**](RoomPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **reactivateBranch**
 > Branch reactivateBranch(id, idempotencyKey, body)
 
@@ -1035,6 +1210,51 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **replaceClassTypeBranchScopes**
+> ClassType replaceClassTypeBranchScopes(id, classTypeScopeCommand)
+
+
+
+Replaces the explicit Studio/Cabang availability scopes for a global class type. \"All\" is expanded by the client to the active branch IDs at decision time.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final ClassTypeScopeCommand classTypeScopeCommand = ; // ClassTypeScopeCommand | 
+
+try {
+    final response = api.replaceClassTypeBranchScopes(id, classTypeScopeCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->replaceClassTypeBranchScopes: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **classTypeScopeCommand** | [**ClassTypeScopeCommand**](ClassTypeScopeCommand.md)|  | 
+
+### Return type
+
+[**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **updateBranch**
 > Branch updateBranch(id, idempotencyKey, branchUpdateCommand)
 
@@ -1115,6 +1335,92 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**ClassType**](ClassType.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateRoom**
+> Room updateRoom(id, roomUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final RoomUpdateCommand roomUpdateCommand = ; // RoomUpdateCommand | 
+
+try {
+    final response = api.updateRoom(id, roomUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->updateRoom: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **roomUpdateCommand** | [**RoomUpdateCommand**](RoomUpdateCommand.md)|  | 
+
+### Return type
+
+[**Room**](Room.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateStudio**
+> Studio updateStudio(id, studioUpdateCommand)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getMasterApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final StudioUpdateCommand studioUpdateCommand = ; // StudioUpdateCommand | 
+
+try {
+    final response = api.updateStudio(id, studioUpdateCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MasterApi->updateStudio: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **studioUpdateCommand** | [**StudioUpdateCommand**](StudioUpdateCommand.md)|  | 
+
+### Return type
+
+[**Studio**](Studio.md)
 
 ### Authorization
 

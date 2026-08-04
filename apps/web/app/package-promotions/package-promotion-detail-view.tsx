@@ -16,6 +16,7 @@ import {
   type PackagePromotionPage,
   type PromotionOrderPage,
 } from '../package-promotion-client';
+import { browserMasterClient } from '../master-client';
 
 const rupiah = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -35,7 +36,6 @@ const stateLabels: Record<string, string> = {
 type PackageRevision = NonNullable<InternalPackageRecord['revisions']>[number];
 
 function revisionState(item: PackageRevision) {
-  if (item.status !== 'ACTIVE') return 'INACTIVE';
   const now = Date.now();
   if (new Date(item.effectiveFrom).getTime() > now) return 'SCHEDULED';
   if (item.effectiveUntil && new Date(item.effectiveUntil).getTime() <= now) return 'EXPIRED';
@@ -43,9 +43,8 @@ function revisionState(item: PackageRevision) {
 }
 
 function hasRevisionOverlap(items: PackageRevision[]) {
-  const active = items.filter((item) => item.status === 'ACTIVE');
-  return active.some((left, index) =>
-    active.slice(index + 1).some((right) => {
+  return items.some((left, index) =>
+    items.slice(index + 1).some((right) => {
       const leftStart = new Date(left.effectiveFrom).getTime();
       const leftEnd = left.effectiveUntil
         ? new Date(left.effectiveUntil).getTime()
@@ -71,9 +70,12 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
   const [orderHistory, setOrderHistory] = useState<Record<string, Array<string | undefined>>>({});
   const [selectedOrderPromotionId, setSelectedOrderPromotionId] = useState<string>();
   const [editor, setEditor] = useState<PackagePromotionRecord | 'new' | null>(null);
-  const [packageEditor, setPackageEditor] = useState<'metadata' | 'revision' | 'lifecycle' | null>(
-    null,
-  );
+  const [packageEditor, setPackageEditor] = useState<
+    'metadata' | 'revision' | 'scopes' | 'lifecycle' | null
+  >(null);
+  const [globalClassTypes, setGlobalClassTypes] = useState<
+    Array<{ id: string; name: string; branchScopes: Array<{ branchId: string; active: boolean }> }>
+  >([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const canManage =
@@ -92,6 +94,10 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
       .then(setPromotionPage)
       .catch(() => setError('Histori promo tidak dapat dimuat.'));
   }, [id, promotionCursor]);
+  useEffect(() => {
+    if (packageEditor === 'scopes')
+      void browserMasterClient.listClassTypes().then((items) => setGlobalClassTypes(items));
+  }, [packageEditor]);
   if (!session || session.status === 'loading') return <Skeleton label="Memuat detail paket" />;
   if (error) return <AlertBanner tone="danger" title="Paket tidak tersedia" message={error} />;
   if (!pkg) return <Skeleton label="Memuat detail paket" />;
@@ -144,7 +150,11 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             {pkg.name}
           </h1>
           <p className="mt-2 text-sm text-dd-muted">
-            {pkg.branch?.name} · {pkg.sessionCount} sesi · {pkg.durationDays} hari
+            {(pkg.branchScopes ?? [])
+              .map((scope) => scope.branch?.name)
+              .filter(Boolean)
+              .join(', ') || pkg.branch?.name}{' '}
+            · {pkg.sessionCount} sesi · {pkg.durationDays} hari
           </p>
         </div>
         {canManage && (
@@ -162,12 +172,32 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
             <PackageInfo label="Nama paket" value={pkg.name} />
             <PackageInfo label="Business key" value={pkg.businessKey} />
-            <PackageInfo label="Cabang / studio" value={pkg.branch?.name ?? '—'} />
-            <PackageInfo label="Tipe kelas" value={pkg.classType?.name ?? '—'} />
+            <PackageInfo
+              label="Scope Studio/Cabang"
+              value={
+                pkg.branchScopes
+                  ?.map((scope) => scope.branch?.name)
+                  .filter(Boolean)
+                  .join(', ') ||
+                pkg.branch?.name ||
+                '—'
+              }
+            />
+            <PackageInfo
+              label="Scope tipe kelas"
+              value={
+                pkg.classTypeScopes
+                  ?.map((scope) => scope.classType?.name)
+                  .filter(Boolean)
+                  .join(', ') ||
+                pkg.classType?.name ||
+                '—'
+              }
+            />
           </dl>
           <p className="mt-4 text-xs leading-5 text-dd-muted">
-            Cabang, tipe kelas, dan business key adalah identitas tetap. Jika cabang salah, buat
-            paket baru pada cabang tujuan.
+            Business key adalah identitas global. Ketersediaan paket ditentukan oleh scope
+            Studio/Cabang dan tipe kelas yang eksplisit.
           </p>
         </Panel>
         <Panel className="p-5">
@@ -215,6 +245,9 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           >
             Buat revisi paket
           </Button>
+          <Button variant="secondary" onClick={() => setPackageEditor('scopes')}>
+            Atur scope paket
+          </Button>
           <Button
             variant={pkg.status === 'ACTIVE' ? 'danger' : 'primary'}
             leadingIcon={
@@ -251,7 +284,11 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           rowKey={(item) => item.id}
           emptyTitle="Belum ada revisi"
           columns={[
-            { id: 'name', header: 'Nama', cell: (item) => item.name },
+            {
+              id: 'name',
+              header: 'Revisi',
+              cell: (item) => `Revisi ${item.revisionNumber}`,
+            },
             {
               id: 'price',
               header: 'Harga',
@@ -291,7 +328,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           ]}
           mobileCard={(item) => (
             <div className="grid gap-1">
-              <strong>{item.name}</strong>
+              <strong>Revisi {item.revisionNumber}</strong>
               <span>{rupiah.format(item.priceRp)}</span>
               <span className="text-xs text-dd-muted">
                 {item.sessionCount} sesi · {item.durationDays} hari
@@ -590,6 +627,8 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
       <PackageLifecycleEditor
         pkg={pkg}
         mode={packageEditor}
+        branches={session.session?.branches ?? []}
+        classTypes={globalClassTypes}
         onClose={() => setPackageEditor(null)}
         onSaved={async (updated) => {
           setPackageEditor(null);
@@ -621,11 +660,19 @@ function PackageInfo({ label, value }: { label: string; value: string }) {
 function PackageLifecycleEditor({
   pkg,
   mode,
+  branches,
+  classTypes,
   onClose,
   onSaved,
 }: {
   pkg: InternalPackageRecord;
-  mode: 'metadata' | 'revision' | 'lifecycle' | null;
+  mode: 'metadata' | 'revision' | 'scopes' | 'lifecycle' | null;
+  branches: Array<{ id: string; name: string }>;
+  classTypes: Array<{
+    id: string;
+    name: string;
+    branchScopes: Array<{ branchId: string; active: boolean }>;
+  }>;
   onClose(): void;
   onSaved(updated: InternalPackageRecord): Promise<void>;
 }) {
@@ -658,11 +705,13 @@ function PackageLifecycleEditor({
       title={
         mode === 'revision'
           ? 'Buat revisi paket'
-          : mode === 'lifecycle'
-            ? pkg.status === 'ACTIVE'
-              ? 'Nonaktifkan paket'
-              : 'Aktifkan kembali paket'
-            : 'Edit paket'
+          : mode === 'scopes'
+            ? 'Atur scope paket'
+            : mode === 'lifecycle'
+              ? pkg.status === 'ACTIVE'
+                ? 'Nonaktifkan paket'
+                : 'Aktifkan kembali paket'
+              : 'Edit paket'
       }
       onClose={onClose}
       busy={busy}
@@ -690,11 +739,13 @@ function PackageLifecycleEditor({
           const action =
             mode === 'revision'
               ? 'membuat revisi komersial baru'
-              : mode === 'lifecycle'
-                ? pkg.status === 'ACTIVE'
-                  ? 'menonaktifkan paket'
-                  : 'mengaktifkan kembali paket'
-                : 'memperbarui paket';
+              : mode === 'scopes'
+                ? 'mengganti scope paket'
+                : mode === 'lifecycle'
+                  ? pkg.status === 'ACTIVE'
+                    ? 'menonaktifkan paket'
+                    : 'mengaktifkan kembali paket'
+                  : 'memperbarui paket';
           const accepted = await feedback.confirm({
             tone: mode === 'lifecycle' && pkg.status === 'ACTIVE' ? 'danger' : 'warning',
             title: `Konfirmasi ${action}`,
@@ -722,27 +773,34 @@ function PackageLifecycleEditor({
                     effectiveUntil: data.get('effectiveUntil') || null,
                     reason,
                   })
-                : mode === 'lifecycle'
-                  ? await browserPackagePromotionClient.transitionPackage(
-                      pkg.id,
-                      pkg.status === 'ACTIVE' ? 'deactivate' : 'reactivate',
-                      pkg.version,
-                      reason,
-                    )
-                  : await browserPackagePromotionClient.updatePackage(pkg.id, {
+                : mode === 'scopes'
+                  ? await browserPackagePromotionClient.replacePackageScopes(pkg.id, {
+                      branchIds: data.getAll('branchIds').map(String),
+                      classTypeIds: data.getAll('classTypeIds').map(String),
                       expectedVersion: pkg.version,
-                      name: String(data.get('name')),
-                      ...(canEditCommercialInPlace
-                        ? {
-                            sessionCount: Number(data.get('sessionCount')),
-                            durationDays: Number(data.get('durationDays')),
-                            priceRp: Number(data.get('priceRp')),
-                            effectiveFrom: String(data.get('effectiveFrom')),
-                            effectiveUntil: data.get('effectiveUntil') || null,
-                          }
-                        : {}),
                       reason,
-                    });
+                    })
+                  : mode === 'lifecycle'
+                    ? await browserPackagePromotionClient.transitionPackage(
+                        pkg.id,
+                        pkg.status === 'ACTIVE' ? 'deactivate' : 'reactivate',
+                        pkg.version,
+                        reason,
+                      )
+                    : await browserPackagePromotionClient.updatePackage(pkg.id, {
+                        expectedVersion: pkg.version,
+                        name: String(data.get('name')),
+                        ...(canEditCommercialInPlace
+                          ? {
+                              sessionCount: Number(data.get('sessionCount')),
+                              durationDays: Number(data.get('durationDays')),
+                              priceRp: Number(data.get('priceRp')),
+                              effectiveFrom: String(data.get('effectiveFrom')),
+                              effectiveUntil: data.get('effectiveUntil') || null,
+                            }
+                          : {}),
+                        reason,
+                      });
             setDirty(false);
             await onSaved(updated);
           } catch {
@@ -757,7 +815,7 @@ function PackageLifecycleEditor({
         {failure && (
           <AlertBanner tone="danger" title="Perubahan belum tersimpan" message={failure} />
         )}
-        {mode !== 'lifecycle' && (
+        {mode !== 'lifecycle' && mode !== 'scopes' && (
           <TextInput name="name" label="Nama paket" defaultValue={pkg.name} required />
         )}
         {mode === 'metadata' && (
@@ -847,6 +905,47 @@ function PackageLifecycleEditor({
             />
             <DateInput name="effectiveFrom" label="Mulai berlaku" required />
             <DateInput name="effectiveUntil" label="Berakhir" />
+          </>
+        )}
+        {mode === 'scopes' && (
+          <>
+            <AlertBanner
+              tone="info"
+              title="Scope eksplisit"
+              message="Pilih sedikitnya satu Studio/Cabang dan satu tipe kelas. Pilihan tipe kelas harus tersedia pada seluruh cabang yang dipilih."
+            />
+            <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
+              <legend className="px-1 text-sm font-semibold">Studio/Cabang</legend>
+              {branches.map((branch) => (
+                <label className="flex items-center gap-2 text-sm" key={branch.id}>
+                  <input
+                    type="checkbox"
+                    name="branchIds"
+                    value={branch.id}
+                    defaultChecked={pkg.branchScopes?.some(
+                      (scope) => scope.branchId === branch.id && scope.active,
+                    )}
+                  />
+                  {branch.name}
+                </label>
+              ))}
+            </fieldset>
+            <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
+              <legend className="px-1 text-sm font-semibold">Tipe kelas</legend>
+              {classTypes.map((classType) => (
+                <label className="flex items-center gap-2 text-sm" key={classType.id}>
+                  <input
+                    type="checkbox"
+                    name="classTypeIds"
+                    value={classType.id}
+                    defaultChecked={pkg.classTypeScopes?.some(
+                      (scope) => scope.classTypeId === classType.id && scope.active,
+                    )}
+                  />
+                  {classType.name}
+                </label>
+              ))}
+            </fieldset>
           </>
         )}
         <TextInput name="reason" label="Alasan perubahan" minLength={3} required />

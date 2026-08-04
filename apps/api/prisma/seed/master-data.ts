@@ -187,6 +187,7 @@ export const masterCatalog = [
 
 export interface SeedCatalogResult {
   branches: Record<string, string>;
+  studios: Record<string, string>;
   classTypes: Record<string, string>;
 }
 
@@ -235,6 +236,7 @@ export function validateMasterTemplates(templates = branchTemplates) {
 export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogResult> {
   validateMasterTemplates();
   const branches: Record<string, string> = {};
+  const studios: Record<string, string> = {};
   const classTypes: Record<string, string> = {};
   for (const template of branchTemplates) {
     const branch = await ctx.db.branch.upsert({
@@ -254,21 +256,52 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
       },
     });
     branches[template.code] = branch.id;
-    for (const item of masterCatalog) {
-      const classType = await ctx.db.classType.upsert({
-        where: { branchId_code: { branchId: branch.id, code: item.code } },
-        update: { name: item.name, active: true },
+    const studio = await ctx.db.studio.upsert({
+      where: { branchId_code: { branchId: branch.id, code: 'MAIN' } },
+      update: { name: `Area Studio ${template.name}`, active: true },
+      create: {
+        id: ctx.id('studio', template.code),
+        branchId: branch.id,
+        code: 'MAIN',
+        name: `Area Studio ${template.name}`,
+      },
+    });
+    studios[template.code] = studio.id;
+  }
+  for (const item of masterCatalog) {
+    const classType = await ctx.db.classType.upsert({
+      where: { code: item.code },
+      update: {
+        name: item.name,
+        active: true,
+        defaultMinimumQuota: item.quota,
+        defaultCapacity: item.capacity,
+      },
+      create: {
+        id: ctx.id('class-type', item.code),
+        code: item.code,
+        name: item.name,
+        modality: 'GROUP',
+        defaultDurationMinutes: 60,
+        defaultMinimumQuota: item.quota,
+        defaultCapacity: item.capacity,
+      },
+    });
+    for (const template of branchTemplates) {
+      const branchId = branches[template.code]!;
+      await ctx.db.classTypeBranchScope.upsert({
+        where: { classTypeId_branchId: { classTypeId: classType.id, branchId } },
+        update: { active: true },
         create: {
-          id: ctx.id('class-type', `${template.code}:${item.code}`),
-          branchId: branch.id,
-          code: item.code,
-          name: item.name,
+          id: ctx.id('class-type-scope', `${item.code}:${template.code}`),
+          classTypeId: classType.id,
+          branchId,
         },
       });
       classTypes[`${template.code}:${item.code}`] = classType.id;
     }
   }
-  return { branches, classTypes };
+  return { branches, studios, classTypes };
 }
 
 export async function seedCommercialMaster(

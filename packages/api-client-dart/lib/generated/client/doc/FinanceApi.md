@@ -15,6 +15,7 @@ Method | HTTP request | Description
 [**getFinanceReconciliationAnomalies**](FinanceApi.md#getfinancereconciliationanomalies) | **GET** /finance/reconciliation/anomalies | 
 [**getFinanceReconciliationOverview**](FinanceApi.md#getfinancereconciliationoverview) | **GET** /finance/reconciliation/overview | 
 [**getFinancialReport**](FinanceApi.md#getfinancialreport) | **GET** /reports/{reportType} | 
+[**listLegacyFinancialEntries**](FinanceApi.md#listlegacyfinancialentries) | **GET** /finance/reconciliation/legacy-cashflow | 
 [**listOtherCosts**](FinanceApi.md#listothercosts) | **GET** /other-costs | 
 [**listPeriods**](FinanceApi.md#listperiods) | **GET** /periods | 
 [**requestCorrection**](FinanceApi.md#requestcorrection) | **POST** /correction-journals | 
@@ -286,6 +287,57 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**FinancialReportPage**](FinancialReportPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listLegacyFinancialEntries**
+> LegacyFinancialEntryPage listLegacyFinancialEntries(branchId, from, until, cursor, limit)
+
+
+
+Historical single-entry v1 cashflow, explicitly separated from new v2 double-entry journals.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getFinanceApi();
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final Date from = 2013-10-20; // Date | 
+final Date until = 2013-10-20; // Date | 
+final String cursor = cursor_example; // String | 
+final int limit = 56; // int | 
+
+try {
+    final response = api.listLegacyFinancialEntries(branchId, from, until, cursor, limit);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling FinanceApi->listLegacyFinancialEntries: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **from** | **Date**|  | [optional] 
+ **until** | **Date**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
+
+### Return type
+
+[**LegacyFinancialEntryPage**](LegacyFinancialEntryPage.md)
 
 ### Authorization
 

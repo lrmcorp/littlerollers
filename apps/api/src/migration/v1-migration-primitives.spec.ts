@@ -1,4 +1,15 @@
 import { migrationTestables } from '../../prisma/v1-migration';
+import {
+  assertV1ColumnRegistry,
+  summarizeV1ColumnRegistry,
+  V1_COLUMN_REGISTRY,
+  V1_MAPPING_VERSION,
+} from '../../prisma/v1-column-registry';
+import {
+  mapV1BookingAttendance,
+  mapV1ClassSlotStatus,
+  mapV1PurchaseStatus,
+} from '../../prisma/v1-status-mapping';
 
 describe('Daily Dose v1 migration primitives', () => {
   it('produces stable checksums independent of object key order', () => {
@@ -52,5 +63,45 @@ describe('Daily Dose v1 migration primitives', () => {
     expect(migrationTestables.integerText('9007199254740993')).toBe('9007199254740993');
     expect(migrationTestables.jsonInteger('9007199254740993')).toBe('9007199254740993');
     expect(migrationTestables.jsonInteger('100000')).toBe(100000);
+  });
+
+  it('locks all 309 v1 columns to mapping version 2.0.0 with an explicit disposition', () => {
+    expect(() => assertV1ColumnRegistry()).not.toThrow();
+    expect(V1_MAPPING_VERSION).toBe('2.0.0');
+    expect(V1_COLUMN_REGISTRY).toHaveLength(309);
+    expect(Object.values(summarizeV1ColumnRegistry()).reduce((sum, value) => sum + value, 0)).toBe(
+      309,
+    );
+    expect(V1_COLUMN_REGISTRY.every(({ target, reason }) => target && reason)).toBe(true);
+  });
+
+  it('maps all known slot and attendance status codes without collapsing their meaning', () => {
+    expect([1, 2, 3, 4].map(mapV1ClassSlotStatus)).toEqual([
+      'PUBLISHED',
+      'CONFIRMED',
+      'COMPLETED',
+      'CANCELLED',
+    ]);
+    expect([1, 2, 3].map((status) => mapV1BookingAttendance(status).outcome)).toEqual([
+      'ATTENDED',
+      'EXCUSED',
+      'NO_SHOW',
+    ]);
+    expect(() => mapV1ClassSlotStatus(99)).toThrow('V1_CLASS_SLOT_STATUS_UNKNOWN:99');
+    expect(() => mapV1BookingAttendance(99)).toThrow('V1_BOOKING_ATTENDANCE_STATUS_UNKNOWN:99');
+  });
+
+  it('fails closed for unknown or conflicting legacy purchase state', () => {
+    expect(mapV1PurchaseStatus({ status: 1, active: 1 })).toEqual({
+      status: 'APPROVED',
+      conflict: false,
+    });
+    expect(mapV1PurchaseStatus({ status: 2, active: 1 })).toEqual({
+      status: 'ACTION_REQUIRED',
+      conflict: true,
+    });
+    expect(() => mapV1PurchaseStatus({ status: 99, active: 0 })).toThrow(
+      'V1_PURCHASE_STATUS_UNKNOWN:99',
+    );
   });
 });

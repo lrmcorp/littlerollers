@@ -213,6 +213,20 @@ export class PackagesController {
   ) {
     return this.catalog.revise(r.principal, id, body, key, r.correlationId ?? 'unknown');
   }
+  @Put('packages/:id/scopes') replacePackageScopes(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body()
+    body: {
+      branchIds: string[];
+      classTypeIds: string[];
+      expectedVersion: number;
+      reason: string;
+    },
+  ) {
+    return this.catalog.replaceScopes(r.principal, id, body, key, r.correlationId ?? 'unknown');
+  }
   @Post('packages/:id/:action') transitionPackage(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,

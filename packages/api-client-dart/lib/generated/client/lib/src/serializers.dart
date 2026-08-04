@@ -95,8 +95,10 @@ import 'package:openapi/src/model/class_slot_page.dart';
 import 'package:openapi/src/model/class_slot_update_command.dart';
 import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/class_type.dart';
+import 'package:openapi/src/model/class_type_branch_scopes_inner.dart';
 import 'package:openapi/src/model/class_type_command.dart';
 import 'package:openapi/src/model/class_type_page.dart';
+import 'package:openapi/src/model/class_type_scope_command.dart';
 import 'package:openapi/src/model/class_type_update_command.dart';
 import 'package:openapi/src/model/close_month_request.dart';
 import 'package:openapi/src/model/close_result.dart';
@@ -190,6 +192,11 @@ import 'package:openapi/src/model/internal_package_detail.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
 import 'package:openapi/src/model/issue_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/ledger_entry.dart';
+import 'package:openapi/src/model/legacy_financial_entry.dart';
+import 'package:openapi/src/model/legacy_financial_entry_actor.dart';
+import 'package:openapi/src/model/legacy_financial_entry_page.dart';
+import 'package:openapi/src/model/legacy_financial_entry_page_summary_value.dart';
+import 'package:openapi/src/model/legacy_financial_entry_purchase.dart';
 import 'package:openapi/src/model/list_payment_accounts200_response.dart';
 import 'package:openapi/src/model/lookup_option.dart';
 import 'package:openapi/src/model/lookup_option_metadata.dart';
@@ -225,6 +232,9 @@ import 'package:openapi/src/model/other_cost_page.dart';
 import 'package:openapi/src/model/otp_request.dart';
 import 'package:openapi/src/model/otp_verify_request.dart';
 import 'package:openapi/src/model/package.dart';
+import 'package:openapi/src/model/package_branch_scope.dart';
+import 'package:openapi/src/model/package_branch_scope_branch.dart';
+import 'package:openapi/src/model/package_class_type_scope.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
 import 'package:openapi/src/model/package_management_summary.dart';
@@ -235,7 +245,9 @@ import 'package:openapi/src/model/package_promotion_order_page.dart';
 import 'package:openapi/src/model/package_promotion_order_page_items_inner.dart';
 import 'package:openapi/src/model/package_promotion_page.dart';
 import 'package:openapi/src/model/package_promotion_update_command.dart';
+import 'package:openapi/src/model/package_revision.dart';
 import 'package:openapi/src/model/package_revision_command.dart';
+import 'package:openapi/src/model/package_scope_command.dart';
 import 'package:openapi/src/model/package_update_command.dart';
 import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/page_page.dart';
@@ -310,6 +322,10 @@ import 'package:openapi/src/model/revoke_sessions_command.dart';
 import 'package:openapi/src/model/role.dart';
 import 'package:openapi/src/model/role_catalog.dart';
 import 'package:openapi/src/model/role_catalog_item.dart';
+import 'package:openapi/src/model/room.dart';
+import 'package:openapi/src/model/room_command.dart';
+import 'package:openapi/src/model/room_page.dart';
+import 'package:openapi/src/model/room_update_command.dart';
 import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/session.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
@@ -317,6 +333,10 @@ import 'package:openapi/src/model/session_adjustment_decision_command.dart';
 import 'package:openapi/src/model/session_adjustment_page.dart';
 import 'package:openapi/src/model/session_adjustment_summary.dart';
 import 'package:openapi/src/model/session_branch.dart';
+import 'package:openapi/src/model/studio.dart';
+import 'package:openapi/src/model/studio_command.dart';
+import 'package:openapi/src/model/studio_page.dart';
+import 'package:openapi/src/model/studio_update_command.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
@@ -436,8 +456,10 @@ part 'serializers.g.dart';
   ClassSlotUpdateCommand,
   ClassSlotVersionCommand,
   ClassType,
+  ClassTypeBranchScopesInner,
   ClassTypeCommand,
   ClassTypePage,
+  ClassTypeScopeCommand,
   ClassTypeUpdateCommand,
   CloseMonthRequest,
   CloseResult,
@@ -531,6 +553,11 @@ part 'serializers.g.dart';
   InviteUserRequest,
   IssueCustomerCheckInLinkCommand,
   LedgerEntry,
+  LegacyFinancialEntry,
+  LegacyFinancialEntryActor,
+  LegacyFinancialEntryPage,
+  LegacyFinancialEntryPageSummaryValue,
+  LegacyFinancialEntryPurchase,
   ListPaymentAccounts200Response,
   LookupOption,
   LookupOptionMetadata,
@@ -566,6 +593,9 @@ part 'serializers.g.dart';
   OtpRequest,
   OtpVerifyRequest,
   Package,$Package,
+  PackageBranchScope,
+  PackageBranchScopeBranch,
+  PackageClassTypeScope,
   PackageCommand,
   PackageLedgerResult,
   PackageManagementSummary,
@@ -576,7 +606,9 @@ part 'serializers.g.dart';
   PackagePromotionOrderPageItemsInner,
   PackagePromotionPage,
   PackagePromotionUpdateCommand,
+  PackageRevision,
   PackageRevisionCommand,
+  PackageScopeCommand,
   PackageUpdateCommand,
   Page,
   PagePage,
@@ -651,6 +683,10 @@ part 'serializers.g.dart';
   Role,
   RoleCatalog,
   RoleCatalogItem,
+  Room,
+  RoomCommand,
+  RoomPage,
+  RoomUpdateCommand,
   SafeAuditActivity,
   Session,
   SessionAdjustment,
@@ -658,6 +694,10 @@ part 'serializers.g.dart';
   SessionAdjustmentPage,
   SessionAdjustmentSummary,
   SessionBranch,$SessionBranch,
+  Studio,
+  StudioCommand,
+  StudioPage,
+  StudioUpdateCommand,
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,

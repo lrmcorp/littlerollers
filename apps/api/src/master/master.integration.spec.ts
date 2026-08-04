@@ -49,7 +49,7 @@ databaseDescribe('effective master MySQL integration', () => {
     branchId = branch.id;
     const type = await catalog.createClassType(
       principal(),
-      { branchId, code: 'REFORMER', name: 'Reformer' },
+      { branchIds: [branchId], code: 'REFORMER', name: 'Reformer' },
       `${namespace}-class`,
     );
     classTypeId = type.id;
@@ -232,7 +232,7 @@ databaseDescribe('effective master MySQL integration', () => {
   it('updates safe class-type metadata and reactivates an inactive type idempotently', async () => {
     const item = await catalog.createClassType(
       principal(),
-      { branchId, code: 'BARRE_TEST', name: 'Barre Test' },
+      { branchIds: [branchId], code: 'BARRE_TEST', name: 'Barre Test' },
       `${namespace}-class-lifecycle`,
     );
     lifecycleClassTypeId = item.id;

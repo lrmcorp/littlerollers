@@ -134,11 +134,16 @@ export class VoucherService {
     if (classTypeId) {
       const classType = await this.db.classType.findUnique({
         where: { id: classTypeId },
-        select: { branchId: true },
+        select: { branchScopes: { where: { active: true }, select: { branchId: true } } },
       });
-      if (!classType || (branchId && classType.branchId !== branchId))
+      if (
+        !classType ||
+        (branchId && !classType.branchScopes.some((scope) => scope.branchId === branchId))
+      )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      this.access.scope(principal, classType.branchId, ['voucher:manage']);
+      if (!branchId)
+        for (const scope of classType.branchScopes)
+          this.access.scope(principal, scope.branchId, ['voucher:manage']);
     }
   }
 

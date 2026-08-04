@@ -7,13 +7,13 @@ void main() {
   // TODO add properties to the builder and call build()
 
   group(PackageCommand, () {
-    // String branchId
-    test('to test the property `branchId`', () async {
+    // BuiltSet<String> branchIds
+    test('to test the property `branchIds`', () async {
       // TODO
     });
 
-    // String classTypeId
-    test('to test the property `classTypeId`', () async {
+    // BuiltSet<String> classTypeIds
+    test('to test the property `classTypeIds`', () async {
       // TODO
     });
 

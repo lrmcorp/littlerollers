@@ -48,6 +48,8 @@ export class ClassSlotController {
     body: {
       branchId: string;
       classTypeId: string;
+      studioId: string;
+      roomId?: string;
       instructorUserId?: string;
       startAt: string;
       endAt: string;

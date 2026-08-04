@@ -1,4 +1,9 @@
-import { Configuration, MasterApi } from '@dailydose/api-client-ts/generated';
+import {
+  Configuration,
+  MasterApi,
+  type Room,
+  type Studio,
+} from '@dailydose/api-client-ts/generated';
 import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
 
@@ -45,16 +50,44 @@ export interface MasterClient {
     cursor?: string;
     limit?: number;
   }): Promise<MasterBranchPage>;
-  listClassTypes(
-    branchId: string,
-  ): Promise<Array<{ id: string; code: string; name: string; active: boolean; version: number }>>;
+  listClassTypes(branchId?: string): Promise<
+    Array<{
+      id: string;
+      code: string;
+      name: string;
+      active: boolean;
+      version: number;
+      branchScopes: Array<{ branchId: string; active: boolean; branch?: { name: string } }>;
+    }>
+  >;
   createBranch(input: {
     code: string;
     name: string;
     timezone: string;
     reason?: string;
   }): Promise<void>;
-  createClassType(input: { branchId: string; code: string; name: string }): Promise<void>;
+  createClassType(input: { code: string; name: string; branchIds?: string[] }): Promise<void>;
+  listStudios(branchId: string): Promise<Studio[]>;
+  createStudio(
+    branchId: string,
+    input: { code: string; name: string; equipmentText?: string; contactPhoneE164?: string },
+  ): Promise<Studio>;
+  updateStudio(
+    id: string,
+    input: { name: string; equipmentText?: string; contactPhoneE164?: string; active?: boolean },
+  ): Promise<Studio>;
+  createRoom(
+    studioId: string,
+    input: { code: string; name: string; capacity?: number },
+  ): Promise<Room>;
+  updateRoom(
+    id: string,
+    input: { name: string; capacity?: number; active?: boolean },
+  ): Promise<Room>;
+  replaceClassTypeScopes(
+    id: string,
+    input: { branchIds: string[]; expectedVersion: number; reason: string },
+  ): Promise<void>;
   updateClassType(
     id: string,
     input: { name: string; expectedVersion: number; reason: string },
@@ -105,9 +138,58 @@ export const browserMasterClient: MasterClient = {
     );
   },
   async createClassType(input) {
-    await appLoading.track(api.createClassType({ classTypeCommand: input }), {
-      label: 'Membuat tipe kelas…',
+    await appLoading.track(
+      api.createClassType({
+        classTypeCommand: {
+          code: input.code,
+          name: input.name,
+          branchIds: input.branchIds ? new Set(input.branchIds) : undefined,
+        },
+      }),
+      {
+        label: 'Membuat tipe kelas…',
+      },
+    );
+  },
+  async listStudios(branchId) {
+    return (
+      await appLoading.track(api.listBranchStudios({ id: branchId }), {
+        label: 'Memuat area studio…',
+      })
+    ).items;
+  },
+  createStudio(branchId, input) {
+    return appLoading.track(api.createBranchStudio({ id: branchId, studioCommand: input }), {
+      label: 'Menyimpan area studio…',
     });
+  },
+  updateStudio(id, input) {
+    return appLoading.track(api.updateStudio({ id, studioUpdateCommand: input }), {
+      label: 'Memperbarui area studio…',
+    });
+  },
+  createRoom(studioId, input) {
+    return appLoading.track(api.createStudioRoom({ id: studioId, roomCommand: input }), {
+      label: 'Menyimpan ruangan…',
+    });
+  },
+  updateRoom(id, input) {
+    return appLoading.track(api.updateRoom({ id, roomUpdateCommand: input }), {
+      label: 'Memperbarui ruangan…',
+    });
+  },
+  async replaceClassTypeScopes(id, input) {
+    await appLoading.track(
+      api.replaceClassTypeBranchScopes({
+        id,
+        classTypeScopeCommand: {
+          branchIds: new Set(input.branchIds),
+          expectedVersion: input.expectedVersion,
+          reason: input.reason,
+        },
+      }),
+      { label: 'Memperbarui cakupan tipe kelas…' },
+    );
   },
   async updateClassType(id, input) {
     await appLoading.track(

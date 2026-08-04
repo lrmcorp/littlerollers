@@ -28,7 +28,11 @@ describe('ClassSlotService contract boundaries', () => {
     ]);
   });
   it('rejects offset-less or reversed create ranges before persistence', async () => {
-    const base = { branchId, classTypeId: '00000000-0000-4000-8000-000000000003' };
+    const base = {
+      branchId,
+      classTypeId: '00000000-0000-4000-8000-000000000003',
+      studioId: '00000000-0000-4000-8000-000000000004',
+    };
     await expect(
       service.create(
         principal,

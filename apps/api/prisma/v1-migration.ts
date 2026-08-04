@@ -12,6 +12,12 @@ import {
 } from '../src/identity/private-file-storage';
 import schemaContract from './v1-schema-contract.json';
 import {
+  assertV1ColumnRegistry,
+  summarizeV1ColumnRegistry,
+  V1_COLUMN_REGISTRY,
+  V1_MAPPING_VERSION,
+} from './v1-column-registry';
+import {
   assertMysqlbinlogGtidContinuity,
   canonicalizeDecodedBinlog,
   decodeMysqlbinlogText,
@@ -28,6 +34,11 @@ import {
   stableDeltaJson,
   type CanonicalDeltaEvent,
 } from './v1-delta';
+import {
+  mapV1BookingAttendance,
+  mapV1ClassSlotStatus,
+  mapV1PurchaseStatus,
+} from './v1-status-mapping';
 
 const SOURCE_SYSTEM = 'DAILYDOSE_V1';
 const execFileAsync = promisify(execFile);
@@ -655,6 +666,7 @@ async function importBranchMaster(
   batchId: string,
   mappingVersion: string,
 ) {
+  const encryptionKey = piiKey();
   const branchCodes = requiredJsonMap('V1_BRANCH_CODES');
   const branchTimezones = requiredJsonMap('V1_BRANCH_TIMEZONES');
   const stats = {
@@ -705,9 +717,11 @@ async function importBranchMaster(
           area: textValue(row.nama),
           city: textValue(row.nama),
           address: textValue(row.alamat),
+          operationalEmail: textValue(row.email) || null,
+          mapUrl: textValue(row.url_location) || null,
           openingHours: { source: 'BranchOpeningHour' },
           description: textValue(row.deskripsi, textValue(row.nama)),
-          arrivalInformation: textValue(row.url_location) || null,
+          arrivalInformation: null,
           parkingInformation: null,
           amenities: [],
           heroImageKey: '',
@@ -716,6 +730,39 @@ async function importBranchMaster(
           updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
         },
       });
+      const accountNumber = textValue(row.no_rekening).trim();
+      if (accountNumber) {
+        const paymentAccountId = deterministicId(
+          `${SOURCE_SYSTEM}:locations:${legacyId}:PaymentAccount`,
+        );
+        await tx.paymentAccount.create({
+          data: {
+            id: paymentAccountId,
+            branchId: targetId,
+            activeBranchKey: historical(row) ? null : targetId,
+            bankCode: textValue(row.nama_bank, 'LEGACY').toUpperCase().replace(/[^A-Z0-9]/gu, '_'),
+            bankName: textValue(row.nama_bank, 'Legacy bank'),
+            accountNumberEncrypted: encryptPii(accountNumber, encryptionKey),
+            accountNumberLast4: accountNumber.replace(/\D/gu, '').slice(-4).padStart(4, '0'),
+            accountHolderName: textValue(row.atas_nama, textValue(row.nama)),
+            active: !historical(row),
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.migrationSourceKey.create({
+          data: {
+            batchId,
+            sourceSystem: SOURCE_SYSTEM,
+            sourceTable: 'locations',
+            sourceId: legacyId,
+            targetType: 'PaymentAccount',
+            targetId: paymentAccountId,
+            recordChecksum: recordChecksum(row),
+            mappingVersion,
+          },
+        });
+      }
       await tx.migrationSourceKey.create({
         data: {
           batchId,
@@ -767,6 +814,8 @@ async function importBranchMaster(
           branchId: branchKey.targetId,
           code: `LEGACY-STUDIO-${legacyId}`,
           name: textValue(row.nama),
+          equipmentText: textValue(row.equipment) || null,
+          contactPhoneE164: normalizedIndonesianPhone(row.no_hp),
           active: !historical(row),
           historical: historical(row),
           sourceDeletedAt: asDate(row.deleted_at),
@@ -1001,7 +1050,9 @@ async function importUserRole(
           nikHash: nik ? piiHash(nik) : null,
           barcode: textValue(row.barcode) || null,
           historicalMetadata:
-            country && !/^indonesia$/iu.test(country) ? { sourceCountry: country } : undefined,
+            country && !/^indonesia$/iu.test(country)
+              ? { sourceCountry: country, sourceRating: row.rating ?? null }
+              : { sourceRating: row.rating ?? null },
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
           createdAt,
@@ -1013,7 +1064,7 @@ async function importUserRole(
           userId: targetId,
           emailHash: canonicalEmailHash(email),
           passwordHash,
-          verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+          verifiedAt: asDate(row.email_verified_at),
           passwordChangedAt: updatedAt,
           createdAt,
           updatedAt,
@@ -1025,10 +1076,22 @@ async function importUserRole(
           userId: targetId,
           provider: 'EMAIL_PASSWORD',
           subjectHash: canonicalEmailHash(email),
-          verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+          verifiedAt: asDate(row.email_verified_at),
           createdAt,
         },
       });
+      const googleId = textValue(row.google_id).trim();
+      if (googleId)
+        await tx.identity.create({
+          data: {
+            id: deterministicId(`${SOURCE_SYSTEM}:users:${legacyId}:Identity:GOOGLE`),
+            userId: targetId,
+            provider: 'GOOGLE',
+            subjectHash: piiHash(googleId),
+            verifiedAt: asDate(row.email_verified_at),
+            createdAt,
+          },
+        });
       if (rawPhone)
         await tx.userContactAlias.create({
           data: {
@@ -1059,6 +1122,19 @@ async function importUserRole(
             sourceId: legacyId,
             targetType,
             targetId: entityId,
+            recordChecksum: recordChecksum(row),
+            mappingVersion,
+          },
+        });
+      if (googleId)
+        await tx.migrationSourceKey.create({
+          data: {
+            batchId,
+            sourceSystem: SOURCE_SYSTEM,
+            sourceTable: 'users',
+            sourceId: legacyId,
+            targetType: 'Identity:GOOGLE',
+            targetId: deterministicId(`${SOURCE_SYSTEM}:users:${legacyId}:Identity:GOOGLE`),
             recordChecksum: recordChecksum(row),
             mappingVersion,
           },
@@ -1411,32 +1487,12 @@ async function importPackageOrder(
 
   for (const row of await sourceRows(source, 'kelas')) {
     const legacyId = sourceId(row);
-    let sourceBranchId = textValue(row.id_location);
-    let branchId = await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
-    if (!branchId) {
-      const decision = await approvedDecision(
-        target,
-        batchId,
-        'kelas',
-        legacyId,
-        'CLASS_BRANCH_UNRESOLVED',
-      );
-      sourceBranchId = textValue(decision?.sourceBranchId);
-      branchId = await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
-      if (!branchId) {
-        await queueResolution(
-          target,
-          batchId,
-          'kelas',
-          legacyId,
-          'CLASS_BRANCH_UNRESOLVED',
-          { action: 'MAP_HISTORICAL_BRANCH', sourceBranchId: textValue(row.id_location) },
-          recordChecksum(row),
-        );
-        stats.resolutions += 1;
-        continue;
-      }
-    }
+    const sourceBranchId = textValue(row.id_location);
+    const branchId = sourceBranchId === '0'
+      ? null
+      : await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
+    if (sourceBranchId !== '0' && !branchId)
+      throw new Error(`CLASS_BRANCH_UNRESOLVED:kelas:${legacyId}`);
     const targetId = deterministicId(`${SOURCE_SYSTEM}:kelas:${legacyId}:ClassType`);
     if (
       (await claimSourceKey(target, batchId, mappingVersion, 'kelas', row, 'ClassType', targetId)) ===
@@ -1450,26 +1506,56 @@ async function importPackageOrder(
       await tx.classType.create({
         data: {
           id: targetId,
-          branchId: branchId!,
+          branchId: null,
           code: `LEGACY-CLASS-${legacyId}`,
           name: textValue(row.nama_kelas, `Legacy class ${legacyId}`),
+          description: textValue(row.keterangan) || null,
+          modality: 'UNKNOWN_LEGACY',
+          equipment: textValue(row.bawaan) ? [textValue(row.bawaan)] : [],
+          defaultDurationMinutes: positiveInt(row.duration, 60),
+          defaultMinimumQuota: positiveInt(row.min_anggota, 1),
+          defaultCapacity: positiveInt(row.max_anggota, 1),
           active: !deletedAt && intValue(row.is_active, 1) === 1,
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, [
-            'min_anggota',
-            'max_anggota',
-            'keterangan',
-            'duration',
-            'bawaan',
-            'type',
-            'honor',
-            'fee',
-          ]),
+          sourceMetadata: sourceMetadata(row, ['type']),
           createdAt: asDate(row.created_at) ?? new Date(),
           updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
         },
       });
+      if (branchId) {
+        const scopeId = deterministicId(
+          `${SOURCE_SYSTEM}:kelas:${legacyId}:ClassTypeBranchScope:${sourceBranchId}`,
+        );
+        await tx.classTypeBranchScope.create({
+          data: {
+            id: scopeId,
+            classTypeId: targetId,
+            branchId,
+            active: !deletedAt && intValue(row.is_active, 1) === 1,
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.classTypeBranchConfiguration.create({
+          data: {
+            id: deterministicId(
+              `${SOURCE_SYSTEM}:kelas:${legacyId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
+            ),
+            classTypeId: targetId,
+            branchId,
+            minimumQuota: positiveInt(row.min_anggota, 1),
+            capacity: positiveInt(row.max_anggota, 1),
+            honorRp: Math.max(0, intValue(row.honor)),
+            feeRp: Math.max(0, intValue(row.fee)),
+            effectiveFrom: asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z'),
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+          },
+        });
+      }
       await tx.migrationSourceKey.create({
         data: {
           batchId,
@@ -1483,7 +1569,6 @@ async function importPackageOrder(
         },
       });
     });
-    await markResolutionApplied(target, batchId, 'kelas', legacyId, 'CLASS_BRANCH_UNRESOLVED');
     stats.kelas.imported += 1;
   }
 
@@ -1512,7 +1597,20 @@ async function importPackageOrder(
       stats.resolutions += 1;
       continue;
     }
-    let packageScopes = scopesByPackage.get(legacyId) ?? [];
+    let packageScopes = [...(scopesByPackage.get(legacyId) ?? [])];
+    const directSourceBranchId = textValue(row.id_location);
+    if (
+      directSourceBranchId &&
+      !packageScopes.some((scope) => textValue(scope.id_location) === directSourceBranchId)
+    )
+      packageScopes.push({
+        id: `direct-${legacyId}`,
+        id_paket: legacyId,
+        id_location: directSourceBranchId,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        deleted_at: row.deleted_at,
+      } as LegacyRow);
     if (packageScopes.length === 0) {
       const decision = await approvedDecision(
         target,
@@ -1546,7 +1644,117 @@ async function importPackageOrder(
         continue;
       }
     }
-    let createdForPackage = 0;
+    let primaryBranchId: string | null = null;
+    for (const scope of packageScopes) {
+      primaryBranchId = await targetIdFor(target, 'locations', scope.id_location, 'Branch');
+      if (primaryBranchId) break;
+    }
+    if (!primaryBranchId) {
+      await queueResolution(
+        target,
+        batchId,
+        'pakets',
+        legacyId,
+        'PACKAGE_LOCATION_UNRESOLVED',
+        { action: 'MAP_PACKAGE_BRANCH' },
+        recordChecksum(row),
+      );
+      stats.resolutions += 1;
+      continue;
+    }
+    const targetId = deterministicId(`${SOURCE_SYSTEM}:pakets:${legacyId}:Package`);
+    if (
+      (await claimSourceKey(target, batchId, mappingVersion, 'pakets', row, 'Package', targetId)) ===
+      'SKIP'
+    ) {
+      stats.pakets.skipped += 1;
+    } else {
+      const deletedAt = asDate(row.deleted_at);
+      const effectiveFrom = asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z');
+      await target.$transaction(async (tx) => {
+        await tx.package.create({
+          data: {
+            id: targetId,
+            branchId: primaryBranchId,
+            classTypeId,
+            businessKey: `LEGACY-PACKAGE-${legacyId}`,
+            name: textValue(row.nama, `Legacy package ${legacyId}`),
+            sessionCount: positiveInt(row.jumlah_pertemuan),
+            durationDays: positiveInt(row.valid_day, 30),
+            priceRp: Math.max(0, intValue(row.harga)),
+            effectiveFrom,
+            effectiveUntil: deletedAt,
+            status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+            sourceMetadata: sourceMetadata(row, []),
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.packageRevision.create({
+          data: {
+            id: deterministicId(`${SOURCE_SYSTEM}:pakets:${legacyId}:PackageRevision:1`),
+            packageId: targetId,
+            revisionNumber: 1,
+            sessionCount: positiveInt(row.jumlah_pertemuan),
+            durationDays: positiveInt(row.valid_day, 30),
+            priceRp: Math.max(0, intValue(row.harga)),
+            promoteCode: textValue(row.promote_code) || null,
+            discountRp: row.diskon === null ? null : Math.max(0, intValue(row.diskon)),
+            manyTimesAllowed: intValue(row.is_many_times) === 1,
+            visible: intValue(row.is_show_public, 1) === 1,
+            effectiveFrom,
+            effectiveUntil: deletedAt,
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.packageClassTypeScope.create({
+          data: {
+            id: deterministicId(
+              `${SOURCE_SYSTEM}:pakets:${legacyId}:PackageClassTypeScope:${textValue(row.id_kelas)}`,
+            ),
+            packageId: targetId,
+            classTypeId,
+            active: !deletedAt,
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.packagePublicProfile.create({
+          data: {
+            packageId: targetId,
+            summary: textValue(row.nama, `Legacy package ${legacyId}`),
+            description: textValue(row.nama, `Legacy package ${legacyId}`),
+            highlights: [],
+            usageGuidance: 'Ketentuan historis mengikuti transaksi Daily Dose v1.',
+            terms: { sourceSystem: SOURCE_SYSTEM, sourcePackageId: legacyId },
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+        });
+        await tx.migrationSourceKey.create({
+          data: {
+            batchId,
+            sourceSystem: SOURCE_SYSTEM,
+            sourceTable: 'pakets',
+            sourceId: legacyId,
+            targetType: 'Package',
+            targetId,
+            recordChecksum: recordChecksum(row),
+            mappingVersion,
+          },
+        });
+      });
+      stats.pakets.imported += 1;
+    }
+
+    let createdScopeCount = 0;
     for (const scope of packageScopes) {
       const sourceBranchId = textValue(scope.id_location);
       const branchId = await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
@@ -1567,79 +1775,26 @@ async function importPackageOrder(
         stats.resolutions += 1;
         continue;
       }
-      const targetId = deterministicId(
-        `${SOURCE_SYSTEM}:pakets:${legacyId}:Package:branch:${sourceBranchId}`,
+      const scopeTargetId = deterministicId(
+        `${SOURCE_SYSTEM}:paket_locations:${sourceId(scope)}:PackageBranchScope`,
       );
-      const targetType = `Package:${sourceBranchId}`;
-      if (
-        (await claimSourceKey(
-          target,
-          batchId,
-          mappingVersion,
-          'pakets',
-          row,
-          targetType,
-          targetId,
-        )) === 'SKIP'
-      ) {
-        stats.pakets.skipped += 1;
-      } else {
-        const deletedAt = asDate(row.deleted_at);
-        await target.$transaction(async (tx) => {
-          await tx.package.create({
-            data: {
-              id: targetId,
-              branchId,
-              classTypeId,
-              businessKey: `LEGACY-PACKAGE-${legacyId}`,
-              name: textValue(row.nama, `Legacy package ${legacyId}`),
-              sessionCount: positiveInt(row.jumlah_pertemuan),
-              durationDays: positiveInt(row.valid_day, 30),
-              priceRp: Math.max(0, intValue(row.harga)),
-              effectiveFrom: asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z'),
-              effectiveUntil: deletedAt,
-              status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
-              historical: Boolean(deletedAt),
-              sourceDeletedAt: deletedAt,
-              sourceMetadata: sourceMetadata(row, [
-                'promote_code',
-                'diskon',
-                'is_many_times',
-                'is_show_public',
-              ]),
-              createdAt: asDate(row.created_at) ?? new Date(),
-              updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
-            },
-          });
-          await tx.packagePublicProfile.create({
-            data: {
-              packageId: targetId,
-              summary: textValue(row.nama, `Legacy package ${legacyId}`),
-              description: textValue(row.nama, `Legacy package ${legacyId}`),
-              highlights: [],
-              usageGuidance: 'Ketentuan historis mengikuti transaksi Daily Dose v1.',
-              terms: { sourceSystem: SOURCE_SYSTEM, sourcePackageId: legacyId },
-              createdAt: asDate(row.created_at) ?? new Date(),
-              updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
-            },
-          });
-          await tx.migrationSourceKey.create({
-            data: {
-              batchId,
-              sourceSystem: SOURCE_SYSTEM,
-              sourceTable: 'pakets',
-              sourceId: legacyId,
-              targetType,
-              targetId,
-              recordChecksum: recordChecksum(row),
-              mappingVersion,
-            },
-          });
+      const syntheticScope =
+        sourceId(scope).startsWith('resolution-') || sourceId(scope).startsWith('direct-');
+      if (syntheticScope)
+        await target.packageBranchScope.upsert({
+          where: { packageId_branchId: { packageId: targetId, branchId } },
+          create: {
+            id: scopeTargetId,
+            packageId: targetId,
+            branchId,
+            active: !historical(row),
+            historical: historical(row),
+            sourceDeletedAt: asDate(row.deleted_at),
+          },
+          update: {},
         });
-        stats.pakets.imported += 1;
-      }
-      if (!sourceId(scope).startsWith('resolution-')) {
-        const scopeTargetType = 'PackageScope';
+      if (!syntheticScope) {
+        const scopeTargetType = 'PackageBranchScope';
         if (
           (await claimSourceKey(
             target,
@@ -1648,27 +1803,44 @@ async function importPackageOrder(
             'paket_locations',
             scope,
             scopeTargetType,
-            targetId,
+            scopeTargetId,
           )) === 'SKIP'
         )
           stats.paket_locations.skipped += 1;
         else {
-          await createSourceKeyOnly(
-            target,
-            batchId,
-            mappingVersion,
-            'paket_locations',
-            sourceId(scope),
-            scope,
-            scopeTargetType,
-            targetId,
-          );
+          await target.$transaction(async (tx) => {
+            await tx.packageBranchScope.create({
+              data: {
+                id: scopeTargetId,
+                packageId: targetId,
+                branchId,
+                active: !historical(scope) && !historical(row),
+                historical: historical(scope) || historical(row),
+                sourceDeletedAt: asDate(scope.deleted_at) ?? asDate(row.deleted_at),
+                createdAt: asDate(scope.created_at) ?? asDate(row.created_at) ?? new Date(),
+                updatedAt:
+                  asDate(scope.updated_at) ?? asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+              },
+            });
+            await tx.migrationSourceKey.create({
+              data: {
+                batchId,
+                sourceSystem: SOURCE_SYSTEM,
+                sourceTable: 'paket_locations',
+                sourceId: sourceId(scope),
+                targetType: scopeTargetType,
+                targetId: scopeTargetId,
+                recordChecksum: recordChecksum(scope),
+                mappingVersion,
+              },
+            });
+          });
           stats.paket_locations.imported += 1;
         }
       }
-      createdForPackage += 1;
+      createdScopeCount += 1;
     }
-    if (createdForPackage > 0)
+    if (createdScopeCount > 0)
       await markResolutionApplied(
         target,
         batchId,
@@ -1680,16 +1852,9 @@ async function importPackageOrder(
 
   for (const row of await sourceRows(source, 'kelas_pakets')) {
     const legacyId = sourceId(row);
-    const scope = (scopesByPackage.get(textValue(row.id_paket)) ?? [])[0];
-    const targetId = scope
-      ? await targetIdFor(
-          target,
-          'pakets',
-          row.id_paket,
-          `Package:${textValue(scope.id_location)}`,
-        )
-      : null;
-    if (!targetId) {
+    const packageId = await targetIdFor(target, 'pakets', row.id_paket, 'Package');
+    const classTypeId = await targetIdFor(target, 'kelas', row.id_kelas, 'ClassType');
+    if (!packageId || !classTypeId) {
       await queueResolution(
         target,
         batchId,
@@ -1706,6 +1871,12 @@ async function importPackageOrder(
       stats.resolutions += 1;
       continue;
     }
+    const existingPackageClassScope = await target.packageClassTypeScope.findUnique({
+      where: { packageId_classTypeId: { packageId, classTypeId } },
+    });
+    const targetId =
+      existingPackageClassScope?.id ??
+      deterministicId(`${SOURCE_SYSTEM}:kelas_pakets:${legacyId}:PackageClassTypeScope`);
     if (
       (await claimSourceKey(
         target,
@@ -1713,22 +1884,40 @@ async function importPackageOrder(
         mappingVersion,
         'kelas_pakets',
         row,
-        'PackageClassScope',
+        'PackageClassTypeScope',
         targetId,
       )) === 'SKIP'
     )
       stats.kelas_pakets.skipped += 1;
     else {
-      await createSourceKeyOnly(
-        target,
-        batchId,
-        mappingVersion,
-        'kelas_pakets',
-        legacyId,
-        row,
-        'PackageClassScope',
-        targetId,
-      );
+      await target.$transaction(async (tx) => {
+        const packageClassScope = await tx.packageClassTypeScope.upsert({
+          where: { packageId_classTypeId: { packageId, classTypeId } },
+          create: {
+            id: targetId,
+            packageId,
+            classTypeId,
+            active: !historical(row),
+            historical: historical(row),
+            sourceDeletedAt: asDate(row.deleted_at),
+            createdAt: asDate(row.created_at) ?? new Date(),
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+          },
+          update: {},
+        });
+        await tx.migrationSourceKey.create({
+          data: {
+            batchId,
+            sourceSystem: SOURCE_SYSTEM,
+            sourceTable: 'kelas_pakets',
+            sourceId: legacyId,
+            targetType: 'PackageClassTypeScope',
+            targetId: packageClassScope.id,
+            recordChecksum: recordChecksum(row),
+            mappingVersion,
+          },
+        });
+      });
       stats.kelas_pakets.imported += 1;
     }
   }
@@ -1757,12 +1946,7 @@ async function importPackageOrder(
       sourceBranchId = textValue(missingBranchDecision.sourceBranchId);
     const userId = await targetIdFor(target, 'users', row.id_user, 'User');
     const branchId = await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
-    const packageId = await targetIdFor(
-      target,
-      'pakets',
-      sourcePackageId,
-      `Package:${sourceBranchId}`,
-    );
+    const packageId = await targetIdFor(target, 'pakets', sourcePackageId, 'Package');
     const missingReason = !userId
       ? 'ORDER_USER_UNRESOLVED'
       : !branchId
@@ -1789,6 +1973,11 @@ async function importPackageOrder(
       continue;
     }
     const packageRecord = await target.package.findUniqueOrThrow({ where: { id: packageId! } });
+    const packageClassScope = await target.packageClassTypeScope.findFirst({
+      where: { packageId: packageId!, active: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (!packageClassScope) throw new Error(`PACKAGE_CLASS_SCOPE_UNRESOLVED:${legacyId}`);
     const sourceBalance = intValue(row.sisa);
     const sourceSessionCount = positiveInt(row.jumlah_pertemuan, packageRecord.sessionCount);
     let openingBalance = sourceBalance;
@@ -1845,7 +2034,57 @@ async function importPackageOrder(
       new Date(activationDate.getTime() + packageRecord.durationDays * 86_400_000);
     const price = Math.max(0, intValue(row.harga, packageRecord.priceRp));
     const isActive = !deletedAt && intValue(row.is_active) === 1;
-    const purchaseStatus = isActive || intValue(row.status) === 1 ? 'APPROVED' : 'PENDING';
+    const statusMapping = mapV1PurchaseStatus({ status: row.status, active: row.is_active });
+    if (statusMapping.conflict) {
+      const decision = await approvedDecision(
+        target,
+        batchId,
+        'order_pakets',
+        legacyId,
+        'ORDER_STATUS_ACTIVE_CONFLICT',
+      );
+      if (!decision?.purchaseStatus) {
+        await queueResolution(
+          target,
+          batchId,
+          'order_pakets',
+          legacyId,
+          'ORDER_STATUS_ACTIVE_CONFLICT',
+          { action: 'APPROVE_PURCHASE_STATUS', sourceStatus: row.status, sourceActive: row.is_active },
+          recordChecksum(row),
+        );
+        stats.resolutions += 1;
+        continue;
+      }
+      if (!['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED'].includes(String(decision.purchaseStatus)))
+        throw new Error(`INVALID_PURCHASE_STATUS_DECISION:${legacyId}`);
+      statusMapping.status = decision.purchaseStatus as typeof statusMapping.status;
+    }
+    const uniqueCode = Math.max(0, intValue(row.unix_code));
+    const uniqueCodeMatches = uniqueCode === 0 || price % 1000 === uniqueCode;
+    if (!uniqueCodeMatches) {
+      const decision = await approvedDecision(
+        target,
+        batchId,
+        'order_pakets',
+        legacyId,
+        'ORDER_UNIQUE_CODE_MISMATCH',
+      );
+      if (decision?.acceptSourcePayable !== true) {
+        await queueResolution(
+          target,
+          batchId,
+          'order_pakets',
+          legacyId,
+          'ORDER_UNIQUE_CODE_MISMATCH',
+          { action: 'ACCEPT_SOURCE_PAYABLE', payableAmountRp: price, paymentUniqueCode: uniqueCode },
+          recordChecksum(row),
+        );
+        stats.resolutions += 1;
+        continue;
+      }
+    }
+    const purchaseStatus = statusMapping.status;
     await target.$transaction(async (tx) => {
       await tx.purchase.create({
         data: {
@@ -1856,6 +2095,15 @@ async function importPackageOrder(
           packageNameSnapshot: packageRecord.name,
           priceRpSnapshot: price,
           priceAfterDiscountRpSnapshot: price,
+          finalAmountBeforeUniqueCodeRpSnapshot:
+            uniqueCodeMatches && uniqueCode > 0 ? price - uniqueCode : null,
+          paymentUniqueCode: uniqueCode || null,
+          payableAmountRpSnapshot: price,
+          amountPaidRpSnapshot: asDate(row.tanggal_pembayaran) ? price : null,
+          paymentMethodCode: textValue(row.metode_pembayaran) || null,
+          sourceStatusCode: textValue(row.status),
+          sourceActiveFlag: intValue(row.is_active) === 1,
+          snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
           sessionCountSnapshot: sourceSessionCount,
           durationDaysSnapshot: packageRecord.durationDays,
           status: purchaseStatus,
@@ -1880,7 +2128,7 @@ async function importPackageOrder(
           customerUserId: userId!,
           branchId: branchId!,
           packageId: packageId!,
-          classTypeId: packageRecord.classTypeId,
+          classTypeId: packageClassScope.classTypeId,
           activationDate,
           expiryAt,
           salePriceRp: price,
@@ -1931,6 +2179,20 @@ async function importPackageOrder(
       'order_pakets',
       legacyId,
       'ORDER_BALANCE_EXCEEDS_SESSIONS',
+    );
+    await markResolutionApplied(
+      target,
+      batchId,
+      'order_pakets',
+      legacyId,
+      'ORDER_STATUS_ACTIVE_CONFLICT',
+    );
+    await markResolutionApplied(
+      target,
+      batchId,
+      'order_pakets',
+      legacyId,
+      'ORDER_UNIQUE_CODE_MISMATCH',
     );
     stats.order_pakets.imported += 1;
   }
@@ -2145,18 +2407,33 @@ async function importSlotBooking(
     const isHistorical = Boolean(deletedAt) || duplicateHistorical;
     const sourceStatus = intValue(row.status, 1);
     await target.$transaction(async (tx) => {
+      await tx.classTypeBranchScope.upsert({
+        where: { classTypeId_branchId: { classTypeId, branchId: studio.branchId } },
+        create: {
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:kelas:${textValue(sourceClassId)}:ClassTypeBranchScope:${studio.branchId}`,
+          ),
+          classTypeId,
+          branchId: studio.branchId,
+          active: !isHistorical,
+          historical: isHistorical,
+          sourceDeletedAt: deletedAt,
+        },
+        update: {},
+      });
       await tx.classSlot.create({
         data: {
           id: targetId,
           branchId: studio.branchId,
           classTypeId,
+          studioId: studioId!,
           instructorUserId,
           startAt,
           endAt: new Date(startAt.getTime() + durationMinutes * 60_000),
           timezone: 'Asia/Jakarta',
           minimumQuota: Math.max(0, intValue(classRow?.min_anggota)),
           capacity: positiveInt(classRow?.max_anggota, 1),
-          status: isHistorical ? 'COMPLETED' : sourceStatus === 1 ? 'PUBLISHED' : 'CANCELLED',
+          status: mapV1ClassSlotStatus(sourceStatus),
           historical: isHistorical,
           sourceDeletedAt: deletedAt,
           sourceMetadata: sourceMetadata(row, [
@@ -2208,9 +2485,26 @@ async function importSlotBooking(
     const legacyId = sourceId(row);
     const classTypeId = await targetIdFor(target, 'kelas', row.id_kelas, 'ClassType');
     const classType = classTypeId
-      ? await target.classType.findUnique({ where: { id: classTypeId }, select: { branchId: true } })
+      ? await target.classType.findUnique({
+          where: { id: classTypeId },
+          select: {
+            branchScopes: {
+              where: { active: true },
+              select: { branchId: true },
+              orderBy: { createdAt: 'asc' },
+              take: 1,
+            },
+          },
+        })
       : null;
-    if (!classTypeId || !classType) {
+    const meetingBranchId = classType?.branchScopes[0]?.branchId;
+    const meetingStudio = meetingBranchId
+      ? await target.studio.findFirst({
+          where: { branchId: meetingBranchId, active: true },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        })
+      : null;
+    if (!classTypeId || !meetingBranchId || !meetingStudio) {
       await queueResolution(
         target,
         batchId,
@@ -2247,14 +2541,15 @@ async function importSlotBooking(
       await tx.classSlot.create({
         data: {
           id: targetId,
-          branchId: classType.branchId,
+          branchId: meetingBranchId,
           classTypeId,
+          studioId: meetingStudio.id,
           startAt,
           endAt: new Date(startAt.getTime() + durationMinutes * 60_000),
           timezone: 'Asia/Jakarta',
           minimumQuota: Math.max(0, intValue(classRow?.min_anggota)),
           capacity: positiveInt(classRow?.max_anggota, 1),
-          status: deletedAt ? 'COMPLETED' : intValue(row.status, 1) === 1 ? 'PUBLISHED' : 'CANCELLED',
+          status: mapV1ClassSlotStatus(row.status),
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
           sourceMetadata: sourceMetadata(row, ['status', 'keterangan']),
@@ -2347,25 +2642,15 @@ async function importSlotBooking(
     const user = userId
       ? await target.user.findUnique({ where: { id: userId }, select: { preferredBranchId: true } })
       : null;
-    let branchId = user?.preferredBranchId ?? null;
-    if (!branchId) {
-      const decision = await approvedDecision(
-        target,
-        batchId,
-        'customer_jadwal_statics',
-        legacyId,
-        'SCHEDULE_BRANCH_UNRESOLVED',
-      );
-      branchId = await targetIdFor(target, 'locations', decision?.sourceBranchId, 'Branch');
-    }
-    if (!userId || !branchId || !weekdays[intValue(row.hari)]) {
+    const branchId = user?.preferredBranchId ?? null;
+    if (!userId || !weekdays[intValue(row.hari)]) {
       await queueResolution(
         target,
         batchId,
         'customer_jadwal_statics',
         legacyId,
-        'SCHEDULE_BRANCH_UNRESOLVED',
-        { action: 'MAP_SCHEDULE_BRANCH', sourceUserId: textValue(row.id_user) },
+        'SCHEDULE_REFERENCE_UNRESOLVED',
+        { action: 'MAP_SCHEDULE_USER_OR_WEEKDAY', sourceUserId: textValue(row.id_user) },
         recordChecksum(row),
       );
       stats.resolutions += 1;
@@ -2391,10 +2676,11 @@ async function importSlotBooking(
         data: {
           id: targetId,
           customerUserId: userId,
-          branchId: branchId!,
+          branchId,
           weekday: weekdays[intValue(row.hari)]!,
           startMinute: minuteOfDay(row.jam),
           timezone: 'Asia/Jakarta',
+          note: textValue(row.keterangan) || null,
           active: !historical(row),
           historical: historical(row),
           sourceDeletedAt: asDate(row.deleted_at),
@@ -2420,7 +2706,7 @@ async function importSlotBooking(
       batchId,
       'customer_jadwal_statics',
       legacyId,
-      'SCHEDULE_BRANCH_UNRESOLVED',
+      'SCHEDULE_REFERENCE_UNRESOLVED',
     );
     stats.customer_jadwal_statics.imported += 1;
   }
@@ -2584,15 +2870,13 @@ async function importSlotBooking(
       `${SOURCE_SYSTEM}:booking_kelas:${legacyId}:SessionReservation`,
     );
     const deletedAt = asDate(row.deleted_at);
-    const attendanceCode = row.status_kehadiran === null ? null : intValue(row.status_kehadiran);
-    const status = deletedAt
-      ? 'CANCELLED'
-      : attendanceCode === 1
-        ? 'ATTENDED'
-        : attendanceCode === 2
-          ? 'NO_SHOW'
-          : 'BOOKED';
-    const reservationStatus = status === 'BOOKED' ? 'ACTIVE' : status === 'ATTENDED' ? 'CONSUMED' : 'RELEASED';
+    const attendance = mapV1BookingAttendance(row.status_kehadiran);
+    const status = deletedAt ? 'CANCELLED' : attendance.bookingStatus;
+    const reservationStatus = deletedAt || attendance.outcome === 'EXCUSED'
+      ? 'RELEASED'
+      : attendance.outcome === 'ATTENDED' || attendance.outcome === 'NO_SHOW'
+        ? 'CONSUMED'
+        : 'ACTIVE';
     const createdAt = asDate(row.created_at) ?? classSlot.startAt;
     const isHistorical = Boolean(deletedAt) || duplicateHistorical;
     await target.$transaction(async (tx) => {
@@ -2629,6 +2913,28 @@ async function importSlotBooking(
           updatedAt: asDate(row.updated_at) ?? createdAt,
         },
       });
+      await tx.bookingAttendanceOutcome.create({
+        data: {
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:booking_kelas:${legacyId}:BookingAttendanceOutcome`,
+          ),
+          bookingId: targetId,
+          outcome: attendance.outcome,
+          sourceStatusCode:
+            row.status_kehadiran === null || row.status_kehadiran === undefined
+              ? null
+              : textValue(row.status_kehadiran),
+          note: textValue(row.keterangan) || null,
+          occurredAt:
+            attendance.outcome === 'UNKNOWN_HISTORICAL'
+              ? null
+              : asDate(row.updated_at) ?? classSlot.startAt,
+          historical: isHistorical,
+          sourceDeletedAt: deletedAt,
+          createdAt,
+          updatedAt: asDate(row.updated_at) ?? createdAt,
+        },
+      });
       if (row.review || row.rating) {
         const feedbackId = deterministicId(`${SOURCE_SYSTEM}:booking_kelas:${legacyId}:Feedback`);
         await tx.bookingFeedback.create({
@@ -2649,6 +2955,12 @@ async function importSlotBooking(
       for (const [targetType, entityId] of [
         ['Booking', targetId],
         ['SessionReservation', reservationId],
+        [
+          'BookingAttendanceOutcome',
+          deterministicId(
+            `${SOURCE_SYSTEM}:booking_kelas:${legacyId}:BookingAttendanceOutcome`,
+          ),
+        ],
       ] as const)
         await tx.migrationSourceKey.create({
           data: {
@@ -2963,6 +3275,7 @@ async function importVoucherFinanceAuditMedia(
     'User',
   );
   if (!migrationActorId) throw new Error('MIGRATION_ACTOR_NOT_IMPORTED');
+  const legacyPayloadKey = piiKey();
   const mediaMode = migrationMediaMode();
   const manifest =
     mediaMode === 'metadata-only'
@@ -3046,10 +3359,12 @@ async function importVoucherFinanceAuditMedia(
           activeFrom,
           activeUntil,
           perCustomerUsageLimit: intValue(row.sekali_gunakan) === 1 ? 1 : null,
+          legacyEntitlementDurationDays:
+            row.lama_aktif === null ? null : Math.max(0, intValue(row.lama_aktif)),
           createdById: migrationActorId,
           historical: Boolean(deletedAt) || !canonical,
           sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, ['lama_aktif', 'id_paket', 'status']),
+          sourceMetadata: sourceMetadata(row, ['id_paket', 'status']),
           createdAt: asDate(row.created_at) ?? activeFrom,
           updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? activeFrom,
         },
@@ -3072,7 +3387,7 @@ async function importVoucherFinanceAuditMedia(
             sourceSystem: SOURCE_SYSTEM,
             sourceTable: 'pakets',
             sourceId: sourcePackageId,
-            targetType: { startsWith: 'Package:' },
+            targetType: 'Package',
           },
           select: { targetId: true },
         });
@@ -3173,14 +3488,10 @@ async function importVoucherFinanceAuditMedia(
       target.voucher.findUniqueOrThrow({ where: { id: voucherId } }),
       purchaseId ? target.purchase.findUniqueOrThrow({ where: { id: purchaseId } }) : null,
     ]);
-    const discountRp = purchase
-      ? voucher.discountType === 'FIXED_AMOUNT'
-        ? Math.min(purchase.priceRpSnapshot, voucher.discountValue)
-        : Math.min(
-            purchase.priceRpSnapshot,
-            Math.trunc((purchase.priceRpSnapshot * voucher.discountValue) / 100),
-          )
-      : 0;
+    // v1 menyimpan harga order sebagai nilai final authoritative dan tidak
+    // menyimpan breakdown diskon per redemption. Jangan hitung ulang memakai
+    // konfigurasi voucher yang dapat berubah.
+    const discountRp = purchase?.voucherDiscountRpSnapshot ?? 0;
     await target.$transaction(async (tx) => {
       await tx.customerVoucherEntitlement.create({
         data: {
@@ -3189,7 +3500,7 @@ async function importVoucherFinanceAuditMedia(
           purchaseId,
           customerUserId,
           sourceStatusCode: textValue(row.status),
-          active: !historical(row) && intValue(row.status) === 1,
+          active: !used && !historical(row) && intValue(row.status) === 1,
           expiresAt: asDate(row.expired),
           usedAt: used ? asDate(row.tanggal_digunakan) : null,
           historical: historical(row),
@@ -3206,6 +3517,7 @@ async function importVoucherFinanceAuditMedia(
             purchaseId: purchase.id,
             customerUserId,
             discountRp,
+            snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
             redeemedAt: asDate(row.tanggal_digunakan) ?? asDate(row.created_at) ?? new Date(),
           },
         });
@@ -3214,10 +3526,8 @@ async function importVoucherFinanceAuditMedia(
           data: {
             voucherId,
             voucherCodeSnapshot: voucher.code,
-            voucherDiscountTypeSnapshot: voucher.discountType,
-            voucherDiscountValueSnapshot: voucher.discountValue,
-            voucherDiscountRpSnapshot: discountRp,
-            priceAfterDiscountRpSnapshot: Math.max(0, purchase.priceRpSnapshot - discountRp),
+            priceAfterDiscountRpSnapshot: purchase.priceRpSnapshot,
+            snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
           },
         });
       }
@@ -3354,11 +3664,12 @@ async function importVoucherFinanceAuditMedia(
       actorDecision?.sourceActorId ?? row.id_user,
       'User',
     );
+    if (textValue(row.id_user) === '0') actorUserId = migrationActorId;
     let parentId = await targetIdFor(
       target,
       'jurnals',
       parentDecision?.sourceParentId ?? row.id_parent,
-      'JournalEntry',
+      'LegacyFinancialEntry',
     );
     let blocked = false;
     for (const [reasonCode, missing, decisionKey, decision] of [
@@ -3401,7 +3712,7 @@ async function importVoucherFinanceAuditMedia(
     const purchase = purchaseId
       ? await target.purchase.findUnique({ where: { id: purchaseId }, select: { branchId: true } })
       : null;
-    const targetId = deterministicId(`${SOURCE_SYSTEM}:jurnals:${legacyId}:JournalEntry`);
+    const targetId = deterministicId(`${SOURCE_SYSTEM}:jurnals:${legacyId}:LegacyFinancialEntry`);
     if (
       (await claimSourceKey(
         target,
@@ -3409,7 +3720,7 @@ async function importVoucherFinanceAuditMedia(
         mappingVersion,
         'jurnals',
         row,
-        'JournalEntry',
+        'LegacyFinancialEntry',
         targetId,
       )) === 'SKIP'
     ) {
@@ -3439,24 +3750,23 @@ async function importVoucherFinanceAuditMedia(
     }
     const amount = Math.max(0, intValue(row.jumlah_uang));
     const type = intValue(row.tipe);
+    if (![0, 1].includes(type)) throw new Error(`JOURNAL_TYPE_UNKNOWN:${legacyId}`);
     await target.$transaction(async (tx) => {
-      await tx.journalEntry.create({
+      await tx.legacyFinancialEntry.create({
         data: {
           id: targetId,
           branchId: purchase?.branchId ?? null,
-          accountId: fallbackAccountId,
           purchaseId,
           actorUserId,
           parentId,
-          referenceNumber: `V1-JOURNAL-${legacyId}`,
+          type: type === 1 ? 'INCOME' : 'EXPENSE',
+          amountRp: amount,
           description: textValue(row.nama),
-          debitRp: type === 1 ? amount : 0,
-          creditRp: type === 0 ? amount : 0,
           occurredAt: asDate(row.tanggal) ?? asDate(row.created_at) ?? new Date(),
-          statusCode: historical(row) ? 'HISTORICAL_DELETED' : 'MIGRATED',
+          sourceTypeCode: textValue(row.tipe),
           historical: historical(row),
           sourceDeletedAt: asDate(row.deleted_at),
-          sourceMetadata: sourceMetadata(row, ['tipe']),
+          sourceMetadata: sourceMetadata(row, []),
           createdAt: asDate(row.created_at) ?? new Date(),
           updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
         },
@@ -3467,7 +3777,7 @@ async function importVoucherFinanceAuditMedia(
           sourceSystem: SOURCE_SYSTEM,
           sourceTable: 'jurnals',
           sourceId: legacyId,
-          targetType: 'JournalEntry',
+          targetType: 'LegacyFinancialEntry',
           targetId,
           recordChecksum: recordChecksum(row),
           mappingVersion,
@@ -3498,6 +3808,10 @@ async function importVoucherFinanceAuditMedia(
       continue;
     }
     const actorId = await targetIdFor(target, 'users', row.causer_id, 'User');
+    const activityPayload = jsonObject(row.properties);
+    const payloadId = deterministicId(
+      `${SOURCE_SYSTEM}:activity_log:${legacyId}:MigrationLegacyPayload`,
+    );
     await target.$transaction(async (tx) => {
       await tx.auditLog.create({
         data: {
@@ -3512,7 +3826,7 @@ async function importVoucherFinanceAuditMedia(
           afterMasked: {
             logName: textValue(row.log_name),
             description: textValue(row.description).slice(0, 500),
-            propertiesChecksum: recordChecksum(jsonObject(row.properties)),
+            propertiesChecksum: recordChecksum(activityPayload),
             batchUuid: textValue(row.batch_uuid) || null,
           },
           correlationId: textValue(row.batch_uuid, `migration:${batchId}:${legacyId}`),
@@ -3520,6 +3834,16 @@ async function importVoucherFinanceAuditMedia(
           sourceTable: 'activity_log',
           sourceId: legacyId,
           historical: true,
+        },
+      });
+      await tx.migrationLegacyPayload.create({
+        data: {
+          id: payloadId,
+          kind: 'ACTIVITY_LOG',
+          auditLogId: targetId,
+          payloadEncrypted: encryptPii(stableJson(activityPayload), legacyPayloadKey),
+          payloadChecksum: recordChecksum(activityPayload),
+          encryptionVersion: 'aes-256-gcm:v1',
         },
       });
       await tx.migrationSourceKey.create({
@@ -3530,6 +3854,18 @@ async function importVoucherFinanceAuditMedia(
           sourceId: legacyId,
           targetType: 'AuditLog',
           targetId,
+          recordChecksum: recordChecksum(row),
+          mappingVersion,
+        },
+      });
+      await tx.migrationSourceKey.create({
+        data: {
+          batchId,
+          sourceSystem: SOURCE_SYSTEM,
+          sourceTable: 'activity_log',
+          sourceId: legacyId,
+          targetType: 'MigrationLegacyPayload',
+          targetId: payloadId,
           recordChecksum: recordChecksum(row),
           mappingVersion,
         },
@@ -3570,6 +3906,9 @@ async function importVoucherFinanceAuditMedia(
       continue;
     }
     const data = jsonObject(row.data);
+    const payloadId = deterministicId(
+      `${SOURCE_SYSTEM}:notifications:${legacyId}:MigrationLegacyPayload`,
+    );
     await target.$transaction(async (tx) => {
       await tx.userNotification.create({
         data: {
@@ -3588,6 +3927,16 @@ async function importVoucherFinanceAuditMedia(
           createdAt: asDate(row.created_at) ?? new Date(),
         },
       });
+      await tx.migrationLegacyPayload.create({
+        data: {
+          id: payloadId,
+          kind: 'NOTIFICATION',
+          userNotificationId: targetId,
+          payloadEncrypted: encryptPii(stableJson(data), legacyPayloadKey),
+          payloadChecksum: recordChecksum(data),
+          encryptionVersion: 'aes-256-gcm:v1',
+        },
+      });
       await tx.migrationSourceKey.create({
         data: {
           batchId,
@@ -3596,6 +3945,18 @@ async function importVoucherFinanceAuditMedia(
           sourceId: legacyId,
           targetType: 'UserNotification',
           targetId,
+          recordChecksum: recordChecksum(row),
+          mappingVersion,
+        },
+      });
+      await tx.migrationSourceKey.create({
+        data: {
+          batchId,
+          sourceSystem: SOURCE_SYSTEM,
+          sourceTable: 'notifications',
+          sourceId: legacyId,
+          targetType: 'MigrationLegacyPayload',
+          targetId: payloadId,
           recordChecksum: recordChecksum(row),
           mappingVersion,
         },
@@ -4147,25 +4508,19 @@ async function importVoucherFinanceAuditMedia(
     });
   }
   for (const row of await sourceRows(source, 'jurnals')) {
-    const journalId = await targetIdFor(target, 'jurnals', row.id, 'JournalEntry');
+    const journalId = await targetIdFor(target, 'jurnals', row.id, 'LegacyFinancialEntry');
     if (!journalId) continue;
     const assetId = await importMedia({
       sourceTable: 'jurnals',
       row,
       path: row.struk,
       targetType: 'MediaAsset:JOURNAL_ATTACHMENT',
-      entityType: 'JournalEntry',
+      entityType: 'LegacyFinancialEntry',
       entityId: journalId,
       purposeCode: 'JOURNAL_ATTACHMENT',
       visibility: 'AUTHORIZED',
     });
-    if (assetId) {
-      const asset = await target.mediaAsset.findUniqueOrThrow({ where: { id: assetId } });
-      await target.journalEntry.update({
-        where: { id: journalId },
-        data: { attachmentKey: asset.objectKey },
-      });
-    }
+    void assetId;
   }
   return stats;
 }
@@ -4204,6 +4559,7 @@ async function sourceCount(source: PrismaClient, table: string): Promise<number>
 }
 
 async function profile(source: PrismaClient) {
+  assertV1ColumnRegistry();
   const tableRows = await source.$queryRaw<
     Array<{ TABLE_NAME: string; COLUMN_NAME: string; DATA_TYPE: string }>
   >`
@@ -4236,6 +4592,7 @@ async function profile(source: PrismaClient) {
     sourceSystem: SOURCE_SYSTEM,
     schema: {
       contractVersion: schemaContract.contractVersion,
+      mappingVersion: V1_MAPPING_VERSION,
       expectedTableCount: SOURCE_TABLES.length,
       actualTableCount: actualTables.size,
       missingTables,
@@ -4244,6 +4601,10 @@ async function profile(source: PrismaClient) {
     },
     counts,
     mappingPolicy: TABLE_POLICIES,
+    columnRegistry: {
+      total: V1_COLUMN_REGISTRY.length,
+      dispositions: summarizeV1ColumnRegistry(),
+    },
     columns: Object.fromEntries(
       SOURCE_TABLES.map((table) => [
         table,
@@ -4351,8 +4712,10 @@ function phaseFrom(args: Args): (typeof PHASES)[number] {
 
 async function prepareBatch(target: PrismaClient, args: Args, checksum: string) {
   migrationMediaMode();
+  assertV1ColumnRegistry();
   const phase = phaseFrom(args);
   const mappingVersion = required(process.env.V1_MAPPING_VERSION, 'V1_MAPPING_VERSION_REQUIRED');
+  if (mappingVersion !== V1_MAPPING_VERSION) throw new Error('MAPPING_VERSION_CONTRACT_MISMATCH');
   const sourceSnapshotAt = new Date(
     required(process.env.V1_SNAPSHOT_AT, 'V1_SNAPSHOT_AT_REQUIRED'),
   );
@@ -4592,7 +4955,7 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     Prisma.sql`SELECT COALESCE(SUM(jumlah_uang), 0) AS count FROM jurnals`,
   );
   const targetJournalRupiahRows = await target.$queryRaw<CountRow[]>(
-    Prisma.sql`SELECT COALESCE(SUM(debitRp + creditRp), 0) AS count FROM JournalEntry`,
+    Prisma.sql`SELECT COALESCE(SUM(amountRp), 0) AS count FROM LegacyFinancialEntry`,
   );
   const [
     sourceOrderDimensions,
@@ -4603,6 +4966,10 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     targetBookingStatuses,
     sourceReservationStatuses,
     targetReservationStatuses,
+    sourceSlotStatuses,
+    targetSlotStatuses,
+    sourceAttendanceOutcomes,
+    targetAttendanceOutcomes,
   ] = await Promise.all([
     reconciliationQuery('SOURCE_ORDER_DIMENSIONS', () => source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT CONCAT(
@@ -4625,7 +4992,7 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       SELECT CONCAT(
         'branch=', COALESCE(branchKey.sourceId, 'NULL'),
         '|package=', COALESCE(packageKey.sourceId, 'NULL'),
-        '|status=', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(p.sourceMetadata, '$.status')), 'NULL'),
+        '|status=', COALESCE(p.sourceStatusCode, 'NULL'),
         '|date=', DATE_FORMAT(p.submittedAt, '%Y-%m-%d')
       ) AS dimensionKey,
       COUNT(*) AS count,
@@ -4639,38 +5006,39 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       LEFT JOIN MigrationSourceKey packageKey
         ON packageKey.sourceSystem = ${SOURCE_SYSTEM}
         AND packageKey.sourceTable = 'pakets'
-        AND packageKey.targetType LIKE 'Package:%'
+        AND packageKey.targetType = 'Package'
         AND packageKey.targetId = p.packageId
       GROUP BY CONCAT(
         'branch=', COALESCE(branchKey.sourceId, 'NULL'),
         '|package=', COALESCE(packageKey.sourceId, 'NULL'),
-        '|status=', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(p.sourceMetadata, '$.status')), 'NULL'),
+        '|status=', COALESCE(p.sourceStatusCode, 'NULL'),
         '|date=', DATE_FORMAT(p.submittedAt, '%Y-%m-%d')
       )
     `)),
     source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
-      SELECT CASE WHEN is_active = 1 OR status = 1 THEN 'APPROVED' ELSE 'PENDING' END AS dimensionKey,
+      SELECT CONCAT('status=', status, '|active=', is_active) AS dimensionKey,
         COUNT(*) AS count
       FROM order_pakets
-      GROUP BY CASE WHEN is_active = 1 OR status = 1 THEN 'APPROVED' ELSE 'PENDING' END
+      GROUP BY CONCAT('status=', status, '|active=', is_active)
     `),
     target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
-      SELECT status AS dimensionKey, COUNT(*) AS count
+      SELECT CONCAT('status=', sourceStatusCode, '|active=', sourceActiveFlag) AS dimensionKey,
+        COUNT(*) AS count
       FROM Purchase
-      GROUP BY status
+      GROUP BY CONCAT('status=', sourceStatusCode, '|active=', sourceActiveFlag)
     `),
     source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT CASE
         WHEN deleted_at IS NOT NULL THEN 'CANCELLED'
         WHEN status_kehadiran = 1 THEN 'ATTENDED'
-        WHEN status_kehadiran = 2 THEN 'NO_SHOW'
+        WHEN status_kehadiran = 3 THEN 'NO_SHOW'
         ELSE 'BOOKED'
       END AS dimensionKey, COUNT(*) AS count
       FROM booking_kelas
       GROUP BY CASE
         WHEN deleted_at IS NOT NULL THEN 'CANCELLED'
         WHEN status_kehadiran = 1 THEN 'ATTENDED'
-        WHEN status_kehadiran = 2 THEN 'NO_SHOW'
+        WHEN status_kehadiran = 3 THEN 'NO_SHOW'
         ELSE 'BOOKED'
       END
     `),
@@ -4697,6 +5065,45 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       FROM SessionReservation
       GROUP BY status
     `),
+    source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+      SELECT CASE status
+        WHEN 1 THEN 'PUBLISHED'
+        WHEN 2 THEN 'CONFIRMED'
+        WHEN 3 THEN 'COMPLETED'
+        WHEN 4 THEN 'CANCELLED'
+        ELSE CONCAT('UNKNOWN:', COALESCE(CAST(status AS CHAR), 'NULL'))
+      END AS dimensionKey, COUNT(*) AS count
+      FROM kelas_activities
+      GROUP BY CASE status
+        WHEN 1 THEN 'PUBLISHED'
+        WHEN 2 THEN 'CONFIRMED'
+        WHEN 3 THEN 'COMPLETED'
+        WHEN 4 THEN 'CANCELLED'
+        ELSE CONCAT('UNKNOWN:', COALESCE(CAST(status AS CHAR), 'NULL'))
+      END
+    `),
+    target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+      SELECT status AS dimensionKey, COUNT(*) AS count FROM ClassSlot GROUP BY status
+    `),
+    source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+      SELECT CASE status_kehadiran
+        WHEN 1 THEN 'ATTENDED'
+        WHEN 2 THEN 'EXCUSED'
+        WHEN 3 THEN 'NO_SHOW'
+        ELSE 'UNKNOWN_HISTORICAL'
+      END AS dimensionKey, COUNT(*) AS count
+      FROM booking_kelas
+      GROUP BY CASE status_kehadiran
+        WHEN 1 THEN 'ATTENDED'
+        WHEN 2 THEN 'EXCUSED'
+        WHEN 3 THEN 'NO_SHOW'
+        ELSE 'UNKNOWN_HISTORICAL'
+      END
+    `),
+    target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+      SELECT outcome AS dimensionKey, COUNT(*) AS count
+      FROM BookingAttendanceOutcome GROUP BY outcome
+    `),
   ]);
   const sourceOrderCount = sourceCounts.order_pakets ?? 0;
   const [
@@ -4712,9 +5119,17 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     target.migrationReject.count({ where: { batchId: { in: runBatchIds }, status: 'OPEN' } }),
     target.migrationResolution.count({ where: { batchId: { in: runBatchIds }, status: 'OPEN' } }),
     target.$queryRaw<Array<{ kind: string; count: bigint }>>(Prisma.sql`
-      SELECT 'PACKAGE_BRANCH' AS kind, COUNT(*) AS count
-      FROM \`Package\` packageRow LEFT JOIN \`Branch\` branchRow ON branchRow.id = packageRow.branchId
+      SELECT 'PACKAGE_BRANCH_SCOPE' AS kind, COUNT(*) AS count
+      FROM PackageBranchScope scopeRow LEFT JOIN Branch branchRow ON branchRow.id = scopeRow.branchId
       WHERE branchRow.id IS NULL
+      UNION ALL
+      SELECT 'CLASS_TYPE_BRANCH_SCOPE', COUNT(*)
+      FROM ClassTypeBranchScope scopeRow LEFT JOIN Branch branchRow ON branchRow.id = scopeRow.branchId
+      WHERE branchRow.id IS NULL
+      UNION ALL
+      SELECT 'CLASS_SLOT_STUDIO', COUNT(*)
+      FROM ClassSlot slotRow LEFT JOIN Studio studioRow ON studioRow.id = slotRow.studioId
+      WHERE studioRow.id IS NULL OR studioRow.branchId <> slotRow.branchId
       UNION ALL
       SELECT 'PURCHASE_USER', COUNT(*)
       FROM \`Purchase\` purchaseRow LEFT JOIN \`User\` userRow ON userRow.id = purchaseRow.userId
@@ -4724,9 +5139,9 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       FROM \`Booking\` bookingRow LEFT JOIN \`CustomerPackage\` customerPackageRow ON customerPackageRow.id = bookingRow.customerPackageId
       WHERE customerPackageRow.id IS NULL
       UNION ALL
-      SELECT 'JOURNAL_ACCOUNT', COUNT(*)
-      FROM \`JournalEntry\` journalRow LEFT JOIN \`AccountingAccount\` accountRow ON accountRow.id = journalRow.accountId
-      WHERE accountRow.id IS NULL
+      SELECT 'LEGACY_FINANCE_PURCHASE', COUNT(*)
+      FROM LegacyFinancialEntry financeRow LEFT JOIN Purchase purchaseRow ON purchaseRow.id = financeRow.purchaseId
+      WHERE financeRow.purchaseId IS NOT NULL AND purchaseRow.id IS NULL
     `),
     target.migrationDeferredMediaReference.count({ where: { batchId: { in: runBatchIds } } }),
     target.$queryRaw<Array<{ kind: string; count: bigint }>>(Prisma.sql`
@@ -4759,10 +5174,22 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     targetVoucherRedemptionCount,
     targetCoaSourceCount,
     targetJournalCount,
+    targetPackageBranchScopeCount,
+    targetPackageClassScopeCount,
+    targetClassTypeBranchScopeCount,
+    targetSlotVenueCount,
+    targetBookingOutcomeCount,
+    targetLegacyPayloadCount,
+    targetVerifiedEmailCount,
     targetAuditSourceCount,
     targetNotificationSourceCount,
     sourceVoucherRedemptionRows,
     sourceAttendanceRows,
+    sourcePackageBranchScopeRows,
+    sourcePackageClassScopeRows,
+    sourceClassTypeBranchScopeRows,
+    sourceSlotVenueRows,
+    sourceVerifiedEmailRows,
     sourceJournalRelationRows,
     targetJournalRelationRows,
   ] = await Promise.all([
@@ -4791,7 +5218,14 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         targetType: 'AccountingAccount',
       },
     }),
-    target.journalEntry.count(),
+    target.legacyFinancialEntry.count(),
+    target.packageBranchScope.count(),
+    target.packageClassTypeScope.count(),
+    target.classTypeBranchScope.count(),
+    target.classSlot.count({ where: { studioId: { not: '' } } }),
+    target.bookingAttendanceOutcome.count(),
+    target.migrationLegacyPayload.count(),
+    target.identity.count({ where: { provider: 'EMAIL_PASSWORD', verifiedAt: { not: null } } }),
     target.auditLog.count({ where: { sourceSystem: SOURCE_SYSTEM, sourceTable: 'activity_log' } }),
     target.migrationSourceKey.count({
       where: {
@@ -4808,6 +5242,33 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         (SELECT COUNT(*) FROM check_in_outs) +
         (SELECT COUNT(*) FROM kelas_pertemuan_absensis) AS count
     `),
+    source.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS count FROM (
+        SELECT id_paket, id_location FROM paket_locations WHERE id_location IS NOT NULL
+        UNION
+        SELECT id, id_location FROM pakets WHERE id_location IS NOT NULL
+      ) packageBranches
+    `),
+    source.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS count FROM (
+        SELECT id_paket, id_kelas FROM kelas_pakets WHERE id_kelas IS NOT NULL
+        UNION
+        SELECT id, id_kelas FROM pakets WHERE id_kelas IS NOT NULL
+      ) packageClasses
+    `),
+    source.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS count FROM (
+        SELECT id AS id_kelas, id_location FROM kelas WHERE id_location IS NOT NULL
+        UNION
+        SELECT id_kelas, id_location FROM kelas_activities WHERE id_location IS NOT NULL
+      ) classBranches
+    `),
+    source.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS count FROM kelas_activities WHERE id_location_studio IS NOT NULL
+    `),
+    source.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS count FROM users WHERE email_verified_at IS NOT NULL
+    `),
     source.$queryRaw<Array<{ parentCount: bigint; orderCount: bigint; debitRp: Prisma.Decimal; creditRp: Prisma.Decimal }>>(Prisma.sql`
       SELECT
         SUM(CASE WHEN id_parent IS NOT NULL THEN 1 ELSE 0 END) AS parentCount,
@@ -4820,9 +5281,9 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       SELECT
         SUM(CASE WHEN parentId IS NOT NULL THEN 1 ELSE 0 END) AS parentCount,
         SUM(CASE WHEN purchaseId IS NOT NULL THEN 1 ELSE 0 END) AS orderCount,
-        COALESCE(SUM(debitRp), 0) AS debitRp,
-        COALESCE(SUM(creditRp), 0) AS creditRp
-      FROM JournalEntry
+        COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amountRp ELSE 0 END), 0) AS debitRp,
+        COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amountRp ELSE 0 END), 0) AS creditRp
+      FROM LegacyFinancialEntry
     `),
   ]);
   const checkedAt = new Date();
@@ -5019,6 +5480,36 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       actual: integerText(targetCapabilitySourceCount),
     },
     {
+      controlKey: 'VERIFIED_EMAIL_CARDINALITY',
+      phase: 'user-role',
+      expected: integerText(sourceVerifiedEmailRows[0]?.count),
+      actual: integerText(targetVerifiedEmailCount),
+    },
+    {
+      controlKey: 'CLASS_TYPE_BRANCH_SCOPE_CARDINALITY',
+      phase: 'slot-booking',
+      expected: integerText(sourceClassTypeBranchScopeRows[0]?.count),
+      actual: integerText(targetClassTypeBranchScopeCount),
+    },
+    {
+      controlKey: 'PACKAGE_BRANCH_SCOPE_CARDINALITY',
+      phase: 'package-order',
+      expected: integerText(sourcePackageBranchScopeRows[0]?.count),
+      actual: integerText(targetPackageBranchScopeCount),
+    },
+    {
+      controlKey: 'PACKAGE_CLASS_SCOPE_CARDINALITY',
+      phase: 'package-order',
+      expected: integerText(sourcePackageClassScopeRows[0]?.count),
+      actual: integerText(targetPackageClassScopeCount),
+    },
+    {
+      controlKey: 'CLASS_SLOT_VENUE_CARDINALITY',
+      phase: 'slot-booking',
+      expected: integerText(sourceSlotVenueRows[0]?.count),
+      actual: integerText(targetSlotVenueCount),
+    },
+    {
       controlKey: 'BOOKING_CARDINALITY',
       phase: 'slot-booking',
       expected: integerText(sourceCounts.booking_kelas),
@@ -5029,6 +5520,12 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       phase: 'slot-booking',
       expected: integerText(sourceCounts.booking_kelas),
       actual: integerText(targetReservationCount),
+    },
+    {
+      controlKey: 'BOOKING_ATTENDANCE_OUTCOME_CARDINALITY',
+      phase: 'slot-booking',
+      expected: integerText(sourceCounts.booking_kelas),
+      actual: integerText(targetBookingOutcomeCount),
     },
     {
       controlKey: 'ATTENDANCE_CARDINALITY',
@@ -5120,6 +5617,15 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       expected: integerText(sourceCounts.notifications),
       actual: integerText(targetNotificationSourceCount),
     },
+    {
+      controlKey: 'ENCRYPTED_LEGACY_PAYLOAD_CARDINALITY',
+      phase: 'voucher-finance-audit-media',
+      expected: (
+        BigInt(integerText(sourceCounts.activity_log)) +
+        BigInt(integerText(sourceCounts.notifications))
+      ).toString(),
+      actual: integerText(targetLegacyPayloadCount),
+    },
   ] as const;
   for (const control of extendedExactControls) {
     const dimensions = { scope: 'ALL', phase: control.phase };
@@ -5180,6 +5686,18 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       phase: 'slot-booking',
       expected: dimensionalValues(sourceReservationStatuses, 'amount'),
       actual: dimensionalValues(targetReservationStatuses, 'amount'),
+    },
+    {
+      controlKey: 'CLASS_SLOT_STATUS_CARDINALITY',
+      phase: 'slot-booking',
+      expected: dimensionalValues(sourceSlotStatuses, 'count'),
+      actual: dimensionalValues(targetSlotStatuses, 'count'),
+    },
+    {
+      controlKey: 'BOOKING_ATTENDANCE_OUTCOME_DIMENSIONS',
+      phase: 'slot-booking',
+      expected: dimensionalValues(sourceAttendanceOutcomes, 'count'),
+      actual: dimensionalValues(targetAttendanceOutcomes, 'count'),
     },
   ] as const;
   const dimensionalMismatches: Array<{ controlKey: string; phase: string; dimensionKey: string }> = [];
@@ -6347,7 +6865,7 @@ async function applyUserRoleDelta(
         userId: id,
         emailHash: canonicalEmailHash(email),
         passwordHash,
-        verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+        verifiedAt: asDate(row.email_verified_at),
         passwordChangedAt: updatedAt,
         createdAt,
         updatedAt,
@@ -6355,7 +6873,7 @@ async function applyUserRoleDelta(
       update: {
         emailHash: canonicalEmailHash(email),
         ...(existingCredential?.passwordHash.startsWith('$argon2') ? {} : { passwordHash }),
-        verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+        verifiedAt: asDate(row.email_verified_at),
         ...(sourcePasswordChanged ? { passwordChangedAt: updatedAt } : {}),
         updatedAt,
       },
@@ -6370,12 +6888,12 @@ async function applyUserRoleDelta(
         userId: id,
         provider: 'EMAIL_PASSWORD',
         subjectHash: canonicalEmailHash(email),
-        verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+        verifiedAt: asDate(row.email_verified_at),
         createdAt,
       },
       update: {
         subjectHash: canonicalEmailHash(email),
-        verifiedAt: asDate(row.email_verified_at) ?? createdAt,
+        verifiedAt: asDate(row.email_verified_at),
       },
     });
     if (rawPhone) {
@@ -6513,56 +7031,95 @@ async function applyPackageOrderDelta(
   const checksum = recordChecksum(row);
   const deletedAt = asDate(row.deleted_at);
   if (event.sourceTable === 'kelas') {
-    const branchId = await targetIdFor(
-      tx as unknown as PrismaClient,
-      'locations',
-      row.id_location,
-      'Branch',
-    );
-    if (!branchId) throw new Error('DELTA_CLASS_BRANCH_RESOLUTION_REQUIRED');
+    const sourceBranchId = textValue(row.id_location);
+    const branchId = sourceBranchId && sourceBranchId !== '0'
+      ? await targetIdFor(tx as unknown as PrismaClient, 'locations', sourceBranchId, 'Branch')
+      : null;
+    if (sourceBranchId && sourceBranchId !== '0' && !branchId)
+      throw new Error('DELTA_CLASS_BRANCH_RESOLUTION_REQUIRED');
     const id = deterministicId(`${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassType`);
     await tx.classType.upsert({
       where: { id },
       create: {
         id,
-        branchId,
+        branchId: null,
         code: `LEGACY-CLASS-${event.sourceId}`,
         name: textValue(row.nama_kelas, `Legacy class ${event.sourceId}`),
+        description: textValue(row.keterangan) || null,
+        modality: 'UNKNOWN_LEGACY',
+        equipment: textValue(row.bawaan) ? [textValue(row.bawaan)] : [],
+        defaultDurationMinutes: positiveInt(row.duration, 60),
+        defaultMinimumQuota: positiveInt(row.min_anggota, 1),
+        defaultCapacity: positiveInt(row.max_anggota, 1),
         active: !deletedAt && intValue(row.is_active, 1) === 1,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
-        sourceMetadata: sourceMetadata(row, [
-          'min_anggota',
-          'max_anggota',
-          'keterangan',
-          'duration',
-          'bawaan',
-          'type',
-          'honor',
-          'fee',
-        ]),
+        sourceMetadata: sourceMetadata(row, ['type']),
         createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
       update: {
-        branchId,
         name: textValue(row.nama_kelas, `Legacy class ${event.sourceId}`),
+        description: textValue(row.keterangan) || null,
+        modality: 'UNKNOWN_LEGACY',
+        equipment: textValue(row.bawaan) ? [textValue(row.bawaan)] : [],
+        defaultDurationMinutes: positiveInt(row.duration, 60),
+        defaultMinimumQuota: positiveInt(row.min_anggota, 1),
+        defaultCapacity: positiveInt(row.max_anggota, 1),
         active: !deletedAt && intValue(row.is_active, 1) === 1,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
-        sourceMetadata: sourceMetadata(row, [
-          'min_anggota',
-          'max_anggota',
-          'keterangan',
-          'duration',
-          'bawaan',
-          'type',
-          'honor',
-          'fee',
-        ]),
+        sourceMetadata: sourceMetadata(row, ['type']),
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
     });
+    if (branchId) {
+      await tx.classTypeBranchScope.upsert({
+        where: { classTypeId_branchId: { classTypeId: id, branchId } },
+        create: {
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchScope:${sourceBranchId}`,
+          ),
+          classTypeId: id,
+          branchId,
+          active: !deletedAt && intValue(row.is_active, 1) === 1,
+          historical: Boolean(deletedAt),
+          sourceDeletedAt: deletedAt,
+        },
+        update: {
+          active: !deletedAt && intValue(row.is_active, 1) === 1,
+          historical: Boolean(deletedAt),
+          sourceDeletedAt: deletedAt,
+        },
+      });
+      await tx.classTypeBranchConfiguration.upsert({
+        where: { id: deterministicId(
+          `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
+        ) },
+        create: {
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
+          ),
+          classTypeId: id,
+          branchId,
+          minimumQuota: positiveInt(row.min_anggota, 1),
+          capacity: positiveInt(row.max_anggota, 1),
+          honorRp: Math.max(0, intValue(row.honor)),
+          feeRp: Math.max(0, intValue(row.fee)),
+          effectiveFrom: asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z'),
+          historical: Boolean(deletedAt),
+          sourceDeletedAt: deletedAt,
+        },
+        update: {
+          minimumQuota: positiveInt(row.min_anggota, 1),
+          capacity: positiveInt(row.max_anggota, 1),
+          honorRp: Math.max(0, intValue(row.honor)),
+          feeRp: Math.max(0, intValue(row.fee)),
+          historical: Boolean(deletedAt),
+          sourceDeletedAt: deletedAt,
+        },
+      });
+    }
     await upsertDeltaSourceKey(tx, context, event, 'ClassType', id, checksum);
     return;
   }
@@ -6574,28 +7131,20 @@ async function applyPackageOrderDelta(
       'ClassType',
     );
     if (!classTypeId) throw new Error('DELTA_PACKAGE_CLASS_RESOLUTION_REQUIRED');
-    const packageKeys = await tx.migrationSourceKey.findMany({
-      where: {
-        sourceSystem: SOURCE_SYSTEM,
-        sourceTable: 'pakets',
-        sourceId: event.sourceId,
-        targetType: { startsWith: 'Package:' },
-      },
-    });
-    if (!packageKeys.length) throw new Error('DELTA_PACKAGE_SCOPE_DEPENDENCY_PENDING');
-    for (const key of packageKeys) {
-      const branchSourceId = key.targetType.slice('Package:'.length);
-      const branchId = await targetIdFor(
-        tx as unknown as PrismaClient,
-        'locations',
-        branchSourceId,
-        'Branch',
-      );
-      if (!branchId) throw new Error('DELTA_PACKAGE_BRANCH_RESOLUTION_REQUIRED');
-      await tx.package.upsert({
-        where: { id: key.targetId },
+    const packageId = deterministicId(`${SOURCE_SYSTEM}:pakets:${event.sourceId}:Package`);
+    const existing = await tx.package.findUnique({ where: { id: packageId } });
+    const directBranchId = row.id_location
+      ? await targetIdFor(tx as unknown as PrismaClient, 'locations', row.id_location, 'Branch')
+      : null;
+    if (row.id_location && !directBranchId)
+      throw new Error('DELTA_PACKAGE_SCOPE_BRANCH_RESOLUTION_REQUIRED');
+    const branchId = directBranchId ?? existing?.branchId ?? null;
+    if (!branchId) throw new Error('DELTA_PACKAGE_SCOPE_DEPENDENCY_PENDING');
+    const effectiveFrom = asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z');
+    await tx.package.upsert({
+        where: { id: packageId },
         create: {
-          id: key.targetId,
+          id: packageId,
           branchId,
           classTypeId,
           businessKey: `LEGACY-PACKAGE-${event.sourceId}`,
@@ -6608,16 +7157,12 @@ async function applyPackageOrderDelta(
           status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, [
-            'promote_code',
-            'diskon',
-            'is_many_times',
-            'is_show_public',
-          ]),
+          sourceMetadata: sourceMetadata(row, []),
           createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
           updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
         },
         update: {
+          branchId,
           classTypeId,
           name: textValue(row.nama, `Legacy package ${event.sourceId}`),
           sessionCount: positiveInt(row.jumlah_pertemuan),
@@ -6627,19 +7172,78 @@ async function applyPackageOrderDelta(
           status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, [
-            'promote_code',
-            'diskon',
-            'is_many_times',
-            'is_show_public',
-          ]),
+          sourceMetadata: sourceMetadata(row, []),
           updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
         },
-      });
-      await tx.packagePublicProfile.upsert({
-        where: { packageId: key.targetId },
+    });
+    await tx.packageRevision.upsert({
+      where: { packageId_revisionNumber: { packageId, revisionNumber: 1 } },
+      create: {
+        id: deterministicId(`${SOURCE_SYSTEM}:pakets:${event.sourceId}:PackageRevision:1`),
+        packageId,
+        revisionNumber: 1,
+        sessionCount: positiveInt(row.jumlah_pertemuan),
+        durationDays: positiveInt(row.valid_day, 30),
+        priceRp: Math.max(0, intValue(row.harga)),
+        promoteCode: textValue(row.promote_code) || null,
+        discountRp: row.diskon === null ? null : Math.max(0, intValue(row.diskon)),
+        manyTimesAllowed: intValue(row.is_many_times) === 1,
+        visible: intValue(row.is_show_public, 1) === 1,
+        effectiveFrom,
+        effectiveUntil: deletedAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+      },
+      update: {
+        sessionCount: positiveInt(row.jumlah_pertemuan),
+        durationDays: positiveInt(row.valid_day, 30),
+        priceRp: Math.max(0, intValue(row.harga)),
+        promoteCode: textValue(row.promote_code) || null,
+        discountRp: row.diskon === null ? null : Math.max(0, intValue(row.diskon)),
+        manyTimesAllowed: intValue(row.is_many_times) === 1,
+        visible: intValue(row.is_show_public, 1) === 1,
+        effectiveUntil: deletedAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+      },
+    });
+    await tx.packageClassTypeScope.upsert({
+      where: { packageId_classTypeId: { packageId, classTypeId } },
+      create: {
+        id: deterministicId(
+          `${SOURCE_SYSTEM}:pakets:${event.sourceId}:PackageClassTypeScope:${textValue(row.id_kelas)}`,
+        ),
+        packageId,
+        classTypeId,
+        active: !deletedAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+      },
+      update: { active: !deletedAt, historical: Boolean(deletedAt), sourceDeletedAt: deletedAt },
+    });
+    if (directBranchId)
+      await tx.packageBranchScope.upsert({
+        where: { packageId_branchId: { packageId, branchId: directBranchId } },
         create: {
-          packageId: key.targetId,
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:pakets:${event.sourceId}:PackageBranchScope:${textValue(row.id_location)}`,
+          ),
+          packageId,
+          branchId: directBranchId,
+          active: event.operation !== 'DELETE' && !deletedAt,
+          historical: event.operation === 'DELETE' || Boolean(deletedAt),
+          sourceDeletedAt: deletedAt ?? (event.operation === 'DELETE' ? event.sourceOccurredAt : null),
+        },
+        update: {
+          active: event.operation !== 'DELETE' && !deletedAt,
+          historical: event.operation === 'DELETE' || Boolean(deletedAt),
+          sourceDeletedAt: deletedAt ?? (event.operation === 'DELETE' ? event.sourceOccurredAt : null),
+        },
+      });
+    await tx.packagePublicProfile.upsert({
+        where: { packageId },
+        create: {
+          packageId,
           summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
           description: textValue(row.nama, `Legacy package ${event.sourceId}`),
           highlights: [],
@@ -6650,9 +7254,8 @@ async function applyPackageOrderDelta(
           summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
           description: textValue(row.nama, `Legacy package ${event.sourceId}`),
         },
-      });
-      await upsertDeltaSourceKey(tx, context, event, key.targetType, key.targetId, checksum);
-    }
+    });
+    await upsertDeltaSourceKey(tx, context, event, 'Package', packageId, checksum);
     return;
   }
   if (event.sourceTable === 'paket_locations') {
@@ -6663,69 +7266,63 @@ async function applyPackageOrderDelta(
       branchSourceId,
       'Branch',
     );
-    const classSource = await tx.migrationSourceKey.findFirst({
-      where: {
-        sourceSystem: SOURCE_SYSTEM,
-        sourceTable: 'pakets',
-        sourceId: textValue(row.id_paket),
-        targetType: { startsWith: 'Package:' },
-      },
-      select: { targetId: true },
-    });
-    if (!branchId) throw new Error('DELTA_PACKAGE_SCOPE_BRANCH_RESOLUTION_REQUIRED');
-    const packageId = deterministicId(
-      `${SOURCE_SYSTEM}:pakets:${textValue(row.id_paket)}:Package:branch:${branchSourceId}`,
+    const packageId = await targetIdFor(
+      tx as unknown as PrismaClient,
+      'pakets',
+      row.id_paket,
+      'Package',
     );
-    if (!classSource) throw new Error('DELTA_PACKAGE_ROW_DEPENDENCY_PENDING');
-    const existingPackage = await tx.package.findUnique({ where: { id: classSource.targetId } });
-    if (!existingPackage) throw new Error('DELTA_PACKAGE_ROW_DEPENDENCY_PENDING');
-    if (event.operation === 'DELETE' || deletedAt) {
-      await tx.package.updateMany({
-        where: { id: packageId },
-        data: { status: 'INACTIVE', historical: true, sourceDeletedAt: deletedAt ?? event.sourceOccurredAt },
-      });
-    } else if (packageId !== classSource.targetId) {
-      await tx.package.upsert({
-        where: { id: packageId },
-        create: {
-          id: packageId,
-          branchId,
-          classTypeId: existingPackage.classTypeId,
-          businessKey: existingPackage.businessKey,
-          name: existingPackage.name,
-          sessionCount: existingPackage.sessionCount,
-          durationDays: existingPackage.durationDays,
-          priceRp: existingPackage.priceRp,
-          effectiveFrom: existingPackage.effectiveFrom,
-          effectiveUntil: existingPackage.effectiveUntil,
-          status: existingPackage.status,
-          historical: existingPackage.historical,
-          sourceDeletedAt: existingPackage.sourceDeletedAt,
-          sourceMetadata:
-            existingPackage.sourceMetadata === null
-              ? Prisma.JsonNull
-              : (existingPackage.sourceMetadata as Prisma.InputJsonValue),
-          createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
-          updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
-        },
-        update: { branchId, historical: false, sourceDeletedAt: null },
-      });
-    }
-    await upsertDeltaSourceKey(tx, context, event, 'PackageScope', packageId, checksum);
+    if (!branchId) throw new Error('DELTA_PACKAGE_SCOPE_BRANCH_RESOLUTION_REQUIRED');
+    if (!packageId) throw new Error('DELTA_PACKAGE_ROW_DEPENDENCY_PENDING');
+    const scopeId = deterministicId(
+      `${SOURCE_SYSTEM}:paket_locations:${event.sourceId}:PackageBranchScope`,
+    );
+    const active = event.operation !== 'DELETE' && !deletedAt;
+    await tx.packageBranchScope.upsert({
+      where: { packageId_branchId: { packageId, branchId } },
+      create: {
+        id: scopeId,
+        packageId,
+        branchId,
+        active,
+        historical: !active,
+        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+      },
+      update: {
+        active,
+        historical: !active,
+        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+      },
+    });
+    await upsertDeltaSourceKey(tx, context, event, 'PackageBranchScope', scopeId, checksum);
     return;
   }
   if (event.sourceTable === 'kelas_pakets') {
-    const keys = await tx.migrationSourceKey.findMany({
-      where: {
-        sourceSystem: SOURCE_SYSTEM,
-        sourceTable: 'pakets',
-        sourceId: textValue(row.id_paket),
-        targetType: { startsWith: 'Package:' },
+    const packageId = await targetIdFor(tx as unknown as PrismaClient, 'pakets', row.id_paket, 'Package');
+    const classTypeId = await targetIdFor(tx as unknown as PrismaClient, 'kelas', row.id_kelas, 'ClassType');
+    if (!packageId || !classTypeId)
+      throw new Error('DELTA_PACKAGE_CLASS_SCOPE_DEPENDENCY_PENDING');
+    const scopeId = deterministicId(
+      `${SOURCE_SYSTEM}:kelas_pakets:${event.sourceId}:PackageClassTypeScope`,
+    );
+    const active = event.operation !== 'DELETE' && !deletedAt;
+    await tx.packageClassTypeScope.upsert({
+      where: { packageId_classTypeId: { packageId, classTypeId } },
+      create: {
+        id: scopeId,
+        packageId,
+        classTypeId,
+        active,
+        historical: !active,
+        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+      },
+      update: {
+        active,
+        historical: !active,
+        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
       },
     });
-    if (!keys.length) throw new Error('DELTA_PACKAGE_CLASS_SCOPE_DEPENDENCY_PENDING');
-    for (const key of keys)
-      await upsertDeltaSourceKey(tx, context, event, 'PackageClassScope', key.targetId, checksum);
+    await upsertDeltaSourceKey(tx, context, event, 'PackageClassTypeScope', scopeId, checksum);
     return;
   }
   if (event.sourceTable === 'order_pakets') {
@@ -6746,11 +7343,16 @@ async function applyPackageOrderDelta(
       tx as unknown as PrismaClient,
       'pakets',
       row.id_paket,
-      `Package:${branchSourceId}`,
+      'Package',
     );
     if (!userId || !branchId || !packageId)
       throw new Error('DELTA_ORDER_REFERENCE_RESOLUTION_REQUIRED');
     const pkg = await tx.package.findUniqueOrThrow({ where: { id: packageId } });
+    const packageClassScope = await tx.packageClassTypeScope.findFirst({
+      where: { packageId, active: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (!packageClassScope) throw new Error('DELTA_PACKAGE_CLASS_SCOPE_DEPENDENCY_PENDING');
     const sourceBalance = intValue(row.sisa);
     const sessions = positiveInt(row.jumlah_pertemuan, pkg.sessionCount);
     if (sourceBalance < 0 || sourceBalance > sessions)
@@ -6765,7 +7367,13 @@ async function applyPackageOrderDelta(
       asDate(row.expired_date) ?? new Date(activationDate.getTime() + pkg.durationDays * 86_400_000);
     const price = Math.max(0, intValue(row.harga, pkg.priceRp));
     const isActive = !deletedAt && intValue(row.is_active) === 1;
-    const purchaseStatus = isActive || intValue(row.status) === 1 ? 'APPROVED' : 'PENDING';
+    const statusMapping = mapV1PurchaseStatus({ status: row.status, active: row.is_active });
+    if (statusMapping.conflict)
+      throw new Error('DELTA_ORDER_STATUS_ACTIVE_CONFLICT_RESOLUTION_REQUIRED');
+    const purchaseStatus = statusMapping.status;
+    const uniqueCode = Math.max(0, intValue(row.unix_code));
+    if (uniqueCode > 0 && price % 1000 !== uniqueCode)
+      throw new Error('DELTA_ORDER_UNIQUE_CODE_MISMATCH_RESOLUTION_REQUIRED');
     const existingPurchase = await tx.purchase.findUnique({ where: { id: purchaseId } });
     if (
       existingPurchase?.timelineComplete &&
@@ -6784,6 +7392,14 @@ async function applyPackageOrderDelta(
         packageNameSnapshot: pkg.name,
         priceRpSnapshot: price,
         priceAfterDiscountRpSnapshot: price,
+        finalAmountBeforeUniqueCodeRpSnapshot: uniqueCode > 0 ? price - uniqueCode : null,
+        paymentUniqueCode: uniqueCode || null,
+        payableAmountRpSnapshot: price,
+        amountPaidRpSnapshot: asDate(row.tanggal_pembayaran) ? price : null,
+        paymentMethodCode: textValue(row.metode_pembayaran) || null,
+        sourceStatusCode: textValue(row.status),
+        sourceActiveFlag: intValue(row.is_active) === 1,
+        snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
         sessionCountSnapshot: sessions,
         durationDaysSnapshot: pkg.durationDays,
         status: purchaseStatus,
@@ -6802,6 +7418,10 @@ async function applyPackageOrderDelta(
       },
       update: {
         status: purchaseStatus,
+        amountPaidRpSnapshot: asDate(row.tanggal_pembayaran) ? price : null,
+        paymentMethodCode: textValue(row.metode_pembayaran) || null,
+        sourceStatusCode: textValue(row.status),
+        sourceActiveFlag: intValue(row.is_active) === 1,
         decidedAt: purchaseStatus === 'APPROVED' ? activationDate : null,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -6821,7 +7441,7 @@ async function applyPackageOrderDelta(
         customerUserId: userId,
         branchId,
         packageId,
-        classTypeId: pkg.classTypeId,
+        classTypeId: packageClassScope.classTypeId,
         activationDate,
         expiryAt,
         salePriceRp: price,
@@ -6895,7 +7515,16 @@ async function applySlotBookingDelta(
       'ClassType',
     );
     if (!classTypeId) throw new Error('DELTA_SLOT_CLASS_RESOLUTION_REQUIRED');
-    const classType = await tx.classType.findUniqueOrThrow({ where: { id: classTypeId } });
+    const classType = await tx.classType.findUniqueOrThrow({
+      where: { id: classTypeId },
+      include: {
+        branchScopes: {
+          where: { active: true },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+      },
+    });
     const studioId = activity
       ? await targetIdFor(
           tx as unknown as PrismaClient,
@@ -6906,19 +7535,41 @@ async function applySlotBookingDelta(
       : null;
     const studio = studioId ? await tx.studio.findUnique({ where: { id: studioId } }) : null;
     if (activity && !studio) throw new Error('DELTA_SLOT_STUDIO_RESOLUTION_REQUIRED');
+    const branchId = studio?.branchId ?? classType.branchScopes[0]?.branchId;
+    const effectiveStudio = studio ?? (branchId
+      ? await tx.studio.findFirst({
+          where: { branchId, active: true },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        })
+      : null);
+    if (!branchId || !effectiveStudio) throw new Error('DELTA_SLOT_VENUE_RESOLUTION_REQUIRED');
+    await tx.classTypeBranchScope.upsert({
+      where: { classTypeId_branchId: { classTypeId, branchId } },
+      create: {
+        id: deterministicId(
+          `${SOURCE_SYSTEM}:kelas_activities:${event.sourceId}:ClassTypeBranchScope:${branchId}`,
+        ),
+        classTypeId,
+        branchId,
+        active: !deletedAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+      },
+      update: {},
+    });
     const startAt = activity
       ? legacyJakartaDateTime(row.tanggal, row.jam_mulai)
       : asDate(row.datetime_avaiable);
     if (!startAt) throw new Error('DELTA_SLOT_TIME_INVALID');
     const metadata = jsonObject(classType.sourceMetadata);
-    const duration = positiveInt(metadata.duration, 60);
+    const duration = classType.defaultDurationMinutes;
     const id = deterministicId(
       `${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:ClassSlot`,
     );
     const duplicate = await tx.classSlot.findFirst({
       where: {
         id: { not: id },
-        branchId: studio?.branchId ?? classType.branchId,
+        branchId,
         classTypeId,
         startAt,
         historical: false,
@@ -6931,17 +7582,18 @@ async function applySlotBookingDelta(
       where: { id },
       create: {
         id,
-        branchId: studio?.branchId ?? classType.branchId,
+        branchId,
         classTypeId,
+        studioId: effectiveStudio.id,
         instructorUserId: activity
           ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User')
           : null,
         startAt,
         endAt: new Date(startAt.getTime() + duration * 60_000),
         timezone: 'Asia/Jakarta',
-        minimumQuota: Math.max(0, intValue(metadata.min_anggota)),
-        capacity: positiveInt(metadata.max_anggota, 1),
-        status: deletedAt ? 'COMPLETED' : sourceStatus === 1 ? 'PUBLISHED' : 'CANCELLED',
+        minimumQuota: classType.defaultMinimumQuota,
+        capacity: classType.defaultCapacity,
+        status: mapV1ClassSlotStatus(sourceStatus),
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         sourceMetadata: sourceMetadata(row, activity
@@ -6951,13 +7603,14 @@ async function applySlotBookingDelta(
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
       update: {
-        branchId: studio?.branchId ?? classType.branchId,
+        branchId,
+        studioId: effectiveStudio.id,
         instructorUserId: activity
           ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User')
           : null,
         startAt,
         endAt: new Date(startAt.getTime() + duration * 60_000),
-        status: deletedAt ? 'COMPLETED' : sourceStatus === 1 ? 'PUBLISHED' : 'CANCELLED',
+        status: mapV1ClassSlotStatus(sourceStatus),
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         sourceMetadata: sourceMetadata(row, activity
@@ -7013,7 +7666,7 @@ async function applySlotBookingDelta(
       ? await tx.user.findUnique({ where: { id: userId }, select: { preferredBranchId: true } })
       : null;
     const weekday = weekdays[intValue(row.hari)];
-    if (!userId || !user?.preferredBranchId || !weekday)
+    if (!userId || !weekday)
       throw new Error('DELTA_SCHEDULE_RESOLUTION_REQUIRED');
     const id = deterministicId(
       `${SOURCE_SYSTEM}:customer_jadwal_statics:${event.sourceId}:Schedule`,
@@ -7023,10 +7676,11 @@ async function applySlotBookingDelta(
       create: {
         id,
         customerUserId: userId,
-        branchId: user.preferredBranchId,
+        branchId: user?.preferredBranchId ?? null,
         weekday,
         startMinute: minuteOfDay(row.jam),
         timezone: 'Asia/Jakarta',
+        note: textValue(row.keterangan) || null,
         active: !deletedAt,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -7034,9 +7688,10 @@ async function applySlotBookingDelta(
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
       update: {
-        branchId: user.preferredBranchId,
+        branchId: user?.preferredBranchId ?? null,
         weekday,
         startMinute: minuteOfDay(row.jam),
+        note: textValue(row.keterangan) || null,
         active: !deletedAt,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -7084,16 +7739,14 @@ async function applySlotBookingDelta(
       select: { id: true },
     });
     if (duplicate && !deletedAt) throw new Error('DELTA_DUPLICATE_ACTIVE_BOOKING_RESOLUTION_REQUIRED');
-    const attendanceCode = row.status_kehadiran === null ? null : intValue(row.status_kehadiran);
-    const status = deletedAt
-      ? 'CANCELLED'
-      : attendanceCode === 1
-        ? 'ATTENDED'
-        : attendanceCode === 2
-          ? 'NO_SHOW'
-          : 'BOOKED';
+    const attendance = mapV1BookingAttendance(row.status_kehadiran);
+    const status = deletedAt ? 'CANCELLED' : attendance.bookingStatus;
     const reservationStatus =
-      status === 'BOOKED' ? 'ACTIVE' : status === 'ATTENDED' ? 'CONSUMED' : 'RELEASED';
+      deletedAt || attendance.outcome === 'EXCUSED'
+        ? 'RELEASED'
+        : attendance.outcome === 'ATTENDED' || attendance.outcome === 'NO_SHOW'
+          ? 'CONSUMED'
+          : 'ACTIVE';
     const reservationId = deterministicId(
       `${SOURCE_SYSTEM}:booking_kelas:${event.sourceId}:SessionReservation`,
     );
@@ -7150,6 +7803,45 @@ async function applySlotBookingDelta(
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
     });
+    const outcomeId = deterministicId(
+      `${SOURCE_SYSTEM}:booking_kelas:${event.sourceId}:BookingAttendanceOutcome`,
+    );
+    await tx.bookingAttendanceOutcome.upsert({
+      where: { bookingId },
+      create: {
+        id: outcomeId,
+        bookingId,
+        outcome: attendance.outcome,
+        sourceStatusCode:
+          row.status_kehadiran === null || row.status_kehadiran === undefined
+            ? null
+            : textValue(row.status_kehadiran),
+        note: textValue(row.keterangan) || null,
+        occurredAt:
+          attendance.outcome === 'UNKNOWN_HISTORICAL'
+            ? null
+            : asDate(row.updated_at) ?? slot.startAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+        createdAt,
+        updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
+      },
+      update: {
+        outcome: attendance.outcome,
+        sourceStatusCode:
+          row.status_kehadiran === null || row.status_kehadiran === undefined
+            ? null
+            : textValue(row.status_kehadiran),
+        note: textValue(row.keterangan) || null,
+        occurredAt:
+          attendance.outcome === 'UNKNOWN_HISTORICAL'
+            ? null
+            : asDate(row.updated_at) ?? slot.startAt,
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+        updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
+      },
+    });
     if (row.review || row.rating)
       await tx.bookingFeedback.upsert({
         where: { bookingId },
@@ -7176,6 +7868,7 @@ async function applySlotBookingDelta(
       });
     await upsertDeltaSourceKey(tx, context, event, 'Booking', bookingId, checksum);
     await upsertDeltaSourceKey(tx, context, event, 'SessionReservation', reservationId, checksum);
+    await upsertDeltaSourceKey(tx, context, event, 'BookingAttendanceOutcome', outcomeId, checksum);
     return;
   }
   if (event.sourceTable === 'kelas_ratings') {
@@ -7362,10 +8055,12 @@ async function applyVoucherFinanceAuditMediaDelta(
         activeFrom,
         activeUntil,
         perCustomerUsageLimit: intValue(row.sekali_gunakan) === 1 ? 1 : null,
+        legacyEntitlementDurationDays:
+          row.lama_aktif === null ? null : Math.max(0, intValue(row.lama_aktif)),
         createdById: actorId,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
-        sourceMetadata: sourceMetadata(row, ['lama_aktif', 'id_paket', 'status']),
+        sourceMetadata: sourceMetadata(row, ['id_paket', 'status']),
         createdAt: asDate(row.created_at) ?? activeFrom,
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
@@ -7379,9 +8074,11 @@ async function applyVoucherFinanceAuditMediaDelta(
         activeFrom,
         activeUntil,
         perCustomerUsageLimit: intValue(row.sekali_gunakan) === 1 ? 1 : null,
+        legacyEntitlementDurationDays:
+          row.lama_aktif === null ? null : Math.max(0, intValue(row.lama_aktif)),
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
-        sourceMetadata: sourceMetadata(row, ['lama_aktif', 'id_paket', 'status']),
+        sourceMetadata: sourceMetadata(row, ['id_paket', 'status']),
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
     });
@@ -7412,7 +8109,7 @@ async function applyVoucherFinanceAuditMediaDelta(
           sourceSystem: SOURCE_SYSTEM,
           sourceTable: 'pakets',
           sourceId: sourcePackageId,
-          targetType: { startsWith: 'Package:' },
+          targetType: 'Package',
         },
       });
       desiredPackages.push(...keys.map((key) => key.targetId));
@@ -7468,7 +8165,7 @@ async function applyVoucherFinanceAuditMediaDelta(
         purchaseId,
         customerUserId,
         sourceStatusCode: textValue(row.status),
-        active: !deletedAt && intValue(row.status) === 1,
+        active: !used && !deletedAt && intValue(row.status) === 1,
         expiresAt: asDate(row.expired),
         usedAt: used ? asDate(row.tanggal_digunakan) : null,
         historical: Boolean(deletedAt),
@@ -7479,7 +8176,7 @@ async function applyVoucherFinanceAuditMediaDelta(
       update: {
         purchaseId,
         sourceStatusCode: textValue(row.status),
-        active: !deletedAt && intValue(row.status) === 1,
+        active: !used && !deletedAt && intValue(row.status) === 1,
         expiresAt: asDate(row.expired),
         usedAt: used ? asDate(row.tanggal_digunakan) : null,
         historical: Boolean(deletedAt),
@@ -7493,13 +8190,7 @@ async function applyVoucherFinanceAuditMediaDelta(
         tx.voucher.findUniqueOrThrow({ where: { id: voucherId } }),
         tx.purchase.findUniqueOrThrow({ where: { id: purchaseId } }),
       ]);
-      const discountRp =
-        voucher.discountType === 'FIXED_AMOUNT'
-          ? Math.min(purchase.priceRpSnapshot, voucher.discountValue)
-          : Math.min(
-              purchase.priceRpSnapshot,
-              Math.trunc((purchase.priceRpSnapshot * voucher.discountValue) / 100),
-            );
+      const discountRp = purchase.voucherDiscountRpSnapshot ?? 0;
       const redemptionId = deterministicId(
         `${SOURCE_SYSTEM}:voucher_customers:${event.sourceId}:Redemption`,
       );
@@ -7511,12 +8202,14 @@ async function applyVoucherFinanceAuditMediaDelta(
           purchaseId,
           customerUserId,
           discountRp,
+          snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
           redeemedAt: asDate(row.tanggal_digunakan) ?? event.sourceOccurredAt,
         },
         update: {
           voucherId,
           customerUserId,
           discountRp,
+          snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
           redeemedAt: asDate(row.tanggal_digunakan) ?? event.sourceOccurredAt,
           releasedAt: deletedAt,
         },
@@ -7526,10 +8219,8 @@ async function applyVoucherFinanceAuditMediaDelta(
         data: {
           voucherId,
           voucherCodeSnapshot: voucher.code,
-          voucherDiscountTypeSnapshot: voucher.discountType,
-          voucherDiscountValueSnapshot: voucher.discountValue,
-          voucherDiscountRpSnapshot: discountRp,
-          priceAfterDiscountRpSnapshot: Math.max(0, purchase.priceRpSnapshot - discountRp),
+          priceAfterDiscountRpSnapshot: purchase.priceRpSnapshot,
+          snapshotCompleteness: 'LEGACY_FINAL_AMOUNT_ONLY',
         },
       });
       await upsertDeltaSourceKey(tx, context, event, 'VoucherRedemption', redemptionId, checksum);
@@ -7572,57 +8263,42 @@ async function applyVoucherFinanceAuditMediaDelta(
           'Purchase',
         )
       : null;
-    const actorUserId = row.id_user
-      ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User')
+    const migrationActorSourceId = required(
+      process.env.V1_MIGRATION_ACTOR_SOURCE_USER_ID,
+      'V1_MIGRATION_ACTOR_SOURCE_USER_ID_REQUIRED',
+    );
+    const actorSourceId = textValue(row.id_user) === '0' ? migrationActorSourceId : row.id_user;
+    const actorUserId = actorSourceId
+      ? await targetIdFor(tx as unknown as PrismaClient, 'users', actorSourceId, 'User')
       : null;
     const parentId = row.id_parent
       ? await targetIdFor(
           tx as unknown as PrismaClient,
           'jurnals',
           row.id_parent,
-          'JournalEntry',
+          'LegacyFinancialEntry',
         )
       : null;
     if ((row.id_order_paket && !purchaseId) || (row.id_user && !actorUserId) || (row.id_parent && !parentId))
       throw new Error('DELTA_JOURNAL_REFERENCE_RESOLUTION_REQUIRED');
-    const fallbackAccountId = deterministicId(`${SOURCE_SYSTEM}:AccountingAccount:UNCLASSIFIED`);
-    await tx.accountingAccount.upsert({
-      where: { id: fallbackAccountId },
-      create: {
-        id: fallbackAccountId,
-        code: 'LEGACY-UNCLASSIFIED',
-        name: 'Daily Dose v1 – belum diklasifikasikan',
-        accountType: 'LEGACY',
-        active: false,
-        historical: true,
-      },
-      update: {},
-    });
     const purchase = purchaseId
       ? await tx.purchase.findUnique({ where: { id: purchaseId }, select: { branchId: true } })
       : null;
-    const id = deterministicId(`${SOURCE_SYSTEM}:jurnals:${event.sourceId}:JournalEntry`);
-    const existing = await tx.journalEntry.findUnique({ where: { id } });
+    const id = deterministicId(`${SOURCE_SYSTEM}:jurnals:${event.sourceId}:LegacyFinancialEntry`);
     const amount = Math.max(0, intValue(row.jumlah_uang));
-    const debitRp = intValue(row.tipe) === 1 ? amount : 0;
-    const creditRp = intValue(row.tipe) === 0 ? amount : 0;
-    if (existing?.statusCode === 'POSTED' && (existing.debitRp !== debitRp || existing.creditRp !== creditRp))
-      throw new Error('DELTA_POSTED_JOURNAL_REVERSAL_REQUIRED');
-    await tx.journalEntry.upsert({
+    await tx.legacyFinancialEntry.upsert({
       where: { id },
       create: {
         id,
         branchId: purchase?.branchId ?? null,
-        accountId: fallbackAccountId,
         purchaseId,
         actorUserId,
         parentId,
-        referenceNumber: `V1-JOURNAL-${event.sourceId}`,
+        type: intValue(row.tipe) === 1 ? 'INCOME' : 'EXPENSE',
+        amountRp: amount,
+        sourceTypeCode: textValue(row.tipe),
         description: textValue(row.nama),
-        debitRp,
-        creditRp,
         occurredAt: asDate(row.tanggal) ?? event.sourceOccurredAt,
-        statusCode: deletedAt ? 'HISTORICAL_DELETED' : 'MIGRATED',
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         sourceMetadata: sourceMetadata(row, ['tipe']),
@@ -7634,18 +8310,18 @@ async function applyVoucherFinanceAuditMediaDelta(
         purchaseId,
         actorUserId,
         parentId,
+        type: intValue(row.tipe) === 1 ? 'INCOME' : 'EXPENSE',
+        amountRp: amount,
+        sourceTypeCode: textValue(row.tipe),
         description: textValue(row.nama),
-        debitRp,
-        creditRp,
         occurredAt: asDate(row.tanggal) ?? event.sourceOccurredAt,
-        statusCode: deletedAt ? 'HISTORICAL_DELETED' : 'MIGRATED',
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         sourceMetadata: sourceMetadata(row, ['tipe']),
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
     });
-    await upsertDeltaSourceKey(tx, context, event, 'JournalEntry', id, checksum);
+    await upsertDeltaSourceKey(tx, context, event, 'LegacyFinancialEntry', id, checksum);
     return;
   }
   if (event.sourceTable === 'activity_log') {
@@ -7653,6 +8329,7 @@ async function applyVoucherFinanceAuditMediaDelta(
     const actorId = row.causer_id
       ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.causer_id, 'User')
       : null;
+    const activityPayload = jsonObject(row.properties);
     await tx.auditLog.upsert({
       where: { id },
       create: {
@@ -7675,9 +8352,37 @@ async function applyVoucherFinanceAuditMediaDelta(
         sourceId: event.sourceId,
         historical: true,
       },
-      update: {},
+        update: {
+          occurredAt: asDate(row.created_at) ?? event.sourceOccurredAt,
+          afterMasked: {
+            logName: textValue(row.log_name),
+            description: textValue(row.description).slice(0, 500),
+            propertiesChecksum: recordChecksum(activityPayload),
+            batchUuid: textValue(row.batch_uuid) || null,
+          },
+        },
+    });
+    const payloadId = deterministicId(
+      `${SOURCE_SYSTEM}:activity_log:${event.sourceId}:MigrationLegacyPayload`,
+    );
+    await tx.migrationLegacyPayload.upsert({
+      where: { auditLogId: id },
+      create: {
+        id: payloadId,
+        kind: 'ACTIVITY_LOG',
+        auditLogId: id,
+        payloadEncrypted: encryptPii(stableJson(activityPayload), piiKey()),
+        payloadChecksum: recordChecksum(activityPayload),
+        encryptionVersion: 'aes-256-gcm:v1',
+      },
+      update: {
+        payloadEncrypted: encryptPii(stableJson(activityPayload), piiKey()),
+        payloadChecksum: recordChecksum(activityPayload),
+        encryptionVersion: 'aes-256-gcm:v1',
+      },
     });
     await upsertDeltaSourceKey(tx, context, event, 'AuditLog', id, checksum);
+    await upsertDeltaSourceKey(tx, context, event, 'MigrationLegacyPayload', payloadId, checksum);
     return;
   }
   if (event.sourceTable === 'notifications') {
@@ -7707,9 +8412,34 @@ async function applyVoucherFinanceAuditMediaDelta(
         readAt: asDate(row.read_at),
         createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
       },
-      update: { readAt: asDate(row.read_at) },
+      update: {
+        title: textValue(data.title, textValue(row.type, 'Daily Dose v1')).slice(0, 191),
+        message: textValue(data.message, 'Notifikasi historis Daily Dose v1').slice(0, 1000),
+        metadataMasked: { sourceType: textValue(row.type), payloadChecksum: recordChecksum(data) },
+        readAt: asDate(row.read_at),
+      },
+    });
+    const payloadId = deterministicId(
+      `${SOURCE_SYSTEM}:notifications:${event.sourceId}:MigrationLegacyPayload`,
+    );
+    await tx.migrationLegacyPayload.upsert({
+      where: { userNotificationId: id },
+      create: {
+        id: payloadId,
+        kind: 'NOTIFICATION',
+        userNotificationId: id,
+        payloadEncrypted: encryptPii(stableJson(data), piiKey()),
+        payloadChecksum: recordChecksum(data),
+        encryptionVersion: 'aes-256-gcm:v1',
+      },
+      update: {
+        payloadEncrypted: encryptPii(stableJson(data), piiKey()),
+        payloadChecksum: recordChecksum(data),
+        encryptionVersion: 'aes-256-gcm:v1',
+      },
     });
     await upsertDeltaSourceKey(tx, context, event, 'UserNotification', id, checksum);
+    await upsertDeltaSourceKey(tx, context, event, 'MigrationLegacyPayload', payloadId, checksum);
     return;
   }
   if (event.sourceTable === 'permissions') {
@@ -9150,9 +9880,10 @@ async function main() {
       await assertTargetEmpty(target);
       const checksum = await verifyDump(args);
       const sourceProfile = await profile(source!);
+      assertV1ColumnRegistry();
       if (
         required(process.env.V1_MAPPING_VERSION, 'V1_MAPPING_VERSION_REQUIRED') !==
-        schemaContract.contractVersion
+        V1_MAPPING_VERSION
       )
         throw new Error('MAPPING_VERSION_CONTRACT_MISMATCH');
       if (
@@ -9163,7 +9894,17 @@ async function main() {
         throw new Error('SOURCE_SCHEMA_MISMATCH');
       console.log(
         JSON.stringify(
-          { ok: true, checksum, sourceSchema: sourceProfile.schema, targetEmpty: true },
+          {
+            ok: true,
+            checksum,
+            sourceSchema: sourceProfile.schema,
+            targetEmpty: true,
+            mappingVersion: V1_MAPPING_VERSION,
+            columnRegistry: {
+              total: V1_COLUMN_REGISTRY.length,
+              dispositions: summarizeV1ColumnRegistry(),
+            },
+          },
           null,
           2,
         ),
