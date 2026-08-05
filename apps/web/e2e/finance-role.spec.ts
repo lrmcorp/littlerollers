@@ -94,7 +94,24 @@ test('Finance sees reconciliation while Manager cannot open it', async ({ page }
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ generatedAt: new Date().toISOString(), items: [], total: 0 }),
+      body: JSON.stringify({
+        generatedAt: new Date().toISOString(),
+        items: [],
+        total: 0,
+        page: { hasMore: false, nextCursor: null },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/finance/reconciliation/legacy-cashflow**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [],
+        total: 0,
+        summary: {},
+        page: { hasMore: false, nextCursor: null },
+      }),
     }),
   );
 

@@ -5,6 +5,10 @@ dist/
 .next/
 .next-dev/
 .next-playwright/
+.next-playwright-mock/
+.next-playwright-runs/
+apps/web/playwright-evidence/
+apps/web/tsconfig.playwright.*.json
 .next-production/
 coverage/
 apps/web/test-results/

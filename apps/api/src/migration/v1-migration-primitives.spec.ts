@@ -87,6 +87,10 @@ describe('Daily Dose v1 migration primitives', () => {
       'EXCUSED',
       'NO_SHOW',
     ]);
+    expect(mapV1BookingAttendance(0)).toEqual({
+      outcome: 'UNKNOWN_HISTORICAL',
+      bookingStatus: 'BOOKED',
+    });
     expect(() => mapV1ClassSlotStatus(99)).toThrow('V1_CLASS_SLOT_STATUS_UNKNOWN:99');
     expect(() => mapV1BookingAttendance(99)).toThrow('V1_BOOKING_ATTENDANCE_STATUS_UNKNOWN:99');
   });

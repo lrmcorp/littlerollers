@@ -23,7 +23,7 @@ export async function selectSearchOption(
   optionName: string | RegExp,
   search?: string,
 ) {
-  const input = root.getByLabel(label, { exact: true });
+  const input = root.getByLabel(label, { exact: true }).filter({ visible: true });
   await input.fill(search ?? (typeof optionName === 'string' ? optionName : ''));
   const option = root.getByRole('option', { name: optionName }).first();
   await expect(option).toBeVisible();

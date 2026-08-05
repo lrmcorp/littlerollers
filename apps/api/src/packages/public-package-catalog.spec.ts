@@ -66,7 +66,12 @@ describe('PublicPackageQueryService', () => {
     expect(result.items[0]).not.toHaveProperty('createdAt');
     expect(db.package.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: 'ACTIVE', branchId }),
+        where: expect.objectContaining({
+          status: 'ACTIVE',
+          branchScopes: {
+            some: expect.objectContaining({ branchId, active: true }),
+          },
+        }),
       }),
     );
   });

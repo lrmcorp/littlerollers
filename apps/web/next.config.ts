@@ -1,7 +1,10 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
-  output: 'standalone',
+  typescript: {
+    tsconfigPath: process.env.NEXT_TYPESCRIPT_CONFIG ?? 'tsconfig.json',
+  },
+  output: process.env.DD_PLAYWRIGHT_MOCK === 'true' ? undefined : 'standalone',
   devIndicators: false,
   transpilePackages: ['@dailydose/api-client-ts'],
   async rewrites() {

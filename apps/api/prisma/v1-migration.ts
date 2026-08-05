@@ -76,6 +76,25 @@ function safeFailureCode(error: unknown, fallback: string): string {
   const explicit = message.match(/(?:^|:)([A-Z][A-Z0-9_]{2,63})(?::|$)/u)?.[1];
   return explicit ?? fallback;
 }
+
+function safeIntegrationDiagnostic(error: unknown): Record<string, string> | undefined {
+  if (process.env.MIGRATION_INTEGRATION_TEST !== 'true') return undefined;
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = (error.meta ?? {}) as Record<string, unknown>;
+    const databaseCode = String(meta.code ?? '').match(/^[A-Z0-9_-]{1,32}$/u)?.[0];
+    const databaseMessage = String(meta.message ?? '');
+    const identifier =
+      databaseMessage.match(/Unknown column '([A-Za-z0-9_.]+)'/u)?.[1] ??
+      databaseMessage.match(/Table '[^']*\.([A-Za-z0-9_]+)' doesn't exist/u)?.[1];
+    return {
+      category: 'PRISMA_KNOWN_REQUEST',
+      prismaCode: error.code,
+      ...(databaseCode ? { databaseCode } : {}),
+      ...(identifier ? { identifier } : {}),
+    };
+  }
+  return { category: 'NON_PRISMA_ERROR' };
+}
 const PHASES = [
   'branch-master',
   'user-role',
@@ -162,30 +181,42 @@ const TABLE_PHASE: Record<(typeof SOURCE_TABLES)[number], (typeof PHASES)[number
 type SourceTable = (typeof SOURCE_TABLES)[number];
 const TABLE_POLICIES = {
   activity_log: { disposition: 'MAP', target: 'AuditLog' },
-  booking_kelas: { disposition: 'MAP', target: 'Booking,SessionReservation,BookingFeedback' },
+  booking_kelas: {
+    disposition: 'MAP',
+    target: 'Booking,SessionReservation,BookingAttendanceOutcome,BookingFeedback',
+  },
   check_in_outs: { disposition: 'MAP', target: 'CustomerAttendance' },
   coas: { disposition: 'MAP', target: 'AccountingAccount' },
   customer_jadwal_statics: { disposition: 'MAP', target: 'CustomerRecurringSchedule' },
   customer_kelas: { disposition: 'MAP', target: 'CustomerClassEnrollment' },
   failed_jobs: { disposition: 'IGNORE', reason: 'EPHEMERAL_RUNTIME_QUEUE_NOT_BUSINESS_DATA' },
-  jurnals: { disposition: 'MAP', target: 'JournalEntry,MediaAsset' },
+  jurnals: { disposition: 'MAP', target: 'LegacyFinancialEntry,MigrationDeferredMediaReference' },
   kelas: { disposition: 'MAP', target: 'ClassType' },
   kelas_activities: { disposition: 'MAP', target: 'ClassSlot' },
-  kelas_images: { disposition: 'MAP', target: 'MediaAsset' },
-  kelas_pakets: { disposition: 'MAP', target: 'Package.classTypeId' },
+  kelas_images: { disposition: 'MAP', target: 'MigrationDeferredMediaReference' },
+  kelas_pakets: { disposition: 'MAP', target: 'PackageClassTypeScope' },
   kelas_pertamuans: { disposition: 'MAP', target: 'ClassSlot' },
   kelas_pertemuan_absensis: { disposition: 'MAP', target: 'CustomerAttendance' },
   kelas_ratings: { disposition: 'MAP', target: 'BookingFeedback' },
   location_openings: { disposition: 'MAP', target: 'BranchOpeningHour' },
-  location_studios: { disposition: 'MAP', target: 'Studio,MediaAsset' },
-  locations: { disposition: 'MAP', target: 'Branch,BranchPublicProfile,PaymentAccount,MediaAsset' },
+  location_studios: {
+    disposition: 'MAP',
+    target: 'Studio,MigrationDeferredMediaReference',
+  },
+  locations: {
+    disposition: 'MAP',
+    target: 'Branch,BranchPublicProfile,PaymentAccount,MigrationDeferredMediaReference',
+  },
   migrations: { disposition: 'IGNORE', reason: 'LARAVEL_FRAMEWORK_MIGRATION_METADATA' },
   model_has_permissions: { disposition: 'MAP', target: 'UserCapabilityOverride' },
   model_has_roles: { disposition: 'MAP', target: 'UserRole,Assignment' },
   notifications: { disposition: 'MAP', target: 'UserNotification' },
-  order_pakets: { disposition: 'MAP', target: 'Purchase,CustomerPackage,PaymentProof,LedgerEntry' },
-  paket_locations: { disposition: 'MAP', target: 'Package.branchId' },
-  pakets: { disposition: 'MAP', target: 'Package' },
+  order_pakets: {
+    disposition: 'MAP',
+    target: 'Purchase,CustomerPackage,LedgerEntry,MigrationDeferredMediaReference',
+  },
+  paket_locations: { disposition: 'MAP', target: 'PackageBranchScope' },
+  pakets: { disposition: 'MAP', target: 'Package,PackageRevision,PackageClassTypeScope' },
   password_reset_tokens: { disposition: 'IGNORE', reason: 'EPHEMERAL_AUTHENTICATION_SECRET' },
   permissions: { disposition: 'MAP', target: 'CapabilityDefinition' },
   personal_access_tokens: { disposition: 'IGNORE', reason: 'REVOKED_V1_AUTHENTICATION_SECRET' },
@@ -194,13 +225,17 @@ const TABLE_POLICIES = {
   ruangans: { disposition: 'MAP', target: 'Room' },
   users: {
     disposition: 'MAP',
-    target: 'User,UserProfile,Identity,PasswordCredential,UserContactAlias,MediaAsset',
+    target:
+      'User,UserProfile,Identity,PasswordCredential,UserContactAlias,MigrationDeferredMediaReference',
   },
   voucher_customers: {
     disposition: 'MAP',
     target: 'CustomerVoucherEntitlement,VoucherRedemption',
   },
-  vouchers: { disposition: 'MAP', target: 'Voucher,VoucherPackageScope,MediaAsset' },
+  vouchers: {
+    disposition: 'MAP',
+    target: 'Voucher,VoucherPackageScope,MigrationDeferredMediaReference',
+  },
 } as const satisfies Record<
   SourceTable,
   { disposition: 'MAP'; target: string } | { disposition: 'IGNORE'; reason: string }
@@ -1598,19 +1633,6 @@ async function importPackageOrder(
       continue;
     }
     let packageScopes = [...(scopesByPackage.get(legacyId) ?? [])];
-    const directSourceBranchId = textValue(row.id_location);
-    if (
-      directSourceBranchId &&
-      !packageScopes.some((scope) => textValue(scope.id_location) === directSourceBranchId)
-    )
-      packageScopes.push({
-        id: `direct-${legacyId}`,
-        id_paket: legacyId,
-        id_location: directSourceBranchId,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        deleted_at: row.deleted_at,
-      } as LegacyRow);
     if (packageScopes.length === 0) {
       const decision = await approvedDecision(
         target,
@@ -1778,8 +1800,7 @@ async function importPackageOrder(
       const scopeTargetId = deterministicId(
         `${SOURCE_SYSTEM}:paket_locations:${sourceId(scope)}:PackageBranchScope`,
       );
-      const syntheticScope =
-        sourceId(scope).startsWith('resolution-') || sourceId(scope).startsWith('direct-');
+      const syntheticScope = sourceId(scope).startsWith('resolution-');
       if (syntheticScope)
         await target.packageBranchScope.upsert({
           where: { packageId_branchId: { packageId: targetId, branchId } },
@@ -2060,7 +2081,31 @@ async function importPackageOrder(
         throw new Error(`INVALID_PURCHASE_STATUS_DECISION:${legacyId}`);
       statusMapping.status = decision.purchaseStatus as typeof statusMapping.status;
     }
-    const uniqueCode = Math.max(0, intValue(row.unix_code));
+    const rawUniqueCode = textValue(row.unix_code).trim();
+    let uniqueCode = rawUniqueCode === '' ? 0 : /^\d+$/u.test(rawUniqueCode) ? Number(rawUniqueCode) : Number.NaN;
+    if (!Number.isSafeInteger(uniqueCode)) {
+      const decision = await approvedDecision(
+        target,
+        batchId,
+        'order_pakets',
+        legacyId,
+        'ORDER_UNIQUE_CODE_INVALID',
+      );
+      uniqueCode = Number(decision?.paymentUniqueCode);
+      if (!Number.isSafeInteger(uniqueCode) || uniqueCode < 0) {
+        await queueResolution(
+          target,
+          batchId,
+          'order_pakets',
+          legacyId,
+          'ORDER_UNIQUE_CODE_INVALID',
+          { action: 'APPROVE_PAYMENT_UNIQUE_CODE', sourceValuePresent: Boolean(rawUniqueCode) },
+          recordChecksum(row),
+        );
+        stats.resolutions += 1;
+        continue;
+      }
+    }
     const uniqueCodeMatches = uniqueCode === 0 || price % 1000 === uniqueCode;
     if (!uniqueCodeMatches) {
       const decision = await approvedDecision(
@@ -2484,6 +2529,22 @@ async function importSlotBooking(
   for (const row of await sourceRows(source, 'kelas_pertamuans')) {
     const legacyId = sourceId(row);
     const classTypeId = await targetIdFor(target, 'kelas', row.id_kelas, 'ClassType');
+    const startAt = legacyJakartaDateTime(row.datetime_avaiable);
+    if (!startAt) throw new Error(`INVALID_MEETING_TIME:${legacyId}`);
+    const matchingSlot = classTypeId
+      ? await target.classSlot.findFirst({
+          where: { classTypeId, startAt },
+          orderBy: [{ historical: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            branchId: true,
+            studioId: true,
+            status: true,
+            historical: true,
+            sourceMetadata: true,
+          },
+        })
+      : null;
     const classType = classTypeId
       ? await target.classType.findUnique({
           where: { id: classTypeId },
@@ -2497,8 +2558,10 @@ async function importSlotBooking(
           },
         })
       : null;
-    const meetingBranchId = classType?.branchScopes[0]?.branchId;
-    const meetingStudio = meetingBranchId
+    const meetingBranchId = matchingSlot?.branchId ?? classType?.branchScopes[0]?.branchId;
+    const meetingStudio = matchingSlot
+      ? { id: matchingSlot.studioId }
+      : meetingBranchId
       ? await target.studio.findFirst({
           where: { branchId: meetingBranchId, active: true },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -2517,7 +2580,39 @@ async function importSlotBooking(
       stats.resolutions += 1;
       continue;
     }
-    const targetId = deterministicId(`${SOURCE_SYSTEM}:kelas_pertamuans:${legacyId}:ClassSlot`);
+    const sourceStatus = mapV1ClassSlotStatus(row.status);
+    const deletedAt = asDate(row.deleted_at);
+    if (
+      matchingSlot &&
+      (matchingSlot.status !== sourceStatus || matchingSlot.historical !== Boolean(deletedAt))
+    ) {
+      const decision = await approvedDecision(
+        target,
+        batchId,
+        'kelas_pertamuans',
+        legacyId,
+        'MEETING_SLOT_PROJECTION_CONFLICT',
+      );
+      if (!['ACTIVITY', 'MEETING'].includes(textValue(decision?.canonicalSource))) {
+        await queueResolution(
+          target,
+          batchId,
+          'kelas_pertamuans',
+          legacyId,
+          'MEETING_SLOT_PROJECTION_CONFLICT',
+          {
+            action: 'SELECT_CANONICAL_SLOT_PROJECTION',
+            allowedCanonicalSources: ['ACTIVITY', 'MEETING'],
+          },
+          recordChecksum(row),
+        );
+        stats.resolutions += 1;
+        continue;
+      }
+    }
+    const targetId =
+      matchingSlot?.id ??
+      deterministicId(`${SOURCE_SYSTEM}:kelas_pertamuans:${legacyId}:ClassSlot`);
     if (
       (await claimSourceKey(
         target,
@@ -2532,31 +2627,54 @@ async function importSlotBooking(
       stats.kelas_pertamuans.skipped += 1;
       continue;
     }
-    const startAt = asDate(row.datetime_avaiable);
-    if (!startAt) throw new Error(`INVALID_MEETING_TIME:${legacyId}`);
     const classRow = classRows.get(textValue(row.id_kelas));
     const durationMinutes = positiveInt(classRow?.duration, 60);
-    const deletedAt = asDate(row.deleted_at);
     await target.$transaction(async (tx) => {
-      await tx.classSlot.create({
-        data: {
-          id: targetId,
-          branchId: meetingBranchId,
-          classTypeId,
-          studioId: meetingStudio.id,
-          startAt,
-          endAt: new Date(startAt.getTime() + durationMinutes * 60_000),
-          timezone: 'Asia/Jakarta',
-          minimumQuota: Math.max(0, intValue(classRow?.min_anggota)),
-          capacity: positiveInt(classRow?.max_anggota, 1),
-          status: mapV1ClassSlotStatus(row.status),
-          historical: Boolean(deletedAt),
-          sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, ['status', 'keterangan']),
-          createdAt: asDate(row.created_at) ?? startAt,
-          updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? startAt,
-        },
-      });
+      if (matchingSlot) {
+        const decision = await approvedDecision(
+          target,
+          batchId,
+          'kelas_pertamuans',
+          legacyId,
+          'MEETING_SLOT_PROJECTION_CONFLICT',
+        );
+        await tx.classSlot.update({
+          where: { id: targetId },
+          data: {
+            ...(textValue(decision?.canonicalSource) === 'MEETING'
+              ? {
+                  status: sourceStatus,
+                  historical: Boolean(deletedAt),
+                  sourceDeletedAt: deletedAt,
+                }
+              : {}),
+            sourceMetadata: {
+              ...jsonObject(matchingSlot.sourceMetadata),
+              legacyMeetingProjection: sourceMetadata(row, ['status', 'keterangan']),
+            },
+          },
+        });
+      } else {
+        await tx.classSlot.create({
+          data: {
+            id: targetId,
+            branchId: meetingBranchId,
+            classTypeId,
+            studioId: meetingStudio.id,
+            startAt,
+            endAt: new Date(startAt.getTime() + durationMinutes * 60_000),
+            timezone: 'Asia/Jakarta',
+            minimumQuota: Math.max(0, intValue(classRow?.min_anggota)),
+            capacity: positiveInt(classRow?.max_anggota, 1),
+            status: sourceStatus,
+            historical: Boolean(deletedAt),
+            sourceDeletedAt: deletedAt,
+            sourceMetadata: sourceMetadata(row, ['status', 'keterangan']),
+            createdAt: asDate(row.created_at) ?? startAt,
+            updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? startAt,
+          },
+        });
+      }
       await tx.migrationSourceKey.create({
         data: {
           batchId,
@@ -2570,6 +2688,13 @@ async function importSlotBooking(
         },
       });
     });
+    await markResolutionApplied(
+      target,
+      batchId,
+      'kelas_pertamuans',
+      legacyId,
+      'MEETING_SLOT_PROJECTION_CONFLICT',
+    );
     stats.kelas_pertamuans.imported += 1;
   }
 
@@ -5066,21 +5191,33 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       GROUP BY status
     `),
     source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
-      SELECT CASE status
-        WHEN 1 THEN 'PUBLISHED'
-        WHEN 2 THEN 'CONFIRMED'
-        WHEN 3 THEN 'COMPLETED'
-        WHEN 4 THEN 'CANCELLED'
-        ELSE CONCAT('UNKNOWN:', COALESCE(CAST(status AS CHAR), 'NULL'))
-      END AS dimensionKey, COUNT(*) AS count
-      FROM kelas_activities
-      GROUP BY CASE status
-        WHEN 1 THEN 'PUBLISHED'
-        WHEN 2 THEN 'CONFIRMED'
-        WHEN 3 THEN 'COMPLETED'
-        WHEN 4 THEN 'CANCELLED'
-        ELSE CONCAT('UNKNOWN:', COALESCE(CAST(status AS CHAR), 'NULL'))
-      END
+      SELECT slotStatus.dimensionKey, COUNT(*) AS count
+      FROM (
+        SELECT CASE activity.status
+          WHEN 1 THEN 'PUBLISHED'
+          WHEN 2 THEN 'CONFIRMED'
+          WHEN 3 THEN 'COMPLETED'
+          WHEN 4 THEN 'CANCELLED'
+          ELSE CONCAT('UNKNOWN:', COALESCE(CAST(activity.status AS CHAR), 'NULL'))
+        END AS dimensionKey
+        FROM kelas_activities activity
+        UNION ALL
+        SELECT CASE meeting.status
+          WHEN 1 THEN 'PUBLISHED'
+          WHEN 2 THEN 'CONFIRMED'
+          WHEN 3 THEN 'COMPLETED'
+          WHEN 4 THEN 'CANCELLED'
+          ELSE CONCAT('UNKNOWN:', COALESCE(CAST(meeting.status AS CHAR), 'NULL'))
+        END AS dimensionKey
+        FROM kelas_pertamuans meeting
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM kelas_activities activity
+          WHERE activity.id_kelas = meeting.id_kelas
+            AND TIMESTAMP(DATE(activity.tanggal), TIME(activity.jam_mulai)) = meeting.datetime_avaiable
+        )
+      ) slotStatus
+      GROUP BY slotStatus.dimensionKey
     `),
     target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT status AS dimensionKey, COUNT(*) AS count FROM ClassSlot GROUP BY status
@@ -5245,8 +5382,6 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     source.$queryRaw<CountRow[]>(Prisma.sql`
       SELECT COUNT(*) AS count FROM (
         SELECT id_paket, id_location FROM paket_locations WHERE id_location IS NOT NULL
-        UNION
-        SELECT id, id_location FROM pakets WHERE id_location IS NOT NULL
       ) packageBranches
     `),
     source.$queryRaw<CountRow[]>(Prisma.sql`
@@ -5260,11 +5395,24 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       SELECT COUNT(*) AS count FROM (
         SELECT id AS id_kelas, id_location FROM kelas WHERE id_location IS NOT NULL
         UNION
-        SELECT id_kelas, id_location FROM kelas_activities WHERE id_location IS NOT NULL
+        SELECT activity.id_kelas, studio.id_location
+        FROM kelas_activities activity
+        JOIN location_studios studio ON studio.id = activity.id_location_studio
+        WHERE studio.id_location IS NOT NULL
       ) classBranches
     `),
     source.$queryRaw<CountRow[]>(Prisma.sql`
-      SELECT COUNT(*) AS count FROM kelas_activities WHERE id_location_studio IS NOT NULL
+      SELECT
+        (SELECT COUNT(*) FROM kelas_activities WHERE id_location_studio IS NOT NULL) +
+        (SELECT COUNT(*)
+          FROM kelas_pertamuans meeting
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM kelas_activities activity
+            WHERE activity.id_kelas = meeting.id_kelas
+              AND TIMESTAMP(DATE(activity.tanggal), TIME(activity.jam_mulai)) = meeting.datetime_avaiable
+          )
+        ) AS count
     `),
     source.$queryRaw<CountRow[]>(Prisma.sql`
       SELECT COUNT(*) AS count FROM users WHERE email_verified_at IS NOT NULL
@@ -7133,13 +7281,7 @@ async function applyPackageOrderDelta(
     if (!classTypeId) throw new Error('DELTA_PACKAGE_CLASS_RESOLUTION_REQUIRED');
     const packageId = deterministicId(`${SOURCE_SYSTEM}:pakets:${event.sourceId}:Package`);
     const existing = await tx.package.findUnique({ where: { id: packageId } });
-    const directBranchId = row.id_location
-      ? await targetIdFor(tx as unknown as PrismaClient, 'locations', row.id_location, 'Branch')
-      : null;
-    if (row.id_location && !directBranchId)
-      throw new Error('DELTA_PACKAGE_SCOPE_BRANCH_RESOLUTION_REQUIRED');
-    const branchId = directBranchId ?? existing?.branchId ?? null;
-    if (!branchId) throw new Error('DELTA_PACKAGE_SCOPE_DEPENDENCY_PENDING');
+    const branchId = existing?.branchId ?? null;
     const effectiveFrom = asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z');
     await tx.package.upsert({
         where: { id: packageId },
@@ -7221,25 +7363,6 @@ async function applyPackageOrderDelta(
       },
       update: { active: !deletedAt, historical: Boolean(deletedAt), sourceDeletedAt: deletedAt },
     });
-    if (directBranchId)
-      await tx.packageBranchScope.upsert({
-        where: { packageId_branchId: { packageId, branchId: directBranchId } },
-        create: {
-          id: deterministicId(
-            `${SOURCE_SYSTEM}:pakets:${event.sourceId}:PackageBranchScope:${textValue(row.id_location)}`,
-          ),
-          packageId,
-          branchId: directBranchId,
-          active: event.operation !== 'DELETE' && !deletedAt,
-          historical: event.operation === 'DELETE' || Boolean(deletedAt),
-          sourceDeletedAt: deletedAt ?? (event.operation === 'DELETE' ? event.sourceOccurredAt : null),
-        },
-        update: {
-          active: event.operation !== 'DELETE' && !deletedAt,
-          historical: event.operation === 'DELETE' || Boolean(deletedAt),
-          sourceDeletedAt: deletedAt ?? (event.operation === 'DELETE' ? event.sourceOccurredAt : null),
-        },
-      });
     await tx.packagePublicProfile.upsert({
         where: { packageId },
         create: {
@@ -7293,6 +7416,10 @@ async function applyPackageOrderDelta(
         historical: !active,
         sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
       },
+    });
+    await tx.package.updateMany({
+      where: { id: packageId, branchId: null },
+      data: { branchId },
     });
     await upsertDeltaSourceKey(tx, context, event, 'PackageBranchScope', scopeId, checksum);
     return;
@@ -7371,7 +7498,10 @@ async function applyPackageOrderDelta(
     if (statusMapping.conflict)
       throw new Error('DELTA_ORDER_STATUS_ACTIVE_CONFLICT_RESOLUTION_REQUIRED');
     const purchaseStatus = statusMapping.status;
-    const uniqueCode = Math.max(0, intValue(row.unix_code));
+    const rawUniqueCode = textValue(row.unix_code).trim();
+    if (rawUniqueCode && !/^\d+$/u.test(rawUniqueCode))
+      throw new Error('DELTA_ORDER_UNIQUE_CODE_INVALID');
+    const uniqueCode = Math.max(0, intValue(rawUniqueCode));
     if (uniqueCode > 0 && price % 1000 !== uniqueCode)
       throw new Error('DELTA_ORDER_UNIQUE_CODE_MISMATCH_RESOLUTION_REQUIRED');
     const existingPurchase = await tx.purchase.findUnique({ where: { id: purchaseId } });
@@ -7559,25 +7689,51 @@ async function applySlotBookingDelta(
     });
     const startAt = activity
       ? legacyJakartaDateTime(row.tanggal, row.jam_mulai)
-      : asDate(row.datetime_avaiable);
+      : legacyJakartaDateTime(row.datetime_avaiable);
     if (!startAt) throw new Error('DELTA_SLOT_TIME_INVALID');
-    const metadata = jsonObject(classType.sourceMetadata);
     const duration = classType.defaultDurationMinutes;
-    const id = deterministicId(
-      `${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:ClassSlot`,
-    );
-    const duplicate = await tx.classSlot.findFirst({
+    const existingSourceKey = await tx.migrationSourceKey.findUnique({
       where: {
-        id: { not: id },
-        branchId,
-        classTypeId,
-        startAt,
-        historical: false,
+        sourceSystem_sourceTable_sourceId_targetType: {
+          sourceSystem: SOURCE_SYSTEM,
+          sourceTable: event.sourceTable,
+          sourceId: event.sourceId,
+          targetType: 'ClassSlot',
+        },
       },
-      select: { id: true },
+      select: { targetId: true },
     });
-    if (duplicate && !deletedAt) throw new Error('DELTA_DUPLICATE_ACTIVE_SLOT_RESOLUTION_REQUIRED');
+    const existingSlot = existingSourceKey
+      ? await tx.classSlot.findUnique({
+          where: { id: existingSourceKey.targetId },
+          select: { id: true, sourceMetadata: true },
+        })
+      : null;
+    const matchingSlot = existingSlot ?? await tx.classSlot.findFirst({
+        where: { classTypeId, startAt },
+        orderBy: [{ historical: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, sourceMetadata: true },
+      });
+    const matchingSourceKeys = matchingSlot
+      ? await tx.migrationSourceKey.findMany({
+          where: { targetType: 'ClassSlot', targetId: matchingSlot.id },
+          select: { sourceTable: true, sourceId: true },
+        })
+      : [];
+    const hasOtherSameProjection = matchingSourceKeys.some(
+      (key) => key.sourceTable === event.sourceTable && key.sourceId !== event.sourceId,
+    );
+    if (!existingSourceKey && matchingSlot && hasOtherSameProjection && !deletedAt)
+      throw new Error('DELTA_DUPLICATE_ACTIVE_SLOT_RESOLUTION_REQUIRED');
+    const id = existingSourceKey?.targetId ??
+      (matchingSlot && !hasOtherSameProjection ? matchingSlot.id : deterministicId(
+        `${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:ClassSlot`,
+      ));
     const sourceStatus = intValue(row.status, 1);
+    const projectionSharesSlot = !activity && matchingSourceKeys.some(
+      (key) => key.sourceTable === 'kelas_activities',
+    );
+    const hardDeletedAt = event.operation === 'DELETE' ? event.sourceOccurredAt : deletedAt;
     await tx.classSlot.upsert({
       where: { id },
       create: {
@@ -7594,30 +7750,37 @@ async function applySlotBookingDelta(
         minimumQuota: classType.defaultMinimumQuota,
         capacity: classType.defaultCapacity,
         status: mapV1ClassSlotStatus(sourceStatus),
-        historical: Boolean(deletedAt),
-        sourceDeletedAt: deletedAt,
+        historical: Boolean(hardDeletedAt),
+        sourceDeletedAt: hardDeletedAt,
         sourceMetadata: sourceMetadata(row, activity
           ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
           : ['status', 'keterangan']),
         createdAt: asDate(row.created_at) ?? startAt,
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
-      update: {
-        branchId,
-        studioId: effectiveStudio.id,
-        instructorUserId: activity
-          ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User')
-          : null,
-        startAt,
-        endAt: new Date(startAt.getTime() + duration * 60_000),
-        status: mapV1ClassSlotStatus(sourceStatus),
-        historical: Boolean(deletedAt),
-        sourceDeletedAt: deletedAt,
-        sourceMetadata: sourceMetadata(row, activity
-          ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
-          : ['status', 'keterangan']),
-        updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
-      },
+      update: projectionSharesSlot
+        ? {
+            sourceMetadata: {
+              ...jsonObject(matchingSlot?.sourceMetadata),
+              legacyMeetingProjection: sourceMetadata(row, ['status', 'keterangan']),
+            },
+          }
+        : {
+            branchId,
+            studioId: effectiveStudio.id,
+            instructorUserId: activity
+              ? await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User')
+              : null,
+            startAt,
+            endAt: new Date(startAt.getTime() + duration * 60_000),
+            status: mapV1ClassSlotStatus(sourceStatus),
+            historical: Boolean(hardDeletedAt),
+            sourceDeletedAt: hardDeletedAt,
+            sourceMetadata: sourceMetadata(row, activity
+              ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
+              : ['status', 'keterangan']),
+            updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
+          },
     });
     await upsertDeltaSourceKey(tx, context, event, 'ClassSlot', id, checksum);
     return;
@@ -10026,6 +10189,8 @@ export const migrationTestables = {
 if (require.main === module)
   main().catch((error: unknown) => {
     const code = safeFailureCode(error, 'MIGRATION_COMMAND_FAILED');
-    console.error(JSON.stringify({ ok: false, code }));
+    console.error(
+      JSON.stringify({ ok: false, code, diagnostic: safeIntegrationDiagnostic(error) }),
+    );
     process.exitCode = 1;
   });

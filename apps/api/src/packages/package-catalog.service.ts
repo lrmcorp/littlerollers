@@ -294,7 +294,7 @@ export class PackageCatalogService {
             'PACKAGE_CREATED',
             'Package',
             result.id,
-            result.branchId,
+            branchIds[0]!,
             correlationId,
           );
           return { status: 201, body: result as unknown as Prisma.InputJsonValue };
@@ -326,6 +326,12 @@ export class PackageCatalogService {
     for (const scope of item.branchScopes)
       this.access.scope(principal, scope.branchId, ['master:manage']);
     return item;
+  }
+
+  private primaryBranchId(item: { branchId: string | null; branchScopes: { branchId: string }[] }) {
+    const branchId = item.branchScopes[0]?.branchId ?? item.branchId;
+    if (!branchId) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    return branchId;
   }
 
   async update(
@@ -399,7 +405,7 @@ export class PackageCatalogService {
           'PACKAGE_UPDATED',
           'Package',
           id,
-          current.branchId,
+          this.primaryBranchId(current),
           correlationId,
           { reasonPresent: true },
         );
@@ -495,7 +501,7 @@ export class PackageCatalogService {
           'PACKAGE_REVISION_CREATED',
           'Package',
           id,
-          current.branchId,
+          this.primaryBranchId(current),
           correlationId,
           { revisionId: revision.id, revisionNumber: revision.revisionNumber, reasonPresent: true },
         );
@@ -650,7 +656,7 @@ export class PackageCatalogService {
           status === 'ACTIVE' ? 'PACKAGE_REACTIVATED' : 'PACKAGE_DEACTIVATED',
           'Package',
           id,
-          current.branchId,
+          this.primaryBranchId(current),
           correlationId,
           { reasonPresent: true },
         );

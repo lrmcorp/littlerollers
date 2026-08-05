@@ -1286,7 +1286,7 @@ model UserNotification {
 model Package {
   id               String                  @id @db.Char(36)
   /// Compatibility projection only. Availability is authoritative in branchScopes.
-  branchId         String                  @db.Char(36)
+  branchId         String?                 @db.Char(36)
   /// Compatibility projection only. Eligibility is authoritative in classTypeScopes.
   classTypeId      String                  @db.Char(36)
   businessKey      String
@@ -1300,7 +1300,7 @@ model Package {
   version          Int                     @default(0)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
-  branch           Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  branch           Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
   classType        ClassType               @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   revisions        PackageRevision[]
   branchScopes     PackageBranchScope[]

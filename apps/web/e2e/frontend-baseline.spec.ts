@@ -465,6 +465,17 @@ for (const breakpoint of breakpoints) {
     for (const link of await scheduleLinks.all()) {
       await expect(link).toHaveAttribute('href', '/classes#schedule');
     }
+    const studioShowcase = page.getByRole('img', {
+      name: 'Reception Daily Dose Pilates dengan interior hangat',
+    });
+    await expect
+      .poll(() =>
+        studioShowcase.evaluate(
+          (image) =>
+            (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+        ),
+      )
+      .toBe(true);
     await expect(page.getByText(/trial class/i)).toHaveCount(0);
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,

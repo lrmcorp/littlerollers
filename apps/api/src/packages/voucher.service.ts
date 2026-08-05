@@ -122,14 +122,20 @@ export class VoucherService {
     if (packageIds.length) {
       const packages = await this.db.package.findMany({
         where: { id: { in: packageIds } },
-        select: { id: true, branchId: true },
+        select: {
+          id: true,
+          branchScopes: { where: { active: true }, select: { branchId: true } },
+        },
       });
       if (
         packages.length !== packageIds.length ||
-        (branchId && packages.some((p) => p.branchId !== branchId))
+        (branchId &&
+          packages.some((item) => !item.branchScopes.some((scope) => scope.branchId === branchId)))
       )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      for (const item of packages) this.access.scope(principal, item.branchId, ['voucher:manage']);
+      for (const item of packages)
+        for (const scope of item.branchScopes)
+          this.access.scope(principal, scope.branchId, ['voucher:manage']);
     }
     if (classTypeId) {
       const classType = await this.db.classType.findUnique({

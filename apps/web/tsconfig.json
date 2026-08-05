@@ -11,11 +11,7 @@
         "name": "next"
       }
     ],
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "isolatedModules": true
   },
@@ -25,10 +21,7 @@
     ".next-dev/types/**/*.ts",
     ".next-playwright/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-playwright-mock/types/**/*.ts"
+    "next-env.d.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

@@ -34,7 +34,7 @@ export function mapV1BookingAttendance(value: unknown): {
   outcome: V1AttendanceOutcomeCode;
   bookingStatus: BookingStatus;
 } {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === '' || Number(value) === 0) {
     return { outcome: 'UNKNOWN_HISTORICAL', bookingStatus: 'BOOKED' };
   }
   const outcome = BOOKING_ATTENDANCE[Number(value)];

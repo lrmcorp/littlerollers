@@ -22,10 +22,7 @@ function columnType(table, column) {
     return ['model_has_roles', 'model_has_permissions', 'role_has_permissions'].includes(table)
       ? 'BIGINT UNSIGNED NOT NULL'
       : 'BIGINT UNSIGNED NULL';
-  if (
-    column === 'model_type' &&
-    ['model_has_roles', 'model_has_permissions'].includes(table)
-  )
+  if (column === 'model_type' && ['model_has_roles', 'model_has_permissions'].includes(table))
     return 'VARCHAR(255) NOT NULL';
   if (
     column.endsWith('_at') ||
@@ -36,10 +33,43 @@ function columnType(table, column) {
   if (['jam_open', 'jam_close', 'jam'].includes(column)) return 'TIME NULL';
   if (
     column.startsWith('is_') ||
-    ['status', 'rating', 'jumlah_pertemuan', 'sisa', 'harga', 'saldo', 'jumlah_uang', 'tipe', 'disc_harga', 'disc_percent', 'lama_aktif', 'sekali_gunakan', 'status_digunakan', 'valid_day', 'duration', 'min_anggota', 'max_anggota', 'max_peserta', 'honor', 'fee', 'level'].includes(column)
+    [
+      'status',
+      'rating',
+      'jumlah_pertemuan',
+      'sisa',
+      'harga',
+      'saldo',
+      'jumlah_uang',
+      'tipe',
+      'disc_harga',
+      'disc_percent',
+      'lama_aktif',
+      'sekali_gunakan',
+      'status_digunakan',
+      'valid_day',
+      'duration',
+      'min_anggota',
+      'max_anggota',
+      'max_peserta',
+      'honor',
+      'fee',
+      'level',
+    ].includes(column)
   )
     return 'BIGINT NULL';
-  if (['payload', 'exception', 'properties', 'data', 'description', 'deskripsi', 'keterangan', 'alamat'].includes(column))
+  if (
+    [
+      'payload',
+      'exception',
+      'properties',
+      'data',
+      'description',
+      'deskripsi',
+      'keterangan',
+      'alamat',
+    ].includes(column)
+  )
     return 'LONGTEXT NULL';
   return 'VARCHAR(255) NULL';
 }
@@ -78,7 +108,7 @@ export async function syntheticV1FixtureSql() {
     `INSERT INTO pakets (id,nama,jumlah_pertemuan,harga,valid_day,promote_code,diskon,created_at,updated_at,deleted_at,id_kelas,is_many_times,is_show_public) VALUES (1,'Ten Sessions',10,100000,30,NULL,0,'${timestamp}','${timestamp}',NULL,1,1,1)`,
     `INSERT INTO paket_locations (id,id_paket,id_location,created_at,updated_at,deleted_at) VALUES (1,1,1,'${timestamp}','${timestamp}',NULL)`,
     `INSERT INTO kelas_pakets (id,id_kelas,id_paket,created_at,updated_at,deleted_at) VALUES (1,1,1,'${timestamp}','${timestamp}',NULL)`,
-    `INSERT INTO order_pakets (id,id_user,id_paket,harga,status,is_active,expired_date,created_at,updated_at,deleted_at,tanggal_pembayaran,bukti_pembayaran,jumlah_pertemuan,sisa,id_location,unix_code,metode_pembayaran) VALUES (1,1,1,100000,1,1,'2026-02-01 00:00:00','${timestamp}','${timestamp}',NULL,'${timestamp}','legacy/payment.jpg',10,8,1,'SYN001','TRANSFER')`,
+    `INSERT INTO order_pakets (id,id_user,id_paket,harga,status,is_active,expired_date,created_at,updated_at,deleted_at,tanggal_pembayaran,bukti_pembayaran,jumlah_pertemuan,sisa,id_location,unix_code,metode_pembayaran) VALUES (1,1,1,100000,1,1,'2026-02-01 00:00:00','${timestamp}','${timestamp}',NULL,'${timestamp}','legacy/payment.jpg',10,8,1,'0','TRANSFER')`,
     `INSERT INTO kelas_activities (id,id_kelas,id_location_studio,jam_mulai,id_user,status,created_at,updated_at,deleted_at,nama_latihan,level,tanggal,user_update,rating) VALUES (1,1,1,'2026-01-05 09:00:00',2,1,'${timestamp}','${timestamp}',NULL,'Pilates Basic',1,'2026-01-05 00:00:00',2,5)`,
     `INSERT INTO kelas_pertamuans (id,id_kelas,datetime_avaiable,status,keterangan,created_at,updated_at,deleted_at) VALUES (1,1,'2026-01-05 09:00:00',1,'Available','${timestamp}','${timestamp}',NULL)`,
     `INSERT INTO customer_kelas (id,id_user,id_kelas,status,tanggal_bayar,bukti_bayar,jumlah_pertemuan,created_at,updated_at,deleted_at) VALUES (1,1,1,1,'${timestamp}','legacy/class-payment.jpg',10,'${timestamp}','${timestamp}',NULL)`,

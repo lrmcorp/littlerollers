@@ -59,6 +59,29 @@ function safeFailureCode(error, fallback = 'REHEARSAL_COMMAND_FAILED') {
   );
 }
 
+function safeIntegrationDiagnostic(error) {
+  const lines = `${error?.stderr ?? ''}`.trim().split(/\r?\n/u).reverse();
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
+      const diagnostic = parsed?.diagnostic;
+      if (!diagnostic || typeof diagnostic !== 'object') continue;
+      const safe = Object.fromEntries(
+        Object.entries(diagnostic).filter(
+          ([key, value]) =>
+            ['category', 'prismaCode', 'databaseCode', 'identifier'].includes(key) &&
+            typeof value === 'string' &&
+            /^[A-Za-z0-9_.-]{1,64}$/u.test(value),
+        ),
+      );
+      return Object.keys(safe).length ? safe : undefined;
+    } catch {
+      // Command stderr may contain non-JSON runtime output; never persist it verbatim.
+    }
+  }
+  return undefined;
+}
+
 function parseIso(value, code) {
   const parsed = new Date(required(value, code));
   if (Number.isNaN(parsed.getTime())) throw new Error(code);
@@ -333,6 +356,19 @@ async function main() {
     if (state.status === 'STARTING') {
       if (args['apply-migrations'] !== true)
         throw new Error('APPLY_MIGRATIONS_CONFIRMATION_REQUIRED');
+      const generation = await runRaw(
+        'pnpm',
+        [
+          '--filter',
+          '@dailydose/api',
+          'exec',
+          'prisma',
+          'generate',
+          '--schema',
+          'prisma/schema.prisma',
+        ],
+        { env: environment },
+      );
       const migration = await runRaw(
         'pnpm',
         [
@@ -358,6 +394,7 @@ async function main() {
         snapshot,
         dump: state.dump,
         metrics: {
+          generation: generation.metrics,
           migrations: migration.metrics,
           preflight: preflightResult.metrics,
           profile: profileResult.metrics,
@@ -444,9 +481,11 @@ async function main() {
         }
       } catch (error) {
         const failureCode = safeFailureCode(error);
+        const diagnostic = safeIntegrationDiagnostic(error);
         attempt.completedAt = new Date().toISOString();
         attempt.status = 'BLOCKED';
         attempt.failureCode = failureCode;
+        if (diagnostic) attempt.diagnostic = diagnostic;
         phaseState.status = 'BLOCKED';
         state.status = 'PAUSED';
         state.failureCode = failureCode;

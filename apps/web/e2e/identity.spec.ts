@@ -312,6 +312,7 @@ test('master creates quota without a production default and exposes overlap safe
             name: 'Reformer',
             active: true,
             version: 0,
+            branchScopes: [{ branchId: 'branch-1', active: true }],
           },
         ],
         page: { nextCursor: null, hasMore: false },
@@ -338,7 +339,11 @@ test('master creates quota without a production default and exposes overlap safe
     });
   });
   await page.goto('/master');
+  await expect(page.getByRole('region', { name: 'Data Master' }).getByRole('status')).toContainText(
+    'Master data berhasil dimuat.',
+  );
   await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
+  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
   await page.getByRole('tab', { name: 'Kuota/Kapasitas' }).click();
   await expect(page.getByLabel('Minimum peserta')).toHaveValue('');
   await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
@@ -571,7 +576,7 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
   await page.goto('/ledger');
   await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await page.getByRole('link', { name: 'Lihat detail sesi' }).press('Enter');
-  await expect(page.getByText('Aktivasi paket')).toBeVisible();
+  await expect(page.getByText('Aktivasi paket', { exact: true })).toBeVisible();
   await expect(page.getByText('+10')).toBeVisible();
 });
 
@@ -681,10 +686,12 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
   let slot = {
     id: 'slot-1',
     branchId: 'branch-1',
+    studioId: 'studio-branch-1',
+    roomId: null as string | null,
     classTypeId: 'type-1',
     instructorUserId: null as string | null,
-    startAt: '2026-07-29T02:00:00Z',
-    endAt: '2026-07-29T03:00:00Z',
+    startAt: '2026-08-05T02:00:00Z',
+    endAt: '2026-08-05T03:00:00Z',
     timezone: 'Asia/Jakarta',
     status: 'DRAFT' as string,
     minimumQuota: 2,
@@ -707,6 +714,7 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
             name: 'Reformer',
             active: true,
             version: 0,
+            branchScopes: [{ branchId: 'branch-1', active: true }],
           },
         ],
         page: { hasMore: false, nextCursor: null },
@@ -757,9 +765,38 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
       }),
     }),
   );
+  await page.route('**/api/v1/branches/*/studios', (route) => {
+    const branchId = new URL(route.request().url()).pathname.split('/')[4];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: `studio-${branchId}`,
+            branchId,
+            code: 'MAIN',
+            name: 'Area Studio Utama',
+            active: true,
+            rooms: [],
+          },
+        ],
+      }),
+    });
+  });
   await page.route('**/api/v1/class-slots**', async (route) => {
     const request = route.request();
     const url = request.url();
+    if (request.method() === 'GET' && /\/class-slots\/[^/]+\/bookings(?:\?|$)/.test(url))
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [],
+          summary: { total: 0, booked: 0, reschedulePending: 0, attended: 0, cancelled: 0 },
+          page: { hasMore: false, nextCursor: null },
+        }),
+      });
     if (request.method() === 'GET')
       return route.fulfill({
         status: 200,
@@ -811,15 +848,34 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     .getByRole('region', { name: 'Kalender kelas tujuh hari' })
     .getByRole('button', { name: /Reformer/ })
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Detail kelas' });
-  await selectSearchOption(dialog, 'Instruktur', 'Ayu Instructor');
-  await dialog.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Reformer' });
+  const instructorSection = dialog
+    .getByRole('heading', { name: 'Tetapkan instructor' })
+    .locator('..');
+  const instructorInput = instructorSection.getByRole('combobox', { name: 'Instruktur' });
+  await instructorInput.fill('Ayu Instructor');
+  await instructorSection.getByRole('option', { name: 'Ayu Instructor' }).click();
+  await instructorSection.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  await page
+    .getByRole('dialog', { name: 'Tetapkan instruktur?' })
+    .getByRole('button', { name: 'Tetapkan', exact: true })
+    .press('Enter');
   await expect(page.getByText('Instructor berhasil ditetapkan.', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Publish kelas' }).press('Enter');
+  await page
+    .getByRole('dialog', { name: 'Publikasikan kelas?' })
+    .getByRole('button', { name: 'Publikasikan', exact: true })
+    .press('Enter');
   await expect(dialog.getByText('Dipublikasikan', { exact: true })).toBeVisible();
   await dialog.getByLabel('Alasan pembatalan').selectOption('OTHER_REVIEW_REQUIRED');
   await dialog.getByRole('button', { name: 'Konfirmasi pembatalan' }).press('Enter');
-  await expect(dialog.getByText('Dibatalkan', { exact: true })).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Batalkan kelas?' })
+    .getByRole('button', { name: 'Batalkan kelas', exact: true })
+    .press('Enter');
+  await expect(
+    dialog.locator('span.bg-dd-danger-soft').filter({ hasText: /^Dibatalkan$/ }),
+  ).toBeVisible();
 });
 
 test('class-slot configuration and hidden failures never show optimistic success', async ({
