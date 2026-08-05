@@ -1,0 +1,23 @@
+{
+  "id": "aed3ea4f-1e05-4361-bfbf-d0f0fd4dfc98",
+  "sourceSystem": "DAILYDOSE_V1",
+  "sourceSnapshotAt": "2026-08-03T04:58:48.068Z",
+  "sourceChecksum": "fb66be934d0df48d7908b534935211cea56b0b474c132bbbfd87e6f40efeee15",
+  "storageManifestChecksum": null,
+  "mappingVersion": "v1.0.0",
+  "phase": "user-role",
+  "status": "COMPLETED",
+  "delta": false,
+  "parentBatchId": null,
+  "startedAt": "2026-08-03T04:59:02.119Z",
+  "completedAt": "2026-08-03T04:59:02.152Z",
+  "failureCode": null,
+  "createdAt": "2026-08-03T04:59:01.913Z",
+  "updatedAt": "2026-08-03T04:59:02.152Z",
+  "_count": {
+    "sourceKeys": 13,
+    "rejects": 0,
+    "controlTotals": 66,
+    "resolutions": 0
+  }
+}

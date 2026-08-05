@@ -1,0 +1,13 @@
+{
+  "batchId": "cd2b3d60-0f8d-4884-86d1-9636f1e18fda",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "BranchOpeningHour": 1,
+    "Studio": 1,
+    "Branch": 1,
+    "Room": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

@@ -1,0 +1,498 @@
+{
+  "batchId": "6d2bbdb5-13d9-4179-8f49-c49679d99a4e",
+  "tables": [
+    {
+      "table": "activity_log",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "booking_kelas",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "check_in_outs",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "coas",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "customer_jadwal_statics",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "customer_kelas",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "failed_jobs",
+      "disposition": "IGNORE",
+      "due": true,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "jurnals",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas_activities",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas_images",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas_pakets",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas_pertamuans",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "kelas_pertemuan_absensis",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "kelas_ratings",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "location_openings",
+      "disposition": "MAP",
+      "due": true,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "location_studios",
+      "disposition": "MAP",
+      "due": true,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "locations",
+      "disposition": "MAP",
+      "due": true,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "migrations",
+      "disposition": "IGNORE",
+      "due": true,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "model_has_permissions",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "model_has_roles",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 2,
+      "actual": 2,
+      "match": true
+    },
+    {
+      "table": "notifications",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "order_pakets",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "paket_locations",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "pakets",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "password_reset_tokens",
+      "disposition": "IGNORE",
+      "due": true,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "permissions",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "personal_access_tokens",
+      "disposition": "IGNORE",
+      "due": true,
+      "expected": 0,
+      "actual": 0,
+      "match": true
+    },
+    {
+      "table": "role_has_permissions",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "roles",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 2,
+      "actual": 2,
+      "match": true
+    },
+    {
+      "table": "ruangans",
+      "disposition": "MAP",
+      "due": true,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "users",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 2,
+      "actual": 2,
+      "match": true
+    },
+    {
+      "table": "voucher_customers",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    },
+    {
+      "table": "vouchers",
+      "disposition": "MAP",
+      "due": false,
+      "expected": 1,
+      "actual": 1,
+      "match": true
+    }
+  ],
+  "sessions": {
+    "sourceTotal": 8,
+    "sourceActive": 8,
+    "targetLedgerNet": 0,
+    "activeReserved": {
+      "expected": 1,
+      "actual": 0
+    },
+    "consumed": {
+      "expected": 0,
+      "actual": 0
+    },
+    "released": {
+      "expected": 0,
+      "actual": 0
+    },
+    "available": {
+      "expected": 7,
+      "actual": 0
+    }
+  },
+  "rupiah": {
+    "sourceTotal": 100000,
+    "targetPurchaseSnapshots": 0
+  },
+  "exact": {
+    "customerPackages": {
+      "expected": 1,
+      "actual": 0
+    },
+    "openingLedgers": {
+      "expected": 1,
+      "actual": 0,
+      "duplicates": 0
+    },
+    "journalRupiah": {
+      "expected": 100000,
+      "actual": 0
+    },
+    "controls": {
+      "USER_CARDINALITY": {
+        "phase": "user-role",
+        "expected": 2,
+        "actual": 0,
+        "match": false
+      },
+      "USER_ROLE_CARDINALITY": {
+        "phase": "user-role",
+        "expected": 2,
+        "actual": 0,
+        "match": false
+      },
+      "ASSIGNMENT_CARDINALITY": {
+        "phase": "user-role",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "CAPABILITY_CARDINALITY": {
+        "phase": "user-role",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "BOOKING_CARDINALITY": {
+        "phase": "slot-booking",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "RESERVATION_CARDINALITY": {
+        "phase": "slot-booking",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "ATTENDANCE_CARDINALITY": {
+        "phase": "slot-booking",
+        "expected": 0,
+        "actual": 0,
+        "match": true
+      },
+      "SESSION_ACTIVE_RESERVED_TOTAL": {
+        "phase": "slot-booking",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "SESSION_CONSUMED_TOTAL": {
+        "phase": "slot-booking",
+        "expected": 0,
+        "actual": 0,
+        "match": true
+      },
+      "SESSION_RELEASED_TOTAL": {
+        "phase": "slot-booking",
+        "expected": 0,
+        "actual": 0,
+        "match": true
+      },
+      "SESSION_AVAILABLE_TOTAL": {
+        "phase": "slot-booking",
+        "expected": 7,
+        "actual": 0,
+        "match": false
+      },
+      "VOUCHER_ENTITLEMENT_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "VOUCHER_REDEMPTION_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "COA_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "JOURNAL_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "JOURNAL_PARENT_RELATION_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 0,
+        "actual": 0,
+        "match": true
+      },
+      "JOURNAL_ORDER_RELATION_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "JOURNAL_DEBIT_RUPIAH_TOTAL": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 100000,
+        "actual": 0,
+        "match": false
+      },
+      "JOURNAL_CREDIT_RUPIAH_TOTAL": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 0,
+        "actual": 0,
+        "match": true
+      },
+      "AUDIT_EVENT_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      },
+      "NOTIFICATION_CARDINALITY": {
+        "phase": "voucher-finance-audit-media",
+        "expected": 1,
+        "actual": 0,
+        "match": false
+      }
+    }
+  },
+  "dimensional": {
+    "controlCount": 5,
+    "mismatchCount": 5,
+    "mismatches": [
+      {
+        "controlKey": "ORDER_COUNT_BY_BRANCH_PACKAGE_STATUS_DATE",
+        "phase": "package-order",
+        "dimensionKey": "branch=1|package=1|status=1|date=2026-01-01"
+      },
+      {
+        "controlKey": "ORDER_RUPIAH_BY_BRANCH_PACKAGE_STATUS_DATE",
+        "phase": "package-order",
+        "dimensionKey": "branch=1|package=1|status=1|date=2026-01-01"
+      },
+      {
+        "controlKey": "PURCHASE_STATUS_CARDINALITY",
+        "phase": "package-order",
+        "dimensionKey": "APPROVED"
+      },
+      {
+        "controlKey": "BOOKING_STATUS_CARDINALITY",
+        "phase": "slot-booking",
+        "dimensionKey": "BOOKED"
+      },
+      {
+        "controlKey": "RESERVATION_STATUS_CARDINALITY",
+        "phase": "slot-booking",
+        "dimensionKey": "ACTIVE"
+      }
+    ]
+  },
+  "unresolved": {
+    "openRejects": 0,
+    "openResolutions": 0
+  },
+  "deferredMedia": {
+    "expected": 10,
+    "actual": 0,
+    "match": false,
+    "blocking": false,
+    "activeMediaRecords": {
+      "IDENTITY_DOCUMENT": 0,
+      "PAYMENT_PROOF": 0,
+      "MEDIA_ASSET": 0
+    }
+  },
+  "orphans": {
+    "PACKAGE_BRANCH": 0,
+    "PURCHASE_USER": 0,
+    "BOOKING_PACKAGE": 0,
+    "JOURNAL_ACCOUNT": 0
+  },
+  "blocking": false
+}

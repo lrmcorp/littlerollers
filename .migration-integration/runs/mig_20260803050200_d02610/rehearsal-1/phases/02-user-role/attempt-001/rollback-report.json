@@ -1,0 +1,16 @@
+{
+  "batchId": "e8731c99-28f2-4f02-bb02-fc7edc4c83a3",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "UserRole": 2,
+    "Assignment": 1,
+    "ApplicationRole": 2,
+    "PasswordCredential": 2,
+    "UserProfile": 2,
+    "Identity": 2,
+    "User": 2
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

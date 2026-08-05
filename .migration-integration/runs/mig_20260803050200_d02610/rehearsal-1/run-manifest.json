@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "runId": "r1_mig_20260803050200_d02610",
+  "generatedAt": "2026-08-03T05:02:20.327Z",
+  "status": "PASSED_AUTOMATED_GATES",
+  "files": [
+    {
+      "name": "final-evidence/control-totals.json",
+      "sha256": "ba5a3ab52adb2b30276866614f7edf567f581696b87658425d1e4e7b19bff50d"
+    },
+    {
+      "name": "final-evidence/manifest.json",
+      "sha256": "264ccd1e13982c14a33c2a106bd3fa7d7cd57aced8bbd951d5eefb638ac82699"
+    },
+    {
+      "name": "final-evidence/reconciliation.json",
+      "sha256": "74c00f9ef817ae1c5f91a5cb100c057f148f7a122b15bc4f127deb74b881a9d7"
+    },
+    {
+      "name": "final-evidence/resolution-summary.json",
+      "sha256": "51935ce2305206cb1b7db410426da1f1f4a011d82fb665fe611cfa26ba111cf5"
+    },
+    {
+      "name": "final-evidence/source-profile.json",
+      "sha256": "65f36358ce7332f4a1e01d8ee2c7887b4c9ffe1cbfd7688eb9a513fd25a25f6a"
+    },
+    {
+      "name": "final-evidence/summary.json",
+      "sha256": "ebcf343a388cccaddffb14014ec3e26114d4052aae865d0ce737adab4cd91d19"
+    },
+    {
+      "name": "final-evidence/summary.md",
+      "sha256": "902d46266c7db52458a5158a4d1ef7490af57c86bc25386c1b94966b9cb78442"
+    },
+    {
+      "name": "gate.json",
+      "sha256": "b85ef46f4a27420c62de93ac448bd3e73e044474ebb08d599f82bcdf8082eeb4"
+    },
+    {
+      "name": "phases/01-branch-master/attempt-001/attempt.json",
+      "sha256": "f09109bb9c591429fa32896e633537e947863b7393173a281d7f4046f39a53f2"
+    },
+    {
+      "name": "phases/01-branch-master/attempt-001/batch.json",
+      "sha256": "729f0de003f4fc31f5d345df306f8bfaf24aba52f13c94f52116e29bb6aea62b"
+    },
+    {
+      "name": "phases/01-branch-master/attempt-001/reconciliation.json",
+      "sha256": "0480cb210b28b4efec1220921337af8f87ffefd137bf65cee9c243d1d531991a"
+    },
+    {
+      "name": "phases/01-branch-master/attempt-001/rollback-report.json",
+      "sha256": "15c3112a4a4dd056f9adee5da4b6ec8e18bbdf52b4265436d9d6f54dad2d7209"
+    },
+    {
+      "name": "phases/02-user-role/attempt-001/attempt.json",
+      "sha256": "4a8f17ffc57c2a10b2ddbe5f1282caebbca6cb3fade7771893d791973ce754ac"
+    },
+    {
+      "name": "phases/02-user-role/attempt-001/batch.json",
+      "sha256": "305c4a3cd5854ace67d43ad1b7aa9d8de5b63eaf5f3763d3ca13266cf4b4926a"
+    },
+    {
+      "name": "phases/02-user-role/attempt-001/reconciliation.json",
+      "sha256": "35fd38f4409149072656dd463385494e0c6349fb3ee7ef6cd2105fb6d55cddc3"
+    },
+    {
+      "name": "phases/02-user-role/attempt-001/rollback-report.json",
+      "sha256": "43663048ce35a5f238e5e7607583eecc2f9693dfe7c180078f352349a60cc933"
+    },
+    {
+      "name": "phases/03-package-order/attempt-001/attempt.json",
+      "sha256": "03b3694274f1966d0dcd4bfc3eb32c4e065b2d48d3846df28008384bc3402295"
+    },
+    {
+      "name": "phases/03-package-order/attempt-001/batch.json",
+      "sha256": "1645d8f038fe8b0374eaaa83a851fe2e0cd3798e43a68ba63bf916112007aca0"
+    },
+    {
+      "name": "phases/03-package-order/attempt-001/reconciliation.json",
+      "sha256": "50c06ab676a2909f7499d45570ea2bd974f3c55d211db9e8126e1b3d97bbdeb8"
+    },
+    {
+      "name": "phases/03-package-order/attempt-001/rollback-report.json",
+      "sha256": "c5a8208702ea5bfee12e5d8abfd2f22126396b9b0daade7411f1c477850ba18e"
+    },
+    {
+      "name": "phases/04-ledger/attempt-001/attempt.json",
+      "sha256": "173897d5ccf750b51d24a07e1b1167dd083c657438fd1c9300b10d54aa81283b"
+    },
+    {
+      "name": "phases/04-ledger/attempt-001/batch.json",
+      "sha256": "187355685104cb7bf5e5fe3800d0046d0d77d78de8b797fa03571a0f019246ad"
+    },
+    {
+      "name": "phases/04-ledger/attempt-001/reconciliation.json",
+      "sha256": "715261d41104433212421dad8cd751f3f55d352c212bcc849a45139fdd7a5964"
+    },
+    {
+      "name": "phases/04-ledger/attempt-001/rollback-report.json",
+      "sha256": "31a3581ce3dec0ed838f9e8c890e4f955a1e0c54708b24580bc141f73f7f30b8"
+    },
+    {
+      "name": "phases/05-slot-booking/attempt-001/attempt.json",
+      "sha256": "8fd5b2d5865411df4b1979e74271560038a4e2a69013d4dec9fb62a7c2dd4e35"
+    },
+    {
+      "name": "phases/05-slot-booking/attempt-001/batch.json",
+      "sha256": "7150c2d2022f6a59e4d94f23380e92c3bfb01536a0d68dd76e7408cfd25388b7"
+    },
+    {
+      "name": "phases/05-slot-booking/attempt-001/reconciliation.json",
+      "sha256": "0ef499a41a34f19dd128a1ae0a235ddb7695c975e77afd3ace8f9dc043710516"
+    },
+    {
+      "name": "phases/05-slot-booking/attempt-001/rollback-report.json",
+      "sha256": "6c4b6786e5de9e41f2d186f6d86194ab8551c46b0db023c6531843ba4b47cb8c"
+    },
+    {
+      "name": "phases/06-voucher-finance-audit-media/attempt-001/attempt.json",
+      "sha256": "1180845edcfa184ab182c6cee29bcdf9311b9b376919576c279aa28ab6028576"
+    },
+    {
+      "name": "phases/06-voucher-finance-audit-media/attempt-001/batch.json",
+      "sha256": "9c17bf1bd8d521aba20571abf23aec17a85bab47630008395d3184245c84f1a4"
+    },
+    {
+      "name": "phases/06-voucher-finance-audit-media/attempt-001/reconciliation.json",
+      "sha256": "74c00f9ef817ae1c5f91a5cb100c057f148f7a122b15bc4f127deb74b881a9d7"
+    },
+    {
+      "name": "phases/06-voucher-finance-audit-media/attempt-001/rollback-report.json",
+      "sha256": "5be8435971595b4b17a43a231a47334ad500c6acbbc9ff07df8b2406bc3e5ad3"
+    },
+    {
+      "name": "preflight.json",
+      "sha256": "3feb1317cb5369cb33965c0fa7adf6ec95e4fa8fb26e0c39a4955b57818ecd3f"
+    },
+    {
+      "name": "run-state.json",
+      "sha256": "69e923031f6199dd134571d8a3e932e4ca7a1293d52e3b784032bc50be2eb96d"
+    },
+    {
+      "name": "smoke-and-signoff.md",
+      "sha256": "8dd5b0ec3e72977b8d934f556c58697cf9cb7c99cd76918b3f5ff65f3f7ce543"
+    },
+    {
+      "name": "source-profile.json",
+      "sha256": "65f36358ce7332f4a1e01d8ee2c7887b4c9ffe1cbfd7688eb9a513fd25a25f6a"
+    }
+  ]
+}

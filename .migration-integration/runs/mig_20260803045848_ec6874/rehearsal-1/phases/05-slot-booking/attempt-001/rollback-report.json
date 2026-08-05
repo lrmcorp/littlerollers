@@ -1,0 +1,14 @@
+{
+  "batchId": "05d37d92-4dea-47ef-91af-37cbfc7ae4c0",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "SessionReservation": 1,
+    "Booking": 1,
+    "CustomerClassEnrollment": 1,
+    "ClassSlot": 2,
+    "BookingFeedback": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}
