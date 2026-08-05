@@ -31,7 +31,12 @@ databaseDescribe('package promotion MySQL integration', () => {
       data: { id: branchId, code: namespace, name: 'Promotion branch', timezone: 'Asia/Jakarta' },
     });
     await db.classType.create({
-      data: { id: classTypeId, branchId, code: 'REFORMER', name: 'Reformer' },
+      data: {
+        id: classTypeId,
+        branchId,
+        code: `REFORMER-${namespace}`.toUpperCase(),
+        name: 'Reformer',
+      },
     });
     await db.package.create({
       data: {
@@ -62,10 +67,11 @@ databaseDescribe('package promotion MySQL integration', () => {
     });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.packagePromotion.deleteMany({ where: { packageId } });
-    await db.package.delete({ where: { id: packageId } });
-    await db.classType.delete({ where: { id: classTypeId } });
-    await db.branch.delete({ where: { id: branchId } });
-    await db.user.delete({ where: { id: userId } });
+    await db.package.deleteMany({ where: { id: packageId } });
+    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
+    await db.classType.deleteMany({ where: { id: classTypeId } });
+    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.user.deleteMany({ where: { id: userId } });
     await db.$disconnect();
   });
 

@@ -10,6 +10,8 @@ const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('effective master MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `mst-${Date.now()}`;
+  const primaryClassTypeCode = `REFORMER-${namespace}`.toUpperCase();
+  const lifecycleClassTypeCode = `BARRE-${namespace}`.toUpperCase();
   const actorId = randomUUID();
   const instructorId = randomUUID();
   let catalog: MasterCatalogService;
@@ -49,7 +51,7 @@ databaseDescribe('effective master MySQL integration', () => {
     branchId = branch.id;
     const type = await catalog.createClassType(
       principal(),
-      { branchIds: [branchId], code: 'REFORMER', name: 'Reformer' },
+      { branchIds: [branchId], code: primaryClassTypeCode, name: 'Reformer' },
       `${namespace}-class`,
     );
     classTypeId = type.id;
@@ -241,7 +243,7 @@ databaseDescribe('effective master MySQL integration', () => {
   it('updates safe class-type metadata and reactivates an inactive type idempotently', async () => {
     const item = await catalog.createClassType(
       principal(),
-      { branchIds: [branchId], code: 'BARRE_TEST', name: 'Barre Test' },
+      { branchIds: [branchId], code: lifecycleClassTypeCode, name: 'Barre Test' },
       `${namespace}-class-lifecycle`,
     );
     lifecycleClassTypeId = item.id;
@@ -257,7 +259,7 @@ databaseDescribe('effective master MySQL integration', () => {
       `${namespace}-class-update`,
     );
     expect(updated).toMatchObject({
-      code: 'BARRE_TEST',
+      code: lifecycleClassTypeCode,
       branchId: null,
       name: 'Barre Integration',
       version: item.version + 1,

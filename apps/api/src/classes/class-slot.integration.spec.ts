@@ -53,7 +53,12 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
       data: { id: studioId, branchId, code: 'MAIN', name: 'Synthetic main studio' },
     });
     await db.classType.create({
-      data: { id: classTypeId, branchId, code: 'REFORMER', name: 'Reformer' },
+      data: {
+        id: classTypeId,
+        branchId,
+        code: `REFORMER-${namespace}`.toUpperCase(),
+        name: 'Reformer',
+      },
     });
     await db.classTypeBranchScope.create({
       data: { id: randomUUID(), classTypeId, branchId },
@@ -115,12 +120,13 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     await db.paymentProof.deleteMany({ where: { id: proofId } });
     await db.package.deleteMany({ where: { id: packageId } });
     await db.classSlot.deleteMany({ where: { branchId } });
-    await db.effectiveConfiguration.delete({ where: { id: configId } });
-    await db.instructorAvailability.delete({ where: { id: availabilityId } });
-    await db.assignment.delete({ where: { id: assignmentId } });
-    await db.classType.delete({ where: { id: classTypeId } });
-    await db.studio.delete({ where: { id: studioId } });
-    await db.branch.delete({ where: { id: branchId } });
+    await db.effectiveConfiguration.deleteMany({ where: { id: configId } });
+    await db.instructorAvailability.deleteMany({ where: { id: availabilityId } });
+    await db.assignment.deleteMany({ where: { id: assignmentId } });
+    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
+    await db.classType.deleteMany({ where: { id: classTypeId } });
+    await db.studio.deleteMany({ where: { id: studioId } });
+    await db.branch.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId, customerId] } } });
     await db.$disconnect();
   });
