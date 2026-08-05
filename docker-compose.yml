@@ -5,6 +5,7 @@ x-app: &app
   build:
     context: .
     args:
+      API_BASE_URL: ${API_BASE_URL:-http://api:32121}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
   env_file: ${APP_ENV_FILE:-.env.production}
   restart: unless-stopped
@@ -20,6 +21,8 @@ services:
     image: mysql:8.4
     env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
+ports:
+      - "3315:3306"
     command:
       - mysqld
       - --character-set-server=utf8mb4
@@ -91,6 +94,9 @@ services:
 
   api:
     <<: *app
+    networks:
+      - dailydose
+      - dailydose-proxy
     command: ['node', 'apps/api/dist/main.js']
     volumes:
       - private-uploads:/app/data/private
@@ -134,7 +140,10 @@ services:
   web:
     <<: *app
     working_dir: /app/apps/web
-    command: ['node', 'node_modules/next/dist/bin/next', 'start', '-p', '32120']
+    command: ['node','.next/standalone/apps/web/server.js']
+    environment:
+      PORT: 32120
+      HOSTNAME: 0.0.0.0
     networks: [dailydose, dailydose-proxy]
     depends_on:
       api:
