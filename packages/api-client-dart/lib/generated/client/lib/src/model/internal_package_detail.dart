@@ -10,6 +10,7 @@ import 'package:openapi/src/model/package_promotion.dart';
 import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:openapi/src/model/package_class_type_scope.dart';
+import 'package:openapi/src/model/package_revision.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 

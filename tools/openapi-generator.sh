@@ -79,6 +79,18 @@ if [ -f "$CUSTOMER_BOOKING_OPTIONS" ]; then
   rm -f "$CUSTOMER_BOOKING_OPTIONS.bak"
 fi
 
+# OpenAPI Generator 7.15 omits the PackageRevision import from the
+# InternalPackageDetail allOf model even though its custom serializer references
+# that inherited type. Add the missing import deterministically in both sync and
+# drift-generation modes.
+INTERNAL_PACKAGE_DETAIL="$LOCAL_DART_OUTPUT/lib/src/model/internal_package_detail.dart"
+if [ -f "$INTERNAL_PACKAGE_DETAIL" ] && ! grep -q "src/model/package_revision.dart" "$INTERNAL_PACKAGE_DETAIL"; then
+  sed -i.bak "/src\/model\/package_class_type_scope.dart/a\\
+import 'package:openapi/src/model/package_revision.dart';
+" "$INTERNAL_PACKAGE_DETAIL"
+  rm -f "$INTERNAL_PACKAGE_DETAIL.bak"
+fi
+
 # dart-dio generates API smoke-test stubs that instantiate the client with the
 # relative OpenAPI server URL. Dio requires an absolute URL on native Dart, so
 # keep the generated tests runnable without changing the runtime client's
