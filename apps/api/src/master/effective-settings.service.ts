@@ -26,7 +26,7 @@ export class EffectiveSettingsService {
   constructor(
     private readonly db: PrismaService,
     private readonly access: MasterAccessService,
-  ) { }
+  ) {}
 
   async list(principal: SessionPrincipal, kind: SettingKind, branchId?: string) {
     this.access.authorize(principal);

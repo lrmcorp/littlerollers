@@ -45,7 +45,9 @@ describe('v1 delta contract', () => {
   });
 
   it('captures unresolved branch ownership so verification can block it safely', () => {
-    expect(parseCanonicalDeltaEvent(event({ sourceBranchId: null }), tables).sourceBranchId).toBeNull();
+    expect(
+      parseCanonicalDeltaEvent(event({ sourceBranchId: null }), tables).sourceBranchId,
+    ).toBeNull();
   });
 
   it('allows global master events without a branch', () => {

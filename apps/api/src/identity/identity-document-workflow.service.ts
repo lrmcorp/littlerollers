@@ -132,9 +132,7 @@ export class IdentityDocumentWorkflowService {
           select: { status: true },
         })
       : null;
-    const pilotMediaImmutable = ['V2_ACTIVE', 'ROLLING_BACK'].includes(
-      pilotCutover?.status ?? '',
-    );
+    const pilotMediaImmutable = ['V2_ACTIVE', 'ROLLING_BACK'].includes(pilotCutover?.status ?? '');
     if (!current || current.status !== 'REJECTED' || current.version !== expectedVersion)
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
     const replacementId = newId();

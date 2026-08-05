@@ -16,15 +16,12 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
 
-    const request =
-      http.getRequest<Request & { correlationId?: string }>();
+    const request = http.getRequest<Request & { correlationId?: string }>();
 
     const response = http.getResponse<Response>();
 
     const status =
-      error instanceof HttpException
-        ? error.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const code =
       error instanceof ApiProblem
@@ -35,15 +32,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     // Cetak detail error server ke terminal
     if (status >= 500) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : String(error);
+      const message = error instanceof Error ? error.message : String(error);
 
-      const stack =
-        error instanceof Error
-          ? error.stack
-          : undefined;
+      const stack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(
         [
@@ -64,18 +55,10 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         error: {
           code,
           message:
-            status >= 500
-              ? 'Terjadi kesalahan internal.'
-              : 'Permintaan tidak dapat diproses.',
+            status >= 500 ? 'Terjadi kesalahan internal.' : 'Permintaan tidak dapat diproses.',
           correlationId: request.correlationId ?? 'unknown',
-          details:
-            error instanceof ApiProblem
-              ? error.details
-              : [],
-          retryable:
-            error instanceof ApiProblem
-              ? error.retryable
-              : status >= 500,
+          details: error instanceof ApiProblem ? error.details : [],
+          retryable: error instanceof ApiProblem ? error.retryable : status >= 500,
         },
       });
   }

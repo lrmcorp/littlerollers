@@ -447,13 +447,7 @@ export function RegisterView() {
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          fullWidth
-          loading={loading}
-          loadingLabel="Membuat akun…"
-        >
+        <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Membuat akun…">
           Daftar dan masuk
         </Button>
         {state === 'error' && <Feedback kind="error">{message}</Feedback>}

@@ -64,15 +64,15 @@ databaseDescribe('effective master MySQL integration', () => {
           { scope: { in: [`branch-update:${branchId}`, `branch-transition:${branchId}`] } },
           ...(lifecycleClassTypeId
             ? [
-              {
-                scope: {
-                  in: [
-                    `class-type-update:${lifecycleClassTypeId}`,
-                    `class-type-reactivate:${lifecycleClassTypeId}`,
-                  ],
+                {
+                  scope: {
+                    in: [
+                      `class-type-update:${lifecycleClassTypeId}`,
+                      `class-type-reactivate:${lifecycleClassTypeId}`,
+                    ],
+                  },
                 },
-              },
-            ]
+              ]
             : []),
         ],
       },

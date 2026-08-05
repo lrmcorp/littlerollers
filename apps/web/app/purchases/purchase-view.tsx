@@ -302,9 +302,7 @@ export function PurchaseView({
               loading={busyAction === 'scan'}
               loadingLabel="Memeriksa status…"
               disabled={loading}
-              onClick={() =>
-                void run('scan', async () => setProof(await client.status(proof.id)))
-              }
+              onClick={() => void run('scan', async () => setProof(await client.status(proof.id)))}
             >
               Periksa status scan
             </Button>

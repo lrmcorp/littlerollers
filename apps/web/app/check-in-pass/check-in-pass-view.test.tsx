@@ -18,8 +18,12 @@ describe('check-in pass', () => {
 
   it('renders a primary download action and keeps the PNG download behavior', async () => {
     window.history.replaceState({}, '', '/check-in-pass#token=dd-checkin%3Av1%3Atest-pass');
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
-    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,cXI=');
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
+      'data:image/png;base64,cXI=',
+    );
 
     render(<CheckInPassView />);
 
