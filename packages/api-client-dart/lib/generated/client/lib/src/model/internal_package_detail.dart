@@ -13,6 +13,8 @@ import 'package:openapi/src/model/package_class_type_scope.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
+import 'package:openapi/src/model/package_revision.dart';
+
 part 'internal_package_detail.g.dart';
 
 /// InternalPackageDetail

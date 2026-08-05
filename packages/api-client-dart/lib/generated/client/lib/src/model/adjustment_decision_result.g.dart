@@ -14,6 +14,8 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
   @override
   final int? resultingBalance;
   @override
+  final String? auditReference;
+  @override
   final bool idempotentReplay;
 
   factory _$AdjustmentDecisionResult([
@@ -24,6 +26,7 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
     required this.adjustment,
     this.ledgerEntry,
     this.resultingBalance,
+    this.auditReference,
     required this.idempotentReplay,
   }) : super._();
   @override
@@ -42,6 +45,7 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
         adjustment == other.adjustment &&
         ledgerEntry == other.ledgerEntry &&
         resultingBalance == other.resultingBalance &&
+        auditReference == other.auditReference &&
         idempotentReplay == other.idempotentReplay;
   }
 
@@ -51,6 +55,7 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
     _$hash = $jc(_$hash, adjustment.hashCode);
     _$hash = $jc(_$hash, ledgerEntry.hashCode);
     _$hash = $jc(_$hash, resultingBalance.hashCode);
+    _$hash = $jc(_$hash, auditReference.hashCode);
     _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -62,6 +67,7 @@ class _$AdjustmentDecisionResult extends AdjustmentDecisionResult {
           ..add('adjustment', adjustment)
           ..add('ledgerEntry', ledgerEntry)
           ..add('resultingBalance', resultingBalance)
+          ..add('auditReference', auditReference)
           ..add('idempotentReplay', idempotentReplay))
         .toString();
   }
@@ -89,6 +95,11 @@ class AdjustmentDecisionResultBuilder
   set resultingBalance(int? resultingBalance) =>
       _$this._resultingBalance = resultingBalance;
 
+  String? _auditReference;
+  String? get auditReference => _$this._auditReference;
+  set auditReference(String? auditReference) =>
+      _$this._auditReference = auditReference;
+
   bool? _idempotentReplay;
   bool? get idempotentReplay => _$this._idempotentReplay;
   set idempotentReplay(bool? idempotentReplay) =>
@@ -104,6 +115,7 @@ class AdjustmentDecisionResultBuilder
       _adjustment = $v.adjustment.toBuilder();
       _ledgerEntry = $v.ledgerEntry?.toBuilder();
       _resultingBalance = $v.resultingBalance;
+      _auditReference = $v.auditReference;
       _idempotentReplay = $v.idempotentReplay;
       _$v = null;
     }
@@ -132,6 +144,7 @@ class AdjustmentDecisionResultBuilder
             adjustment: adjustment.build(),
             ledgerEntry: _ledgerEntry?.build(),
             resultingBalance: resultingBalance,
+            auditReference: auditReference,
             idempotentReplay: BuiltValueNullFieldError.checkNotNull(
               idempotentReplay,
               r'AdjustmentDecisionResult',

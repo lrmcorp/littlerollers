@@ -8,9 +8,9 @@ part of 'package_command.dart';
 
 class _$PackageCommand extends PackageCommand {
   @override
-  final String branchId;
+  final BuiltSet<String> branchIds;
   @override
-  final String classTypeId;
+  final BuiltSet<String> classTypeIds;
   @override
   final String businessKey;
   @override
@@ -32,8 +32,8 @@ class _$PackageCommand extends PackageCommand {
       (PackageCommandBuilder()..update(updates))._build();
 
   _$PackageCommand._({
-    required this.branchId,
-    required this.classTypeId,
+    required this.branchIds,
+    required this.classTypeIds,
     required this.businessKey,
     required this.name,
     required this.sessionCount,
@@ -54,8 +54,8 @@ class _$PackageCommand extends PackageCommand {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is PackageCommand &&
-        branchId == other.branchId &&
-        classTypeId == other.classTypeId &&
+        branchIds == other.branchIds &&
+        classTypeIds == other.classTypeIds &&
         businessKey == other.businessKey &&
         name == other.name &&
         sessionCount == other.sessionCount &&
@@ -69,8 +69,8 @@ class _$PackageCommand extends PackageCommand {
   @override
   int get hashCode {
     var _$hash = 0;
-    _$hash = $jc(_$hash, branchId.hashCode);
-    _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, branchIds.hashCode);
+    _$hash = $jc(_$hash, classTypeIds.hashCode);
     _$hash = $jc(_$hash, businessKey.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
@@ -86,8 +86,8 @@ class _$PackageCommand extends PackageCommand {
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'PackageCommand')
-          ..add('branchId', branchId)
-          ..add('classTypeId', classTypeId)
+          ..add('branchIds', branchIds)
+          ..add('classTypeIds', classTypeIds)
           ..add('businessKey', businessKey)
           ..add('name', name)
           ..add('sessionCount', sessionCount)
@@ -104,13 +104,16 @@ class PackageCommandBuilder
     implements Builder<PackageCommand, PackageCommandBuilder> {
   _$PackageCommand? _$v;
 
-  String? _branchId;
-  String? get branchId => _$this._branchId;
-  set branchId(String? branchId) => _$this._branchId = branchId;
+  SetBuilder<String>? _branchIds;
+  SetBuilder<String> get branchIds =>
+      _$this._branchIds ??= SetBuilder<String>();
+  set branchIds(SetBuilder<String>? branchIds) => _$this._branchIds = branchIds;
 
-  String? _classTypeId;
-  String? get classTypeId => _$this._classTypeId;
-  set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+  SetBuilder<String>? _classTypeIds;
+  SetBuilder<String> get classTypeIds =>
+      _$this._classTypeIds ??= SetBuilder<String>();
+  set classTypeIds(SetBuilder<String>? classTypeIds) =>
+      _$this._classTypeIds = classTypeIds;
 
   String? _businessKey;
   String? get businessKey => _$this._businessKey;
@@ -153,8 +156,8 @@ class PackageCommandBuilder
   PackageCommandBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
-      _branchId = $v.branchId;
-      _classTypeId = $v.classTypeId;
+      _branchIds = $v.branchIds.toBuilder();
+      _classTypeIds = $v.classTypeIds.toBuilder();
       _businessKey = $v.businessKey;
       _name = $v.name;
       _sessionCount = $v.sessionCount;
@@ -182,56 +185,66 @@ class PackageCommandBuilder
   PackageCommand build() => _build();
 
   _$PackageCommand _build() {
-    final _$result =
-        _$v ??
-        _$PackageCommand._(
-          branchId: BuiltValueNullFieldError.checkNotNull(
-            branchId,
-            r'PackageCommand',
-            'branchId',
-          ),
-          classTypeId: BuiltValueNullFieldError.checkNotNull(
-            classTypeId,
-            r'PackageCommand',
-            'classTypeId',
-          ),
-          businessKey: BuiltValueNullFieldError.checkNotNull(
-            businessKey,
-            r'PackageCommand',
-            'businessKey',
-          ),
-          name: BuiltValueNullFieldError.checkNotNull(
-            name,
-            r'PackageCommand',
-            'name',
-          ),
-          sessionCount: BuiltValueNullFieldError.checkNotNull(
-            sessionCount,
-            r'PackageCommand',
-            'sessionCount',
-          ),
-          durationDays: BuiltValueNullFieldError.checkNotNull(
-            durationDays,
-            r'PackageCommand',
-            'durationDays',
-          ),
-          priceRp: BuiltValueNullFieldError.checkNotNull(
-            priceRp,
-            r'PackageCommand',
-            'priceRp',
-          ),
-          effectiveFrom: BuiltValueNullFieldError.checkNotNull(
-            effectiveFrom,
-            r'PackageCommand',
-            'effectiveFrom',
-          ),
-          effectiveUntil: effectiveUntil,
-          reason: BuiltValueNullFieldError.checkNotNull(
-            reason,
-            r'PackageCommand',
-            'reason',
-          ),
+    _$PackageCommand _$result;
+    try {
+      _$result =
+          _$v ??
+          _$PackageCommand._(
+            branchIds: branchIds.build(),
+            classTypeIds: classTypeIds.build(),
+            businessKey: BuiltValueNullFieldError.checkNotNull(
+              businessKey,
+              r'PackageCommand',
+              'businessKey',
+            ),
+            name: BuiltValueNullFieldError.checkNotNull(
+              name,
+              r'PackageCommand',
+              'name',
+            ),
+            sessionCount: BuiltValueNullFieldError.checkNotNull(
+              sessionCount,
+              r'PackageCommand',
+              'sessionCount',
+            ),
+            durationDays: BuiltValueNullFieldError.checkNotNull(
+              durationDays,
+              r'PackageCommand',
+              'durationDays',
+            ),
+            priceRp: BuiltValueNullFieldError.checkNotNull(
+              priceRp,
+              r'PackageCommand',
+              'priceRp',
+            ),
+            effectiveFrom: BuiltValueNullFieldError.checkNotNull(
+              effectiveFrom,
+              r'PackageCommand',
+              'effectiveFrom',
+            ),
+            effectiveUntil: effectiveUntil,
+            reason: BuiltValueNullFieldError.checkNotNull(
+              reason,
+              r'PackageCommand',
+              'reason',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'branchIds';
+        branchIds.build();
+        _$failedField = 'classTypeIds';
+        classTypeIds.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'PackageCommand',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

@@ -182,6 +182,10 @@ class _$ClassSlot extends ClassSlot {
   @override
   final String classTypeId;
   @override
+  final String studioId;
+  @override
+  final String? roomId;
+  @override
   final String? instructorUserId;
   @override
   final DateTime startAt;
@@ -211,6 +215,8 @@ class _$ClassSlot extends ClassSlot {
     required this.id,
     required this.branchId,
     required this.classTypeId,
+    required this.studioId,
+    this.roomId,
     this.instructorUserId,
     required this.startAt,
     required this.endAt,
@@ -237,6 +243,8 @@ class _$ClassSlot extends ClassSlot {
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
+        studioId == other.studioId &&
+        roomId == other.roomId &&
         instructorUserId == other.instructorUserId &&
         startAt == other.startAt &&
         endAt == other.endAt &&
@@ -256,6 +264,8 @@ class _$ClassSlot extends ClassSlot {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, studioId.hashCode);
+    _$hash = $jc(_$hash, roomId.hashCode);
     _$hash = $jc(_$hash, instructorUserId.hashCode);
     _$hash = $jc(_$hash, startAt.hashCode);
     _$hash = $jc(_$hash, endAt.hashCode);
@@ -277,6 +287,8 @@ class _$ClassSlot extends ClassSlot {
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
+          ..add('studioId', studioId)
+          ..add('roomId', roomId)
           ..add('instructorUserId', instructorUserId)
           ..add('startAt', startAt)
           ..add('endAt', endAt)
@@ -306,6 +318,14 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
   String? _classTypeId;
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(String? classTypeId) => _$this._classTypeId = classTypeId;
+
+  String? _studioId;
+  String? get studioId => _$this._studioId;
+  set studioId(String? studioId) => _$this._studioId = studioId;
+
+  String? _roomId;
+  String? get roomId => _$this._roomId;
+  set roomId(String? roomId) => _$this._roomId = roomId;
 
   String? _instructorUserId;
   String? get instructorUserId => _$this._instructorUserId;
@@ -366,6 +386,8 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
       _id = $v.id;
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
+      _studioId = $v.studioId;
+      _roomId = $v.roomId;
       _instructorUserId = $v.instructorUserId;
       _startAt = $v.startAt;
       _endAt = $v.endAt;
@@ -410,6 +432,12 @@ class ClassSlotBuilder implements Builder<ClassSlot, ClassSlotBuilder> {
             r'ClassSlot',
             'classTypeId',
           ),
+          studioId: BuiltValueNullFieldError.checkNotNull(
+            studioId,
+            r'ClassSlot',
+            'studioId',
+          ),
+          roomId: roomId,
           instructorUserId: instructorUserId,
           startAt: BuiltValueNullFieldError.checkNotNull(
             startAt,

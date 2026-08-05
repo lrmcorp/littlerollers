@@ -159,13 +159,17 @@ class _$InternalPackageDetail extends InternalPackageDetail {
   @override
   final BuiltList<SafeAuditActivity> auditActivity;
   @override
-  final BuiltList<Package> revisions;
-  @override
   final String id;
   @override
   final String branchId;
   @override
   final String classTypeId;
+  @override
+  final BuiltList<PackageBranchScope>? branchScopes;
+  @override
+  final BuiltList<PackageClassTypeScope>? classTypeScopes;
+  @override
+  final BuiltList<PackageRevision>? revisions;
   @override
   final String businessKey;
   @override
@@ -196,10 +200,12 @@ class _$InternalPackageDetail extends InternalPackageDetail {
   _$InternalPackageDetail._({
     required this.promotions,
     required this.auditActivity,
-    required this.revisions,
     required this.id,
     required this.branchId,
     required this.classTypeId,
+    this.branchScopes,
+    this.classTypeScopes,
+    this.revisions,
     required this.businessKey,
     required this.name,
     required this.sessionCount,
@@ -227,10 +233,12 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     return other is InternalPackageDetail &&
         promotions == other.promotions &&
         auditActivity == other.auditActivity &&
-        revisions == other.revisions &&
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
+        branchScopes == other.branchScopes &&
+        classTypeScopes == other.classTypeScopes &&
+        revisions == other.revisions &&
         businessKey == other.businessKey &&
         name == other.name &&
         sessionCount == other.sessionCount &&
@@ -249,10 +257,12 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     var _$hash = 0;
     _$hash = $jc(_$hash, promotions.hashCode);
     _$hash = $jc(_$hash, auditActivity.hashCode);
-    _$hash = $jc(_$hash, revisions.hashCode);
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, branchScopes.hashCode);
+    _$hash = $jc(_$hash, classTypeScopes.hashCode);
+    _$hash = $jc(_$hash, revisions.hashCode);
     _$hash = $jc(_$hash, businessKey.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
@@ -273,10 +283,12 @@ class _$InternalPackageDetail extends InternalPackageDetail {
     return (newBuiltValueToStringHelper(r'InternalPackageDetail')
           ..add('promotions', promotions)
           ..add('auditActivity', auditActivity)
-          ..add('revisions', revisions)
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
+          ..add('branchScopes', branchScopes)
+          ..add('classTypeScopes', classTypeScopes)
+          ..add('revisions', revisions)
           ..add('businessKey', businessKey)
           ..add('name', name)
           ..add('sessionCount', sessionCount)
@@ -310,12 +322,6 @@ class InternalPackageDetailBuilder
   set auditActivity(covariant ListBuilder<SafeAuditActivity>? auditActivity) =>
       _$this._auditActivity = auditActivity;
 
-  ListBuilder<Package>? _revisions;
-  ListBuilder<Package> get revisions =>
-      _$this._revisions ??= ListBuilder<Package>();
-  set revisions(covariant ListBuilder<Package>? revisions) =>
-      _$this._revisions = revisions;
-
   String? _id;
   String? get id => _$this._id;
   set id(covariant String? id) => _$this._id = id;
@@ -328,6 +334,25 @@ class InternalPackageDetailBuilder
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(covariant String? classTypeId) =>
       _$this._classTypeId = classTypeId;
+
+  ListBuilder<PackageBranchScope>? _branchScopes;
+  ListBuilder<PackageBranchScope> get branchScopes =>
+      _$this._branchScopes ??= ListBuilder<PackageBranchScope>();
+  set branchScopes(covariant ListBuilder<PackageBranchScope>? branchScopes) =>
+      _$this._branchScopes = branchScopes;
+
+  ListBuilder<PackageClassTypeScope>? _classTypeScopes;
+  ListBuilder<PackageClassTypeScope> get classTypeScopes =>
+      _$this._classTypeScopes ??= ListBuilder<PackageClassTypeScope>();
+  set classTypeScopes(
+    covariant ListBuilder<PackageClassTypeScope>? classTypeScopes,
+  ) => _$this._classTypeScopes = classTypeScopes;
+
+  ListBuilder<PackageRevision>? _revisions;
+  ListBuilder<PackageRevision> get revisions =>
+      _$this._revisions ??= ListBuilder<PackageRevision>();
+  set revisions(covariant ListBuilder<PackageRevision>? revisions) =>
+      _$this._revisions = revisions;
 
   String? _businessKey;
   String? get businessKey => _$this._businessKey;
@@ -389,10 +414,12 @@ class InternalPackageDetailBuilder
     if ($v != null) {
       _promotions = $v.promotions.toBuilder();
       _auditActivity = $v.auditActivity.toBuilder();
-      _revisions = $v.revisions.toBuilder();
       _id = $v.id;
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
+      _branchScopes = $v.branchScopes?.toBuilder();
+      _classTypeScopes = $v.classTypeScopes?.toBuilder();
+      _revisions = $v.revisions?.toBuilder();
       _businessKey = $v.businessKey;
       _name = $v.name;
       _sessionCount = $v.sessionCount;
@@ -430,7 +457,6 @@ class InternalPackageDetailBuilder
           _$InternalPackageDetail._(
             promotions: promotions.build(),
             auditActivity: auditActivity.build(),
-            revisions: revisions.build(),
             id: BuiltValueNullFieldError.checkNotNull(
               id,
               r'InternalPackageDetail',
@@ -446,6 +472,9 @@ class InternalPackageDetailBuilder
               r'InternalPackageDetail',
               'classTypeId',
             ),
+            branchScopes: _branchScopes?.build(),
+            classTypeScopes: _classTypeScopes?.build(),
+            revisions: _revisions?.build(),
             businessKey: BuiltValueNullFieldError.checkNotNull(
               businessKey,
               r'InternalPackageDetail',
@@ -497,8 +526,13 @@ class InternalPackageDetailBuilder
         promotions.build();
         _$failedField = 'auditActivity';
         auditActivity.build();
+
+        _$failedField = 'branchScopes';
+        _branchScopes?.build();
+        _$failedField = 'classTypeScopes';
+        _classTypeScopes?.build();
         _$failedField = 'revisions';
-        revisions.build();
+        _revisions?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'InternalPackageDetail',

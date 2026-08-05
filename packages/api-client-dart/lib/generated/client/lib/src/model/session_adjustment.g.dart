@@ -255,6 +255,8 @@ class _$SessionAdjustment extends SessionAdjustment {
   @override
   final SessionAdjustmentDecisionCodeEnum? decisionCode;
   @override
+  final String? decisionNote;
+  @override
   final SessionAdjustmentStatusEnum status;
   @override
   final int? ledgerBalanceAtRequest;
@@ -285,6 +287,8 @@ class _$SessionAdjustment extends SessionAdjustment {
   @override
   final String? ledgerEntryId;
   @override
+  final String? auditReference;
+  @override
   final int version;
   @override
   final DateTime createdAt;
@@ -305,6 +309,7 @@ class _$SessionAdjustment extends SessionAdjustment {
     this.decidedById,
     this.decidedBy,
     this.decisionCode,
+    this.decisionNote,
     required this.status,
     this.ledgerBalanceAtRequest,
     this.reservedAtRequest,
@@ -320,6 +325,7 @@ class _$SessionAdjustment extends SessionAdjustment {
     this.eligibleForApproval,
     this.eligibilityReason,
     this.ledgerEntryId,
+    this.auditReference,
     required this.version,
     required this.createdAt,
     this.decidedAt,
@@ -345,6 +351,7 @@ class _$SessionAdjustment extends SessionAdjustment {
         decidedById == other.decidedById &&
         decidedBy == other.decidedBy &&
         decisionCode == other.decisionCode &&
+        decisionNote == other.decisionNote &&
         status == other.status &&
         ledgerBalanceAtRequest == other.ledgerBalanceAtRequest &&
         reservedAtRequest == other.reservedAtRequest &&
@@ -360,6 +367,7 @@ class _$SessionAdjustment extends SessionAdjustment {
         eligibleForApproval == other.eligibleForApproval &&
         eligibilityReason == other.eligibilityReason &&
         ledgerEntryId == other.ledgerEntryId &&
+        auditReference == other.auditReference &&
         version == other.version &&
         createdAt == other.createdAt &&
         decidedAt == other.decidedAt;
@@ -377,6 +385,7 @@ class _$SessionAdjustment extends SessionAdjustment {
     _$hash = $jc(_$hash, decidedById.hashCode);
     _$hash = $jc(_$hash, decidedBy.hashCode);
     _$hash = $jc(_$hash, decisionCode.hashCode);
+    _$hash = $jc(_$hash, decisionNote.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
     _$hash = $jc(_$hash, ledgerBalanceAtRequest.hashCode);
     _$hash = $jc(_$hash, reservedAtRequest.hashCode);
@@ -392,6 +401,7 @@ class _$SessionAdjustment extends SessionAdjustment {
     _$hash = $jc(_$hash, eligibleForApproval.hashCode);
     _$hash = $jc(_$hash, eligibilityReason.hashCode);
     _$hash = $jc(_$hash, ledgerEntryId.hashCode);
+    _$hash = $jc(_$hash, auditReference.hashCode);
     _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, decidedAt.hashCode);
@@ -411,6 +421,7 @@ class _$SessionAdjustment extends SessionAdjustment {
           ..add('decidedById', decidedById)
           ..add('decidedBy', decidedBy)
           ..add('decisionCode', decisionCode)
+          ..add('decisionNote', decisionNote)
           ..add('status', status)
           ..add('ledgerBalanceAtRequest', ledgerBalanceAtRequest)
           ..add('reservedAtRequest', reservedAtRequest)
@@ -426,6 +437,7 @@ class _$SessionAdjustment extends SessionAdjustment {
           ..add('eligibleForApproval', eligibleForApproval)
           ..add('eligibilityReason', eligibilityReason)
           ..add('ledgerEntryId', ledgerEntryId)
+          ..add('auditReference', auditReference)
           ..add('version', version)
           ..add('createdAt', createdAt)
           ..add('decidedAt', decidedAt))
@@ -480,6 +492,10 @@ class SessionAdjustmentBuilder
   SessionAdjustmentDecisionCodeEnum? get decisionCode => _$this._decisionCode;
   set decisionCode(SessionAdjustmentDecisionCodeEnum? decisionCode) =>
       _$this._decisionCode = decisionCode;
+
+  String? _decisionNote;
+  String? get decisionNote => _$this._decisionNote;
+  set decisionNote(String? decisionNote) => _$this._decisionNote = decisionNote;
 
   SessionAdjustmentStatusEnum? _status;
   SessionAdjustmentStatusEnum? get status => _$this._status;
@@ -559,6 +575,11 @@ class SessionAdjustmentBuilder
   set ledgerEntryId(String? ledgerEntryId) =>
       _$this._ledgerEntryId = ledgerEntryId;
 
+  String? _auditReference;
+  String? get auditReference => _$this._auditReference;
+  set auditReference(String? auditReference) =>
+      _$this._auditReference = auditReference;
+
   int? _version;
   int? get version => _$this._version;
   set version(int? version) => _$this._version = version;
@@ -587,6 +608,7 @@ class SessionAdjustmentBuilder
       _decidedById = $v.decidedById;
       _decidedBy = $v.decidedBy?.toBuilder();
       _decisionCode = $v.decisionCode;
+      _decisionNote = $v.decisionNote;
       _status = $v.status;
       _ledgerBalanceAtRequest = $v.ledgerBalanceAtRequest;
       _reservedAtRequest = $v.reservedAtRequest;
@@ -602,6 +624,7 @@ class SessionAdjustmentBuilder
       _eligibleForApproval = $v.eligibleForApproval;
       _eligibilityReason = $v.eligibilityReason;
       _ledgerEntryId = $v.ledgerEntryId;
+      _auditReference = $v.auditReference;
       _version = $v.version;
       _createdAt = $v.createdAt;
       _decidedAt = $v.decidedAt;
@@ -658,6 +681,7 @@ class SessionAdjustmentBuilder
             decidedById: decidedById,
             decidedBy: _decidedBy?.build(),
             decisionCode: decisionCode,
+            decisionNote: decisionNote,
             status: BuiltValueNullFieldError.checkNotNull(
               status,
               r'SessionAdjustment',
@@ -677,6 +701,7 @@ class SessionAdjustmentBuilder
             eligibleForApproval: eligibleForApproval,
             eligibilityReason: eligibilityReason,
             ledgerEntryId: ledgerEntryId,
+            auditReference: auditReference,
             version: BuiltValueNullFieldError.checkNotNull(
               version,
               r'SessionAdjustment',

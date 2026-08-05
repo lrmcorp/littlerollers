@@ -10,14 +10,19 @@ class _$SessionAdjustmentPage extends SessionAdjustmentPage {
   @override
   final BuiltList<SessionAdjustment> items;
   @override
+  final SessionAdjustmentSummary summary;
+  @override
   final CursorPageMeta page;
 
   factory _$SessionAdjustmentPage([
     void Function(SessionAdjustmentPageBuilder)? updates,
   ]) => (SessionAdjustmentPageBuilder()..update(updates))._build();
 
-  _$SessionAdjustmentPage._({required this.items, required this.page})
-    : super._();
+  _$SessionAdjustmentPage._({
+    required this.items,
+    required this.summary,
+    required this.page,
+  }) : super._();
   @override
   SessionAdjustmentPage rebuild(
     void Function(SessionAdjustmentPageBuilder) updates,
@@ -32,6 +37,7 @@ class _$SessionAdjustmentPage extends SessionAdjustmentPage {
     if (identical(other, this)) return true;
     return other is SessionAdjustmentPage &&
         items == other.items &&
+        summary == other.summary &&
         page == other.page;
   }
 
@@ -39,6 +45,7 @@ class _$SessionAdjustmentPage extends SessionAdjustmentPage {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, items.hashCode);
+    _$hash = $jc(_$hash, summary.hashCode);
     _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -48,6 +55,7 @@ class _$SessionAdjustmentPage extends SessionAdjustmentPage {
   String toString() {
     return (newBuiltValueToStringHelper(r'SessionAdjustmentPage')
           ..add('items', items)
+          ..add('summary', summary)
           ..add('page', page))
         .toString();
   }
@@ -62,6 +70,12 @@ class SessionAdjustmentPageBuilder
       _$this._items ??= ListBuilder<SessionAdjustment>();
   set items(ListBuilder<SessionAdjustment>? items) => _$this._items = items;
 
+  SessionAdjustmentSummaryBuilder? _summary;
+  SessionAdjustmentSummaryBuilder get summary =>
+      _$this._summary ??= SessionAdjustmentSummaryBuilder();
+  set summary(SessionAdjustmentSummaryBuilder? summary) =>
+      _$this._summary = summary;
+
   CursorPageMetaBuilder? _page;
   CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
   set page(CursorPageMetaBuilder? page) => _$this._page = page;
@@ -74,6 +88,7 @@ class SessionAdjustmentPageBuilder
     final $v = _$v;
     if ($v != null) {
       _items = $v.items.toBuilder();
+      _summary = $v.summary.toBuilder();
       _page = $v.page.toBuilder();
       _$v = null;
     }
@@ -98,12 +113,18 @@ class SessionAdjustmentPageBuilder
     try {
       _$result =
           _$v ??
-          _$SessionAdjustmentPage._(items: items.build(), page: page.build());
+          _$SessionAdjustmentPage._(
+            items: items.build(),
+            summary: summary.build(),
+            page: page.build(),
+          );
     } catch (_) {
       late String _$failedField;
       try {
         _$failedField = 'items';
         items.build();
+        _$failedField = 'summary';
+        summary.build();
         _$failedField = 'page';
         page.build();
       } catch (e) {

@@ -97,6 +97,8 @@ class _$SessionAdjustmentDecisionCommand
   @override
   final SessionAdjustmentDecisionCommandReasonCodeEnum reasonCode;
   @override
+  final String? note;
+  @override
   final int expectedVersion;
 
   factory _$SessionAdjustmentDecisionCommand([
@@ -105,6 +107,7 @@ class _$SessionAdjustmentDecisionCommand
 
   _$SessionAdjustmentDecisionCommand._({
     required this.reasonCode,
+    this.note,
     required this.expectedVersion,
   }) : super._();
   @override
@@ -121,6 +124,7 @@ class _$SessionAdjustmentDecisionCommand
     if (identical(other, this)) return true;
     return other is SessionAdjustmentDecisionCommand &&
         reasonCode == other.reasonCode &&
+        note == other.note &&
         expectedVersion == other.expectedVersion;
   }
 
@@ -128,6 +132,7 @@ class _$SessionAdjustmentDecisionCommand
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, reasonCode.hashCode);
+    _$hash = $jc(_$hash, note.hashCode);
     _$hash = $jc(_$hash, expectedVersion.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -137,6 +142,7 @@ class _$SessionAdjustmentDecisionCommand
   String toString() {
     return (newBuiltValueToStringHelper(r'SessionAdjustmentDecisionCommand')
           ..add('reasonCode', reasonCode)
+          ..add('note', note)
           ..add('expectedVersion', expectedVersion))
         .toString();
   }
@@ -156,6 +162,10 @@ class SessionAdjustmentDecisionCommandBuilder
   set reasonCode(SessionAdjustmentDecisionCommandReasonCodeEnum? reasonCode) =>
       _$this._reasonCode = reasonCode;
 
+  String? _note;
+  String? get note => _$this._note;
+  set note(String? note) => _$this._note = note;
+
   int? _expectedVersion;
   int? get expectedVersion => _$this._expectedVersion;
   set expectedVersion(int? expectedVersion) =>
@@ -169,6 +179,7 @@ class SessionAdjustmentDecisionCommandBuilder
     final $v = _$v;
     if ($v != null) {
       _reasonCode = $v.reasonCode;
+      _note = $v.note;
       _expectedVersion = $v.expectedVersion;
       _$v = null;
     }
@@ -197,6 +208,7 @@ class SessionAdjustmentDecisionCommandBuilder
             r'SessionAdjustmentDecisionCommand',
             'reasonCode',
           ),
+          note: note,
           expectedVersion: BuiltValueNullFieldError.checkNotNull(
             expectedVersion,
             r'SessionAdjustmentDecisionCommand',

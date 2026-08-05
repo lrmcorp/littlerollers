@@ -99,6 +99,12 @@ class _$LedgerEntry extends LedgerEntry {
   @override
   final String referenceId;
   @override
+  final String? referenceLabel;
+  @override
+  final String? bookingId;
+  @override
+  final int? balanceAfter;
+  @override
   final String? reason;
   @override
   final DateTime occurredAt;
@@ -113,6 +119,9 @@ class _$LedgerEntry extends LedgerEntry {
     required this.quantity,
     required this.referenceType,
     required this.referenceId,
+    this.referenceLabel,
+    this.bookingId,
+    this.balanceAfter,
     this.reason,
     required this.occurredAt,
   }) : super._();
@@ -133,6 +142,9 @@ class _$LedgerEntry extends LedgerEntry {
         quantity == other.quantity &&
         referenceType == other.referenceType &&
         referenceId == other.referenceId &&
+        referenceLabel == other.referenceLabel &&
+        bookingId == other.bookingId &&
+        balanceAfter == other.balanceAfter &&
         reason == other.reason &&
         occurredAt == other.occurredAt;
   }
@@ -146,6 +158,9 @@ class _$LedgerEntry extends LedgerEntry {
     _$hash = $jc(_$hash, quantity.hashCode);
     _$hash = $jc(_$hash, referenceType.hashCode);
     _$hash = $jc(_$hash, referenceId.hashCode);
+    _$hash = $jc(_$hash, referenceLabel.hashCode);
+    _$hash = $jc(_$hash, bookingId.hashCode);
+    _$hash = $jc(_$hash, balanceAfter.hashCode);
     _$hash = $jc(_$hash, reason.hashCode);
     _$hash = $jc(_$hash, occurredAt.hashCode);
     _$hash = $jf(_$hash);
@@ -161,6 +176,9 @@ class _$LedgerEntry extends LedgerEntry {
           ..add('quantity', quantity)
           ..add('referenceType', referenceType)
           ..add('referenceId', referenceId)
+          ..add('referenceLabel', referenceLabel)
+          ..add('bookingId', bookingId)
+          ..add('balanceAfter', balanceAfter)
           ..add('reason', reason)
           ..add('occurredAt', occurredAt))
         .toString();
@@ -196,6 +214,19 @@ class LedgerEntryBuilder implements Builder<LedgerEntry, LedgerEntryBuilder> {
   String? get referenceId => _$this._referenceId;
   set referenceId(String? referenceId) => _$this._referenceId = referenceId;
 
+  String? _referenceLabel;
+  String? get referenceLabel => _$this._referenceLabel;
+  set referenceLabel(String? referenceLabel) =>
+      _$this._referenceLabel = referenceLabel;
+
+  String? _bookingId;
+  String? get bookingId => _$this._bookingId;
+  set bookingId(String? bookingId) => _$this._bookingId = bookingId;
+
+  int? _balanceAfter;
+  int? get balanceAfter => _$this._balanceAfter;
+  set balanceAfter(int? balanceAfter) => _$this._balanceAfter = balanceAfter;
+
   String? _reason;
   String? get reason => _$this._reason;
   set reason(String? reason) => _$this._reason = reason;
@@ -217,6 +248,9 @@ class LedgerEntryBuilder implements Builder<LedgerEntry, LedgerEntryBuilder> {
       _quantity = $v.quantity;
       _referenceType = $v.referenceType;
       _referenceId = $v.referenceId;
+      _referenceLabel = $v.referenceLabel;
+      _bookingId = $v.bookingId;
+      _balanceAfter = $v.balanceAfter;
       _reason = $v.reason;
       _occurredAt = $v.occurredAt;
       _$v = null;
@@ -267,6 +301,9 @@ class LedgerEntryBuilder implements Builder<LedgerEntry, LedgerEntryBuilder> {
             r'LedgerEntry',
             'referenceId',
           ),
+          referenceLabel: referenceLabel,
+          bookingId: bookingId,
+          balanceAfter: balanceAfter,
           reason: reason,
           occurredAt: BuiltValueNullFieldError.checkNotNull(
             occurredAt,
