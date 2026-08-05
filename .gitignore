@@ -3,6 +3,7 @@ node_modules/
 .turbo/
 dist/
 .next/
+.next-playwright-mock/
 .next-dev/
 .next-playwright/
 .next-playwright-mock/
@@ -19,7 +20,9 @@ packages/api-client-ts/generated/**/*.d.ts
 packages/api-client-ts/generated/**/*.js
 packages/api-client-ts/generated/**/*.js.map
 .env
+.env.*
 .env.local
+!.env.example
 *.log
 *.tsbuildinfo
 .dart_tool/
