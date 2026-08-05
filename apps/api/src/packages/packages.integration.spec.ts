@@ -23,6 +23,8 @@ const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic package purchase MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `pkg-${Date.now()}`;
+  const packageBusinessKey = `PKG-10-${namespace}`.toUpperCase();
+  const lifecycleBusinessKey = `PKG-LIFECYCLE-${namespace}`.toUpperCase();
   const actorId = randomUUID();
   const reviewerId = randomUUID();
   const branchId = randomUUID();
@@ -83,7 +85,15 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       data: { id: branchId, code: namespace, name: 'Package branch', timezone: 'Asia/Jakarta' },
     });
     await db.classType.create({
-      data: { id: classTypeId, branchId, code: 'REFORMER', name: 'Reformer' },
+      data: {
+        id: classTypeId,
+        branchId,
+        code: `REFORMER-${namespace.toUpperCase()}`,
+        name: 'Reformer',
+      },
+    });
+    await db.classTypeBranchScope.create({
+      data: { id: randomUUID(), classTypeId, branchId },
     });
     const policy = new PolicyService();
     idempotency = new IdempotencyService(db as never);
@@ -136,8 +146,26 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     await db.purchase.deleteMany({ where: { userId: actorId } });
     await db.paymentAccount.deleteMany({ where: { branchId } });
     await db.paymentProof.deleteMany({ where: { userId: actorId } });
-    await db.package.deleteMany({ where: { branchId } });
+
+    const packageIds = (
+      await db.package.findMany({
+        where: { branchId },
+        select: { id: true },
+      })
+    ).map((pkg) => pkg.id);
+
+    await db.packageBranchScope.deleteMany({
+      where: { packageId: { in: packageIds } },
+    });
+    await db.packageClassTypeScope.deleteMany({
+      where: { packageId: { in: packageIds } },
+    });
+    await db.packageRevision.deleteMany({
+      where: { packageId: { in: packageIds } },
+    });
+    await db.package.deleteMany({ where: { id: { in: packageIds } } });
     await db.effectiveConfiguration.deleteMany({ where: { branchId } });
+    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
     await db.classType.deleteMany({ where: { id: classTypeId } });
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, reviewerId] } } });
@@ -151,7 +179,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       {
         branchId,
         classTypeId,
-        businessKey: 'PKG-10',
+        businessKey: packageBusinessKey,
         name: 'Ten Sessions',
         sessionCount: 10,
         durationDays: 30,
@@ -466,7 +494,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         {
           branchId,
           classTypeId,
-          businessKey: 'PKG-10',
+          businessKey: packageBusinessKey,
           name: 'Overlap',
           sessionCount: 2,
           durationDays: 2,
@@ -486,7 +514,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       {
         branchId,
         classTypeId,
-        businessKey: 'PKG-LIFECYCLE',
+        businessKey: lifecycleBusinessKey,
         name: 'Lifecycle Package',
         sessionCount: 4,
         durationDays: 30,
@@ -529,7 +557,14 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       `${namespace}-lifecycle-revision-key`,
       `${namespace}-lifecycle-revision`,
     );
-    const previous = await db.package.findUniqueOrThrow({ where: { id: updated.id } });
+    const previous = await db.packageRevision.findUniqueOrThrow({
+      where: {
+        packageId_revisionNumber: {
+          packageId: updated.id,
+          revisionNumber: 1,
+        },
+      },
+    });
     expect(revision).toMatchObject({
       businessKey: created.businessKey,
       branchId,
