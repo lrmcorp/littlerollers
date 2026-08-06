@@ -1,4 +1,4 @@
-import { isCancellationEntitled } from './bookings.service';
+import { isCancellationEntitled, isInstructorRosterPrincipal } from './bookings.service';
 
 describe('customer booking cancellation boundary', () => {
   const startAt = new Date('2026-08-10T02:00:00.000Z');
@@ -10,5 +10,15 @@ describe('customer booking cancellation boundary', () => {
   it('rejects cancellation exactly at and after H-24', () => {
     expect(isCancellationEntitled(startAt, new Date('2026-08-09T02:00:00.000Z'), 24)).toBe(false);
     expect(isCancellationEntitled(startAt, new Date('2026-08-09T02:00:00.001Z'), 24)).toBe(false);
+  });
+});
+
+describe('instructor roster capability boundary', () => {
+  it('uses the assignment-scoped path only for Instructor capabilities', () => {
+    expect(isInstructorRosterPrincipal({ capabilities: ['class:assigned:read'] })).toBe(true);
+    expect(
+      isInstructorRosterPrincipal({ capabilities: ['class:assigned:read', 'booking:read'] }),
+    ).toBe(false);
+    expect(isInstructorRosterPrincipal({ capabilities: ['booking:self:read'] })).toBe(false);
   });
 });

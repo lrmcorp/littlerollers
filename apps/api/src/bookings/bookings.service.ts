@@ -65,6 +65,15 @@ export function isCancellationEntitled(
   return evaluatedAt.getTime() < classStartAt.getTime() - cutoffHours * 3_600_000;
 }
 
+export function isInstructorRosterPrincipal(
+  principal: Pick<SessionPrincipal, 'capabilities'>,
+): boolean {
+  return (
+    !principal.capabilities.includes('booking:read') &&
+    principal.capabilities.includes('class:assigned:read')
+  );
+}
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -497,12 +506,34 @@ export class BookingsService {
     },
   ) {
     const customer = this.isCustomer(principal);
+    const instructorRoster = !customer && isInstructorRosterPrincipal(principal);
+    if (instructorRoster) {
+      if (
+        !query.classSlotId ||
+        query.branchId ||
+        query.customerId ||
+        query.q ||
+        query.timeline ||
+        query.includeHistorical
+      )
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      const assignedSlot = await this.db.classSlot.findFirst({
+        where: {
+          id: query.classSlotId,
+          instructorUserId: principal.userId,
+          historical: false,
+        },
+        select: { id: true },
+      });
+      if (!assignedSlot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
     if (query.includeHistorical)
       this.policy.requireCapability(principal.capabilities, 'migration:read');
-    this.policy.requireCapability(
-      principal.capabilities,
-      customer ? 'booking:self:read' : 'booking:read',
-    );
+    if (!instructorRoster)
+      this.policy.requireCapability(
+        principal.capabilities,
+        customer ? 'booking:self:read' : 'booking:read',
+      );
     const statuses: BookingStatus[] = [
       'BOOKED',
       'RESCHEDULE_PENDING',
@@ -567,15 +598,17 @@ export class BookingsService {
     const commonWhere: Prisma.BookingWhereInput = {
       ...(query.includeHistorical ? {} : { historical: false }),
       ...(customer ? { customerUserId: principal.userId } : {}),
-      ...(query.branchId
-        ? { branchId: query.branchId }
-        : customer
-          ? {}
-          : branchScope.all
-            ? branchScope.excluded.length
-              ? { branchId: { notIn: branchScope.excluded } }
-              : {}
-            : { branchId: { in: branchScope.included } }),
+      ...(instructorRoster
+        ? {}
+        : query.branchId
+          ? { branchId: query.branchId }
+          : customer
+            ? {}
+            : branchScope.all
+              ? branchScope.excluded.length
+                ? { branchId: { notIn: branchScope.excluded } }
+                : {}
+              : { branchId: { in: branchScope.included } }),
       ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
       ...(query.customerId ? { customerUserId: query.customerId } : {}),
       ...(from || until
