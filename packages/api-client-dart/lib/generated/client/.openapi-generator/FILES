@@ -78,6 +78,7 @@ doc/CheckInResult.md
 doc/CheckInResultBranch.md
 doc/CheckInToken.md
 doc/CheckInTokenStatus.md
+doc/CheckInTokenStatusBranch.md
 doc/CheckoutOptions.md
 doc/CheckoutOptionsPackage.md
 doc/CheckoutOptionsPaymentAccount.md
@@ -114,7 +115,6 @@ doc/CustomerBookingSlot.md
 doc/CustomerBookingSlotBranch.md
 doc/CustomerBookingSlotClassType.md
 doc/CustomerCheckInIssue.md
-doc/CustomerCheckInTokenStatus.md
 doc/CustomerDashboardOverview.md
 doc/CustomerDashboardOverviewActionableOrdersInner.md
 doc/CustomerDashboardOverviewPackagesInner.md
@@ -320,7 +320,7 @@ doc/RescheduleRequestCommand.md
 doc/ReservationItem.md
 doc/ReservationSummary.md
 doc/Resource.md
-doc/RevokeCustomerCheckInTokenCommand.md
+doc/RevokeCheckInTokenCommand.md
 doc/RevokeSessionsCommand.md
 doc/Role.md
 doc/RoleCatalog.md
@@ -469,6 +469,7 @@ lib/src/model/check_in_result.dart
 lib/src/model/check_in_result_branch.dart
 lib/src/model/check_in_token.dart
 lib/src/model/check_in_token_status.dart
+lib/src/model/check_in_token_status_branch.dart
 lib/src/model/checkout_options.dart
 lib/src/model/checkout_options_package.dart
 lib/src/model/checkout_options_payment_account.dart
@@ -504,7 +505,6 @@ lib/src/model/customer_booking_slot.dart
 lib/src/model/customer_booking_slot_branch.dart
 lib/src/model/customer_booking_slot_class_type.dart
 lib/src/model/customer_check_in_issue.dart
-lib/src/model/customer_check_in_token_status.dart
 lib/src/model/customer_dashboard_overview.dart
 lib/src/model/customer_dashboard_overview_actionable_orders_inner.dart
 lib/src/model/customer_dashboard_overview_packages_inner.dart
@@ -702,7 +702,7 @@ lib/src/model/reschedule_request_command.dart
 lib/src/model/reservation_item.dart
 lib/src/model/reservation_summary.dart
 lib/src/model/resource.dart
-lib/src/model/revoke_customer_check_in_token_command.dart
+lib/src/model/revoke_check_in_token_command.dart
 lib/src/model/revoke_sessions_command.dart
 lib/src/model/role.dart
 lib/src/model/role_catalog.dart
@@ -832,6 +832,7 @@ test/challenge_expiry_test.dart
 test/changed_status_test.dart
 test/check_in_result_branch_test.dart
 test/check_in_result_test.dart
+test/check_in_token_status_branch_test.dart
 test/check_in_token_status_test.dart
 test/check_in_token_test.dart
 test/checkout_options_package_test.dart
@@ -870,7 +871,6 @@ test/customer_booking_slot_branch_test.dart
 test/customer_booking_slot_class_type_test.dart
 test/customer_booking_slot_test.dart
 test/customer_check_in_issue_test.dart
-test/customer_check_in_token_status_test.dart
 test/customer_dashboard_overview_actionable_orders_inner_test.dart
 test/customer_dashboard_overview_packages_inner_test.dart
 test/customer_dashboard_overview_test.dart
@@ -1076,7 +1076,7 @@ test/reschedule_test.dart
 test/reservation_item_test.dart
 test/reservation_summary_test.dart
 test/resource_test.dart
-test/revoke_customer_check_in_token_command_test.dart
+test/revoke_check_in_token_command_test.dart
 test/revoke_sessions_command_test.dart
 test/role_catalog_item_test.dart
 test/role_catalog_test.dart

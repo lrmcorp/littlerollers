@@ -73,13 +73,13 @@ export interface UserNotification {
      * @type {Date}
      * @memberof UserNotification
      */
-    readAt: Date | null;
+    readAt?: Date;
     /**
      * 
      * @type {Date}
      * @memberof UserNotification
      */
-    expiresAt: Date | null;
+    expiresAt?: Date;
     /**
      * 
      * @type {Date}
@@ -128,8 +128,6 @@ export function instanceOfUserNotification(value: object): value is UserNotifica
     if (!('tone' in value) || value['tone'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('message' in value) || value['message'] === undefined) return false;
-    if (!('readAt' in value) || value['readAt'] === undefined) return false;
-    if (!('expiresAt' in value) || value['expiresAt'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     return true;
 }
@@ -153,8 +151,8 @@ export function UserNotificationFromJSONTyped(json: any, ignoreDiscriminator: bo
         'href': json['href'] == null ? undefined : json['href'],
         'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'metadataMasked': json['metadataMasked'] == null ? undefined : json['metadataMasked'],
-        'readAt': (json['readAt'] == null ? null : new Date(json['readAt'])),
-        'expiresAt': (json['expiresAt'] == null ? null : new Date(json['expiresAt'])),
+        'readAt': json['readAt'] == null ? undefined : (new Date(json['readAt'])),
+        'expiresAt': json['expiresAt'] == null ? undefined : (new Date(json['expiresAt'])),
         'createdAt': (new Date(json['createdAt'])),
     };
 }
@@ -179,8 +177,8 @@ export function UserNotificationToJSONTyped(value?: UserNotification | null, ign
         'href': value['href'],
         'branchId': value['branchId'],
         'metadataMasked': value['metadataMasked'],
-        'readAt': ((value['readAt'] as any).toISOString()),
-        'expiresAt': ((value['expiresAt'] as any).toISOString()),
+        'readAt': value['readAt'] == null ? undefined : ((value['readAt']).toISOString()),
+        'expiresAt': value['expiresAt'] == null ? undefined : ((value['expiresAt']).toISOString()),
         'createdAt': ((value['createdAt']).toISOString()),
     };
 }

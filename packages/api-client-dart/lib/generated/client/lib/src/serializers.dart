@@ -85,6 +85,7 @@ import 'package:openapi/src/model/check_in_result.dart';
 import 'package:openapi/src/model/check_in_result_branch.dart';
 import 'package:openapi/src/model/check_in_token.dart';
 import 'package:openapi/src/model/check_in_token_status.dart';
+import 'package:openapi/src/model/check_in_token_status_branch.dart';
 import 'package:openapi/src/model/checkout_options.dart';
 import 'package:openapi/src/model/checkout_options_package.dart';
 import 'package:openapi/src/model/checkout_options_payment_account.dart';
@@ -120,7 +121,6 @@ import 'package:openapi/src/model/customer_booking_slot.dart';
 import 'package:openapi/src/model/customer_booking_slot_branch.dart';
 import 'package:openapi/src/model/customer_booking_slot_class_type.dart';
 import 'package:openapi/src/model/customer_check_in_issue.dart';
-import 'package:openapi/src/model/customer_check_in_token_status.dart';
 import 'package:openapi/src/model/customer_dashboard_overview.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_actionable_orders_inner.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_packages_inner.dart';
@@ -317,7 +317,7 @@ import 'package:openapi/src/model/reschedule_request_command.dart';
 import 'package:openapi/src/model/reservation_item.dart';
 import 'package:openapi/src/model/reservation_summary.dart';
 import 'package:openapi/src/model/resource.dart';
-import 'package:openapi/src/model/revoke_customer_check_in_token_command.dart';
+import 'package:openapi/src/model/revoke_check_in_token_command.dart';
 import 'package:openapi/src/model/revoke_sessions_command.dart';
 import 'package:openapi/src/model/role.dart';
 import 'package:openapi/src/model/role_catalog.dart';
@@ -446,6 +446,7 @@ part 'serializers.g.dart';
   CheckInResultBranch,
   CheckInToken,
   CheckInTokenStatus,
+  CheckInTokenStatusBranch,
   CheckoutOptions,
   CheckoutOptionsPackage,
   CheckoutOptionsPaymentAccount,
@@ -481,7 +482,6 @@ part 'serializers.g.dart';
   CustomerBookingSlotBranch,
   CustomerBookingSlotClassType,
   CustomerCheckInIssue,
-  CustomerCheckInTokenStatus,
   CustomerDashboardOverview,
   CustomerDashboardOverviewActionableOrdersInner,
   CustomerDashboardOverviewPackagesInner,
@@ -678,7 +678,7 @@ part 'serializers.g.dart';
   ReservationItem,
   ReservationSummary,
   Resource,
-  RevokeCustomerCheckInTokenCommand,
+  RevokeCheckInTokenCommand,
   RevokeSessionsCommand,
   Role,
   RoleCatalog,

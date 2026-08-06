@@ -24,7 +24,7 @@ void main() {
       // TODO
     });
 
-    //Future<CustomerCheckInTokenStatus> getCheckInTokenStatus(String id) async
+    //Future<CheckInTokenStatus> getCheckInTokenStatus(String id) async
     test('test getCheckInTokenStatus', () async {
       // TODO
     });
@@ -53,7 +53,7 @@ void main() {
       // TODO
     });
 
-    //Future<CustomerCheckInTokenStatus> revokeCheckInToken(String id, RevokeCustomerCheckInTokenCommand revokeCustomerCheckInTokenCommand) async
+    //Future<CheckInTokenStatus> revokeCheckInToken(String id, RevokeCheckInTokenCommand revokeCheckInTokenCommand) async
     test('test revokeCheckInToken', () async {
       // TODO
     });

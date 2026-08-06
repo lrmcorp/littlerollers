@@ -16,37 +16,37 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface RevokeCustomerCheckInTokenCommand
+ * @interface RevokeCheckInTokenCommand
  */
-export interface RevokeCustomerCheckInTokenCommand {
+export interface RevokeCheckInTokenCommand {
     /**
      * 
      * @type {number}
-     * @memberof RevokeCustomerCheckInTokenCommand
+     * @memberof RevokeCheckInTokenCommand
      */
     expectedVersion: number;
     /**
      * 
      * @type {string}
-     * @memberof RevokeCustomerCheckInTokenCommand
+     * @memberof RevokeCheckInTokenCommand
      */
     reason: string;
 }
 
 /**
- * Check if a given object implements the RevokeCustomerCheckInTokenCommand interface.
+ * Check if a given object implements the RevokeCheckInTokenCommand interface.
  */
-export function instanceOfRevokeCustomerCheckInTokenCommand(value: object): value is RevokeCustomerCheckInTokenCommand {
+export function instanceOfRevokeCheckInTokenCommand(value: object): value is RevokeCheckInTokenCommand {
     if (!('expectedVersion' in value) || value['expectedVersion'] === undefined) return false;
     if (!('reason' in value) || value['reason'] === undefined) return false;
     return true;
 }
 
-export function RevokeCustomerCheckInTokenCommandFromJSON(json: any): RevokeCustomerCheckInTokenCommand {
-    return RevokeCustomerCheckInTokenCommandFromJSONTyped(json, false);
+export function RevokeCheckInTokenCommandFromJSON(json: any): RevokeCheckInTokenCommand {
+    return RevokeCheckInTokenCommandFromJSONTyped(json, false);
 }
 
-export function RevokeCustomerCheckInTokenCommandFromJSONTyped(json: any, ignoreDiscriminator: boolean): RevokeCustomerCheckInTokenCommand {
+export function RevokeCheckInTokenCommandFromJSONTyped(json: any, ignoreDiscriminator: boolean): RevokeCheckInTokenCommand {
     if (json == null) {
         return json;
     }
@@ -57,11 +57,11 @@ export function RevokeCustomerCheckInTokenCommandFromJSONTyped(json: any, ignore
     };
 }
 
-export function RevokeCustomerCheckInTokenCommandToJSON(json: any): RevokeCustomerCheckInTokenCommand {
-    return RevokeCustomerCheckInTokenCommandToJSONTyped(json, false);
+export function RevokeCheckInTokenCommandToJSON(json: any): RevokeCheckInTokenCommand {
+    return RevokeCheckInTokenCommandToJSONTyped(json, false);
 }
 
-export function RevokeCustomerCheckInTokenCommandToJSONTyped(value?: RevokeCustomerCheckInTokenCommand | null, ignoreDiscriminator: boolean = false): any {
+export function RevokeCheckInTokenCommandToJSONTyped(value?: RevokeCheckInTokenCommand | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

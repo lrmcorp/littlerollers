@@ -130,16 +130,20 @@ class _$UserNotificationSerializer implements PrimitiveSerializer<UserNotificati
         specifiedType: const FullType(JsonObject),
       );
     }
-    yield r'readAt';
-    yield object.readAt == null ? null : serializers.serialize(
-      object.readAt,
-      specifiedType: const FullType.nullable(DateTime),
-    );
-    yield r'expiresAt';
-    yield object.expiresAt == null ? null : serializers.serialize(
-      object.expiresAt,
-      specifiedType: const FullType.nullable(DateTime),
-    );
+    if (object.readAt != null) {
+      yield r'readAt';
+      yield serializers.serialize(
+        object.readAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
+    if (object.expiresAt != null) {
+      yield r'expiresAt';
+      yield serializers.serialize(
+        object.expiresAt,
+        specifiedType: const FullType(DateTime),
+      );
+    }
     yield r'createdAt';
     yield serializers.serialize(
       object.createdAt,
@@ -228,17 +232,15 @@ class _$UserNotificationSerializer implements PrimitiveSerializer<UserNotificati
         case r'readAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
           result.readAt = valueDes;
           break;
         case r'expiresAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
           result.expiresAt = valueDes;
           break;
         case r'createdAt':

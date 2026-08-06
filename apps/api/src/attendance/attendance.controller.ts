@@ -39,6 +39,20 @@ export class AttendanceController {
     );
   }
 
+  @Post('class-slots/:id/instructor-check-in-tokens')
+  issueInstructor(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') idempotencyKey: string,
+  ) {
+    return this.attendance.issueInstructor(
+      request.principal,
+      id,
+      idempotencyKey,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
   @Get('check-in-tokens/:id')
   status(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.attendance.status(request.principal, id);
@@ -60,6 +74,20 @@ export class AttendanceController {
     @Body() body: { token: string },
   ) {
     return this.attendance.consume(
+      request.principal,
+      body,
+      idempotencyKey,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @Post('check-ins/instructors')
+  consumeInstructor(
+    @Req() request: AuthenticatedRequest,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() body: { token: string },
+  ) {
+    return this.attendance.consumeInstructor(
       request.principal,
       body,
       idempotencyKey,

@@ -6,42 +6,42 @@
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
-part 'revoke_customer_check_in_token_command.g.dart';
+part 'revoke_check_in_token_command.g.dart';
 
-/// RevokeCustomerCheckInTokenCommand
+/// RevokeCheckInTokenCommand
 ///
 /// Properties:
 /// * [expectedVersion] 
 /// * [reason] 
 @BuiltValue()
-abstract class RevokeCustomerCheckInTokenCommand implements Built<RevokeCustomerCheckInTokenCommand, RevokeCustomerCheckInTokenCommandBuilder> {
+abstract class RevokeCheckInTokenCommand implements Built<RevokeCheckInTokenCommand, RevokeCheckInTokenCommandBuilder> {
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
 
   @BuiltValueField(wireName: r'reason')
   String get reason;
 
-  RevokeCustomerCheckInTokenCommand._();
+  RevokeCheckInTokenCommand._();
 
-  factory RevokeCustomerCheckInTokenCommand([void updates(RevokeCustomerCheckInTokenCommandBuilder b)]) = _$RevokeCustomerCheckInTokenCommand;
+  factory RevokeCheckInTokenCommand([void updates(RevokeCheckInTokenCommandBuilder b)]) = _$RevokeCheckInTokenCommand;
 
   @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(RevokeCustomerCheckInTokenCommandBuilder b) => b;
+  static void _defaults(RevokeCheckInTokenCommandBuilder b) => b;
 
   @BuiltValueSerializer(custom: true)
-  static Serializer<RevokeCustomerCheckInTokenCommand> get serializer => _$RevokeCustomerCheckInTokenCommandSerializer();
+  static Serializer<RevokeCheckInTokenCommand> get serializer => _$RevokeCheckInTokenCommandSerializer();
 }
 
-class _$RevokeCustomerCheckInTokenCommandSerializer implements PrimitiveSerializer<RevokeCustomerCheckInTokenCommand> {
+class _$RevokeCheckInTokenCommandSerializer implements PrimitiveSerializer<RevokeCheckInTokenCommand> {
   @override
-  final Iterable<Type> types = const [RevokeCustomerCheckInTokenCommand, _$RevokeCustomerCheckInTokenCommand];
+  final Iterable<Type> types = const [RevokeCheckInTokenCommand, _$RevokeCheckInTokenCommand];
 
   @override
-  final String wireName = r'RevokeCustomerCheckInTokenCommand';
+  final String wireName = r'RevokeCheckInTokenCommand';
 
   Iterable<Object?> _serializeProperties(
     Serializers serializers,
-    RevokeCustomerCheckInTokenCommand object, {
+    RevokeCheckInTokenCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
     yield r'expectedVersion';
@@ -59,7 +59,7 @@ class _$RevokeCustomerCheckInTokenCommandSerializer implements PrimitiveSerializ
   @override
   Object serialize(
     Serializers serializers,
-    RevokeCustomerCheckInTokenCommand object, {
+    RevokeCheckInTokenCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
@@ -70,7 +70,7 @@ class _$RevokeCustomerCheckInTokenCommandSerializer implements PrimitiveSerializ
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
     required List<Object?> serializedList,
-    required RevokeCustomerCheckInTokenCommandBuilder result,
+    required RevokeCheckInTokenCommandBuilder result,
     required List<Object?> unhandled,
   }) {
     for (var i = 0; i < serializedList.length; i += 2) {
@@ -100,12 +100,12 @@ class _$RevokeCustomerCheckInTokenCommandSerializer implements PrimitiveSerializ
   }
 
   @override
-  RevokeCustomerCheckInTokenCommand deserialize(
+  RevokeCheckInTokenCommand deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = RevokeCustomerCheckInTokenCommandBuilder();
+    final result = RevokeCheckInTokenCommandBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

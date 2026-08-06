@@ -1,12 +1,12 @@
 import 'package:test/test.dart';
 import 'package:openapi/openapi.dart';
 
-// tests for RevokeCustomerCheckInTokenCommand
+// tests for RevokeCheckInTokenCommand
 void main() {
-  final instance = RevokeCustomerCheckInTokenCommandBuilder();
+  final instance = RevokeCheckInTokenCommandBuilder();
   // TODO add properties to the builder and call build()
 
-  group(RevokeCustomerCheckInTokenCommand, () {
+  group(RevokeCheckInTokenCommand, () {
     // int expectedVersion
     test('to test the property `expectedVersion`', () async {
       // TODO

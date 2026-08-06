@@ -87,6 +87,7 @@ models/CheckInResult.ts
 models/CheckInResultBranch.ts
 models/CheckInToken.ts
 models/CheckInTokenStatus.ts
+models/CheckInTokenStatusBranch.ts
 models/CheckoutOptions.ts
 models/CheckoutOptionsPackage.ts
 models/CheckoutOptionsPaymentAccount.ts
@@ -122,7 +123,6 @@ models/CustomerBookingSlot.ts
 models/CustomerBookingSlotBranch.ts
 models/CustomerBookingSlotClassType.ts
 models/CustomerCheckInIssue.ts
-models/CustomerCheckInTokenStatus.ts
 models/CustomerDashboardOverview.ts
 models/CustomerDashboardOverviewActionableOrdersInner.ts
 models/CustomerDashboardOverviewPackagesInner.ts
@@ -319,7 +319,7 @@ models/RescheduleRequestCommand.ts
 models/ReservationItem.ts
 models/ReservationSummary.ts
 models/Resource.ts
-models/RevokeCustomerCheckInTokenCommand.ts
+models/RevokeCheckInTokenCommand.ts
 models/RevokeSessionsCommand.ts
 models/Role.ts
 models/RoleCatalog.ts

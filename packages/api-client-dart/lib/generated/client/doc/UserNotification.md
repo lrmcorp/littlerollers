@@ -16,8 +16,8 @@ Name | Type | Description | Notes
 **href** | **String** |  | [optional] 
 **branchId** | **String** |  | [optional] 
 **metadataMasked** | [**JsonObject**](JsonObject.md) |  | [optional] 
-**readAt** | [**DateTime**](DateTime.md) |  | 
-**expiresAt** | [**DateTime**](DateTime.md) |  | 
+**readAt** | [**DateTime**](DateTime.md) |  | [optional] 
+**expiresAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **createdAt** | [**DateTime**](DateTime.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

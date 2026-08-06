@@ -154,7 +154,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getCheckInTokenStatus**
-> CustomerCheckInTokenStatus getCheckInTokenStatus(id)
+> CheckInTokenStatus getCheckInTokenStatus(id)
 
 
 
@@ -181,7 +181,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**CustomerCheckInTokenStatus**](CustomerCheckInTokenStatus.md)
+[**CheckInTokenStatus**](CheckInTokenStatus.md)
 
 ### Authorization
 
@@ -375,7 +375,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **revokeCheckInToken**
-> CustomerCheckInTokenStatus revokeCheckInToken(id, revokeCustomerCheckInTokenCommand)
+> CheckInTokenStatus revokeCheckInToken(id, revokeCheckInTokenCommand)
 
 
 
@@ -385,10 +385,10 @@ import 'package:openapi/api.dart';
 
 final api = Openapi().getAttendanceApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
-final RevokeCustomerCheckInTokenCommand revokeCustomerCheckInTokenCommand = ; // RevokeCustomerCheckInTokenCommand | 
+final RevokeCheckInTokenCommand revokeCheckInTokenCommand = ; // RevokeCheckInTokenCommand | 
 
 try {
-    final response = api.revokeCheckInToken(id, revokeCustomerCheckInTokenCommand);
+    final response = api.revokeCheckInToken(id, revokeCheckInTokenCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling AttendanceApi->revokeCheckInToken: $e\n');
@@ -400,11 +400,11 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **String**|  | 
- **revokeCustomerCheckInTokenCommand** | [**RevokeCustomerCheckInTokenCommand**](RevokeCustomerCheckInTokenCommand.md)|  | 
+ **revokeCheckInTokenCommand** | [**RevokeCheckInTokenCommand**](RevokeCheckInTokenCommand.md)|  | 
 
 ### Return type
 
-[**CustomerCheckInTokenStatus**](CustomerCheckInTokenStatus.md)
+[**CheckInTokenStatus**](CheckInTokenStatus.md)
 
 ### Authorization
 

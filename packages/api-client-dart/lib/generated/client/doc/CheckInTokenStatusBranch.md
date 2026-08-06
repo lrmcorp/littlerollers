@@ -1,4 +1,4 @@
-# openapi.model.RevokeCustomerCheckInTokenCommand
+# openapi.model.CheckInTokenStatusBranch
 
 ## Load the model package
 ```dart
@@ -8,8 +8,9 @@ import 'package:openapi/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**expectedVersion** | **int** |  | 
-**reason** | **String** |  | 
+**code** | **String** |  | 
+**name** | **String** |  | 
+**timezone** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

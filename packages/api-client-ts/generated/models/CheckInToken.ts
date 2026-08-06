@@ -54,6 +54,12 @@ export interface CheckInToken {
      * @type {Date}
      * @memberof CheckInToken
      */
+    notBeforeAt: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CheckInToken
+     */
     expiresAt: Date;
     /**
      * 
@@ -62,11 +68,23 @@ export interface CheckInToken {
      */
     status: CheckInTokenStatusEnum;
     /**
-     * Returned only at issuance; never log or send to analytics
+     * 
+     * @type {number}
+     * @memberof CheckInToken
+     */
+    version: number;
+    /**
+     * Returned only at first issuance; never log, persist, or send to analytics.
      * @type {string}
      * @memberof CheckInToken
      */
-    token: string;
+    token: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof CheckInToken
+     */
+    idempotentReplay: boolean;
 }
 
 
@@ -118,9 +136,12 @@ export function instanceOfCheckInToken(value: object): value is CheckInToken {
     if (!('audienceType' in value) || value['audienceType'] === undefined) return false;
     if (!('resourceType' in value) || value['resourceType'] === undefined) return false;
     if (!('resourceId' in value) || value['resourceId'] === undefined) return false;
+    if (!('notBeforeAt' in value) || value['notBeforeAt'] === undefined) return false;
     if (!('expiresAt' in value) || value['expiresAt'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
+    if (!('version' in value) || value['version'] === undefined) return false;
     if (!('token' in value) || value['token'] === undefined) return false;
+    if (!('idempotentReplay' in value) || value['idempotentReplay'] === undefined) return false;
     return true;
 }
 
@@ -139,9 +160,12 @@ export function CheckInTokenFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'audienceType': json['audienceType'],
         'resourceType': json['resourceType'],
         'resourceId': json['resourceId'],
+        'notBeforeAt': (new Date(json['notBeforeAt'])),
         'expiresAt': (new Date(json['expiresAt'])),
         'status': json['status'],
+        'version': json['version'],
         'token': json['token'],
+        'idempotentReplay': json['idempotentReplay'],
     };
 }
 
@@ -161,9 +185,12 @@ export function CheckInTokenToJSONTyped(value?: CheckInToken | null, ignoreDiscr
         'audienceType': value['audienceType'],
         'resourceType': value['resourceType'],
         'resourceId': value['resourceId'],
+        'notBeforeAt': ((value['notBeforeAt']).toISOString()),
         'expiresAt': ((value['expiresAt']).toISOString()),
         'status': value['status'],
+        'version': value['version'],
         'token': value['token'],
+        'idempotentReplay': value['idempotentReplay'],
     };
 }
 

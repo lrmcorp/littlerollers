@@ -13,9 +13,12 @@ Name | Type | Description | Notes
 **audienceType** | **String** |  | 
 **resourceType** | **String** |  | 
 **resourceId** | **String** |  | 
+**notBeforeAt** | [**DateTime**](DateTime.md) |  | 
 **expiresAt** | [**DateTime**](DateTime.md) |  | 
 **status** | **String** |  | 
-**token** | **String** | Returned only at issuance; never log or send to analytics | 
+**version** | **int** |  | 
+**token** | **String** | Returned only at first issuance; never log, persist, or send to analytics. | 
+**idempotentReplay** | **bool** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

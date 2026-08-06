@@ -63,7 +63,7 @@ export interface VoucherRedemption {
      * @type {Date}
      * @memberof VoucherRedemption
      */
-    releasedAt?: Date | null;
+    releasedAt?: Date;
 }
 
 /**
@@ -115,7 +115,7 @@ export function VoucherRedemptionToJSONTyped(value?: VoucherRedemption | null, i
         'purchase': value['purchase'],
         'discountRp': value['discountRp'],
         'redeemedAt': ((value['redeemedAt']).toISOString()),
-        'releasedAt': value['releasedAt'] === null ? null : ((value['releasedAt'] as any)?.toISOString()),
+        'releasedAt': value['releasedAt'] == null ? undefined : ((value['releasedAt']).toISOString()),
     };
 }
 

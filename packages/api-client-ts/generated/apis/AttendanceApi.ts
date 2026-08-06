@@ -20,13 +20,13 @@ import type {
   BulkCustomerCheckInLinkResult,
   CheckInResult,
   CheckInToken,
+  CheckInTokenStatus,
   CompleteClassCommand,
   CompletionResult,
   CustomerCheckInIssue,
-  CustomerCheckInTokenStatus,
   ErrorEnvelope,
   IssueCustomerCheckInLinkCommand,
-  RevokeCustomerCheckInTokenCommand,
+  RevokeCheckInTokenCommand,
   TokenCheckInCommand,
 } from '../models/index';
 import {
@@ -40,20 +40,20 @@ import {
     CheckInResultToJSON,
     CheckInTokenFromJSON,
     CheckInTokenToJSON,
+    CheckInTokenStatusFromJSON,
+    CheckInTokenStatusToJSON,
     CompleteClassCommandFromJSON,
     CompleteClassCommandToJSON,
     CompletionResultFromJSON,
     CompletionResultToJSON,
     CustomerCheckInIssueFromJSON,
     CustomerCheckInIssueToJSON,
-    CustomerCheckInTokenStatusFromJSON,
-    CustomerCheckInTokenStatusToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
     IssueCustomerCheckInLinkCommandFromJSON,
     IssueCustomerCheckInLinkCommandToJSON,
-    RevokeCustomerCheckInTokenCommandFromJSON,
-    RevokeCustomerCheckInTokenCommandToJSON,
+    RevokeCheckInTokenCommandFromJSON,
+    RevokeCheckInTokenCommandToJSON,
     TokenCheckInCommandFromJSON,
     TokenCheckInCommandToJSON,
 } from '../models/index';
@@ -102,7 +102,7 @@ export interface IssueInstructorCheckInTokenRequest {
 
 export interface RevokeCheckInTokenRequest {
     id: string;
-    revokeCustomerCheckInTokenCommand: RevokeCustomerCheckInTokenCommand;
+    revokeCheckInTokenCommand: RevokeCheckInTokenCommand;
 }
 
 /**
@@ -290,7 +290,7 @@ export class AttendanceApi extends runtime.BaseAPI {
 
     /**
      */
-    async getCheckInTokenStatusRaw(requestParameters: GetCheckInTokenStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CustomerCheckInTokenStatus>> {
+    async getCheckInTokenStatusRaw(requestParameters: GetCheckInTokenStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CheckInTokenStatus>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -321,12 +321,12 @@ export class AttendanceApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => CustomerCheckInTokenStatusFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => CheckInTokenStatusFromJSON(jsonValue));
     }
 
     /**
      */
-    async getCheckInTokenStatus(requestParameters: GetCheckInTokenStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CustomerCheckInTokenStatus> {
+    async getCheckInTokenStatus(requestParameters: GetCheckInTokenStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CheckInTokenStatus> {
         const response = await this.getCheckInTokenStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -575,7 +575,7 @@ export class AttendanceApi extends runtime.BaseAPI {
 
     /**
      */
-    async revokeCheckInTokenRaw(requestParameters: RevokeCheckInTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CustomerCheckInTokenStatus>> {
+    async revokeCheckInTokenRaw(requestParameters: RevokeCheckInTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CheckInTokenStatus>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -583,10 +583,10 @@ export class AttendanceApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['revokeCustomerCheckInTokenCommand'] == null) {
+        if (requestParameters['revokeCheckInTokenCommand'] == null) {
             throw new runtime.RequiredError(
-                'revokeCustomerCheckInTokenCommand',
-                'Required parameter "revokeCustomerCheckInTokenCommand" was null or undefined when calling revokeCheckInToken().'
+                'revokeCheckInTokenCommand',
+                'Required parameter "revokeCheckInTokenCommand" was null or undefined when calling revokeCheckInToken().'
             );
         }
 
@@ -613,15 +613,15 @@ export class AttendanceApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: RevokeCustomerCheckInTokenCommandToJSON(requestParameters['revokeCustomerCheckInTokenCommand']),
+            body: RevokeCheckInTokenCommandToJSON(requestParameters['revokeCheckInTokenCommand']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => CustomerCheckInTokenStatusFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => CheckInTokenStatusFromJSON(jsonValue));
     }
 
     /**
      */
-    async revokeCheckInToken(requestParameters: RevokeCheckInTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CustomerCheckInTokenStatus> {
+    async revokeCheckInToken(requestParameters: RevokeCheckInTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CheckInTokenStatus> {
         const response = await this.revokeCheckInTokenRaw(requestParameters, initOverrides);
         return await response.value();
     }

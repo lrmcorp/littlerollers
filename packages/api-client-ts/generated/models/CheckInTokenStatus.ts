@@ -13,12 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CheckInTokenStatusBranch } from './CheckInTokenStatusBranch';
+import {
+    CheckInTokenStatusBranchFromJSON,
+    CheckInTokenStatusBranchFromJSONTyped,
+    CheckInTokenStatusBranchToJSON,
+    CheckInTokenStatusBranchToJSONTyped,
+} from './CheckInTokenStatusBranch';
+
 /**
  * 
  * @export
  * @interface CheckInTokenStatus
  */
 export interface CheckInTokenStatus {
+    [key: string]: any | any;
     /**
      * 
      * @type {string}
@@ -48,25 +57,67 @@ export interface CheckInTokenStatus {
      * @type {Date}
      * @memberof CheckInTokenStatus
      */
+    notBeforeAt: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CheckInTokenStatus
+     */
     expiresAt: Date;
     /**
      * 
      * @type {Date}
      * @memberof CheckInTokenStatus
      */
-    usedAt?: Date | null;
+    usedAt?: Date;
     /**
      * 
      * @type {Date}
      * @memberof CheckInTokenStatus
      */
-    revokedAt?: Date | null;
+    revokedAt?: Date;
     /**
      * 
      * @type {string}
      * @memberof CheckInTokenStatus
      */
     status: CheckInTokenStatusStatusEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof CheckInTokenStatus
+     */
+    version: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CheckInTokenStatus
+     */
+    customerName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CheckInTokenStatus
+     */
+    className: string;
+    /**
+     * 
+     * @type {CheckInTokenStatusBranch}
+     * @memberof CheckInTokenStatus
+     */
+    branch: CheckInTokenStatusBranch;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CheckInTokenStatus
+     */
+    startAt: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CheckInTokenStatus
+     */
+    endAt: Date;
 }
 
 
@@ -74,8 +125,8 @@ export interface CheckInTokenStatus {
  * @export
  */
 export const CheckInTokenStatusPurposeEnum = {
-    InstructorCheckIn: 'INSTRUCTOR_CHECK_IN',
-    CustomerCheckIn: 'CUSTOMER_CHECK_IN'
+    CustomerCheckIn: 'CUSTOMER_CHECK_IN',
+    InstructorCheckIn: 'INSTRUCTOR_CHECK_IN'
 } as const;
 export type CheckInTokenStatusPurposeEnum = typeof CheckInTokenStatusPurposeEnum[keyof typeof CheckInTokenStatusPurposeEnum];
 
@@ -83,8 +134,8 @@ export type CheckInTokenStatusPurposeEnum = typeof CheckInTokenStatusPurposeEnum
  * @export
  */
 export const CheckInTokenStatusResourceTypeEnum = {
-    ClassSlot: 'CLASS_SLOT',
-    Booking: 'BOOKING'
+    Booking: 'BOOKING',
+    ClassSlot: 'CLASS_SLOT'
 } as const;
 export type CheckInTokenStatusResourceTypeEnum = typeof CheckInTokenStatusResourceTypeEnum[keyof typeof CheckInTokenStatusResourceTypeEnum];
 
@@ -108,8 +159,14 @@ export function instanceOfCheckInTokenStatus(value: object): value is CheckInTok
     if (!('purpose' in value) || value['purpose'] === undefined) return false;
     if (!('resourceType' in value) || value['resourceType'] === undefined) return false;
     if (!('resourceId' in value) || value['resourceId'] === undefined) return false;
+    if (!('notBeforeAt' in value) || value['notBeforeAt'] === undefined) return false;
     if (!('expiresAt' in value) || value['expiresAt'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
+    if (!('version' in value) || value['version'] === undefined) return false;
+    if (!('className' in value) || value['className'] === undefined) return false;
+    if (!('branch' in value) || value['branch'] === undefined) return false;
+    if (!('startAt' in value) || value['startAt'] === undefined) return false;
+    if (!('endAt' in value) || value['endAt'] === undefined) return false;
     return true;
 }
 
@@ -123,14 +180,22 @@ export function CheckInTokenStatusFromJSONTyped(json: any, ignoreDiscriminator: 
     }
     return {
         
+            ...json,
         'id': json['id'],
         'purpose': json['purpose'],
         'resourceType': json['resourceType'],
         'resourceId': json['resourceId'],
+        'notBeforeAt': (new Date(json['notBeforeAt'])),
         'expiresAt': (new Date(json['expiresAt'])),
         'usedAt': json['usedAt'] == null ? undefined : (new Date(json['usedAt'])),
         'revokedAt': json['revokedAt'] == null ? undefined : (new Date(json['revokedAt'])),
         'status': json['status'],
+        'version': json['version'],
+        'customerName': json['customerName'] == null ? undefined : json['customerName'],
+        'className': json['className'],
+        'branch': CheckInTokenStatusBranchFromJSON(json['branch']),
+        'startAt': (new Date(json['startAt'])),
+        'endAt': (new Date(json['endAt'])),
     };
 }
 
@@ -145,14 +210,22 @@ export function CheckInTokenStatusToJSONTyped(value?: CheckInTokenStatus | null,
 
     return {
         
+            ...value,
         'id': value['id'],
         'purpose': value['purpose'],
         'resourceType': value['resourceType'],
         'resourceId': value['resourceId'],
+        'notBeforeAt': ((value['notBeforeAt']).toISOString()),
         'expiresAt': ((value['expiresAt']).toISOString()),
-        'usedAt': value['usedAt'] === null ? null : ((value['usedAt'] as any)?.toISOString()),
-        'revokedAt': value['revokedAt'] === null ? null : ((value['revokedAt'] as any)?.toISOString()),
+        'usedAt': value['usedAt'] == null ? undefined : ((value['usedAt']).toISOString()),
+        'revokedAt': value['revokedAt'] == null ? undefined : ((value['revokedAt']).toISOString()),
         'status': value['status'],
+        'version': value['version'],
+        'customerName': value['customerName'],
+        'className': value['className'],
+        'branch': CheckInTokenStatusBranchToJSON(value['branch']),
+        'startAt': ((value['startAt']).toISOString()),
+        'endAt': ((value['endAt']).toISOString()),
     };
 }
 

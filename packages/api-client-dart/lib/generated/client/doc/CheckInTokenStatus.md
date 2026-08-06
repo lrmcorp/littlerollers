@@ -12,10 +12,17 @@ Name | Type | Description | Notes
 **purpose** | **String** |  | 
 **resourceType** | **String** |  | 
 **resourceId** | **String** |  | 
+**notBeforeAt** | [**DateTime**](DateTime.md) |  | 
 **expiresAt** | [**DateTime**](DateTime.md) |  | 
 **usedAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **revokedAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **status** | **String** |  | 
+**version** | **int** |  | 
+**customerName** | **String** |  | [optional] 
+**className** | **String** |  | 
+**branch** | [**CheckInTokenStatusBranch**](CheckInTokenStatusBranch.md) |  | 
+**startAt** | [**DateTime**](DateTime.md) |  | 
+**endAt** | [**DateTime**](DateTime.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

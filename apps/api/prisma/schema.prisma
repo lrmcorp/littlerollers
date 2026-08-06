@@ -491,6 +491,9 @@ model User {
   decidedReschedules                 Reschedule[]                        @relation("RescheduleDecider")
   issuedCheckInTokens                CheckInToken[]                      @relation("CheckInTokenIssuer")
   recordedAttendances                CustomerAttendance[]                @relation("AttendanceRecorder")
+  instructorCheckInTokens            InstructorCheckInToken[]            @relation("InstructorTokenOwner")
+  issuedInstructorCheckInTokens      InstructorCheckInToken[]            @relation("InstructorTokenIssuer")
+  instructorAttendances              InstructorAttendance[]              @relation("InstructorAttendanceOwner")
   identityDocuments                  IdentityVerificationDocument[]      @relation("IdentityDocumentOwner")
   reviewedIdentityDocuments          IdentityVerificationDocument[]      @relation("IdentityDocumentReviewer")
   deletedIdentityDocuments           IdentityVerificationDocument[]      @relation("IdentityDocumentDeleter")
@@ -632,6 +635,7 @@ model Branch {
   bookings                 Booking[]
   reschedules              Reschedule[]
   customerAttendances      CustomerAttendance[]
+  instructorAttendances    InstructorAttendance[]
   preferredByUsers         User[]                         @relation("PreferredBranchCustomers")
   userNotifications        UserNotification[]
   publicProfile            BranchPublicProfile?
@@ -843,6 +847,8 @@ model ClassSlot {
   reservations           SessionReservation[]
   bookings               Booking[]
   customerAttendances    CustomerAttendance[]
+  instructorCheckInTokens InstructorCheckInToken[]
+  instructorAttendances   InstructorAttendance[]
   continuationPurchases  Purchase[]                       @relation("PurchaseContinuationSlot")
   sourceReschedules      Reschedule[]                     @relation("RescheduleSourceSlot")
   targetReschedules      Reschedule[]                     @relation("RescheduleTargetSlot")
@@ -1828,6 +1834,50 @@ model CustomerAttendance {
 
   @@index([branchId, checkedInAt])
   @@index([classSlotId, checkedInAt])
+}
+
+model InstructorCheckInToken {
+  id                 String             @id @db.Char(36)
+  classSlotId        String             @db.Char(36)
+  instructorUserId   String             @db.Char(36)
+  issuedById         String             @db.Char(36)
+  tokenHash          String             @unique
+  activeClassSlotKey String?            @unique @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  notBeforeAt        DateTime
+  expiresAt          DateTime
+  status             CheckInTokenStatus @default(ACTIVE)
+  usedAt             DateTime?
+  revokedAt          DateTime?
+  version            Int                @default(0)
+  createdAt          DateTime           @default(now())
+  classSlot          ClassSlot          @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor         User               @relation("InstructorTokenOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  issuedBy           User               @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  attendance         InstructorAttendance?
+
+  @@unique([instructorUserId, idempotencyKeyHash])
+  @@index([classSlotId, status, expiresAt])
+  @@index([expiresAt, status])
+}
+
+model InstructorAttendance {
+  id               String                 @id @db.Char(36)
+  classSlotId      String                 @unique @db.Char(36)
+  instructorUserId String                 @db.Char(36)
+  tokenId          String                 @unique @db.Char(36)
+  branchId         String                 @db.Char(36)
+  checkedInAt      DateTime
+  auditLogId       String                 @db.Char(36)
+  createdAt        DateTime               @default(now())
+  classSlot        ClassSlot              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor       User                   @relation("InstructorAttendanceOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  token            InstructorCheckInToken @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  branch           Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([instructorUserId, checkedInAt])
+  @@index([branchId, checkedInAt])
 }
 
 model Reschedule {
