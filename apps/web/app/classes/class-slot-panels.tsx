@@ -156,6 +156,7 @@ export function DetailPanel({
   classTypes,
   instructors,
   canManage,
+  canComplete,
   canManageAttendance,
   canReadBookings,
   bookingClient = browserBookingClient,
@@ -164,6 +165,7 @@ export function DetailPanel({
   onUpdate,
   onPublish,
   onCancel,
+  onComplete,
 }: {
   slot: ClassSlot;
   classTypeName: string;
@@ -171,6 +173,7 @@ export function DetailPanel({
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
   canManage: boolean;
+  canComplete: boolean;
   canManageAttendance: boolean;
   canReadBookings: boolean;
   bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
@@ -185,10 +188,12 @@ export function DetailPanel({
   }): Promise<void>;
   onPublish(): Promise<void>;
   onCancel(reason: CancellationReason): Promise<void>;
+  onComplete(reason: string): Promise<void>;
 }) {
   const feedback = useAppFeedback();
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
   const [reason, setReason] = useState<CancellationReason>('OTHER_REVIEW_REQUIRED');
+  const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai roster');
   const [editOpen, setEditOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [issues, setIssues] = useState<CheckInIssue[]>([]);
@@ -552,6 +557,27 @@ export function DetailPanel({
               }}
             />
           )}
+        </section>
+      )}
+      {slot.status === 'CONFIRMED' && (
+        <section>
+          <h3>Selesaikan kelas</h3>
+          <p className="text-sm text-dd-muted">
+            Backend memverifikasi ulang control hash roster. Booking tanpa attendance menjadi
+            no-show tanpa membuat check-in palsu; reservation dan ledger diposting atomik.
+          </p>
+          <TextInput
+            label="Alasan penyelesaian"
+            value={completionReason}
+            onChange={(event) => setCompletionReason(event.target.value)}
+          />
+          <Button
+            variant="danger"
+            disabled={busy || !canComplete || completionReason.trim().length < 3}
+            onClick={() => void onComplete(completionReason.trim())}
+          >
+            Review dan selesaikan kelas
+          </Button>
         </section>
       )}
       {slot.status === 'DRAFT' && (

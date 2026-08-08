@@ -247,7 +247,7 @@ export class EmailDeliveryWorker {
                 title: 'Email belum dapat dikirim',
                 message:
                   'Informasi tetap tersedia di dalam aplikasi. Tim operasional telah menerima status kegagalan.',
-                href: '/notifications',
+                href: null,
                 metadataMasked: { occurrenceId: current.id },
               },
             ],
@@ -276,7 +276,7 @@ export class EmailDeliveryWorker {
                 tone: 'DANGER' as const,
                 title: 'Pengiriman email gagal terminal',
                 message: `Occurrence ${current.id} memerlukan pemeriksaan operasional.`,
-                href: '/operations/email-deliveries',
+                href: '/operations',
                 metadataMasked: {
                   occurrenceId: current.id,
                   errorCode: classified.errorCode,

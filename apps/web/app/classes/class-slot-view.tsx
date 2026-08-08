@@ -64,6 +64,7 @@ export function ClassSlotView({
   const canRead = capabilities.includes('class-slot:read');
   const canManage = capabilities.includes('class-slot:manage');
   const canManageAttendance = capabilities.includes('attendance:manage');
+  const canCompleteClass = canManage || capabilities.includes('attendance:self');
   const canReadBookings = capabilities.includes('booking:read');
   const canViewAllBranches = capabilities.includes('branch:all');
   const globalMode = !branch && canViewAllBranches;
@@ -453,6 +454,7 @@ export function ClassSlotView({
             classTypes={classTypes}
             instructors={instructors}
             canManage={canOperate}
+            canComplete={canCompleteClass}
             canManageAttendance={canOperateAttendance}
             canReadBookings={canReadBookings}
             bookingClient={bookingClient}
@@ -513,6 +515,43 @@ export function ClassSlotView({
                   () => client.cancel(panel.slot.id, reason, panel.slot.version),
                   'Kelas berhasil dibatalkan.',
                 );
+            }}
+            onComplete={async (reason) => {
+              setBusy(true);
+              setFailure(undefined);
+              try {
+                const control = await client.completionControl(panel.slot.id);
+                const accepted = await feedback.confirm({
+                  tone: 'danger',
+                  title: 'Selesaikan kelas?',
+                  message: `${control.attendanceCount} hadir dan ${control.noShowCount} no-show akan diposting. ${control.activeReservationCount} reservation aktif akan dikonsumsi satu kali.`,
+                  confirmLabel: 'Selesaikan kelas',
+                });
+                if (!accepted) return;
+                const result = await client.complete(
+                  panel.slot.id,
+                  control.expectedVersion,
+                  control.controlHash,
+                  reason,
+                );
+                const updated = {
+                  ...panel.slot,
+                  status: 'COMPLETED' as const,
+                  bookedCount: 0,
+                  version: panel.slot.version + 1,
+                };
+                setSlots((current) =>
+                  current.map((slot) => (slot.id === updated.id ? updated : slot)),
+                );
+                setPanel({ kind: 'detail', slot: updated });
+                setMessage(
+                  `Kelas selesai: ${result.attendanceCount} hadir, ${result.noShowCount ?? 0} no-show.`,
+                );
+              } catch (error) {
+                setFailure(classSlotFailure(error));
+              } finally {
+                setBusy(false);
+              }
             }}
           />
         ) : null}

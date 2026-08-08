@@ -23,7 +23,7 @@ abstract class BackfillCustomerCheckInRequest implements Built<BackfillCustomerC
   String get reason;
 
   @BuiltValueField(wireName: r'expectedVersion')
-  int? get expectedVersion;
+  int get expectedVersion;
 
   BackfillCustomerCheckInRequest._();
 
@@ -58,13 +58,11 @@ class _$BackfillCustomerCheckInRequestSerializer implements PrimitiveSerializer<
       object.reason,
       specifiedType: const FullType(String),
     );
-    if (object.expectedVersion != null) {
-      yield r'expectedVersion';
-      yield serializers.serialize(
-        object.expectedVersion,
-        specifiedType: const FullType(int),
-      );
-    }
+    yield r'expectedVersion';
+    yield serializers.serialize(
+      object.expectedVersion,
+      specifiedType: const FullType(int),
+    );
   }
 
   @override

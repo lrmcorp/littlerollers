@@ -175,6 +175,7 @@ models/FinanceReconciliationOverview.ts
 models/FinanceReconciliationOverviewPeriod.ts
 models/FinancialReport.ts
 models/FinancialReportPage.ts
+models/GetClassCompletionControl200Response.ts
 models/GetFinanceReconciliationAnomalies200Response.ts
 models/GetMyNotificationUnreadCount200Response.ts
 models/GoogleAuthRequest.ts

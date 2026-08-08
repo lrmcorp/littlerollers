@@ -173,6 +173,7 @@ import 'package:openapi/src/model/finance_reconciliation_overview.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview_period.dart';
 import 'package:openapi/src/model/financial_report.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
+import 'package:openapi/src/model/get_class_completion_control200_response.dart';
 import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
 import 'package:openapi/src/model/get_my_notification_unread_count200_response.dart';
 import 'package:openapi/src/model/google_auth_request.dart';
@@ -534,6 +535,7 @@ part 'serializers.g.dart';
   FinanceReconciliationOverviewPeriod,
   FinancialReport,
   FinancialReportPage,
+  GetClassCompletionControl200Response,
   GetFinanceReconciliationAnomalies200Response,
   GetMyNotificationUnreadCount200Response,
   GoogleAuthRequest,

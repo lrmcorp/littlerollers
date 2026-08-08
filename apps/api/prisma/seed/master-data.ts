@@ -311,6 +311,71 @@ export async function seedCommercialMaster(
 ): Promise<SeedMasterResult> {
   validateMasterTemplates();
   const packages: Record<string, string> = {};
+  const seedPackageStructure = async (input: {
+    packageId: string;
+    branchId: string;
+    classTypeId: string;
+    sessionCount: number;
+    durationDays: number;
+    priceRp: number;
+    effectiveFrom: Date;
+    effectiveUntil?: Date | null;
+    active?: boolean;
+  }) => {
+    await ctx.db.packageBranchScope.upsert({
+      where: {
+        packageId_branchId: { packageId: input.packageId, branchId: input.branchId },
+      },
+      update: { active: input.active ?? true, historical: !(input.active ?? true) },
+      create: {
+        id: ctx.id('package-branch-scope', `${input.packageId}:${input.branchId}`),
+        packageId: input.packageId,
+        branchId: input.branchId,
+        active: input.active ?? true,
+        historical: !(input.active ?? true),
+      },
+    });
+    await ctx.db.packageClassTypeScope.upsert({
+      where: {
+        packageId_classTypeId: {
+          packageId: input.packageId,
+          classTypeId: input.classTypeId,
+        },
+      },
+      update: { active: input.active ?? true, historical: !(input.active ?? true) },
+      create: {
+        id: ctx.id('package-class-type-scope', `${input.packageId}:${input.classTypeId}`),
+        packageId: input.packageId,
+        classTypeId: input.classTypeId,
+        active: input.active ?? true,
+        historical: !(input.active ?? true),
+      },
+    });
+    await ctx.db.packageRevision.upsert({
+      where: { packageId_revisionNumber: { packageId: input.packageId, revisionNumber: 1 } },
+      update: {
+        sessionCount: input.sessionCount,
+        durationDays: input.durationDays,
+        priceRp: input.priceRp,
+        visible: input.active ?? true,
+        effectiveFrom: input.effectiveFrom,
+        effectiveUntil: input.effectiveUntil ?? null,
+        historical: !(input.active ?? true),
+      },
+      create: {
+        id: ctx.id('package-revision', `${input.packageId}:1`),
+        packageId: input.packageId,
+        revisionNumber: 1,
+        sessionCount: input.sessionCount,
+        durationDays: input.durationDays,
+        priceRp: input.priceRp,
+        visible: input.active ?? true,
+        effectiveFrom: input.effectiveFrom,
+        effectiveUntil: input.effectiveUntil ?? null,
+        historical: !(input.active ?? true),
+      },
+    });
+  };
   for (const template of branchTemplates) {
     const branchId = catalog.branches[template.code];
     if (!branchId) throw new Error(`Missing seeded branch ${template.code}.`);
@@ -453,6 +518,7 @@ export async function seedCommercialMaster(
 
       for (const pkg of item.packages) {
         const packageId = ctx.id('package', `${template.code}:${item.code}:${pkg.key}`);
+        const priceRp = Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000;
         packages[`${template.code}:${item.code}:${pkg.key}`] = packageId;
         await ctx.db.package.upsert({
           where: { id: packageId },
@@ -463,7 +529,7 @@ export async function seedCommercialMaster(
             name: `${item.name} ${pkg.key}`,
             sessionCount: pkg.sessions,
             durationDays: pkg.days,
-            priceRp: Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000,
+            priceRp,
             status: 'ACTIVE',
             effectiveUntil: null,
           },
@@ -475,10 +541,19 @@ export async function seedCommercialMaster(
             name: `${item.name} ${pkg.key}`,
             sessionCount: pkg.sessions,
             durationDays: pkg.days,
-            priceRp: Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000,
+            priceRp,
             effectiveFrom: new Date('2026-01-01'),
             status: 'ACTIVE',
           },
+        });
+        await seedPackageStructure({
+          packageId,
+          branchId,
+          classTypeId,
+          sessionCount: pkg.sessions,
+          durationDays: pkg.days,
+          priceRp,
+          effectiveFrom: new Date('2026-01-01'),
         });
         const sessionsLabel = `${pkg.sessions} sesi`;
         await ctx.db.packagePublicProfile.upsert({
@@ -536,6 +611,17 @@ export async function seedCommercialMaster(
           status: 'INACTIVE',
         },
       });
+      await seedPackageStructure({
+        packageId: inactiveId,
+        branchId,
+        classTypeId,
+        sessionCount: 4,
+        durationDays: 30,
+        priceRp: 500_000,
+        effectiveFrom: new Date('2025-01-01'),
+        effectiveUntil: new Date('2025-12-31'),
+        active: false,
+      });
     }
 
     const revisionClassTypeId = catalog.classTypes[`${template.code}:REFORMER`];
@@ -564,6 +650,16 @@ export async function seedCommercialMaster(
           status: 'ACTIVE',
         },
       });
+      await seedPackageStructure({
+        packageId: historicalId,
+        branchId,
+        classTypeId: revisionClassTypeId,
+        sessionCount: 6,
+        durationDays: 45,
+        priceRp: Math.round((960_000 * template.priceMultiplier) / 10_000) * 10_000,
+        effectiveFrom: new Date('2025-01-01'),
+        effectiveUntil: new Date('2026-01-01'),
+      });
       await ctx.db.package.upsert({
         where: { id: scheduledId },
         update: {
@@ -583,6 +679,15 @@ export async function seedCommercialMaster(
           effectiveFrom: new Date('2027-01-01'),
           status: 'ACTIVE',
         },
+      });
+      await seedPackageStructure({
+        packageId: scheduledId,
+        branchId,
+        classTypeId: revisionClassTypeId,
+        sessionCount: 6,
+        durationDays: 60,
+        priceRp: Math.round((1_080_000 * template.priceMultiplier) / 10_000) * 10_000,
+        effectiveFrom: new Date('2027-01-01'),
       });
     }
 

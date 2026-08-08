@@ -4,6 +4,14 @@ import {
   type FinanceAnomaly,
   type FinanceReconciliationOverview,
   type LegacyFinancialEntryPage,
+  type BranchPeriodPage,
+  type CloseResult,
+  type Correction,
+  type CorrectionDecisionResult,
+  type FinancialReportPage,
+  type OtherCost,
+  type OtherCostCommand,
+  type OtherCostPage,
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
 
@@ -31,6 +39,29 @@ export interface FinanceClient {
     input: { branchId?: string; from: string; until: string },
     cursor?: string,
   ): Promise<LegacyFinancialEntryPage>;
+  financialReport?(branchId: string, period: string): Promise<FinancialReportPage>;
+  otherCosts?(branchId: string, period: string, cursor?: string): Promise<OtherCostPage>;
+  createOtherCost?(command: OtherCostCommand): Promise<OtherCost>;
+  periods?(branchId: string, cursor?: string): Promise<BranchPeriodPage>;
+  closeMonth?(command: {
+    branchId: string;
+    period: string;
+    controlHash: string;
+    reason: string;
+    expectedVersion: number;
+  }): Promise<CloseResult>;
+  requestCorrection?(command: {
+    branchId: string;
+    currentPeriod: string;
+    referencePeriod: string;
+    amountRp: number;
+    reason: string;
+  }): Promise<Correction>;
+  decideCorrection?(
+    id: string,
+    decision: 'approve' | 'reject',
+    reason: string,
+  ): Promise<CorrectionDecisionResult>;
 }
 
 const api = new FinanceApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
@@ -75,6 +106,50 @@ export const browserFinanceClient: FinanceClient = {
         limit: 20,
       }),
       { label: 'Memuat legacy cashflow…' },
+    );
+  },
+  financialReport(branchId, period) {
+    return appLoading.track(api.getFinancialReport({ reportType: 'profit', branchId, period }), {
+      label: 'Memuat kontrol periode…',
+    });
+  },
+  otherCosts(branchId, period, cursor) {
+    return appLoading.track(api.listOtherCosts({ branchId, period, cursor }), {
+      label: 'Memuat biaya lain…',
+    });
+  },
+  createOtherCost(command) {
+    return appLoading.track(
+      api.createOtherCost({ idempotencyKey: crypto.randomUUID(), otherCostCommand: command }),
+      { label: 'Mencatat biaya lain…' },
+    );
+  },
+  periods(branchId, cursor) {
+    return appLoading.track(api.listPeriods({ branchId, cursor }), {
+      label: 'Memuat periode Finance…',
+    });
+  },
+  closeMonth(command) {
+    return appLoading.track(
+      api.closeMonth({ idempotencyKey: crypto.randomUUID(), closeMonthRequest: command }),
+      { label: 'Menutup periode…' },
+    );
+  },
+  requestCorrection(command) {
+    return appLoading.track(
+      api.requestCorrection({ idempotencyKey: crypto.randomUUID(), correctionCommand: command }),
+      { label: 'Membuat correction request…' },
+    );
+  },
+  decideCorrection(id, decision, reason) {
+    return appLoading.track(
+      api.decideCorrection({
+        id,
+        decision,
+        idempotencyKey: crypto.randomUUID(),
+        decideCorrectionRequest: { reason },
+      }),
+      { label: 'Memutuskan correction…' },
     );
   },
 };

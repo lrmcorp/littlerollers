@@ -3,7 +3,11 @@
 import { Bell, CheckCheck, LoaderCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { browserNotificationClient, type UserNotification } from '../notification-client';
+import {
+  browserNotificationClient,
+  type NotificationClient,
+  type UserNotification,
+} from '../notification-client';
 import { Button, IconButton } from './actions';
 
 const toneDot = {
@@ -17,10 +21,12 @@ export function NotificationCenter({
   compact = false,
   open: controlledOpen,
   onOpenChange,
+  client = browserNotificationClient,
 }: {
   compact?: boolean;
   open?: boolean;
   onOpenChange?(open: boolean): void;
+  client?: NotificationClient;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -35,16 +41,15 @@ export function NotificationCenter({
   const [items, setItems] = useState<UserNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [actionError, setActionError] = useState('');
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const refresh = useCallback(async () => {
     setStatus('loading');
     try {
-      const [page, count] = await Promise.all([
-        browserNotificationClient.list({ limit: 12 }),
-        browserNotificationClient.unreadCount(),
-      ]);
+      const [page, count] = await Promise.all([client.list({ limit: 12 }), client.unreadCount()]);
       setItems(page.items);
       setNextCursor(page.page.nextCursor);
       setUnread(count.count);
@@ -52,7 +57,7 @@ export function NotificationCenter({
     } catch {
       setStatus('error');
     }
-  }, []);
+  }, [client]);
 
   useEffect(() => {
     void refresh();
@@ -68,6 +73,10 @@ export function NotificationCenter({
       document.removeEventListener('visibilitychange', visible);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    if (open) void refresh();
+  }, [open, refresh]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,7 +106,7 @@ export function NotificationCenter({
       );
       setUnread((current) => Math.max(0, current - 1));
       try {
-        await browserNotificationClient.markRead(item.id);
+        await client.markRead(item.id);
       } catch {
         void refresh();
       }
@@ -141,18 +150,25 @@ export function NotificationCenter({
                 size="sm"
                 leadingIcon={<CheckCheck className="size-4" aria-hidden="true" />}
                 onClick={() =>
-                  void browserNotificationClient.markAllRead().then(() => {
-                    setUnread(0);
-                    setItems((current) =>
-                      current.map((item) => ({ ...item, readAt: new Date().toISOString() })),
-                    );
-                  })
+                  void client
+                    .markAllRead()
+                    .then(({ readAt }) => {
+                      setActionError('');
+                      setUnread(0);
+                      setItems((current) => current.map((item) => ({ ...item, readAt })));
+                    })
+                    .catch(() => setActionError('Notifikasi belum dapat diperbarui.'))
                 }
               >
                 Tandai semua
               </Button>
             )}
           </header>
+          {actionError && (
+            <p role="alert" className="border-b border-dd-line px-4 py-2 text-xs text-dd-danger">
+              {actionError}
+            </p>
+          )}
           <div className="max-h-[min(520px,70dvh)] overflow-y-auto" aria-live="polite">
             {status === 'loading' && items.length === 0 && (
               <div className="grid place-items-center gap-2 p-8 text-sm text-dd-muted">
@@ -212,17 +228,26 @@ export function NotificationCenter({
             {nextCursor && status === 'ready' && (
               <button
                 type="button"
+                disabled={loadingMore}
                 className="min-h-11 w-full rounded-none border-0 border-t border-dd-line bg-white text-sm font-semibold text-dd-forest"
-                onClick={() =>
-                  void browserNotificationClient
+                onClick={() => {
+                  if (loadingMore) return;
+                  setLoadingMore(true);
+                  setActionError('');
+                  void client
                     .list({ cursor: nextCursor, limit: 12 })
                     .then((page) => {
-                      setItems((current) => [...current, ...page.items]);
+                      setItems((current) => {
+                        const existing = new Set(current.map(({ id }) => id));
+                        return [...current, ...page.items.filter(({ id }) => !existing.has(id))];
+                      });
                       setNextCursor(page.page.nextCursor);
                     })
-                }
+                    .catch(() => setActionError('Halaman notifikasi berikutnya gagal dimuat.'))
+                    .finally(() => setLoadingMore(false));
+                }}
               >
-                Muat lebih banyak
+                {loadingMore ? 'Memuat…' : 'Muat lebih banyak'}
               </button>
             )}
           </div>

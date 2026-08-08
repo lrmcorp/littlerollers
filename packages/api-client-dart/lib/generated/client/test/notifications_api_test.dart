@@ -29,10 +29,5 @@ void main() {
       // TODO
     });
 
-    //Future receiveMetaWebhook() async
-    test('test receiveMetaWebhook', () async {
-      // TODO
-    });
-
   });
 }

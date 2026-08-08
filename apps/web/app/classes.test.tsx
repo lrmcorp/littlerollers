@@ -47,6 +47,27 @@ const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   assign: vi.fn().mockResolvedValue({ ...slot, version: 1 }),
   publish: vi.fn().mockResolvedValue({ ...slot, status: 'PUBLISHED', version: 1 }),
   cancel: vi.fn().mockResolvedValue({ ...slot, status: 'CANCELLED', version: 1 }),
+  completionControl: vi.fn().mockResolvedValue({
+    classSlotId: slot.id,
+    expectedVersion: slot.version,
+    controlHash: 'a'.repeat(64),
+    attendanceCount: 1,
+    noShowCount: 0,
+    activeReservationCount: 1,
+  }),
+  complete: vi.fn().mockResolvedValue({
+    classSlotId: slot.id,
+    status: 'COMPLETED',
+    attendanceCount: 1,
+    noShowCount: 0,
+    releasedReservationIds: [],
+    ledgerEntryIds: ['ledger-1'],
+    hourLogIds: [],
+    auditLogId: 'audit-1',
+    outboxEventIds: ['outbox-1'],
+    completedAt: new Date(),
+    idempotentReplay: false,
+  }),
   ...overrides,
 });
 const readCapabilities = ['class-slot:read'] as const;

@@ -126,6 +126,25 @@ export class ClassSlotController {
     );
   }
 
+  @Post(':id/complete')
+  complete(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string,
+    @Body() body: { expectedVersion: number; controlHash: string; reason: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.respond(
+      res,
+      this.slots.complete(req.principal, id, body, key, req.correlationId ?? 'unknown'),
+    );
+  }
+
+  @Get(':id/completion-control')
+  completionControl(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.slots.completionControl(req.principal, id);
+  }
+
   private async respond(res: Response, promise: ReturnType<ClassSlotService['create']>) {
     const result = await promise;
     res.status(result.status);

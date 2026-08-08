@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { AppFeedbackProvider } from '../components/app-feedback';
 import type { FinanceClient } from './finance-client';
 import { FinanceView } from './finance-view';
 
@@ -55,7 +56,11 @@ describe('Finance anomaly pagination', () => {
     });
     const client = { overview, anomalies, legacyCashflow } as FinanceClient;
 
-    render(<FinanceView client={client} />);
+    render(
+      <AppFeedbackProvider>
+        <FinanceView client={client} />
+      </AppFeedbackProvider>,
+    );
     expect(await screen.findByText('Halaman 1 · 20 data dari 25 anomali')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
     expect(await screen.findByText('Halaman 2 · 5 data dari 25 anomali')).toBeVisible();

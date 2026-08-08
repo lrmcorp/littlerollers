@@ -1,9 +1,11 @@
 import {
   ClassesApi,
   Configuration,
+  AttendanceApi,
   IdentityApi,
   MasterApi,
   type ClassSlot,
+  type CompletionResult,
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
@@ -77,9 +79,24 @@ export interface ClassSlotClient {
       'STUDIO_UNAVAILABLE' | 'INSTRUCTOR_UNAVAILABLE' | 'SAFETY_ISSUE' | 'OTHER_REVIEW_REQUIRED',
     expectedVersion: number,
   ): Promise<ClassSlot>;
+  completionControl(id: string): Promise<{
+    classSlotId: string;
+    expectedVersion: number;
+    controlHash: string;
+    attendanceCount: number;
+    noShowCount: number;
+    activeReservationCount: number;
+  }>;
+  complete(
+    id: string,
+    expectedVersion: number,
+    controlHash: string,
+    reason: string,
+  ): Promise<CompletionResult>;
 }
 const api = new ClassesApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
+const attendance = new AttendanceApi(configuration);
 const identity = new IdentityApi(configuration);
 const master = new MasterApi(configuration);
 const key = () => crypto.randomUUID();
@@ -215,6 +232,21 @@ export const browserClassSlotClient: ClassSlotClient = {
         classSlotCancellationCommand: { reasonCode, expectedVersion },
       }),
       { label: 'Membatalkan kelas…' },
+    );
+  },
+  async completionControl(id) {
+    return appLoading.track(attendance.getClassCompletionControl({ id }), {
+      label: 'Memverifikasi roster kelas…',
+    });
+  },
+  complete(id, expectedVersion, controlHash, reason) {
+    return appLoading.track(
+      attendance.completeClassSlot({
+        id,
+        idempotencyKey: key(),
+        completeClassCommand: { expectedVersion, controlHash, reason },
+      }),
+      { label: 'Menyelesaikan kelas…' },
     );
   },
 };

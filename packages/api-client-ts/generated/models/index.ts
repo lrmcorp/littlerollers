@@ -159,6 +159,7 @@ export * from './FinanceReconciliationOverview';
 export * from './FinanceReconciliationOverviewPeriod';
 export * from './FinancialReport';
 export * from './FinancialReportPage';
+export * from './GetClassCompletionControl200Response';
 export * from './GetFinanceReconciliationAnomalies200Response';
 export * from './GetMyNotificationUnreadCount200Response';
 export * from './GoogleAuthRequest';

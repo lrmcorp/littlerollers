@@ -8,6 +8,8 @@ dist/
 .next-playwright/
 .next-playwright-mock/
 .next-playwright-runs/
+.next-customer-runs/
+tsconfig.customer-e2e.*.json
 apps/web/playwright-evidence/
 apps/web/tsconfig.playwright.*.json
 .next-production/
@@ -33,6 +35,8 @@ packages/api-client-dart/.dart_tool/
 infra/local/data/
 .local-data/
 .migration-integration/
+.integration-evidence/
+.integration-runtime/
 .migration-rehearsal/
 apps/api/.local-data/
 .migration-spool/

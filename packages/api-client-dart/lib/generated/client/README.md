@@ -81,6 +81,7 @@ Class | Method | HTTP request | Description
 [*AttendanceApi*](doc/AttendanceApi.md) | [**completeClassSlot**](doc/AttendanceApi.md#completeclassslot) | **POST** /class-slots/{id}/complete | 
 [*AttendanceApi*](doc/AttendanceApi.md) | [**customerCheckIn**](doc/AttendanceApi.md#customercheckin) | **POST** /check-ins/customers | 
 [*AttendanceApi*](doc/AttendanceApi.md) | [**getCheckInTokenStatus**](doc/AttendanceApi.md#getcheckintokenstatus) | **GET** /check-in-tokens/{id} | 
+[*AttendanceApi*](doc/AttendanceApi.md) | [**getClassCompletionControl**](doc/AttendanceApi.md#getclasscompletioncontrol) | **GET** /class-slots/{id}/completion-control | 
 [*AttendanceApi*](doc/AttendanceApi.md) | [**instructorCheckIn**](doc/AttendanceApi.md#instructorcheckin) | **POST** /check-ins/instructors | 
 [*AttendanceApi*](doc/AttendanceApi.md) | [**issueCustomerCheckInLink**](doc/AttendanceApi.md#issuecustomercheckinlink) | **POST** /bookings/{id}/customer-check-in-links | 
 [*AttendanceApi*](doc/AttendanceApi.md) | [**issueCustomerCheckInLinksBulk**](doc/AttendanceApi.md#issuecustomercheckinlinksbulk) | **POST** /class-slots/{id}/customer-check-in-links/bulk | 
@@ -228,7 +229,6 @@ Class | Method | HTTP request | Description
 [*NotificationsApi*](doc/NotificationsApi.md) | [**listMyNotifications**](doc/NotificationsApi.md#listmynotifications) | **GET** /me/notifications | 
 [*NotificationsApi*](doc/NotificationsApi.md) | [**markAllMyNotificationsRead**](doc/NotificationsApi.md#markallmynotificationsread) | **POST** /me/notifications/read-all | 
 [*NotificationsApi*](doc/NotificationsApi.md) | [**markMyNotificationRead**](doc/NotificationsApi.md#markmynotificationread) | **PATCH** /me/notifications/{id}/read | 
-[*NotificationsApi*](doc/NotificationsApi.md) | [**receiveMetaWebhook**](doc/NotificationsApi.md#receivemetawebhook) | **POST** /webhooks/meta | 
 [*OperationsApi*](doc/OperationsApi.md) | [**deadLetterOperationalJob**](doc/OperationsApi.md#deadletteroperationaljob) | **POST** /operations/jobs/{id}/dead-letter | 
 [*OperationsApi*](doc/OperationsApi.md) | [**getDashboardOverview**](doc/OperationsApi.md#getdashboardoverview) | **GET** /dashboard/overview | 
 [*OperationsApi*](doc/OperationsApi.md) | [**getHealth**](doc/OperationsApi.md#gethealth) | **GET** /operations/health | 
@@ -439,6 +439,7 @@ Class | Method | HTTP request | Description
  - [FinanceReconciliationOverviewPeriod](doc/FinanceReconciliationOverviewPeriod.md)
  - [FinancialReport](doc/FinancialReport.md)
  - [FinancialReportPage](doc/FinancialReportPage.md)
+ - [GetClassCompletionControl200Response](doc/GetClassCompletionControl200Response.md)
  - [GetFinanceReconciliationAnomalies200Response](doc/GetFinanceReconciliationAnomalies200Response.md)
  - [GetMyNotificationUnreadCount200Response](doc/GetMyNotificationUnreadCount200Response.md)
  - [GoogleAuthRequest](doc/GoogleAuthRequest.md)

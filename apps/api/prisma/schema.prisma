@@ -284,6 +284,7 @@ enum QuotaEvaluationJobStatus {
   RETRYING
   SUCCEEDED
   FAILED
+  DEAD_LETTER
 }
 
 enum BookingStatus {
@@ -309,6 +310,24 @@ enum PurchaseSnapshotCompleteness {
 enum LegacyFinancialEntryType {
   INCOME
   EXPENSE
+}
+
+enum OtherCostStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum FinancePeriodStatus {
+  OPEN
+  CLOSING
+  CLOSED
+}
+
+enum FinanceCorrectionStatus {
+  PENDING
+  APPROVED
+  POSTED
+  REJECTED
 }
 
 enum MigrationLegacyPayloadKind {
@@ -337,6 +356,7 @@ enum CheckInTokenStatus {
 enum AttendanceSource {
   QR
   MIGRATION
+  MANUAL_BACKFILL
 }
 
 enum RescheduleStatus {
@@ -512,6 +532,10 @@ model User {
   bookingFeedbacks                   BookingFeedback[]
   authoredJournalEntries             JournalEntry[]                      @relation("JournalEntryActor")
   authoredLegacyFinancialEntries     LegacyFinancialEntry[]              @relation("LegacyFinancialEntryActor")
+  createdOtherCosts                  OtherCost[]                          @relation("OtherCostCreator")
+  closedFinancePeriods               FinancePeriod[]                      @relation("FinancePeriodCloser")
+  requestedFinanceCorrections        FinanceCorrection[]                  @relation("FinanceCorrectionRequester")
+  decidedFinanceCorrections          FinanceCorrection[]                  @relation("FinanceCorrectionDecider")
   mediaAssets                        MediaAsset[]
   contactAliases                     UserContactAlias[]
   customerClassEnrollments           CustomerClassEnrollment[]
@@ -647,6 +671,9 @@ model Branch {
   accountingAccounts       AccountingAccount[]
   journalEntries           JournalEntry[]
   legacyFinancialEntries   LegacyFinancialEntry[]
+  otherCosts               OtherCost[]
+  financePeriods           FinancePeriod[]
+  financeCorrections       FinanceCorrection[]
   mediaAssets              MediaAsset[]
   migrationCutover         MigrationBranchCutover?
   migrationDeltaEvents     MigrationDeltaEvent[]
@@ -2408,6 +2435,67 @@ model JournalEntry {
   @@index([accountId, occurredAt])
   @@index([purchaseId])
   @@index([parentId])
+}
+
+model OtherCost {
+  id               String          @id @default(uuid()) @db.Char(36)
+  branchId         String          @db.Char(36)
+  period           String          @db.Char(7)
+  description      String          @db.VarChar(300)
+  amountRp         Int
+  evidenceUploadId String?         @db.Char(36)
+  status           OtherCostStatus @default(ACTIVE)
+  createdById      String          @db.Char(36)
+  version          Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  branch           Branch          @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy        User            @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, createdAt, id])
+  @@index([status, period])
+}
+
+model FinancePeriod {
+  id           String              @id @default(uuid()) @db.Char(36)
+  branchId     String              @db.Char(36)
+  period       String              @db.Char(7)
+  status       FinancePeriodStatus @default(OPEN)
+  controlHash  String              @db.Char(64)
+  closedAt     DateTime?
+  closedById   String?             @db.Char(36)
+  version      Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  branch       Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  closedBy     User?               @relation("FinancePeriodCloser", fields: [closedById], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, period])
+  @@index([status, period])
+}
+
+model FinanceCorrection {
+  id              String                  @id @default(uuid()) @db.Char(36)
+  branchId        String                  @db.Char(36)
+  currentPeriod   String                  @db.Char(7)
+  referencePeriod String                  @db.Char(7)
+  amountRp        Int
+  reason          String                  @db.VarChar(500)
+  requestedById   String                  @db.Char(36)
+  decidedById     String?                 @db.Char(36)
+  decisionReason  String?                 @db.VarChar(500)
+  status          FinanceCorrectionStatus @default(PENDING)
+  decidedAt       DateTime?
+  postedAt        DateTime?
+  version         Int                     @default(0)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  branch          Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  requestedBy     User                    @relation("FinanceCorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy       User?                   @relation("FinanceCorrectionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, currentPeriod, status])
+  @@index([requestedById, createdAt])
 }
 
 model LegacyFinancialEntry {

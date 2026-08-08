@@ -4,7 +4,7 @@ export interface RuntimeConfig {
   environment: RuntimeEnvironment;
   port: number;
   databaseUrl: string;
-  redisUrl: string;
+  redisUrl: string | null;
   healthProbeTimeoutMs: number;
   workerHeartbeatIntervalMs: number;
   workerHeartbeatTtlSeconds: number;
@@ -223,7 +223,8 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     environment,
     port,
     databaseUrl: required(env, 'DATABASE_URL'),
-    redisUrl: required(env, 'REDIS_URL'),
+    redisUrl:
+      env.REDIS_URL?.trim() || (environment === 'production' ? required(env, 'REDIS_URL') : null),
     healthProbeTimeoutMs: positiveInteger('HEALTH_PROBE_TIMEOUT_MS'),
     workerHeartbeatIntervalMs: positiveInteger('WORKER_HEARTBEAT_INTERVAL_MS'),
     workerHeartbeatTtlSeconds: positiveInteger('WORKER_HEARTBEAT_TTL_SECONDS'),

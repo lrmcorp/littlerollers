@@ -74,4 +74,52 @@ describe('secure audit export', () => {
       code: 'RESOURCE_GONE',
     });
   });
+
+  it('creates an idempotent in-app notification when an export becomes ready', async () => {
+    const expiresAt = new Date('2026-08-07T00:00:00.000Z');
+    const createMany = jest.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      auditExport: {
+        update: jest.fn().mockResolvedValue({
+          id: 'export-1',
+          requestedById: 'owner',
+          rowCount: 0,
+          version: 2,
+          expiresAt,
+        }),
+      },
+      userNotification: { createMany },
+    };
+    const db = {
+      auditExport: {
+        update: jest.fn().mockResolvedValue({
+          id: 'export-1',
+          requestedById: 'owner',
+          branchIds: ['branch-a'],
+          from: new Date('2026-08-01T00:00:00.000Z'),
+          until: new Date('2026-08-02T00:00:00.000Z'),
+          actorId: null,
+          objectType: null,
+          format: 'CSV',
+          expiresAt,
+        }),
+      },
+      auditLog: { findMany: jest.fn().mockResolvedValue([]) },
+      user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
+      $transaction: jest.fn((callback: (value: typeof tx) => unknown) => callback(tx)),
+    };
+    const service = new AuditExportService(db as never, new PolicyService());
+    await (service as unknown as { process(id: string): Promise<void> }).process('export-1');
+    expect(createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 'owner',
+          eventKey: 'audit-export-ready:export-1:2',
+          title: 'Export audit telah siap',
+          expiresAt,
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
 });

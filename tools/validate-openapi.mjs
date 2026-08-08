@@ -4,7 +4,7 @@ import YAML from 'yaml';
 const file = new URL('../docs/technical/openapi-v1.yaml', import.meta.url);
 const raw = fs.readFileSync(file, 'utf8');
 const doc = YAML.parse(raw);
-const expected = '61166c03b79aa70b4a6c801caf7db30997e4cbd91dff0793c362ae9451f06536';
+const expected = '3e167f529eebaf5882b9d561dd2931fa8f6a8c7f7a9027cdb3080a02d618689d';
 const actual = crypto.createHash('sha256').update(raw).digest('hex');
 if (actual !== expected) throw new Error(`OpenAPI checksum drift: ${actual}`);
 if (doc.info?.version !== '1.19.0-draft') throw new Error('Unexpected contract version');

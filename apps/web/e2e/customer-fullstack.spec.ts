@@ -37,6 +37,27 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await expect(page.getByText('Dokumen disetujui', { exact: true })).toBeVisible();
   };
 
+  const expectCustomerNotification = async (page: Page, title: string) => {
+    const trigger = page.getByRole('button', { name: /^Notifikasi(?:,|$)/ });
+    await expect(trigger).toBeVisible();
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
+      const center = page.getByRole('region', { name: 'Pusat notifikasi' });
+      if (
+        await center
+          .getByText(title, { exact: true })
+          .isVisible()
+          .catch(() => false)
+      )
+        return;
+      await trigger.click();
+      await page.waitForTimeout(500);
+    }
+    await expect(
+      page.getByRole('region', { name: 'Pusat notifikasi' }).getByText(title, { exact: true }),
+    ).toBeVisible();
+  };
+
   test('registrasi → verifikasi → pembayaran → booking → reschedule → check-in', async ({
     page,
     customerE2E,
@@ -86,13 +107,17 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       page.getByRole('heading', { name: 'Dokumen Anda sudah kami terima' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unggah ulang dokumen' })).toHaveCount(0);
-    for (const button of await page.getByRole('button', { name: 'Lihat dokumen' }).all()) {
-      await button.click();
-      const previewDialog = page.getByRole('dialog', { name: /Foto (selfie|KTP depan)/ });
+    for (const kind of ['SELFIE', 'KTP_FRONT'] as const) {
+      const documentCard = page.locator(`#verification-document-${kind}`);
+      const documentName = kind === 'SELFIE' ? 'Foto selfie' : 'Foto KTP depan';
+      await documentCard.getByRole('button', { name: 'Lihat dokumen' }).click();
+      const previewDialog = page.getByRole('dialog', { name: documentName });
       await expect(previewDialog).toBeVisible();
-      await expect(previewDialog.getByRole('img', { name: /Dokumen Foto/ })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(previewDialog.getByRole('img', { name: `Dokumen ${documentName}` })).toBeVisible(
+        {
+          timeout: 15_000,
+        },
+      );
       await previewDialog.getByRole('button', { name: 'Tutup dialog' }).click();
       await expect(previewDialog).toBeHidden();
     }
@@ -122,6 +147,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await page.goto('/account/verification?document=KTP_FRONT');
     const rejectedCard = page.locator('#verification-document-KTP_FRONT');
     await expect(rejectedCard).toBeFocused();
+    await expectCustomerNotification(page, 'Dokumen perlu diperbaiki');
     await expect(rejectedCard.getByText('Foto terlalu buram')).toBeVisible();
     await expect(
       rejectedCard.getByText('Catatan reviewer: Foto perlu dibuat lebih tajam.'),
@@ -142,7 +168,8 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       },
     );
 
-    await page.goto('/packages');
+    await page.getByRole('link', { name: 'Lihat paket' }).click();
+    await expect(page).toHaveURL(/\/packages$/);
     await expect(page.getByRole('link', { name: 'Pilih paket' }).first()).toBeVisible();
     await expect(page.locator('del').first()).toBeVisible();
     const checkoutHref = await page
@@ -207,6 +234,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await expect(finance.page.getByText('Pembayaran disetujui', { exact: true })).toBeVisible();
 
     await page.goto(`/orders/${order.id}`);
+    await expectCustomerNotification(page, 'Pembayaran disetujui');
     await expect(page.getByText('Disetujui', { exact: true }).first()).toBeVisible();
     await page.goto('/account/packages');
     await expect(page.getByRole('link', { name: 'Tambah paket' })).toHaveClass(/min-h-10/);
@@ -228,6 +256,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     const booking = (await bookingResponse.json()) as { id: string };
     await page.getByRole('link', { name: 'Lihat detail booking' }).click();
     await expect(page).toHaveURL(new RegExp(`/bookings/${booking.id}`));
+    await expectCustomerNotification(page, 'Booking berhasil dibuat');
     await page.getByRole('button', { name: 'Ajukan reschedule' }).click();
     const targetStartAt = process.env.DD_CUSTOMER_E2E_TARGET_START_AT!;
     const targetLabel = new Date(targetStartAt).toLocaleString('id-ID', {
@@ -267,6 +296,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await expect(
       manager.page.getByText('Reschedule disetujui dan reservation dipindahkan secara atomik.'),
     ).toBeVisible();
+    await expectCustomerNotification(page, 'Reschedule disetujui');
 
     customerE2E.openCheckInWindow();
     await manager.page.goto(`/workspace/bookings/${booking.id}`);
@@ -295,6 +325,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await expect(manager.page.getByText(/Check-in berhasil|Customer sudah check-in/)).toBeVisible();
 
     await page.goto('/bookings');
+    await expectCustomerNotification(page, 'Check-in berhasil');
     await expect(page.getByText(/Sudah hadir|Riwayat/).first()).toBeVisible();
     await page.goto('/workspace');
     await expect(page).toHaveURL(/\/classes#schedule$/);
@@ -308,6 +339,17 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await page.getByLabel('Password').fill('Customer#2026');
     await page.getByRole('button', { name: 'Masuk dengan email' }).click();
     await expect(page).toHaveURL(/\/account/);
+    const studioDialog = page.getByRole('dialog', { name: 'Pilih studio utama Anda' });
+    if (
+      await studioDialog
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      await studioDialog.getByRole('radio', { name: /Daily Dose Jakarta/ }).check();
+      await studioDialog.getByRole('button', { name: 'Simpan studio' }).click();
+      await expect(studioDialog).toBeHidden();
+    }
 
     for (const width of [360, 390, 479, 768, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
@@ -315,12 +357,19 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
         await page.evaluate(() => document.documentElement.clientWidth),
       );
-      expect(await page.locator('[aria-current="page"]').count()).toBe(1);
       if (width < 1024) {
         const trigger = page.getByRole('button', { name: 'Buka navigasi akun' });
         const box = await trigger.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);
         expect(box?.height).toBeGreaterThanOrEqual(44);
+        await trigger.click();
+        const navigation = page.getByRole('dialog', { name: 'Navigasi akun' });
+        await expect(navigation).toBeVisible();
+        await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+        await navigation.getByRole('button', { name: 'Tutup navigasi akun' }).click();
+        await expect(navigation).toBeHidden();
+      } else {
+        await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
       }
     }
     await customerE2E.auditAccessibility(page, 'customer-account');

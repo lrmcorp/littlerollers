@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
@@ -70,6 +71,7 @@ export class AttendanceService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly idempotency: IdempotencyService,
     @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
@@ -834,6 +836,136 @@ export class AttendanceService {
         return this.instructorAttendanceView(token, attendance, false);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async backfillCustomer(
+    principal: SessionPrincipal,
+    input: { bookingId: string; reason: string; expectedVersion: number },
+    idempotencyKey: string,
+    correlationId: string,
+    now = new Date(),
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
+    if (
+      !UUID.test(input.bookingId) ||
+      !idempotencyKey ||
+      idempotencyKey.length < 16 ||
+      idempotencyKey.length > 128 ||
+      !Number.isInteger(input.expectedVersion) ||
+      input.expectedVersion < 0 ||
+      input.reason?.trim().length < 3 ||
+      input.reason.trim().length > 500
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    return this.idempotency.execute(
+      {
+        scope: `attendance:customer-backfill:${input.bookingId}`,
+        key: idempotencyKey,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`Booking\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
+        const booking = await tx.booking.findUnique({
+          where: { id: input.bookingId },
+          include: {
+            attendance: true,
+            classSlot: {
+              include: {
+                classType: { select: { name: true } },
+                branch: { select: { code: true, name: true, timezone: true } },
+              },
+            },
+          },
+        });
+        if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.requireBranch(principal, booking.branchId, 'attendance:manage');
+        if (booking.version !== input.expectedVersion)
+          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        if (booking.attendance)
+          throw new ApiProblem('ATTENDANCE_ALREADY_RECORDED', HttpStatus.CONFLICT);
+        if (!['BOOKED', 'NO_SHOW'].includes(booking.status))
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        if (!['CONFIRMED', 'COMPLETED'].includes(booking.classSlot.status))
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        if (booking.classSlot.startAt > now)
+          throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
+
+        const auditLogId = randomUUID();
+        const attendance = await tx.customerAttendance.create({
+          data: {
+            id: randomUUID(),
+            bookingId: booking.id,
+            branchId: booking.branchId,
+            classSlotId: booking.classSlotId,
+            recordedById: principal.userId,
+            source: 'MANUAL_BACKFILL',
+            checkedInAt: now,
+            auditLogId,
+          },
+        });
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { status: 'ATTENDED', version: { increment: 1 } },
+        });
+        await tx.bookingAttendanceOutcome.upsert({
+          where: { bookingId: booking.id },
+          create: { bookingId: booking.id, outcome: 'ATTENDED', occurredAt: now },
+          update: { outcome: 'ATTENDED', occurredAt: now },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: auditLogId,
+            actorType: 'USER',
+            actorId: principal.userId,
+            branchId: booking.branchId,
+            action: 'attendance.customer_backfilled',
+            objectType: 'CustomerAttendance',
+            objectId: attendance.id,
+            targetUserId: booking.customerUserId,
+            correlationId,
+            afterMasked: {
+              bookingId: booking.id,
+              classSlotId: booking.classSlotId,
+              source: 'MANUAL_BACKFILL',
+              reasonPresent: true,
+            },
+          },
+        });
+        await tx.outboxEvent.create({
+          data: {
+            id: randomUUID(),
+            eventType: 'check_in.customer_backfilled.v1',
+            aggregateType: 'Booking',
+            aggregateId: booking.id,
+            payload: {
+              attendanceId: attendance.id,
+              bookingId: booking.id,
+              branchId: booking.branchId,
+              classSlotId: booking.classSlotId,
+            },
+            correlationId,
+          },
+        });
+        return {
+          status: HttpStatus.CREATED,
+          body: {
+            id: attendance.id,
+            purpose: 'CUSTOMER_BACKFILL',
+            resourceId: booking.id,
+            status: 'CHECKED_IN',
+            checkedInAt: attendance.checkedInAt.toISOString(),
+            auditLogId,
+            auditReference: auditLogId,
+            className: booking.classSlot.classType.name,
+            branch: booking.classSlot.branch,
+            startAt: booking.classSlot.startAt.toISOString(),
+            endAt: booking.classSlot.endAt.toISOString(),
+          } as Prisma.InputJsonValue,
+        };
+      },
     );
   }
 

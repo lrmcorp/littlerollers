@@ -81,6 +81,21 @@ export class AttendanceController {
     );
   }
 
+  @Post('check-ins/customers/backfill')
+  async backfillCustomer(
+    @Req() request: AuthenticatedRequest,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() body: { bookingId: string; reason: string; expectedVersion: number },
+  ) {
+    const result = await this.attendance.backfillCustomer(
+      request.principal,
+      body,
+      idempotencyKey,
+      request.correlationId ?? 'unknown',
+    );
+    return { ...(result.body as object), idempotentReplay: result.replay };
+  }
+
   @Post('check-ins/instructors')
   consumeInstructor(
     @Req() request: AuthenticatedRequest,

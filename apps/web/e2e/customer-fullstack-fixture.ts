@@ -86,7 +86,7 @@ export const test = base.extend<{ customerE2E: CustomerE2EContext }>({
       `${Date.now().toString(36)}-${testInfo.workerIndex}-${Math.random().toString(36).slice(2, 8)}`;
     const safeRunId = runId
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/[^a-z0-9_-]/g, '-')
       .slice(0, 42);
     const contexts: BrowserContext[] = [];
     const telemetry: Array<{ type: string; text: string; url?: string }> = [];

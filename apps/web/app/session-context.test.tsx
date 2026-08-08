@@ -98,6 +98,7 @@ describe('capability-aware session shell', () => {
   });
 
   it('shows package promotions and vouchers for a database-authorized Super Owner', async () => {
+    const user = userEvent.setup();
     navigation.pathname = '/workspace/payments';
     const superOwnerSession: WebSession = {
       ...adminSession,
@@ -137,7 +138,7 @@ describe('capability-aware session shell', () => {
       'href',
       '/workspace/vouchers',
     );
-    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    await user.keyboard('{Control>}k{/Control}');
     const commandSearch = await screen.findByRole('dialog', { name: 'Pencarian panel' });
     expect(within(commandSearch).getByText('Paket & promo harga')).toBeVisible();
     expect(within(commandSearch).getByText('Voucher')).toBeVisible();

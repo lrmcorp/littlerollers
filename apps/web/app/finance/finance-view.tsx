@@ -17,6 +17,7 @@ import {
 import { Button } from '../components/actions';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
 import { controlClassName } from '../components/forms';
+import { FinanceCommandsPanel } from './finance-commands-panel';
 
 const money = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -437,6 +438,9 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           Buka payment queue
         </Link>
       </Panel>
+      {context?.activeBranchId && context.hasCapability('finance:manage') && (
+        <FinanceCommandsPanel client={client} branchId={context.activeBranchId} />
+      )}
     </div>
   );
 }

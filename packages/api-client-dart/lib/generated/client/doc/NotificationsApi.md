@@ -13,7 +13,6 @@ Method | HTTP request | Description
 [**listMyNotifications**](NotificationsApi.md#listmynotifications) | **GET** /me/notifications | 
 [**markAllMyNotificationsRead**](NotificationsApi.md#markallmynotificationsread) | **POST** /me/notifications/read-all | 
 [**markMyNotificationRead**](NotificationsApi.md#markmynotificationread) | **PATCH** /me/notifications/{id}/read | 
-[**receiveMetaWebhook**](NotificationsApi.md#receivemetawebhook) | **POST** /webhooks/meta | 
 
 
 # **getMyNotificationUnreadCount**
@@ -175,42 +174,6 @@ Name | Type | Description  | Notes
 
  - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **receiveMetaWebhook**
-> receiveMetaWebhook()
-
-
-
-### Example
-```dart
-import 'package:openapi/api.dart';
-
-final api = Openapi().getNotificationsApi();
-
-try {
-    api.receiveMetaWebhook();
-} catch on DioException (e) {
-    print('Exception when calling NotificationsApi->receiveMetaWebhook: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/problem+json, application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

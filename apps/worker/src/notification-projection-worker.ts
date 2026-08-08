@@ -239,6 +239,12 @@ export class NotificationProjectionWorker {
           'Check-in berhasil',
           'Kehadiran Anda telah tercatat.',
         ],
+        'check_in.customer_backfilled.v1': [
+          'ATTENDANCE',
+          'INFO',
+          'Kehadiran diperbarui',
+          'Kehadiran Anda telah dikoreksi oleh staf yang berwenang.',
+        ],
       };
       const selected = copy[event.eventType];
       if (!selected) return null;
@@ -254,6 +260,24 @@ export class NotificationProjectionWorker {
           metadataMasked: { classSlotId: booking.classSlotId },
         },
       ];
+    }
+    if (event.eventType === 'class.completed.v1') {
+      const noShows = await this.db.booking.findMany({
+        where: { classSlotId: event.aggregateId, status: 'NO_SHOW' },
+        select: { id: true, customerUserId: true, branchId: true, classSlotId: true },
+      });
+      return noShows.map((booking) => ({
+        userId: booking.customerUserId,
+        branchId: booking.branchId,
+        category: 'ATTENDANCE',
+        tone: 'WARNING',
+        title: 'Kehadiran tidak tercatat',
+        message:
+          'Kelas telah selesai dan kehadiran Anda belum tercatat. Hubungi Studio/Cabang bila perlu dikoreksi.',
+        href: `/bookings/${booking.id}`,
+        metadataMasked: { classSlotId: booking.classSlotId },
+        emailEligible: false,
+      }));
     }
     if (event.eventType === 'class.manual_cancelled.v1') {
       const bookings = await this.db.booking.findMany({

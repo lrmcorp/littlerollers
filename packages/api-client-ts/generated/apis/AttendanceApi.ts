@@ -25,6 +25,7 @@ import type {
   CompletionResult,
   CustomerCheckInIssue,
   ErrorEnvelope,
+  GetClassCompletionControl200Response,
   IssueCustomerCheckInLinkCommand,
   RevokeCheckInTokenCommand,
   TokenCheckInCommand,
@@ -50,6 +51,8 @@ import {
     CustomerCheckInIssueToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
+    GetClassCompletionControl200ResponseFromJSON,
+    GetClassCompletionControl200ResponseToJSON,
     IssueCustomerCheckInLinkCommandFromJSON,
     IssueCustomerCheckInLinkCommandToJSON,
     RevokeCheckInTokenCommandFromJSON,
@@ -75,6 +78,10 @@ export interface CustomerCheckInRequest {
 }
 
 export interface GetCheckInTokenStatusRequest {
+    id: string;
+}
+
+export interface GetClassCompletionControlRequest {
     id: string;
 }
 
@@ -328,6 +335,49 @@ export class AttendanceApi extends runtime.BaseAPI {
      */
     async getCheckInTokenStatus(requestParameters: GetCheckInTokenStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CheckInTokenStatus> {
         const response = await this.getCheckInTokenStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async getClassCompletionControlRaw(requestParameters: GetClassCompletionControlRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetClassCompletionControl200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getClassCompletionControl().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/class-slots/{id}/completion-control`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetClassCompletionControl200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getClassCompletionControl(requestParameters: GetClassCompletionControlRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetClassCompletionControl200Response> {
+        const response = await this.getClassCompletionControlRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

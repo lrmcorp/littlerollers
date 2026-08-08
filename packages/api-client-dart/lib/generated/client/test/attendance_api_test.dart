@@ -29,6 +29,11 @@ void main() {
       // TODO
     });
 
+    //Future<GetClassCompletionControl200Response> getClassCompletionControl(String id) async
+    test('test getClassCompletionControl', () async {
+      // TODO
+    });
+
     //Future<CheckInResult> instructorCheckIn(String idempotencyKey, TokenCheckInCommand tokenCheckInCommand) async
     test('test instructorCheckIn', () async {
       // TODO

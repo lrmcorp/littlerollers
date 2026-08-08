@@ -1,4 +1,14 @@
-import { closeSync, existsSync, mkdirSync, openSync, statSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
@@ -12,6 +22,9 @@ if (database.protocol !== 'mysql:')
 if ((process.env.PAYMENT_PROOF_SCAN_DRIVER ?? 'synthetic') !== 'synthetic') {
   throw new Error('Development customer E2E mewajibkan PAYMENT_PROOF_SCAN_DRIVER=synthetic.');
 }
+const mysqlClientDirectory = process.env.DD_NATIVE_MYSQL_CLIENT_DIR?.trim();
+const mysqlExecutable = (name) =>
+  mysqlClientDirectory ? resolve(mysqlClientDirectory, name) : name;
 
 const privateRoot = resolve(
   repositoryRoot,
@@ -28,6 +41,15 @@ if (![apiPort, webPort].every((port) => /^\d{4,5}$/u.test(port))) {
 const runId =
   process.env.DD_CUSTOMER_E2E_RUN_ID?.trim() ||
   `customer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+if (!/^[a-zA-Z0-9_-]{1,80}$/.test(runId)) {
+  throw new Error('DD_CUSTOMER_E2E_RUN_ID harus berupa identifier lokal yang aman.');
+}
+const webBuildPath = resolve(repositoryRoot, 'apps/web/.next-customer-runs', runId);
+const webTsconfigName = `tsconfig.customer-e2e.${runId}.json`;
+const webTsconfigPath = resolve(repositoryRoot, 'apps/web', webTsconfigName);
+const webNextEnvPath = resolve(repositoryRoot, 'apps/web/next-env.d.ts');
+const originalWebNextEnv = readFileSync(webNextEnvPath, 'utf8');
+copyFileSync(resolve(repositoryRoot, 'apps/web/tsconfig.json'), webTsconfigPath);
 const backupPath = `/private/tmp/dailydose-customer-e2e-${stamp}.sql`;
 const reportPath = `/private/tmp/dailydose-customer-e2e-${stamp}.json`;
 
@@ -39,7 +61,6 @@ function mysqlArgs() {
     database.port || '3306',
     '-u',
     decodeURIComponent(database.username),
-    `-p${decodeURIComponent(database.password)}`,
     database.pathname.slice(1),
   ];
 }
@@ -48,12 +69,24 @@ function mysqlConnectionArgs() {
   return mysqlArgs().slice(0, -1);
 }
 
+const mysqlEnvironment = {
+  ...process.env,
+  MYSQL_PWD: decodeURIComponent(database.password),
+};
+
 function backupDatabase() {
   const descriptor = openSync(backupPath, 'wx', 0o600);
   const result = spawnSync(
-    'mysqldump',
-    ['--single-transaction', '--quick', '--skip-lock-tables', '--no-tablespaces', ...mysqlArgs()],
-    { cwd: repositoryRoot, stdio: ['ignore', descriptor, 'inherit'] },
+    mysqlExecutable('mysqldump'),
+    [
+      '--single-transaction',
+      '--quick',
+      '--skip-lock-tables',
+      '--no-tablespaces',
+      '--set-gtid-purged=OFF',
+      ...mysqlArgs(),
+    ],
+    { cwd: repositoryRoot, env: mysqlEnvironment, stdio: ['ignore', descriptor, 'inherit'] },
   );
   closeSync(descriptor);
   if (result.status !== 0 || !existsSync(backupPath) || statSync(backupPath).size === 0) {
@@ -77,7 +110,7 @@ function databaseCounts() {
     .map(([label, table]) => `SELECT '${label}', COUNT(*) FROM \`${table}\``)
     .join(' UNION ALL ');
   const result = spawnSync(
-    'mysql',
+    mysqlExecutable('mysql'),
     [
       ...mysqlConnectionArgs(),
       '--batch',
@@ -88,6 +121,7 @@ function databaseCounts() {
     ],
     {
       cwd: repositoryRoot,
+      env: mysqlEnvironment,
       encoding: 'utf8',
     },
   );
@@ -144,17 +178,36 @@ const prepared = spawnSync(
 );
 if (prepared.status !== 0) throw new Error(prepared.stderr || 'Fixture jadwal E2E gagal dibuat.');
 const fixture = JSON.parse(prepared.stdout);
-const worker = spawn('pnpm', ['--filter', '@dailydose/worker', 'exec', 'nest', 'start'], {
-  cwd: repositoryRoot,
-  env: process.env,
-  stdio: 'inherit',
-});
+const worker =
+  process.env.DD_CUSTOMER_E2E_SKIP_WORKER === 'true'
+    ? undefined
+    : spawn('pnpm', ['--filter', '@dailydose/worker', 'exec', 'nest', 'start'], {
+        cwd: repositoryRoot,
+        env: process.env,
+        stdio: 'inherit',
+      });
+const notificationProjection = worker
+  ? undefined
+  : spawn(
+      'node',
+      [
+        '--import',
+        './apps/api/node_modules/tsx/dist/loader.mjs',
+        'apps/worker/src/notification-projection-runtime.ts',
+      ],
+      {
+        cwd: repositoryRoot,
+        env: { ...process.env, DD_NOTIFICATION_PROJECTION_POLL_MS: '250' },
+        stdio: 'inherit',
+      },
+    );
 
 let playwrightProcess;
 let interruptedSignal;
 const cleanup = () => {
   terminate(playwrightProcess, true);
   terminate(worker);
+  terminate(notificationProjection);
 };
 const interrupt = (signal) => {
   interruptedSignal = signal;
@@ -163,7 +216,8 @@ const interrupt = (signal) => {
 process.once('SIGINT', () => interrupt('SIGINT'));
 process.once('SIGTERM', () => interrupt('SIGTERM'));
 
-await new Promise((resolveWait) => setTimeout(resolveWait, 2_500));
+if (worker || notificationProjection)
+  await new Promise((resolveWait) => setTimeout(resolveWait, 2_500));
 
 const playwrightEnvironment = {
   ...process.env,
@@ -179,6 +233,7 @@ const playwrightEnvironment = {
   API_BASE_URL: `http://127.0.0.1:${apiPort}`,
   PORT: apiPort,
   DD_PLAYWRIGHT_REUSE_SERVER: 'false',
+  NEXT_TYPESCRIPT_CONFIG: webTsconfigName,
 };
 const startedAt = Date.now();
 playwrightProcess = spawn(
@@ -202,6 +257,11 @@ playwrightProcess = spawn(
 );
 const playwright = await waitForChild(playwrightProcess);
 cleanup();
+writeFileSync(webNextEnvPath, originalWebNextEnv);
+if (process.env.DD_NATIVE_MYSQL_KEEP_RUN !== 'true') {
+  rmSync(webBuildPath, { recursive: true, force: true });
+  rmSync(webTsconfigPath, { force: true });
+}
 
 const fixtureCleanup = spawnSync(
   'node',

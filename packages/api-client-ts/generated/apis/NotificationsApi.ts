@@ -211,30 +211,4 @@ export class NotificationsApi extends runtime.BaseAPI {
         return await response.value();
     }
 
-    /**
-     */
-    async receiveMetaWebhookRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/webhooks/meta`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.VoidApiResponse(response);
-    }
-
-    /**
-     */
-    async receiveMetaWebhook(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.receiveMetaWebhookRaw(initOverrides);
-    }
-
 }

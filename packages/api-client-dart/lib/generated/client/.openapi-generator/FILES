@@ -169,6 +169,7 @@ doc/FinanceReconciliationOverview.md
 doc/FinanceReconciliationOverviewPeriod.md
 doc/FinancialReport.md
 doc/FinancialReportPage.md
+doc/GetClassCompletionControl200Response.md
 doc/GetFinanceReconciliationAnomalies200Response.md
 doc/GetMyNotificationUnreadCount200Response.md
 doc/GoogleAuthRequest.md
@@ -558,6 +559,7 @@ lib/src/model/finance_reconciliation_overview.dart
 lib/src/model/finance_reconciliation_overview_period.dart
 lib/src/model/financial_report.dart
 lib/src/model/financial_report_page.dart
+lib/src/model/get_class_completion_control200_response.dart
 lib/src/model/get_finance_reconciliation_anomalies200_response.dart
 lib/src/model/get_my_notification_unread_count200_response.dart
 lib/src/model/google_auth_request.dart
@@ -925,6 +927,7 @@ test/finance_reconciliation_overview_period_test.dart
 test/finance_reconciliation_overview_test.dart
 test/financial_report_page_test.dart
 test/financial_report_test.dart
+test/get_class_completion_control200_response_test.dart
 test/get_finance_reconciliation_anomalies200_response_test.dart
 test/get_my_notification_unread_count200_response_test.dart
 test/google_auth_request_test.dart

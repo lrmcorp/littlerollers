@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ClassSlotStatus, Prisma } from '@prisma/client';
+import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
@@ -42,6 +43,28 @@ function decodeCursor(value?: string): { at: Date; id: string } | null {
 }
 const encodeCursor = (at: Date, id: string) =>
   Buffer.from(JSON.stringify({ at: at.toISOString(), id })).toString('base64url');
+
+export function classCompletionControlHash(
+  bookings: Array<{
+    id: string;
+    status: string;
+    reservedQuantity: number;
+    reservation: { status: string; quantity: number };
+    attendance: { id: string } | null;
+  }>,
+) {
+  const projection = bookings
+    .map((booking) => ({
+      id: booking.id,
+      status: booking.status,
+      reservedQuantity: booking.reservedQuantity,
+      reservationStatus: booking.reservation.status,
+      reservationQuantity: booking.reservation.quantity,
+      attended: Boolean(booking.attendance),
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  return createHash('sha256').update(JSON.stringify(projection)).digest('hex');
+}
 
 @Injectable()
 export class ClassSlotService {
@@ -527,6 +550,225 @@ export class ClassSlotService {
         return this.view(slot);
       },
     );
+  }
+
+  async complete(
+    principal: SessionPrincipal,
+    id: string,
+    input: { expectedVersion: number; controlHash: string; reason: string },
+    key: string,
+    correlationId: string,
+    now = new Date(),
+  ) {
+    this.validateKey(key);
+    if (
+      !UUID.test(id) ||
+      !Number.isInteger(input.expectedVersion) ||
+      input.expectedVersion < 0 ||
+      !/^[a-f0-9]{64}$/iu.test(input.controlHash) ||
+      input.reason?.trim().length < 3 ||
+      input.reason.trim().length > 500
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    return this.execute(
+      principal,
+      `class-slot:complete:${id}`,
+      key,
+      input,
+      HttpStatus.OK,
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`ClassSlot\` WHERE \`id\` = ${id} FOR UPDATE`;
+        const slot = await tx.classSlot.findUnique({ where: { id } });
+        if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const ownInstructor =
+          slot.instructorUserId === principal.userId &&
+          this.policy.hasCapability(principal, 'attendance:self', slot.branchId);
+        if (!ownInstructor) {
+          this.policy.requireCapability(principal.capabilities, 'class-slot:manage');
+          this.scope(principal, slot.branchId, 'class-slot:manage');
+        }
+        if (slot.version !== input.expectedVersion)
+          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        if (slot.status !== 'CONFIRMED')
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        if (slot.endAt > now) throw new ApiProblem('CLASS_NOT_ENDED', HttpStatus.CONFLICT);
+
+        const bookings = await tx.booking.findMany({
+          where: { classSlotId: id },
+          orderBy: { id: 'asc' },
+          include: {
+            reservation: true,
+            attendance: { select: { id: true } },
+          },
+        });
+        if (bookings.some((booking) => booking.status === 'RESCHEDULE_PENDING'))
+          throw new ApiProblem('PENDING_RESCHEDULE_EXISTS', HttpStatus.CONFLICT);
+        if (classCompletionControlHash(bookings) !== input.controlHash)
+          throw new ApiProblem('COMPLETION_CONTROL_MISMATCH', HttpStatus.CONFLICT);
+
+        const attendanceBookings = bookings.filter(
+          (booking) =>
+            booking.reservation.status === 'ACTIVE' &&
+            ['BOOKED', 'ATTENDED'].includes(booking.status),
+        );
+        if (
+          attendanceBookings.some(
+            (booking) =>
+              booking.reservation.quantity !== booking.reservedQuantity ||
+              booking.reservation.customerPackageId !== booking.customerPackageId ||
+              booking.reservation.classSlotId !== id,
+          )
+        )
+          throw new ApiProblem('RESERVATION_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+
+        const ledgerEntryIds: string[] = [];
+        const releasedReservationIds: string[] = [];
+        let attendedCount = 0;
+        let noShowCount = 0;
+        for (const booking of attendanceBookings) {
+          const reservationClaim = await tx.sessionReservation.updateMany({
+            where: { id: booking.reservationId, status: 'ACTIVE' },
+            data: { status: 'CONSUMED', consumedAt: now },
+          });
+          if (reservationClaim.count !== 1)
+            throw new ApiProblem('RESERVATION_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+          const ledger = await tx.ledgerEntry.create({
+            data: {
+              id: newId(),
+              customerPackageId: booking.customerPackageId,
+              type: 'ATTEND',
+              quantity: -booking.reservedQuantity,
+              referenceType: 'CLASS_COMPLETION',
+              referenceId: booking.id,
+              occurredAt: now,
+            },
+          });
+          ledgerEntryIds.push(ledger.id);
+          const attended = Boolean(booking.attendance);
+          attendedCount += attended ? 1 : 0;
+          noShowCount += attended ? 0 : 1;
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: { status: attended ? 'ATTENDED' : 'NO_SHOW', version: { increment: 1 } },
+          });
+          await tx.bookingAttendanceOutcome.upsert({
+            where: { bookingId: booking.id },
+            create: {
+              bookingId: booking.id,
+              outcome: attended ? 'ATTENDED' : 'NO_SHOW',
+              occurredAt: now,
+            },
+            update: {
+              outcome: attended ? 'ATTENDED' : 'NO_SHOW',
+              occurredAt: now,
+            },
+          });
+          await tx.checkInToken.updateMany({
+            where: { bookingId: booking.id, status: 'ACTIVE' },
+            data: {
+              status: 'REVOKED',
+              activeBookingKey: null,
+              revokedAt: now,
+              version: { increment: 1 },
+            },
+          });
+        }
+        const invalidActiveReservation = bookings.some(
+          (booking) =>
+            booking.reservation.status === 'ACTIVE' &&
+            !['BOOKED', 'ATTENDED'].includes(booking.status),
+        );
+        if (invalidActiveReservation)
+          throw new ApiProblem('RESERVATION_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+
+        const completed = await tx.classSlot.update({
+          where: { id },
+          data: { status: 'COMPLETED', bookedCount: 0, version: { increment: 1 } },
+        });
+        const auditLogId = newId();
+        await tx.auditLog.create({
+          data: {
+            id: auditLogId,
+            actorType: 'USER',
+            actorId: principal.userId,
+            branchId: slot.branchId,
+            action: 'class.slot.completed',
+            objectType: 'ClassSlot',
+            objectId: id,
+            beforeMasked: { status: slot.status, bookedCount: slot.bookedCount },
+            afterMasked: {
+              status: completed.status,
+              attendedCount,
+              noShowCount,
+              reasonPresent: true,
+            },
+            correlationId,
+          },
+        });
+        const outbox = await tx.outboxEvent.create({
+          data: {
+            id: newId(),
+            eventType: 'class.completed.v1',
+            aggregateType: 'ClassSlot',
+            aggregateId: id,
+            payload: {
+              classSlotId: id,
+              branchId: slot.branchId,
+              attendedCount,
+              noShowCount,
+              ledgerEntryIds,
+            },
+            correlationId,
+          },
+        });
+        return {
+          classSlotId: id,
+          status: completed.status,
+          attendanceCount: attendedCount,
+          noShowCount,
+          releasedReservationIds,
+          ledgerEntryIds,
+          hourLogIds: [],
+          auditLogId,
+          outboxEventIds: [outbox.id],
+          completedAt: now.toISOString(),
+        };
+      },
+    );
+  }
+
+  async completionControl(principal: SessionPrincipal, id: string) {
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const slot = await this.db.classSlot.findUnique({ where: { id } });
+    if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const ownInstructor =
+      slot.instructorUserId === principal.userId &&
+      this.policy.hasCapability(principal, 'attendance:self', slot.branchId);
+    if (!ownInstructor) {
+      this.policy.requireCapability(principal.capabilities, 'class-slot:manage');
+      this.scope(principal, slot.branchId, 'class-slot:manage');
+    }
+    if (slot.status !== 'CONFIRMED')
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    const bookings = await this.db.booking.findMany({
+      where: { classSlotId: id },
+      orderBy: { id: 'asc' },
+      include: { reservation: true, attendance: { select: { id: true } } },
+    });
+    return {
+      classSlotId: id,
+      expectedVersion: slot.version,
+      controlHash: classCompletionControlHash(bookings),
+      attendanceCount: bookings.filter((booking) => Boolean(booking.attendance)).length,
+      noShowCount: bookings.filter(
+        (booking) =>
+          booking.reservation.status === 'ACTIVE' &&
+          booking.status === 'BOOKED' &&
+          !booking.attendance,
+      ).length,
+      activeReservationCount: bookings.filter((booking) => booking.reservation.status === 'ACTIVE')
+        .length,
+    };
   }
 
   private validateKey(key: string) {

@@ -4,7 +4,10 @@ const config: NextConfig = {
   typescript: {
     tsconfigPath: process.env.NEXT_TYPESCRIPT_CONFIG ?? 'tsconfig.json',
   },
-  output: process.env.DD_PLAYWRIGHT_MOCK === 'true' ? undefined : 'standalone',
+  output:
+    process.env.DD_PLAYWRIGHT_MOCK === 'true' || process.env.DD_CUSTOMER_FULLSTACK === 'true'
+      ? undefined
+      : 'standalone',
   devIndicators: false,
   transpilePackages: ['@dailydose/api-client-ts'],
   async rewrites() {

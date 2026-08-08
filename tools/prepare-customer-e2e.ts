@@ -72,9 +72,25 @@ async function main() {
       });
       const branch = await database.branch.findFirstOrThrow({
         where: { code: 'DD-JKT', active: true },
+        include: {
+          studios: {
+            where: { code: 'MAIN', active: true, historical: false },
+            orderBy: { id: 'asc' },
+            take: 1,
+          },
+        },
       });
+      const studio = branch.studios[0];
+      if (!studio) throw new Error('CUSTOMER_E2E_STUDIO_REQUIRED');
       const classType = await database.classType.findFirstOrThrow({
-        where: { branchId: branch.id, code: 'REFORMER', active: true },
+        where: {
+          code: 'REFORMER',
+          active: true,
+          historical: false,
+          branchScopes: {
+            some: { branchId: branch.id, active: true, historical: false },
+          },
+        },
       });
       const instructor = await database.assignment.findFirstOrThrow({
         where: {
@@ -92,6 +108,7 @@ async function main() {
         update: {
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt,
           endAt,
@@ -106,6 +123,7 @@ async function main() {
           id: slotId,
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt,
           endAt,
@@ -122,6 +140,7 @@ async function main() {
         update: {
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt: targetStartAt,
           endAt: targetEndAt,
@@ -136,6 +155,7 @@ async function main() {
           id: targetSlotId,
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt: targetStartAt,
           endAt: targetEndAt,
@@ -152,6 +172,7 @@ async function main() {
         update: {
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt: checkInStartAt,
           endAt: checkInEndAt,
@@ -166,6 +187,7 @@ async function main() {
           id: checkInSlotId,
           branchId: branch.id,
           classTypeId: classType.id,
+          studioId: studio.id,
           instructorUserId: instructor.userId,
           startAt: checkInStartAt,
           endAt: checkInEndAt,

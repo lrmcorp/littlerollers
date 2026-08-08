@@ -185,6 +185,7 @@ export 'package:openapi/src/model/finance_reconciliation_overview.dart';
 export 'package:openapi/src/model/finance_reconciliation_overview_period.dart';
 export 'package:openapi/src/model/financial_report.dart';
 export 'package:openapi/src/model/financial_report_page.dart';
+export 'package:openapi/src/model/get_class_completion_control200_response.dart';
 export 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
 export 'package:openapi/src/model/get_my_notification_unread_count200_response.dart';
 export 'package:openapi/src/model/google_auth_request.dart';
