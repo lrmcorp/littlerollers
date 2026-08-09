@@ -13,12 +13,16 @@ part 'session_adjustment_decision_command.g.dart';
 ///
 /// Properties:
 /// * [reasonCode] 
+/// * [note] 
 /// * [expectedVersion] 
 @BuiltValue()
 abstract class SessionAdjustmentDecisionCommand implements Built<SessionAdjustmentDecisionCommand, SessionAdjustmentDecisionCommandBuilder> {
   @BuiltValueField(wireName: r'reasonCode')
   SessionAdjustmentDecisionCommandReasonCodeEnum get reasonCode;
   // enum reasonCodeEnum {  CORRECTION_VERIFIED,  INVALID_EVIDENCE,  DUPLICATE_REQUEST,  OUT_OF_SCOPE,  };
+
+  @BuiltValueField(wireName: r'note')
+  String? get note;
 
   @BuiltValueField(wireName: r'expectedVersion')
   int get expectedVersion;
@@ -51,6 +55,13 @@ class _$SessionAdjustmentDecisionCommandSerializer implements PrimitiveSerialize
       object.reasonCode,
       specifiedType: const FullType(SessionAdjustmentDecisionCommandReasonCodeEnum),
     );
+    if (object.note != null) {
+      yield r'note';
+      yield serializers.serialize(
+        object.note,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'expectedVersion';
     yield serializers.serialize(
       object.expectedVersion,
@@ -85,6 +96,13 @@ class _$SessionAdjustmentDecisionCommandSerializer implements PrimitiveSerialize
             specifiedType: const FullType(SessionAdjustmentDecisionCommandReasonCodeEnum),
           ) as SessionAdjustmentDecisionCommandReasonCodeEnum;
           result.reasonCode = valueDes;
+          break;
+        case r'note':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.note = valueDes;
           break;
         case r'expectedVersion':
           final valueDes = serializers.deserialize(

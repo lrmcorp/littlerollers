@@ -11,7 +11,10 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **branchId** | **String** |  | 
 **period** | **String** |  | 
+**occurredOn** | [**Date**](Date.md) |  | 
+**categoryCode** | **String** |  | 
 **description** | **String** |  | 
+**reason** | **String** |  | 
 **amount** | [**Money**](Money.md) |  | 
 **evidenceUploadId** | **String** |  | [optional] 
 **status** | **String** |  | 

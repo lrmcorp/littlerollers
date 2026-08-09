@@ -27,6 +27,7 @@ const statusLabel: Record<string, string> = {
   RUNNING: 'Sedang berjalan',
   SUCCEEDED: 'Berhasil',
   FAILED: 'Gagal',
+  DEAD_LETTER: 'Dead-letter',
   PENDING: 'Menunggu',
   SENDING: 'Sedang dikirim',
   ACCEPTED_BY_SMTP: 'Diterima server email',
@@ -53,6 +54,7 @@ export function OperationsView({
   const [statusFilter, setStatusFilter] = useState('');
   const [jobCursor, setJobCursor] = useState<string>();
   const [jobCursorHistory, setJobCursorHistory] = useState<(string | undefined)[]>([]);
+  const [jobRecoveryReason, setJobRecoveryReason] = useState('');
   const [emailPage, setEmailPage] = useState<NotificationOccurrencePage>();
   const [emailStatusFilter, setEmailStatusFilter] = useState('');
   const [emailCursor, setEmailCursor] = useState<string>();
@@ -148,12 +150,19 @@ export function OperationsView({
           }}
         >
           <option value="">Semua status</option>
-          {['QUEUED', 'RETRYING', 'RUNNING', 'SUCCEEDED', 'FAILED'].map((status) => (
+          {['QUEUED', 'RETRYING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'DEAD_LETTER'].map((status) => (
             <option key={status} value={status}>
               {statusLabel[status]}
             </option>
           ))}
         </SelectInput>
+        <TextInput
+          label="Alasan recovery job"
+          aria-label="Alasan recovery job"
+          value={jobRecoveryReason}
+          onChange={(event) => setJobRecoveryReason(event.target.value)}
+          placeholder="Minimal 3 karakter"
+        />
       </FilterBar>
       {busy && <Skeleton label="Memuat antrean job" />}
       {failure && <Feedback kind="error">{failure}</Feedback>}
@@ -200,30 +209,99 @@ export function OperationsView({
               id: 'action',
               header: 'Recovery',
               cell: (job) => (
-                <Button
-                  variant="secondary"
-                  disabled={busy || job.status === 'SUCCEEDED' || !canRecover}
-                  onClick={() =>
-                    void run(async () => {
-                      const result = await client.run(job);
-                      setJobPage((current) =>
-                        current
-                          ? {
-                              ...current,
-                              items: current.items.map((item) =>
-                                item.id === job.id
-                                  ? { ...item, status: 'SUCCEEDED', progress: 100 }
-                                  : item,
-                              ),
-                            }
-                          : current,
-                      );
-                      setMessage(`${result.status}: ${result.bookingCount}/${result.minimumQuota}`);
-                    }, 'Evaluasi selesai.')
-                  }
-                >
-                  Jalankan recovery
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    disabled={busy || job.status === 'SUCCEEDED' || !canRecover}
+                    onClick={() =>
+                      void run(async () => {
+                        const result = await client.run(job);
+                        setJobPage((current) =>
+                          current
+                            ? {
+                                ...current,
+                                items: current.items.map((item) =>
+                                  item.id === job.id
+                                    ? { ...item, status: 'SUCCEEDED', progress: 100 }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        );
+                        setMessage(
+                          `${result.status}: ${result.bookingCount}/${result.minimumQuota}`,
+                        );
+                      }, 'Evaluasi selesai.')
+                    }
+                  >
+                    Jalankan recovery
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={
+                      busy ||
+                      !canRecover ||
+                      !client.retryJob ||
+                      job.status !== 'FAILED' ||
+                      jobRecoveryReason.trim().length < 3
+                    }
+                    onClick={() =>
+                      void run(async () => {
+                        if (!client.retryJob) return;
+                        const result = await client.retryJob(job.id, jobRecoveryReason.trim());
+                        setJobPage((current) =>
+                          current
+                            ? {
+                                ...current,
+                                items: current.items.map((item) =>
+                                  item.id === job.id
+                                    ? {
+                                        ...item,
+                                        status: result.status as typeof item.status,
+                                        attemptCount: result.attemptCount,
+                                        maxAttempts: result.maxAttempts,
+                                      }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        );
+                      }, 'Retry job dijadwalkan.')
+                    }
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    variant="danger"
+                    disabled={
+                      busy ||
+                      !canRecover ||
+                      !client.deadLetterJob ||
+                      !['QUEUED', 'RETRYING', 'FAILED'].includes(job.status) ||
+                      jobRecoveryReason.trim().length < 3
+                    }
+                    onClick={() =>
+                      void run(async () => {
+                        if (!client.deadLetterJob) return;
+                        const result = await client.deadLetterJob(job.id, jobRecoveryReason.trim());
+                        setJobPage((current) =>
+                          current
+                            ? {
+                                ...current,
+                                items: current.items.map((item) =>
+                                  item.id === job.id
+                                    ? { ...item, status: result.status as typeof item.status }
+                                    : item,
+                                ),
+                              }
+                            : current,
+                        );
+                      }, 'Job dipindahkan ke dead-letter.')
+                    }
+                  >
+                    Dead-letter
+                  </Button>
+                </div>
               ),
             },
           ]}

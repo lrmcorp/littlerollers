@@ -22,9 +22,16 @@ void main() {
       // TODO
     });
 
+    // Builds an audited CSV from the same authoritative server-side aggregation used by dashboard, reports, and monthly close.
+    //
+    //Future<FinanceExportResult> exportAuthoritativeFinanceReport(ExportAuthoritativeFinanceReportRequest exportAuthoritativeFinanceReportRequest) async
+    test('test exportAuthoritativeFinanceReport', () async {
+      // TODO
+    });
+
     // Actionable reconciliation anomalies without private proof contents.
     //
-    //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until }) async
+    //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until, String cursor, int limit }) async
     test('test getFinanceReconciliationAnomalies', () async {
       // TODO
     });
@@ -38,6 +45,13 @@ void main() {
 
     //Future<FinancialReportPage> getFinancialReport(String reportType, String period, { String branchId, String cursor }) async
     test('test getFinancialReport', () async {
+      // TODO
+    });
+
+    // Historical single-entry v1 cashflow, explicitly separated from new v2 double-entry journals.
+    //
+    //Future<LegacyFinancialEntryPage> listLegacyFinancialEntries({ String branchId, Date from, Date until, String cursor, int limit }) async
+    test('test listLegacyFinancialEntries', () async {
       // TODO
     });
 

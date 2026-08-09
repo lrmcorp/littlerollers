@@ -5,9 +5,12 @@
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/package.dart';
+import 'package:openapi/src/model/package_branch_scope.dart';
 import 'package:openapi/src/model/package_promotion.dart';
 import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/date.dart';
+import 'package:openapi/src/model/package_class_type_scope.dart';
+import 'package:openapi/src/model/package_revision.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -19,6 +22,9 @@ part 'internal_package_detail.g.dart';
 /// * [id] 
 /// * [branchId] 
 /// * [classTypeId] 
+/// * [branchScopes] 
+/// * [classTypeScopes] 
+/// * [revisions] 
 /// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
@@ -31,7 +37,6 @@ part 'internal_package_detail.g.dart';
 /// * [effectiveUntil] 
 /// * [version] 
 /// * [promotions] 
-/// * [revisions] 
 /// * [auditActivity] 
 @BuiltValue()
 abstract class InternalPackageDetail implements Package, Built<InternalPackageDetail, InternalPackageDetailBuilder> {
@@ -40,9 +45,6 @@ abstract class InternalPackageDetail implements Package, Built<InternalPackageDe
 
   @BuiltValueField(wireName: r'auditActivity')
   BuiltList<SafeAuditActivity> get auditActivity;
-
-  @BuiltValueField(wireName: r'revisions')
-  BuiltList<Package> get revisions;
 
   InternalPackageDetail._();
 
@@ -133,21 +135,37 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
       object.auditActivity,
       specifiedType: const FullType(BuiltList, [FullType(SafeAuditActivity)]),
     );
-    yield r'revisions';
-    yield serializers.serialize(
-      object.revisions,
-      specifiedType: const FullType(BuiltList, [FullType(Package)]),
-    );
+    if (object.revisions != null) {
+      yield r'revisions';
+      yield serializers.serialize(
+        object.revisions,
+        specifiedType: const FullType(BuiltList, [FullType(PackageRevision)]),
+      );
+    }
     yield r'id';
     yield serializers.serialize(
       object.id,
       specifiedType: const FullType(String),
     );
+    if (object.branchScopes != null) {
+      yield r'branchScopes';
+      yield serializers.serialize(
+        object.branchScopes,
+        specifiedType: const FullType(BuiltList, [FullType(PackageBranchScope)]),
+      );
+    }
     yield r'effectiveFrom';
     yield serializers.serialize(
       object.effectiveFrom,
       specifiedType: const FullType(Date),
     );
+    if (object.classTypeScopes != null) {
+      yield r'classTypeScopes';
+      yield serializers.serialize(
+        object.classTypeScopes,
+        specifiedType: const FullType(BuiltList, [FullType(PackageClassTypeScope)]),
+      );
+    }
     yield r'priceRp';
     yield serializers.serialize(
       object.priceRp,
@@ -269,8 +287,8 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
         case r'revisions':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(Package)]),
-          ) as BuiltList<Package>;
+            specifiedType: const FullType(BuiltList, [FullType(PackageRevision)]),
+          ) as BuiltList<PackageRevision>;
           result.revisions.replace(valueDes);
           break;
         case r'id':
@@ -280,12 +298,26 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
           ) as String;
           result.id = valueDes;
           break;
+        case r'branchScopes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PackageBranchScope)]),
+          ) as BuiltList<PackageBranchScope>;
+          result.branchScopes.replace(valueDes);
+          break;
         case r'effectiveFrom':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(Date),
           ) as Date;
           result.effectiveFrom = valueDes;
+          break;
+        case r'classTypeScopes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PackageClassTypeScope)]),
+          ) as BuiltList<PackageClassTypeScope>;
+          result.classTypeScopes.replace(valueDes);
           break;
         case r'priceRp':
           final valueDes = serializers.deserialize(

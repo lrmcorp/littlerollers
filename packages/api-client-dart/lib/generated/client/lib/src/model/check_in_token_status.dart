@@ -4,6 +4,8 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/check_in_token_status_branch.dart';
+import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -16,10 +18,17 @@ part 'check_in_token_status.g.dart';
 /// * [purpose] 
 /// * [resourceType] 
 /// * [resourceId] 
+/// * [notBeforeAt] 
 /// * [expiresAt] 
 /// * [usedAt] 
 /// * [revokedAt] 
 /// * [status] 
+/// * [version] 
+/// * [customerName] 
+/// * [className] 
+/// * [branch] 
+/// * [startAt] 
+/// * [endAt] 
 @BuiltValue()
 abstract class CheckInTokenStatus implements Built<CheckInTokenStatus, CheckInTokenStatusBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -27,14 +36,17 @@ abstract class CheckInTokenStatus implements Built<CheckInTokenStatus, CheckInTo
 
   @BuiltValueField(wireName: r'purpose')
   CheckInTokenStatusPurposeEnum get purpose;
-  // enum purposeEnum {  INSTRUCTOR_CHECK_IN,  CUSTOMER_CHECK_IN,  };
+  // enum purposeEnum {  CUSTOMER_CHECK_IN,  INSTRUCTOR_CHECK_IN,  };
 
   @BuiltValueField(wireName: r'resourceType')
   CheckInTokenStatusResourceTypeEnum get resourceType;
-  // enum resourceTypeEnum {  CLASS_SLOT,  BOOKING,  };
+  // enum resourceTypeEnum {  BOOKING,  CLASS_SLOT,  };
 
   @BuiltValueField(wireName: r'resourceId')
   String get resourceId;
+
+  @BuiltValueField(wireName: r'notBeforeAt')
+  DateTime get notBeforeAt;
 
   @BuiltValueField(wireName: r'expiresAt')
   DateTime get expiresAt;
@@ -48,6 +60,24 @@ abstract class CheckInTokenStatus implements Built<CheckInTokenStatus, CheckInTo
   @BuiltValueField(wireName: r'status')
   CheckInTokenStatusStatusEnum get status;
   // enum statusEnum {  ACTIVE,  USED,  REVOKED,  EXPIRED,  };
+
+  @BuiltValueField(wireName: r'version')
+  int get version;
+
+  @BuiltValueField(wireName: r'customerName')
+  String? get customerName;
+
+  @BuiltValueField(wireName: r'className')
+  String get className;
+
+  @BuiltValueField(wireName: r'branch')
+  CheckInTokenStatusBranch get branch;
+
+  @BuiltValueField(wireName: r'startAt')
+  DateTime get startAt;
+
+  @BuiltValueField(wireName: r'endAt')
+  DateTime get endAt;
 
   CheckInTokenStatus._();
 
@@ -92,6 +122,11 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
       object.resourceId,
       specifiedType: const FullType(String),
     );
+    yield r'notBeforeAt';
+    yield serializers.serialize(
+      object.notBeforeAt,
+      specifiedType: const FullType(DateTime),
+    );
     yield r'expiresAt';
     yield serializers.serialize(
       object.expiresAt,
@@ -101,20 +136,52 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
       yield r'usedAt';
       yield serializers.serialize(
         object.usedAt,
-        specifiedType: const FullType.nullable(DateTime),
+        specifiedType: const FullType(DateTime),
       );
     }
     if (object.revokedAt != null) {
       yield r'revokedAt';
       yield serializers.serialize(
         object.revokedAt,
-        specifiedType: const FullType.nullable(DateTime),
+        specifiedType: const FullType(DateTime),
       );
     }
     yield r'status';
     yield serializers.serialize(
       object.status,
       specifiedType: const FullType(CheckInTokenStatusStatusEnum),
+    );
+    yield r'version';
+    yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
+    if (object.customerName != null) {
+      yield r'customerName';
+      yield serializers.serialize(
+        object.customerName,
+        specifiedType: const FullType(String),
+      );
+    }
+    yield r'className';
+    yield serializers.serialize(
+      object.className,
+      specifiedType: const FullType(String),
+    );
+    yield r'branch';
+    yield serializers.serialize(
+      object.branch,
+      specifiedType: const FullType(CheckInTokenStatusBranch),
+    );
+    yield r'startAt';
+    yield serializers.serialize(
+      object.startAt,
+      specifiedType: const FullType(DateTime),
+    );
+    yield r'endAt';
+    yield serializers.serialize(
+      object.endAt,
+      specifiedType: const FullType(DateTime),
     );
   }
 
@@ -167,6 +234,13 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
           ) as String;
           result.resourceId = valueDes;
           break;
+        case r'notBeforeAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.notBeforeAt = valueDes;
+          break;
         case r'expiresAt':
           final valueDes = serializers.deserialize(
             value,
@@ -177,17 +251,15 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
         case r'usedAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
           result.usedAt = valueDes;
           break;
         case r'revokedAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
           result.revokedAt = valueDes;
           break;
         case r'status':
@@ -196,6 +268,48 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
             specifiedType: const FullType(CheckInTokenStatusStatusEnum),
           ) as CheckInTokenStatusStatusEnum;
           result.status = valueDes;
+          break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
+          break;
+        case r'customerName':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.customerName = valueDes;
+          break;
+        case r'className':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.className = valueDes;
+          break;
+        case r'branch':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CheckInTokenStatusBranch),
+          ) as CheckInTokenStatusBranch;
+          result.branch.replace(valueDes);
+          break;
+        case r'startAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.startAt = valueDes;
+          break;
+        case r'endAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.endAt = valueDes;
           break;
         default:
           unhandled.add(key);
@@ -228,10 +342,10 @@ class _$CheckInTokenStatusSerializer implements PrimitiveSerializer<CheckInToken
 
 class CheckInTokenStatusPurposeEnum extends EnumClass {
 
-  @BuiltValueEnumConst(wireName: r'INSTRUCTOR_CHECK_IN')
-  static const CheckInTokenStatusPurposeEnum INSTRUCTOR_CHECK_IN = _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN;
   @BuiltValueEnumConst(wireName: r'CUSTOMER_CHECK_IN')
   static const CheckInTokenStatusPurposeEnum CUSTOMER_CHECK_IN = _$checkInTokenStatusPurposeEnum_CUSTOMER_CHECK_IN;
+  @BuiltValueEnumConst(wireName: r'INSTRUCTOR_CHECK_IN')
+  static const CheckInTokenStatusPurposeEnum INSTRUCTOR_CHECK_IN = _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN;
 
   static Serializer<CheckInTokenStatusPurposeEnum> get serializer => _$checkInTokenStatusPurposeEnumSerializer;
 
@@ -243,10 +357,10 @@ class CheckInTokenStatusPurposeEnum extends EnumClass {
 
 class CheckInTokenStatusResourceTypeEnum extends EnumClass {
 
-  @BuiltValueEnumConst(wireName: r'CLASS_SLOT')
-  static const CheckInTokenStatusResourceTypeEnum CLASS_SLOT = _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT;
   @BuiltValueEnumConst(wireName: r'BOOKING')
   static const CheckInTokenStatusResourceTypeEnum BOOKING = _$checkInTokenStatusResourceTypeEnum_BOOKING;
+  @BuiltValueEnumConst(wireName: r'CLASS_SLOT')
+  static const CheckInTokenStatusResourceTypeEnum CLASS_SLOT = _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT;
 
   static Serializer<CheckInTokenStatusResourceTypeEnum> get serializer => _$checkInTokenStatusResourceTypeEnumSerializer;
 

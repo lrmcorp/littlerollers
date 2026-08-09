@@ -9,12 +9,15 @@ part of 'reservation_summary.dart';
 class _$ReservationSummary extends ReservationSummary {
   @override
   final int activeQuantity;
+  @override
+  final BuiltList<ReservationItem> items;
 
   factory _$ReservationSummary([
     void Function(ReservationSummaryBuilder)? updates,
   ]) => (ReservationSummaryBuilder()..update(updates))._build();
 
-  _$ReservationSummary._({required this.activeQuantity}) : super._();
+  _$ReservationSummary._({required this.activeQuantity, required this.items})
+    : super._();
   @override
   ReservationSummary rebuild(
     void Function(ReservationSummaryBuilder) updates,
@@ -28,22 +31,25 @@ class _$ReservationSummary extends ReservationSummary {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is ReservationSummary &&
-        activeQuantity == other.activeQuantity;
+        activeQuantity == other.activeQuantity &&
+        items == other.items;
   }
 
   @override
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, activeQuantity.hashCode);
+    _$hash = $jc(_$hash, items.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(
-      r'ReservationSummary',
-    )..add('activeQuantity', activeQuantity)).toString();
+    return (newBuiltValueToStringHelper(r'ReservationSummary')
+          ..add('activeQuantity', activeQuantity)
+          ..add('items', items))
+        .toString();
   }
 }
 
@@ -56,6 +62,11 @@ class ReservationSummaryBuilder
   set activeQuantity(int? activeQuantity) =>
       _$this._activeQuantity = activeQuantity;
 
+  ListBuilder<ReservationItem>? _items;
+  ListBuilder<ReservationItem> get items =>
+      _$this._items ??= ListBuilder<ReservationItem>();
+  set items(ListBuilder<ReservationItem>? items) => _$this._items = items;
+
   ReservationSummaryBuilder() {
     ReservationSummary._defaults(this);
   }
@@ -64,6 +75,7 @@ class ReservationSummaryBuilder
     final $v = _$v;
     if ($v != null) {
       _activeQuantity = $v.activeQuantity;
+      _items = $v.items.toBuilder();
       _$v = null;
     }
     return this;
@@ -83,15 +95,32 @@ class ReservationSummaryBuilder
   ReservationSummary build() => _build();
 
   _$ReservationSummary _build() {
-    final _$result =
-        _$v ??
-        _$ReservationSummary._(
-          activeQuantity: BuiltValueNullFieldError.checkNotNull(
-            activeQuantity,
-            r'ReservationSummary',
-            'activeQuantity',
-          ),
+    _$ReservationSummary _$result;
+    try {
+      _$result =
+          _$v ??
+          _$ReservationSummary._(
+            activeQuantity: BuiltValueNullFieldError.checkNotNull(
+              activeQuantity,
+              r'ReservationSummary',
+              'activeQuantity',
+            ),
+            items: items.build(),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'items';
+        items.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'ReservationSummary',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

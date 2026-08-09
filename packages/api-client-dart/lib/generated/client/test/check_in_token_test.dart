@@ -32,6 +32,11 @@ void main() {
       // TODO
     });
 
+    // DateTime notBeforeAt
+    test('to test the property `notBeforeAt`', () async {
+      // TODO
+    });
+
     // DateTime expiresAt
     test('to test the property `expiresAt`', () async {
       // TODO
@@ -42,9 +47,19 @@ void main() {
       // TODO
     });
 
-    // Returned only at issuance; never log or send to analytics
+    // int version
+    test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // Returned only at first issuance; never log, persist, or send to analytics.
     // String token
     test('to test the property `token`', () async {
+      // TODO
+    });
+
+    // bool idempotentReplay
+    test('to test the property `idempotentReplay`', () async {
       // TODO
     });
 

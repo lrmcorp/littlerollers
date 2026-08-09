@@ -8,8 +8,8 @@ import 'package:openapi/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**branchId** | **String** |  | 
-**classTypeId** | **String** |  | 
+**branchIds** | **BuiltSet&lt;String&gt;** |  | 
+**classTypeIds** | **BuiltSet&lt;String&gt;** |  | 
 **businessKey** | **String** |  | 
 **name** | **String** |  | 
 **sessionCount** | **int** |  | 

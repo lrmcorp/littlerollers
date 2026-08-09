@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { ClassSlotView } from './classes/class-slot-view';
 import type { ClassSlotClient } from './class-slot-client';
+import type { BookingClient, BookingPage } from './booking-client';
 import { AppFeedbackProvider } from './components/app-feedback';
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
@@ -29,6 +30,15 @@ const workspace = {
   slots: [slot],
   classTypes: [{ id: 'type-1', code: 'REF', name: 'Reformer' }],
   instructors: [{ id: 'instructor-1', displayName: 'Ayu Instructor' }],
+  studios: [
+    {
+      id: 'studio-1',
+      branchId: 'branch-1',
+      code: 'MAIN',
+      name: 'Area Studio Utama',
+      rooms: [],
+    },
+  ],
 };
 const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   discover: vi.fn().mockResolvedValue(workspace),
@@ -37,6 +47,27 @@ const fake = (overrides: Partial<ClassSlotClient> = {}): ClassSlotClient => ({
   assign: vi.fn().mockResolvedValue({ ...slot, version: 1 }),
   publish: vi.fn().mockResolvedValue({ ...slot, status: 'PUBLISHED', version: 1 }),
   cancel: vi.fn().mockResolvedValue({ ...slot, status: 'CANCELLED', version: 1 }),
+  completionControl: vi.fn().mockResolvedValue({
+    classSlotId: slot.id,
+    expectedVersion: slot.version,
+    controlHash: 'a'.repeat(64),
+    attendanceCount: 1,
+    noShowCount: 0,
+    activeReservationCount: 1,
+  }),
+  complete: vi.fn().mockResolvedValue({
+    classSlotId: slot.id,
+    status: 'COMPLETED',
+    attendanceCount: 1,
+    noShowCount: 0,
+    releasedReservationIds: [],
+    ledgerEntryIds: ['ledger-1'],
+    hourLogIds: [],
+    auditLogId: 'audit-1',
+    outboxEventIds: ['outbox-1'],
+    completedAt: new Date(),
+    idempotentReplay: false,
+  }),
   ...overrides,
 });
 const readCapabilities = ['class-slot:read'] as const;
@@ -133,6 +164,9 @@ describe('ClassSlotView', () => {
     const classType = within(dialog).getByRole('combobox', { name: /Tipe kelas/ });
     await user.click(classType);
     await user.click(within(dialog).getByRole('option', { name: /Reformer/ }));
+    const studio = within(dialog).getByRole('combobox', { name: /Area Studio/ });
+    await user.click(studio);
+    await user.click(within(dialog).getByRole('option', { name: /Area Studio Utama/ }));
     const instructor = within(dialog).getByRole('combobox', { name: /Instruktur/ });
     await user.click(instructor);
     await user.click(within(dialog).getByRole('option', { name: /Ayu Instructor/ }));
@@ -149,6 +183,7 @@ describe('ClassSlotView', () => {
       expect.objectContaining({
         branchId: 'branch-1',
         classTypeId: 'type-1',
+        studioId: 'studio-1',
         instructorUserId: 'instructor-1',
         startAt: new Date('2026-07-27T02:00:00.000Z'),
         endAt: new Date('2026-07-27T03:00:00.000Z'),
@@ -204,6 +239,59 @@ describe('ClassSlotView', () => {
       />,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Konfigurasi quota atau capacity');
+  });
+
+  it('loads a capability-scoped roster for the selected class slot', async () => {
+    const rosterPage = {
+      items: [
+        {
+          id: 'booking-1',
+          status: 'BOOKED',
+          customer: {
+            id: 'customer-1',
+            displayName: 'Customer Demo',
+            phoneMasked: '+62••••1234',
+          },
+          package: { id: 'package-1', name: 'Reformer 10' },
+          sessionBalance: { ledgerBalance: 8, reserved: 1, available: 7 },
+        },
+      ],
+      summary: {
+        total: 1,
+        booked: 1,
+        reschedulePending: 0,
+        attended: 0,
+        cancelled: 0,
+        noShow: 0,
+      },
+      nextCursor: null,
+    } as unknown as BookingPage;
+    const bookingClient: Pick<BookingClient, 'list'> = {
+      list: vi.fn().mockResolvedValue(rosterPage),
+    };
+    render(
+      <ClassSlotView
+        client={fake()}
+        bookingClient={bookingClient}
+        branchOverride={branch}
+        capabilitiesOverride={[...manageCapabilities, 'booking:read']}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
+    expect((await within(dialog).findAllByText('Customer Demo')).length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText('+62••••1234').length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText(/7 sesi tersedia/).length).toBeGreaterThan(0);
+    expect(bookingClient.list).toHaveBeenCalledWith(
+      expect.objectContaining({ classSlotId: 'slot-1', limit: 10 }),
+    );
   });
 
   it('cancels with the controlled reason and authoritative version', async () => {

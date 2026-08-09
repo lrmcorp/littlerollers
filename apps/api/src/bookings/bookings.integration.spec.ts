@@ -11,6 +11,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
   const actorId = randomUUID();
   const customerIds = [randomUUID(), randomUUID()] as const;
   const branchId = randomUUID();
+  const studioId = randomUUID();
   const classTypeId = randomUUID();
   const packageId = randomUUID();
   const slotId = randomUUID();
@@ -46,6 +47,9 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     await db.branch.create({
       data: { id: branchId, code: namespace, name: 'Booking branch', timezone: 'Asia/Jakarta' },
     });
+    await db.studio.create({
+      data: { id: studioId, branchId, code: 'MAIN', name: 'Booking main studio' },
+    });
     await db.classType.create({
       data: { id: classTypeId, branchId, code: 'BOOKING', name: 'Booking class' },
     });
@@ -69,6 +73,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           id: slotId,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + 6 * 3_600_000),
           endAt: new Date(now + 7 * 3_600_000),
           timezone: 'Asia/Jakarta',
@@ -80,6 +85,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           id: cutoffSlotId,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + 60 * 60_000),
           endAt: new Date(now + 2 * 60 * 60_000),
           timezone: 'Asia/Jakarta',
@@ -207,6 +213,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     await db.classSlot.deleteMany({ where: { branchId } });
     await db.package.delete({ where: { id: packageId } });
     await db.classType.delete({ where: { id: classTypeId } });
+    await db.studio.delete({ where: { id: studioId } });
     await db.branch.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, ...customerIds] } } });
     await db.$disconnect();
@@ -385,6 +392,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           id: seatSlotId,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + 8 * 3_600_000),
           endAt: new Date(now + 9 * 3_600_000),
           timezone: 'Asia/Jakarta',
@@ -396,6 +404,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           id,
           branchId,
           classTypeId,
+          studioId,
           startAt: new Date(now + (10 + index * 2) * 3_600_000),
           endAt: new Date(now + (11 + index * 2) * 3_600_000),
           timezone: 'Asia/Jakarta',
@@ -484,6 +493,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         ...slot,
         branchId,
         classTypeId,
+        studioId,
         timezone: 'Asia/Jakarta',
         minimumQuota: 1,
         capacity: 5,
@@ -566,6 +576,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         id: classSlotId,
         branchId,
         classTypeId,
+        studioId,
         startAt: new Date(Date.now() + 30 * 3_600_000),
         endAt: new Date(Date.now() + 31 * 3_600_000),
         timezone: 'Asia/Jakarta',

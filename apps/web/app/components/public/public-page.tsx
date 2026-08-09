@@ -20,7 +20,7 @@ export function PublicPageHero({
   return (
     <section
       className={`relative isolate overflow-hidden border-b border-dd-line bg-dd-paper ${
-        compact ? 'py-5' : 'py-16 sm:py-20 lg:py-24'
+        compact ? 'py-3' : 'py-16 sm:py-20 lg:py-24'
       }`}
     >
       <div className={`${publicContainer} relative z-10`}>

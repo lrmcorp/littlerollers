@@ -14,7 +14,7 @@ import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback'
 import { Badge, Pagination, Panel } from '../components/admin/admin-ui';
 import { Skeleton } from '../ui';
 import {
-  MultiSearchSelect,
+  AsyncMultiSearchSelect,
   SearchSelect,
   SelectInput,
   Textarea,
@@ -49,6 +49,7 @@ export function VoucherDetailView({ id }: { id: string }) {
   const [packageOptions, setPackageOptions] = useState<InternalPackageRecord[]>([]);
   const [classTypes, setClassTypes] = useState<Array<{ id: string; name: string }>>([]);
   const [editBranchId, setEditBranchId] = useState('');
+  const [editClassTypeId, setEditClassTypeId] = useState('');
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const feedback = useAppFeedback();
   const canManage = session?.status === 'authenticated' && session.hasCapability('voucher:manage');
@@ -70,13 +71,13 @@ export function VoucherDetailView({ id }: { id: string }) {
     setEditFailure('');
     const branchId = voucher.branch?.id ?? '';
     setEditBranchId(branchId);
+    setEditClassTypeId(voucher.classType?.id ?? '');
     setSelectedPackageIds(voucher.packageIds);
-    const branchIds = branchId
-      ? [branchId]
-      : (session?.session?.branches ?? []).map((branch) => branch.id);
     void Promise.all(
-      branchIds.map((value) => browserPackagePromotionClient.packages({ branchId: value })),
-    ).then((pages) => setPackageOptions(pages.flatMap((page) => page.items)));
+      voucher.packageIds.map((packageId) => browserPackagePromotionClient.detail(packageId)),
+    )
+      .then(setPackageOptions)
+      .catch(() => setPackageOptions([]));
     if (branchId) void browserMasterClient.listClassTypes(branchId).then(setClassTypes);
     else setClassTypes([]);
   }, [editOpen, session?.session?.branches, voucher]);
@@ -466,40 +467,77 @@ export function VoucherDetailView({ id }: { id: string }) {
               description: branch.code,
             }))}
             onChange={(branchId) => {
-              setEditBranchId(branchId);
-              setSelectedPackageIds([]);
-              if (branchId) {
-                void browserMasterClient.listClassTypes(branchId).then(setClassTypes);
-                void browserPackagePromotionClient
-                  .packages({ branchId })
-                  .then((page) => setPackageOptions(page.items));
-              } else {
-                setClassTypes([]);
-                void Promise.all(
-                  (session.session?.branches ?? []).map((branch) =>
-                    browserPackagePromotionClient.packages({ branchId: branch.id }),
-                  ),
-                ).then((pages) => setPackageOptions(pages.flatMap((page) => page.items)));
-              }
+              void (async () => {
+                if (
+                  selectedPackageIds.length > 0 &&
+                  !(await feedback.confirm({
+                    tone: 'warning',
+                    title: 'Ganti scope cabang?',
+                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                    confirmLabel: 'Ganti cabang',
+                  }))
+                )
+                  return;
+                setEditBranchId(branchId);
+                setEditClassTypeId('');
+                setSelectedPackageIds([]);
+                setPackageOptions([]);
+                if (branchId) void browserMasterClient.listClassTypes(branchId).then(setClassTypes);
+                else setClassTypes([]);
+              })();
             }}
           />
           <SearchSelect
             name="classTypeId"
             label="Scope tipe kelas"
-            defaultValue={voucher.classType?.id ?? ''}
+            value={editClassTypeId}
             placeholder="Semua tipe kelas"
             options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+            onChange={(classTypeId) => {
+              void (async () => {
+                if (
+                  selectedPackageIds.length > 0 &&
+                  !(await feedback.confirm({
+                    tone: 'warning',
+                    title: 'Ganti scope tipe kelas?',
+                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                    confirmLabel: 'Ganti tipe kelas',
+                  }))
+                )
+                  return;
+                setEditClassTypeId(classTypeId);
+                setSelectedPackageIds([]);
+                setPackageOptions([]);
+              })();
+            }}
           />
-          <MultiSearchSelect
+          <AsyncMultiSearchSelect
             label="Scope paket"
             description="Tanpa pilihan berarti semua paket dalam scope cabang dan tipe kelas."
             placeholder="Cari dan pilih paket"
             value={selectedPackageIds}
-            options={packageOptions.map((item) => ({
+            selectedOptions={packageOptions.map((item) => ({
               id: item.id,
               label: item.name,
               description: item.branch?.name,
             }))}
+            loadOptions={async (query, cursor) => {
+              const page = await browserPackagePromotionClient.packages({
+                branchId: editBranchId || undefined,
+                classTypeId: editClassTypeId || undefined,
+                status: 'ACTIVE',
+                q: query.trim() || undefined,
+                cursor,
+              });
+              return {
+                items: page.items.map((item) => ({
+                  id: item.id,
+                  label: item.name,
+                  description: item.branch?.name,
+                })),
+                nextCursor: page.page.nextCursor ?? undefined,
+              };
+            }}
             onChange={(ids) => setSelectedPackageIds(ids)}
           />
           <TextInput

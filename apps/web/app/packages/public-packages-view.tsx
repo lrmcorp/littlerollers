@@ -240,9 +240,9 @@ export function PublicPackagesView({
           </ul>
         </PublicPageHero>
 
-        <section className="py-4 sm:py-5" aria-labelledby="package-discovery-title">
+        <section className="py-0 sm:py-1" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>
-            <header className="mb-3 max-w-3xl">
+            <header className="mb-2 max-w-3xl">
               <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
                 01 — Pilih studio
               </p>
@@ -273,7 +273,7 @@ export function PublicPackagesView({
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-16 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
+                      className={`flex min-h-14 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
                         selected
                           ? 'border-dd-forest bg-dd-forest text-white'
                           : 'border-dd-line bg-white text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/50'

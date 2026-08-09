@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -12,8 +13,8 @@ part 'package_command.g.dart';
 /// PackageCommand
 ///
 /// Properties:
-/// * [branchId] 
-/// * [classTypeId] 
+/// * [branchIds] 
+/// * [classTypeIds] 
 /// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
@@ -24,11 +25,11 @@ part 'package_command.g.dart';
 /// * [reason] 
 @BuiltValue()
 abstract class PackageCommand implements Built<PackageCommand, PackageCommandBuilder> {
-  @BuiltValueField(wireName: r'branchId')
-  String get branchId;
+  @BuiltValueField(wireName: r'branchIds')
+  BuiltSet<String> get branchIds;
 
-  @BuiltValueField(wireName: r'classTypeId')
-  String get classTypeId;
+  @BuiltValueField(wireName: r'classTypeIds')
+  BuiltSet<String> get classTypeIds;
 
   @BuiltValueField(wireName: r'businessKey')
   String get businessKey;
@@ -77,15 +78,15 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
     PackageCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
-    yield r'branchId';
+    yield r'branchIds';
     yield serializers.serialize(
-      object.branchId,
-      specifiedType: const FullType(String),
+      object.branchIds,
+      specifiedType: const FullType(BuiltSet, [FullType(String)]),
     );
-    yield r'classTypeId';
+    yield r'classTypeIds';
     yield serializers.serialize(
-      object.classTypeId,
-      specifiedType: const FullType(String),
+      object.classTypeIds,
+      specifiedType: const FullType(BuiltSet, [FullType(String)]),
     );
     yield r'businessKey';
     yield serializers.serialize(
@@ -152,19 +153,19 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
-        case r'branchId':
+        case r'branchIds':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.branchId = valueDes;
+            specifiedType: const FullType(BuiltSet, [FullType(String)]),
+          ) as BuiltSet<String>;
+          result.branchIds.replace(valueDes);
           break;
-        case r'classTypeId':
+        case r'classTypeIds':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.classTypeId = valueDes;
+            specifiedType: const FullType(BuiltSet, [FullType(String)]),
+          ) as BuiltSet<String>;
+          result.classTypeIds.replace(valueDes);
           break;
         case r'businessKey':
           final valueDes = serializers.deserialize(

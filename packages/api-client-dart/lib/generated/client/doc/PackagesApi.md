@@ -37,6 +37,7 @@ Method | HTTP request | Description
 [**listVouchers**](PackagesApi.md#listvouchers) | **GET** /vouchers | 
 [**previewCheckoutVoucher**](PackagesApi.md#previewcheckoutvoucher) | **POST** /checkout/voucher-preview | 
 [**rejectPurchase**](PackagesApi.md#rejectpurchase) | **POST** /purchases/{id}/reject | 
+[**replacePackageScopes**](PackagesApi.md#replacepackagescopes) | **PUT** /packages/{id}/scopes | 
 [**replacePurchasePaymentProof**](PackagesApi.md#replacepurchasepaymentproof) | **POST** /purchases/{id}/payment-proof-replacements | 
 [**submitPurchase**](PackagesApi.md#submitpurchase) | **POST** /purchases | 
 [**transitionPackage**](PackagesApi.md#transitionpackage) | **POST** /packages/{id}/{action} | 
@@ -1293,6 +1294,53 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Purchase**](Purchase.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **replacePackageScopes**
+> Package replacePackageScopes(id, idempotencyKey, packageScopeCommand)
+
+
+
+Replaces explicit Studio/Cabang and global class-type scopes without cloning the package identity.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getPackagesApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final String idempotencyKey = idempotencyKey_example; // String | 
+final PackageScopeCommand packageScopeCommand = ; // PackageScopeCommand | 
+
+try {
+    final response = api.replacePackageScopes(id, idempotencyKey, packageScopeCommand);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling PackagesApi->replacePackageScopes: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+ **idempotencyKey** | **String**|  | 
+ **packageScopeCommand** | [**PackageScopeCommand**](PackageScopeCommand.md)|  | 
+
+### Return type
+
+[**Package**](Package.md)
 
 ### Authorization
 

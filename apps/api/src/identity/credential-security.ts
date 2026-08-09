@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { hash, verify, argon2id } from 'argon2';
+import { compare as compareBcrypt } from 'bcryptjs';
 import { HttpStatus } from '@nestjs/common';
 import { ApiProblem } from './security';
 
@@ -32,8 +33,13 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(hashValue: string, password: string): Promise<boolean> {
   if (password.length > PASSWORD_MAX) return false;
   try {
+    if (/^\$2[aby]\$/u.test(hashValue)) return await compareBcrypt(password, hashValue);
+    if (!hashValue.startsWith('$argon2id$')) return false;
     return await verify(hashValue, password);
   } catch {
     return false;
   }
 }
+
+export const passwordHashNeedsUpgrade = (hashValue: string): boolean =>
+  /^\$2[aby]\$/u.test(hashValue);

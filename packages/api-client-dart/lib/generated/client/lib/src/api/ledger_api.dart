@@ -222,6 +222,87 @@ class LedgerApi {
     );
   }
 
+  /// getSessionAdjustment
+  /// Capability and branch-scoped authoritative adjustment detail with safe customer, package, balance, eligibility, and actor projections.
+  ///
+  /// Parameters:
+  /// * [id] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SessionAdjustment] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SessionAdjustment>> getSessionAdjustment({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/session-adjustments/{id}'.replaceAll('{' r'id' '}', encodeQueryParameter(_serializers, id, const FullType(String)).toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SessionAdjustment? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(SessionAdjustment),
+      ) as SessionAdjustment;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SessionAdjustment>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// listCustomerPackages
   /// Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Internal callers may search active customer packages without entering technical IDs.
   ///
@@ -321,12 +402,17 @@ class LedgerApi {
   }
 
   /// listSessionAdjustments
-  /// Branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
+  /// Capability and branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
   ///
   /// Parameters:
   /// * [branchId] - Filter only; never grants authority
   /// * [status] 
   /// * [cursor] 
+  /// * [q] 
+  /// * [customerUserId] 
+  /// * [from] 
+  /// * [until] 
+  /// * [limit] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -340,6 +426,11 @@ class LedgerApi {
     String? branchId,
     String? status,
     String? cursor,
+    String? q,
+    String? customerUserId,
+    DateTime? from,
+    DateTime? until,
+    int? limit = 20,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -370,6 +461,11 @@ class LedgerApi {
       if (branchId != null) r'branchId': encodeQueryParameter(_serializers, branchId, const FullType(String)),
       if (status != null) r'status': encodeQueryParameter(_serializers, status, const FullType(String)),
       if (cursor != null) r'cursor': encodeQueryParameter(_serializers, cursor, const FullType(String)),
+      if (q != null) r'q': encodeQueryParameter(_serializers, q, const FullType(String)),
+      if (customerUserId != null) r'customerUserId': encodeQueryParameter(_serializers, customerUserId, const FullType(String)),
+      if (from != null) r'from': encodeQueryParameter(_serializers, from, const FullType(DateTime)),
+      if (until != null) r'until': encodeQueryParameter(_serializers, until, const FullType(DateTime)),
+      if (limit != null) r'limit': encodeQueryParameter(_serializers, limit, const FullType(int)),
     };
 
     final _response = await _dio.request<Object>(

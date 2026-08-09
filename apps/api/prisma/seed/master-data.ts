@@ -84,8 +84,7 @@ const branchPublicProfiles = {
     address: 'Kawasan BSD City, Tangerang Selatan',
     latitude: -6.3017,
     longitude: 106.6527,
-    description:
-      'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
+    description: 'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
     arrivalInformation:
       'Datang 15 menit sebelum kelas. Tim studio akan membantu proses check-in dan orientasi pertama.',
     parkingInformation: 'Area parkir mobil dan motor tersedia di kompleks studio.',
@@ -187,6 +186,7 @@ export const masterCatalog = [
 
 export interface SeedCatalogResult {
   branches: Record<string, string>;
+  studios: Record<string, string>;
   classTypes: Record<string, string>;
 }
 
@@ -223,7 +223,10 @@ export function validateMasterTemplates(templates = branchTemplates) {
   for (const item of masterCatalog) {
     if (item.quota < 1 || item.capacity < item.quota || item.projection < 1 || item.fee < 1)
       throw new Error(`Invalid effective configuration for ${item.code}.`);
-    if (!item.packages.length || item.packages.some((pkg) => pkg.sessions < 1 || pkg.days < 1 || pkg.price < 1))
+    if (
+      !item.packages.length ||
+      item.packages.some((pkg) => pkg.sessions < 1 || pkg.days < 1 || pkg.price < 1)
+    )
       throw new Error(`Class type ${item.code} requires valid package configuration.`);
   }
   assertNonOverlappingPeriods([
@@ -235,6 +238,7 @@ export function validateMasterTemplates(templates = branchTemplates) {
 export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogResult> {
   validateMasterTemplates();
   const branches: Record<string, string> = {};
+  const studios: Record<string, string> = {};
   const classTypes: Record<string, string> = {};
   for (const template of branchTemplates) {
     const branch = await ctx.db.branch.upsert({
@@ -254,21 +258,63 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
       },
     });
     branches[template.code] = branch.id;
-    for (const item of masterCatalog) {
-      const classType = await ctx.db.classType.upsert({
-        where: { branchId_code: { branchId: branch.id, code: item.code } },
-        update: { name: item.name, active: true },
+    await ctx.db.accountingAccount.upsert({
+      where: { branchId_code: { branchId: branch.id, code: 'FINANCE_CORRECTION' } },
+      update: { active: true, historical: false },
+      create: {
+        id: ctx.id('accounting-account', `${template.code}:FINANCE_CORRECTION`),
+        branchId: branch.id,
+        code: 'FINANCE_CORRECTION',
+        name: 'Finance Correction',
+        accountType: 'SYSTEM_CORRECTION',
+      },
+    });
+    const studio = await ctx.db.studio.upsert({
+      where: { branchId_code: { branchId: branch.id, code: 'MAIN' } },
+      update: { name: `Area Studio ${template.name}`, active: true },
+      create: {
+        id: ctx.id('studio', template.code),
+        branchId: branch.id,
+        code: 'MAIN',
+        name: `Area Studio ${template.name}`,
+      },
+    });
+    studios[template.code] = studio.id;
+  }
+  for (const item of masterCatalog) {
+    const classType = await ctx.db.classType.upsert({
+      where: { code: item.code },
+      update: {
+        name: item.name,
+        active: true,
+        defaultMinimumQuota: item.quota,
+        defaultCapacity: item.capacity,
+      },
+      create: {
+        id: ctx.id('class-type', item.code),
+        code: item.code,
+        name: item.name,
+        modality: 'GROUP',
+        defaultDurationMinutes: 60,
+        defaultMinimumQuota: item.quota,
+        defaultCapacity: item.capacity,
+      },
+    });
+    for (const template of branchTemplates) {
+      const branchId = branches[template.code]!;
+      await ctx.db.classTypeBranchScope.upsert({
+        where: { classTypeId_branchId: { classTypeId: classType.id, branchId } },
+        update: { active: true },
         create: {
-          id: ctx.id('class-type', `${template.code}:${item.code}`),
-          branchId: branch.id,
-          code: item.code,
-          name: item.name,
+          id: ctx.id('class-type-scope', `${item.code}:${template.code}`),
+          classTypeId: classType.id,
+          branchId,
         },
       });
       classTypes[`${template.code}:${item.code}`] = classType.id;
     }
   }
-  return { branches, classTypes };
+  return { branches, studios, classTypes };
 }
 
 export async function seedCommercialMaster(
@@ -278,6 +324,71 @@ export async function seedCommercialMaster(
 ): Promise<SeedMasterResult> {
   validateMasterTemplates();
   const packages: Record<string, string> = {};
+  const seedPackageStructure = async (input: {
+    packageId: string;
+    branchId: string;
+    classTypeId: string;
+    sessionCount: number;
+    durationDays: number;
+    priceRp: number;
+    effectiveFrom: Date;
+    effectiveUntil?: Date | null;
+    active?: boolean;
+  }) => {
+    await ctx.db.packageBranchScope.upsert({
+      where: {
+        packageId_branchId: { packageId: input.packageId, branchId: input.branchId },
+      },
+      update: { active: input.active ?? true, historical: !(input.active ?? true) },
+      create: {
+        id: ctx.id('package-branch-scope', `${input.packageId}:${input.branchId}`),
+        packageId: input.packageId,
+        branchId: input.branchId,
+        active: input.active ?? true,
+        historical: !(input.active ?? true),
+      },
+    });
+    await ctx.db.packageClassTypeScope.upsert({
+      where: {
+        packageId_classTypeId: {
+          packageId: input.packageId,
+          classTypeId: input.classTypeId,
+        },
+      },
+      update: { active: input.active ?? true, historical: !(input.active ?? true) },
+      create: {
+        id: ctx.id('package-class-type-scope', `${input.packageId}:${input.classTypeId}`),
+        packageId: input.packageId,
+        classTypeId: input.classTypeId,
+        active: input.active ?? true,
+        historical: !(input.active ?? true),
+      },
+    });
+    await ctx.db.packageRevision.upsert({
+      where: { packageId_revisionNumber: { packageId: input.packageId, revisionNumber: 1 } },
+      update: {
+        sessionCount: input.sessionCount,
+        durationDays: input.durationDays,
+        priceRp: input.priceRp,
+        visible: input.active ?? true,
+        effectiveFrom: input.effectiveFrom,
+        effectiveUntil: input.effectiveUntil ?? null,
+        historical: !(input.active ?? true),
+      },
+      create: {
+        id: ctx.id('package-revision', `${input.packageId}:1`),
+        packageId: input.packageId,
+        revisionNumber: 1,
+        sessionCount: input.sessionCount,
+        durationDays: input.durationDays,
+        priceRp: input.priceRp,
+        visible: input.active ?? true,
+        effectiveFrom: input.effectiveFrom,
+        effectiveUntil: input.effectiveUntil ?? null,
+        historical: !(input.active ?? true),
+      },
+    });
+  };
   for (const template of branchTemplates) {
     const branchId = catalog.branches[template.code];
     if (!branchId) throw new Error(`Missing seeded branch ${template.code}.`);
@@ -308,11 +419,15 @@ export async function seedCommercialMaster(
 
     for (const item of masterCatalog) {
       const classTypeId = catalog.classTypes[`${template.code}:${item.code}`];
-      if (!classTypeId) throw new Error(`Class type ${item.code} does not belong to ${template.code}.`);
+      if (!classTypeId)
+        throw new Error(`Class type ${item.code} does not belong to ${template.code}.`);
       const commonConfigurations = [
         {
           kind: 'QUOTA_CAPACITY' as const,
-          value: { minimumQuota: item.quota, defaultCapacity: item.capacity + template.capacityOffset },
+          value: {
+            minimumQuota: item.quota,
+            defaultCapacity: item.capacity + template.capacityOffset,
+          },
         },
         {
           kind: 'PROJECTION_RATE' as const,
@@ -352,7 +467,10 @@ export async function seedCommercialMaster(
           },
         });
         if (config.kind === 'PROJECTION_RATE') {
-          const futureId = ctx.id('configuration', `${template.code}:${item.code}:${config.kind}:future`);
+          const futureId = ctx.id(
+            'configuration',
+            `${template.code}:${item.code}:${config.kind}:future`,
+          );
           await ctx.db.effectiveConfiguration.upsert({
             where: { id: futureId },
             update: {
@@ -382,7 +500,10 @@ export async function seedCommercialMaster(
         if (!assignment)
           throw new Error(`Instructor fee requires an active assignment for ${instructorId}.`);
         const suffix = instructorIndex === 0 ? 'active' : `active:${instructorId}`;
-        const id = ctx.id('configuration', `${template.code}:${item.code}:INSTRUCTOR_FEE:${suffix}`);
+        const id = ctx.id(
+          'configuration',
+          `${template.code}:${item.code}:INSTRUCTOR_FEE:${suffix}`,
+        );
         await ctx.db.effectiveConfiguration.upsert({
           where: { id },
           update: {
@@ -393,7 +514,7 @@ export async function seedCommercialMaster(
             value: {
               feeRp: item.fee + template.feeOffset + instructorIndex * 10_000,
               currency: 'IDR',
-              unit: 'MATCHED_HOUR',
+              unit: 'MATCHED_CLASS',
               instructorUserId: instructorId,
             },
             effectiveFrom: new Date('2026-01-01'),
@@ -409,7 +530,7 @@ export async function seedCommercialMaster(
             value: {
               feeRp: item.fee + template.feeOffset + instructorIndex * 10_000,
               currency: 'IDR',
-              unit: 'MATCHED_HOUR',
+              unit: 'MATCHED_CLASS',
               instructorUserId: instructorId,
             },
             effectiveFrom: new Date('2026-01-01'),
@@ -420,6 +541,7 @@ export async function seedCommercialMaster(
 
       for (const pkg of item.packages) {
         const packageId = ctx.id('package', `${template.code}:${item.code}:${pkg.key}`);
+        const priceRp = Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000;
         packages[`${template.code}:${item.code}:${pkg.key}`] = packageId;
         await ctx.db.package.upsert({
           where: { id: packageId },
@@ -430,7 +552,7 @@ export async function seedCommercialMaster(
             name: `${item.name} ${pkg.key}`,
             sessionCount: pkg.sessions,
             durationDays: pkg.days,
-            priceRp: Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000,
+            priceRp,
             status: 'ACTIVE',
             effectiveUntil: null,
           },
@@ -442,10 +564,19 @@ export async function seedCommercialMaster(
             name: `${item.name} ${pkg.key}`,
             sessionCount: pkg.sessions,
             durationDays: pkg.days,
-            priceRp: Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000,
+            priceRp,
             effectiveFrom: new Date('2026-01-01'),
             status: 'ACTIVE',
           },
+        });
+        await seedPackageStructure({
+          packageId,
+          branchId,
+          classTypeId,
+          sessionCount: pkg.sessions,
+          durationDays: pkg.days,
+          priceRp,
+          effectiveFrom: new Date('2026-01-01'),
         });
         const sessionsLabel = `${pkg.sessions} sesi`;
         await ctx.db.packagePublicProfile.upsert({
@@ -453,11 +584,7 @@ export async function seedCommercialMaster(
           update: {
             summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
             description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [
-              `${sessionsLabel}`,
-              `Berlaku ${pkg.days} hari`,
-              `Khusus ${template.name}`,
-            ],
+            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
             usageGuidance:
               'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
             terms: [
@@ -470,11 +597,7 @@ export async function seedCommercialMaster(
             packageId,
             summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
             description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [
-              `${sessionsLabel}`,
-              `Berlaku ${pkg.days} hari`,
-              `Khusus ${template.name}`,
-            ],
+            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
             usageGuidance:
               'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
             terms: [
@@ -502,6 +625,17 @@ export async function seedCommercialMaster(
           effectiveUntil: new Date('2025-12-31'),
           status: 'INACTIVE',
         },
+      });
+      await seedPackageStructure({
+        packageId: inactiveId,
+        branchId,
+        classTypeId,
+        sessionCount: 4,
+        durationDays: 30,
+        priceRp: 500_000,
+        effectiveFrom: new Date('2025-01-01'),
+        effectiveUntil: new Date('2025-12-31'),
+        active: false,
       });
     }
 
@@ -531,6 +665,16 @@ export async function seedCommercialMaster(
           status: 'ACTIVE',
         },
       });
+      await seedPackageStructure({
+        packageId: historicalId,
+        branchId,
+        classTypeId: revisionClassTypeId,
+        sessionCount: 6,
+        durationDays: 45,
+        priceRp: Math.round((960_000 * template.priceMultiplier) / 10_000) * 10_000,
+        effectiveFrom: new Date('2025-01-01'),
+        effectiveUntil: new Date('2026-01-01'),
+      });
       await ctx.db.package.upsert({
         where: { id: scheduledId },
         update: {
@@ -550,6 +694,15 @@ export async function seedCommercialMaster(
           effectiveFrom: new Date('2027-01-01'),
           status: 'ACTIVE',
         },
+      });
+      await seedPackageStructure({
+        packageId: scheduledId,
+        branchId,
+        classTypeId: revisionClassTypeId,
+        sessionCount: 6,
+        durationDays: 60,
+        priceRp: Math.round((1_080_000 * template.priceMultiplier) / 10_000) * 10_000,
+        effectiveFrom: new Date('2027-01-01'),
       });
     }
 

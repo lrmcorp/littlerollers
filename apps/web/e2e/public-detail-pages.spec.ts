@@ -29,13 +29,14 @@ for (const width of [390, 1280]) {
     for (const item of routes) {
       test(`${item.parent} has canonical detail layout without overflow`, async ({ page }) => {
         await page.goto(item.path);
+        await expect(page).toHaveTitle(new RegExp(item.heading));
         await expect(page.getByRole('heading', { level: 1, name: item.heading })).toBeVisible();
         await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText(
           item.parent,
         );
         await expect(page.locator('[data-admin-shell]')).toHaveCount(0);
         await expect(page.locator('header').first()).toBeVisible();
-        expect(await page.locator('h1').count()).toBe(1);
+        await expect(page.locator('h1:visible')).toHaveCount(1);
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

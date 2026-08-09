@@ -29,8 +29,13 @@ export class PublicPackageQueryService {
     const packages = branchId
       ? await this.db.package.findMany({
           where: {
-            branchId,
-            branch: { active: true, publicProfile: { isNot: null } },
+            branchScopes: {
+              some: {
+                branchId,
+                active: true,
+                branch: { active: true, publicProfile: { isNot: null } },
+              },
+            },
             classType: { active: true },
             status: 'ACTIVE',
             effectiveFrom: { lte: now },
@@ -62,13 +67,14 @@ export class PublicPackageQueryService {
     const branch = branches.find(({ id }) => id === branchId);
     const items = packages
       .filter((item) => {
-        const key = `${item.branchId}:${item.classType.id}:${item.businessKey}`;
+        const key = `${branchId}:${item.classType.id}:${item.businessKey}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
       .map(({ businessKey: _businessKey, updatedAt: _updatedAt, promotions, ...item }) => ({
         ...item,
+        branchId: branchId!,
         ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
         branch,
       }))
@@ -88,7 +94,12 @@ export class PublicPackageQueryService {
     const item = await this.db.package.findFirst({
       where: {
         id,
-        branch: { active: true, publicProfile: { isNot: null } },
+        branchScopes: {
+          some: {
+            active: true,
+            branch: { active: true, publicProfile: { isNot: null } },
+          },
+        },
         classType: { active: true },
         publicProfile: { isNot: null },
         status: 'ACTIVE',
@@ -128,13 +139,34 @@ export class PublicPackageQueryService {
             publicProfile: true,
           },
         },
+        branchScopes: {
+          where: {
+            active: true,
+            branch: { active: true, publicProfile: { isNot: null } },
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: 1,
+          include: {
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                timezone: true,
+                supportWhatsappE164: true,
+                publicProfile: true,
+              },
+            },
+          },
+        },
       },
     });
-    if (!item?.publicProfile || !item.branch.publicProfile)
+    const branch = item?.branchScopes[0]?.branch ?? item?.branch;
+    if (!item?.publicProfile || !branch?.publicProfile)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const schedules = await this.db.classSlot.findMany({
       where: {
-        branchId: item.branch.id,
+        branchId: branch.id,
         classTypeId: item.classType.id,
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
         startAt: { gt: now },

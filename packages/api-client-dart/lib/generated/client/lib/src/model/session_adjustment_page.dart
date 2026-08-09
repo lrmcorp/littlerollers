@@ -6,6 +6,7 @@
 import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
+import 'package:openapi/src/model/session_adjustment_summary.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -15,11 +16,15 @@ part 'session_adjustment_page.g.dart';
 ///
 /// Properties:
 /// * [items] 
+/// * [summary] 
 /// * [page] 
 @BuiltValue()
 abstract class SessionAdjustmentPage implements Built<SessionAdjustmentPage, SessionAdjustmentPageBuilder> {
   @BuiltValueField(wireName: r'items')
   BuiltList<SessionAdjustment> get items;
+
+  @BuiltValueField(wireName: r'summary')
+  SessionAdjustmentSummary get summary;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -51,6 +56,11 @@ class _$SessionAdjustmentPageSerializer implements PrimitiveSerializer<SessionAd
     yield serializers.serialize(
       object.items,
       specifiedType: const FullType(BuiltList, [FullType(SessionAdjustment)]),
+    );
+    yield r'summary';
+    yield serializers.serialize(
+      object.summary,
+      specifiedType: const FullType(SessionAdjustmentSummary),
     );
     yield r'page';
     yield serializers.serialize(
@@ -86,6 +96,13 @@ class _$SessionAdjustmentPageSerializer implements PrimitiveSerializer<SessionAd
             specifiedType: const FullType(BuiltList, [FullType(SessionAdjustment)]),
           ) as BuiltList<SessionAdjustment>;
           result.items.replace(valueDes);
+          break;
+        case r'summary':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionAdjustmentSummary),
+          ) as SessionAdjustmentSummary;
+          result.summary.replace(valueDes);
           break;
         case r'page':
           final valueDes = serializers.deserialize(

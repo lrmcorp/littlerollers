@@ -27,8 +27,11 @@ import { InviteUserDrawer, roleLabels, roleSummary, statusLabels } from './user-
 import { SearchInput, SearchSelect, SelectInput } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
+  AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
   CONFIGURATION_REQUIRED: 'Layanan identitas belum dapat dihubungi.',
+  INTERNAL_ERROR: 'Layanan identitas mengalami gangguan internal.',
   RATE_LIMITED: 'Terlalu banyak permintaan. Coba kembali nanti.',
+  SERVICE_UNAVAILABLE: 'Layanan identitas tidak dapat dihubungi.',
   FORBIDDEN: 'Anda tidak memiliki izin untuk tindakan ini.',
   IDENTITY_CONFLICT: 'Data pengguna berubah atau tindakan tidak dapat diterapkan.',
   STALE_VERSION: 'Data pengguna telah berubah. Muat ulang sebelum mencoba kembali.',

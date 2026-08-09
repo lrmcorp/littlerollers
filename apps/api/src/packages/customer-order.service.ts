@@ -1,9 +1,10 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 import { PackageAccessService } from './package-access.service';
 import { decryptAccountNumber } from './payment-account-security';
 import { PackagePricingService } from './package-pricing.service';
@@ -24,6 +25,7 @@ export class CustomerOrderService {
     private readonly idem: IdempotencyService,
     private readonly access: PackageAccessService,
     private readonly pricing: PackagePricingService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
   async checkoutOptions(p: SessionPrincipal, packageId: string, branchId?: string) {
     this.access.catalog(p);
@@ -37,7 +39,7 @@ export class CustomerOrderService {
         OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
       },
       include: {
-        branch: true,
+        branchScopes: { where: { active: true }, include: { branch: true } },
         classType: true,
         promotions: {
           where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
@@ -46,11 +48,14 @@ export class CustomerOrderService {
         },
       },
     });
-    if (!pkg?.branch.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    if (branchId && pkg.branchId !== branchId)
+    const selectedScope = branchId
+      ? pkg?.branchScopes.find((scope) => scope.branchId === branchId)
+      : pkg?.branchScopes[0];
+    if (!pkg || !selectedScope?.branch.active)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const effectiveBranchId = selectedScope.branchId;
     const account = await this.db.paymentAccount.findFirst({
-      where: { branchId: pkg.branchId, active: true },
+      where: { branchId: effectiveBranchId, active: true },
       orderBy: { createdAt: 'desc' },
     });
     if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
@@ -65,8 +70,8 @@ export class CustomerOrderService {
         version: pkg.version,
         sessionCount: pkg.sessionCount,
         durationDays: pkg.durationDays,
-        branchId: pkg.branchId,
-        branchName: pkg.branch.name,
+        branchId: effectiveBranchId,
+        branchName: selectedScope.branch.name,
         classTypeId: pkg.classTypeId,
         classTypeName: pkg.classType.name,
       },
@@ -258,18 +263,23 @@ export class CustomerOrderService {
             effectiveFrom: { lte: now },
             OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
           },
+          include: { branchScopes: { where: { active: true }, select: { branchId: true } } },
         });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        if (input.branchId && input.branchId !== pkg.branchId)
+        const effectiveBranchId = input.branchId ?? pkg.branchScopes[0]?.branchId;
+        if (
+          !effectiveBranchId ||
+          !pkg.branchScopes.some((scope) => scope.branchId === effectiveBranchId)
+        )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const account = await tx.paymentAccount.findFirst({
-          where: { branchId: pkg.branchId, active: true },
+          where: { branchId: effectiveBranchId, active: true },
           orderBy: { createdAt: 'desc' },
         });
         if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
         if (input.slotId) {
           const slot = await tx.classSlot.findUnique({ where: { id: input.slotId } });
-          if (!slot || slot.branchId !== pkg.branchId || slot.classTypeId !== pkg.classTypeId)
+          if (!slot || slot.branchId !== effectiveBranchId || slot.classTypeId !== pkg.classTypeId)
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         }
         const activePromotion = await this.pricing.activePromotion(tx, pkg.id, now);
@@ -307,7 +317,7 @@ export class CustomerOrderService {
               activeFrom: { lte: now },
               OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
               AND: [
-                { OR: [{ branchId: null }, { branchId: pkg.branchId }] },
+                { OR: [{ branchId: null }, { branchId: effectiveBranchId }] },
                 { OR: [{ classTypeId: null }, { classTypeId: pkg.classTypeId }] },
                 { OR: [{ packages: { none: {} } }, { packages: { some: { packageId: pkg.id } } }] },
               ],
@@ -356,7 +366,7 @@ export class CustomerOrderService {
           data: {
             id: purchaseId,
             userId: p.userId,
-            branchId: pkg.branchId,
+            branchId: effectiveBranchId,
             packageId: pkg.id,
             paymentAccountId: account.id,
             paymentBankNameSnapshot: account.bankName,
@@ -401,17 +411,17 @@ export class CustomerOrderService {
           },
           include: { branch: true, paymentProof: true },
         });
-        if (voucher) {
-          await tx.voucherRedemption.create({
-            data: {
-              id: newId(),
-              voucherId: voucher.id,
-              purchaseId: purchase.id,
-              customerUserId: p.userId,
-              discountRp: voucher.discountRp,
-            },
-          });
-        }
+        const voucherRedemption = voucher
+          ? await tx.voucherRedemption.create({
+              data: {
+                id: newId(),
+                voucherId: voucher.id,
+                purchaseId: purchase.id,
+                customerUserId: p.userId,
+                discountRp: voucher.discountRp,
+              },
+            })
+          : null;
         await tx.purchaseTimelineEvent.createMany({
           data: [
             {
@@ -446,9 +456,41 @@ export class CustomerOrderService {
           'ORDER_CREATED',
           'Purchase',
           purchase.id,
-          pkg.branchId,
+          effectiveBranchId,
           correlationId,
         );
+        await this.pilotOutbox?.record(tx, {
+          branchId: effectiveBranchId,
+          aggregateType: 'Purchase',
+          aggregateId: purchase.id,
+          operation: 'CREATE',
+          correlationId,
+          occurredAt: purchase.submittedAt,
+          payload: {
+            purchaseId: purchase.id,
+            customerUserId: p.userId,
+            packageId: pkg.id,
+            status: purchase.status,
+            payableAmountRp: purchase.payableAmountRpSnapshot,
+            voucherId: voucher?.id ?? null,
+          },
+        });
+        if (voucher && voucherRedemption) {
+          await this.pilotOutbox?.record(tx, {
+            branchId: effectiveBranchId,
+            aggregateType: 'VoucherRedemption',
+            aggregateId: voucherRedemption.id,
+            operation: 'REDEEM',
+            correlationId,
+            occurredAt: purchase.submittedAt,
+            payload: {
+              purchaseId: purchase.id,
+              voucherId: voucher.id,
+              customerUserId: p.userId,
+              discountRp: voucher.discountRp,
+            },
+          });
+        }
         return { status: 201, body: this.orderView(purchase, true) as Prisma.InputJsonValue };
       },
     );
@@ -463,9 +505,12 @@ export class CustomerOrderService {
       until?: string;
       cursor?: string;
       limit?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.access.catalog(p);
+    if (filters.includeHistorical && !p.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     await this.expireOwnOrders(p.userId);
     if (filters.status && !orderStatuses.includes(filters.status as (typeof orderStatuses)[number]))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -494,6 +539,7 @@ export class CustomerOrderService {
     if (filters.cursor && !cursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const baseWhere: Prisma.PurchaseWhereInput = {
       userId: p.userId,
+      ...(filters.includeHistorical ? {} : { historical: false }),
       ...(q
         ? {
             OR: [{ packageNameSnapshot: { contains: q } }, { branch: { name: { contains: q } } }],
@@ -675,6 +721,23 @@ export class CustomerOrderService {
         order.branchId,
         correlationId,
       );
+      await this.pilotOutbox?.record(tx, {
+        branchId: order.branchId,
+        aggregateType: 'PaymentProof',
+        aggregateId: proof.id,
+        operation: 'ATTACH_TO_PURCHASE',
+        correlationId,
+        occurredAt: proof.finalizedAt ?? new Date(),
+        payload: {
+          paymentProofId: proof.id,
+          purchaseId: order.id,
+          checksumReference: proof.checksum,
+          mimeType: proof.mimeType,
+          sizeBytes: proof.sizeBytes,
+          kind: 'PAYMENT_PROOF',
+          version: updated.version,
+        },
+      });
       return this.orderView(updated, true);
     });
   }
@@ -764,6 +827,39 @@ export class CustomerOrderService {
           pkg.branchId,
           correlationId,
         );
+        await this.pilotOutbox?.record(tx, {
+          branchId: pkg.branchId,
+          aggregateType: 'Purchase',
+          aggregateId: purchase.id,
+          operation: 'CREATE',
+          correlationId,
+          occurredAt: purchase.submittedAt,
+          payload: {
+            purchaseId: purchase.id,
+            customerUserId: p.userId,
+            packageId: pkg.id,
+            status: purchase.status,
+            payableAmountRp: purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot,
+            voucherId: null,
+          },
+        });
+        await this.pilotOutbox?.record(tx, {
+          branchId: pkg.branchId,
+          aggregateType: 'PaymentProof',
+          aggregateId: proof.id,
+          operation: 'ATTACH_TO_PURCHASE',
+          correlationId,
+          occurredAt: proof.finalizedAt ?? purchase.submittedAt,
+          payload: {
+            paymentProofId: proof.id,
+            purchaseId: purchase.id,
+            checksumReference: proof.checksum,
+            mimeType: proof.mimeType,
+            sizeBytes: proof.sizeBytes,
+            kind: 'PAYMENT_PROOF',
+            version: purchase.version,
+          },
+        });
         return { status: 201, body: purchase as unknown as Prisma.InputJsonValue };
       },
     );

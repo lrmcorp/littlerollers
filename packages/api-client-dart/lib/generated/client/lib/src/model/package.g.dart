@@ -148,6 +148,15 @@ abstract mixin class PackageBuilder {
   String? get classTypeId;
   set classTypeId(String? classTypeId);
 
+  ListBuilder<PackageBranchScope> get branchScopes;
+  set branchScopes(ListBuilder<PackageBranchScope>? branchScopes);
+
+  ListBuilder<PackageClassTypeScope> get classTypeScopes;
+  set classTypeScopes(ListBuilder<PackageClassTypeScope>? classTypeScopes);
+
+  ListBuilder<PackageRevision> get revisions;
+  set revisions(ListBuilder<PackageRevision>? revisions);
+
   String? get businessKey;
   set businessKey(String? businessKey);
 
@@ -190,6 +199,12 @@ class _$$Package extends $Package {
   @override
   final String classTypeId;
   @override
+  final BuiltList<PackageBranchScope>? branchScopes;
+  @override
+  final BuiltList<PackageClassTypeScope>? classTypeScopes;
+  @override
+  final BuiltList<PackageRevision>? revisions;
+  @override
   final String businessKey;
   @override
   final String name;
@@ -219,6 +234,9 @@ class _$$Package extends $Package {
     required this.id,
     required this.branchId,
     required this.classTypeId,
+    this.branchScopes,
+    this.classTypeScopes,
+    this.revisions,
     required this.businessKey,
     required this.name,
     required this.sessionCount,
@@ -245,6 +263,9 @@ class _$$Package extends $Package {
         id == other.id &&
         branchId == other.branchId &&
         classTypeId == other.classTypeId &&
+        branchScopes == other.branchScopes &&
+        classTypeScopes == other.classTypeScopes &&
+        revisions == other.revisions &&
         businessKey == other.businessKey &&
         name == other.name &&
         sessionCount == other.sessionCount &&
@@ -264,6 +285,9 @@ class _$$Package extends $Package {
     _$hash = $jc(_$hash, id.hashCode);
     _$hash = $jc(_$hash, branchId.hashCode);
     _$hash = $jc(_$hash, classTypeId.hashCode);
+    _$hash = $jc(_$hash, branchScopes.hashCode);
+    _$hash = $jc(_$hash, classTypeScopes.hashCode);
+    _$hash = $jc(_$hash, revisions.hashCode);
     _$hash = $jc(_$hash, businessKey.hashCode);
     _$hash = $jc(_$hash, name.hashCode);
     _$hash = $jc(_$hash, sessionCount.hashCode);
@@ -285,6 +309,9 @@ class _$$Package extends $Package {
           ..add('id', id)
           ..add('branchId', branchId)
           ..add('classTypeId', classTypeId)
+          ..add('branchScopes', branchScopes)
+          ..add('classTypeScopes', classTypeScopes)
+          ..add('revisions', revisions)
           ..add('businessKey', businessKey)
           ..add('name', name)
           ..add('sessionCount', sessionCount)
@@ -316,6 +343,25 @@ class $PackageBuilder
   String? get classTypeId => _$this._classTypeId;
   set classTypeId(covariant String? classTypeId) =>
       _$this._classTypeId = classTypeId;
+
+  ListBuilder<PackageBranchScope>? _branchScopes;
+  ListBuilder<PackageBranchScope> get branchScopes =>
+      _$this._branchScopes ??= ListBuilder<PackageBranchScope>();
+  set branchScopes(covariant ListBuilder<PackageBranchScope>? branchScopes) =>
+      _$this._branchScopes = branchScopes;
+
+  ListBuilder<PackageClassTypeScope>? _classTypeScopes;
+  ListBuilder<PackageClassTypeScope> get classTypeScopes =>
+      _$this._classTypeScopes ??= ListBuilder<PackageClassTypeScope>();
+  set classTypeScopes(
+    covariant ListBuilder<PackageClassTypeScope>? classTypeScopes,
+  ) => _$this._classTypeScopes = classTypeScopes;
+
+  ListBuilder<PackageRevision>? _revisions;
+  ListBuilder<PackageRevision> get revisions =>
+      _$this._revisions ??= ListBuilder<PackageRevision>();
+  set revisions(covariant ListBuilder<PackageRevision>? revisions) =>
+      _$this._revisions = revisions;
 
   String? _businessKey;
   String? get businessKey => _$this._businessKey;
@@ -378,6 +424,9 @@ class $PackageBuilder
       _id = $v.id;
       _branchId = $v.branchId;
       _classTypeId = $v.classTypeId;
+      _branchScopes = $v.branchScopes?.toBuilder();
+      _classTypeScopes = $v.classTypeScopes?.toBuilder();
+      _revisions = $v.revisions?.toBuilder();
       _businessKey = $v.businessKey;
       _name = $v.name;
       _sessionCount = $v.sessionCount;
@@ -408,64 +457,87 @@ class $PackageBuilder
   $Package build() => _build();
 
   _$$Package _build() {
-    final _$result =
-        _$v ??
-        _$$Package._(
-          id: BuiltValueNullFieldError.checkNotNull(id, r'$Package', 'id'),
-          branchId: BuiltValueNullFieldError.checkNotNull(
-            branchId,
-            r'$Package',
-            'branchId',
-          ),
-          classTypeId: BuiltValueNullFieldError.checkNotNull(
-            classTypeId,
-            r'$Package',
-            'classTypeId',
-          ),
-          businessKey: BuiltValueNullFieldError.checkNotNull(
-            businessKey,
-            r'$Package',
-            'businessKey',
-          ),
-          name: BuiltValueNullFieldError.checkNotNull(
-            name,
-            r'$Package',
-            'name',
-          ),
-          sessionCount: BuiltValueNullFieldError.checkNotNull(
-            sessionCount,
-            r'$Package',
-            'sessionCount',
-          ),
-          durationDays: BuiltValueNullFieldError.checkNotNull(
-            durationDays,
-            r'$Package',
-            'durationDays',
-          ),
-          priceRp: BuiltValueNullFieldError.checkNotNull(
-            priceRp,
-            r'$Package',
-            'priceRp',
-          ),
-          status: BuiltValueNullFieldError.checkNotNull(
-            status,
-            r'$Package',
-            'status',
-          ),
-          effectiveState: effectiveState,
-          livePromotion: livePromotion,
-          effectiveFrom: BuiltValueNullFieldError.checkNotNull(
-            effectiveFrom,
-            r'$Package',
-            'effectiveFrom',
-          ),
-          effectiveUntil: effectiveUntil,
-          version: BuiltValueNullFieldError.checkNotNull(
-            version,
-            r'$Package',
-            'version',
-          ),
+    _$$Package _$result;
+    try {
+      _$result =
+          _$v ??
+          _$$Package._(
+            id: BuiltValueNullFieldError.checkNotNull(id, r'$Package', 'id'),
+            branchId: BuiltValueNullFieldError.checkNotNull(
+              branchId,
+              r'$Package',
+              'branchId',
+            ),
+            classTypeId: BuiltValueNullFieldError.checkNotNull(
+              classTypeId,
+              r'$Package',
+              'classTypeId',
+            ),
+            branchScopes: _branchScopes?.build(),
+            classTypeScopes: _classTypeScopes?.build(),
+            revisions: _revisions?.build(),
+            businessKey: BuiltValueNullFieldError.checkNotNull(
+              businessKey,
+              r'$Package',
+              'businessKey',
+            ),
+            name: BuiltValueNullFieldError.checkNotNull(
+              name,
+              r'$Package',
+              'name',
+            ),
+            sessionCount: BuiltValueNullFieldError.checkNotNull(
+              sessionCount,
+              r'$Package',
+              'sessionCount',
+            ),
+            durationDays: BuiltValueNullFieldError.checkNotNull(
+              durationDays,
+              r'$Package',
+              'durationDays',
+            ),
+            priceRp: BuiltValueNullFieldError.checkNotNull(
+              priceRp,
+              r'$Package',
+              'priceRp',
+            ),
+            status: BuiltValueNullFieldError.checkNotNull(
+              status,
+              r'$Package',
+              'status',
+            ),
+            effectiveState: effectiveState,
+            livePromotion: livePromotion,
+            effectiveFrom: BuiltValueNullFieldError.checkNotNull(
+              effectiveFrom,
+              r'$Package',
+              'effectiveFrom',
+            ),
+            effectiveUntil: effectiveUntil,
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'$Package',
+              'version',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'branchScopes';
+        _branchScopes?.build();
+        _$failedField = 'classTypeScopes';
+        _classTypeScopes?.build();
+        _$failedField = 'revisions';
+        _revisions?.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'$Package',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

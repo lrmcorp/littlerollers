@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import {
   browserSessionClient,
   sessionFailure,
@@ -14,6 +13,7 @@ import { Feedback, Skeleton } from './ui';
 import { isPublicExperiencePath } from './session-audience';
 import { useOptionalAppFeedback } from './components/app-feedback';
 import { useTrackedRouter } from './components/app-loading';
+import { ActionGroup, Button, ButtonLink } from './components/actions';
 
 const ACTIVE_BRANCH_KEY = 'dd_active_branch';
 const anonymousEntryPaths = new Set([
@@ -32,6 +32,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/account', ['customer:self']],
   ['/identity-verifications', ['identity-verification:read']],
   ['/audit', ['audit:read']],
+  ['/migrations', ['migration:read']],
   ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
   ['/assignments', ['assignment:read']],
@@ -333,21 +334,27 @@ export function SessionProvider({
           <Skeleton label="Memuat sesi" />
         </main>
       ) : !publicRoute && status === 'dependency-error' ? (
-        <main className="content session-state">
+        <main className="content session-state space-y-4">
           <Feedback kind="error">Konteks sesi tidak dapat dimuat.</Feedback>
-          <button onClick={() => void refresh()}>Coba lagi</button>
-          <Link href="/">Kunjungi situs utama</Link>
+          <ActionGroup>
+            <Button onClick={() => void refresh()}>Coba lagi</Button>
+            <ButtonLink variant="secondary" href="/">
+              Kunjungi situs utama
+            </ButtonLink>
+          </ActionGroup>
         </main>
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
-        <main className="content session-state">
+        <main className="content session-state space-y-4">
           <Feedback kind={staffVerificationRedirect ? 'info' : 'error'}>
             {staffVerificationRedirect
               ? 'Halaman verifikasi akun hanya untuk customer. Anda sedang diarahkan ke antrean reviewer.'
               : 'Anda tidak memiliki akses ke area ini.'}
           </Feedback>
-          <Link href={fallback}>
-            {staffVerificationRedirect ? 'Buka antrean verifikasi' : 'Kembali ke ringkasan'}
-          </Link>
+          <ActionGroup>
+            <ButtonLink href={fallback}>
+              {staffVerificationRedirect ? 'Buka antrean verifikasi' : 'Kembali ke ringkasan'}
+            </ButtonLink>
+          </ActionGroup>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
         <main className="content session-state">

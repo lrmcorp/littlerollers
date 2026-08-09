@@ -85,6 +85,7 @@ import 'package:openapi/src/model/check_in_result.dart';
 import 'package:openapi/src/model/check_in_result_branch.dart';
 import 'package:openapi/src/model/check_in_token.dart';
 import 'package:openapi/src/model/check_in_token_status.dart';
+import 'package:openapi/src/model/check_in_token_status_branch.dart';
 import 'package:openapi/src/model/checkout_options.dart';
 import 'package:openapi/src/model/checkout_options_package.dart';
 import 'package:openapi/src/model/checkout_options_payment_account.dart';
@@ -95,8 +96,10 @@ import 'package:openapi/src/model/class_slot_page.dart';
 import 'package:openapi/src/model/class_slot_update_command.dart';
 import 'package:openapi/src/model/class_slot_version_command.dart';
 import 'package:openapi/src/model/class_type.dart';
+import 'package:openapi/src/model/class_type_branch_scopes_inner.dart';
 import 'package:openapi/src/model/class_type_command.dart';
 import 'package:openapi/src/model/class_type_page.dart';
+import 'package:openapi/src/model/class_type_scope_command.dart';
 import 'package:openapi/src/model/class_type_update_command.dart';
 import 'package:openapi/src/model/close_month_request.dart';
 import 'package:openapi/src/model/close_result.dart';
@@ -118,7 +121,6 @@ import 'package:openapi/src/model/customer_booking_slot.dart';
 import 'package:openapi/src/model/customer_booking_slot_branch.dart';
 import 'package:openapi/src/model/customer_booking_slot_class_type.dart';
 import 'package:openapi/src/model/customer_check_in_issue.dart';
-import 'package:openapi/src/model/customer_check_in_token_status.dart';
 import 'package:openapi/src/model/customer_dashboard_overview.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_actionable_orders_inner.dart';
 import 'package:openapi/src/model/customer_dashboard_overview_packages_inner.dart';
@@ -138,8 +140,10 @@ import 'package:openapi/src/model/customer_package_balance_summary.dart';
 import 'package:openapi/src/model/customer_reschedule_options.dart';
 import 'package:openapi/src/model/customer_reschedule_slot.dart';
 import 'package:openapi/src/model/customer_reschedule_target.dart';
+import 'package:openapi/src/model/customer_session_usage_summary.dart';
 import 'package:openapi/src/model/dashboard_activity_item.dart';
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
+import 'package:openapi/src/model/dashboard_financial_summary.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
 import 'package:openapi/src/model/dashboard_overview.dart';
 import 'package:openapi/src/model/dashboard_overview_period.dart';
@@ -147,7 +151,9 @@ import 'package:openapi/src/model/dashboard_queue_summary.dart';
 import 'package:openapi/src/model/dashboard_risk_item.dart';
 import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
+import 'package:openapi/src/model/dec006_approval.dart';
 import 'package:openapi/src/model/decide_correction_request.dart';
+import 'package:openapi/src/model/decide_internal_v1_migration_resolution_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
 import 'package:openapi/src/model/effective_capability_denial.dart';
@@ -161,14 +167,23 @@ import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/error_envelope_error.dart';
 import 'package:openapi/src/model/error_envelope_error_details_inner.dart';
+import 'package:openapi/src/model/export_authoritative_finance_report_request.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
 import 'package:openapi/src/model/finance_anomaly.dart';
 import 'package:openapi/src/model/finance_branch_reconciliation.dart';
+import 'package:openapi/src/model/finance_close_snapshot.dart';
+import 'package:openapi/src/model/finance_export_result.dart';
 import 'package:openapi/src/model/finance_reconciliation_metric.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview_period.dart';
+import 'package:openapi/src/model/financial_branch_profit_row.dart';
+import 'package:openapi/src/model/financial_projection_row.dart';
 import 'package:openapi/src/model/financial_report.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
+import 'package:openapi/src/model/financial_report_page_items_inner.dart';
+import 'package:openapi/src/model/financial_revenue_row.dart';
+import 'package:openapi/src/model/financial_totals.dart';
+import 'package:openapi/src/model/get_class_completion_control200_response.dart';
 import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
 import 'package:openapi/src/model/get_my_notification_unread_count200_response.dart';
 import 'package:openapi/src/model/google_auth_request.dart';
@@ -183,11 +198,17 @@ import 'package:openapi/src/model/identity_verification_review_page.dart';
 import 'package:openapi/src/model/identity_verification_review_summary.dart';
 import 'package:openapi/src/model/identity_verification_review_user.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
+import 'package:openapi/src/model/instructor_compensation_row.dart';
 import 'package:openapi/src/model/instructor_fee_command.dart';
 import 'package:openapi/src/model/internal_package_detail.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
 import 'package:openapi/src/model/issue_customer_check_in_link_command.dart';
 import 'package:openapi/src/model/ledger_entry.dart';
+import 'package:openapi/src/model/legacy_financial_entry.dart';
+import 'package:openapi/src/model/legacy_financial_entry_actor.dart';
+import 'package:openapi/src/model/legacy_financial_entry_page.dart';
+import 'package:openapi/src/model/legacy_financial_entry_page_summary_value.dart';
+import 'package:openapi/src/model/legacy_financial_entry_purchase.dart';
 import 'package:openapi/src/model/list_payment_accounts200_response.dart';
 import 'package:openapi/src/model/lookup_option.dart';
 import 'package:openapi/src/model/lookup_option_metadata.dart';
@@ -223,6 +244,9 @@ import 'package:openapi/src/model/other_cost_page.dart';
 import 'package:openapi/src/model/otp_request.dart';
 import 'package:openapi/src/model/otp_verify_request.dart';
 import 'package:openapi/src/model/package.dart';
+import 'package:openapi/src/model/package_branch_scope.dart';
+import 'package:openapi/src/model/package_branch_scope_branch.dart';
+import 'package:openapi/src/model/package_class_type_scope.dart';
 import 'package:openapi/src/model/package_command.dart';
 import 'package:openapi/src/model/package_ledger_result.dart';
 import 'package:openapi/src/model/package_management_summary.dart';
@@ -233,7 +257,9 @@ import 'package:openapi/src/model/package_promotion_order_page.dart';
 import 'package:openapi/src/model/package_promotion_order_page_items_inner.dart';
 import 'package:openapi/src/model/package_promotion_page.dart';
 import 'package:openapi/src/model/package_promotion_update_command.dart';
+import 'package:openapi/src/model/package_revision.dart';
 import 'package:openapi/src/model/package_revision_command.dart';
+import 'package:openapi/src/model/package_scope_command.dart';
 import 'package:openapi/src/model/package_update_command.dart';
 import 'package:openapi/src/model/page.dart';
 import 'package:openapi/src/model/page_page.dart';
@@ -300,19 +326,29 @@ import 'package:openapi/src/model/reschedule_decision_command.dart';
 import 'package:openapi/src/model/reschedule_decision_result.dart';
 import 'package:openapi/src/model/reschedule_page.dart';
 import 'package:openapi/src/model/reschedule_request_command.dart';
+import 'package:openapi/src/model/reservation_item.dart';
 import 'package:openapi/src/model/reservation_summary.dart';
 import 'package:openapi/src/model/resource.dart';
-import 'package:openapi/src/model/revoke_customer_check_in_token_command.dart';
+import 'package:openapi/src/model/revoke_check_in_token_command.dart';
 import 'package:openapi/src/model/revoke_sessions_command.dart';
 import 'package:openapi/src/model/role.dart';
 import 'package:openapi/src/model/role_catalog.dart';
 import 'package:openapi/src/model/role_catalog_item.dart';
+import 'package:openapi/src/model/room.dart';
+import 'package:openapi/src/model/room_command.dart';
+import 'package:openapi/src/model/room_page.dart';
+import 'package:openapi/src/model/room_update_command.dart';
 import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/session.dart';
 import 'package:openapi/src/model/session_adjustment.dart';
 import 'package:openapi/src/model/session_adjustment_decision_command.dart';
 import 'package:openapi/src/model/session_adjustment_page.dart';
+import 'package:openapi/src/model/session_adjustment_summary.dart';
 import 'package:openapi/src/model/session_branch.dart';
+import 'package:openapi/src/model/studio.dart';
+import 'package:openapi/src/model/studio_command.dart';
+import 'package:openapi/src/model/studio_page.dart';
+import 'package:openapi/src/model/studio_update_command.dart';
 import 'package:openapi/src/model/submit_purchase_request.dart';
 import 'package:openapi/src/model/time_range_command.dart';
 import 'package:openapi/src/model/token_check_in_command.dart';
@@ -422,6 +458,7 @@ part 'serializers.g.dart';
   CheckInResultBranch,
   CheckInToken,
   CheckInTokenStatus,
+  CheckInTokenStatusBranch,
   CheckoutOptions,
   CheckoutOptionsPackage,
   CheckoutOptionsPaymentAccount,
@@ -432,8 +469,10 @@ part 'serializers.g.dart';
   ClassSlotUpdateCommand,
   ClassSlotVersionCommand,
   ClassType,
+  ClassTypeBranchScopesInner,
   ClassTypeCommand,
   ClassTypePage,
+  ClassTypeScopeCommand,
   ClassTypeUpdateCommand,
   CloseMonthRequest,
   CloseResult,
@@ -455,7 +494,6 @@ part 'serializers.g.dart';
   CustomerBookingSlotBranch,
   CustomerBookingSlotClassType,
   CustomerCheckInIssue,
-  CustomerCheckInTokenStatus,
   CustomerDashboardOverview,
   CustomerDashboardOverviewActionableOrdersInner,
   CustomerDashboardOverviewPackagesInner,
@@ -475,8 +513,10 @@ part 'serializers.g.dart';
   CustomerRescheduleOptions,
   CustomerRescheduleSlot,$CustomerRescheduleSlot,
   CustomerRescheduleTarget,
+  CustomerSessionUsageSummary,
   DashboardActivityItem,
   DashboardBranchPerformance,
+  DashboardFinancialSummary,
   DashboardMetric,
   DashboardOverview,
   DashboardOverviewPeriod,
@@ -484,7 +524,9 @@ part 'serializers.g.dart';
   DashboardRiskItem,
   DashboardSections,
   DashboardTrendPoint,
+  Dec006Approval,
   DecideCorrectionRequest,
+  DecideInternalV1MigrationResolutionRequest,
   DeleteIdentityVerificationFileRequest,
   DownloadAuthorization,
   EffectiveCapabilityDenial,
@@ -498,14 +540,23 @@ part 'serializers.g.dart';
   ErrorEnvelope,
   ErrorEnvelopeError,
   ErrorEnvelopeErrorDetailsInner,
+  ExportAuthoritativeFinanceReportRequest,
   FinalizeUploadCommand,
   FinanceAnomaly,
   FinanceBranchReconciliation,
+  FinanceCloseSnapshot,
+  FinanceExportResult,
   FinanceReconciliationMetric,
   FinanceReconciliationOverview,
   FinanceReconciliationOverviewPeriod,
+  FinancialBranchProfitRow,
+  FinancialProjectionRow,
   FinancialReport,
   FinancialReportPage,
+  FinancialReportPageItemsInner,
+  FinancialRevenueRow,
+  FinancialTotals,
+  GetClassCompletionControl200Response,
   GetFinanceReconciliationAnomalies200Response,
   GetMyNotificationUnreadCount200Response,
   GoogleAuthRequest,
@@ -520,11 +571,17 @@ part 'serializers.g.dart';
   IdentityVerificationReviewSummary,
   IdentityVerificationReviewUser,
   IdentityVerificationSummary,
+  InstructorCompensationRow,
   InstructorFeeCommand,
   InternalPackageDetail,
   InviteUserRequest,
   IssueCustomerCheckInLinkCommand,
   LedgerEntry,
+  LegacyFinancialEntry,
+  LegacyFinancialEntryActor,
+  LegacyFinancialEntryPage,
+  LegacyFinancialEntryPageSummaryValue,
+  LegacyFinancialEntryPurchase,
   ListPaymentAccounts200Response,
   LookupOption,
   LookupOptionMetadata,
@@ -560,6 +617,9 @@ part 'serializers.g.dart';
   OtpRequest,
   OtpVerifyRequest,
   Package,$Package,
+  PackageBranchScope,
+  PackageBranchScopeBranch,
+  PackageClassTypeScope,
   PackageCommand,
   PackageLedgerResult,
   PackageManagementSummary,
@@ -570,7 +630,9 @@ part 'serializers.g.dart';
   PackagePromotionOrderPageItemsInner,
   PackagePromotionPage,
   PackagePromotionUpdateCommand,
+  PackageRevision,
   PackageRevisionCommand,
+  PackageScopeCommand,
   PackageUpdateCommand,
   Page,
   PagePage,
@@ -637,19 +699,29 @@ part 'serializers.g.dart';
   RescheduleDecisionResult,
   ReschedulePage,
   RescheduleRequestCommand,
+  ReservationItem,
   ReservationSummary,
   Resource,
-  RevokeCustomerCheckInTokenCommand,
+  RevokeCheckInTokenCommand,
   RevokeSessionsCommand,
   Role,
   RoleCatalog,
   RoleCatalogItem,
+  Room,
+  RoomCommand,
+  RoomPage,
+  RoomUpdateCommand,
   SafeAuditActivity,
   Session,
   SessionAdjustment,
   SessionAdjustmentDecisionCommand,
   SessionAdjustmentPage,
+  SessionAdjustmentSummary,
   SessionBranch,$SessionBranch,
+  Studio,
+  StudioCommand,
+  StudioPage,
+  StudioUpdateCommand,
   SubmitPurchaseRequest,
   TimeRangeCommand,
   TokenCheckInCommand,

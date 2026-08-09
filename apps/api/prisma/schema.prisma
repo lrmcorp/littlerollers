@@ -264,6 +264,13 @@ enum ClassSlotStatus {
   COMPLETED
 }
 
+enum ClassModality {
+  GROUP
+  PRIVATE
+  HYBRID
+  UNKNOWN_LEGACY
+}
+
 enum ClassSlotCancellationReasonCode {
   STUDIO_UNAVAILABLE
   INSTRUCTOR_UNAVAILABLE
@@ -277,6 +284,7 @@ enum QuotaEvaluationJobStatus {
   RETRYING
   SUCCEEDED
   FAILED
+  DEAD_LETTER
 }
 
 enum BookingStatus {
@@ -285,6 +293,46 @@ enum BookingStatus {
   CANCELLED
   ATTENDED
   NO_SHOW
+}
+
+enum BookingAttendanceOutcomeCode {
+  ATTENDED
+  EXCUSED
+  NO_SHOW
+  UNKNOWN_HISTORICAL
+}
+
+enum PurchaseSnapshotCompleteness {
+  COMPLETE_BREAKDOWN
+  LEGACY_FINAL_AMOUNT_ONLY
+}
+
+enum LegacyFinancialEntryType {
+  INCOME
+  EXPENSE
+}
+
+enum OtherCostStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum FinancePeriodStatus {
+  OPEN
+  CLOSING
+  CLOSED
+}
+
+enum FinanceCorrectionStatus {
+  PENDING
+  APPROVED
+  POSTED
+  REJECTED
+}
+
+enum MigrationLegacyPayloadKind {
+  ACTIVITY_LOG
+  NOTIFICATION
 }
 
 enum BookingSource {
@@ -307,6 +355,8 @@ enum CheckInTokenStatus {
 
 enum AttendanceSource {
   QR
+  MIGRATION
+  MANUAL_BACKFILL
 }
 
 enum RescheduleStatus {
@@ -326,6 +376,102 @@ enum RescheduleDecisionReasonCode {
   TARGET_UNAVAILABLE
   OUTSIDE_POLICY
   OUT_OF_SCOPE
+}
+
+enum MigrationBatchStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum MigrationRejectStatus {
+  OPEN
+  RESOLVED
+  WAIVED
+}
+
+enum MigrationControlStatus {
+  PENDING
+  MATCH
+  MISMATCH
+}
+
+enum MigrationDeltaOperation {
+  INSERT
+  UPDATE
+  SOFT_DELETE
+  DELETE
+}
+
+enum MigrationDeltaStatus {
+  CAPTURED
+  VERIFIED
+  APPLIED
+  BLOCKED
+  FAILED
+}
+
+enum MigrationCheckpointKind {
+  CAPTURE
+  VERIFY
+  APPLY
+  DRAIN
+}
+
+enum BranchCutoverStatus {
+  V1_ACTIVE
+  FREEZING
+  DRAINING
+  V2_ACTIVE
+  ROLLING_BACK
+  ROLLED_BACK
+}
+
+enum PilotOutboxStatus {
+  PENDING
+  APPLIED_TO_V1
+  FAILED
+  CANCELLED
+}
+
+enum PilotMediaAliasStatus {
+  PREPARED
+  ACTIVE
+  FAILED
+}
+
+enum DeferredMediaStatus {
+  DEFERRED
+}
+
+enum MigrationResolutionStatus {
+  OPEN
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum MediaVisibility {
+  PRIVATE
+  AUTHORIZED
+  PUBLIC
+}
+
+enum ContactAliasKind {
+  PHONE
+  EMAIL
 }
 
 model User {
@@ -365,6 +511,10 @@ model User {
   decidedReschedules                 Reschedule[]                        @relation("RescheduleDecider")
   issuedCheckInTokens                CheckInToken[]                      @relation("CheckInTokenIssuer")
   recordedAttendances                CustomerAttendance[]                @relation("AttendanceRecorder")
+  instructorCheckInTokens            InstructorCheckInToken[]            @relation("InstructorTokenOwner")
+  issuedInstructorCheckInTokens      InstructorCheckInToken[]            @relation("InstructorTokenIssuer")
+  instructorAttendances              InstructorAttendance[]              @relation("InstructorAttendanceOwner")
+  instructorHourLogs                 InstructorHourLog[]                 @relation("InstructorHourLogOwner")
   identityDocuments                  IdentityVerificationDocument[]      @relation("IdentityDocumentOwner")
   reviewedIdentityDocuments          IdentityVerificationDocument[]      @relation("IdentityDocumentReviewer")
   deletedIdentityDocuments           IdentityVerificationDocument[]      @relation("IdentityDocumentDeleter")
@@ -378,6 +528,21 @@ model User {
   capabilityOverrides                UserCapabilityOverride[]            @relation("CapabilityOverrideTarget")
   createdCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideCreator")
   revokedCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideRevoker")
+  profile                            UserProfile?
+  recurringSchedules                 CustomerRecurringSchedule[]
+  bookingFeedbacks                   BookingFeedback[]
+  authoredJournalEntries             JournalEntry[]                      @relation("JournalEntryActor")
+  authoredLegacyFinancialEntries     LegacyFinancialEntry[]              @relation("LegacyFinancialEntryActor")
+  createdOtherCosts                  OtherCost[]                         @relation("OtherCostCreator")
+  closedFinancePeriods               FinancePeriod[]                     @relation("FinancePeriodCloser")
+  requestedFinanceCorrections        FinanceCorrection[]                 @relation("FinanceCorrectionRequester")
+  decidedFinanceCorrections          FinanceCorrection[]                 @relation("FinanceCorrectionDecider")
+  mediaAssets                        MediaAsset[]
+  contactAliases                     UserContactAlias[]
+  customerClassEnrollments           CustomerClassEnrollment[]
+  customerVoucherEntitlements        CustomerVoucherEntitlement[]
+  historical                         Boolean                             @default(false)
+  sourceDeletedAt                    DateTime?
 
   @@index([preferredBranchId])
 }
@@ -459,7 +624,7 @@ model Identity {
   userId      String           @db.Char(36)
   provider    IdentityProvider
   subjectHash String
-  verifiedAt  DateTime
+  verifiedAt  DateTime?
   createdAt   DateTime         @default(now())
   user        User             @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -468,20 +633,23 @@ model Identity {
 }
 
 model Branch {
-  id                       String                   @id @db.Char(36)
-  code                     String                   @unique
+  id                       String                         @id @db.Char(36)
+  code                     String                         @unique
   name                     String
   timezone                 String
   supportWhatsappE164      String?
-  active                   Boolean                  @default(true)
-  version                  Int                      @default(0)
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime                 @updatedAt
+  active                   Boolean                        @default(true)
+  version                  Int                            @default(0)
+  createdAt                DateTime                       @default(now())
+  updatedAt                DateTime                       @updatedAt
   assignments              Assignment[]
   userRoles                UserRole[]
   configurations           EffectiveConfiguration[]
   classTypes               ClassType[]
+  classTypeScopes          ClassTypeBranchScope[]
+  classTypeConfigurations  ClassTypeBranchConfiguration[]
   packages                 Package[]
+  packageScopes            PackageBranchScope[]
   paymentAccounts          PaymentAccount[]
   customerPackages         CustomerPackage[]
   paymentProofs            PaymentProof[]
@@ -489,14 +657,33 @@ model Branch {
   vouchers                 Voucher[]
   instructorAvailabilities InstructorAvailability[]
   classSlots               ClassSlot[]
+  instructorHourLogs       InstructorHourLog[]
   bookings                 Booking[]
   reschedules              Reschedule[]
   customerAttendances      CustomerAttendance[]
-  preferredByUsers         User[]                   @relation("PreferredBranchCustomers")
+  instructorAttendances    InstructorAttendance[]
+  financeCloseSnapshots    FinanceCloseSnapshot[]
+  preferredByUsers         User[]                         @relation("PreferredBranchCustomers")
   userNotifications        UserNotification[]
   publicProfile            BranchPublicProfile?
   accessRoleAssignments    AccessRoleAssignment[]
   capabilityOverrides      UserCapabilityOverride[]
+  studios                  Studio[]
+  openingHours             BranchOpeningHour[]
+  recurringSchedules       CustomerRecurringSchedule[]
+  accountingAccounts       AccountingAccount[]
+  journalEntries           JournalEntry[]
+  legacyFinancialEntries   LegacyFinancialEntry[]
+  otherCosts               OtherCost[]
+  financePeriods           FinancePeriod[]
+  financeCorrections       FinanceCorrection[]
+  mediaAssets              MediaAsset[]
+  migrationCutover         MigrationBranchCutover?
+  migrationDeltaEvents     MigrationDeltaEvent[]
+  pilotRollbackOutbox      MigrationPilotOutbox[]
+  pilotMediaAliases        MigrationPilotMediaAlias[]
+  historical               Boolean                        @default(false)
+  sourceDeletedAt          DateTime?
 }
 
 model BranchPublicProfile {
@@ -505,6 +692,8 @@ model BranchPublicProfile {
   area               String
   city               String
   address            String
+  operationalEmail   String?
+  mapUrl             String?  @db.VarChar(1024)
   latitude           Float?
   longitude          Float?
   openingHours       Json
@@ -539,23 +728,92 @@ model PublicClassProfile {
 }
 
 model ClassType {
-  id               String                   @id @db.Char(36)
-  branchId         String                   @db.Char(36)
-  code             String
-  name             String
-  active           Boolean                  @default(true)
-  version          Int                      @default(0)
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  branch           Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  configurations   EffectiveConfiguration[]
-  packages         Package[]
-  voucherScopes    Voucher[]
-  customerPackages CustomerPackage[]
-  classSlots       ClassSlot[]
+  id                       String                         @id @db.Char(36)
+  branchId                 String?                        @db.Char(36)
+  code                     String                         @unique
+  name                     String
+  description              String?                        @db.Text
+  modality                 ClassModality                  @default(UNKNOWN_LEGACY)
+  equipment                Json?
+  defaultDurationMinutes   Int                            @default(60)
+  defaultMinimumQuota      Int                            @default(1)
+  defaultCapacity          Int                            @default(1)
+  active                   Boolean                        @default(true)
+  version                  Int                            @default(0)
+  createdAt                DateTime                       @default(now())
+  updatedAt                DateTime                       @updatedAt
+  branch                   Branch?                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  branchScopes             ClassTypeBranchScope[]
+  branchConfigurations     ClassTypeBranchConfiguration[]
+  configurations           EffectiveConfiguration[]
+  packages                 Package[]
+  packageScopes            PackageClassTypeScope[]
+  voucherScopes            Voucher[]
+  customerPackages         CustomerPackage[]
+  classSlots               ClassSlot[]
+  instructorHourLogs       InstructorHourLog[]
+  recurringSchedules       CustomerRecurringSchedule[]
+  customerClassEnrollments CustomerClassEnrollment[]
+  historical               Boolean                        @default(false)
+  sourceDeletedAt          DateTime?
+  sourceMetadata           Json?
 
-  @@unique([branchId, code])
   @@index([branchId, active])
+}
+
+model ClassTypeBranchScope {
+  id              String    @id @default(uuid()) @db.Char(36)
+  classTypeId     String    @db.Char(36)
+  branchId        String    @db.Char(36)
+  active          Boolean   @default(true)
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  classType       ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([classTypeId, branchId])
+  @@index([branchId, active])
+}
+
+model ClassTypeBranchConfiguration {
+  id              String    @id @default(uuid()) @db.Char(36)
+  classTypeId     String    @db.Char(36)
+  branchId        String    @db.Char(36)
+  minimumQuota    Int?
+  capacity        Int?
+  honorRp         Int?
+  feeRp           Int?
+  effectiveFrom   DateTime  @db.Date
+  effectiveUntil  DateTime? @db.Date
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  classType       ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([classTypeId, branchId, effectiveFrom])
+  @@index([branchId, effectiveFrom, effectiveUntil])
+}
+
+model CustomerClassEnrollment {
+  id              String    @id @default(uuid()) @db.Char(36)
+  customerUserId  String    @db.Char(36)
+  classTypeId     String    @db.Char(36)
+  statusCode      String    @db.VarChar(64)
+  paidAt          DateTime?
+  sessionCount    Int       @default(0)
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  customer        User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  classType       ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, statusCode])
+  @@index([classTypeId, statusCode])
 }
 
 model Assignment {
@@ -595,33 +853,45 @@ model InstructorAvailability {
 }
 
 model ClassSlot {
-  id                     String                           @id @db.Char(36)
-  branchId               String                           @db.Char(36)
-  classTypeId            String                           @db.Char(36)
-  instructorUserId       String?                          @db.Char(36)
-  startAt                DateTime
-  endAt                  DateTime
-  timezone               String
-  minimumQuota           Int
-  capacity               Int
-  bookedCount            Int                              @default(0)
-  status                 ClassSlotStatus                  @default(DRAFT)
-  cancellationReasonCode ClassSlotCancellationReasonCode?
-  version                Int                              @default(0)
-  createdAt              DateTime                         @default(now())
-  updatedAt              DateTime                         @updatedAt
-  branch                 Branch                           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType              ClassType                        @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  instructor             User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
-  reservations           SessionReservation[]
-  bookings               Booking[]
-  customerAttendances    CustomerAttendance[]
-  continuationPurchases  Purchase[]                       @relation("PurchaseContinuationSlot")
-  sourceReschedules      Reschedule[]                     @relation("RescheduleSourceSlot")
-  targetReschedules      Reschedule[]                     @relation("RescheduleTargetSlot")
-  quotaEvaluationJob     QuotaEvaluationJob?
+  id                      String                           @id @db.Char(36)
+  branchId                String                           @db.Char(36)
+  classTypeId             String                           @db.Char(36)
+  studioId                String                           @db.Char(36)
+  roomId                  String?                          @db.Char(36)
+  instructorUserId        String?                          @db.Char(36)
+  startAt                 DateTime
+  endAt                   DateTime
+  timezone                String
+  minimumQuota            Int
+  capacity                Int
+  bookedCount             Int                              @default(0)
+  status                  ClassSlotStatus                  @default(DRAFT)
+  cancellationReasonCode  ClassSlotCancellationReasonCode?
+  version                 Int                              @default(0)
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @updatedAt
+  branch                  Branch                           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType               ClassType                        @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  studio                  Studio                           @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  room                    Room?                            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  instructor              User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  reservations            SessionReservation[]
+  bookings                Booking[]
+  customerAttendances     CustomerAttendance[]
+  instructorCheckInTokens InstructorCheckInToken[]
+  instructorAttendances   InstructorAttendance[]
+  instructorHourLog       InstructorHourLog?
+  continuationPurchases   Purchase[]                       @relation("PurchaseContinuationSlot")
+  sourceReschedules       Reschedule[]                     @relation("RescheduleSourceSlot")
+  targetReschedules       Reschedule[]                     @relation("RescheduleTargetSlot")
+  quotaEvaluationJob      QuotaEvaluationJob?
+  historical              Boolean                          @default(false)
+  sourceDeletedAt         DateTime?
+  sourceMetadata          Json?
 
   @@index([branchId, startAt, id])
+  @@index([studioId, startAt, id])
+  @@index([roomId, startAt, id])
   @@index([instructorUserId, startAt, endAt])
   @@index([status, startAt])
 }
@@ -816,16 +1086,16 @@ model UserInvitation {
 }
 
 model PasswordCredential {
-  id                String   @id @default(uuid()) @db.Char(36)
-  userId            String   @unique @db.Char(36)
-  emailHash         String   @unique
+  id                String    @id @default(uuid()) @db.Char(36)
+  userId            String    @unique @db.Char(36)
+  emailHash         String    @unique
   passwordHash      String
-  verifiedAt        DateTime
+  verifiedAt        DateTime?
   passwordChangedAt DateTime
-  version           Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  version           Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 }
 
 model PasswordActionToken {
@@ -858,22 +1128,29 @@ model RateLimitCounter {
 }
 
 model AuditLog {
-  id            String   @id @db.Char(36)
-  occurredAt    DateTime @default(now())
-  actorType     String
-  actorId       String?  @db.Char(36)
-  branchId      String?  @db.Char(36)
-  action        String
-  objectType    String
-  objectId      String
-  targetUserId  String?  @db.Char(36)
-  beforeMasked  Json?
-  afterMasked   Json?
-  correlationId String
+  id              String                  @id @db.Char(36)
+  occurredAt      DateTime                @default(now())
+  actorType       String
+  actorId         String?                 @db.Char(36)
+  branchId        String?                 @db.Char(36)
+  action          String
+  objectType      String
+  objectId        String
+  targetUserId    String?                 @db.Char(36)
+  beforeMasked    Json?
+  afterMasked     Json?
+  correlationId   String
+  sourceSystem    String?                 @db.VarChar(32)
+  sourceTable     String?                 @db.VarChar(64)
+  sourceId        String?                 @db.VarChar(191)
+  historical      Boolean                 @default(false)
+  sourceDeletedAt DateTime?
+  legacyPayload   MigrationLegacyPayload?
 
   @@index([branchId, occurredAt])
   @@index([objectType, objectId, occurredAt])
   @@index([targetUserId, occurredAt])
+  @@index([sourceSystem, sourceTable, sourceId])
 }
 
 enum AuditExportStatus {
@@ -1019,10 +1296,10 @@ model NotificationProjection {
 }
 
 model UserNotification {
-  id             String               @id @db.Char(36)
-  userId         String               @db.Char(36)
-  branchId       String?              @db.Char(36)
-  sourceEventId  String?              @db.Char(36)
+  id             String                  @id @db.Char(36)
+  userId         String                  @db.Char(36)
+  branchId       String?                 @db.Char(36)
+  sourceEventId  String?                 @db.Char(36)
   eventKey       String
   category       NotificationCategory
   tone           NotificationTone
@@ -1032,10 +1309,11 @@ model UserNotification {
   metadataMasked Json?
   readAt         DateTime?
   expiresAt      DateTime?
-  createdAt      DateTime             @default(now())
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branch         Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  sourceEvent    OutboxEvent?         @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  createdAt      DateTime                @default(now())
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch         Branch?                 @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sourceEvent    OutboxEvent?            @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  legacyPayload  MigrationLegacyPayload?
 
   @@unique([userId, eventKey])
   @@index([userId, readAt, createdAt])
@@ -1044,31 +1322,94 @@ model UserNotification {
 }
 
 model Package {
-  id               String                @id @db.Char(36)
-  branchId         String                @db.Char(36)
-  classTypeId      String                @db.Char(36)
+  id               String                  @id @db.Char(36)
+  /// Compatibility projection only. Availability is authoritative in branchScopes.
+  branchId         String?                 @db.Char(36)
+  /// Compatibility projection only. Eligibility is authoritative in classTypeScopes.
+  classTypeId      String                  @db.Char(36)
   businessKey      String
   name             String
   sessionCount     Int
   durationDays     Int
   priceRp          Int
-  effectiveFrom    DateTime              @db.Date
-  effectiveUntil   DateTime?             @db.Date
-  status           PackageStatus         @default(ACTIVE)
-  version          Int                   @default(0)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-  branch           Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType             @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  effectiveFrom    DateTime                @db.Date
+  effectiveUntil   DateTime?               @db.Date
+  status           PackageStatus           @default(ACTIVE)
+  version          Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  branch           Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType        ClassType               @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  revisions        PackageRevision[]
+  branchScopes     PackageBranchScope[]
+  classTypeScopes  PackageClassTypeScope[]
   proofs           PaymentProof[]
   purchases        Purchase[]
   customerPackages CustomerPackage[]
   publicProfile    PackagePublicProfile?
   voucherScopes    VoucherPackageScope[]
   promotions       PackagePromotion[]
+  historical       Boolean                 @default(false)
+  sourceDeletedAt  DateTime?
+  sourceMetadata   Json?
 
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
+}
+
+model PackageRevision {
+  id               String    @id @default(uuid()) @db.Char(36)
+  packageId        String    @db.Char(36)
+  revisionNumber   Int
+  sessionCount     Int
+  durationDays     Int
+  priceRp          Int
+  promoteCode      String?   @db.VarChar(64)
+  discountRp       Int?
+  manyTimesAllowed Boolean   @default(false)
+  visible          Boolean   @default(true)
+  effectiveFrom    DateTime  @db.Date
+  effectiveUntil   DateTime? @db.Date
+  historical       Boolean   @default(false)
+  sourceDeletedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  package          Package   @relation(fields: [packageId], references: [id], onDelete: Restrict)
+
+  @@unique([packageId, revisionNumber])
+  @@index([packageId, effectiveFrom, effectiveUntil])
+}
+
+model PackageBranchScope {
+  id              String    @id @default(uuid()) @db.Char(36)
+  packageId       String    @db.Char(36)
+  branchId        String    @db.Char(36)
+  active          Boolean   @default(true)
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  package         Package   @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([packageId, branchId])
+  @@index([branchId, active])
+}
+
+model PackageClassTypeScope {
+  id              String    @id @default(uuid()) @db.Char(36)
+  packageId       String    @db.Char(36)
+  classTypeId     String    @db.Char(36)
+  active          Boolean   @default(true)
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  package         Package   @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  classType       ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([packageId, classTypeId])
+  @@index([classTypeId, active])
 }
 
 model PackagePublicProfile {
@@ -1176,8 +1517,16 @@ model Purchase {
   continuationClassSlotId               String?                       @db.Char(36)
   packageNameSnapshot                   String
   priceRpSnapshot                       Int
+  catalogAmountRpSnapshot               Int?
+  discountAmountRpSnapshot              Int?
+  finalAmountBeforeUniqueCodeRpSnapshot Int?
   paymentUniqueCode                     Int?
   payableAmountRpSnapshot               Int?
+  amountPaidRpSnapshot                  Int?
+  paymentMethodCode                     String?                       @db.VarChar(64)
+  sourceStatusCode                      String?                       @db.VarChar(64)
+  sourceActiveFlag                      Boolean?
+  snapshotCompleteness                  PurchaseSnapshotCompleteness  @default(COMPLETE_BREAKDOWN)
   sessionCountSnapshot                  Int
   durationDaysSnapshot                  Int
   status                                PurchaseStatus                @default(PENDING)
@@ -1201,6 +1550,12 @@ model Purchase {
   paymentUniqueCodeReservation          PaymentUniqueCodeReservation?
   timelineEvents                        PurchaseTimelineEvent[]
   voucherRedemption                     VoucherRedemption?
+  journalEntries                        JournalEntry[]
+  legacyFinancialEntries                LegacyFinancialEntry[]
+  customerVoucherEntitlements           CustomerVoucherEntitlement[]
+  historical                            Boolean                       @default(false)
+  sourceDeletedAt                       DateTime?
+  sourceMetadata                        Json?
 
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
@@ -1232,35 +1587,55 @@ model PackagePromotion {
 }
 
 model Voucher {
-  id                    String                @id @db.Char(36)
-  code                  String                @unique @db.VarChar(64)
-  name                  String                @db.VarChar(160)
-  description           String?               @db.Text
-  status                VoucherStatus         @default(DRAFT)
-  discountType          VoucherDiscountType
-  discountValue         Int
-  maxDiscountRp         Int?
-  minimumPurchaseRp     Int                   @default(0)
-  activeFrom            DateTime
-  activeUntil           DateTime?
-  totalUsageLimit       Int?
-  perCustomerUsageLimit Int?
-  branchId              String?               @db.Char(36)
-  classTypeId           String?               @db.Char(36)
-  version               Int                   @default(0)
-  createdById           String                @db.Char(36)
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  branch                Branch?               @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType             ClassType?            @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  createdBy             User                  @relation("VoucherCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  packages              VoucherPackageScope[]
-  redemptions           VoucherRedemption[]
-  purchases             Purchase[]
+  id                            String                       @id @db.Char(36)
+  code                          String                       @unique @db.VarChar(64)
+  name                          String                       @db.VarChar(160)
+  description                   String?                      @db.Text
+  status                        VoucherStatus                @default(DRAFT)
+  discountType                  VoucherDiscountType
+  discountValue                 Int
+  maxDiscountRp                 Int?
+  minimumPurchaseRp             Int                          @default(0)
+  activeFrom                    DateTime
+  activeUntil                   DateTime?
+  totalUsageLimit               Int?
+  perCustomerUsageLimit         Int?
+  legacyEntitlementDurationDays Int?
+  branchId                      String?                      @db.Char(36)
+  classTypeId                   String?                      @db.Char(36)
+  version                       Int                          @default(0)
+  createdById                   String                       @db.Char(36)
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  branch                        Branch?                      @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType                     ClassType?                   @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  createdBy                     User                         @relation("VoucherCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  packages                      VoucherPackageScope[]
+  redemptions                   VoucherRedemption[]
+  purchases                     Purchase[]
+  historical                    Boolean                      @default(false)
+  sourceDeletedAt               DateTime?
+  sourceMetadata                Json?
+  codeAliases                   VoucherCodeAlias[]
+  customerEntitlements          CustomerVoucherEntitlement[]
 
   @@index([status, activeFrom, activeUntil])
   @@index([branchId, status])
   @@index([classTypeId, status])
+}
+
+model VoucherCodeAlias {
+  id              String    @id @db.Char(36)
+  voucherId       String    @db.Char(36)
+  code            String    @db.VarChar(64)
+  canonical       Boolean   @default(false)
+  historical      Boolean   @default(true)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  voucher         Voucher   @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+
+  @@unique([voucherId, code])
+  @@index([code])
 }
 
 model VoucherPackageScope {
@@ -1275,20 +1650,43 @@ model VoucherPackageScope {
 }
 
 model VoucherRedemption {
-  id             String    @id @db.Char(36)
-  voucherId      String    @db.Char(36)
-  purchaseId     String    @unique @db.Char(36)
-  customerUserId String    @db.Char(36)
-  discountRp     Int
-  redeemedAt     DateTime  @default(now())
-  releasedAt     DateTime?
-  voucher        Voucher   @relation(fields: [voucherId], references: [id], onDelete: Restrict)
-  purchase       Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
-  customer       User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  id                   String                       @id @db.Char(36)
+  voucherId            String                       @db.Char(36)
+  purchaseId           String                       @unique @db.Char(36)
+  customerUserId       String                       @db.Char(36)
+  discountRp           Int
+  snapshotCompleteness PurchaseSnapshotCompleteness @default(COMPLETE_BREAKDOWN)
+  redeemedAt           DateTime                     @default(now())
+  releasedAt           DateTime?
+  voucher              Voucher                      @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  purchase             Purchase                     @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  customer             User                         @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
 
   @@unique([voucherId, customerUserId, purchaseId])
   @@index([voucherId, redeemedAt])
   @@index([customerUserId, voucherId, redeemedAt])
+}
+
+model CustomerVoucherEntitlement {
+  id               String    @id @db.Char(36)
+  voucherId        String    @db.Char(36)
+  customerUserId   String    @db.Char(36)
+  purchaseId       String?   @db.Char(36)
+  sourceStatusCode String    @db.VarChar(64)
+  active           Boolean   @default(true)
+  expiresAt        DateTime?
+  usedAt           DateTime?
+  historical       Boolean   @default(false)
+  sourceDeletedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  voucher          Voucher   @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  customer         User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  purchase         Purchase? @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, active, expiresAt])
+  @@index([voucherId, active, expiresAt])
+  @@index([purchaseId])
 }
 
 model PurchaseTimelineEvent {
@@ -1344,6 +1742,9 @@ model CustomerPackage {
   reservations         SessionReservation[]
   adjustments          SessionAdjustment[]
   bookings             Booking[]
+  historical           Boolean               @default(false)
+  sourceDeletedAt      DateTime?
+  sourceBalance        Int?
 
   @@index([customerUserId, branchId, expiryAt])
 }
@@ -1368,36 +1769,57 @@ model SessionReservation {
 }
 
 model Booking {
-  id                String              @id @db.Char(36)
-  branchId          String              @db.Char(36)
-  classSlotId       String              @db.Char(36)
-  customerUserId    String              @db.Char(36)
-  customerPackageId String              @db.Char(36)
-  reservationId     String              @unique @db.Char(36)
-  createdById       String              @db.Char(36)
-  source            BookingSource
-  status            BookingStatus       @default(BOOKED)
-  reservedQuantity  Int                 @default(1)
-  version           Int                 @default(0)
+  id                     String                         @id @db.Char(36)
+  branchId               String                         @db.Char(36)
+  classSlotId            String                         @db.Char(36)
+  customerUserId         String                         @db.Char(36)
+  customerPackageId      String                         @db.Char(36)
+  reservationId          String                         @unique @db.Char(36)
+  createdById            String                         @db.Char(36)
+  source                 BookingSource
+  status                 BookingStatus                  @default(BOOKED)
+  reservedQuantity       Int                            @default(1)
+  version                Int                            @default(0)
   cancellationReasonCode BookingCancellationReasonCode?
-  cancelledAt       DateTime?
-  cancelledById     String?             @db.Char(36)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  branch            Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classSlot         ClassSlot           @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  customer          User                @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
-  customerPackage   CustomerPackage     @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
-  reservation       SessionReservation  @relation(fields: [reservationId], references: [id], onDelete: Restrict)
-  createdBy         User                @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
-  cancelledBy       User?               @relation("BookingCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
-  reschedules       Reschedule[]
-  checkInTokens     CheckInToken[]
-  attendance        CustomerAttendance?
+  cancelledAt            DateTime?
+  cancelledById          String?                        @db.Char(36)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  branch                 Branch                         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot              ClassSlot                      @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  customer               User                           @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  customerPackage        CustomerPackage                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  reservation            SessionReservation             @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  createdBy              User                           @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy            User?                          @relation("BookingCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  reschedules            Reschedule[]
+  checkInTokens          CheckInToken[]
+  attendance             CustomerAttendance?
+  feedback               BookingFeedback?
+  attendanceOutcome      BookingAttendanceOutcome?
+  historical             Boolean                        @default(false)
+  sourceDeletedAt        DateTime?
+  sourceMetadata         Json?
 
   @@index([branchId, createdAt, id])
   @@index([customerUserId, createdAt, id])
   @@index([classSlotId, status])
+}
+
+model BookingAttendanceOutcome {
+  id               String                       @id @default(uuid()) @db.Char(36)
+  bookingId        String                       @unique @db.Char(36)
+  outcome          BookingAttendanceOutcomeCode
+  sourceStatusCode String?                      @db.VarChar(64)
+  note             String?                      @db.Text
+  occurredAt       DateTime?
+  historical       Boolean                      @default(false)
+  sourceDeletedAt  DateTime?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  booking          Booking                      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([outcome, occurredAt])
 }
 
 model CheckInToken {
@@ -1428,7 +1850,7 @@ model CheckInToken {
 model CustomerAttendance {
   id           String           @id @db.Char(36)
   bookingId    String           @unique @db.Char(36)
-  tokenId      String           @unique @db.Char(36)
+  tokenId      String?          @unique @db.Char(36)
   branchId     String           @db.Char(36)
   classSlotId  String           @db.Char(36)
   recordedById String           @db.Char(36)
@@ -1437,13 +1859,84 @@ model CustomerAttendance {
   auditLogId   String           @db.Char(36)
   createdAt    DateTime         @default(now())
   booking      Booking          @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  token        CheckInToken     @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  token        CheckInToken?    @relation(fields: [tokenId], references: [id], onDelete: Restrict)
   branch       Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   classSlot    ClassSlot        @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
   recordedBy   User             @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
 
   @@index([branchId, checkedInAt])
   @@index([classSlotId, checkedInAt])
+}
+
+model InstructorCheckInToken {
+  id                 String                @id @db.Char(36)
+  classSlotId        String                @db.Char(36)
+  instructorUserId   String                @db.Char(36)
+  issuedById         String                @db.Char(36)
+  tokenHash          String                @unique
+  activeClassSlotKey String?               @unique @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  notBeforeAt        DateTime
+  expiresAt          DateTime
+  status             CheckInTokenStatus    @default(ACTIVE)
+  usedAt             DateTime?
+  revokedAt          DateTime?
+  version            Int                   @default(0)
+  createdAt          DateTime              @default(now())
+  classSlot          ClassSlot             @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor         User                  @relation("InstructorTokenOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  issuedBy           User                  @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  attendance         InstructorAttendance?
+
+  @@unique([instructorUserId, idempotencyKeyHash])
+  @@index([classSlotId, status, expiresAt])
+  @@index([expiresAt, status])
+}
+
+model InstructorAttendance {
+  id               String                 @id @db.Char(36)
+  classSlotId      String                 @unique @db.Char(36)
+  instructorUserId String                 @db.Char(36)
+  tokenId          String                 @unique @db.Char(36)
+  branchId         String                 @db.Char(36)
+  checkedInAt      DateTime
+  auditLogId       String                 @db.Char(36)
+  createdAt        DateTime               @default(now())
+  classSlot        ClassSlot              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor       User                   @relation("InstructorAttendanceOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  token            InstructorCheckInToken @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  branch           Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([instructorUserId, checkedInAt])
+  @@index([branchId, checkedInAt])
+}
+
+model InstructorHourLog {
+  id                       String                 @id @default(uuid()) @db.Char(36)
+  classSlotId              String                 @unique @db.Char(36)
+  instructorUserId         String                 @db.Char(36)
+  branchId                 String                 @db.Char(36)
+  classTypeId              String                 @db.Char(36)
+  effectiveConfigurationId String                 @db.Char(36)
+  matchedUnits             Int                    @default(1)
+  feeRpSnapshot            Int
+  amountRp                 Int
+  period                   String                 @db.Char(7)
+  occurredAt               DateTime
+  historical               Boolean                @default(false)
+  sourceDeletedAt          DateTime?
+  sourceMetadata           Json?
+  createdAt                DateTime               @default(now())
+  classSlot                ClassSlot              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor               User                   @relation("InstructorHourLogOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  branch                   Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType                ClassType              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  effectiveConfiguration   EffectiveConfiguration @relation(fields: [effectiveConfigurationId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, occurredAt])
+  @@index([instructorUserId, occurredAt])
+  @@index([classTypeId, occurredAt])
 }
 
 model Reschedule {
@@ -1500,6 +1993,7 @@ model SessionAdjustment {
   requestedById          String                         @db.Char(36)
   decidedById            String?                        @db.Char(36)
   decisionCode           SessionAdjustmentDecisionCode?
+  decisionNote           String?                        @db.VarChar(500)
   status                 SessionAdjustmentStatus        @default(PENDING)
   decidedAt              DateTime?
   version                Int                            @default(0)
@@ -1515,20 +2009,623 @@ model SessionAdjustment {
 }
 
 model EffectiveConfiguration {
-  id               String     @id @db.Char(36)
-  kind             String
-  businessKey      String
-  branchId         String?    @db.Char(36)
-  classTypeId      String?    @db.Char(36)
-  value            Json
-  effectiveFrom    DateTime   @db.Date
-  effectiveUntil   DateTime?  @db.Date
-  version          Int        @default(0)
-  approvedEvidence String?
-  createdAt        DateTime   @default(now())
-  branch           Branch?    @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  id                 String              @id @db.Char(36)
+  kind               String
+  businessKey        String
+  branchId           String?             @db.Char(36)
+  classTypeId        String?             @db.Char(36)
+  value              Json
+  effectiveFrom      DateTime            @db.Date
+  effectiveUntil     DateTime?           @db.Date
+  version            Int                 @default(0)
+  approvedEvidence   String?
+  createdAt          DateTime            @default(now())
+  branch             Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType          ClassType?          @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  instructorHourLogs InstructorHourLog[]
 
   @@index([kind, businessKey, effectiveFrom, effectiveUntil])
   @@index([branchId, kind, effectiveFrom])
+}
+
+model MigrationBatch {
+  id                      String                            @id @default(uuid()) @db.Char(36)
+  sourceSystem            String                            @db.VarChar(32)
+  sourceSnapshotAt        DateTime
+  sourceChecksum          String                            @db.Char(64)
+  storageManifestChecksum String?                           @db.Char(64)
+  mappingVersion          String                            @db.VarChar(64)
+  phase                   String                            @db.VarChar(64)
+  status                  MigrationBatchStatus              @default(PENDING)
+  delta                   Boolean                           @default(false)
+  parentBatchId           String?                           @db.Char(36)
+  startedAt               DateTime?
+  completedAt             DateTime?
+  failureCode             String?                           @db.VarChar(64)
+  createdAt               DateTime                          @default(now())
+  updatedAt               DateTime                          @updatedAt
+  parentBatch             MigrationBatch?                   @relation("MigrationBatchDelta", fields: [parentBatchId], references: [id], onDelete: Restrict)
+  deltaBatches            MigrationBatch[]                  @relation("MigrationBatchDelta")
+  sourceKeys              MigrationSourceKey[]
+  rejects                 MigrationReject[]
+  controlTotals           MigrationControlTotal[]
+  resolutions             MigrationResolution[]
+  deltaEvents             MigrationDeltaEvent[]
+  deferredMediaReferences MigrationDeferredMediaReference[]
+
+  @@unique([sourceSystem, sourceChecksum, mappingVersion, phase])
+  @@index([status, createdAt])
+  @@index([parentBatchId, createdAt])
+}
+
+model MigrationDeferredMediaReference {
+  id                 String              @id @db.Char(36)
+  batchId            String              @db.Char(36)
+  sourceSystem       String              @db.VarChar(32)
+  sourceTable        String              @db.VarChar(64)
+  sourceId           String              @db.VarChar(191)
+  sourceField        String              @db.VarChar(64)
+  mediaKind          String              @db.VarChar(32)
+  referenceEncrypted String              @db.Text
+  referenceHash      String              @db.Char(64)
+  status             DeferredMediaStatus @default(DEFERRED)
+  historical         Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  batch              MigrationBatch      @relation(fields: [batchId], references: [id], onDelete: Restrict, map: "DeferredMedia_batch_fkey")
+
+  @@unique([sourceSystem, sourceTable, sourceId, sourceField], map: "DeferredMedia_source_key")
+  @@index([batchId, status, mediaKind], map: "DeferredMedia_batch_status_kind_idx")
+  @@index([referenceHash], map: "DeferredMedia_reference_hash_idx")
+}
+
+model MigrationSourceKey {
+  id             String         @id @default(uuid()) @db.Char(36)
+  batchId        String         @db.Char(36)
+  sourceSystem   String         @db.VarChar(32)
+  sourceTable    String         @db.VarChar(64)
+  sourceId       String         @db.VarChar(191)
+  targetType     String         @db.VarChar(64)
+  targetId       String         @db.VarChar(191)
+  recordChecksum String         @db.Char(64)
+  mappingVersion String         @db.VarChar(64)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  batch          MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceSystem, sourceTable, sourceId, targetType])
+  @@index([targetType, targetId])
+  @@index([batchId, sourceTable])
+}
+
+model MigrationReject {
+  id             String                @id @default(uuid()) @db.Char(36)
+  batchId        String                @db.Char(36)
+  sourceTable    String                @db.VarChar(64)
+  sourceId       String                @db.VarChar(191)
+  reasonCode     String                @db.VarChar(64)
+  fieldCode      String?               @db.VarChar(64)
+  recordChecksum String?               @db.Char(64)
+  status         MigrationRejectStatus @default(OPEN)
+  resolutionId   String?               @unique @db.Char(36)
+  createdAt      DateTime              @default(now())
+  resolvedAt     DateTime?
+  batch          MigrationBatch        @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  resolution     MigrationResolution?  @relation(fields: [resolutionId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, sourceTable, sourceId, reasonCode])
+  @@index([status, reasonCode, createdAt])
+}
+
+model MigrationControlTotal {
+  id            String                 @id @default(uuid()) @db.Char(36)
+  batchId       String                 @db.Char(36)
+  controlKey    String                 @db.VarChar(128)
+  dimensionHash String                 @db.Char(64)
+  dimensions    Json
+  expectedValue Decimal                @db.Decimal(30, 0)
+  actualValue   Decimal?               @db.Decimal(30, 0)
+  status        MigrationControlStatus @default(PENDING)
+  checkedAt     DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  batch         MigrationBatch         @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, controlKey, dimensionHash])
+  @@index([status, controlKey])
+}
+
+model MigrationResolution {
+  id                  String                    @id @default(uuid()) @db.Char(36)
+  batchId             String                    @db.Char(36)
+  resolutionKey       String                    @db.VarChar(191)
+  reasonCode          String                    @db.VarChar(64)
+  proposal            Json?
+  decision            Json?
+  decisionRequestHash String?                   @db.Char(64)
+  status              MigrationResolutionStatus @default(OPEN)
+  decidedById         String?                   @db.Char(36)
+  decisionReason      String?                   @db.VarChar(500)
+  decidedAt           DateTime?
+  appliedAt           DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  batch               MigrationBatch            @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  reject              MigrationReject?
+
+  @@unique([batchId, resolutionKey])
+  @@index([status, reasonCode, createdAt])
+}
+
+model MigrationDeltaEvent {
+  id                String                  @id @default(uuid()) @db.Char(36)
+  batchId           String?                 @db.Char(36)
+  eventKey          String                  @unique @db.VarChar(191)
+  sourceSystem      String                  @db.VarChar(32)
+  sourceTable       String                  @db.VarChar(64)
+  sourceId          String                  @db.VarChar(191)
+  operation         MigrationDeltaOperation
+  gtid              String                  @db.VarChar(191)
+  transactionOrder  BigInt
+  eventOrder        Int
+  binlogFile        String?                 @db.VarChar(191)
+  binlogPosition    BigInt?
+  sourceBranchId    String?                 @db.VarChar(191)
+  branchId          String?                 @db.Char(36)
+  beforeChecksum    String?                 @db.Char(64)
+  afterChecksum     String?                 @db.Char(64)
+  payloadCiphertext String                  @db.LongText
+  payloadIv         String                  @db.VarChar(32)
+  payloadAuthTag    String                  @db.VarChar(32)
+  payloadKeyVersion String                  @db.VarChar(32)
+  status            MigrationDeltaStatus    @default(CAPTURED)
+  correlationId     String                  @db.VarChar(191)
+  sourceOccurredAt  DateTime
+  capturedAt        DateTime                @default(now())
+  verifiedAt        DateTime?
+  appliedAt         DateTime?
+  failureCode       String?                 @db.VarChar(64)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  batch             MigrationBatch?         @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  branch            Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceSystem, gtid, eventOrder])
+  @@index([status, transactionOrder, eventOrder])
+  @@index([sourceTable, sourceId, transactionOrder])
+  @@index([branchId, status, transactionOrder])
+}
+
+model MigrationGtidCheckpoint {
+  id                String                  @id @default(uuid()) @db.Char(36)
+  sourceSystem      String                  @db.VarChar(32)
+  kind              MigrationCheckpointKind
+  gtidSet           String                  @db.LongText
+  lastGtid          String?                 @db.VarChar(191)
+  transactionOrder  BigInt                  @default(0)
+  binlogFile        String?                 @db.VarChar(191)
+  binlogPosition    BigInt?
+  capturedThroughAt DateTime?
+  updatedBy         String                  @db.VarChar(191)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@unique([sourceSystem, kind])
+}
+
+model MigrationBranchCutover {
+  id                  String              @id @default(uuid()) @db.Char(36)
+  branchId            String              @unique @db.Char(36)
+  sourceBranchId      String              @unique @db.VarChar(191)
+  status              BranchCutoverStatus @default(V1_ACTIVE)
+  snapshotGtid        String?             @db.VarChar(191)
+  highWaterGtid       String?             @db.VarChar(191)
+  highWaterOrder      BigInt?
+  v1WritesFrozenAt    DateTime?
+  deltaDrainedAt      DateTime?
+  v2ActivatedAt       DateTime?
+  rollbackStartedAt   DateTime?
+  rollbackCompletedAt DateTime?
+  version             Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  branch              Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([status, updatedAt])
+}
+
+model MigrationPilotOutbox {
+  id                String            @id @default(uuid()) @db.Char(36)
+  sequence          BigInt            @unique @default(autoincrement())
+  eventKey          String            @unique @db.VarChar(191)
+  branchId          String            @db.Char(36)
+  aggregateType     String            @db.VarChar(64)
+  aggregateId       String            @db.VarChar(191)
+  operation         String            @db.VarChar(64)
+  payloadCiphertext String            @db.LongText
+  payloadIv         String            @db.VarChar(32)
+  payloadAuthTag    String            @db.VarChar(32)
+  payloadKeyVersion String            @db.VarChar(32)
+  payloadChecksum   String            @db.Char(64)
+  status            PilotOutboxStatus @default(PENDING)
+  attempts          Int               @default(0)
+  failureCode       String?           @db.VarChar(64)
+  correlationId     String            @db.VarChar(191)
+  occurredAt        DateTime
+  appliedToV1At     DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  branch            Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, occurredAt])
+  @@index([branchId, status, sequence])
+  @@index([aggregateType, aggregateId, occurredAt])
+}
+
+model MigrationPilotMediaAlias {
+  id             String                @id @default(uuid()) @db.Char(36)
+  eventKey       String                @unique @db.VarChar(191)
+  branchId       String                @db.Char(36)
+  targetType     String                @db.VarChar(64)
+  targetId       String                @db.VarChar(191)
+  mediaKind      String                @db.VarChar(32)
+  aliasReference String                @unique @db.VarChar(191)
+  checksum       String                @db.Char(64)
+  mimeType       String                @db.VarChar(128)
+  sizeBytes      Int
+  status         PilotMediaAliasStatus @default(PREPARED)
+  attempts       Int                   @default(0)
+  failureCode    String?               @db.VarChar(64)
+  activatedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  branch         Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, createdAt])
+  @@index([targetType, targetId])
+}
+
+model UserProfile {
+  userId             String    @id @db.Char(36)
+  address            String?   @db.Text
+  genderCode         String?   @db.VarChar(32)
+  countryCode        String?   @db.Char(2)
+  birthDate          DateTime? @db.Date
+  nikEncrypted       String?   @db.Text
+  nikHash            String?   @db.Char(64)
+  barcode            String?   @db.VarChar(191)
+  historicalMetadata Json?
+  historical         Boolean   @default(false)
+  sourceDeletedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([nikHash])
+  @@index([barcode])
+}
+
+model UserContactAlias {
+  id              String           @id @default(uuid()) @db.Char(36)
+  userId          String           @db.Char(36)
+  kind            ContactAliasKind
+  normalizedHash  String           @db.Char(64)
+  valueEncrypted  String           @db.Text
+  canonical       Boolean          @default(false)
+  verifiedAt      DateTime?
+  historical      Boolean          @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, kind, normalizedHash])
+  @@index([kind, normalizedHash])
+}
+
+model Studio {
+  id               String      @id @default(uuid()) @db.Char(36)
+  branchId         String      @db.Char(36)
+  code             String      @db.VarChar(64)
+  name             String      @db.VarChar(160)
+  equipmentText    String?     @db.Text
+  contactPhoneE164 String?     @db.VarChar(32)
+  active           Boolean     @default(true)
+  historical       Boolean     @default(false)
+  sourceDeletedAt  DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  branch           Branch      @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  rooms            Room[]
+  classSlots       ClassSlot[]
+
+  @@unique([branchId, code])
+  @@index([branchId, active])
+}
+
+model Room {
+  id              String      @id @default(uuid()) @db.Char(36)
+  studioId        String      @db.Char(36)
+  code            String      @db.VarChar(64)
+  name            String      @db.VarChar(160)
+  capacity        Int?
+  active          Boolean     @default(true)
+  historical      Boolean     @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  studio          Studio      @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  classSlots      ClassSlot[]
+
+  @@unique([studioId, code])
+  @@index([studioId, active])
+}
+
+model BranchOpeningHour {
+  id              String    @id @default(uuid()) @db.Char(36)
+  branchId        String    @db.Char(36)
+  weekday         Weekday
+  opensAtMinute   Int?
+  closesAtMinute  Int?
+  closed          Boolean   @default(false)
+  effectiveFrom   DateTime  @db.Date
+  effectiveUntil  DateTime? @db.Date
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, weekday, effectiveFrom])
+  @@index([branchId, effectiveFrom, effectiveUntil])
+}
+
+model CustomerRecurringSchedule {
+  id              String     @id @default(uuid()) @db.Char(36)
+  customerUserId  String     @db.Char(36)
+  branchId        String?    @db.Char(36)
+  classTypeId     String?    @db.Char(36)
+  weekday         Weekday
+  startMinute     Int
+  timezone        String     @db.VarChar(64)
+  note            String?    @db.Text
+  active          Boolean    @default(true)
+  historical      Boolean    @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  customer        User       @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch          Branch?    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType       ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, active])
+  @@index([branchId, weekday, startMinute])
+}
+
+model BookingFeedback {
+  id              String    @id @default(uuid()) @db.Char(36)
+  bookingId       String    @unique @db.Char(36)
+  customerUserId  String    @db.Char(36)
+  rating          Int?
+  feedback        String?   @db.Text
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  submittedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  customer        User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, submittedAt])
+}
+
+model AccountingAccount {
+  id              String              @id @default(uuid()) @db.Char(36)
+  branchId        String?             @db.Char(36)
+  parentId        String?             @db.Char(36)
+  code            String              @db.VarChar(64)
+  name            String              @db.VarChar(191)
+  accountType     String              @db.VarChar(64)
+  active          Boolean             @default(true)
+  historical      Boolean             @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  branch          Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  parent          AccountingAccount?  @relation("AccountingAccountTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        AccountingAccount[] @relation("AccountingAccountTree")
+  journalEntries  JournalEntry[]
+
+  @@unique([branchId, code])
+  @@index([parentId])
+}
+
+model JournalEntry {
+  id                String             @id @default(uuid()) @db.Char(36)
+  branchId          String?            @db.Char(36)
+  accountId         String             @db.Char(36)
+  purchaseId        String?            @db.Char(36)
+  actorUserId       String?            @db.Char(36)
+  parentId          String?            @db.Char(36)
+  referenceNumber   String?            @db.VarChar(191)
+  description       String?            @db.Text
+  debitRp           Int                @default(0)
+  creditRp          Int                @default(0)
+  occurredAt        DateTime
+  statusCode        String             @db.VarChar(64)
+  attachmentKey     String?            @db.VarChar(512)
+  historical        Boolean            @default(false)
+  sourceDeletedAt   DateTime?
+  sourceMetadata    Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  account           AccountingAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  purchase          Purchase?          @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor             User?              @relation("JournalEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  parent            JournalEntry?      @relation("JournalEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children          JournalEntry[]     @relation("JournalEntryTree")
+  financeCorrection FinanceCorrection?
+
+  @@index([branchId, occurredAt])
+  @@index([accountId, occurredAt])
+  @@index([purchaseId])
+  @@index([parentId])
+}
+
+model OtherCost {
+  id               String          @id @default(uuid()) @db.Char(36)
+  branchId         String          @db.Char(36)
+  period           String          @db.Char(7)
+  description      String          @db.VarChar(300)
+  categoryCode     String          @default("LEGACY_UNCLASSIFIED") @db.VarChar(64)
+  occurredOn       DateTime        @db.Date
+  reason           String          @db.VarChar(500)
+  amountRp         Int
+  evidenceUploadId String?         @db.Char(36)
+  status           OtherCostStatus @default(ACTIVE)
+  createdById      String          @db.Char(36)
+  version          Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  branch           Branch          @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy        User            @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, createdAt, id])
+  @@index([status, period])
+}
+
+model FinancePeriod {
+  id            String                @id @default(uuid()) @db.Char(36)
+  branchId      String                @db.Char(36)
+  period        String                @db.Char(7)
+  status        FinancePeriodStatus   @default(OPEN)
+  controlHash   String                @db.Char(64)
+  closedAt      DateTime?
+  closedById    String?               @db.Char(36)
+  version       Int                   @default(0)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  branch        Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  closedBy      User?                 @relation("FinancePeriodCloser", fields: [closedById], references: [id], onDelete: Restrict)
+  closeSnapshot FinanceCloseSnapshot?
+
+  @@unique([branchId, period])
+  @@index([status, period])
+}
+
+model FinanceCloseSnapshot {
+  id                         String        @id @default(uuid()) @db.Char(36)
+  financePeriodId            String        @unique @db.Char(36)
+  branchId                   String        @db.Char(36)
+  period                     String        @db.Char(7)
+  grossSalesRp               Int
+  packagePromotionDiscountRp Int
+  voucherDiscountRp          Int
+  revenueRp                  Int
+  projectionRp               Int
+  instructorRealtimeRp       Int
+  otherCostRp                Int
+  correctionRp               Int
+  profitRp                   Int
+  sourceCutoffAt             DateTime
+  sourceVersion              String        @db.VarChar(64)
+  controlHash                String        @db.Char(64)
+  createdAt                  DateTime      @default(now())
+  financePeriod              FinancePeriod @relation(fields: [financePeriodId], references: [id], onDelete: Restrict)
+  branch                     Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, period])
+  @@index([sourceCutoffAt])
+}
+
+model FinanceCorrection {
+  id               String                  @id @default(uuid()) @db.Char(36)
+  branchId         String                  @db.Char(36)
+  currentPeriod    String                  @db.Char(7)
+  referencePeriod  String                  @db.Char(7)
+  amountRp         Int
+  reason           String                  @db.VarChar(500)
+  requestedById    String                  @db.Char(36)
+  decidedById      String?                 @db.Char(36)
+  decisionReason   String?                 @db.VarChar(500)
+  status           FinanceCorrectionStatus @default(PENDING)
+  decidedAt        DateTime?
+  postedAt         DateTime?
+  postingJournalId String?                 @unique @db.Char(36)
+  version          Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  branch           Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  requestedBy      User                    @relation("FinanceCorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy        User?                   @relation("FinanceCorrectionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  postingJournal   JournalEntry?           @relation(fields: [postingJournalId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, currentPeriod, status])
+  @@index([requestedById, createdAt])
+}
+
+model LegacyFinancialEntry {
+  id              String                   @id @default(uuid()) @db.Char(36)
+  branchId        String?                  @db.Char(36)
+  purchaseId      String?                  @db.Char(36)
+  actorUserId     String?                  @db.Char(36)
+  parentId        String?                  @db.Char(36)
+  type            LegacyFinancialEntryType
+  amountRp        Int
+  occurredAt      DateTime
+  description     String?                  @db.Text
+  sourceTypeCode  String                   @db.VarChar(64)
+  historical      Boolean                  @default(false)
+  sourceDeletedAt DateTime?
+  sourceMetadata  Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  branch          Branch?                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  purchase        Purchase?                @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor           User?                    @relation("LegacyFinancialEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  parent          LegacyFinancialEntry?    @relation("LegacyFinancialEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        LegacyFinancialEntry[]   @relation("LegacyFinancialEntryTree")
+
+  @@index([branchId, occurredAt])
+  @@index([purchaseId])
+  @@index([parentId])
+  @@index([type, occurredAt])
+}
+
+model MigrationLegacyPayload {
+  id                 String                     @id @default(uuid()) @db.Char(36)
+  kind               MigrationLegacyPayloadKind
+  auditLogId         String?                    @unique @db.Char(36)
+  userNotificationId String?                    @unique @db.Char(36)
+  payloadEncrypted   String                     @db.LongText
+  payloadChecksum    String                     @db.Char(64)
+  encryptionVersion  String                     @db.VarChar(32)
+  createdAt          DateTime                   @default(now())
+  auditLog           AuditLog?                  @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
+  userNotification   UserNotification?          @relation(fields: [userNotificationId], references: [id], onDelete: Restrict)
+
+  @@index([kind, createdAt])
+}
+
+model MediaAsset {
+  id              String                 @id @default(uuid()) @db.Char(36)
+  ownerUserId     String?                @db.Char(36)
+  branchId        String?                @db.Char(36)
+  entityType      String                 @db.VarChar(64)
+  entityId        String                 @db.VarChar(191)
+  purposeCode     String                 @db.VarChar(64)
+  objectKey       String                 @unique @db.VarChar(512)
+  checksum        String                 @db.Char(64)
+  mimeType        String                 @db.VarChar(191)
+  sizeBytes       Int
+  scanStatus      PaymentProofScanStatus @default(PENDING)
+  visibility      MediaVisibility        @default(AUTHORIZED)
+  historical      Boolean                @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  owner           User?                  @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  branch          Branch?                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, purposeCode])
+  @@index([checksum])
 }

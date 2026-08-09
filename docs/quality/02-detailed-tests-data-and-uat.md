@@ -20,7 +20,7 @@ Timezone all branches `Asia/Jakarta`; test clock is frozen per case.
 | Class types | GROUP, SEMI, PRIVATE |
 | Package P-GRP-10 | B-JKT, GROUP, 10 sessions, 30 days, Rp1.000.000, active 2026-07-01 |
 | Projection rate | B-JKT/GROUP Rp40.000 per sold session effective 2026-07-01 |
-| Instructor fee | Instructor I/B-JKT/GROUP Rp100.000 per matched hour effective 2026-07-01 |
+| Instructor fee | Instructor I/B-JKT/GROUP Rp100.000 per matched class effective 2026-07-01 |
 | Quota/capacity | B-JKT/GROUP minimum 2, capacity 3 effective 2026-07-01 |
 | Customer package CP-A | activated 2026-07-01, expires 2026-07-31 23:59:59 branch time, PURCHASE +10 |
 | Customer package CP-B | PURCHASE +1, one concurrency test candidate |

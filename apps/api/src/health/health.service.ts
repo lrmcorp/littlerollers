@@ -34,44 +34,53 @@ const timeout = async <T>(promise: Promise<T>, milliseconds: number): Promise<T>
 
 @Injectable()
 export class HealthService implements OnModuleDestroy {
-  private readonly redis: Redis;
+  private readonly redis: Redis | null;
   constructor(
     private readonly config: RuntimeConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.redis = new Redis(config.value.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 0 });
+    this.redis = config.value.redisUrl
+      ? new Redis(config.value.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 0 })
+      : null;
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.redis.disconnect();
+    this.redis?.disconnect();
   }
 
   async check(): Promise<HealthResult> {
     const milliseconds = this.config.value.healthProbeTimeoutMs;
-    const [database, redis, worker, storage, paymentProofScanner] = await Promise.all([
+    const [database, storage, paymentProofScanner] = await Promise.all([
       this.probe('database', () => this.prisma.$queryRaw`SELECT 1`),
-      this.probe('redis', async () => {
-        if (this.redis.status === 'wait') await this.redis.connect();
-        if ((await this.redis.ping()) !== 'PONG') throw new Error('UNREACHABLE');
-      }),
-      this.probe('worker', async () => {
-        const heartbeat = await this.redis.get('dailydose:worker:heartbeat');
-        if (!heartbeat || Date.now() - Date.parse(heartbeat) > 30_000)
-          throw new Error('STALE_HEARTBEAT');
-      }),
       this.probe('private-storage', () => this.checkPrivateStorage()),
       this.probe('payment-proof-scanner', () => this.checkPaymentProofScanner()),
     ]);
+    const redisDependencies = this.redis
+      ? await Promise.all([
+          this.probe('redis', async () => {
+            if (this.redis?.status === 'wait') await this.redis.connect();
+            if ((await this.redis?.ping()) !== 'PONG') throw new Error('UNREACHABLE');
+          }),
+          this.probe('worker', async () => {
+            const heartbeat = await this.redis?.get('dailydose:worker:heartbeat');
+            if (!heartbeat || Date.now() - Date.parse(heartbeat) > 30_000)
+              throw new Error('STALE_HEARTBEAT');
+          }),
+        ])
+      : [];
     const dependencies: DependencyHealth[] = [
       { name: 'api', status: 'READY', detailCode: null },
       database,
-      redis,
-      worker,
+      ...redisDependencies,
       storage,
       paymentProofScanner,
     ];
-    const criticalFailure = [database, redis].some((item) => item.status !== 'READY');
-    const degraded = [worker, storage, paymentProofScanner].some((item) => item.status !== 'READY');
+    const redis = redisDependencies.find((item) => item.name === 'redis');
+    const worker = redisDependencies.find((item) => item.name === 'worker');
+    const criticalFailure = [database, redis].some((item) => item && item.status !== 'READY');
+    const degraded = [worker, storage, paymentProofScanner].some(
+      (item) => item && item.status !== 'READY',
+    );
     return {
       status: criticalFailure ? 'NOT_READY' : degraded ? 'DEGRADED' : 'READY',
       checkedAt: new Date().toISOString(),

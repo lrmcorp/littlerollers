@@ -42,7 +42,7 @@ export function actionClasses({
   className?: string;
 }) {
   return [
-    'inline-flex shrink-0 items-center justify-center gap-2 rounded-dd-md border font-semibold no-underline transition duration-150',
+    'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-dd-md border font-semibold no-underline transition duration-150',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest',
     'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none',
     variantClasses[variant],

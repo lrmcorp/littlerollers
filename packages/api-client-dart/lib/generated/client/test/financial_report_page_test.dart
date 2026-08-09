@@ -12,7 +12,7 @@ void main() {
       // TODO
     });
 
-    // BuiltList<JsonObject> items
+    // BuiltList<FinancialReportPageItemsInner> items
     test('to test the property `items`', () async {
       // TODO
     });

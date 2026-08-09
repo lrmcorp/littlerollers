@@ -27,6 +27,11 @@ void main() {
       // TODO
     });
 
+    // DateTime notBeforeAt
+    test('to test the property `notBeforeAt`', () async {
+      // TODO
+    });
+
     // DateTime expiresAt
     test('to test the property `expiresAt`', () async {
       // TODO
@@ -44,6 +49,36 @@ void main() {
 
     // String status
     test('to test the property `status`', () async {
+      // TODO
+    });
+
+    // int version
+    test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // String customerName
+    test('to test the property `customerName`', () async {
+      // TODO
+    });
+
+    // String className
+    test('to test the property `className`', () async {
+      // TODO
+    });
+
+    // CheckInTokenStatusBranch branch
+    test('to test the property `branch`', () async {
+      // TODO
+    });
+
+    // DateTime startAt
+    test('to test the property `startAt`', () async {
+      // TODO
+    });
+
+    // DateTime endAt
+    test('to test the property `endAt`', () async {
       // TODO
     });
 

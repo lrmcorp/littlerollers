@@ -5,10 +5,19 @@ import Link from 'next/link';
 import { AlertTriangle, Download, RefreshCw, Scale } from 'lucide-react';
 import { useSessionContext } from '../session-context';
 import { Feedback } from '../ui';
-import { AdminEmptyState, Badge, FilterBar, Panel, StatCard } from '../components/admin/admin-ui';
+import {
+  AdminEmptyState,
+  Badge,
+  DataTable,
+  FilterBar,
+  Pagination,
+  Panel,
+  StatCard,
+} from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
 import { controlClassName } from '../components/forms';
+import { FinanceCommandsPanel } from './finance-commands-panel';
 
 const money = new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -24,19 +33,73 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const [data, setData] = useState<FinanceData>();
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [anomalyCursor, setAnomalyCursor] = useState<string>();
+  const [anomalyCursorHistory, setAnomalyCursorHistory] = useState<string[]>([]);
+  const [legacyCursor, setLegacyCursor] = useState<string>();
+  const [legacyCursorHistory, setLegacyCursorHistory] = useState<string[]>([]);
   const allowed = context?.hasCapability('finance:reconcile');
   const load = useCallback(async () => {
     if (!allowed) return;
     setLoading(true);
     setFailed(false);
     try {
-      setData(await client.load({ branchId: context?.activeBranchId || undefined, from, until }));
+      const input = { branchId: context?.activeBranchId || undefined, from, until };
+      const [overview, anomalies, legacyCashflow] = await Promise.all([
+        client.overview(input),
+        client.anomalies(input),
+        client.legacyCashflow(input),
+      ]);
+      setData({ overview, anomalies, legacyCashflow });
+      setAnomalyCursor(undefined);
+      setAnomalyCursorHistory([]);
+      setLegacyCursor(undefined);
+      setLegacyCursorHistory([]);
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
   }, [allowed, client, context?.activeBranchId, from, until]);
+
+  const loadAnomalyPage = async (cursor?: string) => {
+    if (!allowed || !data) return false;
+    setLoading(true);
+    setFailed(false);
+    try {
+      const anomalies = await client.anomalies(
+        { branchId: context?.activeBranchId || undefined, from, until },
+        cursor,
+      );
+      setData({ ...data, anomalies });
+      setAnomalyCursor(cursor);
+      return true;
+    } catch {
+      setFailed(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  const loadLegacyPage = async (cursor?: string) => {
+    if (!allowed || !data) return false;
+    setLoading(true);
+    setFailed(false);
+    try {
+      const legacyCashflow = await client.legacyCashflow(
+        { branchId: context?.activeBranchId || undefined, from, until },
+        cursor,
+      );
+      setData({ ...data, legacyCashflow });
+      setLegacyCursor(cursor);
+      return true;
+    } catch {
+      setFailed(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     void load();
   }, [load]);
@@ -48,38 +111,27 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       </Feedback>
     );
   const metrics = data?.overview.metrics;
-  const exportCsv = () => {
-    if (!data || !context?.hasCapability('finance:export')) return;
-    const rows = [
-      [
-        'branch_code',
-        'branch_name',
-        'expected_rp',
-        'received_rp',
-        'approved_rp',
-        'identification_amount_rp',
-        'pending_count',
-        'anomaly_count',
-      ],
-      ...data.overview.branches.map((item) => [
-        item.code,
-        item.name,
-        item.expectedRp,
-        item.receivedRp,
-        item.approvedRp,
-        item.identificationAmountRp,
-        item.pendingCount,
-        item.anomalyCount,
-      ]),
-    ];
-    const blob = new Blob([rows.map((row) => row.join(',')).join('\n')], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const anchor = document.createElement('a');
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `finance-reconciliation-${from}-${until}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
+  const exportCsv = async () => {
+    if (!data || !client.exportReport || !context?.hasCapability('finance:export')) return;
+    setExporting(true);
+    setFailed(false);
+    try {
+      const result = await client.exportReport({
+        branchId: context.activeBranchId || undefined,
+        from,
+        until,
+      });
+      const blob = new Blob([result.content], { type: String(result.mimeType) });
+      const anchor = document.createElement('a');
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = result.fileName;
+      anchor.click();
+      URL.revokeObjectURL(anchor.href);
+    } catch {
+      setFailed(true);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -98,8 +150,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Button
             variant="secondary"
             leadingIcon={<Download className="size-4" aria-hidden="true" />}
-            onClick={exportCsv}
-            disabled={!data || !context?.hasCapability('finance:export')}
+            onClick={() => void exportCsv()}
+            disabled={
+              exporting ||
+              !data ||
+              !client.exportReport ||
+              !context?.hasCapability('finance:export')
+            }
           >
             Export CSV
           </Button>
@@ -237,13 +294,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </p>
               <h2 className="mt-1 text-xl font-semibold">Perlu pemeriksaan</h2>
             </div>
-            <Badge tone={data?.anomalies.length ? 'danger' : 'success'}>
-              {data?.anomalies.length ?? 0}
+            <Badge tone={data?.anomalies.total ? 'danger' : 'success'}>
+              {data?.anomalies.total ?? 0}
             </Badge>
           </div>
           <div className="mt-4 space-y-3">
-            {data?.anomalies.length ? (
-              data.anomalies.map((item) => (
+            {data?.anomalies.items.length ? (
+              data.anomalies.items.map((item) => (
                 <Link
                   href={item.href}
                   key={`${item.purchaseId}-${item.code}`}
@@ -264,8 +321,106 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </p>
             )}
           </div>
+          {data && (
+            <div className="mt-4">
+              <Pagination
+                hasPrevious={anomalyCursorHistory.length > 0 && !loading}
+                hasNext={Boolean(data.anomalies.page.nextCursor) && !loading}
+                totalLabel={`Halaman ${anomalyCursorHistory.length + 1} · ${data.anomalies.items.length.toLocaleString('id-ID')} data dari ${data.anomalies.total.toLocaleString('id-ID')} anomali`}
+                onPrevious={() => {
+                  const previous = anomalyCursorHistory.at(-1) ?? '';
+                  void loadAnomalyPage(previous || undefined).then((loaded) => {
+                    if (loaded) setAnomalyCursorHistory((current) => current.slice(0, -1));
+                  });
+                }}
+                onNext={() => {
+                  const next = data.anomalies.page.nextCursor;
+                  if (!next) return;
+                  void loadAnomalyPage(next).then((loaded) => {
+                    if (loaded)
+                      setAnomalyCursorHistory((current) => [...current, anomalyCursor ?? '']);
+                  });
+                }}
+              />
+            </div>
+          )}
         </Panel>
       </div>
+      <Panel className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              Data historis v1
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">Legacy cashflow</h2>
+            <p className="mt-1 text-sm text-dd-muted">
+              Income/expense single-entry v1 ditampilkan terpisah dari jurnal double-entry v2.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Badge tone="success">
+              Income {money.format(data?.legacyCashflow.summary.INCOME?.amountRp ?? 0)}
+            </Badge>
+            <Badge tone="warning">
+              Expense {money.format(data?.legacyCashflow.summary.EXPENSE?.amountRp ?? 0)}
+            </Badge>
+          </div>
+        </div>
+        <DataTable
+          items={data?.legacyCashflow.items ?? []}
+          loading={loading}
+          rowKey={(item) => item.id}
+          emptyTitle="Belum ada legacy cashflow"
+          emptyDescription="Tidak ada jurnal v1 pada periode dan scope ini."
+          columns={[
+            {
+              id: 'date',
+              header: 'Tanggal',
+              cell: (item) => item.occurredAt.toLocaleDateString('id-ID'),
+            },
+            {
+              id: 'type',
+              header: 'Tipe',
+              cell: (item) => (
+                <Badge tone={item.type === 'INCOME' ? 'success' : 'warning'}>
+                  {item.type === 'INCOME' ? 'Income' : 'Expense'}
+                </Badge>
+              ),
+            },
+            { id: 'description', header: 'Deskripsi', cell: (item) => item.description ?? '—' },
+            {
+              id: 'branch',
+              header: 'Studio/Cabang',
+              cell: (item) => item.branch?.name ?? 'Global',
+            },
+            { id: 'amount', header: 'Nominal', cell: (item) => money.format(item.amountRp) },
+          ]}
+        />
+        {data && (
+          <div className="border-t border-dd-line p-4">
+            <Pagination
+              previousAriaLabel="Legacy cashflow sebelumnya"
+              nextAriaLabel="Legacy cashflow berikutnya"
+              hasPrevious={legacyCursorHistory.length > 0 && !loading}
+              hasNext={Boolean(data.legacyCashflow.page.nextCursor) && !loading}
+              totalLabel={`Halaman ${legacyCursorHistory.length + 1} · ${data.legacyCashflow.items.length.toLocaleString('id-ID')} data dari ${data.legacyCashflow.total.toLocaleString('id-ID')} legacy entry`}
+              onPrevious={() => {
+                const previous = legacyCursorHistory.at(-1) ?? '';
+                void loadLegacyPage(previous || undefined).then((loaded) => {
+                  if (loaded) setLegacyCursorHistory((current) => current.slice(0, -1));
+                });
+              }}
+              onNext={() => {
+                const next = data.legacyCashflow.page.nextCursor;
+                if (!next) return;
+                void loadLegacyPage(next).then((loaded) => {
+                  if (loaded) setLegacyCursorHistory((current) => [...current, legacyCursor ?? '']);
+                });
+              }}
+            />
+          </div>
+        )}
+      </Panel>
       <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <strong>Antrean keputusan pembayaran</strong>
@@ -278,6 +433,9 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           Buka payment queue
         </Link>
       </Panel>
+      {context?.activeBranchId && context.hasCapability('finance:manage') && (
+        <FinanceCommandsPanel client={client} branchId={context.activeBranchId} />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   OperationsApi,
   type OperationalJob,
   type OperationalJobPage,
+  type OperationalJobResult,
   type NotificationOccurrence,
   type NotificationOccurrencePage,
   type NotificationRetryResult,
@@ -22,6 +23,8 @@ export type {
 export interface OperationsClient {
   list(status?: string, cursor?: string): Promise<OperationalJobPage>;
   run(job: OperationalJob): Promise<QuotaEvaluationResult>;
+  retryJob?(id: string, reason: string): Promise<OperationalJobResult>;
+  deadLetterJob?(id: string, reason: string): Promise<OperationalJobResult>;
   listEmails?(status?: string, cursor?: string): Promise<NotificationOccurrencePage>;
   retryEmail?(id: string, reason: string): Promise<NotificationRetryResult>;
 }
@@ -41,6 +44,26 @@ export const browserOperationsClient: OperationsClient = {
         quotaEvaluationCommand: { expectedDueAt: job.dueAt, expectedVersion: job.version },
       }),
       { label: 'Menjalankan pemulihan…' },
+    );
+  },
+  retryJob(id, reason) {
+    return appLoading.track(
+      api.retryOperationalJob({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        decideCorrectionRequest: { reason },
+      }),
+      { label: 'Menjadwalkan ulang job…' },
+    );
+  },
+  deadLetterJob(id, reason) {
+    return appLoading.track(
+      api.deadLetterOperationalJob({
+        id,
+        idempotencyKey: crypto.randomUUID(),
+        decideCorrectionRequest: { reason },
+      }),
+      { label: 'Memindahkan job ke dead-letter…' },
     );
   },
   listEmails(status, cursor) {

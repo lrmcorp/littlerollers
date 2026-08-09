@@ -92,7 +92,7 @@ class _$VoucherRedemptionSerializer implements PrimitiveSerializer<VoucherRedemp
       yield r'releasedAt';
       yield serializers.serialize(
         object.releasedAt,
-        specifiedType: const FullType.nullable(DateTime),
+        specifiedType: const FullType(DateTime),
       );
     }
   }
@@ -156,9 +156,8 @@ class _$VoucherRedemptionSerializer implements PrimitiveSerializer<VoucherRedemp
         case r'releasedAt':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType.nullable(DateTime),
-          ) as DateTime?;
-          if (valueDes == null) continue;
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
           result.releasedAt = valueDes;
           break;
         default:

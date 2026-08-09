@@ -2,6 +2,7 @@
 set -eu
 
 IMAGE="openapitools/openapi-generator-cli:v7.15.0@sha256:509f01c3c7eee9d1ad286506a7b6aa4624a95b410be9a238a306d209e900621f"
+LOCAL_JAR=".cache/openapi-generator/openapi-generator-cli-7.15.0.jar"
 MODE="${1:-temp}"
 
 case "$MODE" in
@@ -29,8 +30,18 @@ case "$MODE" in
 esac
 
 COMMON="--additional-properties=hideGenerationTimestamp=true"
+if [ -z "${OPENAPI_GENERATOR_JAR:-}" ] && [ -f "$LOCAL_JAR" ]; then
+  OPENAPI_GENERATOR_JAR="$LOCAL_JAR"
+fi
+
 if [ -n "${OPENAPI_GENERATOR_JAR:-}" ]; then
-  JAVA_COMMAND="${OPENAPI_GENERATOR_JAVA:-java}"
+  if [ -n "${OPENAPI_GENERATOR_JAVA:-}" ]; then
+    JAVA_COMMAND="$OPENAPI_GENERATOR_JAVA"
+  elif [ -x "/opt/homebrew/opt/openjdk@21/bin/java" ]; then
+    JAVA_COMMAND="/opt/homebrew/opt/openjdk@21/bin/java"
+  else
+    JAVA_COMMAND="java"
+  fi
   "$JAVA_COMMAND" -jar "$OPENAPI_GENERATOR_JAR" generate \
     -i docs/technical/openapi-v1.yaml -g typescript-fetch \
     -o "$LOCAL_TS_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
@@ -39,11 +50,11 @@ if [ -n "${OPENAPI_GENERATOR_JAR:-}" ]; then
     -o "$LOCAL_DART_OUTPUT" $COMMON --global-property=apis,models,supportingFiles
 else
   if ! command -v docker >/dev/null 2>&1; then
-    echo "OpenAPI generator belum dikonfigurasi: set OPENAPI_GENERATOR_JAR ke openapi-generator-cli v7.15.0 atau pasang Docker." >&2
+    echo "OpenAPI generator belum tersedia. Jalankan 'pnpm openapi:setup' atau set OPENAPI_GENERATOR_JAR ke openapi-generator-cli v7.15.0." >&2
     exit 2
   fi
   if ! docker info >/dev/null 2>&1; then
-    echo "OpenAPI generator lokal tidak dapat mengakses Docker. Set OPENAPI_GENERATOR_JAR dan OPENAPI_GENERATOR_JAVA untuk workflow tanpa Docker." >&2
+    echo "Docker tidak tersedia. Jalankan 'pnpm openapi:setup' untuk memasang generator lokal berbasis Java/JAR." >&2
     exit 2
   fi
   docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/local" "$IMAGE" generate \
@@ -66,6 +77,18 @@ CUSTOMER_BOOKING_OPTIONS="$LOCAL_DART_OUTPUT/lib/src/model/customer_booking_opti
 if [ -f "$CUSTOMER_BOOKING_OPTIONS" ]; then
   sed -i.bak 's/result\.slot = valueDes;/result.slot.replace(valueDes);/' "$CUSTOMER_BOOKING_OPTIONS"
   rm -f "$CUSTOMER_BOOKING_OPTIONS.bak"
+fi
+
+# OpenAPI Generator 7.15 omits the PackageRevision import from the
+# InternalPackageDetail allOf model even though its custom serializer references
+# that inherited type. Add the missing import deterministically in both sync and
+# drift-generation modes.
+INTERNAL_PACKAGE_DETAIL="$LOCAL_DART_OUTPUT/lib/src/model/internal_package_detail.dart"
+if [ -f "$INTERNAL_PACKAGE_DETAIL" ] && ! grep -q "src/model/package_revision.dart" "$INTERNAL_PACKAGE_DETAIL"; then
+  sed -i.bak "/src\/model\/package_class_type_scope.dart/a\\
+import 'package:openapi/src/model/package_revision.dart';
+" "$INTERNAL_PACKAGE_DETAIL"
+  rm -f "$INTERNAL_PACKAGE_DETAIL.bak"
 fi
 
 # dart-dio generates API smoke-test stubs that instantiate the client with the

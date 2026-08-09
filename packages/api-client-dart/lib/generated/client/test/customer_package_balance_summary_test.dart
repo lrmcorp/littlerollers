@@ -12,6 +12,11 @@ void main() {
       // TODO
     });
 
+    // int activePackageCount
+    test('to test the property `activePackageCount`', () async {
+      // TODO
+    });
+
     // int ledgerBalance
     test('to test the property `ledgerBalance`', () async {
       // TODO
@@ -24,6 +29,26 @@ void main() {
 
     // int available
     test('to test the property `available`', () async {
+      // TODO
+    });
+
+    // int usedSessions
+    test('to test the property `usedSessions`', () async {
+      // TODO
+    });
+
+    // int reversedSessions
+    test('to test the property `reversedSessions`', () async {
+      // TODO
+    });
+
+    // int adjustmentDelta
+    test('to test the property `adjustmentDelta`', () async {
+      // TODO
+    });
+
+    // int expiringSoon
+    test('to test the property `expiringSoon`', () async {
       // TODO
     });
 

@@ -12,13 +12,21 @@ part 'customer_package_balance_summary.g.dart';
 ///
 /// Properties:
 /// * [packageCount] 
+/// * [activePackageCount] 
 /// * [ledgerBalance] 
 /// * [reserved] 
 /// * [available] 
+/// * [usedSessions] 
+/// * [reversedSessions] 
+/// * [adjustmentDelta] 
+/// * [expiringSoon] 
 @BuiltValue()
 abstract class CustomerPackageBalanceSummary implements Built<CustomerPackageBalanceSummary, CustomerPackageBalanceSummaryBuilder> {
   @BuiltValueField(wireName: r'packageCount')
   int get packageCount;
+
+  @BuiltValueField(wireName: r'activePackageCount')
+  int get activePackageCount;
 
   @BuiltValueField(wireName: r'ledgerBalance')
   int get ledgerBalance;
@@ -28,6 +36,18 @@ abstract class CustomerPackageBalanceSummary implements Built<CustomerPackageBal
 
   @BuiltValueField(wireName: r'available')
   int get available;
+
+  @BuiltValueField(wireName: r'usedSessions')
+  int get usedSessions;
+
+  @BuiltValueField(wireName: r'reversedSessions')
+  int get reversedSessions;
+
+  @BuiltValueField(wireName: r'adjustmentDelta')
+  int get adjustmentDelta;
+
+  @BuiltValueField(wireName: r'expiringSoon')
+  int get expiringSoon;
 
   CustomerPackageBalanceSummary._();
 
@@ -57,6 +77,11 @@ class _$CustomerPackageBalanceSummarySerializer implements PrimitiveSerializer<C
       object.packageCount,
       specifiedType: const FullType(int),
     );
+    yield r'activePackageCount';
+    yield serializers.serialize(
+      object.activePackageCount,
+      specifiedType: const FullType(int),
+    );
     yield r'ledgerBalance';
     yield serializers.serialize(
       object.ledgerBalance,
@@ -70,6 +95,26 @@ class _$CustomerPackageBalanceSummarySerializer implements PrimitiveSerializer<C
     yield r'available';
     yield serializers.serialize(
       object.available,
+      specifiedType: const FullType(int),
+    );
+    yield r'usedSessions';
+    yield serializers.serialize(
+      object.usedSessions,
+      specifiedType: const FullType(int),
+    );
+    yield r'reversedSessions';
+    yield serializers.serialize(
+      object.reversedSessions,
+      specifiedType: const FullType(int),
+    );
+    yield r'adjustmentDelta';
+    yield serializers.serialize(
+      object.adjustmentDelta,
+      specifiedType: const FullType(int),
+    );
+    yield r'expiringSoon';
+    yield serializers.serialize(
+      object.expiringSoon,
       specifiedType: const FullType(int),
     );
   }
@@ -102,6 +147,13 @@ class _$CustomerPackageBalanceSummarySerializer implements PrimitiveSerializer<C
           ) as int;
           result.packageCount = valueDes;
           break;
+        case r'activePackageCount':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.activePackageCount = valueDes;
+          break;
         case r'ledgerBalance':
           final valueDes = serializers.deserialize(
             value,
@@ -122,6 +174,34 @@ class _$CustomerPackageBalanceSummarySerializer implements PrimitiveSerializer<C
             specifiedType: const FullType(int),
           ) as int;
           result.available = valueDes;
+          break;
+        case r'usedSessions':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.usedSessions = valueDes;
+          break;
+        case r'reversedSessions':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.reversedSessions = valueDes;
+          break;
+        case r'adjustmentDelta':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.adjustmentDelta = valueDes;
+          break;
+        case r'expiringSoon':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.expiringSoon = valueDes;
           break;
         default:
           unhandled.add(key);

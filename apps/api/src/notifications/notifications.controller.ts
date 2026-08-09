@@ -1,5 +1,16 @@
-import { Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
+import { ApiProblem } from '../identity/security';
 import { NotificationsService } from './notifications.service';
 
 @Controller('me/notifications')
@@ -14,6 +25,8 @@ export class NotificationsController {
     @Query('limit') limit?: string,
     @Query('unreadOnly') unreadOnly?: string,
   ) {
+    if (unreadOnly !== undefined && unreadOnly !== 'true' && unreadOnly !== 'false')
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.notifications.list(request.principal, {
       cursor,
       limit: limit ? Number(limit) : undefined,

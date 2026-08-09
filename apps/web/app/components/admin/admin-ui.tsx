@@ -305,12 +305,16 @@ export function Pagination({
   hasPrevious,
   hasNext,
   totalLabel,
+  previousAriaLabel,
+  nextAriaLabel,
   onPrevious,
   onNext,
 }: {
   hasPrevious: boolean;
   hasNext: boolean;
   totalLabel?: string;
+  previousAriaLabel?: string;
+  nextAriaLabel?: string;
   onPrevious(): void;
   onNext(): void;
 }) {
@@ -322,6 +326,7 @@ export function Pagination({
       <span className="text-sm text-dd-muted">{totalLabel ?? 'Navigasi halaman'}</span>
       <div className="flex gap-2">
         <Button
+          aria-label={previousAriaLabel}
           variant="secondary"
           leadingIcon={<ChevronLeft className="size-4" aria-hidden="true" />}
           disabled={!hasPrevious}
@@ -330,6 +335,7 @@ export function Pagination({
           Sebelumnya
         </Button>
         <Button
+          aria-label={nextAriaLabel}
           variant="secondary"
           trailingIcon={<ChevronRight className="size-4" aria-hidden="true" />}
           disabled={!hasNext}

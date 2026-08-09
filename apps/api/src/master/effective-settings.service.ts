@@ -19,6 +19,14 @@ export type SettingInput = {
   effectiveFrom: string;
   effectiveUntil?: string | null;
   reason: string;
+  configurationId?: string;
+  approvedEvidence?: string;
+  configurationPackChecksum?: string;
+  approval?: {
+    financeApproverId: string;
+    productOwnerApproverId: string;
+    approvedAt: string;
+  };
 };
 
 @Injectable()
@@ -60,6 +68,7 @@ export class EffectiveSettingsService {
     const until = input.effectiveUntil ? assertIsoDate(input.effectiveUntil) : null;
     if (until && until <= from) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const value = validateValue(input);
+    const approvedEvidence = validateFinanceApproval(input);
     const key = [input.branchId, input.classTypeId, input.instructorUserId]
       .filter(Boolean)
       .join(':');
@@ -72,12 +81,29 @@ export class EffectiveSettingsService {
             WHERE \`id\` = ${input.classTypeId}
             FOR UPDATE
           `;
-          const [branch, classType] = await Promise.all([
-            tx.branch.findUnique({ where: { id: input.branchId } }),
-            tx.classType.findUnique({ where: { id: input.classTypeId } }),
+          const [branch, classType, classTypeScope] = await Promise.all([
+            tx.branch.findUnique({
+              where: { id: input.branchId },
+            }),
+            tx.classType.findUnique({
+              where: { id: input.classTypeId },
+            }),
+            tx.classTypeBranchScope.findUnique({
+              where: {
+                classTypeId_branchId: {
+                  classTypeId: input.classTypeId,
+                  branchId: input.branchId,
+                },
+              },
+              select: {
+                active: true,
+              },
+            }),
           ]);
-          if (!branch?.active || !classType?.active || classType.branchId !== input.branchId)
+
+          if (!branch?.active || !classType?.active || !classTypeScope?.active) {
             throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+          }
           if (input.kind === 'INSTRUCTOR_FEE') {
             const user = await tx.user.findUnique({ where: { id: input.instructorUserId! } });
             if (!user || user.status !== 'ACTIVE')
@@ -85,6 +111,31 @@ export class EffectiveSettingsService {
           }
           const effectiveFrom = new Date(`${from}T00:00:00Z`);
           const effectiveUntil = until ? new Date(`${until}T00:00:00Z`) : null;
+          const exact = await tx.effectiveConfiguration.findFirst({
+            where: { kind: input.kind, businessKey: key, effectiveFrom },
+          });
+          if (exact) {
+            const existingValue = exact.value as Record<string, unknown>;
+            const requestedValue = value as Record<string, unknown>;
+            const existingApproval = existingValue.approval as Record<string, unknown> | undefined;
+            const requestedApproval = requestedValue.approval as
+              Record<string, unknown> | undefined;
+            const same =
+              exact.effectiveUntil?.getTime() === effectiveUntil?.getTime() &&
+              exact.approvedEvidence === approvedEvidence &&
+              existingValue.configurationId === requestedValue.configurationId &&
+              existingValue.configurationPackChecksum ===
+                requestedValue.configurationPackChecksum &&
+              existingValue.feeRp === requestedValue.feeRp &&
+              existingValue.rateRp === requestedValue.rateRp &&
+              existingValue.instructorUserId === requestedValue.instructorUserId &&
+              existingApproval?.financeApproverId === requestedApproval?.financeApproverId &&
+              existingApproval?.productOwnerApproverId ===
+                requestedApproval?.productOwnerApproverId &&
+              existingApproval?.approvedAt === requestedApproval?.approvedAt;
+            if (same) return settingView(exact);
+            throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
+          }
           const overlap = await tx.effectiveConfiguration.findFirst({
             where: {
               kind: input.kind,
@@ -104,7 +155,7 @@ export class EffectiveSettingsService {
               value,
               effectiveFrom,
               effectiveUntil,
-              approvedEvidence: 'SYNTHETIC_NON_PRODUCTION',
+              approvedEvidence,
             },
           });
           await this.access.audit(
@@ -144,14 +195,24 @@ function validateValue(input: SettingInput): Prisma.InputJsonValue {
     return {
       feeRp: input.feeRp!,
       currency: 'IDR',
-      unit: 'MATCHED_HOUR',
+      unit: 'MATCHED_CLASS',
       instructorUserId: input.instructorUserId,
+      configurationId: input.configurationId,
+      configurationPackChecksum: input.configurationPackChecksum,
+      approval: input.approval,
     };
   }
   if (input.kind === 'PROJECTION_RATE') {
     if (!Number.isSafeInteger(input.rateRp) || input.rateRp! < 0)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    return { rateRp: input.rateRp!, currency: 'IDR', unit: 'SOLD_SESSION' };
+    return {
+      rateRp: input.rateRp!,
+      currency: 'IDR',
+      unit: 'SOLD_SESSION',
+      configurationId: input.configurationId,
+      configurationPackChecksum: input.configurationPackChecksum,
+      approval: input.approval,
+    };
   }
   if (
     !Number.isSafeInteger(input.minimumQuota) ||
@@ -161,6 +222,31 @@ function validateValue(input: SettingInput): Prisma.InputJsonValue {
   )
     throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
   return { minimumQuota: input.minimumQuota!, defaultCapacity: input.defaultCapacity! };
+}
+
+function validateFinanceApproval(input: SettingInput) {
+  if (input.kind === 'QUOTA_CAPACITY') return 'SYNTHETIC_NON_PRODUCTION';
+  const expected =
+    process.env.DEC006_APPROVED_PACK_SHA256?.trim() ||
+    process.env.V1_DEC006_CONFIGURATION_PACK_SHA256?.trim();
+  if (!expected) {
+    if (process.env.NODE_ENV === 'production')
+      throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+    return input.approvedEvidence?.trim() || 'SYNTHETIC_NON_PRODUCTION';
+  }
+  const approval = input.approval;
+  if (
+    input.configurationPackChecksum !== expected ||
+    !/^[a-f0-9]{64}$/u.test(expected) ||
+    !input.configurationId?.startsWith('CFG-') ||
+    !input.approvedEvidence?.trim() ||
+    !approval ||
+    !/^[0-9a-f-]{36}$/iu.test(approval.financeApproverId) ||
+    !/^[0-9a-f-]{36}$/iu.test(approval.productOwnerApproverId) ||
+    Number.isNaN(new Date(approval.approvedAt).getTime())
+  )
+    throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+  return input.approvedEvidence.trim();
 }
 
 function settingView(item: {

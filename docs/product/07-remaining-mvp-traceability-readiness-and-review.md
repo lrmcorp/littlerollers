@@ -45,7 +45,7 @@ OpenAPI `0.4.0-draft` provides proposed remediation mappings: GAP-1→`runQuotaE
 | BR-044–045; NFR-002 | ATT-03/AC-US-ATT-03-03 | UX-07 | same | unique completion/effect refs | single event/result | TC-ATT-018/019 | UAT-ATT-03 |
 | BR-044–045; NFR-002 | ATT-03/AC-US-ATT-03-04 | UX-07 | same | ledger/period atomicity | invariant/locked rollback | TC-ATT-020 | UAT-ATT-03 |
 | BR-070–072; NFR-002 | NOT-01/AC-US-NOT-01-01 | notification flow | `listNotifications` | deterministic occurrence | source event/attempt audit | TC-NOTIF-001 | UAT-NOTIF-01 |
-| BR-070–072; NFR-007 | NOT-01/AC-US-NOT-01-02 | notification flow | `receiveMetaWebhook` | webhook idempotency/order | provider status normalized | TC-NOTIF-003/004 | UAT-NOTIF-01 |
+| BR-070–072; NFR-007 | NOT-01/AC-US-NOT-01-02 | notification flow | `receiveMetaWebhook` — `DEFERRED_BY_PRODUCT_DECISION` | webhook idempotency/order | provider status normalized | TC-NOTIF-003/004 | UAT-NOTIF-01 |
 | BR-070–072; NFR-006 | NOT-01/AC-US-NOT-01-03 | notification/ops | `listNotifications` | retry budget/dead-letter | terminal alert/fallback | TC-NOTIF-002/005/006 | UAT-NOTIF-01 |
 | BR-070–072 | NOT-01/AC-US-NOT-01-04 | notification/ops | `retryNotification` | same occurrence/new attempt | reason audit | TC-NOTIF-007/008 | UAT-NOTIF-01 |
 | BR-060–064 | FIN-01/AC-US-FIN-01-01 | UX-10 | `getFinancialReport` | formula/snapshot/control | report control evidence | TC-FIN-001..003 | UAT-FIN-01 |

@@ -11,6 +11,8 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **branchId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**studioId** | **String** |  | 
+**roomId** | **String** |  | [optional] 
 **instructorUserId** | **String** |  | [optional] 
 **startAt** | [**DateTime**](DateTime.md) |  | 
 **endAt** | [**DateTime**](DateTime.md) |  | 

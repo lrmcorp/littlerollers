@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   browserIdentityClient,
   failureCode,
+  failureReference,
   type IdentityClient,
   type UiFailure,
 } from '../identity-client';
@@ -14,8 +15,11 @@ import { useSessionContext } from '../session-context';
 import { BrandMark } from '../components/public/brand-mark';
 
 const messages: Record<UiFailure, string> = {
+  AUTHENTICATION_REQUIRED: 'Email atau password tidak valid.',
   CONFIGURATION_REQUIRED: 'Konfigurasi autentikasi belum tersedia. Hubungi administrator.',
+  INTERNAL_ERROR: 'Autentikasi mengalami gangguan internal.',
   RATE_LIMITED: 'Terlalu banyak percobaan. Coba kembali nanti.',
+  SERVICE_UNAVAILABLE: 'Layanan autentikasi tidak dapat dihubungi.',
   FORBIDDEN: 'Akses tidak diizinkan.',
   IDENTITY_CONFLICT: 'Identitas memerlukan tinjauan dukungan.',
   STALE_VERSION: 'Data telah berubah. Muat ulang lalu coba kembali.',
@@ -99,6 +103,7 @@ function GoogleIdentityButton({
 
 export function SignInView({ client = browserIdentityClient }: { client?: IdentityClient }) {
   const [state, setState] = useState<AuthState>('idle');
+  const [reference, setReference] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const sessionContext = useSessionContext();
 
@@ -114,7 +119,9 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
   const fail = useCallback((error: unknown) => {
     const status = (error as { response?: { status?: number } })?.response?.status;
-    setState(status === 401 ? 'invalid' : failureCode(error));
+    const code = failureCode(error);
+    setReference(failureReference(error));
+    setState(status === 401 || code === 'AUTHENTICATION_REQUIRED' ? 'invalid' : code);
   }, []);
 
   return (
@@ -182,6 +189,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             onSubmit={(event) => {
               event.preventDefault();
               const form = new FormData(event.currentTarget);
+              setReference(null);
               setState('loading');
               void client
                 .signInWithPassword(String(form.get('email')), String(form.get('password')))
@@ -241,7 +249,14 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           {state === 'invalid' && (
             <Feedback kind="error">Email atau password tidak valid.</Feedback>
           )}
-          {state in messages && <Feedback kind="error">{messages[state as UiFailure]}</Feedback>}
+          {state in messages && (
+            <Feedback kind="error">
+              {messages[state as UiFailure]}
+              {reference && (state === 'INTERNAL_ERROR' || state === 'SERVICE_UNAVAILABLE')
+                ? ` Kode referensi: ${reference}.`
+                : ''}
+            </Feedback>
+          )}
           {state === 'success' && <Feedback kind="status">Identitas terverifikasi.</Feedback>}
 
           <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">

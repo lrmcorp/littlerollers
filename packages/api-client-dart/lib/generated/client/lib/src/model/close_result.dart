@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/finance_close_snapshot.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/branch_period.dart';
 import 'package:built_value/built_value.dart';
@@ -15,6 +16,7 @@ part 'close_result.g.dart';
 /// Properties:
 /// * [period] 
 /// * [snapshotIds] 
+/// * [snapshot] 
 /// * [auditLogId] 
 /// * [closedAt] 
 /// * [idempotentReplay] 
@@ -25,6 +27,9 @@ abstract class CloseResult implements Built<CloseResult, CloseResultBuilder> {
 
   @BuiltValueField(wireName: r'snapshotIds')
   BuiltList<String> get snapshotIds;
+
+  @BuiltValueField(wireName: r'snapshot')
+  FinanceCloseSnapshot get snapshot;
 
   @BuiltValueField(wireName: r'auditLogId')
   String get auditLogId;
@@ -67,6 +72,11 @@ class _$CloseResultSerializer implements PrimitiveSerializer<CloseResult> {
     yield serializers.serialize(
       object.snapshotIds,
       specifiedType: const FullType(BuiltList, [FullType(String)]),
+    );
+    yield r'snapshot';
+    yield serializers.serialize(
+      object.snapshot,
+      specifiedType: const FullType(FinanceCloseSnapshot),
     );
     yield r'auditLogId';
     yield serializers.serialize(
@@ -119,6 +129,13 @@ class _$CloseResultSerializer implements PrimitiveSerializer<CloseResult> {
             specifiedType: const FullType(BuiltList, [FullType(String)]),
           ) as BuiltList<String>;
           result.snapshotIds.replace(valueDes);
+          break;
+        case r'snapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(FinanceCloseSnapshot),
+          ) as FinanceCloseSnapshot;
+          result.snapshot.replace(valueDes);
           break;
         case r'auditLogId':
           final valueDes = serializers.deserialize(

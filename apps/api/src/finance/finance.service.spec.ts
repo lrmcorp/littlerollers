@@ -97,5 +97,32 @@ describe('FinanceService', () => {
         href: '/workspace/payments?purchaseId=p1',
       }),
     ]);
+    expect(result.page).toEqual({ hasMore: false, nextCursor: null });
+  });
+
+  it('paginates more than twenty anomalies with a stable purchase cursor', async () => {
+    const purchases = Array.from({ length: 25 }, (_, index) => ({
+      id: `p${index + 1}`,
+      branchId: 'b1',
+      branch: { id: 'b1', code: 'JKT', name: 'Jakarta' },
+      status: 'APPROVED',
+      priceRpSnapshot: 100_000 + index,
+      submittedAt: new Date(Date.UTC(2026, 6, 31, 0, 0, 25 - index)),
+      paymentProof: null,
+      customerPackage: null,
+    }));
+    const service = new FinanceService({
+      purchase: { findMany: jest.fn().mockResolvedValue(purchases) },
+    } as never);
+
+    const first = await service.anomalies(finance, {});
+    const second = await service.anomalies(finance, { cursor: first.page.nextCursor! });
+
+    expect(first.items).toHaveLength(20);
+    expect(first.total).toBe(25);
+    expect(first.page).toEqual({ hasMore: true, nextCursor: 'p20' });
+    expect(second.items).toHaveLength(5);
+    expect(second.items[0]?.purchaseId).toBe('p21');
+    expect(second.page).toEqual({ hasMore: false, nextCursor: null });
   });
 });

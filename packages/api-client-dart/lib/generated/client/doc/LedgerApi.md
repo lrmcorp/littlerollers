@@ -11,6 +11,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**decideSessionAdjustment**](LedgerApi.md#decidesessionadjustment) | **POST** /session-adjustments/{id}/{decision} | 
 [**getPackageLedger**](LedgerApi.md#getpackageledger) | **GET** /customer-packages/{id}/ledger | 
+[**getSessionAdjustment**](LedgerApi.md#getsessionadjustment) | **GET** /session-adjustments/{id} | 
 [**listCustomerPackages**](LedgerApi.md#listcustomerpackages) | **GET** /customer-packages | 
 [**listSessionAdjustments**](LedgerApi.md#listsessionadjustments) | **GET** /session-adjustments | 
 [**requestSessionAdjustment**](LedgerApi.md#requestsessionadjustment) | **POST** /session-adjustments | 
@@ -110,6 +111,49 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getSessionAdjustment**
+> SessionAdjustment getSessionAdjustment(id)
+
+
+
+Capability and branch-scoped authoritative adjustment detail with safe customer, package, balance, eligibility, and actor projections.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getLedgerApi();
+final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final response = api.getSessionAdjustment(id);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling LedgerApi->getSessionAdjustment: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **String**|  | 
+
+### Return type
+
+[**SessionAdjustment**](SessionAdjustment.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listCustomerPackages**
 > CustomerPackageBalancePage listCustomerPackages(branchId, cursor, search, status, customerUserId)
 
@@ -162,11 +206,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listSessionAdjustments**
-> SessionAdjustmentPage listSessionAdjustments(branchId, status, cursor)
+> SessionAdjustmentPage listSessionAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit)
 
 
 
-Branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
+Capability and branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
 
 ### Example
 ```dart
@@ -176,9 +220,14 @@ final api = Openapi().getLedgerApi();
 final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
 final String status = status_example; // String | 
 final String cursor = cursor_example; // String | 
+final String q = q_example; // String | 
+final String customerUserId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final DateTime from = 2013-10-20T19:20:30+01:00; // DateTime | 
+final DateTime until = 2013-10-20T19:20:30+01:00; // DateTime | 
+final int limit = 56; // int | 
 
 try {
-    final response = api.listSessionAdjustments(branchId, status, cursor);
+    final response = api.listSessionAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling LedgerApi->listSessionAdjustments: $e\n');
@@ -192,6 +241,11 @@ Name | Type | Description  | Notes
  **branchId** | **String**| Filter only; never grants authority | [optional] 
  **status** | **String**|  | [optional] 
  **cursor** | **String**|  | [optional] 
+ **q** | **String**|  | [optional] 
+ **customerUserId** | **String**|  | [optional] 
+ **from** | **DateTime**|  | [optional] 
+ **until** | **DateTime**|  | [optional] 
+ **limit** | **int**|  | [optional] [default to 20]
 
 ### Return type
 

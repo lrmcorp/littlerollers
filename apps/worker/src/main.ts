@@ -15,7 +15,12 @@ import { PackageReminderWorker } from './package-reminder-worker';
 @Injectable()
 class WorkerHeartbeat implements OnModuleInit, OnModuleDestroy {
   private readonly config = loadRuntimeConfig(process.env);
-  private readonly redis = new Redis(this.config.redisUrl);
+  private readonly redis = new Redis(
+    this.config.redisUrl ??
+      (() => {
+        throw new Error('CONFIGURATION_MISSING:REDIS_URL');
+      })(),
+  );
   private readonly database = new PrismaClient();
   private readonly quotaWorker = new QuotaWorker(this.database, this.config.quotaEvaluation);
   private readonly identityDeletionWorker = new IdentityDeletionWorker(

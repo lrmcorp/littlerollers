@@ -113,6 +113,7 @@ Serializers _$serializers =
           ..add(CheckInTokenPurposeEnum.serializer)
           ..add(CheckInTokenResourceTypeEnum.serializer)
           ..add(CheckInTokenStatus.serializer)
+          ..add(CheckInTokenStatusBranch.serializer)
           ..add(CheckInTokenStatusEnum.serializer)
           ..add(CheckInTokenStatusPurposeEnum.serializer)
           ..add(CheckInTokenStatusResourceTypeEnum.serializer)
@@ -130,8 +131,12 @@ Serializers _$serializers =
           ..add(ClassSlotUpdateCommand.serializer)
           ..add(ClassSlotVersionCommand.serializer)
           ..add(ClassType.serializer)
+          ..add(ClassTypeBranchScopesInner.serializer)
           ..add(ClassTypeCommand.serializer)
+          ..add(ClassTypeCommandModalityEnum.serializer)
+          ..add(ClassTypeModalityEnum.serializer)
           ..add(ClassTypePage.serializer)
+          ..add(ClassTypeScopeCommand.serializer)
           ..add(ClassTypeUpdateCommand.serializer)
           ..add(CloseMonthRequest.serializer)
           ..add(CloseResult.serializer)
@@ -163,8 +168,6 @@ Serializers _$serializers =
           ..add(CustomerBookingSlotStatusEnum.serializer)
           ..add(CustomerCheckInIssue.serializer)
           ..add(CustomerCheckInIssueStatusEnum.serializer)
-          ..add(CustomerCheckInTokenStatus.serializer)
-          ..add(CustomerCheckInTokenStatusStatusEnum.serializer)
           ..add(CustomerDashboardOverview.serializer)
           ..add(CustomerDashboardOverviewActionableOrdersInner.serializer)
           ..add(
@@ -197,6 +200,7 @@ Serializers _$serializers =
           ..add(CustomerRescheduleOptionsUnavailableReasonEnum.serializer)
           ..add(CustomerRescheduleSlotStatusEnum.serializer)
           ..add(CustomerRescheduleTarget.serializer)
+          ..add(CustomerSessionUsageSummary.serializer)
           ..add(DashboardActivityItem.serializer)
           ..add(DashboardBranchPerformance.serializer)
           ..add(DashboardMetric.serializer)
@@ -209,6 +213,7 @@ Serializers _$serializers =
           ..add(DashboardSections.serializer)
           ..add(DashboardTrendPoint.serializer)
           ..add(DecideCorrectionRequest.serializer)
+          ..add(DecideInternalV1MigrationResolutionRequest.serializer)
           ..add(DeleteIdentityVerificationFileRequest.serializer)
           ..add(DownloadAuthorization.serializer)
           ..add(EffectiveCapabilityDenial.serializer)
@@ -266,6 +271,12 @@ Serializers _$serializers =
           ..add(IssueCustomerCheckInLinkCommand.serializer)
           ..add(LedgerEntry.serializer)
           ..add(LedgerEntryTypeEnum.serializer)
+          ..add(LegacyFinancialEntry.serializer)
+          ..add(LegacyFinancialEntryActor.serializer)
+          ..add(LegacyFinancialEntryPage.serializer)
+          ..add(LegacyFinancialEntryPageSummaryValue.serializer)
+          ..add(LegacyFinancialEntryPurchase.serializer)
+          ..add(LegacyFinancialEntryTypeEnum.serializer)
           ..add(ListPaymentAccounts200Response.serializer)
           ..add(LookupOption.serializer)
           ..add(LookupOptionMetadata.serializer)
@@ -315,6 +326,9 @@ Serializers _$serializers =
           ..add(OtherCostStatusEnum.serializer)
           ..add(OtpRequest.serializer)
           ..add(OtpVerifyRequest.serializer)
+          ..add(PackageBranchScope.serializer)
+          ..add(PackageBranchScopeBranch.serializer)
+          ..add(PackageClassTypeScope.serializer)
           ..add(PackageCommand.serializer)
           ..add(PackageEffectiveStateEnum.serializer)
           ..add(PackageLedgerResult.serializer)
@@ -329,7 +343,9 @@ Serializers _$serializers =
           ..add(PackagePromotionPage.serializer)
           ..add(PackagePromotionStatusEnum.serializer)
           ..add(PackagePromotionUpdateCommand.serializer)
+          ..add(PackageRevision.serializer)
           ..add(PackageRevisionCommand.serializer)
+          ..add(PackageScopeCommand.serializer)
           ..add(PackageStatusEnum.serializer)
           ..add(PackageUpdateCommand.serializer)
           ..add(Page.serializer)
@@ -412,14 +428,19 @@ Serializers _$serializers =
           ..add(RescheduleRequestCommandReasonCodeEnum.serializer)
           ..add(RescheduleRequestReasonCodeEnum.serializer)
           ..add(RescheduleStatusEnum.serializer)
+          ..add(ReservationItem.serializer)
           ..add(ReservationSummary.serializer)
           ..add(Resource.serializer)
-          ..add(RevokeCustomerCheckInTokenCommand.serializer)
+          ..add(RevokeCheckInTokenCommand.serializer)
           ..add(RevokeSessionsCommand.serializer)
           ..add(Role.serializer)
           ..add(RoleCatalog.serializer)
           ..add(RoleCatalogItem.serializer)
           ..add(RoleCatalogItemScopeEnum.serializer)
+          ..add(Room.serializer)
+          ..add(RoomCommand.serializer)
+          ..add(RoomPage.serializer)
+          ..add(RoomUpdateCommand.serializer)
           ..add(SafeAuditActivity.serializer)
           ..add(Session.serializer)
           ..add(SessionAdjustment.serializer)
@@ -429,7 +450,12 @@ Serializers _$serializers =
           ..add(SessionAdjustmentPage.serializer)
           ..add(SessionAdjustmentReasonCodeEnum.serializer)
           ..add(SessionAdjustmentStatusEnum.serializer)
+          ..add(SessionAdjustmentSummary.serializer)
           ..add(SessionChannelEnum.serializer)
+          ..add(Studio.serializer)
+          ..add(StudioCommand.serializer)
+          ..add(StudioPage.serializer)
+          ..add(StudioUpdateCommand.serializer)
           ..add(SubmitPurchaseRequest.serializer)
           ..add(TimeRangeCommand.serializer)
           ..add(TokenCheckInCommand.serializer)
@@ -538,6 +564,12 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(ClassType)]),
             () => ListBuilder<ClassType>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(ClassTypeBranchScopesInner),
+            ]),
+            () => ListBuilder<ClassTypeBranchScopesInner>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -689,6 +721,19 @@ Serializers _$serializers =
             () => ListBuilder<LedgerEntry>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(LegacyFinancialEntry),
+            ]),
+            () => ListBuilder<LegacyFinancialEntry>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltMap, const [
+              const FullType(String),
+              const FullType(LegacyFinancialEntryPageSummaryValue),
+            ]),
+            () => MapBuilder<String, LegacyFinancialEntryPageSummaryValue>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(LookupOption)]),
             () => ListBuilder<LookupOption>(),
           )
@@ -721,6 +766,22 @@ Serializers _$serializers =
             () => ListBuilder<Package>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PackageBranchScope),
+            ]),
+            () => ListBuilder<PackageBranchScope>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PackageClassTypeScope),
+            ]),
+            () => ListBuilder<PackageClassTypeScope>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PackageRevision)]),
+            () => ListBuilder<PackageRevision>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(PackagePromotion)]),
             () => ListBuilder<PackagePromotion>(),
           )
@@ -735,8 +796,20 @@ Serializers _$serializers =
             () => ListBuilder<SafeAuditActivity>(),
           )
           ..addBuilderFactory(
-            const FullType(BuiltList, const [const FullType(Package)]),
-            () => ListBuilder<Package>(),
+            const FullType(BuiltList, const [
+              const FullType(PackageBranchScope),
+            ]),
+            () => ListBuilder<PackageBranchScope>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [
+              const FullType(PackageClassTypeScope),
+            ]),
+            () => ListBuilder<PackageClassTypeScope>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(PackageRevision)]),
+            () => ListBuilder<PackageRevision>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -853,6 +926,10 @@ Serializers _$serializers =
             () => ListBuilder<Reschedule>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(ReservationItem)]),
+            () => ListBuilder<ReservationItem>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(Resource)]),
             () => ListBuilder<Resource>(),
           )
@@ -891,6 +968,14 @@ Serializers _$serializers =
           ..addBuilderFactory(
             const FullType(BuiltList, const [const FullType(RoleCatalogItem)]),
             () => ListBuilder<RoleCatalogItem>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Room)]),
+            () => ListBuilder<Room>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Room)]),
+            () => ListBuilder<Room>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltList, const [
@@ -999,6 +1084,10 @@ Serializers _$serializers =
             () => ListBuilder<SafeAuditActivity>(),
           )
           ..addBuilderFactory(
+            const FullType(BuiltList, const [const FullType(Studio)]),
+            () => ListBuilder<Studio>(),
+          )
+          ..addBuilderFactory(
             const FullType(BuiltList, const [
               const FullType(UserAccessRoleAssignment),
             ]),
@@ -1085,6 +1174,30 @@ Serializers _$serializers =
               const FullType(AccessRoleAssignmentInput),
             ]),
             () => SetBuilder<AccessRoleAssignmentInput>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
+          )
+          ..addBuilderFactory(
+            const FullType(BuiltSet, const [const FullType(String)]),
+            () => SetBuilder<String>(),
           )
           ..addBuilderFactory(
             const FullType(BuiltSet, const [const FullType(String)]),

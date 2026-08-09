@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { selectSearchOption } from './e2e-visual-helpers';
 
 const viewports = [
   { width: 360, height: 800 },
@@ -292,7 +293,7 @@ for (const viewport of [
       fullPage: true,
     });
 
-    await page.getByLabel('Tipe kelas').selectOption('type-mat');
+    await selectSearchOption(page, 'Tipe kelas', 'Mat Pilates');
     await expect(page).toHaveURL(/branch=branch-jkt/);
     await expect(page).toHaveURL(/classType=type-mat/);
     await expect(page).toHaveURL(/slot=slot-1/);

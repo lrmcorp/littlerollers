@@ -8,7 +8,9 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:mock": "node e2e/support/run-mock-e2e.mjs",
+    "test:e2e:customer": "DD_CUSTOMER_FULLSTACK=true playwright test e2e/customer-fullstack.spec.ts --grep @customer-fullstack"
   },
   "dependencies": {
     "@dailydose/api-client-ts": "workspace:*",

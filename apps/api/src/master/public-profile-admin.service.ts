@@ -194,10 +194,17 @@ export class PublicProfileAdminService {
   ) {
     const pkg = await tx.package.findUnique({
       where: { id },
-      select: { branchId: true, publicProfile: true },
+      select: {
+        branchId: true,
+        branchScopes: { where: { active: true }, select: { branchId: true } },
+        publicProfile: true,
+      },
     });
     if (!pkg?.publicProfile) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.access.ensureBranchScope(principal, pkg.branchId, true);
+    const branchIds = pkg.branchScopes.map(({ branchId }) => branchId);
+    if (!branchIds.length && pkg.branchId) branchIds.push(pkg.branchId);
+    if (!branchIds.length) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    for (const branchId of branchIds) this.access.ensureBranchScope(principal, branchId, true);
     if (!strings(input.highlights) || !strings(input.terms))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const updated = await tx.packagePublicProfile.updateMany({

@@ -50,7 +50,7 @@ describe('HealthService', () => {
         ),
       disconnect: jest.fn(),
     };
-    (health as unknown as { redis: typeof redis }).redis = redis;
+    (health as unknown as { redis: typeof redis | null }).redis = redis;
     jest
       .spyOn(health as unknown as { checkPrivateStorage(): Promise<void> }, 'checkPrivateStorage')
       .mockImplementation(() =>
@@ -69,6 +69,15 @@ describe('HealthService', () => {
 
   it('reports READY when all probes are ready', async () => {
     expect((await service().check()).status).toBe('READY');
+  });
+
+  it('omits Redis and worker probes when Redis is not configured', async () => {
+    const health = service();
+    (health as unknown as { redis: null }).redis = null;
+    const result = await health.check();
+    expect(result.status).toBe('READY');
+    expect(result.dependencies.map((item) => item.name)).not.toContain('redis');
+    expect(result.dependencies.map((item) => item.name)).not.toContain('worker');
   });
 
   it('reports DEGRADED for a stale worker heartbeat', async () => {

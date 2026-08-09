@@ -38,9 +38,12 @@ export class PackageCatalogService {
       until?: string;
       cursor?: string;
       limit?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.access.catalog(principal);
+    if (query.includeHistorical && !principal.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     const customer =
       principal.roles.some(({ role }) => role === 'CUSTOMER') &&
       !principal.capabilities.includes('branch:all') &&
@@ -83,16 +86,19 @@ export class PackageCatalogService {
               : {};
     const baseWhere: Prisma.PackageWhereInput = {
       AND: [
+        query.includeHistorical ? {} : { historical: false },
         query.branchId
-          ? { branchId: query.branchId }
+          ? { branchScopes: { some: { branchId: query.branchId, active: true } } }
           : customer
             ? {}
             : scope.all
               ? scope.excluded.length
-                ? { branchId: { notIn: scope.excluded } }
+                ? { branchScopes: { some: { active: true, branchId: { notIn: scope.excluded } } } }
                 : {}
-              : { branchId: { in: scope.included } },
-        query.classTypeId ? { classTypeId: query.classTypeId } : {},
+              : { branchScopes: { some: { active: true, branchId: { in: scope.included } } } },
+        query.classTypeId
+          ? { classTypeScopes: { some: { classTypeId: query.classTypeId, active: true } } }
+          : {},
         query.q?.trim()
           ? {
               OR: [
@@ -144,6 +150,15 @@ export class PackageCatalogService {
       include: {
         branch: { select: { id: true, code: true, name: true } },
         classType: { select: { id: true, code: true, name: true } },
+        branchScopes: {
+          where: { active: true },
+          include: { branch: { select: { id: true, code: true, name: true } } },
+        },
+        classTypeScopes: {
+          where: { active: true },
+          include: { classType: { select: { id: true, code: true, name: true } } },
+        },
+        revisions: { orderBy: { revisionNumber: 'desc' }, take: 1 },
         promotions: {
           where: {
             status: 'ACTIVE',
@@ -180,11 +195,19 @@ export class PackageCatalogService {
     correlationId: string,
   ): Promise<Package> {
     this.access.catalog(principal, true);
-    this.access.scope(principal, input.branchId, ['master:manage']);
+    const branchIds = [
+      ...new Set<string>(input.branchIds ?? (input.branchId ? [input.branchId] : [])),
+    ];
+    const classTypeIds = [
+      ...new Set<string>(input.classTypeIds ?? (input.classTypeId ? [input.classTypeId] : [])),
+    ];
+    for (const branchId of branchIds) this.access.scope(principal, branchId, ['master:manage']);
     if (!key || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (
       !input.name ||
+      branchIds.length === 0 ||
+      classTypeIds.length === 0 ||
       !Number.isInteger(input.sessionCount) ||
       input.sessionCount < 1 ||
       !Number.isInteger(input.durationDays) ||
@@ -211,33 +234,34 @@ export class PackageCatalogService {
           leaseMs: 30_000,
         },
         async (tx) => {
-          await tx.$queryRaw`
-            SELECT \`id\`
-            FROM \`ClassType\`
-            WHERE \`id\` = ${input.classTypeId}
-            FOR UPDATE
-          `;
-          const [branch, classType] = await Promise.all([
-            tx.branch.findUnique({ where: { id: input.branchId } }),
-            tx.classType.findUnique({ where: { id: input.classTypeId } }),
+          const [branchCount, classTypeCount, availabilityCount] = await Promise.all([
+            tx.branch.count({ where: { id: { in: branchIds }, active: true } }),
+            tx.classType.count({ where: { id: { in: classTypeIds }, active: true } }),
+            tx.classTypeBranchScope.count({
+              where: {
+                branchId: { in: branchIds },
+                classTypeId: { in: classTypeIds },
+                active: true,
+              },
+            }),
           ]);
-          if (!branch?.active || !classType?.active || classType.branchId !== input.branchId)
+          if (
+            branchCount !== branchIds.length ||
+            classTypeCount !== classTypeIds.length ||
+            availabilityCount !== branchIds.length * classTypeIds.length
+          )
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           const overlap = await tx.package.findFirst({
             where: {
-              branchId: input.branchId,
-              classTypeId: input.classTypeId,
               businessKey,
-              effectiveFrom: effectiveUntil ? { lt: effectiveUntil } : undefined,
-              OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveFrom } }],
             },
           });
           if (overlap) throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
           const result = await tx.package.create({
             data: {
               id: newId(),
-              branchId: input.branchId,
-              classTypeId: input.classTypeId,
+              branchId: branchIds[0]!,
+              classTypeId: classTypeIds[0]!,
               businessKey,
               name: input.name.trim(),
               sessionCount: input.sessionCount,
@@ -245,6 +269,23 @@ export class PackageCatalogService {
               priceRp: input.priceRp,
               effectiveFrom,
               effectiveUntil,
+              revisions: {
+                create: {
+                  id: newId(),
+                  revisionNumber: 1,
+                  sessionCount: input.sessionCount,
+                  durationDays: input.durationDays,
+                  priceRp: input.priceRp,
+                  effectiveFrom,
+                  effectiveUntil,
+                },
+              },
+              branchScopes: {
+                create: branchIds.map((branchId) => ({ id: newId(), branchId })),
+              },
+              classTypeScopes: {
+                create: classTypeIds.map((classTypeId) => ({ id: newId(), classTypeId })),
+              },
             },
           });
           await this.access.audit(
@@ -253,7 +294,7 @@ export class PackageCatalogService {
             'PACKAGE_CREATED',
             'Package',
             result.id,
-            result.branchId,
+            branchIds[0]!,
             correlationId,
           );
           return { status: 201, body: result as unknown as Prisma.InputJsonValue };
@@ -274,11 +315,23 @@ export class PackageCatalogService {
     this.access.catalog(principal, true);
     const item = await this.db.package.findUnique({
       where: { id },
-      include: { _count: { select: { purchases: true, customerPackages: true } } },
+      include: {
+        branchScopes: { where: { active: true } },
+        classTypeScopes: { where: { active: true } },
+        revisions: { orderBy: { revisionNumber: 'desc' }, take: 1 },
+        _count: { select: { purchases: true, customerPackages: true } },
+      },
     });
     if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.access.scope(principal, item.branchId, ['master:manage']);
+    for (const scope of item.branchScopes)
+      this.access.scope(principal, scope.branchId, ['master:manage']);
     return item;
+  }
+
+  private primaryBranchId(item: { branchId: string | null; branchScopes: { branchId: string }[] }) {
+    const branchId = item.branchScopes[0]?.branchId ?? item.branchId;
+    if (!branchId) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    return branchId;
   }
 
   async update(
@@ -328,6 +381,23 @@ export class PackageCatalogService {
           },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        if (commercialChange && current.revisions[0]) {
+          await tx.packageRevision.update({
+            where: { id: current.revisions[0].id },
+            data: {
+              sessionCount: input.sessionCount,
+              durationDays: input.durationDays,
+              priceRp: input.priceRp,
+              effectiveFrom: input.effectiveFrom ? new Date(input.effectiveFrom) : undefined,
+              effectiveUntil:
+                input.effectiveUntil === undefined
+                  ? undefined
+                  : input.effectiveUntil
+                    ? new Date(input.effectiveUntil)
+                    : null,
+            },
+          });
+        }
         const updated = await tx.package.findUniqueOrThrow({ where: { id } });
         await this.access.audit(
           tx,
@@ -335,7 +405,7 @@ export class PackageCatalogService {
           'PACKAGE_UPDATED',
           'Package',
           id,
-          current.branchId,
+          this.primaryBranchId(current),
           correlationId,
           { reasonPresent: true },
         );
@@ -390,23 +460,33 @@ export class PackageCatalogService {
           },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const overlap = await tx.package.findFirst({
-          where: {
-            id: { not: id },
-            branchId: current.branchId,
-            classTypeId: current.classTypeId,
-            businessKey: current.businessKey,
-            effectiveFrom: effectiveUntil ? { lt: effectiveUntil } : undefined,
-            OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveFrom } }],
-          },
-        });
-        if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
-        const revision = await tx.package.create({
+        const latestRevision = current.revisions[0];
+        if (latestRevision) {
+          await tx.packageRevision.update({
+            where: { id: latestRevision.id },
+            data: {
+              effectiveUntil:
+                !latestRevision.effectiveUntil || latestRevision.effectiveUntil > effectiveFrom
+                  ? effectiveFrom
+                  : latestRevision.effectiveUntil,
+            },
+          });
+        }
+        const revision = await tx.packageRevision.create({
           data: {
             id: newId(),
-            branchId: current.branchId,
-            classTypeId: current.classTypeId,
-            businessKey: current.businessKey,
+            packageId: id,
+            revisionNumber: (latestRevision?.revisionNumber ?? 0) + 1,
+            sessionCount: input.sessionCount,
+            durationDays: input.durationDays,
+            priceRp: input.priceRp,
+            effectiveFrom,
+            effectiveUntil,
+          },
+        });
+        const updated = await tx.package.update({
+          where: { id },
+          data: {
             name: input.name?.trim() || current.name,
             sessionCount: input.sessionCount,
             durationDays: input.durationDays,
@@ -420,12 +500,111 @@ export class PackageCatalogService {
           principal,
           'PACKAGE_REVISION_CREATED',
           'Package',
-          revision.id,
-          current.branchId,
+          id,
+          this.primaryBranchId(current),
           correlationId,
-          { previousPackageId: id, reasonPresent: true },
+          { revisionId: revision.id, revisionNumber: revision.revisionNumber, reasonPresent: true },
         );
-        return { status: 201, body: revision as unknown as Prisma.InputJsonValue };
+        return { status: 201, body: updated as unknown as Prisma.InputJsonValue };
+      },
+    );
+    return result.body as unknown as Package;
+  }
+
+  async replaceScopes(
+    principal: SessionPrincipal,
+    id: string,
+    input: { branchIds: string[]; classTypeIds: string[]; expectedVersion: number; reason: string },
+    key: string,
+    correlationId: string,
+  ): Promise<Package> {
+    await this.packageForManage(principal, id);
+    const branchIds = [...new Set(input.branchIds ?? [])];
+    const classTypeIds = [...new Set(input.classTypeIds ?? [])];
+    if (
+      !key ||
+      !Number.isInteger(input.expectedVersion) ||
+      input.reason?.trim().length < 3 ||
+      branchIds.length === 0 ||
+      classTypeIds.length === 0
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    for (const branchId of branchIds) this.access.scope(principal, branchId, ['master:manage']);
+    const result = await this.idempotency.execute(
+      {
+        scope: `package-scopes:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
+      async (tx) => {
+        const [branchCount, classTypeCount, availabilityCount] = await Promise.all([
+          tx.branch.count({ where: { id: { in: branchIds }, active: true } }),
+          tx.classType.count({ where: { id: { in: classTypeIds }, active: true } }),
+          tx.classTypeBranchScope.count({
+            where: {
+              branchId: { in: branchIds },
+              classTypeId: { in: classTypeIds },
+              active: true,
+            },
+          }),
+        ]);
+        if (
+          branchCount !== branchIds.length ||
+          classTypeCount !== classTypeIds.length ||
+          availabilityCount !== branchIds.length * classTypeIds.length
+        )
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const changed = await tx.package.updateMany({
+          where: { id, version: input.expectedVersion },
+          data: {
+            branchId: branchIds[0]!,
+            classTypeId: classTypeIds[0]!,
+            version: { increment: 1 },
+          },
+        });
+        if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        await Promise.all([
+          tx.packageBranchScope.updateMany({
+            where: { packageId: id, branchId: { notIn: branchIds } },
+            data: { active: false },
+          }),
+          tx.packageClassTypeScope.updateMany({
+            where: { packageId: id, classTypeId: { notIn: classTypeIds } },
+            data: { active: false },
+          }),
+          ...branchIds.map((branchId) =>
+            tx.packageBranchScope.upsert({
+              where: { packageId_branchId: { packageId: id, branchId } },
+              create: { id: newId(), packageId: id, branchId },
+              update: { active: true, historical: false, sourceDeletedAt: null },
+            }),
+          ),
+          ...classTypeIds.map((classTypeId) =>
+            tx.packageClassTypeScope.upsert({
+              where: { packageId_classTypeId: { packageId: id, classTypeId } },
+              create: { id: newId(), packageId: id, classTypeId },
+              update: { active: true, historical: false, sourceDeletedAt: null },
+            }),
+          ),
+        ]);
+        const updated = await tx.package.findUniqueOrThrow({ where: { id } });
+        await this.access.audit(
+          tx,
+          principal,
+          'PACKAGE_SCOPES_REPLACED',
+          'Package',
+          id,
+          branchIds[0]!,
+          correlationId,
+          {
+            branchCount: branchIds.length,
+            classTypeCount: classTypeIds.length,
+            reasonPresent: true,
+          },
+        );
+        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
     return result.body as unknown as Package;
@@ -477,7 +656,7 @@ export class PackageCatalogService {
           status === 'ACTIVE' ? 'PACKAGE_REACTIVATED' : 'PACKAGE_DEACTIVATED',
           'Package',
           id,
-          current.branchId,
+          this.primaryBranchId(current),
           correlationId,
           { reasonPresent: true },
         );

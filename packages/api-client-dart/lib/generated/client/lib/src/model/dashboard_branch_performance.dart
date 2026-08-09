@@ -14,7 +14,12 @@ part 'dashboard_branch_performance.g.dart';
 /// * [id] 
 /// * [code] 
 /// * [name] 
+/// * [grossSalesRp] 
 /// * [revenueRp] 
+/// * [projectionRp] 
+/// * [instructorRealtimeRp] 
+/// * [otherCostRp] 
+/// * [profitRp] 
 /// * [bookings] 
 /// * [occupancyPercent] 
 @BuiltValue()
@@ -28,8 +33,23 @@ abstract class DashboardBranchPerformance implements Built<DashboardBranchPerfor
   @BuiltValueField(wireName: r'name')
   String get name;
 
+  @BuiltValueField(wireName: r'grossSalesRp')
+  int get grossSalesRp;
+
   @BuiltValueField(wireName: r'revenueRp')
   int get revenueRp;
+
+  @BuiltValueField(wireName: r'projectionRp')
+  int get projectionRp;
+
+  @BuiltValueField(wireName: r'instructorRealtimeRp')
+  int get instructorRealtimeRp;
+
+  @BuiltValueField(wireName: r'otherCostRp')
+  int get otherCostRp;
+
+  @BuiltValueField(wireName: r'profitRp')
+  int get profitRp;
 
   @BuiltValueField(wireName: r'bookings')
   int get bookings;
@@ -75,9 +95,34 @@ class _$DashboardBranchPerformanceSerializer implements PrimitiveSerializer<Dash
       object.name,
       specifiedType: const FullType(String),
     );
+    yield r'grossSalesRp';
+    yield serializers.serialize(
+      object.grossSalesRp,
+      specifiedType: const FullType(int),
+    );
     yield r'revenueRp';
     yield serializers.serialize(
       object.revenueRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'projectionRp';
+    yield serializers.serialize(
+      object.projectionRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'instructorRealtimeRp';
+    yield serializers.serialize(
+      object.instructorRealtimeRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'otherCostRp';
+    yield serializers.serialize(
+      object.otherCostRp,
+      specifiedType: const FullType(int),
+    );
+    yield r'profitRp';
+    yield serializers.serialize(
+      object.profitRp,
       specifiedType: const FullType(int),
     );
     yield r'bookings';
@@ -134,12 +179,47 @@ class _$DashboardBranchPerformanceSerializer implements PrimitiveSerializer<Dash
           ) as String;
           result.name = valueDes;
           break;
+        case r'grossSalesRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.grossSalesRp = valueDes;
+          break;
         case r'revenueRp':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(int),
           ) as int;
           result.revenueRp = valueDes;
+          break;
+        case r'projectionRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.projectionRp = valueDes;
+          break;
+        case r'instructorRealtimeRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.instructorRealtimeRp = valueDes;
+          break;
+        case r'otherCostRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.otherCostRp = valueDes;
+          break;
+        case r'profitRp':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.profitRp = valueDes;
           break;
         case r'bookings':
           final valueDes = serializers.deserialize(

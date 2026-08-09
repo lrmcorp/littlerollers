@@ -43,7 +43,13 @@ export function PackagesManagementView() {
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
-  const [classTypes, setClassTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [classTypes, setClassTypes] = useState<
+    Array<{
+      id: string;
+      name: string;
+      branchScopes: Array<{ branchId: string; active: boolean }>;
+    }>
+  >([]);
   const canRead =
     session?.status === 'authenticated' &&
     session.hasCapability('package-promotion:read', 'package-promotion:manage');
@@ -117,6 +123,14 @@ export function PackagesManagementView() {
     }
   }, [canRead, filters.branchId, filters.cursor, filters.effectiveState, filters.q]);
   useEffect(() => void load(), [load]);
+  useEffect(() => {
+    if (createOpen)
+      void browserMasterClient
+        .listClassTypes()
+        .then((items) =>
+          setClassTypes(items.map(({ id, name, branchScopes }) => ({ id, name, branchScopes }))),
+        );
+  }, [createOpen]);
   if (!session || session.status === 'loading') return <Skeleton label="Memuat paket" />;
   if (!canRead)
     return (
@@ -219,7 +233,16 @@ export function PackagesManagementView() {
                 </div>
               ),
             },
-            { id: 'branch', header: 'Cabang', cell: (item) => item.branch?.name ?? '—' },
+            {
+              id: 'branch',
+              header: 'Scope Studio/Cabang',
+              cell: (item) =>
+                item.branchScopes?.length
+                  ? item.branchScopes
+                      .map((scope) => scope.branch?.name ?? scope.branchId.slice(0, 8))
+                      .join(', ')
+                  : (item.branch?.name ?? '—'),
+            },
             { id: 'price', header: 'Harga normal', cell: (item) => rupiah.format(item.priceRp) },
             {
               id: 'period',
@@ -270,7 +293,12 @@ export function PackagesManagementView() {
                   {stateLabels[item.effectiveState ?? 'INACTIVE']}
                 </Badge>
               </div>
-              <span className="text-sm text-dd-muted">{item.branch?.name}</span>
+              <span className="text-sm text-dd-muted">
+                {item.branchScopes
+                  ?.map((scope) => scope.branch?.name)
+                  .filter(Boolean)
+                  .join(', ') || item.branch?.name}
+              </span>
               <span className="font-semibold">{rupiah.format(item.priceRp)}</span>
             </div>
           )}
@@ -286,7 +314,7 @@ export function PackagesManagementView() {
       <Drawer
         open={createOpen}
         title="Buat paket"
-        description="Paket terikat permanen pada cabang dan tipe kelas yang dipilih."
+        description="Paket adalah katalog global dengan scope Studio/Cabang dan tipe kelas yang eksplisit."
         busy={busy}
         dirty={createDirty}
         onDirtyClose={confirmDiscardCreate}
@@ -309,9 +337,6 @@ export function PackagesManagementView() {
           branches={session.session?.branches ?? []}
           classTypes={classTypes}
           onDirty={() => setCreateDirty(true)}
-          onBranch={async (branchId) => {
-            setClassTypes(branchId ? await browserMasterClient.listClassTypes(branchId) : []);
-          }}
           onSubmit={async (command) => {
             const accepted = await feedback.confirm({
               tone: 'warning',
@@ -350,16 +375,41 @@ export function PackagesManagementView() {
 function PackageCreateForm({
   branches,
   classTypes,
-  onBranch,
   onDirty,
   onSubmit,
 }: {
   branches: Array<{ id: string; name: string }>;
-  classTypes: Array<{ id: string; name: string }>;
-  onBranch(branchId: string): Promise<void>;
+  classTypes: Array<{
+    id: string;
+    name: string;
+    branchScopes: Array<{ branchId: string; active: boolean }>;
+  }>;
   onDirty(): void;
   onSubmit(command: Record<string, unknown>): Promise<void>;
 }) {
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
+  const toggleBranch = (branchId: string, checked: boolean) =>
+    setSelectedBranches((current) => {
+      const next = checked
+        ? [...new Set([...current, branchId])]
+        : current.filter((id) => id !== branchId);
+      setSelectedClassTypes((selected) =>
+        selected.filter((classTypeId) =>
+          classTypes
+            .find((item) => item.id === classTypeId)
+            ?.branchScopes.some(
+              (scope) => scope.branchId === branchId && scope.active && next.includes(branchId),
+            ),
+        ),
+      );
+      return next;
+    });
+  const availableClassTypes = classTypes.filter((classType) =>
+    selectedBranches.every((branchId) =>
+      classType.branchScopes.some((scope) => scope.branchId === branchId && scope.active),
+    ),
+  );
   return (
     <form
       id="package-create-form"
@@ -369,8 +419,8 @@ function PackageCreateForm({
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         void onSubmit({
-          branchId: String(data.get('branchId')),
-          classTypeId: String(data.get('classTypeId')),
+          branchIds: data.getAll('branchIds').map(String),
+          classTypeIds: data.getAll('classTypeIds').map(String),
           businessKey: String(data.get('businessKey')),
           name: String(data.get('name')),
           sessionCount: Number(data.get('sessionCount')),
@@ -382,21 +432,51 @@ function PackageCreateForm({
         });
       }}
     >
-      <SearchSelect
-        name="branchId"
-        label="Cabang"
-        required
-        placeholder="Pilih cabang"
-        options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
-        onChange={(value) => void onBranch(value)}
-      />
-      <SearchSelect
-        name="classTypeId"
-        label="Tipe kelas"
-        required
-        placeholder="Pilih tipe kelas"
-        options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
-      />
+      <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
+        <legend className="px-1 text-sm font-semibold">Scope Studio/Cabang</legend>
+        {branches.map((branch) => (
+          <label className="flex items-center gap-2 text-sm" key={branch.id}>
+            <input
+              type="checkbox"
+              name="branchIds"
+              value={branch.id}
+              required={selectedBranches.length === 0}
+              onChange={(event) => toggleBranch(branch.id, event.currentTarget.checked)}
+            />
+            {branch.name}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
+        <legend className="px-1 text-sm font-semibold">Scope tipe kelas</legend>
+        {selectedBranches.length === 0 ? (
+          <p className="text-sm text-dd-muted">Pilih Studio/Cabang terlebih dahulu.</p>
+        ) : availableClassTypes.length === 0 ? (
+          <p className="text-sm text-dd-danger">
+            Tidak ada tipe kelas yang tersedia di seluruh Studio/Cabang terpilih.
+          </p>
+        ) : (
+          availableClassTypes.map((item) => (
+            <label className="flex items-center gap-2 text-sm" key={item.id}>
+              <input
+                type="checkbox"
+                name="classTypeIds"
+                value={item.id}
+                checked={selectedClassTypes.includes(item.id)}
+                required={selectedClassTypes.length === 0}
+                onChange={(event) =>
+                  setSelectedClassTypes((current) =>
+                    event.currentTarget.checked
+                      ? [...new Set([...current, item.id])]
+                      : current.filter((id) => id !== item.id),
+                  )
+                }
+              />
+              {item.name}
+            </label>
+          ))
+        )}
+      </fieldset>
       <TextInput name="businessKey" label="Business key" required />
       <TextInput name="name" label="Nama paket" required />
       <TextInput name="sessionCount" label="Jumlah sesi" type="number" min={1} required />

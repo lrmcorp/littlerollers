@@ -96,14 +96,16 @@ export class MasterCatalogService {
       }),
       this.db.package.count({
         where: {
-          branchId: id,
+          branchScopes: { some: { branchId: id, active: true } },
           status: 'ACTIVE',
           effectiveFrom: { lte: now },
           OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
         },
       }),
       this.db.paymentAccount.count({ where: { branchId: id, active: true } }),
-      this.db.classType.count({ where: { branchId: id, active: true } }),
+      this.db.classType.count({
+        where: { active: true, branchScopes: { some: { branchId: id, active: true } } },
+      }),
       this.db.userRole.count({
         where: {
           branchId: id,
@@ -123,6 +125,173 @@ export class MasterCatalogService {
       dependencies: { assignments, futureClasses, packages, paymentAccounts, classTypes, staff },
       auditActivity,
     };
+  }
+
+  async listStudios(principal: SessionPrincipal, branchId: string) {
+    this.access.authorize(principal);
+    this.access.ensureBranchScope(principal, branchId);
+    const items = await this.db.studio.findMany({
+      where: { branchId, historical: false },
+      include: { rooms: { where: { historical: false }, orderBy: { code: 'asc' } } },
+      orderBy: [{ code: 'asc' }, { id: 'asc' }],
+    });
+    return { items, page: { hasMore: false, nextCursor: null } };
+  }
+
+  async createStudio(
+    principal: SessionPrincipal,
+    branchId: string,
+    input: {
+      code: string;
+      name: string;
+      equipmentText?: string | null;
+      contactPhoneE164?: string | null;
+    },
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    this.access.ensureBranchScope(principal, branchId, true);
+    const code = input.code?.trim().toUpperCase();
+    const name = input.name?.trim();
+    if (!/^[A-Z0-9_-]{2,64}$/u.test(code) || name.length < 2)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.db.$transaction(async (tx) => {
+      const branch = await tx.branch.findUnique({ where: { id: branchId } });
+      if (!branch?.active) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      const studio = await tx.studio.create({
+        data: {
+          id: newId(),
+          branchId,
+          code,
+          name,
+          equipmentText: input.equipmentText?.trim() || null,
+          contactPhoneE164: input.contactPhoneE164?.trim() || null,
+        },
+      });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.studio_created',
+        'Studio',
+        studio.id,
+        branchId,
+      );
+      return studio;
+    });
+  }
+
+  async updateStudio(
+    principal: SessionPrincipal,
+    id: string,
+    input: {
+      name: string;
+      equipmentText?: string | null;
+      contactPhoneE164?: string | null;
+      active?: boolean;
+    },
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    return this.db.$transaction(async (tx) => {
+      const current = await tx.studio.findUnique({ where: { id } });
+      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      this.access.ensureBranchScope(principal, current.branchId, true);
+      const updated = await tx.studio.update({
+        where: { id },
+        data: {
+          name: input.name?.trim(),
+          equipmentText: input.equipmentText?.trim() || null,
+          contactPhoneE164: input.contactPhoneE164?.trim() || null,
+          active: input.active,
+        },
+      });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.studio_updated',
+        'Studio',
+        id,
+        current.branchId,
+      );
+      return updated;
+    });
+  }
+
+  async listRooms(principal: SessionPrincipal, studioId: string) {
+    this.access.authorize(principal);
+    const studio = await this.db.studio.findUnique({ where: { id: studioId } });
+    if (!studio) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.access.ensureBranchScope(principal, studio.branchId);
+    const items = await this.db.room.findMany({
+      where: { studioId, historical: false },
+      orderBy: [{ code: 'asc' }, { id: 'asc' }],
+    });
+    return { items, page: { hasMore: false, nextCursor: null } };
+  }
+
+  async createRoom(
+    principal: SessionPrincipal,
+    studioId: string,
+    input: { code: string; name: string; capacity?: number | null },
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    const studio = await this.db.studio.findUnique({ where: { id: studioId } });
+    if (!studio) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.access.ensureBranchScope(principal, studio.branchId, true);
+    const code = input.code?.trim().toUpperCase();
+    const name = input.name?.trim();
+    if (
+      !/^[A-Z0-9_-]{2,64}$/u.test(code) ||
+      name.length < 2 ||
+      (input.capacity != null && input.capacity < 1)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    return this.db.$transaction(async (tx) => {
+      const room = await tx.room.create({
+        data: { id: newId(), studioId, code, name, capacity: input.capacity ?? null },
+      });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.room_created',
+        'Room',
+        room.id,
+        studio.branchId,
+      );
+      return room;
+    });
+  }
+
+  async updateRoom(
+    principal: SessionPrincipal,
+    id: string,
+    input: { name: string; capacity?: number | null; active?: boolean },
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    return this.db.$transaction(async (tx) => {
+      const current = await tx.room.findUnique({ where: { id }, include: { studio: true } });
+      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      this.access.ensureBranchScope(principal, current.studio.branchId, true);
+      const updated = await tx.room.update({
+        where: { id },
+        data: { name: input.name?.trim(), capacity: input.capacity, active: input.active },
+      });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.room_updated',
+        'Room',
+        id,
+        current.studio.branchId,
+      );
+      return updated;
+    });
   }
 
   async updateBranch(
@@ -239,7 +408,7 @@ export class MasterCatalogService {
             }),
             tx.package.count({
               where: {
-                branchId: id,
+                branchScopes: { some: { branchId: id, active: true } },
                 status: 'ACTIVE',
                 effectiveFrom: { lte: now },
                 OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
@@ -304,6 +473,14 @@ export class MasterCatalogService {
             name,
             timezone: input.timezone,
             supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
+          },
+        });
+        await tx.accountingAccount.create({
+          data: {
+            branchId: branch.id,
+            code: 'FINANCE_CORRECTION',
+            name: 'Finance Correction',
+            accountType: 'SYSTEM_CORRECTION',
           },
         });
         await this.access.audit(
@@ -390,14 +567,15 @@ export class MasterCatalogService {
     const scope = this.access.branchScope(principal);
     const items = await this.db.classType.findMany({
       where: {
-        branchId:
-          branchId ??
-          (scope.all
+        branchScopes: branchId
+          ? { some: { branchId, active: true } }
+          : scope.all
             ? scope.excluded.length
-              ? { notIn: scope.excluded }
+              ? { some: { branchId: { notIn: scope.excluded }, active: true } }
               : undefined
-            : { in: scope.included }),
+            : { some: { branchId: { in: scope.included }, active: true } },
       },
+      include: { branchScopes: { include: { branch: true }, orderBy: { createdAt: 'asc' } } },
       orderBy: { code: 'asc' },
     });
     return { items, page: { nextCursor: null, hasMore: false } };
@@ -405,21 +583,54 @@ export class MasterCatalogService {
 
   async createClassType(
     principal: SessionPrincipal,
-    input: { branchId: string; code: string; name: string },
+    input: {
+      code: string;
+      name: string;
+      description?: string | null;
+      modality?: 'GROUP' | 'PRIVATE' | 'HYBRID' | 'UNKNOWN_LEGACY';
+      defaultDurationMinutes?: number;
+      defaultMinimumQuota?: number;
+      defaultCapacity?: number;
+      branchIds?: string[];
+    },
     correlationId: string,
   ) {
     this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, input.branchId, true);
     const code = input.code.trim().toUpperCase();
     const name = input.name.trim();
-    if (!/^[A-Z0-9_-]{2,30}$/.test(code) || name.length < 2 || name.length > 120)
+    const branchIds = [...new Set(input.branchIds ?? [])];
+    if (
+      !/^[A-Z0-9_-]{2,30}$/.test(code) ||
+      name.length < 2 ||
+      name.length > 120 ||
+      branchIds.some((id) => !/^[0-9a-f-]{36}$/iu.test(id))
+    )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    for (const branchId of branchIds) this.access.ensureBranchScope(principal, branchId, true);
     try {
       return await this.db.$transaction(async (tx) => {
-        const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
-        if (!branch?.active) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (branchIds.length) {
+          const activeBranches = await tx.branch.count({
+            where: { id: { in: branchIds }, active: true },
+          });
+          if (activeBranches !== branchIds.length)
+            throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+        }
         const item = await tx.classType.create({
-          data: { id: newId(), branchId: input.branchId, code, name },
+          data: {
+            id: newId(),
+            code,
+            name,
+            description: input.description?.trim() || null,
+            modality: input.modality ?? 'GROUP',
+            defaultDurationMinutes: input.defaultDurationMinutes ?? 60,
+            defaultMinimumQuota: input.defaultMinimumQuota ?? 1,
+            defaultCapacity: input.defaultCapacity ?? 1,
+            branchScopes: {
+              create: branchIds.map((branchId) => ({ id: newId(), branchId })),
+            },
+          },
+          include: { branchScopes: true },
         });
         await this.access.audit(
           tx,
@@ -428,7 +639,7 @@ export class MasterCatalogService {
           'master.class_type_created',
           'ClassType',
           item.id,
-          input.branchId,
+          null,
           undefined,
           { code, active: true, version: 0 },
         );
@@ -450,7 +661,6 @@ export class MasterCatalogService {
     return this.db.$transaction(async (tx) => {
       const item = await tx.classType.findUnique({ where: { id } });
       if (!item) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      this.access.ensureBranchScope(principal, item.branchId, true);
       if (!item.active || item.version !== expectedVersion)
         throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
       const activeSettings = await tx.effectiveConfiguration.count({
@@ -468,7 +678,7 @@ export class MasterCatalogService {
         'master.class_type_deactivated',
         'ClassType',
         id,
-        item.branchId,
+        null,
         { active: true, version: expectedVersion },
         { active: false, version: expectedVersion + 1 },
       );
@@ -497,7 +707,6 @@ export class MasterCatalogService {
       async (tx) => {
         const current = await tx.classType.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.ensureBranchScope(principal, current.branchId, true);
         if (!current.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
         if (current.version !== input.expectedVersion)
           throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
@@ -516,7 +725,7 @@ export class MasterCatalogService {
           'master.class_type_deactivated',
           'ClassType',
           id,
-          current.branchId,
+          null,
           { active: true, version: current.version },
           { active: false, version: updated.version, reasonPresent: true },
         );
@@ -551,7 +760,6 @@ export class MasterCatalogService {
       async (tx) => {
         const current = await tx.classType.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.ensureBranchScope(principal, current.branchId, true);
         const changed = await tx.classType.updateMany({
           where: { id, version: input.expectedVersion },
           data: { name, version: { increment: 1 } },
@@ -565,7 +773,7 @@ export class MasterCatalogService {
           'master.class_type_updated',
           'ClassType',
           id,
-          current.branchId,
+          null,
           { name: current.name, version: current.version },
           { name: updated.name, version: updated.version, reasonPresent: true },
         );
@@ -594,13 +802,8 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.classType.findUnique({
-          where: { id },
-          include: { branch: { select: { active: true } } },
-        });
+        const current = await tx.classType.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.ensureBranchScope(principal, current.branchId, true);
-        if (!current.branch.active) throw new ApiProblem('ACTIVE_DEPENDENCY', HttpStatus.CONFLICT);
         if (current.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
         const changed = await tx.classType.updateMany({
           where: { id, version: input.expectedVersion, active: false },
@@ -615,7 +818,7 @@ export class MasterCatalogService {
           'master.class_type_reactivated',
           'ClassType',
           id,
-          current.branchId,
+          null,
           { active: false, version: current.version },
           { active: true, version: updated.version, reasonPresent: true },
         );
@@ -623,6 +826,65 @@ export class MasterCatalogService {
       },
     );
     return result.body as unknown as ClassType;
+  }
+
+  async replaceClassTypeScopes(
+    principal: SessionPrincipal,
+    id: string,
+    input: { branchIds: string[]; expectedVersion: number; reason: string },
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    const branchIds = [...new Set(input.branchIds ?? [])];
+    if (!Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    for (const branchId of branchIds) this.access.ensureBranchScope(principal, branchId, true);
+    return this.db.$transaction(async (tx) => {
+      const current = await tx.classType.findUnique({
+        where: { id },
+        include: { branchScopes: true },
+      });
+      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      const activeBranches = await tx.branch.count({
+        where: { id: { in: branchIds }, active: true },
+      });
+      if (activeBranches !== branchIds.length)
+        throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      const changed = await tx.classType.updateMany({
+        where: { id, version: input.expectedVersion },
+        data: { version: { increment: 1 } },
+      });
+      if (!changed.count) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      await tx.classTypeBranchScope.updateMany({
+        where: { classTypeId: id, branchId: { notIn: branchIds } },
+        data: { active: false },
+      });
+      for (const branchId of branchIds)
+        await tx.classTypeBranchScope.upsert({
+          where: { classTypeId_branchId: { classTypeId: id, branchId } },
+          create: { id: newId(), classTypeId: id, branchId },
+          update: { active: true, historical: false, sourceDeletedAt: null },
+        });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.class_type_scopes_replaced',
+        'ClassType',
+        id,
+        null,
+        {
+          branchIds: current.branchScopes
+            .filter((scope) => scope.active)
+            .map((scope) => scope.branchId),
+        },
+        { branchIds, reasonPresent: true },
+      );
+      return tx.classType.findUniqueOrThrow({
+        where: { id },
+        include: { branchScopes: { include: { branch: true } } },
+      });
+    });
   }
 }
 

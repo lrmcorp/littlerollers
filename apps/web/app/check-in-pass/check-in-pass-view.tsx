@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import { Button } from '../components/actions';
 
 export function CheckInPassView() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,9 +35,9 @@ export function CheckInPassView() {
   }, []);
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-dd-canvas px-4 py-10">
+    <main className="grid min-h-dvh min-w-0 place-items-center overflow-x-hidden bg-dd-canvas px-4 py-10">
       <meta name="referrer" content="no-referrer" />
-      <section className="w-full max-w-md rounded-dd-xl border border-dd-line bg-dd-surface p-6 text-center shadow-dd-card">
+      <section className="box-border w-full min-w-0 max-w-[calc(100vw-2rem)] rounded-dd-xl border border-dd-line bg-dd-surface p-6 text-center shadow-dd-card sm:max-w-md">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-dd-forest">
           Daily Dose Pilates
         </p>
@@ -56,12 +57,13 @@ export function CheckInPassView() {
           <>
             <canvas
               ref={canvasRef}
-              className="mx-auto mt-6 rounded-dd-md bg-white p-3"
+              className="mx-auto mt-6 box-border h-auto min-w-0 max-w-full rounded-dd-md bg-white p-3"
+              style={{ width: 'min(320px, 100%)' }}
               aria-label="QR check-in"
             />
-            <button type="button" className="mt-4" onClick={downloadQr}>
+            <Button type="button" className="mx-auto mt-4" onClick={downloadQr}>
               Download QR
-            </button>
+            </Button>
             <p className="mt-4 text-xs text-dd-muted">
               Pass terenkripsi · jangan teruskan ke pihak lain
             </p>

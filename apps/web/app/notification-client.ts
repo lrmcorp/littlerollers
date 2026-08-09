@@ -29,7 +29,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const browserNotificationClient = {
+export type NotificationClient = {
+  list(input?: {
+    cursor?: string;
+    limit?: number;
+    unreadOnly?: boolean;
+  }): Promise<UserNotificationPage>;
+  unreadCount(): Promise<{ count: number }>;
+  markRead(id: string): Promise<UserNotification>;
+  markAllRead(): Promise<{ updatedCount: number; readAt: string }>;
+};
+
+export const browserNotificationClient: NotificationClient = {
   list(input: { cursor?: string; limit?: number; unreadOnly?: boolean } = {}) {
     const query = new URLSearchParams();
     if (input.cursor) query.set('cursor', input.cursor);

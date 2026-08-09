@@ -18,6 +18,7 @@ import { AuditView } from './audit/audit-view';
 import { RolePermissionsView } from './users/roles-permissions/role-permissions-view';
 import { AppFeedbackProvider } from './components/app-feedback';
 import type { AccessClient } from './access-client';
+import type { LedgerClient } from './ledger-client';
 
 const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   signIn: vi.fn().mockResolvedValue(undefined),
@@ -143,6 +144,26 @@ describe('identity UI', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'incorrect-password');
     await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
+  });
+
+  it('shows a safe correlation reference for internal authentication failures', async () => {
+    render(
+      <SignInView
+        client={client({
+          signInWithPassword: vi.fn().mockRejectedValue({
+            response: { status: 500 },
+            code: 'INTERNAL_ERROR',
+            correlationId: 'auth-reference-456',
+          }),
+        })}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
+    await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
+    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Autentikasi mengalami gangguan internal. Kode referensi: auth-reference-456.',
+    );
   });
 
   it('supports password visibility without exposing synthetic environment controls', async () => {
@@ -297,7 +318,42 @@ describe('identity UI', () => {
       <UserDetailView
         id={customer.id}
         client={fake}
-        capabilitiesOverride={['branch:all', 'user:read', 'identity-verification:read']}
+        ledgerClient={
+          {
+            list: vi.fn().mockResolvedValue({
+              items: [
+                {
+                  id: 'customer-package-1',
+                  branchId: 'branch-1',
+                  status: 'ACTIVE',
+                  activationDate: new Date('2026-07-01'),
+                  expiryAt: new Date('2026-10-01'),
+                  ledgerBalance: 8,
+                  reserved: 1,
+                  available: 7,
+                  sessionCountSnapshot: 10,
+                  usage: {
+                    initialSessions: 10,
+                    usedSessions: 2,
+                    reversedSessions: 0,
+                    adjustmentDelta: 0,
+                  },
+                  packageName: 'Reformer 10',
+                  branchName: 'Daily Dose BSD',
+                  classTypeName: 'Reformer',
+                },
+              ],
+              summary: { packageCount: 1, ledgerBalance: 8, reserved: 1, available: 7 },
+              nextCursor: null,
+            }),
+          } as unknown as LedgerClient
+        }
+        capabilitiesOverride={[
+          'branch:all',
+          'user:read',
+          'identity-verification:read',
+          'ledger:read',
+        ]}
       />,
     );
     expect(await screen.findByRole('heading', { name: 'Verifikasi Identitas' })).toBeVisible();
@@ -307,6 +363,12 @@ describe('identity UI', () => {
       '/identity-verifications?customerUserId=customer-1',
     );
     expect(view.container.querySelector('img')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Paket & Sesi' })).toBeVisible();
+    expect(screen.getByText('7')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Lihat detail sesi' })).toHaveAttribute(
+      'href',
+      '/ledger/customer-package-1',
+    );
     expect(screen.queryByRole('button', { name: 'Nonaktifkan' })).not.toBeInTheDocument();
   });
 
@@ -572,7 +634,9 @@ describe('assignment UI', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Akhiri' }));
     const endDialog = await screen.findByRole('dialog', { name: 'Akhiri assignment' });
     const endForm = within(endDialog);
-    await userEvent.type(endForm.getByLabelText(/Efektif berakhir/), '2026-08-10T00:00');
+    fireEvent.change(endForm.getByLabelText(/Efektif berakhir/), {
+      target: { value: '2026-08-10T00:00' },
+    });
     fireEvent.change(endForm.getByLabelText(/Alasan/), {
       target: { value: 'periode selesai' },
     });
@@ -630,11 +694,21 @@ describe('assignment UI', () => {
 });
 
 const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
-  listBranches: vi.fn().mockResolvedValue([]),
+  listBranches: vi.fn().mockResolvedValue({
+    items: [],
+    summary: { total: 0, active: 0, inactive: 0 },
+    page: { hasMore: false, nextCursor: null },
+  }),
   listClassTypes: vi.fn().mockResolvedValue([]),
+  listStudios: vi.fn().mockResolvedValue([]),
   listSettings: vi.fn().mockResolvedValue([]),
   createBranch: vi.fn().mockResolvedValue(undefined),
   createClassType: vi.fn().mockResolvedValue(undefined),
+  createStudio: vi.fn().mockResolvedValue(undefined),
+  updateStudio: vi.fn().mockResolvedValue(undefined),
+  createRoom: vi.fn().mockResolvedValue(undefined),
+  updateRoom: vi.fn().mockResolvedValue(undefined),
+  replaceClassTypeScopes: vi.fn().mockResolvedValue(undefined),
   updateClassType: vi.fn().mockResolvedValue(undefined),
   deactivateBranch: vi.fn().mockResolvedValue(undefined),
   deactivateClassType: vi.fn().mockResolvedValue(undefined),
@@ -644,6 +718,40 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
 });
 
 describe('effective master UI', () => {
+  it('paginates a twenty-five branch catalog without hiding the second page', async () => {
+    const branch = (index: number) => ({
+      id: `branch-${index}`,
+      code: `DD-${index}`,
+      name: `Cabang ${index}`,
+      timezone: 'Asia/Jakarta',
+      active: true,
+      version: 0,
+    });
+    const fake = masterClient({
+      listBranches: vi.fn(({ cursor }: { cursor?: string } = {}) =>
+        Promise.resolve({
+          items: cursor
+            ? Array.from({ length: 5 }, (_, index) => branch(index + 21))
+            : Array.from({ length: 20 }, (_, index) => branch(index + 1)),
+          summary: { total: 25, active: 25, inactive: 0 },
+          page: { hasMore: !cursor, nextCursor: cursor ? null : 'branch-20' },
+        }),
+      ),
+    });
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={fake} access={{ canManage: true, canFinance: true }} />
+      </AppFeedbackProvider>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
+    expect(await screen.findByText('Cabang 1')).toBeVisible();
+    expect(screen.getByText('Halaman 1 · 20 data dari 25 cabang')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    expect(await screen.findByText('Cabang 21')).toBeVisible();
+    expect(screen.queryByText('Cabang 1')).not.toBeInTheDocument();
+  });
+
   it('is accessible and has no production numeric defaults', async () => {
     const view = render(
       <AppFeedbackProvider>
@@ -662,16 +770,20 @@ describe('effective master UI', () => {
 
   it('submits a half-open quota setting and displays safe conflicts', async () => {
     const fake = masterClient({
-      listBranches: vi.fn().mockResolvedValue([
-        {
-          id: 'branch-1',
-          code: 'DD-JKT',
-          name: 'Daily Dose Jakarta',
-          timezone: 'Asia/Jakarta',
-          active: true,
-          version: 0,
-        },
-      ]),
+      listBranches: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'branch-1',
+            code: 'DD-JKT',
+            name: 'Daily Dose Jakarta',
+            timezone: 'Asia/Jakarta',
+            active: true,
+            version: 0,
+          },
+        ],
+        summary: { total: 1, active: 1, inactive: 0 },
+        page: { hasMore: false, nextCursor: null },
+      }),
       listClassTypes: vi
         .fn()
         .mockResolvedValue([

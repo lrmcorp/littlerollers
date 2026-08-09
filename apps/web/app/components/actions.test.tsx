@@ -43,4 +43,28 @@ describe('action primitives', () => {
     expect(screen.getByRole('button', { name: 'Menyimpan' })).toBeDisabled();
     expect(screen.queryByTestId('hidden-icon')).not.toBeInTheDocument();
   });
+
+  it('keeps primary and secondary actions visually distinct with accessible targets', () => {
+    render(
+      <>
+        <Button>Aksi utama</Button>
+        <ButtonLink href="/next" variant="secondary" size="sm">
+          Aksi sekunder
+        </ButtonLink>
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Aksi utama' })).toHaveClass(
+      'min-h-11',
+      'cursor-pointer',
+      'bg-dd-forest',
+      'text-white',
+    );
+    expect(screen.getByRole('link', { name: 'Aksi sekunder' })).toHaveClass(
+      'min-h-10',
+      'border-dd-forest/25',
+      'bg-white',
+      'text-dd-forest',
+    );
+  });
 });

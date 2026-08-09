@@ -22,8 +22,33 @@ void main() {
       // TODO
     });
 
+    // int grossSalesRp
+    test('to test the property `grossSalesRp`', () async {
+      // TODO
+    });
+
     // int revenueRp
     test('to test the property `revenueRp`', () async {
+      // TODO
+    });
+
+    // int projectionRp
+    test('to test the property `projectionRp`', () async {
+      // TODO
+    });
+
+    // int instructorRealtimeRp
+    test('to test the property `instructorRealtimeRp`', () async {
+      // TODO
+    });
+
+    // int otherCostRp
+    test('to test the property `otherCostRp`', () async {
+      // TODO
+    });
+
+    // int profitRp
+    test('to test the property `profitRp`', () async {
       // TODO
     });
 

@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/adjustment_customer.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/customer_session_usage_summary.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -29,6 +30,7 @@ part 'customer_package_balance.g.dart';
 /// * [ledgerBalance] 
 /// * [reserved] 
 /// * [available] 
+/// * [usage] 
 /// * [salePriceRp] 
 /// * [sessionCountSnapshot] 
 /// * [durationDaysSnapshot] 
@@ -81,6 +83,9 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
 
   @BuiltValueField(wireName: r'available')
   int get available;
+
+  @BuiltValueField(wireName: r'usage')
+  CustomerSessionUsageSummary get usage;
 
   @BuiltValueField(wireName: r'salePriceRp')
   int get salePriceRp;
@@ -202,6 +207,11 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
     yield serializers.serialize(
       object.available,
       specifiedType: const FullType(int),
+    );
+    yield r'usage';
+    yield serializers.serialize(
+      object.usage,
+      specifiedType: const FullType(CustomerSessionUsageSummary),
     );
     yield r'salePriceRp';
     yield serializers.serialize(
@@ -355,6 +365,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(int),
           ) as int;
           result.available = valueDes;
+          break;
+        case r'usage':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(CustomerSessionUsageSummary),
+          ) as CustomerSessionUsageSummary;
+          result.usage.replace(valueDes);
           break;
         case r'salePriceRp':
           final valueDes = serializers.deserialize(

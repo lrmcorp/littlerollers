@@ -10,6 +10,7 @@ import type { SessionPrincipal } from './identity.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import { PolicyService } from './policy.service';
 import { ApiProblem, configurationRequired, digest, newId } from './security';
+import { recordPilotRollbackOutbox } from '../migration/pilot-rollback-outbox.service';
 
 const IDENTITY_REJECTION_REASONS = new Set([
   'BLURRY',
@@ -121,6 +122,17 @@ export class IdentityDocumentWorkflowService {
       where: { userId: principal.userId, kind, replacedById: null },
       orderBy: { createdAt: 'desc' },
     });
+    const owner = await this.db.user.findUnique({
+      where: { id: principal.userId },
+      select: { preferredBranchId: true },
+    });
+    const pilotCutover = owner?.preferredBranchId
+      ? await this.db.migrationBranchCutover.findUnique({
+          where: { branchId: owner.preferredBranchId },
+          select: { status: true },
+        })
+      : null;
+    const pilotMediaImmutable = ['V2_ACTIVE', 'ROLLING_BACK'].includes(pilotCutover?.status ?? '');
     if (!current || current.status !== 'REJECTED' || current.version !== expectedVersion)
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
     const replacementId = newId();
@@ -149,12 +161,14 @@ export class IdentityDocumentWorkflowService {
           where: { id: current.id, version: expectedVersion, replacedById: null },
           data: {
             replacedById: replacement.id,
-            ...(current.objectKey ? { status: 'PENDING_DELETION' as const } : {}),
+            ...(current.objectKey && !pilotMediaImmutable
+              ? { status: 'PENDING_DELETION' as const }
+              : {}),
             version: { increment: 1 },
           },
         });
         if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        if (current.objectKey) {
+        if (current.objectKey && !pilotMediaImmutable) {
           const retentionDays = this.runtimeConfig?.value.privateUploads.retentionDays ?? 30;
           await tx.identityDocumentDeletionJob.create({
             data: {
@@ -175,9 +189,30 @@ export class IdentityDocumentWorkflowService {
           correlationId,
           after: {
             kind,
-            priorFileRetentionDays: this.runtimeConfig?.value.privateUploads.retentionDays ?? 30,
+            priorFileRetentionDays: pilotMediaImmutable
+              ? null
+              : (this.runtimeConfig?.value.privateUploads.retentionDays ?? 30),
+            pilotMediaImmutable,
           },
         });
+        if (owner?.preferredBranchId)
+          await recordPilotRollbackOutbox(tx, {
+            branchId: owner.preferredBranchId,
+            aggregateType: 'IdentityDocument',
+            aggregateId: replacement.id,
+            operation: 'FINALIZE_REPLACEMENT',
+            correlationId,
+            occurredAt: replacement.finalizedAt ?? new Date(),
+            payload: {
+              documentId: replacement.id,
+              userId: principal.userId,
+              kind,
+              checksum: replacement.checksum,
+              mimeType: replacement.mimeType,
+              sizeBytes: replacement.sizeBytes,
+              version: replacement.version,
+            },
+          });
         return this.documentView(replacement);
       });
     } catch (error) {
@@ -205,7 +240,10 @@ export class IdentityDocumentWorkflowService {
         (input.reasonCode === 'OTHER_REQUIRES_NOTE' && !input.note?.trim()))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const current = await this.db.identityVerificationDocument.findUnique({ where: { id } });
+    const current = await this.db.identityVerificationDocument.findUnique({
+      where: { id },
+      include: { user: { select: { preferredBranchId: true } } },
+    });
     if (!current || current.replacedById) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     if (current.version !== input.expectedVersion || current.status !== 'PENDING')
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
@@ -254,6 +292,23 @@ export class IdentityDocumentWorkflowService {
           correlationId,
         },
       });
+      if (decision === 'APPROVED' && current.user.preferredBranchId)
+        await recordPilotRollbackOutbox(tx, {
+          branchId: current.user.preferredBranchId,
+          aggregateType: 'IdentityDocument',
+          aggregateId: current.id,
+          operation: 'APPROVE',
+          correlationId,
+          payload: {
+            documentId: current.id,
+            userId: current.userId,
+            kind: current.kind,
+            checksum: current.checksum,
+            mimeType: current.mimeType,
+            sizeBytes: current.sizeBytes,
+            version: input.expectedVersion + 1,
+          },
+        });
     });
     return {
       ...this.documentView(
@@ -274,11 +329,22 @@ export class IdentityDocumentWorkflowService {
     this.policy.requireGlobalCapability(principal, 'identity-verification:delete');
     if (!input.reason?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const document = await this.db.identityVerificationDocument.findUnique({ where: { id } });
+    const document = await this.db.identityVerificationDocument.findUnique({
+      where: { id },
+      include: { user: { select: { preferredBranchId: true } } },
+    });
     if (!document || document.replacedById || document.status === 'DELETED')
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     if (document.version !== input.expectedVersion)
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    if (document.user.preferredBranchId) {
+      const cutover = await this.db.migrationBranchCutover.findUnique({
+        where: { branchId: document.user.preferredBranchId },
+        select: { status: true },
+      });
+      if (['V2_ACTIVE', 'ROLLING_BACK'].includes(cutover?.status ?? ''))
+        throw new ApiProblem('PILOT_MEDIA_IMMUTABLE', HttpStatus.CONFLICT);
+    }
     if (!document.objectKey) {
       return this.db.$transaction(async (tx) => {
         const changed = await tx.identityVerificationDocument.updateMany({

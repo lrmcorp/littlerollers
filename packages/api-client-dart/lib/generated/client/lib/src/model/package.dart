@@ -4,18 +4,24 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/package_branch_scope.dart';
+import 'package:openapi/src/model/package_revision.dart';
 import 'package:openapi/src/model/date.dart';
+import 'package:openapi/src/model/package_class_type_scope.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
 part 'package.g.dart';
 
-/// Immutable commercial key and effective half-open interval [effectiveFrom,effectiveUntil).
+/// Global package identity. branchId/classTypeId are transitional primary projections; availability is authoritative in branchScopes and classTypeScopes.
 ///
 /// Properties:
 /// * [id] 
 /// * [branchId] 
 /// * [classTypeId] 
+/// * [branchScopes] 
+/// * [classTypeScopes] 
+/// * [revisions] 
 /// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
@@ -37,6 +43,15 @@ abstract class Package  {
 
   @BuiltValueField(wireName: r'classTypeId')
   String get classTypeId;
+
+  @BuiltValueField(wireName: r'branchScopes')
+  BuiltList<PackageBranchScope>? get branchScopes;
+
+  @BuiltValueField(wireName: r'classTypeScopes')
+  BuiltList<PackageClassTypeScope>? get classTypeScopes;
+
+  @BuiltValueField(wireName: r'revisions')
+  BuiltList<PackageRevision>? get revisions;
 
   @BuiltValueField(wireName: r'businessKey')
   String get businessKey;
@@ -104,6 +119,27 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
       object.classTypeId,
       specifiedType: const FullType(String),
     );
+    if (object.branchScopes != null) {
+      yield r'branchScopes';
+      yield serializers.serialize(
+        object.branchScopes,
+        specifiedType: const FullType(BuiltList, [FullType(PackageBranchScope)]),
+      );
+    }
+    if (object.classTypeScopes != null) {
+      yield r'classTypeScopes';
+      yield serializers.serialize(
+        object.classTypeScopes,
+        specifiedType: const FullType(BuiltList, [FullType(PackageClassTypeScope)]),
+      );
+    }
+    if (object.revisions != null) {
+      yield r'revisions';
+      yield serializers.serialize(
+        object.revisions,
+        specifiedType: const FullType(BuiltList, [FullType(PackageRevision)]),
+      );
+    }
     yield r'businessKey';
     yield serializers.serialize(
       object.businessKey,
@@ -248,6 +284,27 @@ class _$$PackageSerializer implements PrimitiveSerializer<$Package> {
             specifiedType: const FullType(String),
           ) as String;
           result.classTypeId = valueDes;
+          break;
+        case r'branchScopes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PackageBranchScope)]),
+          ) as BuiltList<PackageBranchScope>;
+          result.branchScopes.replace(valueDes);
+          break;
+        case r'classTypeScopes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PackageClassTypeScope)]),
+          ) as BuiltList<PackageClassTypeScope>;
+          result.classTypeScopes.replace(valueDes);
+          break;
+        case r'revisions':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(PackageRevision)]),
+          ) as BuiltList<PackageRevision>;
+          result.revisions.replace(valueDes);
           break;
         case r'businessKey':
           final valueDes = serializers.deserialize(

@@ -14,6 +14,8 @@ class _$GetFinanceReconciliationAnomalies200Response
   final BuiltList<FinanceAnomaly> items;
   @override
   final int total;
+  @override
+  final CursorPageMeta page;
 
   factory _$GetFinanceReconciliationAnomalies200Response([
     void Function(GetFinanceReconciliationAnomalies200ResponseBuilder)? updates,
@@ -24,6 +26,7 @@ class _$GetFinanceReconciliationAnomalies200Response
     required this.generatedAt,
     required this.items,
     required this.total,
+    required this.page,
   }) : super._();
   @override
   GetFinanceReconciliationAnomalies200Response rebuild(
@@ -40,7 +43,8 @@ class _$GetFinanceReconciliationAnomalies200Response
     return other is GetFinanceReconciliationAnomalies200Response &&
         generatedAt == other.generatedAt &&
         items == other.items &&
-        total == other.total;
+        total == other.total &&
+        page == other.page;
   }
 
   @override
@@ -49,6 +53,7 @@ class _$GetFinanceReconciliationAnomalies200Response
     _$hash = $jc(_$hash, generatedAt.hashCode);
     _$hash = $jc(_$hash, items.hashCode);
     _$hash = $jc(_$hash, total.hashCode);
+    _$hash = $jc(_$hash, page.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -60,7 +65,8 @@ class _$GetFinanceReconciliationAnomalies200Response
           )
           ..add('generatedAt', generatedAt)
           ..add('items', items)
-          ..add('total', total))
+          ..add('total', total)
+          ..add('page', page))
         .toString();
   }
 }
@@ -86,6 +92,10 @@ class GetFinanceReconciliationAnomalies200ResponseBuilder
   int? get total => _$this._total;
   set total(int? total) => _$this._total = total;
 
+  CursorPageMetaBuilder? _page;
+  CursorPageMetaBuilder get page => _$this._page ??= CursorPageMetaBuilder();
+  set page(CursorPageMetaBuilder? page) => _$this._page = page;
+
   GetFinanceReconciliationAnomalies200ResponseBuilder() {
     GetFinanceReconciliationAnomalies200Response._defaults(this);
   }
@@ -96,6 +106,7 @@ class GetFinanceReconciliationAnomalies200ResponseBuilder
       _generatedAt = $v.generatedAt;
       _items = $v.items.toBuilder();
       _total = $v.total;
+      _page = $v.page.toBuilder();
       _$v = null;
     }
     return this;
@@ -133,12 +144,16 @@ class GetFinanceReconciliationAnomalies200ResponseBuilder
               r'GetFinanceReconciliationAnomalies200Response',
               'total',
             ),
+            page: page.build(),
           );
     } catch (_) {
       late String _$failedField;
       try {
         _$failedField = 'items';
         items.build();
+
+        _$failedField = 'page';
+        page.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'GetFinanceReconciliationAnomalies200Response',

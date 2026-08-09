@@ -26,7 +26,14 @@ export class OperationsService {
 
   async list(principal: SessionPrincipal, status?: string, cursor?: string) {
     this.policy.requireCapability(principal.capabilities, 'operations:read');
-    const allowed = ['QUEUED', 'RUNNING', 'RETRYING', 'SUCCEEDED', 'FAILED'] as const;
+    const allowed = [
+      'QUEUED',
+      'RUNNING',
+      'RETRYING',
+      'SUCCEEDED',
+      'FAILED',
+      'DEAD_LETTER',
+    ] as const;
     if (status && !allowed.includes(status as (typeof allowed)[number]))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     let position: { at: Date; id: string } | undefined;
@@ -295,6 +302,151 @@ export class OperationsService {
     } catch (error) {
       this.mapError(error);
     }
+  }
+
+  async retryJob(
+    principal: SessionPrincipal,
+    id: string,
+    input: { reason: string },
+    key: string,
+    correlationId: string,
+    now = new Date(),
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'operations:recover');
+    this.validateRecoveryInput(id, input.reason, key);
+    return this.idempotency.execute(
+      {
+        scope: `operational-job:retry:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: this.config.value.quotaEvaluation.leaseMs,
+      },
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`QuotaEvaluationJob\` WHERE \`id\` = ${id} FOR UPDATE`;
+        const job = await tx.quotaEvaluationJob.findUnique({ where: { id } });
+        if (!job) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (job.status !== 'FAILED')
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        if (job.attempts >= 10)
+          throw new ApiProblem('RETRY_LIMIT_REACHED', HttpStatus.TOO_MANY_REQUESTS);
+        const updated = await tx.quotaEvaluationJob.update({
+          where: { id },
+          data: {
+            status: 'RETRYING',
+            maxAttempts: Math.max(job.maxAttempts, job.attempts + 1),
+            nextAttemptAt: now,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            version: { increment: 1 },
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            branchId: null,
+            action: 'operations.job_retry_requested',
+            objectType: 'QuotaEvaluationJob',
+            objectId: id,
+            beforeMasked: { status: job.status, attemptCount: job.attempts },
+            afterMasked: { status: updated.status, reasonPresent: true },
+            correlationId,
+          },
+        });
+        return {
+          status: HttpStatus.ACCEPTED,
+          body: this.recoveryView(updated) as unknown as Prisma.InputJsonValue,
+        };
+      },
+    );
+  }
+
+  async deadLetterJob(
+    principal: SessionPrincipal,
+    id: string,
+    input: { reason: string },
+    key: string,
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'operations:recover');
+    this.validateRecoveryInput(id, input.reason, key);
+    return this.idempotency.execute(
+      {
+        scope: `operational-job:dead-letter:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: this.config.value.quotaEvaluation.leaseMs,
+      },
+      async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`QuotaEvaluationJob\` WHERE \`id\` = ${id} FOR UPDATE`;
+        const job = await tx.quotaEvaluationJob.findUnique({ where: { id } });
+        if (!job) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (!['QUEUED', 'RETRYING', 'FAILED'].includes(job.status))
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        const updated = await tx.quotaEvaluationJob.update({
+          where: { id },
+          data: {
+            status: 'DEAD_LETTER',
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            nextAttemptAt: job.nextAttemptAt,
+            lastErrorCode: 'OPERATOR_DEAD_LETTER',
+            version: { increment: 1 },
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            actorType: 'USER',
+            actorId: principal.userId,
+            branchId: null,
+            action: 'operations.job_dead_lettered',
+            objectType: 'QuotaEvaluationJob',
+            objectId: id,
+            beforeMasked: { status: job.status, attemptCount: job.attempts },
+            afterMasked: { status: updated.status, reasonPresent: true },
+            correlationId,
+          },
+        });
+        return {
+          status: HttpStatus.OK,
+          body: this.recoveryView(updated) as unknown as Prisma.InputJsonValue,
+        };
+      },
+    );
+  }
+
+  private validateRecoveryInput(id: string, reason: string, key: string) {
+    if (
+      !UUID.test(id) ||
+      reason?.trim().length < 3 ||
+      reason.trim().length > 500 ||
+      !key ||
+      key.length < 16 ||
+      key.length > 128
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  private recoveryView(job: {
+    id: string;
+    status: string;
+    attempts: number;
+    maxAttempts: number;
+    leaseExpiresAt: Date | null;
+    lastErrorCode: string | null;
+  }) {
+    return {
+      jobId: job.id,
+      status: job.status,
+      attemptCount: job.attempts,
+      maxAttempts: job.maxAttempts,
+      leaseExpiresAt: job.leaseExpiresAt?.toISOString() ?? null,
+      lastErrorCode: job.lastErrorCode,
+    };
   }
 
   private mapError(error: unknown): never {

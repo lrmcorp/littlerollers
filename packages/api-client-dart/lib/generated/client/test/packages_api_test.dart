@@ -167,6 +167,13 @@ void main() {
       // TODO
     });
 
+    // Replaces explicit Studio/Cabang and global class-type scopes without cloning the package identity.
+    //
+    //Future<Package> replacePackageScopes(String id, String idempotencyKey, PackageScopeCommand packageScopeCommand) async
+    test('test replacePackageScopes', () async {
+      // TODO
+    });
+
     //Future<Resource> replacePurchasePaymentProof(String id, String idempotencyKey, ReplacePaymentProofCommand replacePaymentProofCommand) async
     test('test replacePurchasePaymentProof', () async {
       // TODO

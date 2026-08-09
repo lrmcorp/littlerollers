@@ -1,4 +1,4 @@
-import { checkInWindowState, isOwningCustomer } from './attendance.service';
+import { checkInWindowState, isOwningCustomer, isOwningInstructor } from './attendance.service';
 
 describe('customer QR check-in window', () => {
   const start = new Date('2026-07-27T02:00:00.000Z');
@@ -33,5 +33,18 @@ describe('customer QR check-in ownership', () => {
         'staff-a',
       ),
     ).toBe(false);
+  });
+});
+
+describe('instructor check-in token ownership', () => {
+  const principal = {
+    userId: 'instructor-a',
+    capabilities: ['attendance:self'],
+  };
+
+  it('allows only the assigned instructor capability path', () => {
+    expect(isOwningInstructor(principal, 'instructor-a')).toBe(true);
+    expect(isOwningInstructor(principal, 'instructor-b')).toBe(false);
+    expect(isOwningInstructor({ ...principal, capabilities: [] }, 'instructor-a')).toBe(false);
   });
 });

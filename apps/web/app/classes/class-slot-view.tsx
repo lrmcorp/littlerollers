@@ -8,6 +8,7 @@ import {
   type ClassSlotClient,
   type ClassTypeOption,
   type InstructorOption,
+  type StudioOption,
 } from '../class-slot-client';
 import {
   formatBranchDay,
@@ -23,6 +24,7 @@ import { classStatusTone, statusLabels } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { browserBookingClient, type BookingClient } from '../booking-client';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
@@ -41,11 +43,13 @@ export function ClassSlotView({
   branchOverride,
   branchesOverride,
   capabilitiesOverride,
+  bookingClient = browserBookingClient,
 }: {
   client?: ClassSlotClient;
   branchOverride?: BranchOption;
   branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
+  bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
 }) {
   const sessionContext = useSessionContext();
   const feedback = useAppFeedback();
@@ -60,6 +64,8 @@ export function ClassSlotView({
   const canRead = capabilities.includes('class-slot:read');
   const canManage = capabilities.includes('class-slot:manage');
   const canManageAttendance = capabilities.includes('attendance:manage');
+  const canCompleteClass = canManage || capabilities.includes('attendance:self');
+  const canReadBookings = capabilities.includes('booking:read');
   const canViewAllBranches = capabilities.includes('branch:all');
   const globalMode = !branch && canViewAllBranches;
   const canOperate = Boolean(branch && canManage);
@@ -68,6 +74,7 @@ export function ClassSlotView({
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
+  const [studios, setStudios] = useState<StudioOption[]>([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [classTypeFilter, setClassTypeFilter] = useState('');
   const [instructorFilter, setInstructorFilter] = useState('');
@@ -98,6 +105,7 @@ export function ClassSlotView({
       setSlots(workspace.slots);
       setClassTypes(workspace.classTypes);
       setInstructors(workspace.instructors);
+      setStudios(workspace.studios);
     } catch (error) {
       setFailure(classSlotFailure(error));
       setSlots([]);
@@ -110,6 +118,7 @@ export function ClassSlotView({
     setSlots([]);
     setClassTypes([]);
     setInstructors([]);
+    setStudios([]);
     setClassTypeFilter('');
     setInstructorFilter('');
     setPanel(null);
@@ -213,11 +222,14 @@ export function ClassSlotView({
         {formatBranchTime(slot.startAt, slot.timezone)}–
         {formatBranchTime(slot.endAt, slot.timezone)}
       </span>
-      <strong>{classTypeName(slot.classTypeId)}</strong>
+      <StatusBadge tone="info">
+        <span>Tipe kelas ·</span> <span>{classTypeName(slot.classTypeId)}</span>
+      </StatusBadge>
       <small>{instructorName(slot.instructorUserId)}</small>
       {globalMode && <small>{branchName(slot.branchId)}</small>}
       <small>
-        {slot.bookedCount}/{slot.capacity} terisi · min. {slot.minimumQuota}
+        {slot.bookedCount} peserta · {Math.max(0, slot.capacity - slot.bookedCount)} tempat tersedia
+        {' · '}min. {slot.minimumQuota}
       </small>
       <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
     </button>
@@ -366,6 +378,7 @@ export function ClassSlotView({
             : undefined
         }
         busy={busy}
+        className={panel?.kind === 'detail' ? 'max-w-4xl' : undefined}
         dirty={panel?.kind === 'create' && panelDirty}
         onDirtyClose={() =>
           feedback.confirm({
@@ -404,7 +417,7 @@ export function ClassSlotView({
                 type="submit"
                 form="class-slot-create-form"
                 loading={busy}
-                disabled={classTypes.length === 0}
+                disabled={classTypes.length === 0 || studios.length === 0}
               >
                 Buat draft
               </Button>
@@ -418,6 +431,7 @@ export function ClassSlotView({
             timezone={branch.timezone}
             classTypes={classTypes}
             instructors={instructors}
+            studios={studios.filter((studio) => studio.branchId === branch.id)}
             busy={busy}
             onDirty={() => setPanelDirty(true)}
             onCreate={async (input) => {
@@ -440,7 +454,10 @@ export function ClassSlotView({
             classTypes={classTypes}
             instructors={instructors}
             canManage={canOperate}
+            canComplete={canCompleteClass}
             canManageAttendance={canOperateAttendance}
+            canReadBookings={canReadBookings}
+            bookingClient={bookingClient}
             busy={busy}
             onAssign={async (instructorId) => {
               const accepted = await feedback.confirm({
@@ -498,6 +515,43 @@ export function ClassSlotView({
                   () => client.cancel(panel.slot.id, reason, panel.slot.version),
                   'Kelas berhasil dibatalkan.',
                 );
+            }}
+            onComplete={async (reason) => {
+              setBusy(true);
+              setFailure(undefined);
+              try {
+                const control = await client.completionControl(panel.slot.id);
+                const accepted = await feedback.confirm({
+                  tone: 'danger',
+                  title: 'Selesaikan kelas?',
+                  message: `${control.attendanceCount} hadir dan ${control.noShowCount} no-show akan diposting. ${control.activeReservationCount} reservation aktif akan dikonsumsi satu kali.`,
+                  confirmLabel: 'Selesaikan kelas',
+                });
+                if (!accepted) return;
+                const result = await client.complete(
+                  panel.slot.id,
+                  control.expectedVersion,
+                  control.controlHash,
+                  reason,
+                );
+                const updated = {
+                  ...panel.slot,
+                  status: 'COMPLETED' as const,
+                  bookedCount: 0,
+                  version: panel.slot.version + 1,
+                };
+                setSlots((current) =>
+                  current.map((slot) => (slot.id === updated.id ? updated : slot)),
+                );
+                setPanel({ kind: 'detail', slot: updated });
+                setMessage(
+                  `Kelas selesai: ${result.attendanceCount} hadir, ${result.noShowCount ?? 0} no-show.`,
+                );
+              } catch (error) {
+                setFailure(classSlotFailure(error));
+              } finally {
+                setBusy(false);
+              }
             }}
           />
         ) : null}

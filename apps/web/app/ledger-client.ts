@@ -11,6 +11,13 @@ export type LedgerBalance = {
   ledgerBalance: number;
   reserved: number;
   available: number;
+  sessionCountSnapshot?: number;
+  usage?: {
+    initialSessions: number;
+    usedSessions: number;
+    reversedSessions: number;
+    adjustmentDelta: number;
+  };
   packageName?: string;
   branchName?: string;
   classTypeName?: string;
@@ -18,6 +25,19 @@ export type LedgerBalance = {
 };
 export type LedgerHistory = {
   balance: LedgerBalance;
+  reservations: {
+    activeQuantity: number;
+    items: Array<{
+      id: string;
+      quantity: number;
+      createdAt: Date;
+      bookingId?: string | null;
+      bookingStatus?: string | null;
+      className?: string | null;
+      branchName?: string | null;
+      startsAt?: Date | null;
+    }>;
+  };
   entries: Array<{
     id: string;
     type: string;
@@ -25,14 +45,29 @@ export type LedgerHistory = {
     occurredAt: Date;
     referenceType?: string | null;
     referenceId?: string | null;
+    referenceLabel?: string | null;
+    bookingId?: string | null;
+    balanceAfter?: number | null;
   }>;
   nextCursor?: string | null;
+  previousCursor?: string | null;
 };
 export type LedgerSummary = {
   packageCount: number;
+  activePackageCount?: number;
   ledgerBalance: number;
   reserved: number;
   available: number;
+  usedSessions?: number;
+  reversedSessions?: number;
+  adjustmentDelta?: number;
+  expiringSoon?: number;
+};
+export type AdjustmentSummary = {
+  total: number;
+  pending: number;
+  posted: number;
+  rejected: number;
 };
 export type Adjustment = {
   id: string;
@@ -60,6 +95,9 @@ export type Adjustment = {
   eligibilityReason?: string | null;
   ledgerEntryId?: string | null;
   resultingBalance?: number | null;
+  decisionCode?: string | null;
+  decisionNote?: string | null;
+  auditReference?: string | null;
 };
 export interface LedgerClient {
   list(
@@ -67,17 +105,30 @@ export interface LedgerClient {
     cursor?: string,
     search?: string,
     status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE',
+    customerUserId?: string,
   ): Promise<{
     items: LedgerBalance[];
     summary: LedgerSummary;
     nextCursor?: string | null;
+    previousCursor?: string | null;
   }>;
   detail(id: string, cursor?: string): Promise<LedgerHistory>;
   listAdjustments(
     branchId?: string,
     status?: 'PENDING' | 'POSTED' | 'REJECTED' | 'HISTORY',
     cursor?: string,
-  ): Promise<{ items: Adjustment[]; nextCursor?: string | null }>;
+    q?: string,
+    customerUserId?: string,
+    from?: string,
+    until?: string,
+    limit?: number,
+  ): Promise<{
+    items: Adjustment[];
+    summary?: AdjustmentSummary;
+    nextCursor?: string | null;
+    previousCursor?: string | null;
+  }>;
+  getAdjustment(id: string): Promise<Adjustment>;
   requestAdjustment(
     input: { customerPackageId: string; quantity: number; reasonCode: string },
     key: string,
@@ -85,41 +136,53 @@ export interface LedgerClient {
   decideAdjustment(
     id: string,
     decision: 'approve' | 'reject',
-    input: { reasonCode: string; expectedVersion: number },
+    input: { reasonCode: string; note?: string; expectedVersion: number },
     key: string,
   ): Promise<Adjustment>;
 }
 
 const api = new LedgerApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
+const mapLedgerBalance = (
+  value: Omit<LedgerBalance, 'activationDate' | 'expiryAt'> & {
+    activationDate: Date | string;
+    expiryAt: Date | string;
+  },
+): LedgerBalance => ({
+  ...value,
+  activationDate: new Date(value.activationDate),
+  expiryAt: new Date(value.expiryAt),
+});
+const mapAdjustment = (value: Adjustment): Adjustment => ({
+  ...value,
+  createdAt: value.createdAt ? new Date(value.createdAt) : undefined,
+  decidedAt: value.decidedAt ? new Date(value.decidedAt) : null,
+});
+
 export const browserLedgerClient: LedgerClient = {
-  async list(branchId, cursor, search, status) {
-    const query = new URLSearchParams();
-    if (branchId) query.set('branchId', branchId);
-    if (cursor) query.set('cursor', cursor);
-    if (search) query.set('search', search);
-    if (status) query.set('status', status);
-    const httpResponse = await appLoading.track(
-      fetch(`/api/v1/customer-packages${query.size ? `?${query.toString()}` : ''}`, {
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
+  async list(branchId, cursor, search, status, customerUserId) {
+    const response = await appLoading.track(
+      api.listCustomerPackages({
+        branchId,
+        cursor,
+        search,
+        status: status as never,
+        customerUserId,
       }),
       { label: 'Memuat ledger…' },
     );
-    if (!httpResponse.ok) throw { response: httpResponse };
-    const response = (await httpResponse.json()) as {
-      items: LedgerBalance[];
-      summary?: LedgerSummary;
-      page: { nextCursor?: string | null };
-    };
+    const items = response.items.map((item) =>
+      mapLedgerBalance(item as unknown as Parameters<typeof mapLedgerBalance>[0]),
+    );
     return {
-      items: response.items,
+      items,
       summary: response.summary ?? {
-        packageCount: response.items.length,
-        ledgerBalance: response.items.reduce((sum, item) => sum + item.ledgerBalance, 0),
-        reserved: response.items.reduce((sum, item) => sum + item.reserved, 0),
-        available: response.items.reduce((sum, item) => sum + item.available, 0),
+        packageCount: items.length,
+        ledgerBalance: items.reduce((sum, item) => sum + item.ledgerBalance, 0),
+        reserved: items.reduce((sum, item) => sum + item.reserved, 0),
+        available: items.reduce((sum, item) => sum + item.available, 0),
       },
       nextCursor: response.page.nextCursor,
+      previousCursor: response.page.previousCursor,
     };
   },
   async detail(id, cursor) {
@@ -127,22 +190,49 @@ export const browserLedgerClient: LedgerClient = {
       label: 'Memuat histori sesi…',
     });
     return {
-      balance: result.balance as LedgerBalance,
-      entries: result.entries,
+      balance: mapLedgerBalance(result.balance as Parameters<typeof mapLedgerBalance>[0]),
+      reservations: {
+        activeQuantity: result.reservations.activeQuantity,
+        items: result.reservations.items.map((reservation) => ({
+          ...reservation,
+          createdAt: new Date(reservation.createdAt),
+          startsAt: reservation.startsAt ? new Date(reservation.startsAt) : null,
+        })),
+      },
+      entries: result.entries.map((entry) => ({
+        ...entry,
+        occurredAt: new Date(entry.occurredAt),
+      })),
       nextCursor: result.page.nextCursor,
+      previousCursor: result.page.previousCursor,
     };
   },
-  async listAdjustments(branchId, status, cursor) {
+  async listAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit) {
     const result = await appLoading.track(
-      api.listSessionAdjustments({ branchId, status: status as never, cursor }),
-      {
-        label: 'Memuat adjustment…',
-      },
+      api.listSessionAdjustments({
+        branchId,
+        status: status as never,
+        cursor,
+        q,
+        customerUserId,
+        from: from ? new Date(from) : undefined,
+        until: until ? new Date(until) : undefined,
+        limit,
+      }),
+      { label: 'Memuat adjustment…' },
     );
     return {
-      items: result.items as Adjustment[],
+      items: result.items.map((item) => mapAdjustment(item as unknown as Adjustment)),
+      summary: result.summary as AdjustmentSummary,
       nextCursor: result.page.nextCursor,
+      previousCursor: result.page.previousCursor,
     };
+  },
+  async getAdjustment(id) {
+    const response = await appLoading.track(api.getSessionAdjustment({ id }), {
+      label: 'Memuat detail penyesuaian…',
+    });
+    return mapAdjustment(response as unknown as Adjustment);
   },
   async requestAdjustment(input, key) {
     return appLoading.track(
@@ -167,6 +257,7 @@ export const browserLedgerClient: LedgerClient = {
       ...(result.adjustment as unknown as Adjustment),
       ledgerEntryId: result.ledgerEntry?.id ?? null,
       resultingBalance: result.resultingBalance,
+      auditReference: result.auditReference ?? null,
     };
   },
 };

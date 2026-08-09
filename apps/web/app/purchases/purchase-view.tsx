@@ -23,6 +23,7 @@ const scanLabels: Record<string, string> = {
   INFECTED: 'Tidak aman',
   ERROR: 'Pemeriksaan gagal',
 };
+type PurchaseAction = 'packages' | 'proof' | 'scan' | 'submit';
 
 export function PurchaseView({
   client = browserPurchaseClient,
@@ -66,7 +67,8 @@ export function PurchaseView({
   const [intentKey, setIntentKey] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [busyAction, setBusyAction] = useState<PurchaseAction | null>(null);
+  const loading = busyAction !== null;
   const selected = useMemo(
     () => packages.find((item) => item.id === selectedId) ?? null,
     [packages, selectedId],
@@ -93,19 +95,19 @@ export function PurchaseView({
     setError('');
   }, [branch?.id, authorityKey]);
 
-  const run = async (action: () => Promise<void>) => {
-    setLoading(true);
+  const run = async (actionName: PurchaseAction, action: () => Promise<void>) => {
+    setBusyAction(actionName);
     setError('');
     try {
       await action();
     } catch (cause) {
       setError(purchaseFailure(cause));
     } finally {
-      setLoading(false);
+      setBusyAction(null);
     }
   };
   const loadPackages = (cursor?: string) =>
-    run(async () => {
+    run('packages', async () => {
       if (!branch) return;
       const result = await client.list(branch.id, cursor);
       setPackages((current) => (cursor ? [...current, ...result.items] : result.items));
@@ -115,7 +117,7 @@ export function PurchaseView({
 
   useEffect(() => {
     if (!branch?.id || !requestedPackageId || !canSubmit) return;
-    void run(async () => {
+    void run('packages', async () => {
       const result = await client.list(branch.id);
       setPackages(result.items);
       setSelectedId(
@@ -158,9 +160,15 @@ export function PurchaseView({
         }
       />
       <div className="workspace-toolbar">
-        <button disabled={loading || !canSubmit} onClick={() => void loadPackages()}>
+        <Button
+          variant="secondary"
+          loading={busyAction === 'packages'}
+          loadingLabel="Memuat paket…"
+          disabled={loading || !canSubmit}
+          onClick={() => void loadPackages()}
+        >
           Muat paket
-        </button>
+        </Button>
       </div>
       {packages.length > 0 && (
         <div className="package-grid" role="radiogroup" aria-label="Paket aktif">
@@ -201,9 +209,15 @@ export function PurchaseView({
         <EmptyState title="Belum ada paket" description="Muat paket aktif untuk cabang ini." />
       )}
       {nextCursor && (
-        <button disabled={loading} onClick={() => void loadPackages(nextCursor)}>
+        <Button
+          variant="secondary"
+          loading={busyAction === 'packages'}
+          loadingLabel="Memuat paket…"
+          disabled={loading}
+          onClick={() => void loadPackages(nextCursor)}
+        >
           Muat paket berikutnya
-        </button>
+        </Button>
       )}
       {selected && (
         <form
@@ -215,7 +229,7 @@ export function PurchaseView({
               return;
             }
             const file = selectedFile;
-            void run(async () => {
+            void run('proof', async () => {
               const sha256 = await digestFile(file);
               const issued = await client.issue({
                 branchId: branch.id,
@@ -255,9 +269,14 @@ export function PurchaseView({
           <p className="form-hint">
             PNG, JPEG, atau PDF. Checksum dihitung lokal dan tidak ditampilkan.
           </p>
-          <button disabled={loading}>
+          <Button
+            type="submit"
+            loading={busyAction === 'proof'}
+            loadingLabel={purchase ? 'Memeriksa bukti pengganti…' : 'Mengunggah bukti…'}
+            disabled={loading}
+          >
             {purchase ? 'Periksa bukti pengganti' : 'Upload dan periksa'}
-          </button>
+          </Button>
         </form>
       )}
       {proof && (
@@ -277,12 +296,16 @@ export function PurchaseView({
             {proof.fileName || 'Bukti pembayaran'} · {proof.mimeType || 'metadata privat'}
           </span>
           {proof.scanStatus === 'PENDING' && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={busyAction === 'scan'}
+              loadingLabel="Memeriksa status…"
               disabled={loading}
-              onClick={() => void run(async () => setProof(await client.status(proof.id)))}
+              onClick={() => void run('scan', async () => setProof(await client.status(proof.id)))}
             >
               Periksa status scan
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -301,8 +324,10 @@ export function PurchaseView({
           </p>
           <Button
             disabled={loading || !canSubmit}
+            loading={busyAction === 'submit'}
+            loadingLabel="Mengirim pengajuan…"
             onClick={() =>
-              void run(async () => {
+              void run('submit', async () => {
                 const key = intentKey || crypto.randomUUID();
                 if (!intentKey) setIntentKey(key);
                 const result = await client.submit(selected.id, proof.id, key);

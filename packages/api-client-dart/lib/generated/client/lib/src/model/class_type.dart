@@ -3,6 +3,8 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/class_type_branch_scopes_inner.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -12,18 +14,17 @@ part 'class_type.g.dart';
 ///
 /// Properties:
 /// * [id] 
-/// * [branchId] 
 /// * [code] 
 /// * [name] 
+/// * [description] 
+/// * [modality] 
 /// * [active] 
 /// * [version] 
+/// * [branchScopes] 
 @BuiltValue()
 abstract class ClassType implements Built<ClassType, ClassTypeBuilder> {
   @BuiltValueField(wireName: r'id')
   String get id;
-
-  @BuiltValueField(wireName: r'branchId')
-  String get branchId;
 
   @BuiltValueField(wireName: r'code')
   String get code;
@@ -31,11 +32,21 @@ abstract class ClassType implements Built<ClassType, ClassTypeBuilder> {
   @BuiltValueField(wireName: r'name')
   String get name;
 
+  @BuiltValueField(wireName: r'description')
+  String? get description;
+
+  @BuiltValueField(wireName: r'modality')
+  ClassTypeModalityEnum? get modality;
+  // enum modalityEnum {  GROUP,  PRIVATE,  HYBRID,  UNKNOWN_LEGACY,  };
+
   @BuiltValueField(wireName: r'active')
   bool get active;
 
   @BuiltValueField(wireName: r'version')
   int get version;
+
+  @BuiltValueField(wireName: r'branchScopes')
+  BuiltList<ClassTypeBranchScopesInner> get branchScopes;
 
   ClassType._();
 
@@ -65,11 +76,6 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
       object.id,
       specifiedType: const FullType(String),
     );
-    yield r'branchId';
-    yield serializers.serialize(
-      object.branchId,
-      specifiedType: const FullType(String),
-    );
     yield r'code';
     yield serializers.serialize(
       object.code,
@@ -80,6 +86,20 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
       object.name,
       specifiedType: const FullType(String),
     );
+    if (object.description != null) {
+      yield r'description';
+      yield serializers.serialize(
+        object.description,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.modality != null) {
+      yield r'modality';
+      yield serializers.serialize(
+        object.modality,
+        specifiedType: const FullType(ClassTypeModalityEnum),
+      );
+    }
     yield r'active';
     yield serializers.serialize(
       object.active,
@@ -89,6 +109,11 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
     yield serializers.serialize(
       object.version,
       specifiedType: const FullType(int),
+    );
+    yield r'branchScopes';
+    yield serializers.serialize(
+      object.branchScopes,
+      specifiedType: const FullType(BuiltList, [FullType(ClassTypeBranchScopesInner)]),
     );
   }
 
@@ -120,13 +145,6 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
           ) as String;
           result.id = valueDes;
           break;
-        case r'branchId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.branchId = valueDes;
-          break;
         case r'code':
           final valueDes = serializers.deserialize(
             value,
@@ -141,6 +159,21 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
           ) as String;
           result.name = valueDes;
           break;
+        case r'description':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.description = valueDes;
+          break;
+        case r'modality':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(ClassTypeModalityEnum),
+          ) as ClassTypeModalityEnum;
+          result.modality = valueDes;
+          break;
         case r'active':
           final valueDes = serializers.deserialize(
             value,
@@ -154,6 +187,13 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
             specifiedType: const FullType(int),
           ) as int;
           result.version = valueDes;
+          break;
+        case r'branchScopes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(BuiltList, [FullType(ClassTypeBranchScopesInner)]),
+          ) as BuiltList<ClassTypeBranchScopesInner>;
+          result.branchScopes.replace(valueDes);
           break;
         default:
           unhandled.add(key);
@@ -182,5 +222,24 @@ class _$ClassTypeSerializer implements PrimitiveSerializer<ClassType> {
     );
     return result.build();
   }
+}
+
+class ClassTypeModalityEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'GROUP')
+  static const ClassTypeModalityEnum GROUP = _$classTypeModalityEnum_GROUP;
+  @BuiltValueEnumConst(wireName: r'PRIVATE')
+  static const ClassTypeModalityEnum PRIVATE = _$classTypeModalityEnum_PRIVATE;
+  @BuiltValueEnumConst(wireName: r'HYBRID')
+  static const ClassTypeModalityEnum HYBRID = _$classTypeModalityEnum_HYBRID;
+  @BuiltValueEnumConst(wireName: r'UNKNOWN_LEGACY')
+  static const ClassTypeModalityEnum UNKNOWN_LEGACY = _$classTypeModalityEnum_UNKNOWN_LEGACY;
+
+  static Serializer<ClassTypeModalityEnum> get serializer => _$classTypeModalityEnumSerializer;
+
+  const ClassTypeModalityEnum._(String name): super(name);
+
+  static BuiltSet<ClassTypeModalityEnum> get values => _$classTypeModalityEnumValues;
+  static ClassTypeModalityEnum valueOf(String name) => _$classTypeModalityEnumValueOf(name);
 }
 

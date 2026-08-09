@@ -122,23 +122,34 @@ export class VoucherService {
     if (packageIds.length) {
       const packages = await this.db.package.findMany({
         where: { id: { in: packageIds } },
-        select: { id: true, branchId: true },
+        select: {
+          id: true,
+          branchScopes: { where: { active: true }, select: { branchId: true } },
+        },
       });
       if (
         packages.length !== packageIds.length ||
-        (branchId && packages.some((p) => p.branchId !== branchId))
+        (branchId &&
+          packages.some((item) => !item.branchScopes.some((scope) => scope.branchId === branchId)))
       )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      for (const item of packages) this.access.scope(principal, item.branchId, ['voucher:manage']);
+      for (const item of packages)
+        for (const scope of item.branchScopes)
+          this.access.scope(principal, scope.branchId, ['voucher:manage']);
     }
     if (classTypeId) {
       const classType = await this.db.classType.findUnique({
         where: { id: classTypeId },
-        select: { branchId: true },
+        select: { branchScopes: { where: { active: true }, select: { branchId: true } } },
       });
-      if (!classType || (branchId && classType.branchId !== branchId))
+      if (
+        !classType ||
+        (branchId && !classType.branchScopes.some((scope) => scope.branchId === branchId))
+      )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      this.access.scope(principal, classType.branchId, ['voucher:manage']);
+      if (!branchId)
+        for (const scope of classType.branchScopes)
+          this.access.scope(principal, scope.branchId, ['voucher:manage']);
     }
   }
 
@@ -184,9 +195,12 @@ export class VoucherService {
       limit?: string;
       from?: string;
       until?: string;
+      includeHistorical?: boolean;
     } = {},
   ) {
     this.requireRead(principal);
+    if (query.includeHistorical && !principal.capabilities.includes('migration:read'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     if (query.branchId) this.access.scope(principal, query.branchId, ['voucher:read']);
     const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)));
     if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -203,6 +217,7 @@ export class VoucherService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const scopeWhere: Prisma.VoucherWhereInput = {
       AND: [
+        ...(query.includeHistorical ? [] : [{ historical: false }]),
         ...(q
           ? [{ OR: [{ code: { contains: q.toUpperCase() } }, { name: { contains: q } }] }]
           : []),

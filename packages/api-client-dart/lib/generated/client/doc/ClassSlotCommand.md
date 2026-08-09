@@ -10,6 +10,8 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **branchId** | **String** |  | 
 **classTypeId** | **String** |  | 
+**studioId** | **String** |  | 
+**roomId** | **String** |  | [optional] 
 **instructorUserId** | **String** |  | [optional] 
 **startAt** | [**DateTime**](DateTime.md) | RFC3339 with numeric offset or Z | 
 **endAt** | [**DateTime**](DateTime.md) | Exclusive RFC3339 boundary with numeric offset or Z | 

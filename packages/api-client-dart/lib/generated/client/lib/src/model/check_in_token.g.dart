@@ -270,11 +270,17 @@ class _$CheckInToken extends CheckInToken {
   @override
   final String resourceId;
   @override
+  final DateTime notBeforeAt;
+  @override
   final DateTime expiresAt;
   @override
   final CheckInTokenStatusEnum status;
   @override
-  final String token;
+  final int version;
+  @override
+  final String? token;
+  @override
+  final bool idempotentReplay;
 
   factory _$CheckInToken([void Function(CheckInTokenBuilder)? updates]) =>
       (CheckInTokenBuilder()..update(updates))._build();
@@ -285,9 +291,12 @@ class _$CheckInToken extends CheckInToken {
     required this.audienceType,
     required this.resourceType,
     required this.resourceId,
+    required this.notBeforeAt,
     required this.expiresAt,
     required this.status,
-    required this.token,
+    required this.version,
+    this.token,
+    required this.idempotentReplay,
   }) : super._();
   @override
   CheckInToken rebuild(void Function(CheckInTokenBuilder) updates) =>
@@ -305,9 +314,12 @@ class _$CheckInToken extends CheckInToken {
         audienceType == other.audienceType &&
         resourceType == other.resourceType &&
         resourceId == other.resourceId &&
+        notBeforeAt == other.notBeforeAt &&
         expiresAt == other.expiresAt &&
         status == other.status &&
-        token == other.token;
+        version == other.version &&
+        token == other.token &&
+        idempotentReplay == other.idempotentReplay;
   }
 
   @override
@@ -318,9 +330,12 @@ class _$CheckInToken extends CheckInToken {
     _$hash = $jc(_$hash, audienceType.hashCode);
     _$hash = $jc(_$hash, resourceType.hashCode);
     _$hash = $jc(_$hash, resourceId.hashCode);
+    _$hash = $jc(_$hash, notBeforeAt.hashCode);
     _$hash = $jc(_$hash, expiresAt.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
     _$hash = $jc(_$hash, token.hashCode);
+    _$hash = $jc(_$hash, idempotentReplay.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -333,9 +348,12 @@ class _$CheckInToken extends CheckInToken {
           ..add('audienceType', audienceType)
           ..add('resourceType', resourceType)
           ..add('resourceId', resourceId)
+          ..add('notBeforeAt', notBeforeAt)
           ..add('expiresAt', expiresAt)
           ..add('status', status)
-          ..add('token', token))
+          ..add('version', version)
+          ..add('token', token)
+          ..add('idempotentReplay', idempotentReplay))
         .toString();
   }
 }
@@ -366,6 +384,10 @@ class CheckInTokenBuilder
   String? get resourceId => _$this._resourceId;
   set resourceId(String? resourceId) => _$this._resourceId = resourceId;
 
+  DateTime? _notBeforeAt;
+  DateTime? get notBeforeAt => _$this._notBeforeAt;
+  set notBeforeAt(DateTime? notBeforeAt) => _$this._notBeforeAt = notBeforeAt;
+
   DateTime? _expiresAt;
   DateTime? get expiresAt => _$this._expiresAt;
   set expiresAt(DateTime? expiresAt) => _$this._expiresAt = expiresAt;
@@ -374,9 +396,18 @@ class CheckInTokenBuilder
   CheckInTokenStatusEnum? get status => _$this._status;
   set status(CheckInTokenStatusEnum? status) => _$this._status = status;
 
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
+
   String? _token;
   String? get token => _$this._token;
   set token(String? token) => _$this._token = token;
+
+  bool? _idempotentReplay;
+  bool? get idempotentReplay => _$this._idempotentReplay;
+  set idempotentReplay(bool? idempotentReplay) =>
+      _$this._idempotentReplay = idempotentReplay;
 
   CheckInTokenBuilder() {
     CheckInToken._defaults(this);
@@ -390,9 +421,12 @@ class CheckInTokenBuilder
       _audienceType = $v.audienceType;
       _resourceType = $v.resourceType;
       _resourceId = $v.resourceId;
+      _notBeforeAt = $v.notBeforeAt;
       _expiresAt = $v.expiresAt;
       _status = $v.status;
+      _version = $v.version;
       _token = $v.token;
+      _idempotentReplay = $v.idempotentReplay;
       _$v = null;
     }
     return this;
@@ -436,6 +470,11 @@ class CheckInTokenBuilder
             r'CheckInToken',
             'resourceId',
           ),
+          notBeforeAt: BuiltValueNullFieldError.checkNotNull(
+            notBeforeAt,
+            r'CheckInToken',
+            'notBeforeAt',
+          ),
           expiresAt: BuiltValueNullFieldError.checkNotNull(
             expiresAt,
             r'CheckInToken',
@@ -446,10 +485,16 @@ class CheckInTokenBuilder
             r'CheckInToken',
             'status',
           ),
-          token: BuiltValueNullFieldError.checkNotNull(
-            token,
+          version: BuiltValueNullFieldError.checkNotNull(
+            version,
             r'CheckInToken',
-            'token',
+            'version',
+          ),
+          token: token,
+          idempotentReplay: BuiltValueNullFieldError.checkNotNull(
+            idempotentReplay,
+            r'CheckInToken',
+            'idempotentReplay',
           ),
         );
     replace(_$result);

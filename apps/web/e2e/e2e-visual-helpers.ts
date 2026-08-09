@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export async function hideNextDevelopmentAffordances(page: Page) {
   await page.addInitScript(() => {
@@ -15,4 +15,17 @@ export async function hideNextDevelopmentAffordances(page: Page) {
       hide();
     }
   });
+}
+
+export async function selectSearchOption(
+  root: Page | Locator,
+  label: string,
+  optionName: string | RegExp,
+  search?: string,
+) {
+  const input = root.getByLabel(label, { exact: true }).filter({ visible: true });
+  await input.fill(search ?? (typeof optionName === 'string' ? optionName : ''));
+  const option = root.getByRole('option', { name: optionName }).first();
+  await expect(option).toBeVisible();
+  await option.click();
 }

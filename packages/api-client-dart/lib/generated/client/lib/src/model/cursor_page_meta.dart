@@ -12,11 +12,16 @@ part 'cursor_page_meta.g.dart';
 ///
 /// Properties:
 /// * [nextCursor] 
+/// * [previousCursor] - Opaque cursor for the previous page. An empty string represents the first page.
 /// * [hasMore] 
 @BuiltValue()
 abstract class CursorPageMeta implements Built<CursorPageMeta, CursorPageMetaBuilder> {
   @BuiltValueField(wireName: r'nextCursor')
   String? get nextCursor;
+
+  /// Opaque cursor for the previous page. An empty string represents the first page.
+  @BuiltValueField(wireName: r'previousCursor')
+  String? get previousCursor;
 
   @BuiltValueField(wireName: r'hasMore')
   bool get hasMore;
@@ -48,6 +53,13 @@ class _$CursorPageMetaSerializer implements PrimitiveSerializer<CursorPageMeta> 
       yield r'nextCursor';
       yield serializers.serialize(
         object.nextCursor,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.previousCursor != null) {
+      yield r'previousCursor';
+      yield serializers.serialize(
+        object.previousCursor,
         specifiedType: const FullType.nullable(String),
       );
     }
@@ -86,6 +98,14 @@ class _$CursorPageMetaSerializer implements PrimitiveSerializer<CursorPageMeta> 
           ) as String?;
           if (valueDes == null) continue;
           result.nextCursor = valueDes;
+          break;
+        case r'previousCursor':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.previousCursor = valueDes;
           break;
         case r'hasMore':
           final valueDes = serializers.deserialize(

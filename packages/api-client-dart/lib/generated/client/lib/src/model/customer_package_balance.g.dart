@@ -112,6 +112,8 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
   @override
   final int available;
   @override
+  final CustomerSessionUsageSummary usage;
+  @override
   final int salePriceRp;
   @override
   final int sessionCountSnapshot;
@@ -142,6 +144,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     required this.ledgerBalance,
     required this.reserved,
     required this.available,
+    required this.usage,
     required this.salePriceRp,
     required this.sessionCountSnapshot,
     required this.durationDaysSnapshot,
@@ -176,6 +179,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
         ledgerBalance == other.ledgerBalance &&
         reserved == other.reserved &&
         available == other.available &&
+        usage == other.usage &&
         salePriceRp == other.salePriceRp &&
         sessionCountSnapshot == other.sessionCountSnapshot &&
         durationDaysSnapshot == other.durationDaysSnapshot &&
@@ -201,6 +205,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
     _$hash = $jc(_$hash, ledgerBalance.hashCode);
     _$hash = $jc(_$hash, reserved.hashCode);
     _$hash = $jc(_$hash, available.hashCode);
+    _$hash = $jc(_$hash, usage.hashCode);
     _$hash = $jc(_$hash, salePriceRp.hashCode);
     _$hash = $jc(_$hash, sessionCountSnapshot.hashCode);
     _$hash = $jc(_$hash, durationDaysSnapshot.hashCode);
@@ -228,6 +233,7 @@ class _$CustomerPackageBalance extends CustomerPackageBalance {
           ..add('ledgerBalance', ledgerBalance)
           ..add('reserved', reserved)
           ..add('available', available)
+          ..add('usage', usage)
           ..add('salePriceRp', salePriceRp)
           ..add('sessionCountSnapshot', sessionCountSnapshot)
           ..add('durationDaysSnapshot', durationDaysSnapshot)
@@ -308,6 +314,11 @@ class CustomerPackageBalanceBuilder
   int? get available => _$this._available;
   set available(int? available) => _$this._available = available;
 
+  CustomerSessionUsageSummaryBuilder? _usage;
+  CustomerSessionUsageSummaryBuilder get usage =>
+      _$this._usage ??= CustomerSessionUsageSummaryBuilder();
+  set usage(CustomerSessionUsageSummaryBuilder? usage) => _$this._usage = usage;
+
   int? _salePriceRp;
   int? get salePriceRp => _$this._salePriceRp;
   set salePriceRp(int? salePriceRp) => _$this._salePriceRp = salePriceRp;
@@ -353,6 +364,7 @@ class CustomerPackageBalanceBuilder
       _ledgerBalance = $v.ledgerBalance;
       _reserved = $v.reserved;
       _available = $v.available;
+      _usage = $v.usage.toBuilder();
       _salePriceRp = $v.salePriceRp;
       _sessionCountSnapshot = $v.sessionCountSnapshot;
       _durationDaysSnapshot = $v.durationDaysSnapshot;
@@ -441,6 +453,7 @@ class CustomerPackageBalanceBuilder
               r'CustomerPackageBalance',
               'available',
             ),
+            usage: usage.build(),
             salePriceRp: BuiltValueNullFieldError.checkNotNull(
               salePriceRp,
               r'CustomerPackageBalance',
@@ -472,6 +485,9 @@ class CustomerPackageBalanceBuilder
       try {
         _$failedField = 'customer';
         _customer?.build();
+
+        _$failedField = 'usage';
+        usage.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
           r'CustomerPackageBalance',

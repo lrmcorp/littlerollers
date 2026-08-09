@@ -1,9 +1,11 @@
 import {
   ClassesApi,
   Configuration,
+  AttendanceApi,
   IdentityApi,
   MasterApi,
   type ClassSlot,
+  type CompletionResult,
 } from '@dailydose/api-client-ts/generated';
 import { appLoading } from './components/app-loading';
 import { notifySessionFailure } from './session-client';
@@ -19,10 +21,25 @@ export interface InstructorOption {
   displayName: string;
   branchId?: string;
 }
+export interface RoomOption {
+  id: string;
+  studioId: string;
+  code: string;
+  name: string;
+  capacity?: number | null;
+}
+export interface StudioOption {
+  id: string;
+  branchId: string;
+  code: string;
+  name: string;
+  rooms: RoomOption[];
+}
 export interface ClassWorkspace {
   slots: ClassSlot[];
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
+  studios: StudioOption[];
   nextCursor?: string | null;
 }
 export interface ClassSlotClient {
@@ -37,6 +54,8 @@ export interface ClassSlotClient {
   create(input: {
     branchId: string;
     classTypeId: string;
+    studioId: string;
+    roomId?: string;
     instructorUserId?: string;
     startAt: Date;
     endAt: Date;
@@ -60,9 +79,24 @@ export interface ClassSlotClient {
       'STUDIO_UNAVAILABLE' | 'INSTRUCTOR_UNAVAILABLE' | 'SAFETY_ISSUE' | 'OTHER_REVIEW_REQUIRED',
     expectedVersion: number,
   ): Promise<ClassSlot>;
+  completionControl(id: string): Promise<{
+    classSlotId: string;
+    expectedVersion: number;
+    controlHash: string;
+    attendanceCount: number;
+    noShowCount: number;
+    activeReservationCount: number;
+  }>;
+  complete(
+    id: string,
+    expectedVersion: number,
+    controlHash: string,
+    reason: string,
+  ): Promise<CompletionResult>;
 }
 const api = new ClassesApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
+const attendance = new AttendanceApi(configuration);
 const identity = new IdentityApi(configuration);
 const master = new MasterApi(configuration);
 const key = () => crypto.randomUUID();
@@ -81,12 +115,13 @@ export const browserClassSlotClient: ClassSlotClient = {
         }),
         Promise.all(
           scopedBranches.map(async (branch) => {
-            const [classTypes, users, assignments] = await Promise.all([
+            const [classTypes, users, assignments, studios] = await Promise.all([
               master.listClassTypes({ branchId: branch.id }),
               identity.listUsers({ branchId: branch.id }),
               identity.listAssignments({ branchId: branch.id }),
+              master.listBranchStudios({ id: branch.id }),
             ]);
-            return { branch, classTypes, users, assignments };
+            return { branch, classTypes, users, assignments, studios };
           }),
         ),
       ]),
@@ -132,6 +167,25 @@ export const browserClassSlotClient: ClassSlotClient = {
       nextCursor: slots.page.nextCursor,
       classTypes: classTypeOptions,
       instructors: [...new Map(instructorOptions.map((item) => [item.id, item])).values()],
+      studios: branchWorkspaces.flatMap(({ branch, studios }) =>
+        studios.items
+          .filter((studio) => studio.active)
+          .map((studio) => ({
+            id: studio.id,
+            branchId: branch.id,
+            code: studio.code,
+            name: studio.name,
+            rooms: (studio.rooms ?? [])
+              .filter((room) => room.active)
+              .map(({ id, studioId, code, name, capacity }) => ({
+                id,
+                studioId,
+                code,
+                name,
+                capacity,
+              })),
+          })),
+      ),
     };
   },
   create(input) {
@@ -178,6 +232,21 @@ export const browserClassSlotClient: ClassSlotClient = {
         classSlotCancellationCommand: { reasonCode, expectedVersion },
       }),
       { label: 'Membatalkan kelas…' },
+    );
+  },
+  async completionControl(id) {
+    return appLoading.track(attendance.getClassCompletionControl({ id }), {
+      label: 'Memverifikasi roster kelas…',
+    });
+  },
+  complete(id, expectedVersion, controlHash, reason) {
+    return appLoading.track(
+      attendance.completeClassSlot({
+        id,
+        idempotencyKey: key(),
+        completeClassCommand: { expectedVersion, controlHash, reason },
+      }),
+      { label: 'Menyelesaikan kelas…' },
     );
   },
 };

@@ -10,12 +10,18 @@ class _$CursorPageMeta extends CursorPageMeta {
   @override
   final String? nextCursor;
   @override
+  final String? previousCursor;
+  @override
   final bool hasMore;
 
   factory _$CursorPageMeta([void Function(CursorPageMetaBuilder)? updates]) =>
       (CursorPageMetaBuilder()..update(updates))._build();
 
-  _$CursorPageMeta._({this.nextCursor, required this.hasMore}) : super._();
+  _$CursorPageMeta._({
+    this.nextCursor,
+    this.previousCursor,
+    required this.hasMore,
+  }) : super._();
   @override
   CursorPageMeta rebuild(void Function(CursorPageMetaBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -28,6 +34,7 @@ class _$CursorPageMeta extends CursorPageMeta {
     if (identical(other, this)) return true;
     return other is CursorPageMeta &&
         nextCursor == other.nextCursor &&
+        previousCursor == other.previousCursor &&
         hasMore == other.hasMore;
   }
 
@@ -35,6 +42,7 @@ class _$CursorPageMeta extends CursorPageMeta {
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, nextCursor.hashCode);
+    _$hash = $jc(_$hash, previousCursor.hashCode);
     _$hash = $jc(_$hash, hasMore.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -44,6 +52,7 @@ class _$CursorPageMeta extends CursorPageMeta {
   String toString() {
     return (newBuiltValueToStringHelper(r'CursorPageMeta')
           ..add('nextCursor', nextCursor)
+          ..add('previousCursor', previousCursor)
           ..add('hasMore', hasMore))
         .toString();
   }
@@ -57,6 +66,11 @@ class CursorPageMetaBuilder
   String? get nextCursor => _$this._nextCursor;
   set nextCursor(String? nextCursor) => _$this._nextCursor = nextCursor;
 
+  String? _previousCursor;
+  String? get previousCursor => _$this._previousCursor;
+  set previousCursor(String? previousCursor) =>
+      _$this._previousCursor = previousCursor;
+
   bool? _hasMore;
   bool? get hasMore => _$this._hasMore;
   set hasMore(bool? hasMore) => _$this._hasMore = hasMore;
@@ -69,6 +83,7 @@ class CursorPageMetaBuilder
     final $v = _$v;
     if ($v != null) {
       _nextCursor = $v.nextCursor;
+      _previousCursor = $v.previousCursor;
       _hasMore = $v.hasMore;
       _$v = null;
     }
@@ -93,6 +108,7 @@ class CursorPageMetaBuilder
         _$v ??
         _$CursorPageMeta._(
           nextCursor: nextCursor,
+          previousCursor: previousCursor,
           hasMore: BuiltValueNullFieldError.checkNotNull(
             hasMore,
             r'CursorPageMeta',

@@ -21,6 +21,13 @@ void main() {
       // TODO
     });
 
+    // Capability and branch-scoped authoritative adjustment detail with safe customer, package, balance, eligibility, and actor projections.
+    //
+    //Future<SessionAdjustment> getSessionAdjustment(String id) async
+    test('test getSessionAdjustment', () async {
+      // TODO
+    });
+
     // Customer-own or branch-scoped balances from an authoritative ledger/reservation snapshot. Internal callers may search active customer packages without entering technical IDs.
     //
     //Future<CustomerPackageBalancePage> listCustomerPackages({ String branchId, String cursor, String search, String status, String customerUserId }) async
@@ -28,9 +35,9 @@ void main() {
       // TODO
     });
 
-    // Branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
+    // Capability and branch-scoped adjustment queue ordered by createdAt and id descending. HISTORY combines POSTED and REJECTED decisions.
     //
-    //Future<SessionAdjustmentPage> listSessionAdjustments({ String branchId, String status, String cursor }) async
+    //Future<SessionAdjustmentPage> listSessionAdjustments({ String branchId, String status, String cursor, String q, String customerUserId, DateTime from, DateTime until, int limit }) async
     test('test listSessionAdjustments', () async {
       // TODO
     });

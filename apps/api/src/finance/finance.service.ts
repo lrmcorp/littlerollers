@@ -23,14 +23,21 @@ export class FinanceService {
   private scope(principal: SessionPrincipal, branchId?: string) {
     if (!principal.capabilities.includes('finance:reconcile'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    const globalFinanceRole = principal.roles.some(
+      ({ role, branchId: roleBranchId }) =>
+        (role === 'FINANCE' || role === 'SUPER_OWNER') && roleBranchId === null,
+    );
     if (
       branchId &&
       !principal.capabilities.includes('branch:all') &&
-      !principal.capabilities.includes('finance:reconcile') &&
+      !globalFinanceRole &&
       !principal.branchIds.includes(branchId)
     )
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    return branchId ? { branchId } : {};
+    if (branchId) return { branchId };
+    return globalFinanceRole || principal.capabilities.includes('branch:all')
+      ? {}
+      : { branchId: { in: principal.branchIds } };
   }
 
   private async records(
@@ -46,7 +53,7 @@ export class FinanceService {
         paymentProof: { select: { uploadStatus: true, scanStatus: true } },
         customerPackage: { select: { id: true, salePriceRp: true } },
       },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
     });
     return { range, purchases };
   }
@@ -182,7 +189,7 @@ export class FinanceService {
 
   async anomalies(
     principal: SessionPrincipal,
-    query: { branchId?: string; from?: string; until?: string },
+    query: { branchId?: string; from?: string; until?: string; cursor?: string; limit?: string },
   ) {
     const { purchases } = await this.records(principal, query);
     const staleBefore = Date.now() - 24 * 60 * 60 * 1000;
@@ -206,6 +213,86 @@ export class FinanceService {
         return [{ ...base, code: 'PROOF_NOT_READY', severity: 'WARNING' }];
       return [];
     });
-    return { generatedAt: new Date(), items, total: items.length };
+    const limit = query.limit === undefined ? 20 : Number(query.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const start = query.cursor
+      ? items.findIndex((item) => item.purchaseId === query.cursor) + 1
+      : 0;
+    if (query.cursor && start === 0)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const pageItems = items.slice(start, start + limit);
+    const hasMore = start + pageItems.length < items.length;
+    return {
+      generatedAt: new Date(),
+      items: pageItems,
+      total: items.length,
+      page: {
+        hasMore,
+        nextCursor: hasMore ? (pageItems.at(-1)?.purchaseId ?? null) : null,
+      },
+    };
+  }
+
+  async legacyCashflow(
+    principal: SessionPrincipal,
+    query: { branchId?: string; from?: string; until?: string; cursor?: string; limit?: string },
+  ) {
+    const range = boundaries(query);
+    const scope = this.scope(principal, query.branchId);
+    const limit = query.limit === undefined ? 20 : Number(query.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const baseWhere = {
+      ...scope,
+      occurredAt: { gte: range.from, lte: range.until },
+      historical: false,
+    };
+    let cursorWhere = {};
+    if (query.cursor) {
+      const cursor = await this.db.legacyFinancialEntry.findFirst({
+        where: { id: query.cursor, ...baseWhere },
+        select: { id: true, occurredAt: true },
+      });
+      if (!cursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+      cursorWhere = {
+        OR: [
+          { occurredAt: { lt: cursor.occurredAt } },
+          { occurredAt: cursor.occurredAt, id: { lt: cursor.id } },
+        ],
+      };
+    }
+    const [rows, totals, total] = await Promise.all([
+      this.db.legacyFinancialEntry.findMany({
+        where: { AND: [baseWhere, cursorWhere] },
+        include: {
+          branch: { select: { id: true, code: true, name: true } },
+          purchase: { select: { id: true } },
+          actor: { select: { id: true, displayName: true } },
+        },
+        orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+      }),
+      this.db.legacyFinancialEntry.groupBy({
+        by: ['type'],
+        where: baseWhere,
+        _sum: { amountRp: true },
+        _count: { _all: true },
+      }),
+      this.db.legacyFinancialEntry.count({ where: baseWhere }),
+    ]);
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+    return {
+      items,
+      total,
+      summary: Object.fromEntries(
+        totals.map((item) => [
+          item.type,
+          { amountRp: item._sum.amountRp ?? 0, count: item._count._all },
+        ]),
+      ),
+      page: { hasMore, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
+    };
   }
 }

@@ -1,12 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
+import { verificationClient } from '../identity-verification-client';
 import { RegisterView } from './register-view';
 
 describe('customer self-registration', () => {
-  it('requires identity fields, private image evidence and explicit consent', () => {
-    render(<RegisterView />);
+  it('requires identity fields, uses a safe POST fallback and has no axe violations', async () => {
+    const view = render(<RegisterView />);
     expect(screen.getByRole('heading', { name: 'Buat akun Daily Dose' })).toBeVisible();
+    expect(screen.getByRole('form', { name: 'Registrasi customer' })).toHaveAttribute(
+      'method',
+      'post',
+    );
     expect(screen.getByLabelText('Nama lengkap')).toBeRequired();
     expect(screen.getByLabelText('Nama lengkap')).toHaveAttribute(
       'placeholder',
@@ -27,6 +33,16 @@ describe('customer self-registration', () => {
         'Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.',
       ),
     ).toBeRequired();
+    expect(
+      screen.getByText(/Selfie dan foto KTP hanya digunakan untuk verifikasi identitas/),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Daftar dan masuk' })).toHaveClass(
+      'min-h-12',
+      'w-full',
+      'bg-dd-forest',
+      'text-white',
+    );
+    expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
   it('allows both password fields to be revealed independently', async () => {
@@ -69,5 +85,103 @@ describe('customer self-registration', () => {
       'blob:https://daily-dose.test/selfie',
     );
     expect(screen.getByText('selfie.webp')).toBeVisible();
+    expect(screen.getByText('Ganti foto')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Hapus' }));
+    expect(screen.queryByAltText('Pratinjau foto selfie')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Pilih foto')).toHaveLength(2);
+  });
+
+  it('shows Indonesian inline errors, focuses the first invalid field and clears corrected input', async () => {
+    const user = userEvent.setup();
+    render(<RegisterView />);
+
+    await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
+    const displayName = screen.getByLabelText('Nama lengkap');
+    expect(displayName).toHaveFocus();
+    expect(displayName).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('Nama lengkap wajib diisi.')).toHaveAttribute(
+      'id',
+      'register-displayName-error',
+    );
+
+    await user.type(displayName, 'Nadia Putri');
+    expect(screen.queryByText('Nama lengkap wajib diisi.')).not.toBeInTheDocument();
+
+    const phone = screen.getByLabelText('Nomor WhatsApp');
+    await user.type(phone, 'bukan-nomor');
+    await user.tab();
+    expect(
+      screen.getByText('Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.'),
+    ).toBeVisible();
+  });
+
+  it('validates password confirmation inline', async () => {
+    const user = userEvent.setup();
+    render(<RegisterView />);
+
+    await user.type(screen.getByLabelText('Password'), 'password-aman');
+    await user.type(screen.getByLabelText('Ulangi password'), 'password-lain');
+    await user.tab();
+    expect(screen.getByText('Konfirmasi password tidak sama.')).toBeVisible();
+    expect(screen.getByLabelText('Ulangi password')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('rejects an oversized upload before sending a request', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:https://daily-dose.test/large');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const register = vi.spyOn(verificationClient, 'register');
+    render(<RegisterView />);
+
+    const oversized = new File([new Uint8Array(8_000_001)], 'selfie.png', {
+      type: 'image/png',
+    });
+    await user.upload(screen.getByLabelText('Foto selfie'), oversized);
+
+    expect(screen.getByText('Foto selfie maksimal berukuran 8 MB.')).toBeVisible();
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('sends one valid multipart registration and locks the form while loading', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:https://daily-dose.test/valid');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const register = vi
+      .spyOn(verificationClient, 'register')
+      .mockImplementation(() => new Promise(() => undefined));
+    render(<RegisterView />);
+
+    await user.type(screen.getByLabelText('Nama lengkap'), ' Nadia Putri ');
+    await user.type(screen.getByLabelText('Nomor WhatsApp'), '0812 3456 7890');
+    await user.type(screen.getByLabelText('Email'), 'nadia@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password-aman');
+    await user.type(screen.getByLabelText('Ulangi password'), 'password-aman');
+    await user.upload(
+      screen.getByLabelText('Foto selfie'),
+      new File(['selfie'], 'selfie.webp', { type: 'image/webp' }),
+    );
+    await user.upload(
+      screen.getByLabelText('Foto KTP bagian depan'),
+      new File(['ktp'], 'ktp.png', { type: 'image/png' }),
+    );
+    await user.click(
+      screen.getByLabelText(
+        'Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.',
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
+
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        displayName: 'Nadia Putri',
+        phone: '0812 3456 7890',
+        email: 'nadia@example.com',
+        consent: true,
+      }),
+    );
+    expect(screen.getByRole('button', { name: 'Membuat akun…' })).toBeDisabled();
+    expect(screen.getByLabelText('Nama lengkap')).toBeDisabled();
   });
 });

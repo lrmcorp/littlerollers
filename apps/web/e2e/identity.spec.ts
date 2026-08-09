@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { hideNextDevelopmentAffordances } from './e2e-visual-helpers';
+import { hideNextDevelopmentAffordances, selectSearchOption } from './e2e-visual-helpers';
 
 const webCapabilities = [
   'user:read',
@@ -240,7 +240,7 @@ test('assignment create and end use one branch and expected version', async ({ p
     });
   });
   await page.goto('/assignments');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await page.getByRole('button', { name: 'Buat assignment' }).click();
   const assignmentDrawer = page.getByRole('dialog', { name: 'Buat assignment' });
   await assignmentDrawer.getByLabel('Pengguna').fill('Synthetic');
@@ -312,6 +312,7 @@ test('master creates quota without a production default and exposes overlap safe
             name: 'Reformer',
             active: true,
             version: 0,
+            branchScopes: [{ branchId: 'branch-1', active: true }],
           },
         ],
         page: { nextCursor: null, hasMore: false },
@@ -338,13 +339,17 @@ test('master creates quota without a production default and exposes overlap safe
     });
   });
   await page.goto('/master');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await expect(page.getByRole('region', { name: 'Data Master' }).getByRole('status')).toContainText(
+    'Master data berhasil dimuat.',
+  );
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
+  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
   await page.getByRole('tab', { name: 'Kuota/Kapasitas' }).click();
   await expect(page.getByLabel('Minimum peserta')).toHaveValue('');
-  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('branch-1');
+  await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
   await expect(
     page.getByRole('form', { name: 'Buat effective setting' }).getByRole('combobox').nth(1),
-  ).toHaveValue('class-1');
+  ).toHaveValue('Reformer');
   await page.getByLabel('Minimum peserta').fill('4');
   await page.getByLabel('Kapasitas maksimum').fill('8');
   await page.getByLabel('Efektif mulai').fill('2026-08-01');
@@ -543,7 +548,7 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
       contentType: 'application/json',
       body: JSON.stringify({
         balance,
-        reservations: { activeQuantity: 2 },
+        reservations: { activeQuantity: 2, items: [] },
         entries: [
           {
             id: 'entry-1',
@@ -552,6 +557,8 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
             quantity: 10,
             referenceType: 'PURCHASE',
             referenceId: 'purchase-1',
+            referenceLabel: 'Aktivasi paket',
+            balanceAfter: 10,
             occurredAt: '2026-01-01T00:00:00Z',
           },
         ],
@@ -567,15 +574,13 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
     }),
   );
   await page.goto('/ledger');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
-  await page.getByRole('button', { name: 'Lihat histori' }).press('Enter');
-  await expect(page.getByText('Aktivasi paket')).toBeVisible();
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
+  await page.getByRole('link', { name: 'Lihat detail sesi' }).press('Enter');
+  await expect(page.getByText('Aktivasi paket', { exact: true })).toBeVisible();
   await expect(page.getByText('+10')).toBeVisible();
 });
 
-test('session adjustment request and permission review use controlled codes with keyboard flow', async ({
-  page,
-}) => {
+test('session adjustment review uses an explicit reason and optional note', async ({ page }) => {
   const adjustablePackage = {
     id: 'cp-1',
     branchId: 'branch-1',
@@ -661,20 +666,10 @@ test('session adjustment request and permission review use controlled codes with
       body: JSON.stringify({ ...pending, idempotentReplay: false }),
     });
   });
-  await page.goto('/ledger?tab=adjustments');
-  await page.getByLabel('Cari customer atau paket aktif').fill('Customer');
-  await page.getByRole('button', { name: /Customer Synthetic · Ten Sessions/ }).click();
-  await page.getByLabel('Perubahan sesi').fill('-2');
-  await page.getByLabel('Alasan').selectOption('ATTENDANCE_CORRECTION');
-  await page.getByRole('button', { name: 'Tinjau dan buat permintaan' }).press('Enter');
-  await page
-    .getByRole('dialog', { name: 'Konfirmasi permintaan penyesuaian' })
-    .getByRole('button', {
-      name: 'Buat permintaan',
-    })
-    .click();
-  await expect(page.getByText(/menunggu keputusan tanpa mengubah saldo/)).toBeVisible();
+  await page.goto('/ledger/adjustments');
   await page.getByRole('button', { name: 'Setujui' }).press('Enter');
+  await page.getByLabel('Alasan keputusan').selectOption('CORRECTION_VERIFIED');
+  await page.getByLabel('Catatan keputusan (opsional)').fill('Saldo dan bukti telah diperiksa.');
   await page.getByRole('button', { name: 'Konfirmasi keputusan' }).click();
   await page
     .getByRole('dialog', { name: 'Setujui penyesuaian sesi' })
@@ -691,10 +686,12 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
   let slot = {
     id: 'slot-1',
     branchId: 'branch-1',
+    studioId: 'studio-branch-1',
+    roomId: null as string | null,
     classTypeId: 'type-1',
     instructorUserId: null as string | null,
-    startAt: '2026-07-29T02:00:00Z',
-    endAt: '2026-07-29T03:00:00Z',
+    startAt: '2026-08-05T02:00:00Z',
+    endAt: '2026-08-05T03:00:00Z',
     timezone: 'Asia/Jakarta',
     status: 'DRAFT' as string,
     minimumQuota: 2,
@@ -717,6 +714,7 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
             name: 'Reformer',
             active: true,
             version: 0,
+            branchScopes: [{ branchId: 'branch-1', active: true }],
           },
         ],
         page: { hasMore: false, nextCursor: null },
@@ -767,9 +765,38 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
       }),
     }),
   );
+  await page.route('**/api/v1/branches/*/studios', (route) => {
+    const branchId = new URL(route.request().url()).pathname.split('/')[4];
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: `studio-${branchId}`,
+            branchId,
+            code: 'MAIN',
+            name: 'Area Studio Utama',
+            active: true,
+            rooms: [],
+          },
+        ],
+      }),
+    });
+  });
   await page.route('**/api/v1/class-slots**', async (route) => {
     const request = route.request();
     const url = request.url();
+    if (request.method() === 'GET' && /\/class-slots\/[^/]+\/bookings(?:\?|$)/.test(url))
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [],
+          summary: { total: 0, booked: 0, reschedulePending: 0, attended: 0, cancelled: 0 },
+          page: { hasMore: false, nextCursor: null },
+        }),
+      });
     if (request.method() === 'GET')
       return route.fulfill({
         status: 200,
@@ -798,7 +825,7 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
       .getByRole('region', { name: 'Kalender kelas tujuh hari' })
       .getByRole('button', { name: /Reformer/ }),
   ).toBeVisible();
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await expect(
     page
       .getByRole('region', { name: 'Kalender kelas tujuh hari' })
@@ -821,15 +848,34 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     .getByRole('region', { name: 'Kalender kelas tujuh hari' })
     .getByRole('button', { name: /Reformer/ })
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Detail kelas' });
-  await dialog.getByLabel('Instructor', { exact: true }).selectOption('instructor-1');
-  await dialog.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Reformer' });
+  const instructorSection = dialog
+    .getByRole('heading', { name: 'Tetapkan instructor' })
+    .locator('..');
+  const instructorInput = instructorSection.getByRole('combobox', { name: 'Instruktur' });
+  await instructorInput.fill('Ayu Instructor');
+  await instructorSection.getByRole('option', { name: 'Ayu Instructor' }).click();
+  await instructorSection.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  await page
+    .getByRole('dialog', { name: 'Tetapkan instruktur?' })
+    .getByRole('button', { name: 'Tetapkan', exact: true })
+    .press('Enter');
   await expect(page.getByText('Instructor berhasil ditetapkan.', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Publish kelas' }).press('Enter');
+  await page
+    .getByRole('dialog', { name: 'Publikasikan kelas?' })
+    .getByRole('button', { name: 'Publikasikan', exact: true })
+    .press('Enter');
   await expect(dialog.getByText('Dipublikasikan', { exact: true })).toBeVisible();
   await dialog.getByLabel('Alasan pembatalan').selectOption('OTHER_REVIEW_REQUIRED');
   await dialog.getByRole('button', { name: 'Konfirmasi pembatalan' }).press('Enter');
-  await expect(dialog.getByText('Dibatalkan', { exact: true })).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Batalkan kelas?' })
+    .getByRole('button', { name: 'Batalkan kelas', exact: true })
+    .press('Enter');
+  await expect(
+    dialog.locator('span.bg-dd-danger-soft').filter({ hasText: /^Dibatalkan$/ }),
+  ).toBeVisible();
 });
 
 test('class-slot configuration and hidden failures never show optimistic success', async ({
@@ -852,7 +898,7 @@ test('class-slot configuration and hidden failures never show optimistic success
     route.fulfill({ status: 200, body: JSON.stringify({ items: [], page: { hasMore: false } }) }),
   );
   await page.goto('/workspace/classes');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption('branch-1');
+  await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await expect(page.getByText(/Konfigurasi quota atau capacity/)).toBeVisible();
   await expect(page.getByText('Draft kelas berhasil dibuat.')).toHaveCount(0);
 });
@@ -955,13 +1001,17 @@ test('assisted booking reserves one session with keyboard confirmation', async (
     });
   });
   await page.goto('/workspace/bookings');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
+  await selectSearchOption(page, 'Cabang aktif', 'Bandung');
   await page.getByRole('button', { name: 'Buat booking manual' }).click();
-  await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
-  await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
-  await page.getByLabel('Kelas').selectOption(classSlotId);
+  await selectSearchOption(page, 'Pelanggan', 'Customer Synthetic');
+  await selectSearchOption(page, 'Paket pelanggan', /Paket aktif · 8 sesi tersedia/);
+  await selectSearchOption(page, 'Kelas', /2 Jan 2027/);
   await expect(page.getByText(/Saldo tersedia berubah dari 8 menjadi 7/)).toBeVisible();
   await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).press('Enter');
+  await page
+    .getByRole('dialog', { name: 'Buat booking manual?' })
+    .getByRole('button', { name: 'Buat booking' })
+    .click();
   await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toBeVisible();
 });
 
@@ -985,12 +1035,16 @@ test('booking conflict never renders optimistic success', async ({ page }) => {
         }),
   );
   await page.goto('/workspace/bookings');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
+  await selectSearchOption(page, 'Cabang aktif', 'Bandung');
   await page.getByRole('button', { name: 'Buat booking manual' }).click();
-  await page.getByLabel('Pelanggan', { exact: true }).selectOption(customerUserId);
-  await page.getByLabel('Paket pelanggan').selectOption(customerPackageId);
-  await page.getByLabel('Kelas').selectOption(classSlotId);
+  await selectSearchOption(page, 'Pelanggan', 'Customer Synthetic');
+  await selectSearchOption(page, 'Paket pelanggan', /Paket aktif · 8 sesi tersedia/);
+  await selectSearchOption(page, 'Kelas', /2 Jan 2027/);
   await page.getByRole('button', { name: 'Konfirmasi booking satu sesi' }).click();
+  await page
+    .getByRole('dialog', { name: 'Buat booking manual?' })
+    .getByRole('button', { name: 'Buat booking' })
+    .click();
   await expect(page.getByText('Kapasitas kelas sudah penuh.', { exact: true })).toBeVisible();
   await expect(page.getByText('Booking dibuat; satu sesi telah direservasi.')).toHaveCount(0);
 });
@@ -1078,7 +1132,7 @@ test('permission-gated reschedule review moves one reservation with controlled d
     });
   });
   await page.goto('/workspace/bookings?tab=reschedules');
-  await page.getByLabel('Cabang aktif', { exact: true }).selectOption(branchId);
+  await selectSearchOption(page, 'Cabang aktif', 'Bandung');
   await page.getByRole('button', { name: /Tinjau reschedule/ }).press('Enter');
   await page.getByRole('button', { name: 'Setujui reschedule' }).press('Enter');
   await expect(

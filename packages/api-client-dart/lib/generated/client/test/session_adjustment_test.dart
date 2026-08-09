@@ -52,6 +52,11 @@ void main() {
       // TODO
     });
 
+    // String decisionNote
+    test('to test the property `decisionNote`', () async {
+      // TODO
+    });
+
     // String status
     test('to test the property `status`', () async {
       // TODO
@@ -124,6 +129,11 @@ void main() {
 
     // String ledgerEntryId
     test('to test the property `ledgerEntryId`', () async {
+      // TODO
+    });
+
+    // String auditReference
+    test('to test the property `auditReference`', () async {
       // TODO
     });
 

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type CustomerPackage, type LedgerEntry } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
@@ -7,13 +7,16 @@ import { ApiProblem } from '../identity/security';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
-type Cursor = { at: string; id: string };
+type Cursor = { at: string; id: string; previousCursor?: string };
 const PAGE_SIZE = 20;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function encodeCursor(at: Date, id: string): string {
-  return Buffer.from(JSON.stringify({ at: at.toISOString(), id })).toString('base64url');
+function encodeCursor(at: Date, id: string, previousCursor = ''): string {
+  return Buffer.from(JSON.stringify({ at: at.toISOString(), id, previousCursor })).toString(
+    'base64url',
+  );
 }
 
 function decodeCursor(value?: string): Cursor | null {
@@ -23,6 +26,7 @@ function decodeCursor(value?: string): Cursor | null {
     if (
       typeof parsed.at !== 'string' ||
       Number.isNaN(Date.parse(parsed.at)) ||
+      (parsed.previousCursor !== undefined && typeof parsed.previousCursor !== 'string') ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.id)
     )
       throw new Error('invalid');
@@ -39,6 +43,7 @@ export class LedgerService {
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
     private readonly config?: RuntimeConfigService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private requireAdjustmentEnabled() {
@@ -106,6 +111,7 @@ export class LedgerService {
       }),
     ]);
     const ledgerBalance = ledger.reduce((sum, row) => sum + (row._sum.quantity ?? 0), 0);
+    const quantity = (type: string) => ledger.find((row) => row.type === type)?._sum.quantity ?? 0;
     const reserved = activeReservation._sum.quantity ?? 0;
     const openings = ledger.find(({ type }) => type === 'MIGRATION_OPENING')?._count._all ?? 0;
     const purchases = ledger.find(({ type }) => type === 'PURCHASE')?._count._all ?? 0;
@@ -131,6 +137,12 @@ export class LedgerService {
       ledgerBalance,
       reserved,
       available: status === 'ACTIVE' ? ledgerBalance - reserved : 0,
+      usage: {
+        initialSessions: quantity('PURCHASE') + quantity('MIGRATION_OPENING'),
+        usedSessions: Math.abs(Math.min(0, quantity('ATTEND'))),
+        reversedSessions: Math.max(0, quantity('REVERSAL')),
+        adjustmentDelta: quantity('ADJUST_MANUAL'),
+      },
       salePriceRp: customerPackage.salePriceRp,
       sessionCountSnapshot: customerPackage.sessionCountSnapshot,
       durationDaysSnapshot: customerPackage.durationDaysSnapshot,
@@ -152,31 +164,77 @@ export class LedgerService {
     branchId?: string,
     status?: 'PENDING' | 'POSTED' | 'REJECTED' | 'HISTORY',
     cursorValue?: string,
+    q?: string,
+    customerUserId?: string,
+    from?: string,
+    until?: string,
+    limitValue?: string,
+    adjustmentId?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:read');
     if (status && !['PENDING', 'POSTED', 'REJECTED', 'HISTORY'].includes(status))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (branchId) this.adjustmentScope(principal, branchId, 'ledger:adjust:read');
+    if (customerUserId && !UUID.test(customerUserId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (adjustmentId && !UUID.test(adjustmentId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (q && q.trim().length > 120)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const fromDate = from ? new Date(from) : null;
+    const untilDate = until ? new Date(until) : null;
+    if (
+      (fromDate && Number.isNaN(fromDate.getTime())) ||
+      (untilDate && Number.isNaN(untilDate.getTime())) ||
+      (fromDate && untilDate && fromDate >= untilDate)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const limit = limitValue ? Number(limitValue) : PAGE_SIZE;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const cursor = decodeCursor(cursorValue);
     const branchScope = this.policy.capabilityBranchScope(principal, 'ledger:adjust:read');
     return this.db.$transaction(
       async (tx) => {
+        const normalizedSearch = q?.trim();
+        const baseWhere: Prisma.SessionAdjustmentWhereInput = {
+          ...(adjustmentId ? { id: adjustmentId } : {}),
+          ...(fromDate || untilDate
+            ? {
+                createdAt: {
+                  ...(fromDate ? { gte: fromDate } : {}),
+                  ...(untilDate ? { lt: untilDate } : {}),
+                },
+              }
+            : {}),
+          customerPackage: {
+            ...(customerUserId ? { customerUserId } : {}),
+            ...(branchId
+              ? { branchId }
+              : branchScope.all
+                ? branchScope.excluded.length
+                  ? { branchId: { notIn: branchScope.excluded } }
+                  : {}
+                : { branchId: { in: branchScope.included } }),
+            ...(normalizedSearch
+              ? {
+                  OR: [
+                    { customer: { displayName: { contains: normalizedSearch } } },
+                    { package: { name: { contains: normalizedSearch } } },
+                    { branch: { name: { contains: normalizedSearch } } },
+                  ],
+                }
+              : {}),
+          },
+        };
         const items = await tx.sessionAdjustment.findMany({
           where: {
+            ...baseWhere,
             ...(status === 'HISTORY'
               ? { status: { in: ['POSTED', 'REJECTED'] } }
               : status
                 ? { status }
                 : {}),
-            customerPackage: {
-              ...(branchId
-                ? { branchId }
-                : branchScope.all
-                  ? branchScope.excluded.length
-                    ? { branchId: { notIn: branchScope.excluded } }
-                    : {}
-                  : { branchId: { in: branchScope.included } }),
-            },
             ...(cursor
               ? {
                   OR: [
@@ -195,10 +253,24 @@ export class LedgerService {
             ledgerEntry: { select: { id: true } },
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-          take: PAGE_SIZE + 1,
+          take: limit + 1,
         });
-        const hasMore = items.length > PAGE_SIZE;
-        const pageItems = items.slice(0, PAGE_SIZE);
+        const hasMore = items.length > limit;
+        const pageItems = items.slice(0, limit);
+        const auditRows = pageItems.length
+          ? await tx.auditLog.findMany({
+              where: {
+                objectType: 'SessionAdjustment',
+                objectId: { in: pageItems.map((item) => item.id) },
+              },
+              orderBy: { occurredAt: 'desc' },
+              select: { objectId: true, correlationId: true },
+            })
+          : [];
+        const auditByAdjustment = new Map<string, string>();
+        for (const audit of auditRows)
+          if (!auditByAdjustment.has(audit.objectId))
+            auditByAdjustment.set(audit.objectId, audit.correlationId);
         const views = await Promise.all(
           pageItems.map(async (item) => {
             const current = await this.balance(tx, item.customerPackage);
@@ -245,21 +317,48 @@ export class LedgerService {
               eligibleForApproval: item.status === 'PENDING' && packageEligible && balanceEligible,
               eligibilityReason,
               ledgerEntryId: item.ledgerEntry?.id ?? null,
+              auditReference: auditByAdjustment.get(item.id) ?? null,
               customerPackage: undefined,
             };
           }),
         );
         const last = pageItems.at(-1);
+        const [pending, posted, rejected] = await Promise.all([
+          tx.sessionAdjustment.count({ where: { ...baseWhere, status: 'PENDING' } }),
+          tx.sessionAdjustment.count({ where: { ...baseWhere, status: 'POSTED' } }),
+          tx.sessionAdjustment.count({ where: { ...baseWhere, status: 'REJECTED' } }),
+        ]);
         return {
           items: views,
+          summary: { total: pending + posted + rejected, pending, posted, rejected },
           page: {
             hasMore,
-            nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null,
+            nextCursor:
+              hasMore && last ? encodeCursor(last.createdAt, last.id, cursorValue ?? '') : null,
+            previousCursor: cursor ? (cursor.previousCursor ?? '') : null,
           },
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
+  }
+
+  async adjustmentDetail(principal: SessionPrincipal, id: string) {
+    const page = await this.listAdjustments(
+      principal,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '1',
+      id,
+    );
+    const item = page.items[0];
+    if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    return item;
   }
 
   async requestAdjustment(
@@ -351,6 +450,19 @@ export class LedgerService {
               },
             }),
           ]);
+          await this.pilotOutbox?.record(tx, {
+            branchId: customerPackage.branchId,
+            aggregateType: 'SessionAdjustment',
+            aggregateId: adjustment.id,
+            operation: 'REQUEST',
+            correlationId,
+            payload: {
+              adjustmentId: adjustment.id,
+              customerPackageId: customerPackage.id,
+              quantity: adjustment.quantity,
+              reasonCode: adjustment.reasonCode,
+            },
+          });
           return {
             status: HttpStatus.CREATED,
             body: adjustment as unknown as Prisma.InputJsonValue,
@@ -370,7 +482,7 @@ export class LedgerService {
     principal: SessionPrincipal,
     id: string,
     decision: 'approve' | 'reject',
-    input: { reasonCode: string; expectedVersion: number },
+    input: { reasonCode: string; note?: string; expectedVersion: number },
     key: string,
     correlationId: string,
   ) {
@@ -383,6 +495,7 @@ export class LedgerService {
     if (
       !key ||
       !valid.includes(input.reasonCode) ||
+      (input.note !== undefined && input.note.trim().length > 500) ||
       !Number.isSafeInteger(input.expectedVersion) ||
       input.expectedVersion < 0
     )
@@ -465,6 +578,7 @@ export class LedgerService {
             data: {
               status,
               decisionCode: input.reasonCode as never,
+              decisionNote: input.note?.trim() || null,
               decidedById: principal.userId,
               decidedAt: new Date(),
               version: { increment: 1 },
@@ -486,7 +600,12 @@ export class LedgerService {
                 branchId: adjustment.customerPackage.branchId,
                 correlationId,
                 beforeMasked: { status: 'PENDING', version: adjustment.version },
-                afterMasked: { status, version: updated.version, decisionCode: input.reasonCode },
+                afterMasked: {
+                  status,
+                  version: updated.version,
+                  decisionCode: input.reasonCode,
+                  noteProvided: Boolean(input.note?.trim()),
+                },
               },
             }),
             ...events.map((eventType) =>
@@ -513,6 +632,20 @@ export class LedgerService {
               }),
             ),
           ]);
+          await this.pilotOutbox?.record(tx, {
+            branchId: adjustment.customerPackage.branchId,
+            aggregateType: 'SessionAdjustment',
+            aggregateId: adjustment.id,
+            operation: decision === 'approve' ? 'POST' : 'REJECT',
+            correlationId,
+            payload: {
+              adjustmentId: adjustment.id,
+              customerPackageId: adjustment.customerPackageId,
+              quantity: adjustment.quantity,
+              status,
+              reasonCode: input.reasonCode,
+            },
+          });
           return {
             status: HttpStatus.OK,
             body: {
@@ -521,6 +654,7 @@ export class LedgerService {
               resultingBalance: ledgerEntry
                 ? (await this.balance(tx, adjustment.customerPackage)).ledgerBalance
                 : null,
+              auditReference: correlationId,
             } as unknown as Prisma.InputJsonValue,
           };
         },
@@ -616,9 +750,76 @@ export class LedgerService {
         ]);
         const hasMore = items.length > PAGE_SIZE;
         const pageItems = items.slice(0, PAGE_SIZE);
-        const balances = await Promise.all(
-          pageItems.map(async (item) => ({
-            ...(await this.balance(tx, item)),
+        const ledgerByPackage = new Map<string, number>();
+        const initialByPackage = new Map<string, number>();
+        const usedByPackage = new Map<string, number>();
+        const reversedByPackage = new Map<string, number>();
+        const adjustmentByPackage = new Map<string, number>();
+        const openingCount = new Map<string, number>();
+        const purchaseCount = new Map<string, number>();
+        for (const group of ledgerGroups) {
+          ledgerByPackage.set(
+            group.customerPackageId,
+            (ledgerByPackage.get(group.customerPackageId) ?? 0) + (group._sum.quantity ?? 0),
+          );
+          if (group.type === 'MIGRATION_OPENING')
+            openingCount.set(group.customerPackageId, group._count._all);
+          if (group.type === 'PURCHASE')
+            purchaseCount.set(group.customerPackageId, group._count._all);
+          if (group.type === 'MIGRATION_OPENING' || group.type === 'PURCHASE')
+            initialByPackage.set(
+              group.customerPackageId,
+              (initialByPackage.get(group.customerPackageId) ?? 0) + (group._sum.quantity ?? 0),
+            );
+          if (group.type === 'ATTEND')
+            usedByPackage.set(
+              group.customerPackageId,
+              Math.abs(Math.min(0, group._sum.quantity ?? 0)),
+            );
+          if (group.type === 'REVERSAL')
+            reversedByPackage.set(group.customerPackageId, Math.max(0, group._sum.quantity ?? 0));
+          if (group.type === 'ADJUST_MANUAL')
+            adjustmentByPackage.set(group.customerPackageId, group._sum.quantity ?? 0);
+        }
+        const reservedByPackage = new Map(
+          reservationGroups.map((group) => [group.customerPackageId, group._sum.quantity ?? 0]),
+        );
+        const balances = pageItems.map((item) => {
+          const ledgerBalance = ledgerByPackage.get(item.id) ?? 0;
+          const reserved = reservedByPackage.get(item.id) ?? 0;
+          if (
+            ledgerBalance < 0 ||
+            reserved > ledgerBalance ||
+            (openingCount.get(item.id) ?? 0) > 1 ||
+            ((openingCount.get(item.id) ?? 0) > 0 && (purchaseCount.get(item.id) ?? 0) > 0)
+          )
+            throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
+          const expired = item.expiryAt.getTime() <= Date.now();
+          const effectiveStatus =
+            item.status === 'INACTIVE' ? 'INACTIVE' : expired ? 'EXPIRED' : 'ACTIVE';
+          return {
+            id: item.id,
+            branchId: item.branchId,
+            customerUserId: item.customerUserId,
+            packageId: item.packageId,
+            classTypeId: item.classTypeId,
+            status: effectiveStatus,
+            activationDate: item.activationDate.toISOString().slice(0, 10),
+            expiryAt: item.expiryAt,
+            ledgerBalance,
+            reserved,
+            available: effectiveStatus === 'ACTIVE' ? ledgerBalance - reserved : 0,
+            usage: {
+              initialSessions: initialByPackage.get(item.id) ?? 0,
+              usedSessions: usedByPackage.get(item.id) ?? 0,
+              reversedSessions: reversedByPackage.get(item.id) ?? 0,
+              adjustmentDelta: adjustmentByPackage.get(item.id) ?? 0,
+            },
+            salePriceRp: item.salePriceRp,
+            sessionCountSnapshot: item.sessionCountSnapshot,
+            durationDaysSnapshot: item.durationDaysSnapshot,
+            projectionRateRp: item.projectionRateRp,
+            version: item.version,
             packageName: item.package.name,
             branchName: item.branch.name,
             classTypeName: item.classType.name,
@@ -631,24 +832,8 @@ export class LedgerService {
                     phoneMasked: this.maskPhone(item.customer.phoneE164),
                   },
                 }),
-          })),
-        );
-        const ledgerByPackage = new Map<string, number>();
-        const openingCount = new Map<string, number>();
-        const purchaseCount = new Map<string, number>();
-        for (const group of ledgerGroups) {
-          ledgerByPackage.set(
-            group.customerPackageId,
-            (ledgerByPackage.get(group.customerPackageId) ?? 0) + (group._sum.quantity ?? 0),
-          );
-          if (group.type === 'MIGRATION_OPENING')
-            openingCount.set(group.customerPackageId, group._count._all);
-          if (group.type === 'PURCHASE')
-            purchaseCount.set(group.customerPackageId, group._count._all);
-        }
-        const reservedByPackage = new Map(
-          reservationGroups.map((group) => [group.customerPackageId, group._sum.quantity ?? 0]),
-        );
+          };
+        });
         const summary = summaryPackages.reduce(
           (total, item) => {
             const ledgerBalance = ledgerByPackage.get(item.id) ?? 0;
@@ -662,12 +847,28 @@ export class LedgerService {
               throw new ApiProblem('LEDGER_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
             const active = item.status === 'ACTIVE' && item.expiryAt.getTime() > Date.now();
             total.packageCount += 1;
+            if (active) total.activePackageCount += 1;
             total.ledgerBalance += ledgerBalance;
             total.reserved += reserved;
             total.available += active ? ledgerBalance - reserved : 0;
+            total.usedSessions += usedByPackage.get(item.id) ?? 0;
+            total.reversedSessions += reversedByPackage.get(item.id) ?? 0;
+            total.adjustmentDelta += adjustmentByPackage.get(item.id) ?? 0;
+            if (active && item.expiryAt.getTime() <= Date.now() + 30 * 24 * 60 * 60 * 1000)
+              total.expiringSoon += 1;
             return total;
           },
-          { packageCount: 0, ledgerBalance: 0, reserved: 0, available: 0 },
+          {
+            packageCount: 0,
+            activePackageCount: 0,
+            ledgerBalance: 0,
+            reserved: 0,
+            available: 0,
+            usedSessions: 0,
+            reversedSessions: 0,
+            adjustmentDelta: 0,
+            expiringSoon: 0,
+          },
         );
         const last = pageItems.at(-1);
         return {
@@ -675,7 +876,9 @@ export class LedgerService {
           summary,
           page: {
             hasMore,
-            nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null,
+            nextCursor:
+              hasMore && last ? encodeCursor(last.createdAt, last.id, cursorValue ?? '') : null,
+            previousCursor: cursor ? (cursor.previousCursor ?? '') : null,
           },
         };
       },
@@ -685,39 +888,103 @@ export class LedgerService {
 
   async detail(principal: SessionPrincipal, id: string, cursorValue?: string) {
     this.authorize(principal);
+    const customerCaller = this.isCustomer(principal);
     const cursor = decodeCursor(cursorValue);
     return this.db.$transaction(
       async (tx) => {
         const customerPackage = await tx.customerPackage.findFirst({
           where: { id, ...this.scopeWhere(principal) },
+          include: { branch: true, package: true, classType: true, customer: true },
         });
         if (!customerPackage) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        const entries = await tx.ledgerEntry.findMany({
-          where: {
-            customerPackageId: id,
-            ...(cursor
-              ? {
-                  OR: [
-                    { occurredAt: { lt: new Date(cursor.at) } },
-                    { occurredAt: new Date(cursor.at), id: { lt: cursor.id } },
-                  ],
-                }
-              : {}),
-          },
-          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
-          take: PAGE_SIZE + 1,
-        });
+        const [entries, allEntries, reservations] = await Promise.all([
+          tx.ledgerEntry.findMany({
+            where: {
+              customerPackageId: id,
+              ...(cursor
+                ? {
+                    OR: [
+                      { occurredAt: { lt: new Date(cursor.at) } },
+                      { occurredAt: new Date(cursor.at), id: { lt: cursor.id } },
+                    ],
+                  }
+                : {}),
+            },
+            orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+            take: PAGE_SIZE + 1,
+          }),
+          tx.ledgerEntry.findMany({
+            where: { customerPackageId: id },
+            orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+            select: { id: true, quantity: true },
+          }),
+          tx.sessionReservation.findMany({
+            where: { customerPackageId: id, status: 'ACTIVE' },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            include: {
+              classSlot: { include: { classType: true, branch: true } },
+              booking: { select: { id: true, status: true } },
+            },
+          }),
+        ]);
         const hasMore = entries.length > PAGE_SIZE;
         const pageEntries = entries.slice(0, PAGE_SIZE);
         const last = pageEntries.at(-1);
-        const balance = await this.balance(tx, customerPackage);
+        let runningBalance = 0;
+        const balanceAfter = new Map<string, number>();
+        for (const entry of allEntries) {
+          runningBalance += entry.quantity;
+          balanceAfter.set(entry.id, runningBalance);
+        }
+        const rawBalance = await this.balance(tx, customerPackage);
+        const balance = {
+          ...rawBalance,
+          packageName: customerPackage.package.name,
+          branchName: customerPackage.branch.name,
+          classTypeName: customerPackage.classType.name,
+          ...(customerCaller
+            ? {}
+            : {
+                customer: {
+                  id: customerPackage.customer.id,
+                  displayName: customerPackage.customer.displayName,
+                  phoneMasked: this.maskPhone(customerPackage.customer.phoneE164),
+                },
+              }),
+        };
         return {
           balance,
-          reservations: { activeQuantity: balance.reserved },
-          entries: pageEntries.map((entry: LedgerEntry) => ({ ...entry })),
+          reservations: {
+            activeQuantity: balance.reserved,
+            items: reservations.map((reservation) => ({
+              id: reservation.id,
+              quantity: reservation.quantity,
+              createdAt: reservation.createdAt,
+              bookingId: reservation.booking?.id ?? null,
+              bookingStatus: reservation.booking?.status ?? null,
+              className: reservation.classSlot?.classType.name ?? null,
+              branchName: reservation.classSlot?.branch.name ?? null,
+              startsAt: reservation.classSlot?.startAt ?? null,
+            })),
+          },
+          entries: pageEntries.map((entry: LedgerEntry) => ({
+            ...entry,
+            balanceAfter: balanceAfter.get(entry.id) ?? null,
+            referenceLabel:
+              entry.type === 'PURCHASE' || entry.type === 'MIGRATION_OPENING'
+                ? 'Aktivasi paket'
+                : entry.type === 'ATTEND'
+                  ? 'Kehadiran kelas'
+                  : entry.type === 'REVERSAL'
+                    ? 'Pengembalian sesi'
+                    : 'Penyesuaian sesi',
+            bookingId: entry.referenceType === 'BOOKING' ? entry.referenceId : null,
+          })),
           page: {
             hasMore,
-            nextCursor: hasMore && last ? encodeCursor(last.occurredAt, last.id) : null,
+            nextCursor:
+              hasMore && last ? encodeCursor(last.occurredAt, last.id, cursorValue ?? '') : null,
+            previousCursor: cursor ? (cursor.previousCursor ?? '') : null,
           },
         };
       },

@@ -37,7 +37,6 @@ export class PackageReminderWorker {
   ) {}
 
   start() {
-    if (!this.config.encryptionKey) return;
     void this.tick();
     this.timer = setInterval(() => void this.tick(), this.intervalMs);
   }
@@ -66,42 +65,14 @@ export class PackageReminderWorker {
     now: Date;
   }) {
     const baseUrl = process.env.PUBLIC_WEB_BASE_URL?.trim();
-    if (!baseUrl || !this.config.encryptionKey) return;
-    const recipient = this.config.recipientOverride || input.email;
     const occurrenceKey = deterministicKey(
       'email',
       input.eventType,
       input.packageId,
       input.occurrence,
     );
-    await this.db.$transaction(async (tx) => {
-      await tx.notificationOccurrence.upsert({
-        where: { occurrenceKey },
-        create: {
-          id: randomUUID(),
-          occurrenceKey,
-          userId: input.userId,
-          branchId: input.branchId,
-          eventType: input.eventType,
-          templateKey: input.templateKey,
-          recipientHash: hashEmail(recipient),
-          recipientMasked: maskEmail(recipient),
-          envelopeEncrypted: encryptEnvelope(
-            {
-              to: recipient,
-              variables: {
-                href: new URL('/account/packages', baseUrl).toString(),
-                detail: input.detail,
-              },
-            },
-            this.config.encryptionKey!,
-          ),
-          maxAttempts: this.config.maxAttempts,
-          correlationId: `package-reminder:${input.packageId}:${input.occurrence}`,
-        },
-        update: {},
-      });
-      await tx.userNotification.createMany({
+    return this.db.$transaction(async (tx) => {
+      const notification = await tx.userNotification.createMany({
         data: [
           {
             id: randomUUID(),
@@ -122,6 +93,36 @@ export class PackageReminderWorker {
         ],
         skipDuplicates: true,
       });
+      if (baseUrl && this.config.encryptionKey) {
+        const recipient = this.config.recipientOverride || input.email;
+        await tx.notificationOccurrence.upsert({
+          where: { occurrenceKey },
+          create: {
+            id: randomUUID(),
+            occurrenceKey,
+            userId: input.userId,
+            branchId: input.branchId,
+            eventType: input.eventType,
+            templateKey: input.templateKey,
+            recipientHash: hashEmail(recipient),
+            recipientMasked: maskEmail(recipient),
+            envelopeEncrypted: encryptEnvelope(
+              {
+                to: recipient,
+                variables: {
+                  href: new URL('/account/packages', baseUrl).toString(),
+                  detail: input.detail,
+                },
+              },
+              this.config.encryptionKey,
+            ),
+            maxAttempts: this.config.maxAttempts,
+            correlationId: `package-reminder:${input.packageId}:${input.occurrence}`,
+          },
+          update: {},
+        });
+      }
+      return notification.count > 0;
     });
   }
 
@@ -156,7 +157,7 @@ export class PackageReminderWorker {
         ]);
         const available = (ledger._sum.quantity ?? 0) - (reservations._sum.quantity ?? 0);
         if ([3, 1, 0].includes(available)) {
-          await this.createReminder({
+          const inserted = await this.createReminder({
             packageId: item.id,
             userId: item.customerUserId,
             branchId: item.branchId,
@@ -167,11 +168,11 @@ export class PackageReminderWorker {
             detail: `Sisa sesi tersedia pada paket Anda saat ini ${available}.`,
             now,
           });
-          created += 1;
+          if (inserted) created += 1;
         }
         const days = dayDifference(now, item.expiryAt, item.branch.timezone);
         if ([7, 3, 1].includes(days)) {
-          await this.createReminder({
+          const inserted = await this.createReminder({
             packageId: item.id,
             userId: item.customerUserId,
             branchId: item.branchId,
@@ -182,7 +183,7 @@ export class PackageReminderWorker {
             detail: `Paket Anda akan berakhir dalam ${days} hari.`,
             now,
           });
-          created += 1;
+          if (inserted) created += 1;
         }
       }
     }

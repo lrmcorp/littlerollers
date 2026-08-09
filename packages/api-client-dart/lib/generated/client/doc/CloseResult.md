@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **period** | [**BranchPeriod**](BranchPeriod.md) |  | 
 **snapshotIds** | **BuiltList&lt;String&gt;** |  | 
+**snapshot** | [**FinanceCloseSnapshot**](FinanceCloseSnapshot.md) |  | 
 **auditLogId** | **String** |  | 
 **closedAt** | [**DateTime**](DateTime.md) |  | 
 **idempotentReplay** | **bool** |  | 

@@ -22,5 +22,10 @@ void main() {
       // TODO
     });
 
+    // CursorPageMeta page
+    test('to test the property `page`', () async {
+      // TODO
+    });
+
   });
 }

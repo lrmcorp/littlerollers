@@ -172,6 +172,99 @@ describe('NotificationProjectionWorker', () => {
     expect(tx.notificationOccurrence.upsert).not.toHaveBeenCalled();
   });
 
+  it('notifies a customer when attendance is backfilled without creating email', async () => {
+    const event = {
+      id: 'event-attendance-backfill',
+      eventType: 'check_in.customer_backfilled.v1',
+      aggregateType: 'Booking',
+      aggregateId: 'booking-1',
+      payload: { branchId: 'branch-1' },
+      correlationId: 'correlation-attendance',
+      status: 'PENDING',
+      occurredAt: new Date(),
+      publishedAt: null,
+      attempts: 0,
+    };
+    const tx = {
+      notificationProjection: { upsert: jest.fn().mockResolvedValue({}) },
+      userNotification: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      notificationOccurrence: { upsert: jest.fn() },
+    };
+    const db = {
+      outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
+      booking: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'booking-1',
+          customerUserId: 'customer-1',
+          branchId: 'branch-1',
+          classSlotId: 'slot-1',
+          classSlot: { instructorUserId: 'instructor-1' },
+        }),
+      },
+      $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
+    };
+    await expect(new NotificationProjectionWorker(db as never).poll()).resolves.toBe(true);
+    expect(tx.userNotification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 'customer-1',
+          category: 'ATTENDANCE',
+          title: 'Kehadiran diperbarui',
+        }),
+      ],
+      skipDuplicates: true,
+    });
+    expect(tx.notificationOccurrence.upsert).not.toHaveBeenCalled();
+  });
+
+  it('notifies only no-show customers when a class is completed', async () => {
+    const event = {
+      id: 'event-class-completed',
+      eventType: 'class.completed.v1',
+      aggregateType: 'ClassSlot',
+      aggregateId: 'slot-1',
+      payload: { branchId: 'branch-1', attendedCount: 1, noShowCount: 1 },
+      correlationId: 'correlation-completion',
+      status: 'PENDING',
+      occurredAt: new Date(),
+      publishedAt: null,
+      attempts: 0,
+    };
+    const tx = {
+      notificationProjection: { upsert: jest.fn().mockResolvedValue({}) },
+      userNotification: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      notificationOccurrence: { upsert: jest.fn() },
+    };
+    const db = {
+      outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
+      booking: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'booking-no-show',
+            customerUserId: 'customer-no-show',
+            branchId: 'branch-1',
+            classSlotId: 'slot-1',
+          },
+        ]),
+      },
+      $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
+    };
+    await expect(new NotificationProjectionWorker(db as never).poll()).resolves.toBe(true);
+    expect(db.booking.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { classSlotId: 'slot-1', status: 'NO_SHOW' } }),
+    );
+    expect(tx.userNotification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 'customer-no-show',
+          title: 'Kehadiran tidak tercatat',
+          href: '/bookings/booking-no-show',
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
+
   it('creates one deterministic customer email occurrence for a posted adjustment', async () => {
     const previousBaseUrl = process.env.PUBLIC_WEB_BASE_URL;
     process.env.PUBLIC_WEB_BASE_URL = 'https://dailydosepilates.com';

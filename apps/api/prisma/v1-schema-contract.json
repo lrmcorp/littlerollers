@@ -1,0 +1,382 @@
+{
+  "contractVersion": "v1.0.0",
+  "tables": {
+    "activity_log": {
+      "columns": [
+        "id",
+        "log_name",
+        "description",
+        "subject_type",
+        "event",
+        "subject_id",
+        "causer_type",
+        "causer_id",
+        "properties",
+        "batch_uuid",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "booking_kelas": {
+      "columns": [
+        "id",
+        "id_user",
+        "id_kelas_activity",
+        "is_send_email",
+        "status_kehadiran",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "keterangan",
+        "review",
+        "rating"
+      ]
+    },
+    "check_in_outs": {
+      "columns": [
+        "id",
+        "id_user",
+        "jadwal",
+        "status",
+        "id_location",
+        "id_order_paket",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "id_booking_kelas"
+      ]
+    },
+    "coas": {
+      "columns": ["id", "nomor", "nama", "saldo", "created_at", "updated_at", "deleted_at"]
+    },
+    "customer_jadwal_statics": {
+      "columns": [
+        "id",
+        "id_user",
+        "hari",
+        "jam",
+        "keterangan",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "customer_kelas": {
+      "columns": [
+        "id",
+        "id_user",
+        "id_kelas",
+        "status",
+        "tanggal_bayar",
+        "bukti_bayar",
+        "jumlah_pertemuan",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "failed_jobs": {
+      "columns": ["id", "uuid", "connection", "queue", "payload", "exception", "failed_at"]
+    },
+    "jurnals": {
+      "columns": [
+        "id",
+        "nama",
+        "jumlah_uang",
+        "tipe",
+        "struk",
+        "tanggal",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "id_parent",
+        "id_order_paket",
+        "id_user"
+      ]
+    },
+    "kelas": {
+      "columns": [
+        "id",
+        "is_active",
+        "min_anggota",
+        "max_anggota",
+        "keterangan",
+        "nama_kelas",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "duration",
+        "bawaan",
+        "type",
+        "honor",
+        "fee",
+        "id_location"
+      ]
+    },
+    "kelas_activities": {
+      "columns": [
+        "id",
+        "id_kelas",
+        "id_location_studio",
+        "jam_mulai",
+        "id_user",
+        "status",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "nama_latihan",
+        "level",
+        "tanggal",
+        "user_update",
+        "rating"
+      ]
+    },
+    "kelas_images": {
+      "columns": ["id", "id_kelas", "image", "created_at", "updated_at", "deleted_at"]
+    },
+    "kelas_pakets": {
+      "columns": ["id", "id_kelas", "id_paket", "created_at", "updated_at", "deleted_at"]
+    },
+    "kelas_pertamuans": {
+      "columns": [
+        "id",
+        "id_kelas",
+        "datetime_avaiable",
+        "status",
+        "keterangan",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "kelas_pertemuan_absensis": {
+      "columns": [
+        "id",
+        "id_kelas_pertemuan",
+        "id_user",
+        "waktu_masuk",
+        "status",
+        "keterangan",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "kelas_ratings": {
+      "columns": [
+        "id",
+        "id_user",
+        "id_kelas_activity",
+        "comment",
+        "rating",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "location_openings": {
+      "columns": [
+        "id",
+        "hari",
+        "id_location",
+        "jam_open",
+        "jam_close",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "location_studios": {
+      "columns": [
+        "id",
+        "id_location",
+        "nama",
+        "equipment",
+        "image",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "no_hp"
+      ]
+    },
+    "locations": {
+      "columns": [
+        "id",
+        "nama",
+        "deskripsi",
+        "no_hp",
+        "alamat",
+        "email",
+        "url_location",
+        "image",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "nama_bank",
+        "no_rekening",
+        "atas_nama"
+      ]
+    },
+    "migrations": {
+      "columns": ["id", "migration", "batch"]
+    },
+    "model_has_permissions": {
+      "columns": ["permission_id", "model_type", "model_id"]
+    },
+    "model_has_roles": {
+      "columns": ["role_id", "model_type", "model_id"]
+    },
+    "notifications": {
+      "columns": [
+        "id",
+        "type",
+        "notifiable_type",
+        "notifiable_id",
+        "data",
+        "read_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "order_pakets": {
+      "columns": [
+        "id",
+        "id_user",
+        "id_paket",
+        "harga",
+        "status",
+        "is_active",
+        "expired_date",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "tanggal_pembayaran",
+        "bukti_pembayaran",
+        "jumlah_pertemuan",
+        "sisa",
+        "id_location",
+        "unix_code",
+        "metode_pembayaran"
+      ]
+    },
+    "paket_locations": {
+      "columns": ["id", "id_paket", "id_location", "created_at", "updated_at", "deleted_at"]
+    },
+    "pakets": {
+      "columns": [
+        "id",
+        "nama",
+        "jumlah_pertemuan",
+        "harga",
+        "valid_day",
+        "promote_code",
+        "diskon",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "id_kelas",
+        "is_many_times",
+        "is_show_public"
+      ]
+    },
+    "password_reset_tokens": {
+      "columns": ["email", "token", "created_at"]
+    },
+    "permissions": {
+      "columns": ["id", "name", "guard_name", "created_at", "updated_at"]
+    },
+    "personal_access_tokens": {
+      "columns": [
+        "id",
+        "tokenable_type",
+        "tokenable_id",
+        "name",
+        "token",
+        "abilities",
+        "last_used_at",
+        "expires_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "role_has_permissions": {
+      "columns": ["permission_id", "role_id"]
+    },
+    "roles": {
+      "columns": ["id", "name", "guard_name", "created_at", "updated_at"]
+    },
+    "ruangans": {
+      "columns": [
+        "id",
+        "id_location_studio",
+        "nama_ruangan",
+        "max_peserta",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ]
+    },
+    "users": {
+      "columns": [
+        "id",
+        "name",
+        "email",
+        "email_verified_at",
+        "password",
+        "remember_token",
+        "created_at",
+        "updated_at",
+        "no_hp",
+        "alamat",
+        "status",
+        "foto",
+        "deleted_at",
+        "jenis_kelamin",
+        "negara",
+        "tanggal_lahir",
+        "id_location",
+        "rating",
+        "ktp",
+        "selfie",
+        "nik",
+        "barcode",
+        "google_id"
+      ]
+    },
+    "voucher_customers": {
+      "columns": [
+        "id",
+        "id_voucher",
+        "id_customer",
+        "status",
+        "expired",
+        "status_digunakan",
+        "tanggal_digunakan",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "id_order_paket"
+      ]
+    },
+    "vouchers": {
+      "columns": [
+        "id",
+        "nama",
+        "deskripsi",
+        "expired",
+        "image",
+        "status",
+        "disc_harga",
+        "disc_percent",
+        "tanggal_aktif",
+        "lama_aktif",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "id_paket",
+        "kode_voucher",
+        "sekali_gunakan"
+      ]
+    }
+  }
+}

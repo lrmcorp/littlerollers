@@ -179,13 +179,22 @@ describe('purchase submission workspace', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Muat paket' }));
+    const loadPackages = screen.getByRole('button', { name: 'Muat paket' });
+    expect(loadPackages).toHaveClass(
+      'min-h-11',
+      'border-dd-forest/25',
+      'bg-white',
+      'text-dd-forest',
+    );
+    await user.click(loadPackages);
     await user.click(await screen.findByRole('radio', { name: /Ten Sessions/ }));
     await user.upload(
       screen.getByLabelText('Bukti pembayaran'),
       new File(['proof'], 'proof.png', { type: 'image/png' }),
     );
-    await user.click(screen.getByRole('button', { name: 'Upload dan periksa' }));
+    const upload = screen.getByRole('button', { name: 'Upload dan periksa' });
+    expect(upload).toHaveClass('min-h-11', 'bg-dd-forest', 'text-white');
+    await user.click(upload);
     expect(await screen.findByText('Bersih')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Kirim pengajuan' }));
     expect(client.submit).toHaveBeenCalledWith('package-1', 'proof-1', expect.any(String));
@@ -214,8 +223,34 @@ describe('purchase submission workspace', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Upload dan periksa' }));
     expect(screen.queryByRole('button', { name: 'Kirim pengajuan' })).not.toBeInTheDocument();
-    await user.click(await screen.findByRole('button', { name: 'Periksa status scan' }));
+    const scanStatus = await screen.findByRole('button', { name: 'Periksa status scan' });
+    expect(scanStatus).toHaveClass('min-h-10', 'border-dd-forest/25', 'bg-white');
+    await user.click(scanStatus);
     expect(await screen.findByRole('button', { name: 'Kirim pengajuan' })).toBeEnabled();
+  });
+
+  it('styles cursor pagination as a secondary action', async () => {
+    const client = submissionFake({
+      list: vi.fn().mockResolvedValue({
+        items: [],
+        nextCursor: 'next-page',
+      }),
+    });
+    render(
+      <PurchaseView
+        client={client}
+        branchOverride={branch}
+        access={{ isCustomer: true, canSubmit: true }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Muat paket' }));
+    expect(await screen.findByRole('button', { name: 'Muat paket berikutnya' })).toHaveClass(
+      'min-h-11',
+      'border-dd-forest/25',
+      'bg-white',
+      'text-dd-forest',
+    );
   });
 });
 

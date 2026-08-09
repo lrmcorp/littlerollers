@@ -66,6 +66,23 @@ DATABASE_URL=mysql://dailydose:dailydose_local@127.0.0.1:3307/dailydose_local
 Docker also provides Redis, MinIO, and Mailpit for flows that need those
 adapters. Stop the optional services with `npm run local:down`.
 
+### Integration test native
+
+Integration API dan customer full-stack menjalankan binary MySQL 8.4 native secara
+langsung; runner tidak memulai Docker, Redis, atau Homebrew service global. Setiap
+run memakai port, data directory, database, dan credential sementara dengan run ID
+unik, lalu menghentikan server dan membersihkan artefak milik run setelah selesai.
+Lokasi binary dapat dioverride melalui `DD_NATIVE_MYSQL_BINARY`.
+
+```bash
+pnpm test:integration:api
+pnpm test:e2e:customer:isolated
+```
+
+Opsi `:keep` mempertahankan data directory gagal sebagai evidence tetapi tetap
+menghentikan server. Hapus dengan command `:cleanup -- --run-id <run-id>` setelah
+investigasi.
+
 ### Akun demo lokal
 
 `npm run db:seed` membuat akun berikut hanya untuk development/test. Kredensial

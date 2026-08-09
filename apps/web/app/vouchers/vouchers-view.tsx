@@ -6,7 +6,7 @@ import { browserVoucherClient, type VoucherRecord } from '../voucher-client';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import {
-  MultiSearchSelect,
+  AsyncMultiSearchSelect,
   SearchSelect,
   Textarea,
   TextInput,
@@ -17,10 +17,7 @@ import { DataTable, Badge, Pagination, Panel, StatCard } from '../components/adm
 import { EmptyState, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
 import { useAppFeedback } from '../components/app-feedback';
-import {
-  browserPackagePromotionClient,
-  type InternalPackageRecord,
-} from '../package-promotion-client';
+import { browserPackagePromotionClient } from '../package-promotion-client';
 import { browserMasterClient } from '../master-client';
 
 const labels: Record<string, string> = {
@@ -49,7 +46,6 @@ export function VouchersView() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string>();
   const [cursorHistory, setCursorHistory] = useState<Array<string | undefined>>([]);
-  const [packageOptions, setPackageOptions] = useState<InternalPackageRecord[]>([]);
   const [classTypes, setClassTypes] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const [form, setForm] = useState({
@@ -81,18 +77,6 @@ export function VouchersView() {
       setCreateOpen(false);
     }
   };
-  useEffect(() => {
-    if (!createOpen || !canManage) return;
-    const branchIds = form.branchId
-      ? [form.branchId]
-      : (session?.session?.branches ?? []).map((branch) => branch.id);
-    void Promise.all(
-      branchIds.map((branchId) => browserPackagePromotionClient.packages({ branchId })),
-    )
-      .then((pages) => setPackageOptions(pages.flatMap((page) => page.items)))
-      .catch(() => setPackageOptions([]));
-  }, [canManage, createOpen, form.branchId, session?.session?.branches]);
-
   const load = async (cursor?: string) => {
     if (!canRead) return;
     setBusy(true);
@@ -443,11 +427,23 @@ export function VouchersView() {
               description: branch.code,
             }))}
             onChange={(branchId) => {
-              setForm({ ...form, branchId, classTypeId: '' });
-              setSelectedPackageIds([]);
-              void (branchId
-                ? browserMasterClient.listClassTypes(branchId).then(setClassTypes)
-                : Promise.resolve(setClassTypes([])));
+              void (async () => {
+                if (
+                  selectedPackageIds.length > 0 &&
+                  !(await feedback.confirm({
+                    tone: 'warning',
+                    title: 'Ganti scope cabang?',
+                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                    confirmLabel: 'Ganti cabang',
+                  }))
+                )
+                  return;
+                setForm({ ...form, branchId, classTypeId: '' });
+                setSelectedPackageIds([]);
+                void (branchId
+                  ? browserMasterClient.listClassTypes(branchId).then(setClassTypes)
+                  : Promise.resolve(setClassTypes([])));
+              })();
             }}
           />
           <SearchSelect
@@ -455,19 +451,46 @@ export function VouchersView() {
             value={form.classTypeId}
             placeholder="Semua tipe kelas"
             options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
-            onChange={(classTypeId) => setForm({ ...form, classTypeId })}
+            onChange={(classTypeId) => {
+              void (async () => {
+                if (
+                  selectedPackageIds.length > 0 &&
+                  !(await feedback.confirm({
+                    tone: 'warning',
+                    title: 'Ganti scope tipe kelas?',
+                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                    confirmLabel: 'Ganti tipe kelas',
+                  }))
+                )
+                  return;
+                setForm({ ...form, classTypeId });
+                setSelectedPackageIds([]);
+              })();
+            }}
             description="Opsional. Kosong berarti seluruh tipe kelas dalam scope."
           />
-          <MultiSearchSelect
+          <AsyncMultiSearchSelect
             label="Scope paket"
             description="Tanpa pilihan berarti voucher berlaku untuk semua paket dalam scope."
             placeholder="Cari dan pilih paket"
             value={selectedPackageIds}
-            options={packageOptions.map((item) => ({
-              id: item.id,
-              label: item.name,
-              description: item.branch?.name,
-            }))}
+            loadOptions={async (query, cursor) => {
+              const page = await browserPackagePromotionClient.packages({
+                branchId: form.branchId || undefined,
+                classTypeId: form.classTypeId || undefined,
+                status: 'ACTIVE',
+                q: query.trim() || undefined,
+                cursor,
+              });
+              return {
+                items: page.items.map((item) => ({
+                  id: item.id,
+                  label: item.name,
+                  description: item.branch?.name,
+                })),
+                nextCursor: page.page.nextCursor ?? undefined,
+              };
+            }}
             onChange={(ids) => setSelectedPackageIds(ids)}
           />
           <TextInput

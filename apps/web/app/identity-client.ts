@@ -9,8 +9,11 @@ import { appLoading, foregroundFetch } from './components/app-loading';
 import type { IdentityVerificationReviewCase } from './identity-verification-client';
 
 export type UiFailure =
+  | 'AUTHENTICATION_REQUIRED'
   | 'CONFIGURATION_REQUIRED'
+  | 'INTERNAL_ERROR'
   | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE'
   | 'FORBIDDEN'
   | 'IDENTITY_CONFLICT'
   | 'STALE_VERSION'
@@ -206,7 +209,33 @@ async function request(path: string, init: RequestInit = {}) {
     },
     init.method && init.method !== 'GET' ? 'Menyimpan perubahan…' : 'Memuat data…',
   );
-  if (!response.ok) throw { response };
+  if (!response.ok) {
+    const correlationHeader = response.headers.get('x-correlation-id')?.trim();
+    let problem:
+      | {
+          code?: string;
+          correlationId?: string;
+          retryable?: boolean;
+        }
+      | undefined;
+    try {
+      const payload = (await response.json()) as {
+        code?: string;
+        correlationId?: string;
+        retryable?: boolean;
+        error?: { code?: string; correlationId?: string; retryable?: boolean };
+      };
+      problem = payload.error ?? payload;
+    } catch {
+      problem = undefined;
+    }
+    throw {
+      response,
+      code: problem?.code,
+      correlationId: problem?.correlationId ?? correlationHeader,
+      retryable: problem?.retryable,
+    };
+  }
   if (response.status === 204) return undefined;
   return response.json();
 }
@@ -452,9 +481,20 @@ export const failureCode = (error: unknown): UiFailure => {
   const status = (error as { response?: { status?: number } })?.response?.status;
   const code = (error as { code?: string })?.code;
   if (code === 'STALE_VERSION') return 'STALE_VERSION';
+  if (code === 'AUTHENTICATION_REQUIRED') return 'AUTHENTICATION_REQUIRED';
+  if (code === 'CONFIGURATION_REQUIRED') return 'CONFIGURATION_REQUIRED';
+  if (code === 'INTERNAL_ERROR') return 'INTERNAL_ERROR';
   if (status === 403) return 'FORBIDDEN';
   if (status === 409) return 'IDENTITY_CONFLICT';
   if (status === 429) return 'RATE_LIMITED';
-  if (status === 401) return 'SESSION_REVOKED';
-  return 'CONFIGURATION_REQUIRED';
+  if (status === 401) return 'AUTHENTICATION_REQUIRED';
+  if (status === 500) return 'INTERNAL_ERROR';
+  if (status === 502 || status === 504 || status === undefined) return 'SERVICE_UNAVAILABLE';
+  if (status === 503) return 'SERVICE_UNAVAILABLE';
+  return 'INTERNAL_ERROR';
+};
+
+export const failureReference = (error: unknown): string | null => {
+  const reference = (error as { correlationId?: unknown })?.correlationId;
+  return typeof reference === 'string' && reference.trim() ? reference.trim().slice(0, 128) : null;
 };

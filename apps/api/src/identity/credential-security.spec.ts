@@ -1,4 +1,10 @@
-import { hashPassword, validatePassword, verifyPassword } from './credential-security';
+import { hash as hashBcrypt } from 'bcryptjs';
+import {
+  hashPassword,
+  passwordHashNeedsUpgrade,
+  validatePassword,
+  verifyPassword,
+} from './credential-security';
 
 describe('credential security', () => {
   beforeAll(() => {
@@ -18,5 +24,16 @@ describe('credential security', () => {
     expect(() => validatePassword('a'.repeat(8))).not.toThrow();
     expect(() => validatePassword('a'.repeat(128))).not.toThrow();
     expect(() => validatePassword('a'.repeat(129))).toThrow();
+  });
+
+  it('verifies migrated Laravel bcrypt hashes and marks them for upgrade', async () => {
+    const bcryptHash = (await hashBcrypt('legacy password', 10)).replace(/^\$2b\$/u, '$2y$');
+    expect(passwordHashNeedsUpgrade(bcryptHash)).toBe(true);
+    await expect(verifyPassword(bcryptHash, 'legacy password')).resolves.toBe(true);
+    await expect(verifyPassword(bcryptHash, 'wrong password')).resolves.toBe(false);
+  });
+
+  it('rejects unknown hash formats', async () => {
+    await expect(verifyPassword('plaintext', 'plaintext')).resolves.toBe(false);
   });
 });

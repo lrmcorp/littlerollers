@@ -18,6 +18,17 @@ const proof = {
 };
 
 describe('PaymentReviewService customer-owned proof preview', () => {
+  const previousTtl = process.env.PAYMENT_PROOF_TTL_SECONDS;
+
+  beforeAll(() => {
+    process.env.PAYMENT_PROOF_TTL_SECONDS = '900';
+  });
+
+  afterAll(() => {
+    if (previousTtl === undefined) delete process.env.PAYMENT_PROOF_TTL_SECONDS;
+    else process.env.PAYMENT_PROOF_TTL_SECONDS = previousTtl;
+  });
+
   it('issues a one-time CUSTOMER_SELF authorization only from an owned attached order', async () => {
     const db = {
       purchase: {

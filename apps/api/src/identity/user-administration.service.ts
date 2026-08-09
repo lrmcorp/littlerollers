@@ -76,8 +76,11 @@ export class UserAdministrationService {
       role?: ApplicationRole;
       audience?: 'STAFF' | 'CUSTOMER';
       verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
+      includeHistorical?: boolean;
     },
   ) {
+    if (filters.includeHistorical)
+      this.policy.requireCapability(principal.capabilities, 'migration:read');
     const audience = filters.audience ?? 'STAFF';
     const canReadVerification = this.policy.hasGlobalCapability(
       principal,
@@ -103,6 +106,7 @@ export class UserAdministrationService {
       ...(branchId ? { OR: [{ branchId }, { branchId: null }] } : {}),
     };
     const scopedWhere: Prisma.UserWhereInput = {
+      ...(filters.includeHistorical ? {} : { historical: false }),
       ...(search?.trim() ? { displayName: { contains: search.trim() } } : {}),
       ...(audience === 'CUSTOMER'
         ? {
@@ -797,11 +801,18 @@ export class UserAdministrationService {
     });
   }
 
-  async listUserAudit(principal: SessionPrincipal, targetId: string, cursor?: string) {
+  async listUserAudit(
+    principal: SessionPrincipal,
+    targetId: string,
+    cursor?: string,
+    includeHistorical = false,
+  ) {
     this.policy.requireCapability(principal.capabilities, 'audit:read');
+    if (includeHistorical) this.policy.requireCapability(principal.capabilities, 'migration:read');
     await this.getUser(principal, targetId);
     const items = await this.db.auditLog.findMany({
       where: {
+        ...(includeHistorical ? {} : { historical: false }),
         OR: [{ targetUserId: targetId }, { objectType: 'User', objectId: targetId }],
         ...(cursor ? { id: { gt: cursor } } : {}),
       },
@@ -827,9 +838,12 @@ export class UserAdministrationService {
       from?: string;
       until?: string;
       cursor?: string;
+      includeHistorical?: boolean;
     },
   ) {
     this.policy.requireCapability(principal.capabilities, 'audit:read');
+    if (filters.includeHistorical)
+      this.policy.requireCapability(principal.capabilities, 'migration:read');
     const { actorId, targetUserId, action, branchId, correlationId, from, until, cursor } = filters;
     const fromDate = from ? new Date(from) : undefined;
     const untilDate = until ? new Date(until) : undefined;
@@ -847,6 +861,7 @@ export class UserAdministrationService {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     const items = await this.db.auditLog.findMany({
       where: {
+        ...(filters.includeHistorical ? {} : { historical: false }),
         ...(actorId ? { actorId } : {}),
         ...(targetUserId
           ? {

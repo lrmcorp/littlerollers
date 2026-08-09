@@ -158,15 +158,34 @@ export class AuditExportService {
                   .join(','),
               ),
             ].join('\n');
-      const ready = await this.db.auditExport.update({
-        where: { id },
-        data: {
-          status: 'READY',
-          content,
-          rowCount: logs.length,
-          completedAt: new Date(),
-          version: { increment: 1 },
-        },
+      const ready = await this.db.$transaction(async (tx) => {
+        const completed = await tx.auditExport.update({
+          where: { id },
+          data: {
+            status: 'READY',
+            content,
+            rowCount: logs.length,
+            completedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        await tx.userNotification.createMany({
+          data: [
+            {
+              id: randomUUID(),
+              userId: completed.requestedById,
+              eventKey: `audit-export-ready:${completed.id}:${completed.version}`,
+              category: 'SYSTEM',
+              tone: 'SUCCESS',
+              title: 'Export audit telah siap',
+              message: `Export berisi ${completed.rowCount} baris dan tersedia selama 24 jam.`,
+              href: '/audit',
+              expiresAt: completed.expiresAt,
+            },
+          ],
+          skipDuplicates: true,
+        });
+        return completed;
       });
       const requester = await this.db.user.findUnique({
         where: { id: ready.requestedById },

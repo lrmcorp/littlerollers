@@ -17,6 +17,11 @@ void main() {
       // TODO
     });
 
+    // DashboardFinancialSummary financial
+    test('to test the property `financial`', () async {
+      // TODO
+    });
+
     // String roleFocus
     test('to test the property `roleFocus`', () async {
       // TODO

@@ -48,14 +48,26 @@ jobs:
         run: cp .env.example .env
       - run: pnpm openapi:validate
       - run: pnpm openapi:drift
-      - run: pnpm db:generate
-      - run: pnpm db:migrate
-      - run: pnpm db:seed
-      - run: pnpm db:seed
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+      - name: Apply database migrations
+        run: pnpm db:migrate
+      - name: Validate demo seed
+        run: pnpm db:seed
       # API Jest imports the workspace config package directly. Build its ESM
       # declarations first so a clean runner does not depend on stale artifacts.
-      - run: pnpm --filter @dailydose/config build
-      - run: pnpm --filter @dailydose/api test
+      - name: Reset database for integration tests
+        run: >
+          node --env-file=.env
+          apps/api/node_modules/prisma/build/index.js
+          migrate reset
+          --force
+          --skip-seed
+          --schema apps/api/prisma/schema.prisma
+      - name: Build shared configuration
+        run: pnpm --filter @dailydose/config build
+      - name: Run API tests
+        run: pnpm --filter @dailydose/api test
       - run: pnpm check
       - run: pnpm --filter @dailydose/web exec playwright install --with-deps chromium
       - run: pnpm --filter @dailydose/web test:e2e

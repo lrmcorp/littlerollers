@@ -7,20 +7,20 @@ part of 'check_in_token_status.dart';
 // **************************************************************************
 
 const CheckInTokenStatusPurposeEnum
-_$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN =
-    const CheckInTokenStatusPurposeEnum._('INSTRUCTOR_CHECK_IN');
-const CheckInTokenStatusPurposeEnum
 _$checkInTokenStatusPurposeEnum_CUSTOMER_CHECK_IN =
     const CheckInTokenStatusPurposeEnum._('CUSTOMER_CHECK_IN');
+const CheckInTokenStatusPurposeEnum
+_$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN =
+    const CheckInTokenStatusPurposeEnum._('INSTRUCTOR_CHECK_IN');
 
 CheckInTokenStatusPurposeEnum _$checkInTokenStatusPurposeEnumValueOf(
   String name,
 ) {
   switch (name) {
-    case 'INSTRUCTOR_CHECK_IN':
-      return _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN;
     case 'CUSTOMER_CHECK_IN':
       return _$checkInTokenStatusPurposeEnum_CUSTOMER_CHECK_IN;
+    case 'INSTRUCTOR_CHECK_IN':
+      return _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN;
     default:
       throw ArgumentError(name);
   }
@@ -29,26 +29,26 @@ CheckInTokenStatusPurposeEnum _$checkInTokenStatusPurposeEnumValueOf(
 final BuiltSet<CheckInTokenStatusPurposeEnum>
 _$checkInTokenStatusPurposeEnumValues = BuiltSet<CheckInTokenStatusPurposeEnum>(
   const <CheckInTokenStatusPurposeEnum>[
-    _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN,
     _$checkInTokenStatusPurposeEnum_CUSTOMER_CHECK_IN,
+    _$checkInTokenStatusPurposeEnum_INSTRUCTOR_CHECK_IN,
   ],
 );
 
 const CheckInTokenStatusResourceTypeEnum
-_$checkInTokenStatusResourceTypeEnum_CLASS_SLOT =
-    const CheckInTokenStatusResourceTypeEnum._('CLASS_SLOT');
-const CheckInTokenStatusResourceTypeEnum
 _$checkInTokenStatusResourceTypeEnum_BOOKING =
     const CheckInTokenStatusResourceTypeEnum._('BOOKING');
+const CheckInTokenStatusResourceTypeEnum
+_$checkInTokenStatusResourceTypeEnum_CLASS_SLOT =
+    const CheckInTokenStatusResourceTypeEnum._('CLASS_SLOT');
 
 CheckInTokenStatusResourceTypeEnum _$checkInTokenStatusResourceTypeEnumValueOf(
   String name,
 ) {
   switch (name) {
-    case 'CLASS_SLOT':
-      return _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT;
     case 'BOOKING':
       return _$checkInTokenStatusResourceTypeEnum_BOOKING;
+    case 'CLASS_SLOT':
+      return _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT;
     default:
       throw ArgumentError(name);
   }
@@ -58,8 +58,8 @@ final BuiltSet<CheckInTokenStatusResourceTypeEnum>
 _$checkInTokenStatusResourceTypeEnumValues =
     BuiltSet<CheckInTokenStatusResourceTypeEnum>(
       const <CheckInTokenStatusResourceTypeEnum>[
-        _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT,
         _$checkInTokenStatusResourceTypeEnum_BOOKING,
+        _$checkInTokenStatusResourceTypeEnum_CLASS_SLOT,
       ],
     );
 
@@ -111,12 +111,12 @@ _$checkInTokenStatusStatusEnumSerializer =
 class _$CheckInTokenStatusPurposeEnumSerializer
     implements PrimitiveSerializer<CheckInTokenStatusPurposeEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
-    'INSTRUCTOR_CHECK_IN': 'INSTRUCTOR_CHECK_IN',
     'CUSTOMER_CHECK_IN': 'CUSTOMER_CHECK_IN',
+    'INSTRUCTOR_CHECK_IN': 'INSTRUCTOR_CHECK_IN',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
-    'INSTRUCTOR_CHECK_IN': 'INSTRUCTOR_CHECK_IN',
     'CUSTOMER_CHECK_IN': 'CUSTOMER_CHECK_IN',
+    'INSTRUCTOR_CHECK_IN': 'INSTRUCTOR_CHECK_IN',
   };
 
   @override
@@ -144,12 +144,12 @@ class _$CheckInTokenStatusPurposeEnumSerializer
 class _$CheckInTokenStatusResourceTypeEnumSerializer
     implements PrimitiveSerializer<CheckInTokenStatusResourceTypeEnum> {
   static const Map<String, Object> _toWire = const <String, Object>{
-    'CLASS_SLOT': 'CLASS_SLOT',
     'BOOKING': 'BOOKING',
+    'CLASS_SLOT': 'CLASS_SLOT',
   };
   static const Map<Object, String> _fromWire = const <Object, String>{
-    'CLASS_SLOT': 'CLASS_SLOT',
     'BOOKING': 'BOOKING',
+    'CLASS_SLOT': 'CLASS_SLOT',
   };
 
   @override
@@ -221,6 +221,8 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
   @override
   final String resourceId;
   @override
+  final DateTime notBeforeAt;
+  @override
   final DateTime expiresAt;
   @override
   final DateTime? usedAt;
@@ -228,6 +230,18 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
   final DateTime? revokedAt;
   @override
   final CheckInTokenStatusStatusEnum status;
+  @override
+  final int version;
+  @override
+  final String? customerName;
+  @override
+  final String className;
+  @override
+  final CheckInTokenStatusBranch branch;
+  @override
+  final DateTime startAt;
+  @override
+  final DateTime endAt;
 
   factory _$CheckInTokenStatus([
     void Function(CheckInTokenStatusBuilder)? updates,
@@ -238,10 +252,17 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
     required this.purpose,
     required this.resourceType,
     required this.resourceId,
+    required this.notBeforeAt,
     required this.expiresAt,
     this.usedAt,
     this.revokedAt,
     required this.status,
+    required this.version,
+    this.customerName,
+    required this.className,
+    required this.branch,
+    required this.startAt,
+    required this.endAt,
   }) : super._();
   @override
   CheckInTokenStatus rebuild(
@@ -260,10 +281,17 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
         purpose == other.purpose &&
         resourceType == other.resourceType &&
         resourceId == other.resourceId &&
+        notBeforeAt == other.notBeforeAt &&
         expiresAt == other.expiresAt &&
         usedAt == other.usedAt &&
         revokedAt == other.revokedAt &&
-        status == other.status;
+        status == other.status &&
+        version == other.version &&
+        customerName == other.customerName &&
+        className == other.className &&
+        branch == other.branch &&
+        startAt == other.startAt &&
+        endAt == other.endAt;
   }
 
   @override
@@ -273,10 +301,17 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
     _$hash = $jc(_$hash, purpose.hashCode);
     _$hash = $jc(_$hash, resourceType.hashCode);
     _$hash = $jc(_$hash, resourceId.hashCode);
+    _$hash = $jc(_$hash, notBeforeAt.hashCode);
     _$hash = $jc(_$hash, expiresAt.hashCode);
     _$hash = $jc(_$hash, usedAt.hashCode);
     _$hash = $jc(_$hash, revokedAt.hashCode);
     _$hash = $jc(_$hash, status.hashCode);
+    _$hash = $jc(_$hash, version.hashCode);
+    _$hash = $jc(_$hash, customerName.hashCode);
+    _$hash = $jc(_$hash, className.hashCode);
+    _$hash = $jc(_$hash, branch.hashCode);
+    _$hash = $jc(_$hash, startAt.hashCode);
+    _$hash = $jc(_$hash, endAt.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -288,10 +323,17 @@ class _$CheckInTokenStatus extends CheckInTokenStatus {
           ..add('purpose', purpose)
           ..add('resourceType', resourceType)
           ..add('resourceId', resourceId)
+          ..add('notBeforeAt', notBeforeAt)
           ..add('expiresAt', expiresAt)
           ..add('usedAt', usedAt)
           ..add('revokedAt', revokedAt)
-          ..add('status', status))
+          ..add('status', status)
+          ..add('version', version)
+          ..add('customerName', customerName)
+          ..add('className', className)
+          ..add('branch', branch)
+          ..add('startAt', startAt)
+          ..add('endAt', endAt))
         .toString();
   }
 }
@@ -318,6 +360,10 @@ class CheckInTokenStatusBuilder
   String? get resourceId => _$this._resourceId;
   set resourceId(String? resourceId) => _$this._resourceId = resourceId;
 
+  DateTime? _notBeforeAt;
+  DateTime? get notBeforeAt => _$this._notBeforeAt;
+  set notBeforeAt(DateTime? notBeforeAt) => _$this._notBeforeAt = notBeforeAt;
+
   DateTime? _expiresAt;
   DateTime? get expiresAt => _$this._expiresAt;
   set expiresAt(DateTime? expiresAt) => _$this._expiresAt = expiresAt;
@@ -334,6 +380,32 @@ class CheckInTokenStatusBuilder
   CheckInTokenStatusStatusEnum? get status => _$this._status;
   set status(CheckInTokenStatusStatusEnum? status) => _$this._status = status;
 
+  int? _version;
+  int? get version => _$this._version;
+  set version(int? version) => _$this._version = version;
+
+  String? _customerName;
+  String? get customerName => _$this._customerName;
+  set customerName(String? customerName) => _$this._customerName = customerName;
+
+  String? _className;
+  String? get className => _$this._className;
+  set className(String? className) => _$this._className = className;
+
+  CheckInTokenStatusBranchBuilder? _branch;
+  CheckInTokenStatusBranchBuilder get branch =>
+      _$this._branch ??= CheckInTokenStatusBranchBuilder();
+  set branch(CheckInTokenStatusBranchBuilder? branch) =>
+      _$this._branch = branch;
+
+  DateTime? _startAt;
+  DateTime? get startAt => _$this._startAt;
+  set startAt(DateTime? startAt) => _$this._startAt = startAt;
+
+  DateTime? _endAt;
+  DateTime? get endAt => _$this._endAt;
+  set endAt(DateTime? endAt) => _$this._endAt = endAt;
+
   CheckInTokenStatusBuilder() {
     CheckInTokenStatus._defaults(this);
   }
@@ -345,10 +417,17 @@ class CheckInTokenStatusBuilder
       _purpose = $v.purpose;
       _resourceType = $v.resourceType;
       _resourceId = $v.resourceId;
+      _notBeforeAt = $v.notBeforeAt;
       _expiresAt = $v.expiresAt;
       _usedAt = $v.usedAt;
       _revokedAt = $v.revokedAt;
       _status = $v.status;
+      _version = $v.version;
+      _customerName = $v.customerName;
+      _className = $v.className;
+      _branch = $v.branch.toBuilder();
+      _startAt = $v.startAt;
+      _endAt = $v.endAt;
       _$v = null;
     }
     return this;
@@ -368,42 +447,85 @@ class CheckInTokenStatusBuilder
   CheckInTokenStatus build() => _build();
 
   _$CheckInTokenStatus _build() {
-    final _$result =
-        _$v ??
-        _$CheckInTokenStatus._(
-          id: BuiltValueNullFieldError.checkNotNull(
-            id,
-            r'CheckInTokenStatus',
-            'id',
-          ),
-          purpose: BuiltValueNullFieldError.checkNotNull(
-            purpose,
-            r'CheckInTokenStatus',
-            'purpose',
-          ),
-          resourceType: BuiltValueNullFieldError.checkNotNull(
-            resourceType,
-            r'CheckInTokenStatus',
-            'resourceType',
-          ),
-          resourceId: BuiltValueNullFieldError.checkNotNull(
-            resourceId,
-            r'CheckInTokenStatus',
-            'resourceId',
-          ),
-          expiresAt: BuiltValueNullFieldError.checkNotNull(
-            expiresAt,
-            r'CheckInTokenStatus',
-            'expiresAt',
-          ),
-          usedAt: usedAt,
-          revokedAt: revokedAt,
-          status: BuiltValueNullFieldError.checkNotNull(
-            status,
-            r'CheckInTokenStatus',
-            'status',
-          ),
+    _$CheckInTokenStatus _$result;
+    try {
+      _$result =
+          _$v ??
+          _$CheckInTokenStatus._(
+            id: BuiltValueNullFieldError.checkNotNull(
+              id,
+              r'CheckInTokenStatus',
+              'id',
+            ),
+            purpose: BuiltValueNullFieldError.checkNotNull(
+              purpose,
+              r'CheckInTokenStatus',
+              'purpose',
+            ),
+            resourceType: BuiltValueNullFieldError.checkNotNull(
+              resourceType,
+              r'CheckInTokenStatus',
+              'resourceType',
+            ),
+            resourceId: BuiltValueNullFieldError.checkNotNull(
+              resourceId,
+              r'CheckInTokenStatus',
+              'resourceId',
+            ),
+            notBeforeAt: BuiltValueNullFieldError.checkNotNull(
+              notBeforeAt,
+              r'CheckInTokenStatus',
+              'notBeforeAt',
+            ),
+            expiresAt: BuiltValueNullFieldError.checkNotNull(
+              expiresAt,
+              r'CheckInTokenStatus',
+              'expiresAt',
+            ),
+            usedAt: usedAt,
+            revokedAt: revokedAt,
+            status: BuiltValueNullFieldError.checkNotNull(
+              status,
+              r'CheckInTokenStatus',
+              'status',
+            ),
+            version: BuiltValueNullFieldError.checkNotNull(
+              version,
+              r'CheckInTokenStatus',
+              'version',
+            ),
+            customerName: customerName,
+            className: BuiltValueNullFieldError.checkNotNull(
+              className,
+              r'CheckInTokenStatus',
+              'className',
+            ),
+            branch: branch.build(),
+            startAt: BuiltValueNullFieldError.checkNotNull(
+              startAt,
+              r'CheckInTokenStatus',
+              'startAt',
+            ),
+            endAt: BuiltValueNullFieldError.checkNotNull(
+              endAt,
+              r'CheckInTokenStatus',
+              'endAt',
+            ),
+          );
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'branch';
+        branch.build();
+      } catch (e) {
+        throw BuiltValueNestedFieldError(
+          r'CheckInTokenStatus',
+          _$failedField,
+          e.toString(),
         );
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

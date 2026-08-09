@@ -160,11 +160,11 @@ Every story below requires Gate 1/2/4/5, applicable Gate 3, decisions, assignees
 | Actor/objective/trigger | System consumes committed outbox; authorized Operator observes/retries terminal failures |
 | Preconditions/main flow | Approved template/channel and DEC-013 → claim event → create deterministic occurrence → attempt provider → process webhook → fallback/retry/dead-letter |
 | Alternate/postcondition | Duplicate event/webhook, provider timeout/rate/failure, invalid signature/template; one occurrence with ordered attempts/status |
-| BR/NFR/DEC | BR-070–072; NFR-002/006/007; DEC-013 TBD-BLOCKING |
-| API/schema/data | `listNotifications`, `retryNotification`, `receiveMetaWebhook`; NotificationOccurrencePage/NotificationAttempt proposed in OpenAPI 0.4; approval pending |
+| BR/NFR/DEC | BR-070–072; NFR-002/006/007; SMTP/in-app amendment aktif; WhatsApp `DEFERRED_BY_PRODUCT_DECISION` sampai DEC-013 provider disetujui |
+| API/schema/data | `listNotifications` dan `retryNotification` aktif untuk email/in-app; `receiveMetaWebhook` bukan runtime aktif selama WhatsApp ditunda |
 | Error/event/audit/notification | provider errors normalized; terminal alert; manual retry reason audit; original business events remain authority |
 | Concurrency/migration | Deterministic occurrence key and webhook idempotency; retry adds attempt, not occurrence; no production message during migration dry run |
-| UX/test/dependency/status | notification list/support flow; TC-NOTIF-001..008; UAT-NOTIF-01; DEC/provider/templates/OPS/Figma gap; BLOCKED |
+| UX/test/dependency/status | Email/in-app notification list, retry, fallback, dan support flow siap diuji; WhatsApp/provider/template tetap `DEFERRED_BY_PRODUCT_DECISION` |
 
 - **AC-US-NOT-01-01:** Given one committed supported outbox event, when consumed/retried concurrently, then one deterministic notification occurrence exists with no duplicate recipient occurrence.
 - **AC-US-NOT-01-02:** Given provider accepted/delivered/failed webhook, when signature-valid duplicate payload arrives, then status transition is idempotent and ordered without raw provider secret exposure.

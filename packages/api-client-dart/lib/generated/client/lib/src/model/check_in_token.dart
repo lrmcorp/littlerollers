@@ -17,9 +17,12 @@ part 'check_in_token.g.dart';
 /// * [audienceType] 
 /// * [resourceType] 
 /// * [resourceId] 
+/// * [notBeforeAt] 
 /// * [expiresAt] 
 /// * [status] 
-/// * [token] - Returned only at issuance; never log or send to analytics
+/// * [version] 
+/// * [token] - Returned only at first issuance; never log, persist, or send to analytics.
+/// * [idempotentReplay] 
 @BuiltValue()
 abstract class CheckInToken implements Built<CheckInToken, CheckInTokenBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -40,6 +43,9 @@ abstract class CheckInToken implements Built<CheckInToken, CheckInTokenBuilder> 
   @BuiltValueField(wireName: r'resourceId')
   String get resourceId;
 
+  @BuiltValueField(wireName: r'notBeforeAt')
+  DateTime get notBeforeAt;
+
   @BuiltValueField(wireName: r'expiresAt')
   DateTime get expiresAt;
 
@@ -47,9 +53,15 @@ abstract class CheckInToken implements Built<CheckInToken, CheckInTokenBuilder> 
   CheckInTokenStatusEnum get status;
   // enum statusEnum {  ACTIVE,  USED,  REVOKED,  EXPIRED,  };
 
-  /// Returned only at issuance; never log or send to analytics
+  @BuiltValueField(wireName: r'version')
+  int get version;
+
+  /// Returned only at first issuance; never log, persist, or send to analytics.
   @BuiltValueField(wireName: r'token')
-  String get token;
+  String? get token;
+
+  @BuiltValueField(wireName: r'idempotentReplay')
+  bool get idempotentReplay;
 
   CheckInToken._();
 
@@ -99,6 +111,11 @@ class _$CheckInTokenSerializer implements PrimitiveSerializer<CheckInToken> {
       object.resourceId,
       specifiedType: const FullType(String),
     );
+    yield r'notBeforeAt';
+    yield serializers.serialize(
+      object.notBeforeAt,
+      specifiedType: const FullType(DateTime),
+    );
     yield r'expiresAt';
     yield serializers.serialize(
       object.expiresAt,
@@ -109,10 +126,20 @@ class _$CheckInTokenSerializer implements PrimitiveSerializer<CheckInToken> {
       object.status,
       specifiedType: const FullType(CheckInTokenStatusEnum),
     );
-    yield r'token';
+    yield r'version';
     yield serializers.serialize(
+      object.version,
+      specifiedType: const FullType(int),
+    );
+    yield r'token';
+    yield object.token == null ? null : serializers.serialize(
       object.token,
-      specifiedType: const FullType(String),
+      specifiedType: const FullType.nullable(String),
+    );
+    yield r'idempotentReplay';
+    yield serializers.serialize(
+      object.idempotentReplay,
+      specifiedType: const FullType(bool),
     );
   }
 
@@ -172,6 +199,13 @@ class _$CheckInTokenSerializer implements PrimitiveSerializer<CheckInToken> {
           ) as String;
           result.resourceId = valueDes;
           break;
+        case r'notBeforeAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.notBeforeAt = valueDes;
+          break;
         case r'expiresAt':
           final valueDes = serializers.deserialize(
             value,
@@ -186,12 +220,27 @@ class _$CheckInTokenSerializer implements PrimitiveSerializer<CheckInToken> {
           ) as CheckInTokenStatusEnum;
           result.status = valueDes;
           break;
+        case r'version':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.version = valueDes;
+          break;
         case r'token':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(String),
-          ) as String;
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
           result.token = valueDes;
+          break;
+        case r'idempotentReplay':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.idempotentReplay = valueDes;
           break;
         default:
           unhandled.add(key);

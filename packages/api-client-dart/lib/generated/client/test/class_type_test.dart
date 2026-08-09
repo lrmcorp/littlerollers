@@ -12,11 +12,6 @@ void main() {
       // TODO
     });
 
-    // String branchId
-    test('to test the property `branchId`', () async {
-      // TODO
-    });
-
     // String code
     test('to test the property `code`', () async {
       // TODO
@@ -27,6 +22,16 @@ void main() {
       // TODO
     });
 
+    // String description
+    test('to test the property `description`', () async {
+      // TODO
+    });
+
+    // String modality
+    test('to test the property `modality`', () async {
+      // TODO
+    });
+
     // bool active
     test('to test the property `active`', () async {
       // TODO
@@ -34,6 +39,11 @@ void main() {
 
     // int version
     test('to test the property `version`', () async {
+      // TODO
+    });
+
+    // BuiltList<ClassTypeBranchScopesInner> branchScopes
+    test('to test the property `branchScopes`', () async {
       // TODO
     });
 

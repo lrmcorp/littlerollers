@@ -77,7 +77,7 @@ describe('capability-aware session shell', () => {
     );
     expect(screen.getByRole('status', { name: 'Memuat sesi' })).toBeInTheDocument();
     expect(await screen.findByText('Admin Jakarta')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ledger' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sesi Customer' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Operations H-24' })).not.toBeInTheDocument();
     const branchSelect = screen.getByRole('combobox', { name: 'Cabang aktif' });
     expect(branchSelect).toHaveValue('');
@@ -98,6 +98,7 @@ describe('capability-aware session shell', () => {
   });
 
   it('shows package promotions and vouchers for a database-authorized Super Owner', async () => {
+    const user = userEvent.setup();
     navigation.pathname = '/workspace/payments';
     const superOwnerSession: WebSession = {
       ...adminSession,
@@ -137,7 +138,7 @@ describe('capability-aware session shell', () => {
       'href',
       '/workspace/vouchers',
     );
-    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    await user.keyboard('{Control>}k{/Control}');
     const commandSearch = await screen.findByRole('dialog', { name: 'Pencarian panel' });
     expect(within(commandSearch).getByText('Paket & promo harga')).toBeVisible();
     expect(within(commandSearch).getByText('Voucher')).toBeVisible();
@@ -197,6 +198,33 @@ describe('capability-aware session shell', () => {
     expect(screen.queryByText('Protected')).not.toBeInTheDocument();
   });
 
+  it('renders consistent recovery actions when the session dependency fails', async () => {
+    const client: SessionClient = {
+      me: vi
+        .fn()
+        .mockRejectedValueOnce({ response: { status: 503 } })
+        .mockResolvedValue(adminSession),
+      logout: vi.fn(),
+    };
+    render(
+      <SessionProvider client={client}>
+        <div>Protected</div>
+      </SessionProvider>,
+    );
+
+    const retry = await screen.findByRole('button', { name: 'Coba lagi' });
+    expect(retry).toHaveClass('min-h-11', 'bg-dd-forest', 'text-white');
+    expect(screen.getByRole('link', { name: 'Kunjungi situs utama' })).toHaveClass(
+      'min-h-11',
+      'border-dd-forest/25',
+      'bg-white',
+    );
+
+    await userEvent.click(retry);
+    expect(await screen.findByText('Protected')).toBeVisible();
+    expect(client.me).toHaveBeenCalledTimes(2);
+  });
+
   it('routes staff away from the customer verification page to the reviewer queue', async () => {
     navigation.pathname = '/account/verification';
     const reviewer = {
@@ -215,6 +243,11 @@ describe('capability-aware session shell', () => {
     expect(screen.getByRole('link', { name: 'Buka antrean verifikasi' })).toHaveAttribute(
       'href',
       '/identity-verifications',
+    );
+    expect(screen.getByRole('link', { name: 'Buka antrean verifikasi' })).toHaveClass(
+      'min-h-11',
+      'bg-dd-forest',
+      'text-white',
     );
     await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/identity-verifications'));
   });
@@ -332,7 +365,7 @@ describe('capability-aware session shell', () => {
       await screen.findByRole('heading', { name: 'Selamat datang, Admin Jakarta' }),
     ).toBeVisible();
     expect(screen.getByRole('link', { name: /Booking & reschedule/ })).toBeVisible();
-    expect(screen.getByRole('link', { name: /Ledger & adjustment/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Sesi Customer/ })).toBeVisible();
     expect(screen.queryByRole('link', { name: /Operations H-24/ })).not.toBeInTheDocument();
     expect(screen.getByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();
   });

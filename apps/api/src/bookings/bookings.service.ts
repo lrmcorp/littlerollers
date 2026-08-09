@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type BookingCancellationReasonCode, type BookingStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -7,6 +7,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
 export type BookingCommand = {
   classSlotId: string;
@@ -64,6 +65,15 @@ export function isCancellationEntitled(
   return evaluatedAt.getTime() < classStartAt.getTime() - cutoffHours * 3_600_000;
 }
 
+export function isInstructorRosterPrincipal(
+  principal: Pick<SessionPrincipal, 'capabilities'>,
+): boolean {
+  return (
+    !principal.capabilities.includes('booking:read') &&
+    principal.capabilities.includes('class:assigned:read')
+  );
+}
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -71,6 +81,7 @@ export class BookingsService {
     private readonly idempotency: IdempotencyService,
     private readonly policy: PolicyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private syntheticPolicy() {
@@ -346,6 +357,21 @@ export class BookingsService {
                 },
               },
             }),
+            this.pilotOutbox?.record(tx, {
+              branchId: booking.branchId,
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              operation: 'CANCEL',
+              correlationId,
+              occurredAt: now,
+              payload: {
+                bookingId: booking.id,
+                customerUserId: booking.customerUserId,
+                classSlotId: booking.classSlotId,
+                customerPackageId: booking.customerPackageId,
+                reasonCode: input.reasonCode,
+              },
+            }),
           ]);
           return {
             status: HttpStatus.OK,
@@ -476,13 +502,38 @@ export class BookingsService {
       classSlotId?: string;
       customerId?: string;
       limit?: number;
+      includeHistorical?: boolean;
     },
   ) {
     const customer = this.isCustomer(principal);
-    this.policy.requireCapability(
-      principal.capabilities,
-      customer ? 'booking:self:read' : 'booking:read',
-    );
+    const instructorRoster = !customer && isInstructorRosterPrincipal(principal);
+    if (instructorRoster) {
+      if (
+        !query.classSlotId ||
+        query.branchId ||
+        query.customerId ||
+        query.q ||
+        query.timeline ||
+        query.includeHistorical
+      )
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      const assignedSlot = await this.db.classSlot.findFirst({
+        where: {
+          id: query.classSlotId,
+          instructorUserId: principal.userId,
+          historical: false,
+        },
+        select: { id: true },
+      });
+      if (!assignedSlot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    if (query.includeHistorical)
+      this.policy.requireCapability(principal.capabilities, 'migration:read');
+    if (!instructorRoster)
+      this.policy.requireCapability(
+        principal.capabilities,
+        customer ? 'booking:self:read' : 'booking:read',
+      );
     const statuses: BookingStatus[] = [
       'BOOKED',
       'RESCHEDULE_PENDING',
@@ -545,16 +596,19 @@ export class BookingsService {
         : {};
     const queryText = query.q?.trim();
     const commonWhere: Prisma.BookingWhereInput = {
+      ...(query.includeHistorical ? {} : { historical: false }),
       ...(customer ? { customerUserId: principal.userId } : {}),
-      ...(query.branchId
-        ? { branchId: query.branchId }
-        : customer
-          ? {}
-          : branchScope.all
-            ? branchScope.excluded.length
-              ? { branchId: { notIn: branchScope.excluded } }
-              : {}
-            : { branchId: { in: branchScope.included } }),
+      ...(instructorRoster
+        ? {}
+        : query.branchId
+          ? { branchId: query.branchId }
+          : customer
+            ? {}
+            : branchScope.all
+              ? branchScope.excluded.length
+                ? { branchId: { notIn: branchScope.excluded } }
+                : {}
+              : { branchId: { in: branchScope.included } }),
       ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
       ...(query.customerId ? { customerUserId: query.customerId } : {}),
       ...(from || until
@@ -648,7 +702,7 @@ export class BookingsService {
       }),
       this.db.booking.groupBy({
         by: ['status'],
-        where: commonWhere,
+        where: timeline ? { AND: [commonWhere, timelineWhere] } : commonWhere,
         _count: { _all: true },
       }),
     ]);
@@ -933,6 +987,20 @@ export class BookingsService {
                 aggregateId: booking.id,
                 correlationId,
                 payload: { bookingId: booking.id, classSlotId: slot.id, branchId: slot.branchId },
+              },
+            }),
+            this.pilotOutbox?.record(tx, {
+              branchId: slot.branchId,
+              aggregateType: 'Booking',
+              aggregateId: booking.id,
+              operation: 'CREATE',
+              correlationId,
+              payload: {
+                bookingId: booking.id,
+                customerUserId,
+                classSlotId: slot.id,
+                customerPackageId: customerPackage.id,
+                source: input.source,
               },
             }),
           ]);
