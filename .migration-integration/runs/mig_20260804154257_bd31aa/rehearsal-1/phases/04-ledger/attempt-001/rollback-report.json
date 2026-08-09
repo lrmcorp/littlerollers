@@ -1,0 +1,10 @@
+{
+  "batchId": "9032c20f-362e-4c4f-9d60-9eabffc2afa8",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "LedgerEntry": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

@@ -1,0 +1,15 @@
+{
+  "batchId": "9370dd09-575a-4ed6-8df6-45dca152180b",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "ClassType": 1,
+    "PackageClassTypeScope": 1,
+    "Purchase": 1,
+    "CustomerPackage": 1,
+    "PackageBranchScope": 1,
+    "Package": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

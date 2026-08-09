@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "runId": "r1_mig_20260804155455_2793f7",
+  "status": "PASSED_AUTOMATED_GATES",
+  "startedAt": "2026-08-04T15:55:07.686Z",
+  "snapshotStartedAt": "2026-08-04T15:54:54.832Z",
+  "snapshotCompletedAt": "2026-08-04T15:54:55.832Z",
+  "snapshotGtidHash": "c961a131a66d348f66829fc66dc34a622de3925ab4352396574be9a4a9a0fa20",
+  "mappingVersion": "2.0.0",
+  "mediaMode": "metadata-only",
+  "dump": {
+    "name": "synthetic-v1.sql",
+    "sizeBytes": 18211,
+    "sha256": "ca74a441ebedcfe31eb34570a6175d6ca2b9289d8755e63232c0c2d08c4dfd0b"
+  },
+  "phases": [
+    {
+      "phase": "branch-master",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:16.634Z",
+          "completedAt": "2026-08-04T15:55:18.264Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 254,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 303,
+              "peakRssKb": 146240,
+              "cpuSeconds": 0.31
+            },
+            "reconcile": {
+              "durationMs": 418,
+              "peakRssKb": 147392,
+              "cpuSeconds": 0.3
+            },
+            "replay": {
+              "durationMs": 224,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 218,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "416a31f6-5123-4fea-bca1-2a4d39c69e83"
+    },
+    {
+      "phase": "user-role",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:18.265Z",
+          "completedAt": "2026-08-04T15:55:19.726Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 212,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 273,
+              "peakRssKb": 152464,
+              "cpuSeconds": 0.31
+            },
+            "reconcile": {
+              "durationMs": 339,
+              "peakRssKb": 152400,
+              "cpuSeconds": 0.32
+            },
+            "replay": {
+              "durationMs": 225,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 200,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "51d866bd-e624-45dc-a094-468a856df9cb"
+    },
+    {
+      "phase": "package-order",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:19.761Z",
+          "completedAt": "2026-08-04T15:55:21.228Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 218,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 266,
+              "peakRssKb": 148800,
+              "cpuSeconds": 0.31
+            },
+            "reconcile": {
+              "durationMs": 321,
+              "peakRssKb": 152992,
+              "cpuSeconds": 0.34
+            },
+            "replay": {
+              "durationMs": 236,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 207,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "9370dd09-575a-4ed6-8df6-45dca152180b"
+    },
+    {
+      "phase": "ledger",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:21.229Z",
+          "completedAt": "2026-08-04T15:55:22.731Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 209,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 255,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "reconcile": {
+              "durationMs": 327,
+              "peakRssKb": 151504,
+              "cpuSeconds": 0.33
+            },
+            "replay": {
+              "durationMs": 232,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 238,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "ecbb5eb5-21e4-413d-805c-8b2341dbec3d"
+    },
+    {
+      "phase": "slot-booking",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:22.732Z",
+          "completedAt": "2026-08-04T15:55:24.211Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 213,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 277,
+              "peakRssKb": 148928,
+              "cpuSeconds": 0.3
+            },
+            "reconcile": {
+              "durationMs": 332,
+              "peakRssKb": 150224,
+              "cpuSeconds": 0.32
+            },
+            "replay": {
+              "durationMs": 227,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 207,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "7c18dc9b-2979-4255-9f77-e360a8716e4f"
+    },
+    {
+      "phase": "voucher-finance-audit-media",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:55:24.212Z",
+          "completedAt": "2026-08-04T15:55:25.736Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 209,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 318,
+              "peakRssKb": 149648,
+              "cpuSeconds": 0.3
+            },
+            "reconcile": {
+              "durationMs": 353,
+              "peakRssKb": 147408,
+              "cpuSeconds": 0.31
+            },
+            "replay": {
+              "durationMs": 226,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 214,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "eb8eca13-81a3-4fcd-9e10-a1dfb12c4fb6"
+    }
+  ],
+  "completedAt": "2026-08-04T15:55:26.109Z"
+}

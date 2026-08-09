@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "runId": "r1_mig_20260804153610_fada39",
+  "status": "PAUSED",
+  "startedAt": "2026-08-04T15:36:17.885Z",
+  "snapshotStartedAt": "2026-08-04T15:36:09.474Z",
+  "snapshotCompletedAt": "2026-08-04T15:36:10.474Z",
+  "snapshotGtidHash": "6ed88b21109e349655d875e95fbfda9e1ea9e99a3c31395489124609c26da8f4",
+  "mappingVersion": "2.0.0",
+  "mediaMode": "metadata-only",
+  "dump": {
+    "name": "synthetic-v1.sql",
+    "sizeBytes": 18211,
+    "sha256": "ca74a441ebedcfe31eb34570a6175d6ca2b9289d8755e63232c0c2d08c4dfd0b"
+  },
+  "phases": [
+    {
+      "phase": "branch-master",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:36:24.545Z",
+          "completedAt": "2026-08-04T15:36:25.997Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 242,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 251,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "reconcile": {
+              "durationMs": 357,
+              "peakRssKb": 150064,
+              "cpuSeconds": 0.3
+            },
+            "replay": {
+              "durationMs": 215,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 193,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "7e24db66-8765-412e-ab86-eacbe934989e"
+    },
+    {
+      "phase": "user-role",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:36:25.998Z",
+          "completedAt": "2026-08-04T15:36:27.397Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 205,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 263,
+              "peakRssKb": 148624,
+              "cpuSeconds": 0.29
+            },
+            "reconcile": {
+              "durationMs": 328,
+              "peakRssKb": 150912,
+              "cpuSeconds": 0.32
+            },
+            "replay": {
+              "durationMs": 216,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 191,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "dbcfc56e-3332-4788-8198-35ae5e05f022"
+    },
+    {
+      "phase": "package-order",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:36:27.432Z",
+          "completedAt": "2026-08-04T15:36:28.819Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 198,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 257,
+              "peakRssKb": 99200,
+              "cpuSeconds": 0.3
+            },
+            "reconcile": {
+              "durationMs": 321,
+              "peakRssKb": 151216,
+              "cpuSeconds": 0.33
+            },
+            "replay": {
+              "durationMs": 222,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 194,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "e0437250-e54e-4b3d-b795-6085cd518be2"
+    },
+    {
+      "phase": "ledger",
+      "status": "COMPLETED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:36:28.819Z",
+          "completedAt": "2026-08-04T15:36:30.181Z",
+          "status": "COMPLETED",
+          "metrics": {
+            "prepare": {
+              "durationMs": 197,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "import": {
+              "durationMs": 240,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "reconcile": {
+              "durationMs": 315,
+              "peakRssKb": 152064,
+              "cpuSeconds": 0.33
+            },
+            "replay": {
+              "durationMs": 220,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            },
+            "rollbackReport": {
+              "durationMs": 194,
+              "peakRssKb": 0,
+              "cpuSeconds": 0
+            }
+          }
+        }
+      ],
+      "batchId": "a6a67ec6-258a-4954-ae1a-0467525943c1"
+    },
+    {
+      "phase": "slot-booking",
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:36:30.181Z",
+          "completedAt": "2026-08-04T15:36:30.976Z",
+          "status": "BLOCKED",
+          "failureCode": "REHEARSAL_RECONCILIATION_BLOCKING"
+        }
+      ],
+      "batchId": "6846f09a-6c67-42ba-aee5-e43736169ff8"
+    }
+  ],
+  "pausedAfterPhase": "user-role",
+  "failureCode": "REHEARSAL_RECONCILIATION_BLOCKING"
+}

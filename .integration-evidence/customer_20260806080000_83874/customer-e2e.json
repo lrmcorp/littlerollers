@@ -1,0 +1,16 @@
+{
+  "runId": "customer_20260806080000_83874",
+  "status": "FAILED",
+  "startedAt": "2026-08-06T08:00:00.414Z",
+  "completedAt": "2026-08-06T08:00:00.780Z",
+  "mysql": {
+    "version": "8.4",
+    "port": 58439,
+    "database": "dailydose_integration"
+  },
+  "apiPort": 58440,
+  "webPort": 58441,
+  "redisConfigured": false,
+  "workerStarted": false,
+  "exitCode": 1
+}

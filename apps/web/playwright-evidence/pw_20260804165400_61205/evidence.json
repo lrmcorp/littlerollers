@@ -1,0 +1,42 @@
+{
+  "runId": "pw_20260804165400_61205",
+  "startedAt": "2026-08-04T16:54:00.360Z",
+  "finishedAt": "2026-08-04T16:54:54.023Z",
+  "status": "FAILED",
+  "signal": null,
+  "error": "pnpm exited with code 1",
+  "nextDistDir": ".next-playwright-runs/pw_20260804165400_61205",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/bookings"
+    }
+  ],
+  "unhandled": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/bookings"
+    }
+  ]
+}

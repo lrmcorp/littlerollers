@@ -1,0 +1,61 @@
+{
+  "runId": "pw_20260808165259_41994",
+  "startedAt": "2026-08-08T16:52:59.859Z",
+  "finishedAt": "2026-08-08T16:53:22.331Z",
+  "status": "PASSED",
+  "signal": null,
+  "error": null,
+  "nextDistDir": ".next-playwright-runs/pw_20260808165259_41994",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    }
+  ],
+  "unhandled": []
+}

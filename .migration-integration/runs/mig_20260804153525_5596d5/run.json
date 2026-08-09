@@ -1,0 +1,11 @@
+{
+  "runId": "mig_20260804153525_5596d5",
+  "project": "ddmig_mig_20260804153525_5596d5",
+  "composeEnvironment": {
+    "MIGRATION_SOURCE_PORT": "62038",
+    "MIGRATION_TARGET_PORT": "62039"
+  },
+  "status": "FAILED",
+  "step": "REHEARSAL_1_RUNNER",
+  "failureCode": "PAUSED"
+}

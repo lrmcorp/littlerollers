@@ -1,0 +1,30 @@
+{
+  "evidenceId": "rehearsal-eb8eca13-81a3-4fcd-9e10-a1dfb12c4fb6",
+  "generatedAt": "2026-08-04T15:55:26.095Z",
+  "files": [
+    {
+      "name": "summary.json",
+      "sha256": "693a5bb7a93182efb5975c6569e110f19de5db47565ab78c843dce83ab7a954a"
+    },
+    {
+      "name": "reconciliation.json",
+      "sha256": "80436266847b9dfe540677b838f3e1d078a3a5e9d88eb7b1855e9c87c6bbfca1"
+    },
+    {
+      "name": "control-totals.json",
+      "sha256": "6b20716dc71374e8e13acde294f0d2c43c83f3d58d243038c968d4e02352f6fb"
+    },
+    {
+      "name": "source-profile.json",
+      "sha256": "1a6f13fd1c6ea3baa4a4850ed602d0fe712a18c3c8d994f722d44a4dd1ca9c24"
+    },
+    {
+      "name": "resolution-summary.json",
+      "sha256": "51935ce2305206cb1b7db410426da1f1f4a011d82fb665fe611cfa26ba111cf5"
+    },
+    {
+      "name": "summary.md",
+      "sha256": "a9e89a95645b137e2b490c01d53eb28a7b23f5a1c99f662dc1cbeb97f33e1e93"
+    }
+  ]
+}

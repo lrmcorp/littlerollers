@@ -1,0 +1,33 @@
+{
+  "attempt": 1,
+  "startedAt": "2026-08-04T15:55:22.732Z",
+  "completedAt": "2026-08-04T15:55:24.211Z",
+  "status": "COMPLETED",
+  "metrics": {
+    "prepare": {
+      "durationMs": 213,
+      "peakRssKb": 0,
+      "cpuSeconds": 0
+    },
+    "import": {
+      "durationMs": 277,
+      "peakRssKb": 148928,
+      "cpuSeconds": 0.3
+    },
+    "reconcile": {
+      "durationMs": 332,
+      "peakRssKb": 150224,
+      "cpuSeconds": 0.32
+    },
+    "replay": {
+      "durationMs": 227,
+      "peakRssKb": 0,
+      "cpuSeconds": 0
+    },
+    "rollbackReport": {
+      "durationMs": 207,
+      "peakRssKb": 0,
+      "cpuSeconds": 0
+    }
+  }
+}

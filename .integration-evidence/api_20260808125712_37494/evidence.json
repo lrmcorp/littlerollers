@@ -1,0 +1,21 @@
+{
+  "runId": "api_20260808125712_37494",
+  "status": "FAILED",
+  "startedAt": "2026-08-08T12:57:12.131Z",
+  "completedAt": "2026-08-08T12:57:27.495Z",
+  "mysql": {
+    "version": "8.4.11",
+    "host": "127.0.0.1",
+    "port": 62651,
+    "database": "dailydose_it_api_20260808125712_37494",
+    "execution": "native-ephemeral",
+    "gtidMode": "ON",
+    "binlogFormat": "ROW",
+    "binlogRowImage": "FULL"
+  },
+  "migrationCount": 37,
+  "fixtureChecksum": "f46572062fd02b9a49dfb06a354594b378f0a6f9947d9a98b97ff26c5dc06eac",
+  "redisConfigured": false,
+  "testExitCode": 1,
+  "interruptedSignal": null
+}

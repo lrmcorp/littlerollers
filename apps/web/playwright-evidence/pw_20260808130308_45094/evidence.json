@@ -1,0 +1,25 @@
+{
+  "runId": "pw_20260808130308_45094",
+  "startedAt": "2026-08-08T13:03:08.995Z",
+  "finishedAt": "2026-08-08T13:04:21.699Z",
+  "status": "PASSED",
+  "signal": null,
+  "error": null,
+  "nextDistDir": ".next-playwright-runs/pw_20260808130308_45094",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    }
+  ],
+  "unhandled": []
+}

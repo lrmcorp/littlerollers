@@ -1,0 +1,12 @@
+{
+  "runId": "pw_20260808183030_16439",
+  "startedAt": "2026-08-08T18:30:30.671Z",
+  "finishedAt": "2026-08-08T18:30:30.674Z",
+  "status": "FAILED",
+  "signal": null,
+  "error": "listen EPERM: operation not permitted 127.0.0.1",
+  "nextDistDir": ".next-playwright-runs/pw_20260808183030_16439",
+  "keepRun": false,
+  "requests": [],
+  "unhandled": []
+}

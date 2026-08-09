@@ -1,0 +1,49 @@
+{
+  "runId": "pw_20260804164034_42679",
+  "startedAt": "2026-08-04T16:40:34.266Z",
+  "finishedAt": "2026-08-04T16:41:00.783Z",
+  "status": "PASSED",
+  "signal": null,
+  "error": null,
+  "nextDistDir": ".next-playwright-runs/pw_20260804164034_42679",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    }
+  ],
+  "unhandled": []
+}

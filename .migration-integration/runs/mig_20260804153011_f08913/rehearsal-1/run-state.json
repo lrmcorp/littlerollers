@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "runId": "r1_mig_20260804153011_f08913",
+  "status": "PAUSED",
+  "startedAt": "2026-08-04T15:30:19.214Z",
+  "snapshotStartedAt": "2026-08-04T15:30:10.832Z",
+  "snapshotCompletedAt": "2026-08-04T15:30:11.832Z",
+  "snapshotGtidHash": "72770805d750c7e5b6f0549c68b0743cb4b774088218a8a9fad3867571924c0f",
+  "mappingVersion": "2.0.0",
+  "mediaMode": "metadata-only",
+  "dump": {
+    "name": "synthetic-v1.sql",
+    "sizeBytes": 18216,
+    "sha256": "fb66be934d0df48d7908b534935211cea56b0b474c132bbbfd87e6f40efeee15"
+  },
+  "phases": [
+    {
+      "phase": "branch-master",
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-08-04T15:30:25.723Z",
+          "completedAt": "2026-08-04T15:30:26.468Z",
+          "status": "BLOCKED",
+          "failureCode": "PRISMA_P2010",
+          "diagnostic": {
+            "category": "PRISMA_KNOWN_REQUEST",
+            "prismaCode": "P2010",
+            "databaseCode": "1054",
+            "identifier": "id_location"
+          }
+        }
+      ],
+      "batchId": "aacd0b4a-d5a9-47d2-8cbc-a1b74b57a8ac"
+    }
+  ],
+  "failureCode": "PRISMA_P2010"
+}

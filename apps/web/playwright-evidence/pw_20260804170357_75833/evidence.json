@@ -1,0 +1,993 @@
+{
+  "runId": "pw_20260804170357_75833",
+  "startedAt": "2026-08-04T17:03:57.899Z",
+  "finishedAt": "2026-08-04T17:04:42.849Z",
+  "status": "PASSED",
+  "signal": null,
+  "error": null,
+  "nextDistDir": ".next-playwright-runs/pw_20260804170357_75833",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/checkout/options"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/package-catalog/6f6dca0c-74fe-4c6f-8982-33db678a0b7a"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/class-catalog/4669d2c4-cc55-40ff-8759-10bd8369371c"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/class-types/reformer-pilates"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/studios/jakarta"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches/branch-1/studios"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches/branch-1/studios"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/class-catalog/4669d2c4-cc55-40ff-8759-10bd8369371c"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me"
+    },
+    {
+      "method": "POST",
+      "pathname": "/api/v1/auth/refresh"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/bookings"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches/branch-1/studios"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches/00000000-0000-4000-8000-000000000301/studios"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/branches/branch-1/studios"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    }
+  ],
+  "unhandled": []
+}

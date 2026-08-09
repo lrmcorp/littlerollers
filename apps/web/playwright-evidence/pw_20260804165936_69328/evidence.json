@@ -1,0 +1,42 @@
+{
+  "runId": "pw_20260804165936_69328",
+  "startedAt": "2026-08-04T16:59:36.575Z",
+  "finishedAt": "2026-08-04T17:00:01.739Z",
+  "status": "FAILED",
+  "signal": null,
+  "error": "Mock API has 1 unhandled request(s): GET /api/v1/bookings",
+  "nextDistDir": ".next-playwright-runs/pw_20260804165936_69328",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/dashboard/overview"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/bookings"
+    }
+  ],
+  "unhandled": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/bookings"
+    }
+  ]
+}

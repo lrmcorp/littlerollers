@@ -1,0 +1,14 @@
+{
+  "batchId": "7e24db66-8765-412e-ab86-eacbe934989e",
+  "status": "COMPLETED",
+  "destructiveActionPerformed": false,
+  "targetRecordsByType": {
+    "BranchOpeningHour": 1,
+    "Studio": 1,
+    "Branch": 1,
+    "PaymentAccount": 1,
+    "Room": 1
+  },
+  "openRejects": 0,
+  "pendingResolutions": 0
+}

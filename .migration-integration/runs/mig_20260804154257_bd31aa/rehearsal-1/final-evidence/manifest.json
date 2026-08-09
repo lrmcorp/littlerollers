@@ -1,0 +1,30 @@
+{
+  "evidenceId": "rehearsal-147d72bc-8b8b-4f0f-94ea-56bf91ff3ac5",
+  "generatedAt": "2026-08-04T15:43:22.629Z",
+  "files": [
+    {
+      "name": "summary.json",
+      "sha256": "ac179d6051c5e7c1e6ae486bc440345b514ab8c6a4040acdd891ce18ff950f95"
+    },
+    {
+      "name": "reconciliation.json",
+      "sha256": "09bda443244fb62cc6746cb3b59022fff1b1d44ddaeb0058d174c1e9e39006e5"
+    },
+    {
+      "name": "control-totals.json",
+      "sha256": "f91d846204f472827d16495b1efc2a041b8e8482809085ba44633913f4b9da8b"
+    },
+    {
+      "name": "source-profile.json",
+      "sha256": "44d6320630fbcc0c521b7d7eb56bd4430574e8ba0b3e2b22bff633fa5d5e4b37"
+    },
+    {
+      "name": "resolution-summary.json",
+      "sha256": "51935ce2305206cb1b7db410426da1f1f4a011d82fb665fe611cfa26ba111cf5"
+    },
+    {
+      "name": "summary.md",
+      "sha256": "a3f209b9e87e25d5e122dfa2444f10a1a62de0bf4280fba1df6eae4d9b3db5a6"
+    }
+  ]
+}

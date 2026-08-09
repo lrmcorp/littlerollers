@@ -1,0 +1,30 @@
+{
+  "events": {
+    "APPLIED": 15
+  },
+  "checkpoints": [
+    {
+      "kind": "CAPTURE",
+      "lastGtid": "d77c8a57-901c-11f1-9f98-5e1869cdd920:84",
+      "transactionOrder": "5",
+      "capturedThroughAt": "2026-08-04T22:55:26.000Z",
+      "updatedAt": "2026-08-04T15:55:26.577Z"
+    },
+    {
+      "kind": "VERIFY",
+      "lastGtid": "d77c8a57-901c-11f1-9f98-5e1869cdd920:84",
+      "transactionOrder": "5",
+      "capturedThroughAt": "2026-08-04T22:55:26.000Z",
+      "updatedAt": "2026-08-04T15:55:26.836Z"
+    },
+    {
+      "kind": "APPLY",
+      "lastGtid": "d77c8a57-901c-11f1-9f98-5e1869cdd920:84",
+      "transactionOrder": "5",
+      "capturedThroughAt": "2026-08-04T22:55:26.000Z",
+      "updatedAt": "2026-08-04T15:55:27.483Z"
+    }
+  ],
+  "branches": [],
+  "pilotOutbox": {}
+}

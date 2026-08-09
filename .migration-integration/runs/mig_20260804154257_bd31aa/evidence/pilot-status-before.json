@@ -1,0 +1,10 @@
+{
+  "sourceBranchId": "1",
+  "counts": {
+    "PENDING": 2
+  },
+  "firstPendingSequence": "1",
+  "firstPendingAt": "2026-08-04T15:43:24.347Z",
+  "highWaterSequence": "2",
+  "mediaAliases": {}
+}

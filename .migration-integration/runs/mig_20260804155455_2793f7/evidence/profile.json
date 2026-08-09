@@ -1,0 +1,1501 @@
+{
+  "sourceSystem": "DAILYDOSE_V1",
+  "schema": {
+    "contractVersion": "v1.0.0",
+    "mappingVersion": "2.0.0",
+    "expectedTableCount": 34,
+    "actualTableCount": 34,
+    "missingTables": [],
+    "unexpectedTables": [],
+    "columnMismatches": []
+  },
+  "counts": {
+    "activity_log": 1,
+    "booking_kelas": 1,
+    "check_in_outs": 0,
+    "coas": 1,
+    "customer_jadwal_statics": 0,
+    "customer_kelas": 1,
+    "failed_jobs": 0,
+    "jurnals": 1,
+    "kelas": 1,
+    "kelas_activities": 1,
+    "kelas_images": 1,
+    "kelas_pakets": 1,
+    "kelas_pertamuans": 1,
+    "kelas_pertemuan_absensis": 0,
+    "kelas_ratings": 1,
+    "location_openings": 1,
+    "location_studios": 1,
+    "locations": 1,
+    "migrations": 0,
+    "model_has_permissions": 1,
+    "model_has_roles": 2,
+    "notifications": 1,
+    "order_pakets": 1,
+    "paket_locations": 1,
+    "pakets": 1,
+    "password_reset_tokens": 0,
+    "permissions": 1,
+    "personal_access_tokens": 0,
+    "role_has_permissions": 1,
+    "roles": 2,
+    "ruangans": 1,
+    "users": 2,
+    "voucher_customers": 1,
+    "vouchers": 1
+  },
+  "mappingPolicy": {
+    "activity_log": {
+      "disposition": "MAP",
+      "target": "AuditLog"
+    },
+    "booking_kelas": {
+      "disposition": "MAP",
+      "target": "Booking,SessionReservation,BookingAttendanceOutcome,BookingFeedback"
+    },
+    "check_in_outs": {
+      "disposition": "MAP",
+      "target": "CustomerAttendance"
+    },
+    "coas": {
+      "disposition": "MAP",
+      "target": "AccountingAccount"
+    },
+    "customer_jadwal_statics": {
+      "disposition": "MAP",
+      "target": "CustomerRecurringSchedule"
+    },
+    "customer_kelas": {
+      "disposition": "MAP",
+      "target": "CustomerClassEnrollment"
+    },
+    "failed_jobs": {
+      "disposition": "IGNORE",
+      "reason": "EPHEMERAL_RUNTIME_QUEUE_NOT_BUSINESS_DATA"
+    },
+    "jurnals": {
+      "disposition": "MAP",
+      "target": "LegacyFinancialEntry,MigrationDeferredMediaReference"
+    },
+    "kelas": {
+      "disposition": "MAP",
+      "target": "ClassType"
+    },
+    "kelas_activities": {
+      "disposition": "MAP",
+      "target": "ClassSlot"
+    },
+    "kelas_images": {
+      "disposition": "MAP",
+      "target": "MigrationDeferredMediaReference"
+    },
+    "kelas_pakets": {
+      "disposition": "MAP",
+      "target": "PackageClassTypeScope"
+    },
+    "kelas_pertamuans": {
+      "disposition": "MAP",
+      "target": "ClassSlot"
+    },
+    "kelas_pertemuan_absensis": {
+      "disposition": "MAP",
+      "target": "CustomerAttendance"
+    },
+    "kelas_ratings": {
+      "disposition": "MAP",
+      "target": "BookingFeedback"
+    },
+    "location_openings": {
+      "disposition": "MAP",
+      "target": "BranchOpeningHour"
+    },
+    "location_studios": {
+      "disposition": "MAP",
+      "target": "Studio,MigrationDeferredMediaReference"
+    },
+    "locations": {
+      "disposition": "MAP",
+      "target": "Branch,BranchPublicProfile,PaymentAccount,MigrationDeferredMediaReference"
+    },
+    "migrations": {
+      "disposition": "IGNORE",
+      "reason": "LARAVEL_FRAMEWORK_MIGRATION_METADATA"
+    },
+    "model_has_permissions": {
+      "disposition": "MAP",
+      "target": "UserCapabilityOverride"
+    },
+    "model_has_roles": {
+      "disposition": "MAP",
+      "target": "UserRole,Assignment"
+    },
+    "notifications": {
+      "disposition": "MAP",
+      "target": "UserNotification"
+    },
+    "order_pakets": {
+      "disposition": "MAP",
+      "target": "Purchase,CustomerPackage,LedgerEntry,MigrationDeferredMediaReference"
+    },
+    "paket_locations": {
+      "disposition": "MAP",
+      "target": "PackageBranchScope"
+    },
+    "pakets": {
+      "disposition": "MAP",
+      "target": "Package,PackageRevision,PackageClassTypeScope"
+    },
+    "password_reset_tokens": {
+      "disposition": "IGNORE",
+      "reason": "EPHEMERAL_AUTHENTICATION_SECRET"
+    },
+    "permissions": {
+      "disposition": "MAP",
+      "target": "CapabilityDefinition"
+    },
+    "personal_access_tokens": {
+      "disposition": "IGNORE",
+      "reason": "REVOKED_V1_AUTHENTICATION_SECRET"
+    },
+    "role_has_permissions": {
+      "disposition": "MAP",
+      "target": "RoleCapability"
+    },
+    "roles": {
+      "disposition": "MAP",
+      "target": "ApplicationRole,RoleDefinition"
+    },
+    "ruangans": {
+      "disposition": "MAP",
+      "target": "Room"
+    },
+    "users": {
+      "disposition": "MAP",
+      "target": "User,UserProfile,Identity,PasswordCredential,UserContactAlias,MigrationDeferredMediaReference"
+    },
+    "voucher_customers": {
+      "disposition": "MAP",
+      "target": "CustomerVoucherEntitlement,VoucherRedemption"
+    },
+    "vouchers": {
+      "disposition": "MAP",
+      "target": "Voucher,VoucherPackageScope,MigrationDeferredMediaReference"
+    }
+  },
+  "columnRegistry": {
+    "total": 309,
+    "dispositions": {
+      "FIRST_CLASS": 273,
+      "ENCRYPTED_ARCHIVE": 2,
+      "DEFERRED_MEDIA": 10,
+      "EXPLICIT_IGNORE": 24
+    }
+  },
+  "columns": {
+    "activity_log": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "log_name",
+        "type": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "longtext"
+      },
+      {
+        "name": "subject_type",
+        "type": "varchar"
+      },
+      {
+        "name": "event",
+        "type": "varchar"
+      },
+      {
+        "name": "subject_id",
+        "type": "bigint"
+      },
+      {
+        "name": "causer_type",
+        "type": "varchar"
+      },
+      {
+        "name": "causer_id",
+        "type": "bigint"
+      },
+      {
+        "name": "properties",
+        "type": "longtext"
+      },
+      {
+        "name": "batch_uuid",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "booking_kelas": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas_activity",
+        "type": "bigint"
+      },
+      {
+        "name": "is_send_email",
+        "type": "bigint"
+      },
+      {
+        "name": "status_kehadiran",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "keterangan",
+        "type": "longtext"
+      },
+      {
+        "name": "review",
+        "type": "varchar"
+      },
+      {
+        "name": "rating",
+        "type": "bigint"
+      }
+    ],
+    "check_in_outs": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "jadwal",
+        "type": "datetime"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "id_order_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "id_booking_kelas",
+        "type": "bigint"
+      }
+    ],
+    "coas": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "nomor",
+        "type": "varchar"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "saldo",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "customer_jadwal_statics": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "hari",
+        "type": "varchar"
+      },
+      {
+        "name": "jam",
+        "type": "time"
+      },
+      {
+        "name": "keterangan",
+        "type": "longtext"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "customer_kelas": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "tanggal_bayar",
+        "type": "datetime"
+      },
+      {
+        "name": "bukti_bayar",
+        "type": "varchar"
+      },
+      {
+        "name": "jumlah_pertemuan",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "failed_jobs": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "uuid",
+        "type": "varchar"
+      },
+      {
+        "name": "connection",
+        "type": "varchar"
+      },
+      {
+        "name": "queue",
+        "type": "varchar"
+      },
+      {
+        "name": "payload",
+        "type": "longtext"
+      },
+      {
+        "name": "exception",
+        "type": "longtext"
+      },
+      {
+        "name": "failed_at",
+        "type": "datetime"
+      }
+    ],
+    "jurnals": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "jumlah_uang",
+        "type": "bigint"
+      },
+      {
+        "name": "tipe",
+        "type": "bigint"
+      },
+      {
+        "name": "struk",
+        "type": "varchar"
+      },
+      {
+        "name": "tanggal",
+        "type": "datetime"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "id_parent",
+        "type": "bigint"
+      },
+      {
+        "name": "id_order_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      }
+    ],
+    "kelas": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "is_active",
+        "type": "bigint"
+      },
+      {
+        "name": "min_anggota",
+        "type": "bigint"
+      },
+      {
+        "name": "max_anggota",
+        "type": "bigint"
+      },
+      {
+        "name": "keterangan",
+        "type": "longtext"
+      },
+      {
+        "name": "nama_kelas",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "duration",
+        "type": "bigint"
+      },
+      {
+        "name": "bawaan",
+        "type": "varchar"
+      },
+      {
+        "name": "type",
+        "type": "varchar"
+      },
+      {
+        "name": "honor",
+        "type": "bigint"
+      },
+      {
+        "name": "fee",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      }
+    ],
+    "kelas_activities": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location_studio",
+        "type": "bigint"
+      },
+      {
+        "name": "jam_mulai",
+        "type": "datetime"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "nama_latihan",
+        "type": "varchar"
+      },
+      {
+        "name": "level",
+        "type": "bigint"
+      },
+      {
+        "name": "tanggal",
+        "type": "datetime"
+      },
+      {
+        "name": "user_update",
+        "type": "varchar"
+      },
+      {
+        "name": "rating",
+        "type": "bigint"
+      }
+    ],
+    "kelas_images": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "image",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "kelas_pakets": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "id_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "kelas_pertamuans": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "datetime_avaiable",
+        "type": "datetime"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "keterangan",
+        "type": "longtext"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "kelas_pertemuan_absensis": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas_pertemuan",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "waktu_masuk",
+        "type": "varchar"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "keterangan",
+        "type": "longtext"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "kelas_ratings": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "id_kelas_activity",
+        "type": "bigint"
+      },
+      {
+        "name": "comment",
+        "type": "varchar"
+      },
+      {
+        "name": "rating",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "location_openings": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "hari",
+        "type": "varchar"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "jam_open",
+        "type": "time"
+      },
+      {
+        "name": "jam_close",
+        "type": "time"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "location_studios": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "equipment",
+        "type": "varchar"
+      },
+      {
+        "name": "image",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "no_hp",
+        "type": "varchar"
+      }
+    ],
+    "locations": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "deskripsi",
+        "type": "longtext"
+      },
+      {
+        "name": "no_hp",
+        "type": "varchar"
+      },
+      {
+        "name": "alamat",
+        "type": "longtext"
+      },
+      {
+        "name": "email",
+        "type": "varchar"
+      },
+      {
+        "name": "url_location",
+        "type": "varchar"
+      },
+      {
+        "name": "image",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "nama_bank",
+        "type": "varchar"
+      },
+      {
+        "name": "no_rekening",
+        "type": "varchar"
+      },
+      {
+        "name": "atas_nama",
+        "type": "varchar"
+      }
+    ],
+    "migrations": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "migration",
+        "type": "varchar"
+      },
+      {
+        "name": "batch",
+        "type": "varchar"
+      }
+    ],
+    "model_has_permissions": [
+      {
+        "name": "permission_id",
+        "type": "bigint"
+      },
+      {
+        "name": "model_type",
+        "type": "varchar"
+      },
+      {
+        "name": "model_id",
+        "type": "bigint"
+      }
+    ],
+    "model_has_roles": [
+      {
+        "name": "role_id",
+        "type": "bigint"
+      },
+      {
+        "name": "model_type",
+        "type": "varchar"
+      },
+      {
+        "name": "model_id",
+        "type": "bigint"
+      }
+    ],
+    "notifications": [
+      {
+        "name": "id",
+        "type": "varchar"
+      },
+      {
+        "name": "type",
+        "type": "varchar"
+      },
+      {
+        "name": "notifiable_type",
+        "type": "varchar"
+      },
+      {
+        "name": "notifiable_id",
+        "type": "bigint"
+      },
+      {
+        "name": "data",
+        "type": "longtext"
+      },
+      {
+        "name": "read_at",
+        "type": "datetime"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "order_pakets": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_user",
+        "type": "bigint"
+      },
+      {
+        "name": "id_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "harga",
+        "type": "bigint"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "is_active",
+        "type": "bigint"
+      },
+      {
+        "name": "expired_date",
+        "type": "datetime"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "tanggal_pembayaran",
+        "type": "datetime"
+      },
+      {
+        "name": "bukti_pembayaran",
+        "type": "varchar"
+      },
+      {
+        "name": "jumlah_pertemuan",
+        "type": "bigint"
+      },
+      {
+        "name": "sisa",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "unix_code",
+        "type": "varchar"
+      },
+      {
+        "name": "metode_pembayaran",
+        "type": "varchar"
+      }
+    ],
+    "paket_locations": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "pakets": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "jumlah_pertemuan",
+        "type": "bigint"
+      },
+      {
+        "name": "harga",
+        "type": "bigint"
+      },
+      {
+        "name": "valid_day",
+        "type": "bigint"
+      },
+      {
+        "name": "promote_code",
+        "type": "varchar"
+      },
+      {
+        "name": "diskon",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "id_kelas",
+        "type": "bigint"
+      },
+      {
+        "name": "is_many_times",
+        "type": "bigint"
+      },
+      {
+        "name": "is_show_public",
+        "type": "bigint"
+      }
+    ],
+    "password_reset_tokens": [
+      {
+        "name": "email",
+        "type": "varchar"
+      },
+      {
+        "name": "token",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      }
+    ],
+    "permissions": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "name",
+        "type": "varchar"
+      },
+      {
+        "name": "guard_name",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "personal_access_tokens": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "tokenable_type",
+        "type": "varchar"
+      },
+      {
+        "name": "tokenable_id",
+        "type": "bigint"
+      },
+      {
+        "name": "name",
+        "type": "varchar"
+      },
+      {
+        "name": "token",
+        "type": "varchar"
+      },
+      {
+        "name": "abilities",
+        "type": "varchar"
+      },
+      {
+        "name": "last_used_at",
+        "type": "datetime"
+      },
+      {
+        "name": "expires_at",
+        "type": "datetime"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "role_has_permissions": [
+      {
+        "name": "permission_id",
+        "type": "bigint"
+      },
+      {
+        "name": "role_id",
+        "type": "bigint"
+      }
+    ],
+    "roles": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "name",
+        "type": "varchar"
+      },
+      {
+        "name": "guard_name",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "ruangans": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_location_studio",
+        "type": "bigint"
+      },
+      {
+        "name": "nama_ruangan",
+        "type": "varchar"
+      },
+      {
+        "name": "max_peserta",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      }
+    ],
+    "users": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "name",
+        "type": "varchar"
+      },
+      {
+        "name": "email",
+        "type": "varchar"
+      },
+      {
+        "name": "email_verified_at",
+        "type": "datetime"
+      },
+      {
+        "name": "password",
+        "type": "varchar"
+      },
+      {
+        "name": "remember_token",
+        "type": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "no_hp",
+        "type": "varchar"
+      },
+      {
+        "name": "alamat",
+        "type": "longtext"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "foto",
+        "type": "varchar"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "jenis_kelamin",
+        "type": "varchar"
+      },
+      {
+        "name": "negara",
+        "type": "varchar"
+      },
+      {
+        "name": "tanggal_lahir",
+        "type": "datetime"
+      },
+      {
+        "name": "id_location",
+        "type": "bigint"
+      },
+      {
+        "name": "rating",
+        "type": "bigint"
+      },
+      {
+        "name": "ktp",
+        "type": "varchar"
+      },
+      {
+        "name": "selfie",
+        "type": "varchar"
+      },
+      {
+        "name": "nik",
+        "type": "varchar"
+      },
+      {
+        "name": "barcode",
+        "type": "varchar"
+      },
+      {
+        "name": "google_id",
+        "type": "bigint"
+      }
+    ],
+    "voucher_customers": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "id_voucher",
+        "type": "bigint"
+      },
+      {
+        "name": "id_customer",
+        "type": "bigint"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "expired",
+        "type": "datetime"
+      },
+      {
+        "name": "status_digunakan",
+        "type": "bigint"
+      },
+      {
+        "name": "tanggal_digunakan",
+        "type": "datetime"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "id_order_paket",
+        "type": "bigint"
+      }
+    ],
+    "vouchers": [
+      {
+        "name": "id",
+        "type": "bigint"
+      },
+      {
+        "name": "nama",
+        "type": "varchar"
+      },
+      {
+        "name": "deskripsi",
+        "type": "longtext"
+      },
+      {
+        "name": "expired",
+        "type": "datetime"
+      },
+      {
+        "name": "image",
+        "type": "varchar"
+      },
+      {
+        "name": "status",
+        "type": "bigint"
+      },
+      {
+        "name": "disc_harga",
+        "type": "bigint"
+      },
+      {
+        "name": "disc_percent",
+        "type": "bigint"
+      },
+      {
+        "name": "tanggal_aktif",
+        "type": "datetime"
+      },
+      {
+        "name": "lama_aktif",
+        "type": "bigint"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deleted_at",
+        "type": "datetime"
+      },
+      {
+        "name": "id_paket",
+        "type": "bigint"
+      },
+      {
+        "name": "kode_voucher",
+        "type": "varchar"
+      },
+      {
+        "name": "sekali_gunakan",
+        "type": "bigint"
+      }
+    ]
+  }
+}

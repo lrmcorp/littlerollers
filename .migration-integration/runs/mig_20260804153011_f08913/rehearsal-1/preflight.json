@@ -1,0 +1,46 @@
+{
+  "sourceDatabaseHash": "31778c8860651f55607d9556720f47fd175f7cb07283df4eb176c519842d33e8",
+  "serverVersion": "8.4.10",
+  "credentialReadOnly": true,
+  "grantSetHash": "6acda6c5c134c4b18333a7b872f52c0de4a3ada3686a2c79b07c02163783eb3d",
+  "serverReadOnly": false,
+  "serverSuperReadOnly": false,
+  "mediaMode": "metadata-only",
+  "snapshot": {
+    "snapshotStartedAt": "2026-08-04T15:30:10.832Z",
+    "snapshotCompletedAt": "2026-08-04T15:30:11.832Z",
+    "snapshotGtidHash": "72770805d750c7e5b6f0549c68b0743cb4b774088218a8a9fad3867571924c0f"
+  },
+  "dump": {
+    "name": "synthetic-v1.sql",
+    "sizeBytes": 18216,
+    "sha256": "fb66be934d0df48d7908b534935211cea56b0b474c132bbbfd87e6f40efeee15"
+  },
+  "metrics": {
+    "generation": {
+      "durationMs": 1384,
+      "peakRssKb": 166256,
+      "cpuSeconds": 0.24
+    },
+    "migrations": {
+      "durationMs": 4294,
+      "peakRssKb": 166304,
+      "cpuSeconds": 0.23
+    },
+    "preflight": {
+      "durationMs": 302,
+      "peakRssKb": 145248,
+      "cpuSeconds": 0.32
+    },
+    "profile": {
+      "durationMs": 238,
+      "peakRssKb": 0,
+      "cpuSeconds": 0
+    },
+    "gate": {
+      "durationMs": 286,
+      "peakRssKb": 142576,
+      "cpuSeconds": 0.3
+    }
+  }
+}

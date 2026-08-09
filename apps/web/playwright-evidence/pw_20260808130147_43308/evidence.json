@@ -1,0 +1,25 @@
+{
+  "runId": "pw_20260808130147_43308",
+  "startedAt": "2026-08-08T13:01:47.614Z",
+  "finishedAt": "2026-08-08T13:02:36.681Z",
+  "status": "FAILED",
+  "signal": null,
+  "error": "pnpm exited with code 1",
+  "nextDistDir": ".next-playwright-runs/pw_20260808130147_43308",
+  "keepRun": false,
+  "requests": [
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/me/notifications/unread-count"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v1/public/site-config"
+    }
+  ],
+  "unhandled": []
+}
