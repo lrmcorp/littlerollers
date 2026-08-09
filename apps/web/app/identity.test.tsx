@@ -634,7 +634,9 @@ describe('assignment UI', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Akhiri' }));
     const endDialog = await screen.findByRole('dialog', { name: 'Akhiri assignment' });
     const endForm = within(endDialog);
-    await userEvent.type(endForm.getByLabelText(/Efektif berakhir/), '2026-08-10T00:00');
+    fireEvent.change(endForm.getByLabelText(/Efektif berakhir/), {
+      target: { value: '2026-08-10T00:00' },
+    });
     fireEvent.change(endForm.getByLabelText(/Alasan/), {
       target: { value: 'periode selesai' },
     });

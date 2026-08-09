@@ -7,22 +7,22 @@ void main() {
   // TODO add properties to the builder and call build()
 
   group(DashboardOverviewPeriod, () {
-    // DateTime from
+    // Date from
     test('to test the property `from`', () async {
       // TODO
     });
 
-    // DateTime until
+    // Date until
     test('to test the property `until`', () async {
       // TODO
     });
 
-    // DateTime previousFrom
+    // Date previousFrom
     test('to test the property `previousFrom`', () async {
       // TODO
     });
 
-    // DateTime previousUntil
+    // Date previousUntil
     test('to test the property `previousUntil`', () async {
       // TODO
     });

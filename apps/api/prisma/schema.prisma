@@ -514,6 +514,7 @@ model User {
   instructorCheckInTokens            InstructorCheckInToken[]            @relation("InstructorTokenOwner")
   issuedInstructorCheckInTokens      InstructorCheckInToken[]            @relation("InstructorTokenIssuer")
   instructorAttendances              InstructorAttendance[]              @relation("InstructorAttendanceOwner")
+  instructorHourLogs                 InstructorHourLog[]                 @relation("InstructorHourLogOwner")
   identityDocuments                  IdentityVerificationDocument[]      @relation("IdentityDocumentOwner")
   reviewedIdentityDocuments          IdentityVerificationDocument[]      @relation("IdentityDocumentReviewer")
   deletedIdentityDocuments           IdentityVerificationDocument[]      @relation("IdentityDocumentDeleter")
@@ -532,10 +533,10 @@ model User {
   bookingFeedbacks                   BookingFeedback[]
   authoredJournalEntries             JournalEntry[]                      @relation("JournalEntryActor")
   authoredLegacyFinancialEntries     LegacyFinancialEntry[]              @relation("LegacyFinancialEntryActor")
-  createdOtherCosts                  OtherCost[]                          @relation("OtherCostCreator")
-  closedFinancePeriods               FinancePeriod[]                      @relation("FinancePeriodCloser")
-  requestedFinanceCorrections        FinanceCorrection[]                  @relation("FinanceCorrectionRequester")
-  decidedFinanceCorrections          FinanceCorrection[]                  @relation("FinanceCorrectionDecider")
+  createdOtherCosts                  OtherCost[]                         @relation("OtherCostCreator")
+  closedFinancePeriods               FinancePeriod[]                     @relation("FinancePeriodCloser")
+  requestedFinanceCorrections        FinanceCorrection[]                 @relation("FinanceCorrectionRequester")
+  decidedFinanceCorrections          FinanceCorrection[]                 @relation("FinanceCorrectionDecider")
   mediaAssets                        MediaAsset[]
   contactAliases                     UserContactAlias[]
   customerClassEnrollments           CustomerClassEnrollment[]
@@ -656,10 +657,12 @@ model Branch {
   vouchers                 Voucher[]
   instructorAvailabilities InstructorAvailability[]
   classSlots               ClassSlot[]
+  instructorHourLogs       InstructorHourLog[]
   bookings                 Booking[]
   reschedules              Reschedule[]
   customerAttendances      CustomerAttendance[]
   instructorAttendances    InstructorAttendance[]
+  financeCloseSnapshots    FinanceCloseSnapshot[]
   preferredByUsers         User[]                         @relation("PreferredBranchCustomers")
   userNotifications        UserNotification[]
   publicProfile            BranchPublicProfile?
@@ -748,6 +751,7 @@ model ClassType {
   voucherScopes            Voucher[]
   customerPackages         CustomerPackage[]
   classSlots               ClassSlot[]
+  instructorHourLogs       InstructorHourLog[]
   recurringSchedules       CustomerRecurringSchedule[]
   customerClassEnrollments CustomerClassEnrollment[]
   historical               Boolean                        @default(false)
@@ -849,40 +853,41 @@ model InstructorAvailability {
 }
 
 model ClassSlot {
-  id                     String                           @id @db.Char(36)
-  branchId               String                           @db.Char(36)
-  classTypeId            String                           @db.Char(36)
-  studioId               String                           @db.Char(36)
-  roomId                 String?                          @db.Char(36)
-  instructorUserId       String?                          @db.Char(36)
-  startAt                DateTime
-  endAt                  DateTime
-  timezone               String
-  minimumQuota           Int
-  capacity               Int
-  bookedCount            Int                              @default(0)
-  status                 ClassSlotStatus                  @default(DRAFT)
-  cancellationReasonCode ClassSlotCancellationReasonCode?
-  version                Int                              @default(0)
-  createdAt              DateTime                         @default(now())
-  updatedAt              DateTime                         @updatedAt
-  branch                 Branch                           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType              ClassType                        @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  studio                 Studio                           @relation(fields: [studioId], references: [id], onDelete: Restrict)
-  room                   Room?                            @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  instructor             User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
-  reservations           SessionReservation[]
-  bookings               Booking[]
-  customerAttendances    CustomerAttendance[]
+  id                      String                           @id @db.Char(36)
+  branchId                String                           @db.Char(36)
+  classTypeId             String                           @db.Char(36)
+  studioId                String                           @db.Char(36)
+  roomId                  String?                          @db.Char(36)
+  instructorUserId        String?                          @db.Char(36)
+  startAt                 DateTime
+  endAt                   DateTime
+  timezone                String
+  minimumQuota            Int
+  capacity                Int
+  bookedCount             Int                              @default(0)
+  status                  ClassSlotStatus                  @default(DRAFT)
+  cancellationReasonCode  ClassSlotCancellationReasonCode?
+  version                 Int                              @default(0)
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @updatedAt
+  branch                  Branch                           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType               ClassType                        @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  studio                  Studio                           @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  room                    Room?                            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  instructor              User?                            @relation("ClassSlotInstructor", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  reservations            SessionReservation[]
+  bookings                Booking[]
+  customerAttendances     CustomerAttendance[]
   instructorCheckInTokens InstructorCheckInToken[]
   instructorAttendances   InstructorAttendance[]
-  continuationPurchases  Purchase[]                       @relation("PurchaseContinuationSlot")
-  sourceReschedules      Reschedule[]                     @relation("RescheduleSourceSlot")
-  targetReschedules      Reschedule[]                     @relation("RescheduleTargetSlot")
-  quotaEvaluationJob     QuotaEvaluationJob?
-  historical             Boolean                          @default(false)
-  sourceDeletedAt        DateTime?
-  sourceMetadata         Json?
+  instructorHourLog       InstructorHourLog?
+  continuationPurchases   Purchase[]                       @relation("PurchaseContinuationSlot")
+  sourceReschedules       Reschedule[]                     @relation("RescheduleSourceSlot")
+  targetReschedules       Reschedule[]                     @relation("RescheduleTargetSlot")
+  quotaEvaluationJob      QuotaEvaluationJob?
+  historical              Boolean                          @default(false)
+  sourceDeletedAt         DateTime?
+  sourceMetadata          Json?
 
   @@index([branchId, startAt, id])
   @@index([studioId, startAt, id])
@@ -1864,24 +1869,24 @@ model CustomerAttendance {
 }
 
 model InstructorCheckInToken {
-  id                 String             @id @db.Char(36)
-  classSlotId        String             @db.Char(36)
-  instructorUserId   String             @db.Char(36)
-  issuedById         String             @db.Char(36)
-  tokenHash          String             @unique
-  activeClassSlotKey String?            @unique @db.Char(36)
+  id                 String                @id @db.Char(36)
+  classSlotId        String                @db.Char(36)
+  instructorUserId   String                @db.Char(36)
+  issuedById         String                @db.Char(36)
+  tokenHash          String                @unique
+  activeClassSlotKey String?               @unique @db.Char(36)
   idempotencyKeyHash String
   requestHash        String
   notBeforeAt        DateTime
   expiresAt          DateTime
-  status             CheckInTokenStatus @default(ACTIVE)
+  status             CheckInTokenStatus    @default(ACTIVE)
   usedAt             DateTime?
   revokedAt          DateTime?
-  version            Int                @default(0)
-  createdAt          DateTime           @default(now())
-  classSlot          ClassSlot          @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  instructor         User               @relation("InstructorTokenOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
-  issuedBy           User               @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  version            Int                   @default(0)
+  createdAt          DateTime              @default(now())
+  classSlot          ClassSlot             @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor         User                  @relation("InstructorTokenOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  issuedBy           User                  @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
   attendance         InstructorAttendance?
 
   @@unique([instructorUserId, idempotencyKeyHash])
@@ -1905,6 +1910,33 @@ model InstructorAttendance {
 
   @@index([instructorUserId, checkedInAt])
   @@index([branchId, checkedInAt])
+}
+
+model InstructorHourLog {
+  id                       String                 @id @default(uuid()) @db.Char(36)
+  classSlotId              String                 @unique @db.Char(36)
+  instructorUserId         String                 @db.Char(36)
+  branchId                 String                 @db.Char(36)
+  classTypeId              String                 @db.Char(36)
+  effectiveConfigurationId String                 @db.Char(36)
+  matchedUnits             Int                    @default(1)
+  feeRpSnapshot            Int
+  amountRp                 Int
+  period                   String                 @db.Char(7)
+  occurredAt               DateTime
+  historical               Boolean                @default(false)
+  sourceDeletedAt          DateTime?
+  sourceMetadata           Json?
+  createdAt                DateTime               @default(now())
+  classSlot                ClassSlot              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor               User                   @relation("InstructorHourLogOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  branch                   Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType                ClassType              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  effectiveConfiguration   EffectiveConfiguration @relation(fields: [effectiveConfigurationId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, occurredAt])
+  @@index([instructorUserId, occurredAt])
+  @@index([classTypeId, occurredAt])
 }
 
 model Reschedule {
@@ -1977,19 +2009,20 @@ model SessionAdjustment {
 }
 
 model EffectiveConfiguration {
-  id               String     @id @db.Char(36)
-  kind             String
-  businessKey      String
-  branchId         String?    @db.Char(36)
-  classTypeId      String?    @db.Char(36)
-  value            Json
-  effectiveFrom    DateTime   @db.Date
-  effectiveUntil   DateTime?  @db.Date
-  version          Int        @default(0)
-  approvedEvidence String?
-  createdAt        DateTime   @default(now())
-  branch           Branch?    @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  id                 String              @id @db.Char(36)
+  kind               String
+  businessKey        String
+  branchId           String?             @db.Char(36)
+  classTypeId        String?             @db.Char(36)
+  value              Json
+  effectiveFrom      DateTime            @db.Date
+  effectiveUntil     DateTime?           @db.Date
+  version            Int                 @default(0)
+  approvedEvidence   String?
+  createdAt          DateTime            @default(now())
+  branch             Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType          ClassType?          @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  instructorHourLogs InstructorHourLog[]
 
   @@index([kind, businessKey, effectiveFrom, effectiveUntil])
   @@index([branchId, kind, effectiveFrom])
@@ -2406,30 +2439,31 @@ model AccountingAccount {
 }
 
 model JournalEntry {
-  id              String            @id @default(uuid()) @db.Char(36)
-  branchId        String?           @db.Char(36)
-  accountId       String            @db.Char(36)
-  purchaseId      String?           @db.Char(36)
-  actorUserId     String?           @db.Char(36)
-  parentId        String?           @db.Char(36)
-  referenceNumber String?           @db.VarChar(191)
-  description     String?           @db.Text
-  debitRp         Int               @default(0)
-  creditRp        Int               @default(0)
-  occurredAt      DateTime
-  statusCode      String            @db.VarChar(64)
-  attachmentKey   String?           @db.VarChar(512)
-  historical      Boolean           @default(false)
-  sourceDeletedAt DateTime?
-  sourceMetadata  Json?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  branch          Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  account         AccountingAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  purchase        Purchase?         @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
-  actor           User?             @relation("JournalEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
-  parent          JournalEntry?     @relation("JournalEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children        JournalEntry[]    @relation("JournalEntryTree")
+  id                String             @id @default(uuid()) @db.Char(36)
+  branchId          String?            @db.Char(36)
+  accountId         String             @db.Char(36)
+  purchaseId        String?            @db.Char(36)
+  actorUserId       String?            @db.Char(36)
+  parentId          String?            @db.Char(36)
+  referenceNumber   String?            @db.VarChar(191)
+  description       String?            @db.Text
+  debitRp           Int                @default(0)
+  creditRp          Int                @default(0)
+  occurredAt        DateTime
+  statusCode        String             @db.VarChar(64)
+  attachmentKey     String?            @db.VarChar(512)
+  historical        Boolean            @default(false)
+  sourceDeletedAt   DateTime?
+  sourceMetadata    Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  account           AccountingAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  purchase          Purchase?          @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor             User?              @relation("JournalEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  parent            JournalEntry?      @relation("JournalEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children          JournalEntry[]     @relation("JournalEntryTree")
+  financeCorrection FinanceCorrection?
 
   @@index([branchId, occurredAt])
   @@index([accountId, occurredAt])
@@ -2442,6 +2476,9 @@ model OtherCost {
   branchId         String          @db.Char(36)
   period           String          @db.Char(7)
   description      String          @db.VarChar(300)
+  categoryCode     String          @default("LEGACY_UNCLASSIFIED") @db.VarChar(64)
+  occurredOn       DateTime        @db.Date
+  reason           String          @db.VarChar(500)
   amountRp         Int
   evidenceUploadId String?         @db.Char(36)
   status           OtherCostStatus @default(ACTIVE)
@@ -2457,42 +2494,70 @@ model OtherCost {
 }
 
 model FinancePeriod {
-  id           String              @id @default(uuid()) @db.Char(36)
-  branchId     String              @db.Char(36)
-  period       String              @db.Char(7)
-  status       FinancePeriodStatus @default(OPEN)
-  controlHash  String              @db.Char(64)
-  closedAt     DateTime?
-  closedById   String?             @db.Char(36)
-  version      Int                 @default(0)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  branch       Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  closedBy     User?               @relation("FinancePeriodCloser", fields: [closedById], references: [id], onDelete: Restrict)
+  id            String                @id @default(uuid()) @db.Char(36)
+  branchId      String                @db.Char(36)
+  period        String                @db.Char(7)
+  status        FinancePeriodStatus   @default(OPEN)
+  controlHash   String                @db.Char(64)
+  closedAt      DateTime?
+  closedById    String?               @db.Char(36)
+  version       Int                   @default(0)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  branch        Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  closedBy      User?                 @relation("FinancePeriodCloser", fields: [closedById], references: [id], onDelete: Restrict)
+  closeSnapshot FinanceCloseSnapshot?
 
   @@unique([branchId, period])
   @@index([status, period])
 }
 
+model FinanceCloseSnapshot {
+  id                         String        @id @default(uuid()) @db.Char(36)
+  financePeriodId            String        @unique @db.Char(36)
+  branchId                   String        @db.Char(36)
+  period                     String        @db.Char(7)
+  grossSalesRp               Int
+  packagePromotionDiscountRp Int
+  voucherDiscountRp          Int
+  revenueRp                  Int
+  projectionRp               Int
+  instructorRealtimeRp       Int
+  otherCostRp                Int
+  correctionRp               Int
+  profitRp                   Int
+  sourceCutoffAt             DateTime
+  sourceVersion              String        @db.VarChar(64)
+  controlHash                String        @db.Char(64)
+  createdAt                  DateTime      @default(now())
+  financePeriod              FinancePeriod @relation(fields: [financePeriodId], references: [id], onDelete: Restrict)
+  branch                     Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, period])
+  @@index([sourceCutoffAt])
+}
+
 model FinanceCorrection {
-  id              String                  @id @default(uuid()) @db.Char(36)
-  branchId        String                  @db.Char(36)
-  currentPeriod   String                  @db.Char(7)
-  referencePeriod String                  @db.Char(7)
-  amountRp        Int
-  reason          String                  @db.VarChar(500)
-  requestedById   String                  @db.Char(36)
-  decidedById     String?                 @db.Char(36)
-  decisionReason  String?                 @db.VarChar(500)
-  status          FinanceCorrectionStatus @default(PENDING)
-  decidedAt       DateTime?
-  postedAt        DateTime?
-  version         Int                     @default(0)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  branch          Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  requestedBy     User                    @relation("FinanceCorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  decidedBy       User?                   @relation("FinanceCorrectionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  id               String                  @id @default(uuid()) @db.Char(36)
+  branchId         String                  @db.Char(36)
+  currentPeriod    String                  @db.Char(7)
+  referencePeriod  String                  @db.Char(7)
+  amountRp         Int
+  reason           String                  @db.VarChar(500)
+  requestedById    String                  @db.Char(36)
+  decidedById      String?                 @db.Char(36)
+  decisionReason   String?                 @db.VarChar(500)
+  status           FinanceCorrectionStatus @default(PENDING)
+  decidedAt        DateTime?
+  postedAt         DateTime?
+  postingJournalId String?                 @unique @db.Char(36)
+  version          Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  branch           Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  requestedBy      User                    @relation("FinanceCorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy        User?                   @relation("FinanceCorrectionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  postingJournal   JournalEntry?           @relation(fields: [postingJournalId], references: [id], onDelete: Restrict)
 
   @@index([branchId, currentPeriod, status])
   @@index([requestedById, createdAt])

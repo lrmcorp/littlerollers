@@ -14,6 +14,7 @@ part 'dashboard_trend_point.g.dart';
 /// Properties:
 /// * [date] 
 /// * [revenue] 
+/// * [profit] 
 /// * [bookings] 
 @BuiltValue()
 abstract class DashboardTrendPoint implements Built<DashboardTrendPoint, DashboardTrendPointBuilder> {
@@ -22,6 +23,9 @@ abstract class DashboardTrendPoint implements Built<DashboardTrendPoint, Dashboa
 
   @BuiltValueField(wireName: r'revenue')
   int get revenue;
+
+  @BuiltValueField(wireName: r'profit')
+  int get profit;
 
   @BuiltValueField(wireName: r'bookings')
   int get bookings;
@@ -57,6 +61,11 @@ class _$DashboardTrendPointSerializer implements PrimitiveSerializer<DashboardTr
     yield r'revenue';
     yield serializers.serialize(
       object.revenue,
+      specifiedType: const FullType(int),
+    );
+    yield r'profit';
+    yield serializers.serialize(
+      object.profit,
       specifiedType: const FullType(int),
     );
     yield r'bookings';
@@ -100,6 +109,13 @@ class _$DashboardTrendPointSerializer implements PrimitiveSerializer<DashboardTr
             specifiedType: const FullType(int),
           ) as int;
           result.revenue = valueDes;
+          break;
+        case r'profit':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.profit = valueDes;
           break;
         case r'bookings':
           final valueDes = serializers.deserialize(

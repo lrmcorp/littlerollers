@@ -17,6 +17,11 @@ void main() {
       // TODO
     });
 
+    // int profit
+    test('to test the property `profit`', () async {
+      // TODO
+    });
+
     // int bookings
     test('to test the property `bookings`', () async {
       // TODO

@@ -145,6 +145,7 @@ models/CustomerRescheduleTarget.ts
 models/CustomerSessionUsageSummary.ts
 models/DashboardActivityItem.ts
 models/DashboardBranchPerformance.ts
+models/DashboardFinancialSummary.ts
 models/DashboardMetric.ts
 models/DashboardOverview.ts
 models/DashboardOverviewPeriod.ts
@@ -152,6 +153,7 @@ models/DashboardQueueSummary.ts
 models/DashboardRiskItem.ts
 models/DashboardSections.ts
 models/DashboardTrendPoint.ts
+models/Dec006Approval.ts
 models/DecideCorrectionRequest.ts
 models/DecideInternalV1MigrationResolutionRequest.ts
 models/DeleteIdentityVerificationFileRequest.ts
@@ -167,14 +169,22 @@ models/EndAssignmentCommand.ts
 models/ErrorEnvelope.ts
 models/ErrorEnvelopeError.ts
 models/ErrorEnvelopeErrorDetailsInner.ts
+models/ExportAuthoritativeFinanceReportRequest.ts
 models/FinalizeUploadCommand.ts
 models/FinanceAnomaly.ts
 models/FinanceBranchReconciliation.ts
+models/FinanceCloseSnapshot.ts
+models/FinanceExportResult.ts
 models/FinanceReconciliationMetric.ts
 models/FinanceReconciliationOverview.ts
 models/FinanceReconciliationOverviewPeriod.ts
+models/FinancialBranchProfitRow.ts
+models/FinancialProjectionRow.ts
 models/FinancialReport.ts
 models/FinancialReportPage.ts
+models/FinancialReportPageItemsInner.ts
+models/FinancialRevenueRow.ts
+models/FinancialTotals.ts
 models/GetClassCompletionControl200Response.ts
 models/GetFinanceReconciliationAnomalies200Response.ts
 models/GetMyNotificationUnreadCount200Response.ts
@@ -190,6 +200,7 @@ models/IdentityVerificationReviewPage.ts
 models/IdentityVerificationReviewSummary.ts
 models/IdentityVerificationReviewUser.ts
 models/IdentityVerificationSummary.ts
+models/InstructorCompensationRow.ts
 models/InstructorFeeCommand.ts
 models/InternalPackageDetail.ts
 models/InviteUserRequest.ts

@@ -12,9 +12,12 @@ Name | Type | Description | Notes
 **branchId** | **String** |  | 
 **period** | **String** |  | 
 **generatedAt** | [**DateTime**](DateTime.md) |  | 
+**sourceCutoffAt** | [**DateTime**](DateTime.md) |  | 
+**completeness** | **String** |  | 
+**anomalyCount** | **int** |  | 
 **controlHash** | **String** |  | 
-**totals** | [**BuiltMap&lt;String, Money&gt;**](Money.md) |  | 
-**sourceVersion** | **String** |  | [optional] 
+**totals** | [**FinancialTotals**](FinancialTotals.md) |  | 
+**sourceVersion** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

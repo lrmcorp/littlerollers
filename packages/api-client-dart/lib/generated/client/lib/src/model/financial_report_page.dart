@@ -3,10 +3,10 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/financial_report_page_items_inner.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/financial_report.dart';
 import 'package:openapi/src/model/cursor_page_meta.dart';
-import 'package:built_value/json_object.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -24,7 +24,7 @@ abstract class FinancialReportPage implements Built<FinancialReportPage, Financi
   FinancialReport get report;
 
   @BuiltValueField(wireName: r'items')
-  BuiltList<JsonObject> get items;
+  BuiltList<FinancialReportPageItemsInner> get items;
 
   @BuiltValueField(wireName: r'page')
   CursorPageMeta get page;
@@ -60,7 +60,7 @@ class _$FinancialReportPageSerializer implements PrimitiveSerializer<FinancialRe
     yield r'items';
     yield serializers.serialize(
       object.items,
-      specifiedType: const FullType(BuiltList, [FullType(JsonObject)]),
+      specifiedType: const FullType(BuiltList, [FullType(FinancialReportPageItemsInner)]),
     );
     yield r'page';
     yield serializers.serialize(
@@ -100,8 +100,8 @@ class _$FinancialReportPageSerializer implements PrimitiveSerializer<FinancialRe
         case r'items':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltList, [FullType(JsonObject)]),
-          ) as BuiltList<JsonObject>;
+            specifiedType: const FullType(BuiltList, [FullType(FinancialReportPageItemsInner)]),
+          ) as BuiltList<FinancialReportPageItemsInner>;
           result.items.replace(valueDes);
           break;
         case r'page':

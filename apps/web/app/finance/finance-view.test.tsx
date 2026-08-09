@@ -67,4 +67,63 @@ describe('Finance anomaly pagination', () => {
     expect(overview).toHaveBeenCalledTimes(1);
     expect(anomalies).toHaveBeenLastCalledWith(expect.any(Object), 'purchase-20');
   });
+
+  it('downloads only the audited authoritative server export', async () => {
+    const exportReport = vi.fn().mockResolvedValue({
+      fileName: 'finance-authoritative.csv',
+      mimeType: 'text/csv;charset=utf-8',
+      content: 'branch_code,revenue_rp\nJKT,1000000',
+      controlHash: 'a'.repeat(64),
+      sourceCutoffAt: new Date(),
+      completeness: 'COMPLETE',
+      auditLogId: 'audit-1',
+    });
+    const client = {
+      overview: vi.fn().mockResolvedValue({
+        generatedAt: new Date(),
+        period: { from: new Date(), until: new Date() },
+        metrics: {
+          expectedRp: 0,
+          receivedRp: 0,
+          approvedRp: 0,
+          identificationAmountRp: 0,
+          ledgerDeltaRp: 0,
+          unreconciledCount: 0,
+        },
+        branches: [],
+      }),
+      anomalies: vi.fn().mockResolvedValue({
+        items: [],
+        total: 0,
+        page: { hasMore: false, nextCursor: null },
+      }),
+      legacyCashflow: vi.fn().mockResolvedValue({
+        items: [],
+        total: 0,
+        summary: {},
+        page: { hasMore: false, nextCursor: null },
+      }),
+      exportReport,
+    } as FinanceClient;
+    const createObjectURL = vi.fn().mockReturnValue('blob:finance');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+
+    render(
+      <AppFeedbackProvider>
+        <FinanceView client={client} />
+      </AppFeedbackProvider>,
+    );
+    await screen.findByRole('heading', { name: 'Rekonsiliasi transaksi' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+
+    expect(exportReport).toHaveBeenCalledWith(expect.objectContaining({ branchId: 'branch-1' }));
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:finance');
+  });
 });

@@ -3,8 +3,8 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:openapi/src/model/money.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/financial_totals.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -17,6 +17,9 @@ part 'financial_report.g.dart';
 /// * [branchId] 
 /// * [period] 
 /// * [generatedAt] 
+/// * [sourceCutoffAt] 
+/// * [completeness] 
+/// * [anomalyCount] 
 /// * [controlHash] 
 /// * [totals] 
 /// * [sourceVersion] 
@@ -35,14 +38,24 @@ abstract class FinancialReport implements Built<FinancialReport, FinancialReport
   @BuiltValueField(wireName: r'generatedAt')
   DateTime get generatedAt;
 
+  @BuiltValueField(wireName: r'sourceCutoffAt')
+  DateTime get sourceCutoffAt;
+
+  @BuiltValueField(wireName: r'completeness')
+  FinancialReportCompletenessEnum get completeness;
+  // enum completenessEnum {  COMPLETE,  INCOMPLETE,  };
+
+  @BuiltValueField(wireName: r'anomalyCount')
+  int get anomalyCount;
+
   @BuiltValueField(wireName: r'controlHash')
   String get controlHash;
 
   @BuiltValueField(wireName: r'totals')
-  BuiltMap<String, Money> get totals;
+  FinancialTotals get totals;
 
   @BuiltValueField(wireName: r'sourceVersion')
-  String? get sourceVersion;
+  String get sourceVersion;
 
   FinancialReport._();
 
@@ -87,6 +100,21 @@ class _$FinancialReportSerializer implements PrimitiveSerializer<FinancialReport
       object.generatedAt,
       specifiedType: const FullType(DateTime),
     );
+    yield r'sourceCutoffAt';
+    yield serializers.serialize(
+      object.sourceCutoffAt,
+      specifiedType: const FullType(DateTime),
+    );
+    yield r'completeness';
+    yield serializers.serialize(
+      object.completeness,
+      specifiedType: const FullType(FinancialReportCompletenessEnum),
+    );
+    yield r'anomalyCount';
+    yield serializers.serialize(
+      object.anomalyCount,
+      specifiedType: const FullType(int),
+    );
     yield r'controlHash';
     yield serializers.serialize(
       object.controlHash,
@@ -95,15 +123,13 @@ class _$FinancialReportSerializer implements PrimitiveSerializer<FinancialReport
     yield r'totals';
     yield serializers.serialize(
       object.totals,
-      specifiedType: const FullType(BuiltMap, [FullType(String), FullType(Money)]),
+      specifiedType: const FullType(FinancialTotals),
     );
-    if (object.sourceVersion != null) {
-      yield r'sourceVersion';
-      yield serializers.serialize(
-        object.sourceVersion,
-        specifiedType: const FullType(String),
-      );
-    }
+    yield r'sourceVersion';
+    yield serializers.serialize(
+      object.sourceVersion,
+      specifiedType: const FullType(String),
+    );
   }
 
   @override
@@ -155,6 +181,27 @@ class _$FinancialReportSerializer implements PrimitiveSerializer<FinancialReport
           ) as DateTime;
           result.generatedAt = valueDes;
           break;
+        case r'sourceCutoffAt':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DateTime),
+          ) as DateTime;
+          result.sourceCutoffAt = valueDes;
+          break;
+        case r'completeness':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(FinancialReportCompletenessEnum),
+          ) as FinancialReportCompletenessEnum;
+          result.completeness = valueDes;
+          break;
+        case r'anomalyCount':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.anomalyCount = valueDes;
+          break;
         case r'controlHash':
           final valueDes = serializers.deserialize(
             value,
@@ -165,8 +212,8 @@ class _$FinancialReportSerializer implements PrimitiveSerializer<FinancialReport
         case r'totals':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(BuiltMap, [FullType(String), FullType(Money)]),
-          ) as BuiltMap<String, Money>;
+            specifiedType: const FullType(FinancialTotals),
+          ) as FinancialTotals;
           result.totals.replace(valueDes);
           break;
         case r'sourceVersion':
@@ -224,5 +271,20 @@ class FinancialReportReportTypeEnum extends EnumClass {
 
   static BuiltSet<FinancialReportReportTypeEnum> get values => _$financialReportReportTypeEnumValues;
   static FinancialReportReportTypeEnum valueOf(String name) => _$financialReportReportTypeEnumValueOf(name);
+}
+
+class FinancialReportCompletenessEnum extends EnumClass {
+
+  @BuiltValueEnumConst(wireName: r'COMPLETE')
+  static const FinancialReportCompletenessEnum COMPLETE = _$financialReportCompletenessEnum_COMPLETE;
+  @BuiltValueEnumConst(wireName: r'INCOMPLETE')
+  static const FinancialReportCompletenessEnum INCOMPLETE = _$financialReportCompletenessEnum_INCOMPLETE;
+
+  static Serializer<FinancialReportCompletenessEnum> get serializer => _$financialReportCompletenessEnumSerializer;
+
+  const FinancialReportCompletenessEnum._(String name): super(name);
+
+  static BuiltSet<FinancialReportCompletenessEnum> get values => _$financialReportCompletenessEnumValues;
+  static FinancialReportCompletenessEnum valueOf(String name) => _$financialReportCompletenessEnumValueOf(name);
 }
 

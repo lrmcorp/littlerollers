@@ -33,6 +33,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const [data, setData] = useState<FinanceData>();
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [anomalyCursor, setAnomalyCursor] = useState<string>();
   const [anomalyCursorHistory, setAnomalyCursorHistory] = useState<string[]>([]);
   const [legacyCursor, setLegacyCursor] = useState<string>();
@@ -110,38 +111,27 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       </Feedback>
     );
   const metrics = data?.overview.metrics;
-  const exportCsv = () => {
-    if (!data || !context?.hasCapability('finance:export')) return;
-    const rows = [
-      [
-        'branch_code',
-        'branch_name',
-        'expected_rp',
-        'received_rp',
-        'approved_rp',
-        'identification_amount_rp',
-        'pending_count',
-        'anomaly_count',
-      ],
-      ...data.overview.branches.map((item) => [
-        item.code,
-        item.name,
-        item.expectedRp,
-        item.receivedRp,
-        item.approvedRp,
-        item.identificationAmountRp,
-        item.pendingCount,
-        item.anomalyCount,
-      ]),
-    ];
-    const blob = new Blob([rows.map((row) => row.join(',')).join('\n')], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const anchor = document.createElement('a');
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `finance-reconciliation-${from}-${until}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
+  const exportCsv = async () => {
+    if (!data || !client.exportReport || !context?.hasCapability('finance:export')) return;
+    setExporting(true);
+    setFailed(false);
+    try {
+      const result = await client.exportReport({
+        branchId: context.activeBranchId || undefined,
+        from,
+        until,
+      });
+      const blob = new Blob([result.content], { type: String(result.mimeType) });
+      const anchor = document.createElement('a');
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = result.fileName;
+      anchor.click();
+      URL.revokeObjectURL(anchor.href);
+    } catch {
+      setFailed(true);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -160,8 +150,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Button
             variant="secondary"
             leadingIcon={<Download className="size-4" aria-hidden="true" />}
-            onClick={exportCsv}
-            disabled={!data || !context?.hasCapability('finance:export')}
+            onClick={() => void exportCsv()}
+            disabled={
+              exporting ||
+              !data ||
+              !client.exportReport ||
+              !context?.hasCapability('finance:export')
+            }
           >
             Export CSV
           </Button>

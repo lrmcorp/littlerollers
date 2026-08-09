@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **generatedAt** | [**DateTime**](DateTime.md) |  | 
 **period** | [**DashboardOverviewPeriod**](DashboardOverviewPeriod.md) |  | 
+**financial** | [**DashboardFinancialSummary**](DashboardFinancialSummary.md) |  | 
 **roleFocus** | **String** |  | 
 **sections** | [**DashboardSections**](DashboardSections.md) |  | 
 **metrics** | [**BuiltList&lt;DashboardMetric&gt;**](DashboardMetric.md) |  | 

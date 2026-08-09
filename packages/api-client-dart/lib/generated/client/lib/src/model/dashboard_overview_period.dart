@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -18,16 +19,16 @@ part 'dashboard_overview_period.g.dart';
 @BuiltValue()
 abstract class DashboardOverviewPeriod implements Built<DashboardOverviewPeriod, DashboardOverviewPeriodBuilder> {
   @BuiltValueField(wireName: r'from')
-  DateTime get from;
+  Date get from;
 
   @BuiltValueField(wireName: r'until')
-  DateTime get until;
+  Date get until;
 
   @BuiltValueField(wireName: r'previousFrom')
-  DateTime get previousFrom;
+  Date get previousFrom;
 
   @BuiltValueField(wireName: r'previousUntil')
-  DateTime get previousUntil;
+  Date get previousUntil;
 
   DashboardOverviewPeriod._();
 
@@ -55,22 +56,22 @@ class _$DashboardOverviewPeriodSerializer implements PrimitiveSerializer<Dashboa
     yield r'from';
     yield serializers.serialize(
       object.from,
-      specifiedType: const FullType(DateTime),
+      specifiedType: const FullType(Date),
     );
     yield r'until';
     yield serializers.serialize(
       object.until,
-      specifiedType: const FullType(DateTime),
+      specifiedType: const FullType(Date),
     );
     yield r'previousFrom';
     yield serializers.serialize(
       object.previousFrom,
-      specifiedType: const FullType(DateTime),
+      specifiedType: const FullType(Date),
     );
     yield r'previousUntil';
     yield serializers.serialize(
       object.previousUntil,
-      specifiedType: const FullType(DateTime),
+      specifiedType: const FullType(Date),
     );
   }
 
@@ -98,29 +99,29 @@ class _$DashboardOverviewPeriodSerializer implements PrimitiveSerializer<Dashboa
         case r'from':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(DateTime),
-          ) as DateTime;
+            specifiedType: const FullType(Date),
+          ) as Date;
           result.from = valueDes;
           break;
         case r'until':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(DateTime),
-          ) as DateTime;
+            specifiedType: const FullType(Date),
+          ) as Date;
           result.until = valueDes;
           break;
         case r'previousFrom':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(DateTime),
-          ) as DateTime;
+            specifiedType: const FullType(Date),
+          ) as Date;
           result.previousFrom = valueDes;
           break;
         case r'previousUntil':
           final valueDes = serializers.deserialize(
             value,
-            specifiedType: const FullType(DateTime),
-          ) as DateTime;
+            specifiedType: const FullType(Date),
+          ) as Date;
           result.previousUntil = valueDes;
           break;
         default:

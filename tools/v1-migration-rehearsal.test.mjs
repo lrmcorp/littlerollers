@@ -22,6 +22,9 @@ const validEnvironment = {
   MIGRATION_PII_KEY_BASE64: 'fixture',
   MIGRATION_PII_HASH_PEPPER: 'fixture',
   V1_EXPECTED_SOURCE_MYSQL_VERSION: '8.4',
+  V1_DEC006_CONFIGURATION_PACK_SHA256: 'b'.repeat(64),
+  V1_PROJECTION_RATES: '{"1:1":10000}',
+  V1_PROJECTION_RATE_EVIDENCE: `DEC-006:FIXTURE:${'b'.repeat(64)}`,
   V1_REHEARSAL_CONFIRMATION: 'REHEARSAL_1_DATABASE_ONLY',
 };
 
@@ -79,5 +82,13 @@ test('rejects an inconsistent snapshot window or unapproved mapping', () => {
   assert.throws(
     () => validateRehearsalEnvironment({ ...validEnvironment, V1_MAPPING_VERSION: '1.0.0' }),
     /V1_MAPPING_VERSION_NOT_APPROVED/u,
+  );
+  assert.throws(
+    () =>
+      validateRehearsalEnvironment({
+        ...validEnvironment,
+        V1_DEC006_CONFIGURATION_PACK_SHA256: '',
+      }),
+    /V1_DEC006_CONFIGURATION_PACK_SHA256_REQUIRED/u,
   );
 });

@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -13,7 +14,10 @@ part 'other_cost_command.g.dart';
 /// Properties:
 /// * [branchId] 
 /// * [period] 
+/// * [occurredOn] 
+/// * [categoryCode] 
 /// * [description] 
+/// * [reason] 
 /// * [amountRp] 
 /// * [evidenceUploadId] 
 @BuiltValue()
@@ -24,8 +28,17 @@ abstract class OtherCostCommand implements Built<OtherCostCommand, OtherCostComm
   @BuiltValueField(wireName: r'period')
   String get period;
 
+  @BuiltValueField(wireName: r'occurredOn')
+  Date get occurredOn;
+
+  @BuiltValueField(wireName: r'categoryCode')
+  String get categoryCode;
+
   @BuiltValueField(wireName: r'description')
   String get description;
+
+  @BuiltValueField(wireName: r'reason')
+  String get reason;
 
   @BuiltValueField(wireName: r'amountRp')
   int get amountRp;
@@ -66,9 +79,24 @@ class _$OtherCostCommandSerializer implements PrimitiveSerializer<OtherCostComma
       object.period,
       specifiedType: const FullType(String),
     );
+    yield r'occurredOn';
+    yield serializers.serialize(
+      object.occurredOn,
+      specifiedType: const FullType(Date),
+    );
+    yield r'categoryCode';
+    yield serializers.serialize(
+      object.categoryCode,
+      specifiedType: const FullType(String),
+    );
     yield r'description';
     yield serializers.serialize(
       object.description,
+      specifiedType: const FullType(String),
+    );
+    yield r'reason';
+    yield serializers.serialize(
+      object.reason,
       specifiedType: const FullType(String),
     );
     yield r'amountRp';
@@ -120,12 +148,33 @@ class _$OtherCostCommandSerializer implements PrimitiveSerializer<OtherCostComma
           ) as String;
           result.period = valueDes;
           break;
+        case r'occurredOn':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(Date),
+          ) as Date;
+          result.occurredOn = valueDes;
+          break;
+        case r'categoryCode':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.categoryCode = valueDes;
+          break;
         case r'description':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(String),
           ) as String;
           result.description = valueDes;
+          break;
+        case r'reason':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.reason = valueDes;
           break;
         case r'amountRp':
           final valueDes = serializers.deserialize(

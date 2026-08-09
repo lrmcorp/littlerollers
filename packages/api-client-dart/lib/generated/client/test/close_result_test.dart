@@ -17,6 +17,11 @@ void main() {
       // TODO
     });
 
+    // FinanceCloseSnapshot snapshot
+    test('to test the property `snapshot`', () async {
+      // TODO
+    });
+
     // String auditLogId
     test('to test the property `auditLogId`', () async {
       // TODO

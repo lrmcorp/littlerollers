@@ -2,18 +2,13 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
+import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
+import { FinancialAggregationService } from '../finance/financial-aggregation.service';
 
 const DAY = 86_400_000;
 
-function parseBoundary(value: string | undefined, fallback: Date, end = false) {
-  if (!value) return fallback;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-  const date = new Date(`${value}T${end ? '23:59:59.999' : '00:00:00.000'}Z`);
-  if (Number.isNaN(date.getTime()))
-    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-  return date;
-}
+const dateShift = (date: string, days: number) =>
+  new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 
 function percentChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? 0 : 100;
@@ -22,7 +17,10 @@ function percentChange(current: number, previous: number) {
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly financialAggregation: FinancialAggregationService,
+  ) {}
 
   async customerOverview(principal: SessionPrincipal) {
     if (!principal.roles.some(({ role }) => role === 'CUSTOMER'))
@@ -128,29 +126,73 @@ export class DashboardService {
     if (principal.roles.every(({ role }) => role === 'CUSTOMER' || role === 'INSTRUCTOR')) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
-    const global = principal.capabilities.some((item) =>
-      ['branch:all', 'finance:read', 'operations:read'].includes(item),
-    );
+    const global =
+      principal.capabilities.includes('branch:all') ||
+      principal.roles.some(
+        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE'].includes(role),
+      );
     if (query.branchId && !global && !principal.branchIds.includes(query.branchId)) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
     const now = new Date();
-    const until = parseBoundary(query.until, now, true);
-    const from = parseBoundary(query.from, new Date(until.getTime() - 29 * DAY));
-    if (from >= until || until.getTime() - from.getTime() > 366 * DAY) {
+    const today = dateInTimeZone(now, 'Asia/Jakarta');
+    const untilDate = query.until ?? today;
+    const fromDate = query.from ?? dateShift(untilDate, -29);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/u.test(fromDate) ||
+      !/^\d{4}-\d{2}-\d{2}$/u.test(untilDate) ||
+      fromDate > untilDate ||
+      Date.parse(`${untilDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`) > 365 * DAY
+    ) {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    const span = until.getTime() - from.getTime();
-    const previousFrom = new Date(from.getTime() - span);
-    const branchIds = query.branchId ? [query.branchId] : global ? undefined : principal.branchIds;
-    const branchWhere = branchIds ? { in: branchIds } : undefined;
+    const allowedBranches = await this.db.branch.findMany({
+      where: {
+        active: true,
+        ...(query.branchId
+          ? { id: query.branchId }
+          : global
+            ? {}
+            : { id: { in: principal.branchIds } }),
+      },
+      select: { id: true, code: true, name: true, timezone: true },
+      orderBy: { code: 'asc' },
+    });
+    if (!allowedBranches.length) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const branchIds = allowedBranches.map(({ id }) => id);
+    const branchWhere = { in: branchIds };
     const scoped = branchWhere ? { branchId: branchWhere } : {};
-    const currentRange = { gte: from, lte: until };
-    const previousRange = { gte: previousFrom, lt: from };
+    const dayCount =
+      Math.round(
+        (Date.parse(`${untilDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`)) / DAY,
+      ) + 1;
+    const previousUntilDate = dateShift(fromDate, -1);
+    const previousFromDate = dateShift(previousUntilDate, -(dayCount - 1));
+    const bookingCurrentScopes = allowedBranches.map((branch) => ({
+      branchId: branch.id,
+      createdAt: {
+        gte: startOfLocalDateUtc(fromDate, branch.timezone),
+        lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
+      },
+    }));
+    const bookingPreviousScopes = allowedBranches.map((branch) => ({
+      branchId: branch.id,
+      createdAt: {
+        gte: startOfLocalDateUtc(previousFromDate, branch.timezone),
+        lt: startOfLocalDateUtc(fromDate, branch.timezone),
+      },
+    }));
+    const slotCurrentScopes = allowedBranches.map((branch) => ({
+      branchId: branch.id,
+      startAt: {
+        gte: startOfLocalDateUtc(fromDate, branch.timezone),
+        lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
+      },
+    }));
 
     const [
-      currentRevenue,
-      previousRevenue,
+      financial,
+      previousFinancial,
       currentBookings,
       previousBookings,
       activeCustomers,
@@ -160,23 +202,24 @@ export class DashboardService {
       pendingReschedules,
       pendingAdjustments,
       failedJobs,
-      branches,
-      trendPurchases,
       trendBookings,
       risks,
       activities,
       jobs,
     ] = await Promise.all([
-      this.db.purchase.aggregate({
-        where: { ...scoped, status: 'APPROVED', decidedAt: currentRange },
-        _sum: { priceRpSnapshot: true },
+      this.financialAggregation.aggregate({ branchIds, from: fromDate, until: untilDate }),
+      this.financialAggregation.aggregate({
+        branchIds,
+        from: previousFromDate,
+        until: previousUntilDate,
       }),
-      this.db.purchase.aggregate({
-        where: { ...scoped, status: 'APPROVED', decidedAt: previousRange },
-        _sum: { priceRpSnapshot: true },
+      this.db.booking.count({ where: { OR: bookingCurrentScopes, status: 'BOOKED' } }),
+      this.db.booking.count({
+        where: {
+          OR: bookingPreviousScopes,
+          status: 'BOOKED',
+        },
       }),
-      this.db.booking.count({ where: { ...scoped, createdAt: currentRange, status: 'BOOKED' } }),
-      this.db.booking.count({ where: { ...scoped, createdAt: previousRange, status: 'BOOKED' } }),
       this.db.customerPackage.findMany({
         where: { ...scoped, status: 'ACTIVE' },
         distinct: ['customerUserId'],
@@ -184,8 +227,7 @@ export class DashboardService {
       }),
       this.db.classSlot.findMany({
         where: {
-          ...scoped,
-          startAt: currentRange,
+          OR: slotCurrentScopes,
           status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
         },
         select: { capacity: true, bookedCount: true },
@@ -205,16 +247,8 @@ export class DashboardService {
           ...(branchWhere ? { classSlot: { branchId: branchWhere } } : {}),
         },
       }),
-      this.db.branch.findMany({
-        where: { active: true, ...(branchIds ? { id: branchWhere } : {}) },
-        select: { id: true, code: true, name: true },
-      }),
-      this.db.purchase.findMany({
-        where: { ...scoped, status: 'APPROVED', decidedAt: currentRange },
-        select: { decidedAt: true, priceRpSnapshot: true },
-      }),
       this.db.booking.findMany({
-        where: { ...scoped, createdAt: currentRange, status: 'BOOKED' },
+        where: { OR: bookingCurrentScopes, status: 'BOOKED' },
         select: { createdAt: true },
       }),
       this.db.classSlot.findMany({
@@ -261,19 +295,16 @@ export class DashboardService {
       }),
     ]);
 
-    const revenue = currentRevenue._sum.priceRpSnapshot ?? 0;
-    const previousRevenueValue = previousRevenue._sum.priceRpSnapshot ?? 0;
+    const revenue = financial.totals.revenueRp;
+    const previousRevenueValue = previousFinancial.totals.revenueRp;
     const capacity = slots.reduce((sum, item) => sum + item.capacity, 0);
     const booked = slots.reduce((sum, item) => sum + item.bookedCount, 0);
-    const trend = new Map<string, { revenue: number; bookings: number }>();
-    for (let cursor = new Date(from); cursor <= until; cursor = new Date(cursor.getTime() + DAY))
-      trend.set(cursor.toISOString().slice(0, 10), { revenue: 0, bookings: 0 });
-    for (const item of trendPurchases)
-      if (item.decidedAt) {
-        const key = item.decidedAt.toISOString().slice(0, 10);
-        const point = trend.get(key);
-        if (point) point.revenue += item.priceRpSnapshot;
-      }
+    const trend = new Map(
+      financial.trend.map((item) => [
+        item.date,
+        { revenue: item.revenueRp, profit: item.profitRp, bookings: 0 },
+      ]),
+    );
     for (const item of trendBookings) {
       const key = item.createdAt.toISOString().slice(0, 10);
       const point = trend.get(key);
@@ -281,24 +312,32 @@ export class DashboardService {
     }
 
     const branchPerformance = await Promise.all(
-      branches.map(async (branch) => {
-        const [branchRevenue, branchSlots, branchBookings] = await Promise.all([
-          this.db.purchase.aggregate({
-            where: { branchId: branch.id, status: 'APPROVED', decidedAt: currentRange },
-            _sum: { priceRpSnapshot: true },
-          }),
+      allowedBranches.map(async (branch) => {
+        const branchFinancial = financial.branches.find((item) => item.branchId === branch.id)!;
+        const branchRange = {
+          gte: startOfLocalDateUtc(fromDate, branch.timezone),
+          lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
+        };
+        const [branchSlots, branchBookings] = await Promise.all([
           this.db.classSlot.findMany({
-            where: { branchId: branch.id, startAt: currentRange },
+            where: { branchId: branch.id, startAt: branchRange },
             select: { capacity: true, bookedCount: true },
           }),
           this.db.booking.count({
-            where: { branchId: branch.id, createdAt: currentRange, status: 'BOOKED' },
+            where: { branchId: branch.id, createdAt: branchRange, status: 'BOOKED' },
           }),
         ]);
         const branchCapacity = branchSlots.reduce((sum, item) => sum + item.capacity, 0);
         return {
-          ...branch,
-          revenueRp: branchRevenue._sum.priceRpSnapshot ?? 0,
+          id: branch.id,
+          code: branch.code,
+          name: branch.name,
+          grossSalesRp: branchFinancial.grossSalesRp,
+          revenueRp: branchFinancial.revenueRp,
+          projectionRp: branchFinancial.projectionRp,
+          instructorRealtimeRp: branchFinancial.instructorRealtimeRp,
+          otherCostRp: branchFinancial.otherCostRp,
+          profitRp: branchFinancial.profitRp,
           bookings: branchBookings,
           occupancyPercent: branchCapacity
             ? Math.round(
@@ -322,11 +361,79 @@ export class DashboardService {
             : 'BRANCH_OPERATIONS';
     const allMetrics = [
       {
+        key: 'gross-sales',
+        label: 'Gross sales',
+        value: financial.totals.grossSalesRp,
+        unit: 'IDR',
+        changePercent: percentChange(
+          financial.totals.grossSalesRp,
+          previousFinancial.totals.grossSalesRp,
+        ),
+      },
+      {
         key: 'revenue',
-        label: 'Pendapatan disetujui',
+        label: 'Omzet bersih',
         value: revenue,
         unit: 'IDR',
         changePercent: percentChange(revenue, previousRevenueValue),
+      },
+      {
+        key: 'projection',
+        label: 'Projection cost',
+        value: financial.totals.projectionRp,
+        unit: 'IDR',
+        changePercent: percentChange(
+          financial.totals.projectionRp,
+          previousFinancial.totals.projectionRp,
+        ),
+      },
+      {
+        key: 'instructor-realtime',
+        label: 'Pendapatan instruktur',
+        value: financial.totals.instructorRealtimeRp,
+        unit: 'IDR',
+        changePercent: percentChange(
+          financial.totals.instructorRealtimeRp,
+          previousFinancial.totals.instructorRealtimeRp,
+        ),
+      },
+      {
+        key: 'other-cost',
+        label: 'Pengeluaran lain',
+        value: financial.totals.otherCostRp,
+        unit: 'IDR',
+        changePercent: percentChange(
+          financial.totals.otherCostRp,
+          previousFinancial.totals.otherCostRp,
+        ),
+      },
+      {
+        key: 'profit',
+        label: 'Profit operasional',
+        value: financial.totals.profitRp,
+        unit: 'IDR',
+        changePercent: percentChange(financial.totals.profitRp, previousFinancial.totals.profitRp),
+      },
+      {
+        key: 'correction',
+        label: 'Correction (terpisah)',
+        value: financial.totals.correctionRp,
+        unit: 'IDR',
+        changePercent: null,
+      },
+      {
+        key: 'pending-payments',
+        label: 'Pembayaran pending',
+        value: pendingPurchases,
+        unit: 'COUNT',
+        changePercent: null,
+      },
+      {
+        key: 'finance-anomalies',
+        label: 'Anomali Finance',
+        value: financial.anomalyCount,
+        unit: 'COUNT',
+        changePercent: null,
       },
       {
         key: 'bookings',
@@ -358,10 +465,34 @@ export class DashboardService {
       },
     ];
     const metricKeys: Record<typeof roleFocus, string[]> = {
-      EXECUTIVE: ['revenue', 'bookings', 'occupancy', 'customers', 'classes'],
-      OWNER: ['revenue', 'bookings', 'occupancy', 'customers', 'classes'],
+      EXECUTIVE: [
+        'gross-sales',
+        'revenue',
+        'projection',
+        'instructor-realtime',
+        'other-cost',
+        'profit',
+        'correction',
+        'pending-payments',
+        'finance-anomalies',
+        'bookings',
+        'occupancy',
+        'customers',
+        'classes',
+      ],
+      OWNER: ['revenue', 'projection', 'instructor-realtime', 'other-cost', 'profit', 'bookings'],
       BRANCH_OPERATIONS: ['bookings', 'occupancy', 'customers', 'classes'],
-      FINANCE: ['revenue', 'bookings'],
+      FINANCE: [
+        'gross-sales',
+        'revenue',
+        'projection',
+        'instructor-realtime',
+        'other-cost',
+        'profit',
+        'correction',
+        'pending-payments',
+        'finance-anomalies',
+      ],
       OPERATIONS: [],
     };
     const mappedJobs = principal.capabilities.includes('operations:read')
@@ -422,7 +553,19 @@ export class DashboardService {
     };
     return {
       generatedAt: now,
-      period: { from, until, previousFrom, previousUntil: from },
+      period: {
+        from: fromDate,
+        until: untilDate,
+        previousFrom: previousFromDate,
+        previousUntil: previousUntilDate,
+      },
+      financial: {
+        ...financial.totals,
+        completeness: financial.completeness,
+        anomalyCount: financial.anomalyCount,
+        sourceCutoffAt: financial.sourceCutoffAt,
+        controlHash: financial.controlHash,
+      },
       roleFocus,
       sections: allowedSections,
       metrics:
@@ -432,13 +575,6 @@ export class DashboardService {
               ...allMetrics.filter((metric) => metricKeys[roleFocus].includes(metric.key)),
               ...(roleFocus === 'FINANCE'
                 ? [
-                    {
-                      key: 'pending-payments',
-                      label: 'Pembayaran pending',
-                      value: pendingPurchases,
-                      unit: 'COUNT',
-                      changePercent: null,
-                    },
                     {
                       key: 'pending-adjustments',
                       label: 'Adjustment pending',
@@ -494,6 +630,7 @@ export class DashboardService {
         ? [...trend.entries()].map(([date, values]) => ({
             date,
             revenue: roleFocus === 'BRANCH_OPERATIONS' ? 0 : values.revenue,
+            profit: roleFocus === 'BRANCH_OPERATIONS' ? 0 : values.profit,
             bookings: values.bookings,
           }))
         : [],

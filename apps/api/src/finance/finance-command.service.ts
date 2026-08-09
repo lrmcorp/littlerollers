@@ -1,11 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { FinancialAggregationService } from './financial-aggregation.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/u;
@@ -22,6 +23,14 @@ function periodRange(period: string) {
   };
 }
 
+function periodDates(period: string) {
+  const { from, until } = periodRange(period);
+  return {
+    from: from.toISOString().slice(0, 10),
+    until: new Date(until.getTime() - 86_400_000).toISOString().slice(0, 10),
+  };
+}
+
 const money = (amountMinor: number) => ({ amountMinor, currency: 'IDR' as const });
 
 @Injectable()
@@ -30,6 +39,7 @@ export class FinanceCommandService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
+    private readonly aggregation: FinancialAggregationService,
   ) {}
 
   private authorize(principal: SessionPrincipal, branchId: string, capability: string) {
@@ -92,7 +102,10 @@ export class FinanceCommandService {
     input: {
       branchId: string;
       period: string;
+      occurredOn: string;
+      categoryCode: string;
       description: string;
+      reason: string;
       amountRp: number;
       evidenceUploadId?: string;
     },
@@ -101,12 +114,19 @@ export class FinanceCommandService {
   ) {
     this.authorize(principal, input.branchId, 'finance:manage');
     periodRange(input.period);
+    const occurredOn = new Date(`${input.occurredOn}T00:00:00.000Z`);
     if (
       !UUID.test(input.branchId) ||
+      !/^\d{4}-\d{2}-\d{2}$/u.test(input.occurredOn) ||
+      Number.isNaN(occurredOn.getTime()) ||
+      input.occurredOn.slice(0, 7) !== input.period ||
+      !/^[A-Z][A-Z0-9_]{1,63}$/u.test(input.categoryCode) ||
       !Number.isSafeInteger(input.amountRp) ||
       input.amountRp < 1 ||
       input.description?.trim().length < 1 ||
       input.description.trim().length > 300 ||
+      input.reason?.trim().length < 3 ||
+      input.reason.trim().length > 500 ||
       (input.evidenceUploadId && !UUID.test(input.evidenceUploadId))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -116,12 +136,16 @@ export class FinanceCommandService {
       input,
       HttpStatus.CREATED,
       async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${input.branchId} FOR UPDATE`;
         await this.requireOpenPeriod(tx, input.branchId, input.period);
         const item = await tx.otherCost.create({
           data: {
             branchId: input.branchId,
             period: input.period,
+            occurredOn,
+            categoryCode: input.categoryCode,
             description: input.description.trim(),
+            reason: input.reason.trim(),
             amountRp: input.amountRp,
             evidenceUploadId: input.evidenceUploadId,
             createdById: principal.userId,
@@ -195,8 +219,14 @@ export class FinanceCommandService {
       HttpStatus.CREATED,
       async (tx) => {
         await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${input.branchId} FOR UPDATE`;
-        const calculated = await this.controlHash(tx, input.branchId, input.period);
-        if (calculated !== input.controlHash)
+        const dates = periodDates(input.period);
+        const aggregate = await this.aggregation.aggregate({
+          branchIds: [input.branchId],
+          ...dates,
+          strict: true,
+          db: tx,
+        });
+        if (aggregate.controlHash !== input.controlHash)
           throw new ApiProblem('FINANCE_CONTROL_MISMATCH', HttpStatus.CONFLICT);
         let period = await tx.financePeriod.findUnique({
           where: { branchId_period: { branchId: input.branchId, period: input.period } },
@@ -205,7 +235,11 @@ export class FinanceCommandService {
           if (input.expectedVersion !== 0)
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
           period = await tx.financePeriod.create({
-            data: { branchId: input.branchId, period: input.period, controlHash: calculated },
+            data: {
+              branchId: input.branchId,
+              period: input.period,
+              controlHash: aggregate.controlHash,
+            },
           });
         }
         if (period.version !== input.expectedVersion)
@@ -216,10 +250,29 @@ export class FinanceCommandService {
           where: { id: period.id },
           data: {
             status: 'CLOSED',
-            controlHash: calculated,
+            controlHash: aggregate.controlHash,
             closedAt: now,
             closedById: principal.userId,
             version: { increment: 1 },
+          },
+        });
+        const snapshot = await tx.financeCloseSnapshot.create({
+          data: {
+            financePeriodId: period.id,
+            branchId: input.branchId,
+            period: input.period,
+            grossSalesRp: aggregate.totals.grossSalesRp,
+            packagePromotionDiscountRp: aggregate.totals.packagePromotionDiscountRp,
+            voucherDiscountRp: aggregate.totals.voucherDiscountRp,
+            revenueRp: aggregate.totals.revenueRp,
+            projectionRp: aggregate.totals.projectionRp,
+            instructorRealtimeRp: aggregate.totals.instructorRealtimeRp,
+            otherCostRp: aggregate.totals.otherCostRp,
+            correctionRp: aggregate.totals.correctionRp,
+            profitRp: aggregate.totals.profitRp,
+            sourceCutoffAt: aggregate.sourceCutoffAt,
+            sourceVersion: aggregate.sourceVersion,
+            controlHash: aggregate.controlHash,
           },
         });
         const auditLogId = await this.audit(
@@ -228,10 +281,16 @@ export class FinanceCommandService {
           input.branchId,
           'finance.period.closed',
           period.id,
-          { period: input.period, controlHash: calculated, reasonPresent: true },
+          { period: input.period, controlHash: aggregate.controlHash, reasonPresent: true },
           correlationId,
         );
-        return { period, snapshotIds: [], auditLogId, closedAt: now.toISOString() };
+        return {
+          period,
+          snapshotIds: [snapshot.id],
+          snapshot,
+          auditLogId,
+          closedAt: now.toISOString(),
+        };
       },
     );
   }
@@ -265,6 +324,7 @@ export class FinanceCommandService {
       input,
       HttpStatus.CREATED,
       async (tx) => {
+        await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${input.branchId} FOR UPDATE`;
         await this.requireOpenPeriod(tx, input.branchId, input.currentPeriod);
         const correction = await tx.financeCorrection.create({
           data: { ...input, reason: input.reason.trim(), requestedById: principal.userId },
@@ -314,8 +374,37 @@ export class FinanceCommandService {
           throw new ApiProblem('SEPARATION_OF_DUTIES', HttpStatus.CONFLICT);
         if (correction.status !== 'PENDING')
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${correction.branchId} FOR UPDATE`;
         await this.requireOpenPeriod(tx, correction.branchId, correction.currentPeriod);
         const approved = decision === 'approve';
+        let journalReferenceId: string | null = null;
+        if (approved) {
+          const account = await tx.accountingAccount.findFirst({
+            where: {
+              branchId: correction.branchId,
+              code: 'FINANCE_CORRECTION',
+              active: true,
+              historical: false,
+            },
+            select: { id: true },
+          });
+          if (!account)
+            throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+          const journal = await tx.journalEntry.create({
+            data: {
+              branchId: correction.branchId,
+              accountId: account.id,
+              actorUserId: principal.userId,
+              referenceNumber: correction.id,
+              description: `Finance correction ${correction.currentPeriod}`,
+              debitRp: correction.amountRp > 0 ? correction.amountRp : 0,
+              creditRp: correction.amountRp < 0 ? Math.abs(correction.amountRp) : 0,
+              occurredAt: now,
+              statusCode: 'POSTED_CORRECTION',
+            },
+          });
+          journalReferenceId = journal.id;
+        }
         const updated = await tx.financeCorrection.update({
           where: { id },
           data: {
@@ -324,6 +413,7 @@ export class FinanceCommandService {
             decisionReason: input.reason.trim(),
             decidedAt: now,
             postedAt: approved ? now : null,
+            postingJournalId: journalReferenceId,
             version: { increment: 1 },
           },
         });
@@ -338,51 +428,206 @@ export class FinanceCommandService {
         );
         return {
           correction: this.correctionView(updated),
-          journalReferenceId: approved ? updated.id : null,
+          journalReferenceId,
           auditLogId,
         };
       },
     );
   }
 
-  async report(principal: SessionPrincipal, reportType: string, branchId: string, period: string) {
+  async report(
+    principal: SessionPrincipal,
+    reportType: string,
+    branchId: string,
+    period: string,
+    cursor?: string,
+  ) {
     this.authorize(principal, branchId, 'finance:read');
     const allowed = ['revenue', 'instructor-realtime', 'projection', 'other-cost', 'profit'];
-    if (!allowed.includes(reportType) || !UUID.test(branchId))
+    if (!allowed.includes(reportType) || !UUID.test(branchId) || (cursor && !UUID.test(cursor)))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const { from, until } = periodRange(period);
-    const [purchases, costs] = await Promise.all([
-      this.db.purchase.findMany({
-        where: { branchId, status: 'APPROVED', submittedAt: { gte: from, lt: until } },
-        select: { priceAfterDiscountRpSnapshot: true, priceRpSnapshot: true },
-      }),
-      this.db.otherCost.findMany({
-        where: { branchId, period, status: 'ACTIVE' },
-        select: { id: true, description: true, amountRp: true, createdAt: true },
-      }),
-    ]);
-    const revenueRp = purchases.reduce(
-      (sum, item) => sum + (item.priceAfterDiscountRpSnapshot ?? item.priceRpSnapshot),
-      0,
-    );
-    const otherCostRp = costs.reduce((sum, item) => sum + item.amountRp, 0);
-    const controlHash = await this.controlHash(this.db, branchId, period);
+    const aggregate = await this.aggregation.aggregate({
+      branchIds: [branchId],
+      ...periodDates(period),
+    });
+    const closedPeriod = await this.db.financePeriod.findUnique({
+      where: { branchId_period: { branchId, period } },
+      include: { closeSnapshot: true },
+    });
+    if (closedPeriod?.status === 'CLOSED' && !closedPeriod.closeSnapshot)
+      throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+    const closed = closedPeriod?.status === 'CLOSED' ? closedPeriod.closeSnapshot : null;
+    const reportTotals = closed
+      ? {
+          grossSalesRp: closed.grossSalesRp,
+          packagePromotionDiscountRp: closed.packagePromotionDiscountRp,
+          voucherDiscountRp: closed.voucherDiscountRp,
+          revenueRp: closed.revenueRp,
+          projectionRp: closed.projectionRp,
+          instructorRealtimeRp: closed.instructorRealtimeRp,
+          otherCostRp: closed.otherCostRp,
+          correctionRp: closed.correctionRp,
+          profitRp: closed.profitRp,
+        }
+      : aggregate.totals;
+    const instructorBreakdown = [
+      ...aggregate.details.instructorCompensations
+        .reduce((groups, item) => {
+          const groupKey = `${item.instructorUserId}:${item.feeRpSnapshot}`;
+          const existing = groups.get(groupKey);
+          if (existing) {
+            existing.matchedClassCount += 1;
+            existing.amountRp += item.amountRp;
+          } else {
+            groups.set(groupKey, {
+              id: item.id,
+              branchId: item.branchId,
+              instructorUserId: item.instructorUserId,
+              feeRpSnapshot: item.feeRpSnapshot,
+              matchedClassCount: 1,
+              amountRp: item.amountRp,
+            });
+          }
+          return groups;
+        }, new Map<string, { id: string; branchId: string; instructorUserId: string; feeRpSnapshot: number; matchedClassCount: number; amountRp: number }>())
+        .values(),
+    ];
+    const itemMap = {
+      revenue: aggregate.details.purchases,
+      projection: aggregate.details.purchases.map((item) => ({
+        id: item.id,
+        branchId: item.branchId,
+        decidedAt: item.decidedAt,
+        projectionRp: item.projectionRp,
+      })),
+      'instructor-realtime': instructorBreakdown,
+      'other-cost': aggregate.details.otherCosts,
+      profit: aggregate.branches,
+    } as const;
+    const allItems = itemMap[reportType as keyof typeof itemMap];
+    const cursorIndex = cursor
+      ? allItems.findIndex((item) => ('id' in item ? item.id : item.branchId) === cursor)
+      : -1;
+    if (cursor && cursorIndex < 0)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const pageItems = allItems.slice(cursorIndex + 1, cursorIndex + 1 + PAGE_SIZE);
+    const hasMore = cursorIndex + 1 + pageItems.length < allItems.length;
+    const last = pageItems.at(-1);
     return {
       report: {
         reportType: reportType.replaceAll('-', '_').toUpperCase(),
         branchId,
         period,
         generatedAt: new Date().toISOString(),
-        controlHash,
+        sourceCutoffAt: closed?.sourceCutoffAt ?? aggregate.sourceCutoffAt,
+        completeness: closed ? 'COMPLETE' : aggregate.completeness,
+        anomalyCount: closed ? 0 : aggregate.anomalyCount,
+        controlHash: closed?.controlHash ?? aggregate.controlHash,
         totals: {
-          revenue: money(revenueRp),
-          otherCost: money(otherCostRp),
-          profit: money(revenueRp - otherCostRp),
+          grossSales: money(reportTotals.grossSalesRp),
+          packagePromotionDiscount: money(reportTotals.packagePromotionDiscountRp),
+          voucherDiscount: money(reportTotals.voucherDiscountRp),
+          revenue: money(reportTotals.revenueRp),
+          projection: money(reportTotals.projectionRp),
+          instructorRealtime: money(reportTotals.instructorRealtimeRp),
+          otherCost: money(reportTotals.otherCostRp),
+          correction: money(reportTotals.correctionRp),
+          profit: money(reportTotals.profitRp),
         },
-        sourceVersion: 'runtime-v1',
+        sourceVersion: closed?.sourceVersion ?? aggregate.sourceVersion,
       },
-      items: reportType === 'other-cost' ? costs : [],
-      page: { hasMore: false, nextCursor: null },
+      items: pageItems,
+      page: {
+        hasMore,
+        nextCursor: hasMore && last ? ('id' in last ? last.id : last.branchId) : null,
+      },
+    };
+  }
+
+  async exportReport(
+    principal: SessionPrincipal,
+    input: { branchId?: string; from: string; until: string },
+    correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:export');
+    const global =
+      principal.capabilities.includes('branch:all') ||
+      principal.roles.some(
+        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE'].includes(role),
+      );
+    if (input.branchId && !global && !principal.branchIds.includes(input.branchId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const branchIds = input.branchId
+      ? [input.branchId]
+      : global
+        ? (
+            await this.db.branch.findMany({
+              where: { active: true },
+              select: { id: true },
+              orderBy: { id: 'asc' },
+            })
+          ).map(({ id }) => id)
+        : principal.branchIds;
+    const aggregate = await this.aggregation.aggregate({
+      branchIds,
+      from: input.from,
+      until: input.until,
+      strict: true,
+    });
+    const rows = [
+      [
+        'branch_code',
+        'branch_name',
+        'gross_sales_rp',
+        'revenue_rp',
+        'projection_rp',
+        'instructor_realtime_rp',
+        'other_cost_rp',
+        'profit_rp',
+        'correction_rp',
+      ],
+      ...aggregate.branches.map((branch) => [
+        branch.branchCode,
+        branch.branchName,
+        branch.grossSalesRp,
+        branch.revenueRp,
+        branch.projectionRp,
+        branch.instructorRealtimeRp,
+        branch.otherCostRp,
+        branch.profitRp,
+        branch.correctionRp,
+      ]),
+    ];
+    const content = rows
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    const auditLogId = randomUUID();
+    await this.db.auditLog.create({
+      data: {
+        id: auditLogId,
+        actorType: 'USER',
+        actorId: principal.userId,
+        branchId: input.branchId,
+        action: 'finance.report.exported',
+        objectType: 'FinancialAggregation',
+        objectId: aggregate.controlHash,
+        afterMasked: {
+          from: input.from,
+          until: input.until,
+          branchCount: branchIds.length,
+          controlHash: aggregate.controlHash,
+        },
+        correlationId,
+      },
+    });
+    return {
+      fileName: `finance-authoritative-${input.from}-${input.until}.csv`,
+      mimeType: 'text/csv;charset=utf-8',
+      content,
+      controlHash: aggregate.controlHash,
+      sourceCutoffAt: aggregate.sourceCutoffAt,
+      completeness: aggregate.completeness,
+      auditLogId,
     };
   }
 
@@ -394,40 +639,14 @@ export class FinanceCommandService {
       throw new ApiProblem('FINANCE_PERIOD_CLOSED', HttpStatus.LOCKED);
   }
 
-  private async controlHash(db: Tx | PrismaService, branchId: string, period: string) {
-    const { from, until } = periodRange(period);
-    const [purchases, costs, corrections] = await Promise.all([
-      db.purchase.findMany({
-        where: { branchId, status: 'APPROVED', submittedAt: { gte: from, lt: until } },
-        select: {
-          id: true,
-          priceAfterDiscountRpSnapshot: true,
-          priceRpSnapshot: true,
-          version: true,
-        },
-        orderBy: { id: 'asc' },
-      }),
-      db.otherCost.findMany({
-        where: { branchId, period, status: 'ACTIVE' },
-        select: { id: true, amountRp: true, version: true },
-        orderBy: { id: 'asc' },
-      }),
-      db.financeCorrection.findMany({
-        where: { branchId, currentPeriod: period, status: 'POSTED' },
-        select: { id: true, amountRp: true, version: true },
-        orderBy: { id: 'asc' },
-      }),
-    ]);
-    return createHash('sha256')
-      .update(JSON.stringify({ branchId, period, purchases, costs, corrections }))
-      .digest('hex');
-  }
-
   private otherCostView(item: {
     id: string;
     branchId: string;
     period: string;
     description: string;
+    categoryCode: string;
+    occurredOn: Date;
+    reason: string;
     amountRp: number;
     evidenceUploadId: string | null;
     status: string;

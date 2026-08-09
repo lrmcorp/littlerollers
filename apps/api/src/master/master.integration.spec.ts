@@ -89,6 +89,7 @@ databaseDescribe('effective master MySQL integration', () => {
       },
     });
 
+    await db.accountingAccount.deleteMany({ where: { branchId } });
     await db.branch.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId] } } });
     await db.$disconnect();
@@ -118,16 +119,69 @@ databaseDescribe('effective master MySQL integration', () => {
         instructorUserId: instructorId,
         feeRp: 250000,
         effectiveFrom: '2026-08-01',
+        effectiveUntil: '2029-01-01',
         reason: 'sensitive fee reason',
       },
       `${namespace}-fee`,
     );
-    expect(fee.value).toMatchObject({ currency: 'IDR', unit: 'MATCHED_HOUR' });
+    expect(fee.value).toMatchObject({ currency: 'IDR', unit: 'MATCHED_CLASS' });
     const audit = JSON.stringify(
       await db.auditLog.findMany({ where: { correlationId: { startsWith: namespace } } }),
     );
     expect(audit).not.toContain('sensitive quota reason');
     expect(audit).not.toContain('sensitive fee reason');
+  });
+
+  it('requires the signed DEC-006 pack and replays an exact configuration as a no-op', async () => {
+    const previous = process.env.V1_DEC006_CONFIGURATION_PACK_SHA256;
+    const checksum = 'b'.repeat(64);
+    process.env.V1_DEC006_CONFIGURATION_PACK_SHA256 = checksum;
+    const base = {
+      kind: 'INSTRUCTOR_FEE' as const,
+      branchId,
+      classTypeId,
+      instructorUserId: instructorId,
+      feeRp: 275000,
+      effectiveFrom: '2029-01-01',
+      reason: 'DEC-006 signed fixture',
+    };
+    try {
+      await expect(
+        settings.create(principal(), base, `${namespace}-unsigned`),
+      ).rejects.toMatchObject({ code: 'FINANCE_CONFIGURATION_INCOMPLETE' });
+      const signed = {
+        ...base,
+        configurationId: 'CFG-FEE-INTEGRATION-001',
+        approvedEvidence: 'DEC006-EVIDENCE-INTEGRATION',
+        configurationPackChecksum: checksum,
+        approval: {
+          financeApproverId: actorId,
+          productOwnerApproverId: actorId,
+          approvedAt: '2026-08-09T01:00:00.000Z',
+        },
+      };
+      const created = await settings.create(principal(), signed, `${namespace}-signed`);
+      const replay = await settings.create(principal(), signed, `${namespace}-signed-replay`);
+      expect(replay.id).toBe(created.id);
+      expect(replay.value).toMatchObject({
+        unit: 'MATCHED_CLASS',
+        configurationPackChecksum: checksum,
+      });
+      expect(await db.effectiveConfiguration.count({ where: { id: created.id } })).toBe(1);
+      await expect(
+        settings.create(
+          principal(),
+          {
+            ...signed,
+            approval: { ...signed.approval, approvedAt: '2026-08-09T02:00:00.000Z' },
+          },
+          `${namespace}-signed-changed`,
+        ),
+      ).rejects.toMatchObject({ code: 'EFFECTIVE_PERIOD_OVERLAP' });
+    } finally {
+      if (previous === undefined) delete process.env.V1_DEC006_CONFIGURATION_PACK_SHA256;
+      else process.env.V1_DEC006_CONFIGURATION_PACK_SHA256 = previous;
+    }
   });
 
   it('rejects invalid values and overlapping concurrent periods atomically', async () => {
@@ -154,7 +208,7 @@ databaseDescribe('effective master MySQL integration', () => {
             kind: 'PROJECTION_RATE',
             branchId,
             classTypeId,
-            rateRp: 100000,
+            rateRp: 100000 + index,
             effectiveFrom: '2026-09-01',
             effectiveUntil: '2026-10-01',
             reason: `concurrent ${index}`,

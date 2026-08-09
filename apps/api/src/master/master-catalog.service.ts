@@ -475,6 +475,14 @@ export class MasterCatalogService {
             supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
           },
         });
+        await tx.accountingAccount.create({
+          data: {
+            branchId: branch.id,
+            code: 'FINANCE_CORRECTION',
+            name: 'Finance Correction',
+            accountType: 'SYSTEM_CORRECTION',
+          },
+        });
         await this.access.audit(
           tx,
           principal,

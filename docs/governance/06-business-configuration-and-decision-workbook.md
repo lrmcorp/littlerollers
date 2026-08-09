@@ -62,7 +62,7 @@ One row per approved package version.
 |---|---|---|
 | Configuration ID | CFG-FEE-001 | Stable version |
 | Instructor / branch / class type | TBD-BLOCKING | Exact business key |
-| Fee per matched hour, Rupiah | TBD-BLOCKING | Integer ≥0 |
+| Fee per matched class, Rupiah | TBD-BLOCKING | Integer ≥0; one matched instructor check-in and completed class creates one unit |
 | Effective from/to | TBD-BLOCKING | Non-overlap |
 | Source/owner/approval | TBD-BLOCKING | Finance evidence; PO+Finance date |
 | Verification | TBD-BLOCKING | Applied-value snapshot and historical test |

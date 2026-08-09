@@ -22,6 +22,13 @@ void main() {
       // TODO
     });
 
+    // Builds an audited CSV from the same authoritative server-side aggregation used by dashboard, reports, and monthly close.
+    //
+    //Future<FinanceExportResult> exportAuthoritativeFinanceReport(ExportAuthoritativeFinanceReportRequest exportAuthoritativeFinanceReportRequest) async
+    test('test exportAuthoritativeFinanceReport', () async {
+      // TODO
+    });
+
     // Actionable reconciliation anomalies without private proof contents.
     //
     //Future<GetFinanceReconciliationAnomalies200Response> getFinanceReconciliationAnomalies({ String branchId, Date from, Date until, String cursor, int limit }) async

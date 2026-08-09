@@ -84,8 +84,7 @@ const branchPublicProfiles = {
     address: 'Kawasan BSD City, Tangerang Selatan',
     latitude: -6.3017,
     longitude: 106.6527,
-    description:
-      'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
+    description: 'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
     arrivalInformation:
       'Datang 15 menit sebelum kelas. Tim studio akan membantu proses check-in dan orientasi pertama.',
     parkingInformation: 'Area parkir mobil dan motor tersedia di kompleks studio.',
@@ -224,7 +223,10 @@ export function validateMasterTemplates(templates = branchTemplates) {
   for (const item of masterCatalog) {
     if (item.quota < 1 || item.capacity < item.quota || item.projection < 1 || item.fee < 1)
       throw new Error(`Invalid effective configuration for ${item.code}.`);
-    if (!item.packages.length || item.packages.some((pkg) => pkg.sessions < 1 || pkg.days < 1 || pkg.price < 1))
+    if (
+      !item.packages.length ||
+      item.packages.some((pkg) => pkg.sessions < 1 || pkg.days < 1 || pkg.price < 1)
+    )
       throw new Error(`Class type ${item.code} requires valid package configuration.`);
   }
   assertNonOverlappingPeriods([
@@ -256,6 +258,17 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
       },
     });
     branches[template.code] = branch.id;
+    await ctx.db.accountingAccount.upsert({
+      where: { branchId_code: { branchId: branch.id, code: 'FINANCE_CORRECTION' } },
+      update: { active: true, historical: false },
+      create: {
+        id: ctx.id('accounting-account', `${template.code}:FINANCE_CORRECTION`),
+        branchId: branch.id,
+        code: 'FINANCE_CORRECTION',
+        name: 'Finance Correction',
+        accountType: 'SYSTEM_CORRECTION',
+      },
+    });
     const studio = await ctx.db.studio.upsert({
       where: { branchId_code: { branchId: branch.id, code: 'MAIN' } },
       update: { name: `Area Studio ${template.name}`, active: true },
@@ -406,11 +419,15 @@ export async function seedCommercialMaster(
 
     for (const item of masterCatalog) {
       const classTypeId = catalog.classTypes[`${template.code}:${item.code}`];
-      if (!classTypeId) throw new Error(`Class type ${item.code} does not belong to ${template.code}.`);
+      if (!classTypeId)
+        throw new Error(`Class type ${item.code} does not belong to ${template.code}.`);
       const commonConfigurations = [
         {
           kind: 'QUOTA_CAPACITY' as const,
-          value: { minimumQuota: item.quota, defaultCapacity: item.capacity + template.capacityOffset },
+          value: {
+            minimumQuota: item.quota,
+            defaultCapacity: item.capacity + template.capacityOffset,
+          },
         },
         {
           kind: 'PROJECTION_RATE' as const,
@@ -450,7 +467,10 @@ export async function seedCommercialMaster(
           },
         });
         if (config.kind === 'PROJECTION_RATE') {
-          const futureId = ctx.id('configuration', `${template.code}:${item.code}:${config.kind}:future`);
+          const futureId = ctx.id(
+            'configuration',
+            `${template.code}:${item.code}:${config.kind}:future`,
+          );
           await ctx.db.effectiveConfiguration.upsert({
             where: { id: futureId },
             update: {
@@ -480,7 +500,10 @@ export async function seedCommercialMaster(
         if (!assignment)
           throw new Error(`Instructor fee requires an active assignment for ${instructorId}.`);
         const suffix = instructorIndex === 0 ? 'active' : `active:${instructorId}`;
-        const id = ctx.id('configuration', `${template.code}:${item.code}:INSTRUCTOR_FEE:${suffix}`);
+        const id = ctx.id(
+          'configuration',
+          `${template.code}:${item.code}:INSTRUCTOR_FEE:${suffix}`,
+        );
         await ctx.db.effectiveConfiguration.upsert({
           where: { id },
           update: {
@@ -491,7 +514,7 @@ export async function seedCommercialMaster(
             value: {
               feeRp: item.fee + template.feeOffset + instructorIndex * 10_000,
               currency: 'IDR',
-              unit: 'MATCHED_HOUR',
+              unit: 'MATCHED_CLASS',
               instructorUserId: instructorId,
             },
             effectiveFrom: new Date('2026-01-01'),
@@ -507,7 +530,7 @@ export async function seedCommercialMaster(
             value: {
               feeRp: item.fee + template.feeOffset + instructorIndex * 10_000,
               currency: 'IDR',
-              unit: 'MATCHED_HOUR',
+              unit: 'MATCHED_CLASS',
               instructorUserId: instructorId,
             },
             effectiveFrom: new Date('2026-01-01'),
@@ -561,11 +584,7 @@ export async function seedCommercialMaster(
           update: {
             summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
             description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [
-              `${sessionsLabel}`,
-              `Berlaku ${pkg.days} hari`,
-              `Khusus ${template.name}`,
-            ],
+            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
             usageGuidance:
               'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
             terms: [
@@ -578,11 +597,7 @@ export async function seedCommercialMaster(
             packageId,
             summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
             description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [
-              `${sessionsLabel}`,
-              `Berlaku ${pkg.days} hari`,
-              `Khusus ${template.name}`,
-            ],
+            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
             usageGuidance:
               'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
             terms: [

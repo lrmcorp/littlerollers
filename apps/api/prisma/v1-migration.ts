@@ -10,6 +10,7 @@ import {
   inspectPrivateFile,
   resolvePrivateUploadRoot,
 } from '../src/identity/private-file-storage';
+import { dateInTimeZone } from '../src/identity/assignment-boundary';
 import schemaContract from './v1-schema-contract.json';
 import {
   assertV1ColumnRegistry,
@@ -61,10 +62,7 @@ const DEFERRED_MEDIA_FIELDS = [
 }>;
 
 function migrationMediaMode(): 'metadata-only' {
-  const mode = required(
-    process.env.V1_MIGRATION_MEDIA_MODE,
-    'V1_MIGRATION_MEDIA_MODE_REQUIRED',
-  );
+  const mode = required(process.env.V1_MIGRATION_MEDIA_MODE, 'V1_MIGRATION_MEDIA_MODE_REQUIRED');
   if (mode !== 'metadata-only') throw new Error('V1_MIGRATION_MEDIA_MODE_UNSUPPORTED');
   return mode;
 }
@@ -329,6 +327,15 @@ function requiredJsonMap(name: string): Record<string, string> {
   );
 }
 
+function optionalJsonMap(name: string): Record<string, unknown> {
+  const raw = process.env[name]?.trim();
+  if (!raw) return {};
+  const parsed = JSON.parse(raw) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+    throw new Error(`INVALID_${name}`);
+  return parsed as Record<string, unknown>;
+}
+
 function sourceId(row: LegacyRow): string {
   return String(row.id);
 }
@@ -383,12 +390,15 @@ function minuteOfDay(value: unknown): number {
 
 function legacyJakartaDateTime(dateValue: unknown, timeValue?: unknown): Date | null {
   if (!dateValue) return null;
-  const date = dateValue instanceof Date
-    ? dateValue.toISOString().slice(0, 10)
-    : textValue(dateValue).slice(0, 10);
+  const date =
+    dateValue instanceof Date
+      ? dateValue.toISOString().slice(0, 10)
+      : textValue(dateValue).slice(0, 10);
   const time = timeValue ? textValue(timeValue).slice(0, 8) : textValue(dateValue).slice(11, 19);
   const normalizedTime = /^\d{2}:\d{2}(?::\d{2})?$/u.test(time) ? time : '00:00:00';
-  const parsed = new Date(`${date}T${normalizedTime.length === 5 ? `${normalizedTime}:00` : normalizedTime}+07:00`);
+  const parsed = new Date(
+    `${date}T${normalizedTime.length === 5 ? `${normalizedTime}:00` : normalizedTime}+07:00`,
+  );
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -627,7 +637,9 @@ async function loadStorageManifest(args: Args, expectedChecksum: string | null) 
   const parsed = JSON.parse(await readFile(manifestPath, 'utf8')) as unknown;
   const rawEntries = Array.isArray(parsed)
     ? parsed
-    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { entries?: unknown }).entries)
+    : parsed &&
+        typeof parsed === 'object' &&
+        Array.isArray((parsed as { entries?: unknown }).entries)
       ? ((parsed as { entries: unknown[] }).entries ?? [])
       : null;
   if (!rawEntries) throw new Error('INVALID_STORAGE_MANIFEST');
@@ -745,6 +757,15 @@ async function importBranchMaster(
           updatedAt: asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
         },
       });
+      await tx.accountingAccount.create({
+        data: {
+          id: deterministicId(`${SOURCE_SYSTEM}:locations:${legacyId}:FinanceCorrectionAccount`),
+          branchId: targetId,
+          code: 'FINANCE_CORRECTION',
+          name: 'Finance Correction',
+          accountType: 'SYSTEM_CORRECTION',
+        },
+      });
       await tx.branchPublicProfile.create({
         data: {
           branchId: targetId,
@@ -775,7 +796,9 @@ async function importBranchMaster(
             id: paymentAccountId,
             branchId: targetId,
             activeBranchKey: historical(row) ? null : targetId,
-            bankCode: textValue(row.nama_bank, 'LEGACY').toUpperCase().replace(/[^A-Z0-9]/gu, '_'),
+            bankCode: textValue(row.nama_bank, 'LEGACY')
+              .toUpperCase()
+              .replace(/[^A-Z0-9]/gu, '_'),
             bankName: textValue(row.nama_bank, 'Legacy bank'),
             accountNumberEncrypted: encryptPii(accountNumber, encryptionKey),
             accountNumberLast4: accountNumber.replace(/\D/gu, '').slice(-4).padStart(4, '0'),
@@ -1242,9 +1265,16 @@ async function importUserRole(
     const decidedRole = textValue(roleDecision?.applicationRole);
     if (
       decidedRole &&
-      ['CUSTOMER', 'INSTRUCTOR', 'ADMIN', 'MANAGER', 'OWNER', 'SUPER_OWNER', 'FINANCE', 'OPS'].includes(
-        decidedRole,
-      )
+      [
+        'CUSTOMER',
+        'INSTRUCTOR',
+        'ADMIN',
+        'MANAGER',
+        'OWNER',
+        'SUPER_OWNER',
+        'FINANCE',
+        'OPS',
+      ].includes(decidedRole)
     )
       roleMap[legacyId] = decidedRole;
     const mappedRole = roleMap[legacyId];
@@ -1498,7 +1528,10 @@ async function importUserRole(
     } else if (reasonCode === 'USER_BRANCH_UNRESOLVED') {
       const branchId = await targetIdFor(target, 'locations', decision.sourceBranchId, 'Branch');
       if (!branchId) throw new Error(`INVALID_USER_BRANCH_DECISION:${legacyId}`);
-      await target.user.update({ where: { id: userTargetId }, data: { preferredBranchId: branchId } });
+      await target.user.update({
+        where: { id: userTargetId },
+        data: { preferredBranchId: branchId },
+      });
     }
     await markResolutionApplied(target, batchId, 'users', legacyId, reasonCode);
   }
@@ -1523,15 +1556,23 @@ async function importPackageOrder(
   for (const row of await sourceRows(source, 'kelas')) {
     const legacyId = sourceId(row);
     const sourceBranchId = textValue(row.id_location);
-    const branchId = sourceBranchId === '0'
-      ? null
-      : await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
+    const branchId =
+      sourceBranchId === '0'
+        ? null
+        : await targetIdFor(target, 'locations', sourceBranchId, 'Branch');
     if (sourceBranchId !== '0' && !branchId)
       throw new Error(`CLASS_BRANCH_UNRESOLVED:kelas:${legacyId}`);
     const targetId = deterministicId(`${SOURCE_SYSTEM}:kelas:${legacyId}:ClassType`);
     if (
-      (await claimSourceKey(target, batchId, mappingVersion, 'kelas', row, 'ClassType', targetId)) ===
-      'SKIP'
+      (await claimSourceKey(
+        target,
+        batchId,
+        mappingVersion,
+        'kelas',
+        row,
+        'ClassType',
+        targetId,
+      )) === 'SKIP'
     ) {
       stats.kelas.skipped += 1;
       continue;
@@ -1686,8 +1727,15 @@ async function importPackageOrder(
     }
     const targetId = deterministicId(`${SOURCE_SYSTEM}:pakets:${legacyId}:Package`);
     if (
-      (await claimSourceKey(target, batchId, mappingVersion, 'pakets', row, 'Package', targetId)) ===
-      'SKIP'
+      (await claimSourceKey(
+        target,
+        batchId,
+        mappingVersion,
+        'pakets',
+        row,
+        'Package',
+        targetId,
+      )) === 'SKIP'
     ) {
       stats.pakets.skipped += 1;
     } else {
@@ -1840,7 +1888,10 @@ async function importPackageOrder(
                 sourceDeletedAt: asDate(scope.deleted_at) ?? asDate(row.deleted_at),
                 createdAt: asDate(scope.created_at) ?? asDate(row.created_at) ?? new Date(),
                 updatedAt:
-                  asDate(scope.updated_at) ?? asDate(row.updated_at) ?? asDate(row.created_at) ?? new Date(),
+                  asDate(scope.updated_at) ??
+                  asDate(row.updated_at) ??
+                  asDate(row.created_at) ??
+                  new Date(),
               },
             });
             await tx.migrationSourceKey.create({
@@ -2051,7 +2102,8 @@ async function importPackageOrder(
     const deletedAt = asDate(row.deleted_at);
     const createdAt = asDate(row.created_at) ?? new Date();
     const activationDate = asDate(row.tanggal_pembayaran) ?? createdAt;
-    const expiryAt = asDate(row.expired_date) ??
+    const expiryAt =
+      asDate(row.expired_date) ??
       new Date(activationDate.getTime() + packageRecord.durationDays * 86_400_000);
     const price = Math.max(0, intValue(row.harga, packageRecord.priceRp));
     const isActive = !deletedAt && intValue(row.is_active) === 1;
@@ -2071,18 +2123,32 @@ async function importPackageOrder(
           'order_pakets',
           legacyId,
           'ORDER_STATUS_ACTIVE_CONFLICT',
-          { action: 'APPROVE_PURCHASE_STATUS', sourceStatus: row.status, sourceActive: row.is_active },
+          {
+            action: 'APPROVE_PURCHASE_STATUS',
+            sourceStatus: row.status,
+            sourceActive: row.is_active,
+          },
           recordChecksum(row),
         );
         stats.resolutions += 1;
         continue;
       }
-      if (!['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED'].includes(String(decision.purchaseStatus)))
+      if (
+        ![
+          'AWAITING_PAYMENT',
+          'PENDING',
+          'ACTION_REQUIRED',
+          'APPROVED',
+          'REJECTED',
+          'EXPIRED',
+        ].includes(String(decision.purchaseStatus))
+      )
         throw new Error(`INVALID_PURCHASE_STATUS_DECISION:${legacyId}`);
       statusMapping.status = decision.purchaseStatus as typeof statusMapping.status;
     }
     const rawUniqueCode = textValue(row.unix_code).trim();
-    let uniqueCode = rawUniqueCode === '' ? 0 : /^\d+$/u.test(rawUniqueCode) ? Number(rawUniqueCode) : Number.NaN;
+    let uniqueCode =
+      rawUniqueCode === '' ? 0 : /^\d+$/u.test(rawUniqueCode) ? Number(rawUniqueCode) : Number.NaN;
     if (!Number.isSafeInteger(uniqueCode)) {
       const decision = await approvedDecision(
         target,
@@ -2122,7 +2188,11 @@ async function importPackageOrder(
           'order_pakets',
           legacyId,
           'ORDER_UNIQUE_CODE_MISMATCH',
-          { action: 'ACCEPT_SOURCE_PAYABLE', payableAmountRp: price, paymentUniqueCode: uniqueCode },
+          {
+            action: 'ACCEPT_SOURCE_PAYABLE',
+            payableAmountRp: price,
+            paymentUniqueCode: uniqueCode,
+          },
           recordChecksum(row),
         );
         stats.resolutions += 1;
@@ -2130,6 +2200,38 @@ async function importPackageOrder(
       }
     }
     const purchaseStatus = statusMapping.status;
+    const projectionKey = `${textValue(row.id_paket)}:${textValue(row.id_location)}`;
+    const configuredProjectionRates = optionalJsonMap('V1_PROJECTION_RATES');
+    const projectionDecision = await approvedDecision(
+      target,
+      batchId,
+      'order_pakets',
+      legacyId,
+      'PROJECTION_RATE_MAPPING_REQUIRED',
+    );
+    const projectionRateRp = Number(
+      projectionDecision?.rateRp ?? configuredProjectionRates[projectionKey],
+    );
+    const projectionEvidence = textValue(
+      projectionDecision?.approvedEvidence ?? process.env.V1_PROJECTION_RATE_EVIDENCE,
+    );
+    if (!Number.isSafeInteger(projectionRateRp) || projectionRateRp < 0 || !projectionEvidence) {
+      await queueResolution(
+        target,
+        batchId,
+        'order_pakets',
+        legacyId,
+        'PROJECTION_RATE_MAPPING_REQUIRED',
+        {
+          action: 'APPROVE_PROJECTION_RATE_SNAPSHOT',
+          projectionKey,
+          requiredDecision: ['rateRp', 'approvedEvidence'],
+        },
+        recordChecksum(row),
+      );
+      stats.resolutions += 1;
+      continue;
+    }
     await target.$transaction(async (tx) => {
       await tx.purchase.create({
         data: {
@@ -2152,7 +2254,11 @@ async function importPackageOrder(
           sessionCountSnapshot: sourceSessionCount,
           durationDaysSnapshot: packageRecord.durationDays,
           status: purchaseStatus,
-          idempotencyKeyHash: recordChecksum({ source: SOURCE_SYSTEM, table: 'order_pakets', id: legacyId }),
+          idempotencyKeyHash: recordChecksum({
+            source: SOURCE_SYSTEM,
+            table: 'order_pakets',
+            id: legacyId,
+          }),
           submittedAt: createdAt,
           decidedAt: purchaseStatus === 'APPROVED' ? activationDate : null,
           timelineComplete: true,
@@ -2179,7 +2285,7 @@ async function importPackageOrder(
           salePriceRp: price,
           sessionCountSnapshot: sourceSessionCount,
           durationDaysSnapshot: packageRecord.durationDays,
-          projectionRateRp: Math.trunc(price / Math.max(1, sourceSessionCount)),
+          projectionRateRp,
           status: isActive ? 'ACTIVE' : 'INACTIVE',
           historical: Boolean(deletedAt),
           sourceDeletedAt: deletedAt,
@@ -2317,6 +2423,7 @@ async function importSlotBooking(
 ) {
   const stats = {
     kelas_activities: { imported: 0, skipped: 0 },
+    instructor_hour_logs: { imported: 0, skipped: 0 },
     kelas_pertamuans: { imported: 0, skipped: 0 },
     customer_kelas: { imported: 0, skipped: 0 },
     customer_jadwal_statics: { imported: 0, skipped: 0 },
@@ -2335,9 +2442,7 @@ async function importSlotBooking(
     'FRIDAY',
     'SATURDAY',
   ] as const;
-  const classRows = new Map(
-    (await sourceRows(source, 'kelas')).map((row) => [sourceId(row), row]),
-  );
+  const classRows = new Map((await sourceRows(source, 'kelas')).map((row) => [sourceId(row), row]));
   const activityRows = await sourceRows(source, 'kelas_activities');
   const activeSlotGroups = new Map<string, LegacyRow[]>();
   for (const row of activityRows) {
@@ -2362,12 +2467,7 @@ async function importSlotBooking(
     const sourceClassId = referenceDecision?.sourceClassId ?? row.id_kelas;
     const sourceStudioId = referenceDecision?.sourceStudioId ?? row.id_location_studio;
     const classTypeId = await targetIdFor(target, 'kelas', sourceClassId, 'ClassType');
-    const studioId = await targetIdFor(
-      target,
-      'location_studios',
-      sourceStudioId,
-      'Studio',
-    );
+    const studioId = await targetIdFor(target, 'location_studios', sourceStudioId, 'Studio');
     const studio = studioId
       ? await target.studio.findUnique({ where: { id: studioId }, select: { branchId: true } })
       : null;
@@ -2526,6 +2626,151 @@ async function importSlotBooking(
     stats.kelas_activities.imported += 1;
   }
 
+  for (const row of activityRows) {
+    const legacyId = sourceId(row);
+    const sourceClassId = textValue(row.id_kelas);
+    if (mapV1ClassSlotStatus(intValue(row.status, 1)) !== 'COMPLETED' || !row.id_user) continue;
+    const slotId = await targetIdFor(target, 'kelas_activities', legacyId, 'ClassSlot');
+    const instructorUserId = await targetIdFor(target, 'users', row.id_user, 'User');
+    if (!slotId || !instructorUserId) continue;
+    const slot = await target.classSlot.findUnique({
+      where: { id: slotId },
+      select: {
+        branchId: true,
+        classTypeId: true,
+        instructorUserId: true,
+        endAt: true,
+        historical: true,
+        sourceDeletedAt: true,
+      },
+    });
+    if (!slot || slot.instructorUserId !== instructorUserId) continue;
+    const compensationResolutionId = `${sourceClassId}:branch:${slot.branchId}`;
+    const targetId = deterministicId(
+      `${SOURCE_SYSTEM}:kelas_activities:${legacyId}:InstructorHourLog`,
+    );
+    if (
+      (await claimSourceKey(
+        target,
+        batchId,
+        mappingVersion,
+        'kelas_activities',
+        row,
+        'InstructorHourLog',
+        targetId,
+      )) === 'SKIP'
+    ) {
+      stats.instructor_hour_logs.skipped += 1;
+      continue;
+    }
+    const decision = await approvedDecision(
+      target,
+      batchId,
+      'kelas',
+      compensationResolutionId,
+      'INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED',
+    );
+    if (!decision) {
+      const classRow = classRows.get(sourceClassId);
+      await queueResolution(
+        target,
+        batchId,
+        'kelas',
+        compensationResolutionId,
+        'INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED',
+        {
+          action: 'APPROVE_HISTORICAL_INSTRUCTOR_FEE',
+          sourceHonorRp: intValue(classRow?.honor),
+          sourceFeeRp: intValue(classRow?.fee),
+          requiredDecision: ['feeRp', 'approvedEvidence'],
+        },
+        recordChecksum(classRow ?? { id: sourceClassId }),
+      );
+      stats.resolutions += 1;
+      continue;
+    }
+    if (decision.notApplicable === true) {
+      await markResolutionApplied(
+        target,
+        batchId,
+        'kelas',
+        compensationResolutionId,
+        'INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED',
+      );
+      stats.instructor_hour_logs.skipped += 1;
+      continue;
+    }
+    const feeRp = Number(decision.feeRp);
+    if (!Number.isSafeInteger(feeRp) || feeRp < 0 || !textValue(decision.approvedEvidence))
+      throw new Error(`INVALID_INSTRUCTOR_COMPENSATION_RESOLUTION:${sourceClassId}`);
+    const effectiveConfigurationId = deterministicId(
+      `${SOURCE_SYSTEM}:kelas:${sourceClassId}:InstructorFee:${slot.branchId}:${instructorUserId}`,
+    );
+    await target.$transaction(async (tx) => {
+      await tx.effectiveConfiguration.upsert({
+        where: { id: effectiveConfigurationId },
+        create: {
+          id: effectiveConfigurationId,
+          kind: 'INSTRUCTOR_FEE',
+          businessKey: `MIGRATION_INSTRUCTOR_FEE:${sourceClassId}:${slot.branchId}:${instructorUserId}`,
+          branchId: slot.branchId,
+          classTypeId: slot.classTypeId,
+          value: {
+            feeRp,
+            currency: 'IDR',
+            unit: 'MATCHED_CLASS',
+            instructorUserId,
+            historicalSource: true,
+          },
+          effectiveFrom: new Date('1970-01-01T00:00:00.000Z'),
+          approvedEvidence: textValue(decision.approvedEvidence),
+        },
+        update: {},
+      });
+      await tx.instructorHourLog.create({
+        data: {
+          id: targetId,
+          classSlotId: slotId,
+          instructorUserId,
+          branchId: slot.branchId,
+          classTypeId: slot.classTypeId,
+          effectiveConfigurationId,
+          matchedUnits: 1,
+          feeRpSnapshot: feeRp,
+          amountRp: feeRp,
+          period: dateInTimeZone(slot.endAt, 'Asia/Jakarta').slice(0, 7),
+          occurredAt: slot.endAt,
+          historical: slot.historical,
+          sourceDeletedAt: slot.sourceDeletedAt,
+          sourceMetadata: {
+            approvedHistoricalMapping: true,
+            sourceClassId,
+          },
+        },
+      });
+      await tx.migrationSourceKey.create({
+        data: {
+          batchId,
+          sourceSystem: SOURCE_SYSTEM,
+          sourceTable: 'kelas_activities',
+          sourceId: legacyId,
+          targetType: 'InstructorHourLog',
+          targetId,
+          recordChecksum: recordChecksum(row),
+          mappingVersion,
+        },
+      });
+    });
+    await markResolutionApplied(
+      target,
+      batchId,
+      'kelas',
+      compensationResolutionId,
+      'INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED',
+    );
+    stats.instructor_hour_logs.imported += 1;
+  }
+
   for (const row of await sourceRows(source, 'kelas_pertamuans')) {
     const legacyId = sourceId(row);
     const classTypeId = await targetIdFor(target, 'kelas', row.id_kelas, 'ClassType');
@@ -2562,11 +2807,11 @@ async function importSlotBooking(
     const meetingStudio = matchingSlot
       ? { id: matchingSlot.studioId }
       : meetingBranchId
-      ? await target.studio.findFirst({
-          where: { branchId: meetingBranchId, active: true },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        })
-      : null;
+        ? await target.studio.findFirst({
+            where: { branchId: meetingBranchId, active: true },
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          })
+        : null;
     if (!classTypeId || !meetingBranchId || !meetingStudio) {
       await queueResolution(
         target,
@@ -2781,7 +3026,9 @@ async function importSlotBooking(
       stats.resolutions += 1;
       continue;
     }
-    const targetId = deterministicId(`${SOURCE_SYSTEM}:customer_jadwal_statics:${legacyId}:Schedule`);
+    const targetId = deterministicId(
+      `${SOURCE_SYSTEM}:customer_jadwal_statics:${legacyId}:Schedule`,
+    );
     if (
       (await claimSourceKey(
         target,
@@ -2997,11 +3244,12 @@ async function importSlotBooking(
     const deletedAt = asDate(row.deleted_at);
     const attendance = mapV1BookingAttendance(row.status_kehadiran);
     const status = deletedAt ? 'CANCELLED' : attendance.bookingStatus;
-    const reservationStatus = deletedAt || attendance.outcome === 'EXCUSED'
-      ? 'RELEASED'
-      : attendance.outcome === 'ATTENDED' || attendance.outcome === 'NO_SHOW'
-        ? 'CONSUMED'
-        : 'ACTIVE';
+    const reservationStatus =
+      deletedAt || attendance.outcome === 'EXCUSED'
+        ? 'RELEASED'
+        : attendance.outcome === 'ATTENDED' || attendance.outcome === 'NO_SHOW'
+          ? 'CONSUMED'
+          : 'ACTIVE';
     const createdAt = asDate(row.created_at) ?? classSlot.startAt;
     const isHistorical = Boolean(deletedAt) || duplicateHistorical;
     await target.$transaction(async (tx) => {
@@ -3010,11 +3258,17 @@ async function importSlotBooking(
           id: reservationId,
           customerPackageId,
           classSlotId,
-          referenceHash: recordChecksum({ source: SOURCE_SYSTEM, table: 'booking_kelas', id: legacyId }),
+          referenceHash: recordChecksum({
+            source: SOURCE_SYSTEM,
+            table: 'booking_kelas',
+            id: legacyId,
+          }),
           status: reservationStatus,
           createdAt,
-          releasedAt: reservationStatus === 'RELEASED' ? asDate(row.updated_at) ?? createdAt : null,
-          consumedAt: reservationStatus === 'CONSUMED' ? asDate(row.updated_at) ?? classSlot.startAt : null,
+          releasedAt:
+            reservationStatus === 'RELEASED' ? (asDate(row.updated_at) ?? createdAt) : null,
+          consumedAt:
+            reservationStatus === 'CONSUMED' ? (asDate(row.updated_at) ?? classSlot.startAt) : null,
         },
       });
       await tx.booking.create({
@@ -3053,7 +3307,7 @@ async function importSlotBooking(
           occurredAt:
             attendance.outcome === 'UNKNOWN_HISTORICAL'
               ? null
-              : asDate(row.updated_at) ?? classSlot.startAt,
+              : (asDate(row.updated_at) ?? classSlot.startAt),
           historical: isHistorical,
           sourceDeletedAt: deletedAt,
           createdAt,
@@ -3082,9 +3336,7 @@ async function importSlotBooking(
         ['SessionReservation', reservationId],
         [
           'BookingAttendanceOutcome',
-          deterministicId(
-            `${SOURCE_SYSTEM}:booking_kelas:${legacyId}:BookingAttendanceOutcome`,
-          ),
+          deterministicId(`${SOURCE_SYSTEM}:booking_kelas:${legacyId}:BookingAttendanceOutcome`),
         ],
       ] as const)
         await tx.migrationSourceKey.create({
@@ -3137,15 +3389,15 @@ async function importSlotBooking(
       'RATING_BOOKING_UNRESOLVED',
     );
     const mappedBookingId = referenceDecision?.sourceBookingId
-      ? await targetIdFor(
-          target,
-          'booking_kelas',
-          referenceDecision.sourceBookingId,
-          'Booking',
-        )
+      ? await targetIdFor(target, 'booking_kelas', referenceDecision.sourceBookingId, 'Booking')
       : null;
     const userId = await targetIdFor(target, 'users', row.id_user, 'User');
-    const slotId = await targetIdFor(target, 'kelas_activities', row.id_kelas_activity, 'ClassSlot');
+    const slotId = await targetIdFor(
+      target,
+      'kelas_activities',
+      row.id_kelas_activity,
+      'ClassSlot',
+    );
     const booking = mappedBookingId
       ? await target.booking.findUnique({ where: { id: mappedBookingId } })
       : userId && slotId
@@ -3251,14 +3503,10 @@ async function importSlotBooking(
         legacyId,
         'ATTENDANCE_BOOKING_UNRESOLVED',
       );
-      const sourceBookingId = referenceDecision?.sourceBookingId ??
+      const sourceBookingId =
+        referenceDecision?.sourceBookingId ??
         (table === 'check_in_outs' ? row.id_booking_kelas : null);
-      const bookingId = await targetIdFor(
-        target,
-        'booking_kelas',
-        sourceBookingId,
-        'Booking',
-      );
+      const bookingId = await targetIdFor(target, 'booking_kelas', sourceBookingId, 'Booking');
       if (!bookingId) {
         await queueResolution(
           target,
@@ -3295,7 +3543,8 @@ async function importSlotBooking(
         stats[table].skipped += 1;
         continue;
       }
-      const checkedInAt = asDate(row.jadwal) ?? asDate(row.waktu_masuk) ?? asDate(row.created_at) ?? new Date();
+      const checkedInAt =
+        asDate(row.jadwal) ?? asDate(row.waktu_masuk) ?? asDate(row.created_at) ?? new Date();
       const auditLogId = deterministicId(`${SOURCE_SYSTEM}:${table}:${legacyId}:AuditLog`);
       await target.$transaction(async (tx) => {
         await tx.auditLog.create({
@@ -3393,12 +3642,7 @@ async function importVoucherFinanceAuditMedia(
     process.env.V1_MIGRATION_ACTOR_SOURCE_USER_ID,
     'V1_MIGRATION_ACTOR_SOURCE_USER_ID_REQUIRED',
   );
-  const migrationActorId = await targetIdFor(
-    target,
-    'users',
-    migrationActorSourceId,
-    'User',
-  );
+  const migrationActorId = await targetIdFor(target, 'users', migrationActorSourceId, 'User');
   if (!migrationActorId) throw new Error('MIGRATION_ACTOR_NOT_IMPORTED');
   const legacyPayloadKey = piiKey();
   const mediaMode = migrationMediaMode();
@@ -3463,7 +3707,8 @@ async function importVoucherFinanceAuditMedia(
     const code = canonical ? sourceCode : `${sourceCode.slice(0, 48)}-LEGACY-${legacyId}`;
     const fixed = row.disc_harga !== null && row.disc_harga !== undefined;
     const deletedAt = asDate(row.deleted_at);
-    const activeFrom = asDate(row.tanggal_aktif) ?? asDate(row.created_at) ?? new Date('1970-01-01');
+    const activeFrom =
+      asDate(row.tanggal_aktif) ?? asDate(row.created_at) ?? new Date('1970-01-01');
     const activeUntil = asDate(row.expired);
     await target.$transaction(async (tx) => {
       await tx.voucher.create({
@@ -3676,9 +3921,7 @@ async function importVoucherFinanceAuditMedia(
             sourceTable: 'voucher_customers',
             sourceId: legacyId,
             targetType: 'VoucherRedemption',
-            targetId: deterministicId(
-              `${SOURCE_SYSTEM}:voucher_customers:${legacyId}:Redemption`,
-            ),
+            targetId: deterministicId(`${SOURCE_SYSTEM}:voucher_customers:${legacyId}:Redemption`),
             recordChecksum: recordChecksum(row),
             mappingVersion,
           },
@@ -3856,13 +4099,7 @@ async function importVoucherFinanceAuditMedia(
         legacyId,
         'JOURNAL_PURCHASE_UNRESOLVED',
       );
-      await markResolutionApplied(
-        target,
-        batchId,
-        'jurnals',
-        legacyId,
-        'JOURNAL_ACTOR_UNRESOLVED',
-      );
+      await markResolutionApplied(target, batchId, 'jurnals', legacyId, 'JOURNAL_ACTOR_UNRESOLVED');
       await markResolutionApplied(
         target,
         batchId,
@@ -3909,7 +4146,13 @@ async function importVoucherFinanceAuditMedia(
         },
       });
     });
-    await markResolutionApplied(target, batchId, 'jurnals', legacyId, 'JOURNAL_PURCHASE_UNRESOLVED');
+    await markResolutionApplied(
+      target,
+      batchId,
+      'jurnals',
+      legacyId,
+      'JOURNAL_PURCHASE_UNRESOLVED',
+    );
     await markResolutionApplied(target, batchId, 'jurnals', legacyId, 'JOURNAL_ACTOR_UNRESOLVED');
     await markResolutionApplied(target, batchId, 'jurnals', legacyId, 'JOURNAL_PARENT_UNRESOLVED');
     stats.jurnals.imported += 1;
@@ -4093,7 +4336,10 @@ async function importVoucherFinanceAuditMedia(
   const permissionMap = new Map<string, string>();
   for (const row of await sourceRows(source, 'permissions')) {
     const legacyId = sourceId(row);
-    const capabilityKey = `legacy:${textValue(row.name).trim().toLowerCase().replace(/[^a-z0-9:_-]+/gu, '-')}`.slice(0, 96);
+    const capabilityKey = `legacy:${textValue(row.name)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9:_-]+/gu, '-')}`.slice(0, 96);
     permissionMap.set(legacyId, capabilityKey);
     if (
       (await claimSourceKey(
@@ -4235,7 +4481,9 @@ async function importVoucherFinanceAuditMedia(
       stats.resolutions += 1;
       continue;
     }
-    const targetId = deterministicId(`${SOURCE_SYSTEM}:model_has_permissions:${compositeId}:Override`);
+    const targetId = deterministicId(
+      `${SOURCE_SYSTEM}:model_has_permissions:${compositeId}:Override`,
+    );
     if (
       (await claimSourceKey(
         target,
@@ -4713,6 +4961,57 @@ async function profile(source: PrismaClient) {
       ]),
     ),
   );
+  let locations: Array<{ id: unknown }> = [];
+  let packages: Array<{ id: unknown }> = [];
+  let classes: Array<{ id: unknown }> = [];
+  let instructors: Array<{ id: unknown }> = [];
+  let projectionKeys: Array<{ packageId: unknown; locationId: unknown }> = [];
+  let instructorKeys: Array<{ classId: unknown; locationId: unknown }> = [];
+  if (
+    ['locations', 'pakets', 'kelas', 'kelas_activities', 'order_pakets', 'location_studios'].every(
+      (table) => actualTables.has(table),
+    )
+  )
+    [locations, packages, classes, instructors, projectionKeys, instructorKeys] =
+      await Promise.all([
+      source.$queryRawUnsafe<Array<{ id: unknown }>>('SELECT `id` FROM `locations` ORDER BY `id`'),
+      source.$queryRawUnsafe<Array<{ id: unknown }>>('SELECT `id` FROM `pakets` ORDER BY `id`'),
+      source.$queryRawUnsafe<Array<{ id: unknown }>>('SELECT `id` FROM `kelas` ORDER BY `id`'),
+      source.$queryRawUnsafe<Array<{ id: unknown }>>(
+        'SELECT DISTINCT a.`id_user` AS `id` FROM `kelas_activities` a INNER JOIN `users` u ON u.`id` = a.`id_user` ORDER BY a.`id_user`',
+      ),
+      source.$queryRawUnsafe<Array<{ packageId: unknown; locationId: unknown }>>(
+        'SELECT DISTINCT o.`id_paket` AS `packageId`, o.`id_location` AS `locationId` FROM `order_pakets` o INNER JOIN `pakets` p ON p.`id` = o.`id_paket` INNER JOIN `locations` l ON l.`id` = o.`id_location` ORDER BY o.`id_paket`, o.`id_location`',
+      ),
+      source.$queryRawUnsafe<Array<{ classId: unknown; locationId: unknown }>>(
+        'SELECT DISTINCT a.`id_kelas` AS `classId`, s.`id_location` AS `locationId` FROM `kelas_activities` a INNER JOIN `kelas` k ON k.`id` = a.`id_kelas` INNER JOIN `users` u ON u.`id` = a.`id_user` INNER JOIN `location_studios` s ON s.`id` = a.`id_location_studio` INNER JOIN `locations` l ON l.`id` = s.`id_location` ORDER BY a.`id_kelas`, s.`id_location`',
+      ),
+      ]);
+  const branchIdBySourceLocation = new Map(
+    locations.map((row) => [
+      textValue(row.id),
+      deterministicId(`${SOURCE_SYSTEM}:locations:${textValue(row.id)}:Branch`),
+    ]),
+  );
+  const financeConfigurationCatalog = {
+    branches: [...branchIdBySourceLocation.values()],
+    classTypes: classes.map((row) =>
+      deterministicId(`${SOURCE_SYSTEM}:kelas:${textValue(row.id)}:ClassType`),
+    ),
+    instructors: instructors.map((row) =>
+      deterministicId(`${SOURCE_SYSTEM}:users:${textValue(row.id)}:User`),
+    ),
+    sourcePackages: packages.map((row) => textValue(row.id)),
+    sourceLocations: locations.map((row) => textValue(row.id)),
+    sourceClasses: classes.map((row) => textValue(row.id)),
+    requiredHistoricalProjectionKeys: projectionKeys.map(
+      (row) => `${textValue(row.packageId)}:${textValue(row.locationId)}`,
+    ),
+    requiredHistoricalInstructorKeys: instructorKeys.flatMap((row) => {
+      const branchId = branchIdBySourceLocation.get(textValue(row.locationId));
+      return branchId ? [`${textValue(row.classId)}:branch:${branchId}`] : [];
+    }),
+  };
   return {
     sourceSystem: SOURCE_SYSTEM,
     schema: {
@@ -4725,6 +5024,7 @@ async function profile(source: PrismaClient) {
       columnMismatches,
     },
     counts,
+    financeConfigurationCatalog,
     mappingPolicy: TABLE_POLICIES,
     columnRegistry: {
       total: V1_COLUMN_REGISTRY.length,
@@ -5082,6 +5382,65 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
   const targetJournalRupiahRows = await target.$queryRaw<CountRow[]>(
     Prisma.sql`SELECT COALESCE(SUM(amountRp), 0) AS count FROM LegacyFinancialEntry`,
   );
+  const sourceOrderRows = await sourceRows(source, 'order_pakets');
+  const approvedSourceOrders = sourceOrderRows.filter(
+    (row) =>
+      !mapV1PurchaseStatus({ status: row.status, active: row.is_active }).conflict &&
+      mapV1PurchaseStatus({ status: row.status, active: row.is_active }).status === 'APPROVED',
+  );
+  const projectionRates = optionalJsonMap('V1_PROJECTION_RATES');
+  const sourceApprovedRevenue = approvedSourceOrders.reduce(
+    (sum, row) => sum + BigInt(intValue(row.harga)),
+    0n,
+  );
+  const sourceProjection = approvedSourceOrders.reduce((sum, row) => {
+    const rate = Number(
+      projectionRates[`${textValue(row.id_paket)}:${textValue(row.id_location)}`],
+    );
+    return (
+      sum +
+      BigInt(
+        Number.isSafeInteger(rate) && rate >= 0 ? rate * positiveInt(row.jumlah_pertemuan, 1) : 0,
+      )
+    );
+  }, 0n);
+  const targetFinancialRows = await target.$queryRaw<
+    Array<{
+      grossSalesRp: Prisma.Decimal;
+      revenueRp: Prisma.Decimal;
+      projectionRp: Prisma.Decimal;
+      missingFacts: bigint;
+      snapshotMismatch: bigint;
+    }>
+  >(Prisma.sql`
+    SELECT
+      COALESCE(SUM(p.priceRpSnapshot), 0) AS grossSalesRp,
+      COALESCE(SUM(cp.salePriceRp), 0) AS revenueRp,
+      COALESCE(SUM(cp.projectionRateRp * cp.sessionCountSnapshot), 0) AS projectionRp,
+      SUM(CASE WHEN cp.id IS NULL THEN 1 ELSE 0 END) AS missingFacts,
+      SUM(CASE WHEN cp.id IS NOT NULL AND (
+        cp.salePriceRp <> COALESCE(p.priceAfterDiscountRpSnapshot, p.priceRpSnapshot)
+        OR cp.sessionCountSnapshot <> p.sessionCountSnapshot
+      ) THEN 1 ELSE 0 END) AS snapshotMismatch
+    FROM Purchase p
+    LEFT JOIN CustomerPackage cp ON cp.purchaseId = p.id
+    WHERE p.status = 'APPROVED'
+  `);
+  const [targetInstructorHourLogCount, targetInstructorHourLogSourceCount, invalidInstructorFacts] =
+    await Promise.all([
+      target.instructorHourLog.count(),
+      target.migrationSourceKey.count({
+        where: {
+          batchId: { in: runBatchIds },
+          sourceTable: 'kelas_activities',
+          targetType: 'InstructorHourLog',
+        },
+      }),
+      target.$queryRaw<CountRow[]>(Prisma.sql`
+        SELECT COUNT(*) AS count FROM InstructorHourLog
+        WHERE matchedUnits <> 1 OR amountRp <> feeRpSnapshot OR amountRp < 0
+      `),
+    ]);
   const [
     sourceOrderDimensions,
     targetOrderDimensions,
@@ -5096,7 +5455,8 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     sourceAttendanceOutcomes,
     targetAttendanceOutcomes,
   ] = await Promise.all([
-    reconciliationQuery('SOURCE_ORDER_DIMENSIONS', () => source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+    reconciliationQuery('SOURCE_ORDER_DIMENSIONS', () =>
+      source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT CONCAT(
         'branch=', COALESCE(CAST(id_location AS CHAR), 'NULL'),
         '|package=', COALESCE(CAST(id_paket AS CHAR), 'NULL'),
@@ -5112,8 +5472,10 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         '|status=', COALESCE(CAST(status AS CHAR), 'NULL'),
         '|date=', DATE_FORMAT(created_at, '%Y-%m-%d')
       )
-    `)),
-    reconciliationQuery('TARGET_ORDER_DIMENSIONS', () => target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
+    `),
+    ),
+    reconciliationQuery('TARGET_ORDER_DIMENSIONS', () =>
+      target.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT CONCAT(
         'branch=', COALESCE(branchKey.sourceId, 'NULL'),
         '|package=', COALESCE(packageKey.sourceId, 'NULL'),
@@ -5139,7 +5501,8 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         '|status=', COALESCE(p.sourceStatusCode, 'NULL'),
         '|date=', DATE_FORMAT(p.submittedAt, '%Y-%m-%d')
       )
-    `)),
+    `),
+    ),
     source.$queryRaw<DimensionalControlRow[]>(Prisma.sql`
       SELECT CONCAT('status=', status, '|active=', is_active) AS dimensionKey,
         COUNT(*) AS count
@@ -5279,6 +5642,13 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       SELECT 'LEGACY_FINANCE_PURCHASE', COUNT(*)
       FROM LegacyFinancialEntry financeRow LEFT JOIN Purchase purchaseRow ON purchaseRow.id = financeRow.purchaseId
       WHERE financeRow.purchaseId IS NOT NULL AND purchaseRow.id IS NULL
+      UNION ALL
+      SELECT 'INSTRUCTOR_COMPENSATION_RELATION', COUNT(*)
+      FROM InstructorHourLog hourLog
+      LEFT JOIN ClassSlot slotRow ON slotRow.id = hourLog.classSlotId
+      LEFT JOIN User instructorRow ON instructorRow.id = hourLog.instructorUserId
+      LEFT JOIN EffectiveConfiguration configRow ON configRow.id = hourLog.effectiveConfigurationId
+      WHERE slotRow.id IS NULL OR instructorRow.id IS NULL OR configRow.id IS NULL
     `),
     target.migrationDeferredMediaReference.count({ where: { batchId: { in: runBatchIds } } }),
     target.$queryRaw<Array<{ kind: string; count: bigint }>>(Prisma.sql`
@@ -5417,7 +5787,14 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     source.$queryRaw<CountRow[]>(Prisma.sql`
       SELECT COUNT(*) AS count FROM users WHERE email_verified_at IS NOT NULL
     `),
-    source.$queryRaw<Array<{ parentCount: bigint; orderCount: bigint; debitRp: Prisma.Decimal; creditRp: Prisma.Decimal }>>(Prisma.sql`
+    source.$queryRaw<
+      Array<{
+        parentCount: bigint;
+        orderCount: bigint;
+        debitRp: Prisma.Decimal;
+        creditRp: Prisma.Decimal;
+      }>
+    >(Prisma.sql`
       SELECT
         SUM(CASE WHEN id_parent IS NOT NULL THEN 1 ELSE 0 END) AS parentCount,
         SUM(CASE WHEN id_order_paket IS NOT NULL THEN 1 ELSE 0 END) AS orderCount,
@@ -5425,7 +5802,14 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         COALESCE(SUM(CASE WHEN tipe = 0 THEN jumlah_uang ELSE 0 END), 0) AS creditRp
       FROM jurnals
     `),
-    target.$queryRaw<Array<{ parentCount: bigint; orderCount: bigint; debitRp: Prisma.Decimal; creditRp: Prisma.Decimal }>>(Prisma.sql`
+    target.$queryRaw<
+      Array<{
+        parentCount: bigint;
+        orderCount: bigint;
+        debitRp: Prisma.Decimal;
+        creditRp: Prisma.Decimal;
+      }>
+    >(Prisma.sql`
       SELECT
         SUM(CASE WHEN parentId IS NOT NULL THEN 1 ELSE 0 END) AS parentCount,
         SUM(CASE WHEN purchaseId IS NOT NULL THEN 1 ELSE 0 END) AS orderCount,
@@ -5567,6 +5951,48 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       expected: integerText(sourceJournalRupiahRows[0]?.count),
       actual: integerText(targetJournalRupiahRows[0]?.count),
     },
+    {
+      controlKey: 'FINANCE_APPROVED_GROSS_SALES_TOTAL',
+      phase: 'package-order',
+      expected: sourceApprovedRevenue.toString(),
+      actual: integerText(targetFinancialRows[0]?.grossSalesRp),
+    },
+    {
+      controlKey: 'FINANCE_APPROVED_REVENUE_TOTAL',
+      phase: 'package-order',
+      expected: sourceApprovedRevenue.toString(),
+      actual: integerText(targetFinancialRows[0]?.revenueRp),
+    },
+    {
+      controlKey: 'FINANCE_PROJECTION_TOTAL',
+      phase: 'package-order',
+      expected: sourceProjection.toString(),
+      actual: integerText(targetFinancialRows[0]?.projectionRp),
+    },
+    {
+      controlKey: 'FINANCE_APPROVED_FACT_MISSING',
+      phase: 'package-order',
+      expected: '0',
+      actual: integerText(targetFinancialRows[0]?.missingFacts),
+    },
+    {
+      controlKey: 'FINANCE_APPROVED_SNAPSHOT_MISMATCH',
+      phase: 'package-order',
+      expected: '0',
+      actual: integerText(targetFinancialRows[0]?.snapshotMismatch),
+    },
+    {
+      controlKey: 'INSTRUCTOR_COMPENSATION_SOURCE_KEY_CARDINALITY',
+      phase: 'slot-booking',
+      expected: integerText(targetInstructorHourLogSourceCount),
+      actual: integerText(targetInstructorHourLogCount),
+    },
+    {
+      controlKey: 'INSTRUCTOR_COMPENSATION_INVALID_FACTS',
+      phase: 'slot-booking',
+      expected: '0',
+      actual: integerText(invalidInstructorFacts[0]?.count),
+    },
   ];
   for (const control of exactControls) {
     const dimensionHash = recordChecksum({ scope: 'ALL', controlKey: control.controlKey });
@@ -5702,7 +6128,9 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
     {
       controlKey: 'SESSION_AVAILABLE_TOTAL',
       phase: 'slot-booking',
-      expected: (BigInt(integerText(sessionRows[0]?.count)) - BigInt(sourceActiveReserved)).toString(),
+      expected: (
+        BigInt(integerText(sessionRows[0]?.count)) - BigInt(sourceActiveReserved)
+      ).toString(),
       actual: (BigInt(integerText(ledgerRows[0]?.count)) - BigInt(targetActiveReserved)).toString(),
     },
     {
@@ -5848,9 +6276,12 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
       actual: dimensionalValues(targetAttendanceOutcomes, 'count'),
     },
   ] as const;
-  const dimensionalMismatches: Array<{ controlKey: string; phase: string; dimensionKey: string }> = [];
+  const dimensionalMismatches: Array<{ controlKey: string; phase: string; dimensionKey: string }> =
+    [];
   for (const control of dimensionalControls) {
-    const dimensionKeys = [...new Set([...control.expected.keys(), ...control.actual.keys()])].sort();
+    const dimensionKeys = [
+      ...new Set([...control.expected.keys(), ...control.actual.keys()]),
+    ].sort();
     for (const dimensionKey of dimensionKeys) {
       const expected = control.expected.get(dimensionKey) ?? '0';
       const actual = control.actual.get(dimensionKey) ?? '0';
@@ -5882,14 +6313,15 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         },
       });
       if (expected !== actual)
-        dimensionalMismatches.push({ controlKey: control.controlKey, phase: control.phase, dimensionKey });
+        dimensionalMismatches.push({
+          controlKey: control.controlKey,
+          phase: control.phase,
+          dimensionKey,
+        });
     }
   }
   const orphanTotal = orphanCounts.reduce((sum, item) => sum + Number(item.count), 0);
-  const activeMediaTotal = activeMediaRows.reduce(
-    (sum, item) => sum + Number(item.count),
-    0,
-  );
+  const activeMediaTotal = activeMediaRows.reduce((sum, item) => sum + Number(item.count), 0);
   const phaseDue = (phase: string) =>
     currentPhaseIndex >= PHASES.indexOf(phase as (typeof PHASES)[number]);
   return {
@@ -5912,17 +6344,32 @@ async function reconcile(source: PrismaClient, target: PrismaClient, batchId: st
         actual: jsonInteger(targetReservationQuantities.get('RELEASED') ?? '0'),
       },
       available: {
-        expected: jsonInteger(
-          (BigInt(sessionExpected) - BigInt(sourceActiveReserved)).toString(),
-        ),
-        actual: jsonInteger(
-          (BigInt(sessionActual) - BigInt(targetActiveReserved)).toString(),
-        ),
+        expected: jsonInteger((BigInt(sessionExpected) - BigInt(sourceActiveReserved)).toString()),
+        actual: jsonInteger((BigInt(sessionActual) - BigInt(targetActiveReserved)).toString()),
       },
     },
     rupiah: {
       sourceTotal: jsonInteger(rupiahExpected),
       targetPurchaseSnapshots: jsonInteger(rupiahActual),
+    },
+    financial: {
+      grossSalesRp: {
+        expected: jsonInteger(sourceApprovedRevenue.toString()),
+        actual: jsonInteger(integerText(targetFinancialRows[0]?.grossSalesRp)),
+      },
+      revenueRp: {
+        expected: jsonInteger(sourceApprovedRevenue.toString()),
+        actual: jsonInteger(integerText(targetFinancialRows[0]?.revenueRp)),
+      },
+      projectionRp: {
+        expected: jsonInteger(sourceProjection.toString()),
+        actual: jsonInteger(integerText(targetFinancialRows[0]?.projectionRp)),
+      },
+      instructorCompensation: {
+        sourceKeys: targetInstructorHourLogSourceCount,
+        facts: targetInstructorHourLogCount,
+        invalidFacts: Number(invalidInstructorFacts[0]?.count ?? 0),
+      },
     },
     exact: {
       customerPackages: {
@@ -6007,11 +6454,7 @@ async function rollbackReport(target: PrismaClient, batchId: string) {
   };
 }
 
-async function writeRehearsalEvidence(
-  source: PrismaClient,
-  target: PrismaClient,
-  args: Args,
-) {
+async function writeRehearsalEvidence(source: PrismaClient, target: PrismaClient, args: Args) {
   if (process.env.MIGRATION_ALLOW_WRITES !== 'true')
     throw new Error('MIGRATION_WRITES_NOT_ENABLED');
   const batchId = required(
@@ -6026,35 +6469,42 @@ async function writeRehearsalEvidence(
   await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
   if ((await readdir(outputDirectory)).length) throw new Error('EVIDENCE_OUTPUT_NOT_EMPTY');
 
-  const [batch, reconciliation, rollback, sourceProfile, controlTotals, rejectGroups, resolutionGroups] =
-    await Promise.all([
-      target.migrationBatch.findUnique({ where: { id: batchId } }),
-      reconcile(source, target, batchId),
-      rollbackReport(target, batchId),
-      profile(source),
-      target.migrationControlTotal.findMany({
-        where: { batchId },
-        orderBy: [{ controlKey: 'asc' }, { dimensionHash: 'asc' }],
-        select: {
-          controlKey: true,
-          dimensions: true,
-          expectedValue: true,
-          actualValue: true,
-          status: true,
-          checkedAt: true,
-        },
-      }),
-      target.migrationReject.groupBy({
-        by: ['reasonCode', 'status'],
-        where: { batchId },
-        _count: { _all: true },
-      }),
-      target.migrationResolution.groupBy({
-        by: ['reasonCode', 'status'],
-        where: { batchId },
-        _count: { _all: true },
-      }),
-    ]);
+  const [
+    batch,
+    reconciliation,
+    rollback,
+    sourceProfile,
+    controlTotals,
+    rejectGroups,
+    resolutionGroups,
+  ] = await Promise.all([
+    target.migrationBatch.findUnique({ where: { id: batchId } }),
+    reconcile(source, target, batchId),
+    rollbackReport(target, batchId),
+    profile(source),
+    target.migrationControlTotal.findMany({
+      where: { batchId },
+      orderBy: [{ controlKey: 'asc' }, { dimensionHash: 'asc' }],
+      select: {
+        controlKey: true,
+        dimensions: true,
+        expectedValue: true,
+        actualValue: true,
+        status: true,
+        checkedAt: true,
+      },
+    }),
+    target.migrationReject.groupBy({
+      by: ['reasonCode', 'status'],
+      where: { batchId },
+      _count: { _all: true },
+    }),
+    target.migrationResolution.groupBy({
+      by: ['reasonCode', 'status'],
+      where: { batchId },
+      _count: { _all: true },
+    }),
+  ]);
   if (!batch) throw new Error('BATCH_NOT_FOUND');
   const evidenceId = `rehearsal-${batch.id}`;
   const generatedAt = new Date().toISOString();
@@ -6131,10 +6581,14 @@ async function writeRehearsalEvidence(
       })),
     ),
   };
-  await writeFile(join(outputDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, {
-    mode: 0o600,
-    flag: 'wx',
-  });
+  await writeFile(
+    join(outputDirectory, 'manifest.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    {
+      mode: 0o600,
+      flag: 'wx',
+    },
+  );
   return { evidenceId, blocking: reconciliation.blocking, fileCount: manifest.files.length + 1 };
 }
 
@@ -6180,18 +6634,21 @@ async function sourceBranchForDecodedEvent(
   const scalar = async (sql: string, value: unknown) => {
     const result = await source.$queryRawUnsafe<BranchRow[]>(sql, value);
     const branch = result[0]?.branchId;
-    return branch === null || branch === undefined || String(branch) === '0' ? null : String(branch);
+    return branch === null || branch === undefined || String(branch) === '0'
+      ? null
+      : String(branch);
   };
   if (event.sourceTable === 'ruangans' || event.sourceTable === 'kelas_activities')
     return scalar(
       'SELECT id_location AS branchId FROM location_studios WHERE id = ? LIMIT 1',
       row.id_location_studio,
     );
-  if (['kelas_images', 'kelas_pakets', 'pakets', 'kelas_pertamuans', 'customer_kelas'].includes(event.sourceTable))
-    return scalar(
-      'SELECT id_location AS branchId FROM kelas WHERE id = ? LIMIT 1',
-      row.id_kelas,
-    );
+  if (
+    ['kelas_images', 'kelas_pakets', 'pakets', 'kelas_pertamuans', 'customer_kelas'].includes(
+      event.sourceTable,
+    )
+  )
+    return scalar('SELECT id_location AS branchId FROM kelas WHERE id = ? LIMIT 1', row.id_kelas);
   if (['booking_kelas', 'kelas_ratings'].includes(event.sourceTable))
     return scalar(
       'SELECT s.id_location AS branchId FROM kelas_activities a JOIN location_studios s ON s.id = a.id_location_studio WHERE a.id = ? LIMIT 1',
@@ -6211,16 +6668,13 @@ async function sourceBranchForDecodedEvent(
         row.id_order_paket,
       );
     const userId = row.id_customer ?? row.id_user;
-    if (userId) return scalar('SELECT id_location AS branchId FROM users WHERE id = ? LIMIT 1', userId);
+    if (userId)
+      return scalar('SELECT id_location AS branchId FROM users WHERE id = ? LIMIT 1', userId);
   }
   return null;
 }
 
-async function captureSourceBinlog(
-  source: PrismaClient,
-  target: PrismaClient,
-  args: Args,
-) {
+async function captureSourceBinlog(source: PrismaClient, target: PrismaClient, args: Args) {
   const sourceUrl = new URL(required(process.env.V1_DATABASE_URL, 'V1_DATABASE_URL_REQUIRED'));
   if (sourceUrl.protocol !== 'mysql:') throw new Error('V1_DATABASE_URL_MUST_BE_MYSQL');
   const fromGtid = required(
@@ -6231,9 +6685,8 @@ async function captureSourceBinlog(
     typeof args['spool-dir'] === 'string' ? args['spool-dir'] : undefined,
     'BINLOG_SPOOL_DIR_REQUIRED',
   );
-  const logs = await source.$queryRawUnsafe<Array<{ Log_name?: string; f0?: string }>>(
-    'SHOW BINARY LOGS',
-  );
+  const logs =
+    await source.$queryRawUnsafe<Array<{ Log_name?: string; f0?: string }>>('SHOW BINARY LOGS');
   // Prisma maps SHOW result columns to f0/f1/f2 on MySQL 8.4, while older
   // clients preserve Log_name. Support both without relying on server locale.
   const firstLog = logs[0]?.Log_name ?? logs[0]?.f0;
@@ -6308,7 +6761,10 @@ async function deltaCapture(
     throw new Error('MIGRATION_WRITES_NOT_ENABLED');
   const events = providedEvents ?? (await readDeltaEvents(args));
   const key = deltaEncryptionKey();
-  const operator = required(typeof args.operator === 'string' ? args.operator : undefined, 'OPERATOR_REQUIRED');
+  const operator = required(
+    typeof args.operator === 'string' ? args.operator : undefined,
+    'OPERATOR_REQUIRED',
+  );
   const gtidSet = required(
     providedGtidSet ??
       (typeof args['gtid-set'] === 'string' ? args['gtid-set'] : process.env.V1_GTID_SET),
@@ -6415,7 +6871,10 @@ async function deltaVerify(target: PrismaClient, args: Args) {
   if (process.env.MIGRATION_ALLOW_WRITES !== 'true')
     throw new Error('MIGRATION_WRITES_NOT_ENABLED');
   const key = deltaEncryptionKey();
-  const operator = required(typeof args.operator === 'string' ? args.operator : undefined, 'OPERATOR_REQUIRED');
+  const operator = required(
+    typeof args.operator === 'string' ? args.operator : undefined,
+    'OPERATOR_REQUIRED',
+  );
   const events = await target.migrationDeltaEvent.findMany({
     where: { status: 'CAPTURED' },
     orderBy: [{ transactionOrder: 'asc' }, { eventOrder: 'asc' }],
@@ -6601,7 +7060,10 @@ async function assertDeltaBeforeState(tx: Prisma.TransactionClient, event: Store
     select: { recordChecksum: true },
   });
   if (!checksums.length) throw new Error('DELTA_SOURCE_KEY_NOT_FOUND');
-  if (!event.beforeChecksum || checksums.some((item) => item.recordChecksum !== event.beforeChecksum))
+  if (
+    !event.beforeChecksum ||
+    checksums.some((item) => item.recordChecksum !== event.beforeChecksum)
+  )
     throw new Error('DELTA_BEFORE_CHECKSUM_MISMATCH');
 }
 
@@ -6656,9 +7118,7 @@ async function applyDeferredMediaDelta(
   context: { batchId: string; mappingVersion: string },
 ) {
   migrationMediaMode();
-  const specs = DEFERRED_MEDIA_FIELDS.filter(
-    (item) => item.sourceTable === event.sourceTable,
-  );
+  const specs = DEFERRED_MEDIA_FIELDS.filter((item) => item.sourceTable === event.sourceTable);
   if (!specs.length) return;
   const encryptionKey = piiKey();
   const checksum = recordChecksum(row);
@@ -7109,23 +7569,20 @@ async function applyUserRoleDelta(
       },
     });
     await upsertDeltaSourceKey(tx, context, event, 'ApplicationRole', role, checksum);
-    await upsertDeltaSourceKey(
-      tx,
-      context,
-      event,
-      'RoleDefinition',
-      roleDefinitionId,
-      checksum,
-    );
+    await upsertDeltaSourceKey(tx, context, event, 'RoleDefinition', roleDefinitionId, checksum);
     return;
   }
   if (event.sourceTable === 'model_has_roles') {
     const role = LEGACY_APPLICATION_ROLES[textValue(row.role_id)];
     const userId = await targetIdFor(tx as unknown as PrismaClient, 'users', row.model_id, 'User');
     if (!role || !userId) throw new Error('DELTA_ROLE_ASSIGNMENT_RESOLUTION_REQUIRED');
-    const user = await tx.user.findUnique({ where: { id: userId }, select: { preferredBranchId: true } });
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { preferredBranchId: true },
+    });
     const scoped = ['INSTRUCTOR', 'ADMIN', 'OWNER'].includes(role);
-    if (scoped && !user?.preferredBranchId) throw new Error('DELTA_ROLE_BRANCH_RESOLUTION_REQUIRED');
+    if (scoped && !user?.preferredBranchId)
+      throw new Error('DELTA_ROLE_BRANCH_RESOLUTION_REQUIRED');
     const id = deterministicId(`${SOURCE_SYSTEM}:model_has_roles:${event.sourceId}:UserRole`);
     const assignmentId = ['INSTRUCTOR', 'OWNER'].includes(role)
       ? deterministicId(`${SOURCE_SYSTEM}:model_has_roles:${event.sourceId}:Assignment`)
@@ -7180,9 +7637,10 @@ async function applyPackageOrderDelta(
   const deletedAt = asDate(row.deleted_at);
   if (event.sourceTable === 'kelas') {
     const sourceBranchId = textValue(row.id_location);
-    const branchId = sourceBranchId && sourceBranchId !== '0'
-      ? await targetIdFor(tx as unknown as PrismaClient, 'locations', sourceBranchId, 'Branch')
-      : null;
+    const branchId =
+      sourceBranchId && sourceBranchId !== '0'
+        ? await targetIdFor(tx as unknown as PrismaClient, 'locations', sourceBranchId, 'Branch')
+        : null;
     if (sourceBranchId && sourceBranchId !== '0' && !branchId)
       throw new Error('DELTA_CLASS_BRANCH_RESOLUTION_REQUIRED');
     const id = deterministicId(`${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassType`);
@@ -7241,9 +7699,11 @@ async function applyPackageOrderDelta(
         },
       });
       await tx.classTypeBranchConfiguration.upsert({
-        where: { id: deterministicId(
-          `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
-        ) },
+        where: {
+          id: deterministicId(
+            `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
+          ),
+        },
         create: {
           id: deterministicId(
             `${SOURCE_SYSTEM}:kelas:${event.sourceId}:ClassTypeBranchConfiguration:${sourceBranchId}`,
@@ -7284,39 +7744,39 @@ async function applyPackageOrderDelta(
     const branchId = existing?.branchId ?? null;
     const effectiveFrom = asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z');
     await tx.package.upsert({
-        where: { id: packageId },
-        create: {
-          id: packageId,
-          branchId,
-          classTypeId,
-          businessKey: `LEGACY-PACKAGE-${event.sourceId}`,
-          name: textValue(row.nama, `Legacy package ${event.sourceId}`),
-          sessionCount: positiveInt(row.jumlah_pertemuan),
-          durationDays: positiveInt(row.valid_day, 30),
-          priceRp: Math.max(0, intValue(row.harga)),
-          effectiveFrom: asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z'),
-          effectiveUntil: deletedAt,
-          status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
-          historical: Boolean(deletedAt),
-          sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, []),
-          createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
-          updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
-        },
-        update: {
-          branchId,
-          classTypeId,
-          name: textValue(row.nama, `Legacy package ${event.sourceId}`),
-          sessionCount: positiveInt(row.jumlah_pertemuan),
-          durationDays: positiveInt(row.valid_day, 30),
-          priceRp: Math.max(0, intValue(row.harga)),
-          effectiveUntil: deletedAt,
-          status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
-          historical: Boolean(deletedAt),
-          sourceDeletedAt: deletedAt,
-          sourceMetadata: sourceMetadata(row, []),
-          updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
-        },
+      where: { id: packageId },
+      create: {
+        id: packageId,
+        branchId,
+        classTypeId,
+        businessKey: `LEGACY-PACKAGE-${event.sourceId}`,
+        name: textValue(row.nama, `Legacy package ${event.sourceId}`),
+        sessionCount: positiveInt(row.jumlah_pertemuan),
+        durationDays: positiveInt(row.valid_day, 30),
+        priceRp: Math.max(0, intValue(row.harga)),
+        effectiveFrom: asDate(row.created_at) ?? new Date('1970-01-01T00:00:00.000Z'),
+        effectiveUntil: deletedAt,
+        status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+        sourceMetadata: sourceMetadata(row, []),
+        createdAt: asDate(row.created_at) ?? event.sourceOccurredAt,
+        updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
+      },
+      update: {
+        branchId,
+        classTypeId,
+        name: textValue(row.nama, `Legacy package ${event.sourceId}`),
+        sessionCount: positiveInt(row.jumlah_pertemuan),
+        durationDays: positiveInt(row.valid_day, 30),
+        priceRp: Math.max(0, intValue(row.harga)),
+        effectiveUntil: deletedAt,
+        status: deletedAt || intValue(row.is_show_public, 1) !== 1 ? 'INACTIVE' : 'ACTIVE',
+        historical: Boolean(deletedAt),
+        sourceDeletedAt: deletedAt,
+        sourceMetadata: sourceMetadata(row, []),
+        updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
+      },
     });
     await tx.packageRevision.upsert({
       where: { packageId_revisionNumber: { packageId, revisionNumber: 1 } },
@@ -7364,19 +7824,19 @@ async function applyPackageOrderDelta(
       update: { active: !deletedAt, historical: Boolean(deletedAt), sourceDeletedAt: deletedAt },
     });
     await tx.packagePublicProfile.upsert({
-        where: { packageId },
-        create: {
-          packageId,
-          summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
-          description: textValue(row.nama, `Legacy package ${event.sourceId}`),
-          highlights: [],
-          usageGuidance: 'Ketentuan historis mengikuti transaksi Daily Dose v1.',
-          terms: { sourceSystem: SOURCE_SYSTEM, sourcePackageId: event.sourceId },
-        },
-        update: {
-          summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
-          description: textValue(row.nama, `Legacy package ${event.sourceId}`),
-        },
+      where: { packageId },
+      create: {
+        packageId,
+        summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
+        description: textValue(row.nama, `Legacy package ${event.sourceId}`),
+        highlights: [],
+        usageGuidance: 'Ketentuan historis mengikuti transaksi Daily Dose v1.',
+        terms: { sourceSystem: SOURCE_SYSTEM, sourcePackageId: event.sourceId },
+      },
+      update: {
+        summary: textValue(row.nama, `Legacy package ${event.sourceId}`),
+        description: textValue(row.nama, `Legacy package ${event.sourceId}`),
+      },
     });
     await upsertDeltaSourceKey(tx, context, event, 'Package', packageId, checksum);
     return;
@@ -7409,12 +7869,12 @@ async function applyPackageOrderDelta(
         branchId,
         active,
         historical: !active,
-        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+        sourceDeletedAt: active ? null : (deletedAt ?? event.sourceOccurredAt),
       },
       update: {
         active,
         historical: !active,
-        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+        sourceDeletedAt: active ? null : (deletedAt ?? event.sourceOccurredAt),
       },
     });
     await tx.package.updateMany({
@@ -7425,10 +7885,19 @@ async function applyPackageOrderDelta(
     return;
   }
   if (event.sourceTable === 'kelas_pakets') {
-    const packageId = await targetIdFor(tx as unknown as PrismaClient, 'pakets', row.id_paket, 'Package');
-    const classTypeId = await targetIdFor(tx as unknown as PrismaClient, 'kelas', row.id_kelas, 'ClassType');
-    if (!packageId || !classTypeId)
-      throw new Error('DELTA_PACKAGE_CLASS_SCOPE_DEPENDENCY_PENDING');
+    const packageId = await targetIdFor(
+      tx as unknown as PrismaClient,
+      'pakets',
+      row.id_paket,
+      'Package',
+    );
+    const classTypeId = await targetIdFor(
+      tx as unknown as PrismaClient,
+      'kelas',
+      row.id_kelas,
+      'ClassType',
+    );
+    if (!packageId || !classTypeId) throw new Error('DELTA_PACKAGE_CLASS_SCOPE_DEPENDENCY_PENDING');
     const scopeId = deterministicId(
       `${SOURCE_SYSTEM}:kelas_pakets:${event.sourceId}:PackageClassTypeScope`,
     );
@@ -7441,24 +7910,19 @@ async function applyPackageOrderDelta(
         classTypeId,
         active,
         historical: !active,
-        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+        sourceDeletedAt: active ? null : (deletedAt ?? event.sourceOccurredAt),
       },
       update: {
         active,
         historical: !active,
-        sourceDeletedAt: active ? null : deletedAt ?? event.sourceOccurredAt,
+        sourceDeletedAt: active ? null : (deletedAt ?? event.sourceOccurredAt),
       },
     });
     await upsertDeltaSourceKey(tx, context, event, 'PackageClassTypeScope', scopeId, checksum);
     return;
   }
   if (event.sourceTable === 'order_pakets') {
-    const userId = await targetIdFor(
-      tx as unknown as PrismaClient,
-      'users',
-      row.id_user,
-      'User',
-    );
+    const userId = await targetIdFor(tx as unknown as PrismaClient, 'users', row.id_user, 'User');
     const branchSourceId = textValue(row.id_location);
     const branchId = await targetIdFor(
       tx as unknown as PrismaClient,
@@ -7491,7 +7955,8 @@ async function applyPackageOrderDelta(
     const createdAt = asDate(row.created_at) ?? event.sourceOccurredAt;
     const activationDate = asDate(row.tanggal_pembayaran) ?? createdAt;
     const expiryAt =
-      asDate(row.expired_date) ?? new Date(activationDate.getTime() + pkg.durationDays * 86_400_000);
+      asDate(row.expired_date) ??
+      new Date(activationDate.getTime() + pkg.durationDays * 86_400_000);
     const price = Math.max(0, intValue(row.harga, pkg.priceRp));
     const isActive = !deletedAt && intValue(row.is_active) === 1;
     const statusMapping = mapV1PurchaseStatus({ status: row.status, active: row.is_active });
@@ -7512,6 +7977,16 @@ async function applyPackageOrderDelta(
         existingPurchase.packageId !== packageId)
     )
       throw new Error('DELTA_FINAL_PURCHASE_SNAPSHOT_RESOLUTION_REQUIRED');
+    const configuredProjectionRates = optionalJsonMap('V1_PROJECTION_RATES');
+    const projectionRateRp = Number(
+      configuredProjectionRates[`${textValue(row.id_paket)}:${branchSourceId}`],
+    );
+    if (
+      !Number.isSafeInteger(projectionRateRp) ||
+      projectionRateRp < 0 ||
+      !process.env.V1_PROJECTION_RATE_EVIDENCE?.trim()
+    )
+      throw new Error('DELTA_PROJECTION_RATE_MAPPING_REQUIRED');
     await tx.purchase.upsert({
       where: { id: purchaseId },
       create: {
@@ -7533,7 +8008,11 @@ async function applyPackageOrderDelta(
         sessionCountSnapshot: sessions,
         durationDaysSnapshot: pkg.durationDays,
         status: purchaseStatus,
-        idempotencyKeyHash: recordChecksum({ source: SOURCE_SYSTEM, table: 'order_pakets', id: event.sourceId }),
+        idempotencyKeyHash: recordChecksum({
+          source: SOURCE_SYSTEM,
+          table: 'order_pakets',
+          id: event.sourceId,
+        }),
         submittedAt: createdAt,
         decidedAt: purchaseStatus === 'APPROVED' ? activationDate : null,
         timelineComplete: true,
@@ -7577,7 +8056,7 @@ async function applyPackageOrderDelta(
         salePriceRp: price,
         sessionCountSnapshot: sessions,
         durationDaysSnapshot: pkg.durationDays,
-        projectionRateRp: Math.trunc(price / Math.max(1, sessions)),
+        projectionRateRp,
         status: isActive ? 'ACTIVE' : 'INACTIVE',
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -7666,12 +8145,14 @@ async function applySlotBookingDelta(
     const studio = studioId ? await tx.studio.findUnique({ where: { id: studioId } }) : null;
     if (activity && !studio) throw new Error('DELTA_SLOT_STUDIO_RESOLUTION_REQUIRED');
     const branchId = studio?.branchId ?? classType.branchScopes[0]?.branchId;
-    const effectiveStudio = studio ?? (branchId
-      ? await tx.studio.findFirst({
-          where: { branchId, active: true },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        })
-      : null);
+    const effectiveStudio =
+      studio ??
+      (branchId
+        ? await tx.studio.findFirst({
+            where: { branchId, active: true },
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          })
+        : null);
     if (!branchId || !effectiveStudio) throw new Error('DELTA_SLOT_VENUE_RESOLUTION_REQUIRED');
     await tx.classTypeBranchScope.upsert({
       where: { classTypeId_branchId: { classTypeId, branchId } },
@@ -7709,11 +8190,13 @@ async function applySlotBookingDelta(
           select: { id: true, sourceMetadata: true },
         })
       : null;
-    const matchingSlot = existingSlot ?? await tx.classSlot.findFirst({
+    const matchingSlot =
+      existingSlot ??
+      (await tx.classSlot.findFirst({
         where: { classTypeId, startAt },
         orderBy: [{ historical: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
         select: { id: true, sourceMetadata: true },
-      });
+      }));
     const matchingSourceKeys = matchingSlot
       ? await tx.migrationSourceKey.findMany({
           where: { targetType: 'ClassSlot', targetId: matchingSlot.id },
@@ -7725,14 +8208,14 @@ async function applySlotBookingDelta(
     );
     if (!existingSourceKey && matchingSlot && hasOtherSameProjection && !deletedAt)
       throw new Error('DELTA_DUPLICATE_ACTIVE_SLOT_RESOLUTION_REQUIRED');
-    const id = existingSourceKey?.targetId ??
-      (matchingSlot && !hasOtherSameProjection ? matchingSlot.id : deterministicId(
-        `${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:ClassSlot`,
-      ));
+    const id =
+      existingSourceKey?.targetId ??
+      (matchingSlot && !hasOtherSameProjection
+        ? matchingSlot.id
+        : deterministicId(`${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:ClassSlot`));
     const sourceStatus = intValue(row.status, 1);
-    const projectionSharesSlot = !activity && matchingSourceKeys.some(
-      (key) => key.sourceTable === 'kelas_activities',
-    );
+    const projectionSharesSlot =
+      !activity && matchingSourceKeys.some((key) => key.sourceTable === 'kelas_activities');
     const hardDeletedAt = event.operation === 'DELETE' ? event.sourceOccurredAt : deletedAt;
     await tx.classSlot.upsert({
       where: { id },
@@ -7752,9 +8235,12 @@ async function applySlotBookingDelta(
         status: mapV1ClassSlotStatus(sourceStatus),
         historical: Boolean(hardDeletedAt),
         sourceDeletedAt: hardDeletedAt,
-        sourceMetadata: sourceMetadata(row, activity
-          ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
-          : ['status', 'keterangan']),
+        sourceMetadata: sourceMetadata(
+          row,
+          activity
+            ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
+            : ['status', 'keterangan'],
+        ),
         createdAt: asDate(row.created_at) ?? startAt,
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
       },
@@ -7776,13 +8262,78 @@ async function applySlotBookingDelta(
             status: mapV1ClassSlotStatus(sourceStatus),
             historical: Boolean(hardDeletedAt),
             sourceDeletedAt: hardDeletedAt,
-            sourceMetadata: sourceMetadata(row, activity
-              ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
-              : ['status', 'keterangan']),
+            sourceMetadata: sourceMetadata(
+              row,
+              activity
+                ? ['status', 'nama_latihan', 'level', 'user_update', 'rating', 'id_location_studio']
+                : ['status', 'keterangan'],
+            ),
             updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
           },
     });
     await upsertDeltaSourceKey(tx, context, event, 'ClassSlot', id, checksum);
+    if (activity) {
+      const hourLogId = deterministicId(
+        `${SOURCE_SYSTEM}:kelas_activities:${event.sourceId}:InstructorHourLog`,
+      );
+      const existingHourLog = await tx.instructorHourLog.findUnique({
+        where: { classSlotId: id },
+      });
+      const completed = mapV1ClassSlotStatus(sourceStatus) === 'COMPLETED' && !hardDeletedAt;
+      if (existingHourLog && !completed)
+        throw new Error('DELTA_INSTRUCTOR_COMPENSATION_REVERSAL_REQUIRED');
+      if (completed && !existingHourLog) {
+        const instructorUserId = await targetIdFor(
+          tx as unknown as PrismaClient,
+          'users',
+          row.id_user,
+          'User',
+        );
+        if (!instructorUserId) throw new Error('DELTA_INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED');
+        const effectiveDate = new Date(
+          `${dateInTimeZone(new Date(startAt.getTime() + duration * 60_000), 'Asia/Jakarta')}T00:00:00.000Z`,
+        );
+        const feeCandidates = await tx.effectiveConfiguration.findMany({
+          where: {
+            kind: 'INSTRUCTOR_FEE',
+            branchId,
+            classTypeId,
+            effectiveFrom: { lte: effectiveDate },
+            OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
+          },
+          select: { id: true, value: true },
+        });
+        const fees = feeCandidates.flatMap((candidate) => {
+          const value = jsonObject(candidate.value);
+          const feeRp = Number(value.feeRp);
+          return value.instructorUserId === instructorUserId &&
+            Number.isSafeInteger(feeRp) &&
+            feeRp >= 0
+            ? [{ id: candidate.id, feeRp }]
+            : [];
+        });
+        if (fees.length !== 1) throw new Error('DELTA_INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED');
+        const fee = fees[0]!;
+        const occurredAt = new Date(startAt.getTime() + duration * 60_000);
+        await tx.instructorHourLog.create({
+          data: {
+            id: hourLogId,
+            classSlotId: id,
+            instructorUserId,
+            branchId,
+            classTypeId,
+            effectiveConfigurationId: fee.id,
+            matchedUnits: 1,
+            feeRpSnapshot: fee.feeRp,
+            amountRp: fee.feeRp,
+            period: dateInTimeZone(occurredAt, 'Asia/Jakarta').slice(0, 7),
+            occurredAt,
+          },
+        });
+      }
+      if (completed)
+        await upsertDeltaSourceKey(tx, context, event, 'InstructorHourLog', hourLogId, checksum);
+    }
     return;
   }
   if (event.sourceTable === 'customer_kelas') {
@@ -7794,9 +8345,7 @@ async function applySlotBookingDelta(
       'ClassType',
     );
     if (!userId || !classTypeId) throw new Error('DELTA_ENROLLMENT_RESOLUTION_REQUIRED');
-    const id = deterministicId(
-      `${SOURCE_SYSTEM}:customer_kelas:${event.sourceId}:Enrollment`,
-    );
+    const id = deterministicId(`${SOURCE_SYSTEM}:customer_kelas:${event.sourceId}:Enrollment`);
     await tx.customerClassEnrollment.upsert({
       where: { id },
       create: {
@@ -7829,8 +8378,7 @@ async function applySlotBookingDelta(
       ? await tx.user.findUnique({ where: { id: userId }, select: { preferredBranchId: true } })
       : null;
     const weekday = weekdays[intValue(row.hari)];
-    if (!userId || !weekday)
-      throw new Error('DELTA_SCHEDULE_RESOLUTION_REQUIRED');
+    if (!userId || !weekday) throw new Error('DELTA_SCHEDULE_RESOLUTION_REQUIRED');
     const id = deterministicId(
       `${SOURCE_SYSTEM}:customer_jadwal_statics:${event.sourceId}:Schedule`,
     );
@@ -7901,7 +8449,8 @@ async function applySlotBookingDelta(
       },
       select: { id: true },
     });
-    if (duplicate && !deletedAt) throw new Error('DELTA_DUPLICATE_ACTIVE_BOOKING_RESOLUTION_REQUIRED');
+    if (duplicate && !deletedAt)
+      throw new Error('DELTA_DUPLICATE_ACTIVE_BOOKING_RESOLUTION_REQUIRED');
     const attendance = mapV1BookingAttendance(row.status_kehadiran);
     const status = deletedAt ? 'CANCELLED' : attendance.bookingStatus;
     const reservationStatus =
@@ -7920,7 +8469,11 @@ async function applySlotBookingDelta(
         id: reservationId,
         customerPackageId,
         classSlotId: slot.id,
-        referenceHash: recordChecksum({ source: SOURCE_SYSTEM, table: 'booking_kelas', id: event.sourceId }),
+        referenceHash: recordChecksum({
+          source: SOURCE_SYSTEM,
+          table: 'booking_kelas',
+          id: event.sourceId,
+        }),
         status: reservationStatus,
         createdAt,
         releasedAt: reservationStatus === 'RELEASED' ? event.sourceOccurredAt : null,
@@ -7947,7 +8500,7 @@ async function applySlotBookingDelta(
         source: 'SELF',
         status,
         cancellationReasonCode: status === 'CANCELLED' ? 'OTHER' : null,
-        cancelledAt: status === 'CANCELLED' ? deletedAt ?? event.sourceOccurredAt : null,
+        cancelledAt: status === 'CANCELLED' ? (deletedAt ?? event.sourceOccurredAt) : null,
         cancelledById: status === 'CANCELLED' ? userId : null,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -7958,7 +8511,7 @@ async function applySlotBookingDelta(
       update: {
         status,
         cancellationReasonCode: status === 'CANCELLED' ? 'OTHER' : null,
-        cancelledAt: status === 'CANCELLED' ? deletedAt ?? event.sourceOccurredAt : null,
+        cancelledAt: status === 'CANCELLED' ? (deletedAt ?? event.sourceOccurredAt) : null,
         cancelledById: status === 'CANCELLED' ? userId : null,
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
@@ -7983,7 +8536,7 @@ async function applySlotBookingDelta(
         occurredAt:
           attendance.outcome === 'UNKNOWN_HISTORICAL'
             ? null
-            : asDate(row.updated_at) ?? slot.startAt,
+            : (asDate(row.updated_at) ?? slot.startAt),
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         createdAt,
@@ -7999,7 +8552,7 @@ async function applySlotBookingDelta(
         occurredAt:
           attendance.outcome === 'UNKNOWN_HISTORICAL'
             ? null
-            : asDate(row.updated_at) ?? slot.startAt,
+            : (asDate(row.updated_at) ?? slot.startAt),
         historical: Boolean(deletedAt),
         sourceDeletedAt: deletedAt,
         updatedAt: asDate(row.updated_at) ?? event.sourceOccurredAt,
@@ -8074,8 +8627,7 @@ async function applySlotBookingDelta(
     return;
   }
   if (event.sourceTable === 'check_in_outs' || event.sourceTable === 'kelas_pertemuan_absensis') {
-    const bookingSourceId =
-      event.sourceTable === 'check_in_outs' ? row.id_booking_kelas : null;
+    const bookingSourceId = event.sourceTable === 'check_in_outs' ? row.id_booking_kelas : null;
     const bookingId = bookingSourceId
       ? await targetIdFor(
           tx as unknown as PrismaClient,
@@ -8087,7 +8639,10 @@ async function applySlotBookingDelta(
     if (!bookingId) throw new Error('DELTA_ATTENDANCE_BOOKING_RESOLUTION_REQUIRED');
     const booking = await tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
     const checkedInAt =
-      asDate(row.jadwal) ?? asDate(row.waktu_masuk) ?? asDate(row.created_at) ?? event.sourceOccurredAt;
+      asDate(row.jadwal) ??
+      asDate(row.waktu_masuk) ??
+      asDate(row.created_at) ??
+      event.sourceOccurredAt;
     const id = deterministicId(
       `${SOURCE_SYSTEM}:${event.sourceTable}:${event.sourceId}:Attendance`,
     );
@@ -8155,7 +8710,8 @@ async function applySlotBookingDelta(
       });
     } else {
       const existingAttendance = await tx.customerAttendance.findUnique({ where: { id } });
-      if (existingAttendance) throw new Error('DELTA_ATTENDANCE_DELETE_REVERSAL_RESOLUTION_REQUIRED');
+      if (existingAttendance)
+        throw new Error('DELTA_ATTENDANCE_DELETE_REVERSAL_RESOLUTION_REQUIRED');
     }
     await upsertDeltaSourceKey(tx, context, event, 'CustomerAttendance', id, checksum);
     return;
@@ -8317,9 +8873,7 @@ async function applyVoucherFinanceAuditMediaDelta(
     const used = intValue(row.status_digunakan) === 1;
     if (!voucherId || !customerUserId || (used && !purchaseId))
       throw new Error('DELTA_VOUCHER_REDEMPTION_RESOLUTION_REQUIRED');
-    const id = deterministicId(
-      `${SOURCE_SYSTEM}:voucher_customers:${event.sourceId}:Entitlement`,
-    );
+    const id = deterministicId(`${SOURCE_SYSTEM}:voucher_customers:${event.sourceId}:Entitlement`);
     await tx.customerVoucherEntitlement.upsert({
       where: { id },
       create: {
@@ -8442,7 +8996,11 @@ async function applyVoucherFinanceAuditMediaDelta(
           'LegacyFinancialEntry',
         )
       : null;
-    if ((row.id_order_paket && !purchaseId) || (row.id_user && !actorUserId) || (row.id_parent && !parentId))
+    if (
+      (row.id_order_paket && !purchaseId) ||
+      (row.id_user && !actorUserId) ||
+      (row.id_parent && !parentId)
+    )
       throw new Error('DELTA_JOURNAL_REFERENCE_RESOLUTION_REQUIRED');
     const purchase = purchaseId
       ? await tx.purchase.findUnique({ where: { id: purchaseId }, select: { branchId: true } })
@@ -8515,15 +9073,15 @@ async function applyVoucherFinanceAuditMediaDelta(
         sourceId: event.sourceId,
         historical: true,
       },
-        update: {
-          occurredAt: asDate(row.created_at) ?? event.sourceOccurredAt,
-          afterMasked: {
-            logName: textValue(row.log_name),
-            description: textValue(row.description).slice(0, 500),
-            propertiesChecksum: recordChecksum(activityPayload),
-            batchUuid: textValue(row.batch_uuid) || null,
-          },
+      update: {
+        occurredAt: asDate(row.created_at) ?? event.sourceOccurredAt,
+        afterMasked: {
+          logName: textValue(row.log_name),
+          description: textValue(row.description).slice(0, 500),
+          propertiesChecksum: recordChecksum(activityPayload),
+          batchUuid: textValue(row.batch_uuid) || null,
         },
+      },
     });
     const payloadId = deterministicId(
       `${SOURCE_SYSTEM}:activity_log:${event.sourceId}:MigrationLegacyPayload`,
@@ -8606,7 +9164,10 @@ async function applyVoucherFinanceAuditMediaDelta(
     return;
   }
   if (event.sourceTable === 'permissions') {
-    const key = `legacy:${textValue(row.name).trim().toLowerCase().replace(/[^a-z0-9:_-]+/gu, '-')}`.slice(0, 96);
+    const key = `legacy:${textValue(row.name)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9:_-]+/gu, '-')}`.slice(0, 96);
     await tx.capabilityDefinition.upsert({
       where: { key },
       create: {
@@ -8635,7 +9196,9 @@ async function applyVoucherFinanceAuditMediaDelta(
       row.permission_id,
       'CapabilityDefinition',
     );
-    const roleId = deterministicId(`${SOURCE_SYSTEM}:roles:${textValue(row.role_id)}:RoleDefinition`);
+    const roleId = deterministicId(
+      `${SOURCE_SYSTEM}:roles:${textValue(row.role_id)}:RoleDefinition`,
+    );
     const role = await tx.roleDefinition.findUnique({ where: { id: roleId } });
     if (!capabilityKey || !role) throw new Error('DELTA_ROLE_PERMISSION_RESOLUTION_REQUIRED');
     if (event.operation === 'DELETE')
@@ -8663,12 +9226,7 @@ async function applyVoucherFinanceAuditMediaDelta(
       row.permission_id,
       'CapabilityDefinition',
     );
-    const userId = await targetIdFor(
-      tx as unknown as PrismaClient,
-      'users',
-      row.model_id,
-      'User',
-    );
+    const userId = await targetIdFor(tx as unknown as PrismaClient, 'users', row.model_id, 'User');
     const actorSourceId = required(
       process.env.V1_MIGRATION_ACTOR_SOURCE_USER_ID,
       'V1_MIGRATION_ACTOR_SOURCE_USER_ID_REQUIRED',
@@ -8681,11 +9239,8 @@ async function applyVoucherFinanceAuditMediaDelta(
     );
     if (!capabilityKey || !userId || !actorId)
       throw new Error('DELTA_USER_PERMISSION_RESOLUTION_REQUIRED');
-    const id = deterministicId(
-      `${SOURCE_SYSTEM}:model_has_permissions:${event.sourceId}:Override`,
-    );
-    if (event.operation === 'DELETE')
-      await tx.userCapabilityOverride.deleteMany({ where: { id } });
+    const id = deterministicId(`${SOURCE_SYSTEM}:model_has_permissions:${event.sourceId}:Override`);
+    if (event.operation === 'DELETE') await tx.userCapabilityOverride.deleteMany({ where: { id } });
     else
       await tx.userCapabilityOverride.upsert({
         where: { id },
@@ -8748,10 +9303,8 @@ async function applyMappedDeltaEvent(target: PrismaClient, event: StoredDeltaEve
       if (phase === 'branch-master') await applyBranchMasterDelta(tx, locked, row, context);
       else if (phase === 'user-role')
         await applyUserRoleDelta(tx, locked, row, context, payload, decision);
-      else if (phase === 'package-order')
-        await applyPackageOrderDelta(tx, locked, row, context);
-      else if (phase === 'slot-booking')
-        await applySlotBookingDelta(tx, locked, row, context);
+      else if (phase === 'package-order') await applyPackageOrderDelta(tx, locked, row, context);
+      else if (phase === 'slot-booking') await applySlotBookingDelta(tx, locked, row, context);
       else if (phase === 'voucher-finance-audit-media')
         await applyVoucherFinanceAuditMediaDelta(tx, locked, row, context);
       else throw new Error(`DELTA_PHASE_APPLIER_REQUIRED:${phase}`);
@@ -8833,7 +9386,10 @@ async function queueDeltaEventResolution(
 async function deltaImport(target: PrismaClient, args: Args) {
   if (process.env.MIGRATION_ALLOW_WRITES !== 'true')
     throw new Error('MIGRATION_WRITES_NOT_ENABLED');
-  const operator = required(typeof args.operator === 'string' ? args.operator : undefined, 'OPERATOR_REQUIRED');
+  const operator = required(
+    typeof args.operator === 'string' ? args.operator : undefined,
+    'OPERATOR_REQUIRED',
+  );
   const events = await target.migrationDeltaEvent.findMany({
     where: { status: { in: ['VERIFIED', 'BLOCKED'] } },
     orderBy: [{ transactionOrder: 'asc' }, { eventOrder: 'asc' }],
@@ -8996,7 +9552,8 @@ async function transitionBranchCutover(target: PrismaClient, args: Args) {
   if (!actor) throw new Error('CUTOVER_ACTOR_NOT_FOUND');
   const existing = await target.migrationBranchCutover.findUnique({ where: { branchId } });
   if (!existing) {
-    if (action !== 'freeze' || expectedVersion !== 0) throw new Error('CUTOVER_STATE_NOT_INITIALIZED');
+    if (action !== 'freeze' || expectedVersion !== 0)
+      throw new Error('CUTOVER_STATE_NOT_INITIALIZED');
     return target.$transaction(async (tx) => {
       const created = await tx.migrationBranchCutover.create({
         data: {
@@ -9047,8 +9604,7 @@ async function transitionBranchCutover(target: PrismaClient, args: Args) {
       target.migrationReject.count({ where: { status: 'OPEN' } }),
       target.migrationResolution.count({ where: { status: { in: ['OPEN', 'APPROVED'] } } }),
     ]);
-    if (pendingDelta || openRejects || openResolutions)
-      throw new Error('CUTOVER_GATE_BLOCKED');
+    if (pendingDelta || openRejects || openResolutions) throw new Error('CUTOVER_GATE_BLOCKED');
   }
   if (action === 'rollback-complete') {
     const pendingOutbox = await target.migrationPilotOutbox.count({
@@ -9103,10 +9659,7 @@ async function pilotAdapter<T>(
   callback: (v1: PrismaClient) => Promise<T>,
 ): Promise<T> {
   const targetUrl = required(process.env.DATABASE_URL, 'DATABASE_URL_REQUIRED');
-  const v1Url = required(
-    process.env.V1_ROLLBACK_DATABASE_URL,
-    'V1_ROLLBACK_DATABASE_URL_REQUIRED',
-  );
+  const v1Url = required(process.env.V1_ROLLBACK_DATABASE_URL, 'V1_ROLLBACK_DATABASE_URL_REQUIRED');
   assertSeparateDatabases(v1Url, targetUrl);
   const v1 = new PrismaClient({ datasourceUrl: v1Url });
   try {
@@ -9121,10 +9674,7 @@ async function preparePilotAdapter(target: PrismaClient) {
     throw new Error('MIGRATION_WRITES_NOT_ENABLED');
   return pilotAdapter(target, async (v1) => {
     const sql = await readFile(
-      join(
-        process.cwd(),
-        'apps/api/prisma/v1-control/migration_pilot_replay_receipts.sql',
-      ),
+      join(process.cwd(), 'apps/api/prisma/v1-control/migration_pilot_replay_receipts.sql'),
       'utf8',
     );
     await v1.$executeRawUnsafe(sql);
@@ -9217,7 +9767,7 @@ async function applyPurchaseToV1(
     expiry,
     purchase.submittedAt,
     purchase.decidedAt ?? purchase.submittedAt,
-    purchase.historical ? purchase.sourceDeletedAt ?? new Date() : null,
+    purchase.historical ? (purchase.sourceDeletedAt ?? new Date()) : null,
     purchase.decidedAt,
     null,
     purchase.sessionCountSnapshot,
@@ -9317,12 +9867,7 @@ async function syncBookingRescheduleToV1(
   aggregateId: string,
   operation: string,
 ) {
-  const bookingSourceId = await sourceIdForTarget(
-    target,
-    'booking_kelas',
-    'Booking',
-    aggregateId,
-  );
+  const bookingSourceId = await sourceIdForTarget(target, 'booking_kelas', 'Booking', aggregateId);
   if (!bookingSourceId) throw new Error('PILOT_BOOKING_SOURCE_MAPPING_REQUIRED');
   if (operation === 'RESCHEDULE_APPROVE') {
     const booking = await target.booking.findUnique({ where: { id: aggregateId } });
@@ -9433,7 +9978,10 @@ async function applyAttendanceToV1(
     sourceIdForTarget(target, 'users', 'User', attendance.booking.customerUserId),
     sourceIdForTarget(target, 'locations', 'Branch', attendance.booking.branchId),
     target.customerPackage
-      .findUnique({ where: { id: attendance.booking.customerPackageId }, select: { purchaseId: true } })
+      .findUnique({
+        where: { id: attendance.booking.customerPackageId },
+        select: { purchaseId: true },
+      })
       .then((item) =>
         item ? sourceIdForTarget(target, 'order_pakets', 'Purchase', item.purchaseId) : null,
       ),
@@ -9467,7 +10015,11 @@ async function applyAttendanceToV1(
   const id = await v1tx.$queryRawUnsafe<Array<{ id: bigint | number }>>(
     'SELECT LAST_INSERT_ID() AS id',
   );
-  return { sourceTable: 'check_in_outs', sourceId: String(id[0]!.id), targetType: 'CustomerAttendance' };
+  return {
+    sourceTable: 'check_in_outs',
+    sourceId: String(id[0]!.id),
+    targetType: 'CustomerAttendance',
+  };
 }
 
 function pilotMediaPrefix(): string {
@@ -9719,9 +10271,7 @@ async function pilotOutboxStatus(target: PrismaClient, args: Args) {
     firstPendingSequence: firstPending?.sequence.toString() ?? null,
     firstPendingAt: firstPending?.occurredAt ?? null,
     highWaterSequence: last?.sequence.toString() ?? null,
-    mediaAliases: Object.fromEntries(
-      aliasCounts.map((item) => [item.status, item._count._all]),
-    ),
+    mediaAliases: Object.fromEntries(aliasCounts.map((item) => [item.status, item._count._all])),
   };
 }
 
@@ -9778,8 +10328,7 @@ async function applyPilotOutbox(target: PrismaClient, args: Args) {
         if (receipt[0]) {
           if (receipt[0].payload_checksum !== event.payloadChecksum)
             throw new Error('PILOT_OUTBOX_REPLAY_MISMATCH');
-          if (receipt[0].status !== 'APPLIED')
-            throw new Error('PILOT_OUTBOX_RECEIPT_NOT_APPLIED');
+          if (receipt[0].status !== 'APPLIED') throw new Error('PILOT_OUTBOX_RECEIPT_NOT_APPLIED');
           if (receipt[0].source_table && receipt[0].source_id)
             mapping = {
               sourceTable: receipt[0].source_table,
@@ -9793,97 +10342,81 @@ async function applyPilotOutbox(target: PrismaClient, args: Args) {
             if (event.aggregateType === 'Purchase' && event.operation === 'CREATE')
               result = await applyPurchaseToV1(v1tx, target, event.aggregateId, payload);
             else if (event.aggregateType === 'Purchase' && event.operation === 'DECIDE')
-              result = await syncPurchaseDecisionToV1(
+              result = await syncPurchaseDecisionToV1(v1tx, target, event.aggregateId, payload);
+            else if (event.aggregateType === 'Booking' && event.operation === 'CREATE')
+              result = await applyBookingCreateToV1(v1tx, target, event.aggregateId);
+            else if (event.aggregateType === 'Booking' && event.operation === 'CANCEL')
+              result = await applyBookingCancelToV1(v1tx, target, event.aggregateId);
+            else if (
+              event.aggregateType === 'Booking' &&
+              ['RESCHEDULE_REQUEST', 'RESCHEDULE_REJECT', 'RESCHEDULE_APPROVE'].includes(
+                event.operation,
+              )
+            )
+              result = await syncBookingRescheduleToV1(
+                v1tx,
+                target,
+                event.aggregateId,
+                event.operation,
+              );
+            else if (event.aggregateType === 'CustomerAttendance' && event.operation === 'CHECK_IN')
+              result = await applyAttendanceToV1(v1tx, target, event.aggregateId);
+            else if (
+              event.aggregateType === 'SessionAdjustment' &&
+              ['REQUEST', 'POST', 'REJECT'].includes(event.operation)
+            )
+              result = await applySessionAdjustmentToV1(
+                v1tx,
+                target,
+                event.aggregateId,
+                event.operation,
+                payload,
+              );
+            else if (event.aggregateType === 'VoucherRedemption' && event.operation === 'REDEEM')
+              result = await applyVoucherRedemptionToV1(v1tx, target, event.aggregateId);
+            else if (
+              event.aggregateType === 'PaymentProof' &&
+              event.operation === 'ATTACH_TO_PURCHASE'
+            )
+              result = await applyPaymentProofReferenceToV1(
                 v1tx,
                 target,
                 event.aggregateId,
                 payload,
               );
-          else if (event.aggregateType === 'Booking' && event.operation === 'CREATE')
-            result = await applyBookingCreateToV1(v1tx, target, event.aggregateId);
-          else if (event.aggregateType === 'Booking' && event.operation === 'CANCEL')
-            result = await applyBookingCancelToV1(v1tx, target, event.aggregateId);
-          else if (
-            event.aggregateType === 'Booking' &&
-            ['RESCHEDULE_REQUEST', 'RESCHEDULE_REJECT', 'RESCHEDULE_APPROVE'].includes(
-              event.operation,
+            else if (event.aggregateType === 'IdentityDocument' && event.operation === 'APPROVE')
+              result = await applyIdentityDocumentReferenceToV1(
+                v1tx,
+                target,
+                event.aggregateId,
+                payload,
+              );
+            else if (
+              (event.aggregateType === 'PaymentProof' && event.operation === 'FINALIZE') ||
+              (event.aggregateType === 'IdentityDocument' &&
+                event.operation === 'FINALIZE_REPLACEMENT')
             )
-          )
-            result = await syncBookingRescheduleToV1(
-              v1tx,
-              target,
+              result = null;
+            else if (event.aggregateType === 'CustomerProfile' && event.operation === 'UPDATE')
+              result = await applyCustomerProfileToV1(v1tx, target, event.aggregateId, payload);
+            else throw new Error('PILOT_OUTBOX_HANDLER_REQUIRED');
+            await v1tx.$executeRawUnsafe(
+              'INSERT INTO migration_pilot_replay_receipts (event_key,aggregate_type,aggregate_id,operation,payload_checksum,source_table,source_id,status,attempts,correlation_id,applied_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+              event.eventKey,
+              event.aggregateType,
               event.aggregateId,
               event.operation,
+              event.payloadChecksum,
+              result?.sourceTable ?? null,
+              result?.sourceId ?? null,
+              'APPLIED',
+              event.attempts + 1,
+              event.correlationId,
+              new Date(),
+              new Date(),
+              new Date(),
             );
-          else if (event.aggregateType === 'CustomerAttendance' && event.operation === 'CHECK_IN')
-            result = await applyAttendanceToV1(v1tx, target, event.aggregateId);
-          else if (
-            event.aggregateType === 'SessionAdjustment' &&
-            ['REQUEST', 'POST', 'REJECT'].includes(event.operation)
-          )
-            result = await applySessionAdjustmentToV1(
-              v1tx,
-              target,
-              event.aggregateId,
-              event.operation,
-              payload,
-            );
-          else if (
-            event.aggregateType === 'VoucherRedemption' &&
-            event.operation === 'REDEEM'
-          )
-            result = await applyVoucherRedemptionToV1(v1tx, target, event.aggregateId);
-          else if (
-            event.aggregateType === 'PaymentProof' &&
-            event.operation === 'ATTACH_TO_PURCHASE'
-          )
-            result = await applyPaymentProofReferenceToV1(
-              v1tx,
-              target,
-              event.aggregateId,
-              payload,
-            );
-          else if (
-            event.aggregateType === 'IdentityDocument' &&
-            event.operation === 'APPROVE'
-          )
-            result = await applyIdentityDocumentReferenceToV1(
-              v1tx,
-              target,
-              event.aggregateId,
-              payload,
-            );
-          else if (
-            (event.aggregateType === 'PaymentProof' && event.operation === 'FINALIZE') ||
-            (event.aggregateType === 'IdentityDocument' &&
-              event.operation === 'FINALIZE_REPLACEMENT')
-          )
-            result = null;
-          else if (event.aggregateType === 'CustomerProfile' && event.operation === 'UPDATE')
-            result = await applyCustomerProfileToV1(
-              v1tx,
-              target,
-              event.aggregateId,
-              payload,
-            );
-          else throw new Error('PILOT_OUTBOX_HANDLER_REQUIRED');
-          await v1tx.$executeRawUnsafe(
-            'INSERT INTO migration_pilot_replay_receipts (event_key,aggregate_type,aggregate_id,operation,payload_checksum,source_table,source_id,status,attempts,correlation_id,applied_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-            event.eventKey,
-            event.aggregateType,
-            event.aggregateId,
-            event.operation,
-            event.payloadChecksum,
-            result?.sourceTable ?? null,
-            result?.sourceId ?? null,
-            'APPLIED',
-            event.attempts + 1,
-            event.correlationId,
-            new Date(),
-            new Date(),
-            new Date(),
-          );
-          return result;
+            return result;
           });
           applied += 1;
         }
@@ -9892,10 +10425,7 @@ async function applyPilotOutbox(target: PrismaClient, args: Args) {
           process.env.MIGRATION_TEST_CRASH_AFTER_V1_RECEIPT === 'true'
         )
           throw new Error('PILOT_TEST_CRASH_AFTER_V1_RECEIPT');
-        if (
-          mapping &&
-          !['PaymentProof', 'IdentityDocument'].includes(mapping.targetType)
-        )
+        if (mapping && !['PaymentProof', 'IdentityDocument'].includes(mapping.targetType))
           await recordPilotTargetSourceKey(target, {
             ...mapping,
             targetId: event.aggregateId,
@@ -10026,7 +10556,9 @@ async function main() {
   }
   const targetUrl = required(process.env.DATABASE_URL, 'DATABASE_URL_REQUIRED');
   const needsSource =
-    ['profile', 'rehearsal-preflight', 'gate', 'import', 'reconcile', 'evidence'].includes(command) ||
+    ['profile', 'rehearsal-preflight', 'gate', 'import', 'reconcile', 'evidence'].includes(
+      command,
+    ) ||
     (command === 'delta-capture' && args['source-binlog'] === true);
   const sourceUrl = needsSource
     ? required(process.env.V1_DATABASE_URL, 'V1_DATABASE_URL_REQUIRED')

@@ -25,8 +25,17 @@ export class FinanceCommandController {
     @Param('reportType') reportType: string,
     @Query('branchId') branchId: string,
     @Query('period') period: string,
+    @Query('cursor') cursor?: string,
   ) {
-    return this.finance.report(req.principal, reportType, branchId, period);
+    return this.finance.report(req.principal, reportType, branchId, period, cursor);
+  }
+
+  @Post('finance-exports')
+  exportReport(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { branchId?: string; from: string; until: string },
+  ) {
+    return this.finance.exportReport(req.principal, body, req.correlationId ?? 'unknown');
   }
 
   @Get('other-costs')
@@ -47,7 +56,10 @@ export class FinanceCommandController {
     body: {
       branchId: string;
       period: string;
+      occurredOn: string;
+      categoryCode: string;
       description: string;
+      reason: string;
       amountRp: number;
       evidenceUploadId?: string;
     },

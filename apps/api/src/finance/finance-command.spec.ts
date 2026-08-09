@@ -30,6 +30,8 @@ function fixture(actorId: string) {
         ),
     },
     financePeriod: { findUnique: jest.fn().mockResolvedValue(null) },
+    accountingAccount: { findFirst: jest.fn().mockResolvedValue({ id: 'account-1' }) },
+    journalEntry: { create: jest.fn().mockResolvedValue({ id: 'journal-1' }) },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   const idempotency = {
@@ -42,7 +44,12 @@ function fixture(actorId: string) {
     requireCapability: jest.fn(),
     hasCapability: jest.fn().mockReturnValue(true),
   };
-  const service = new FinanceCommandService({} as never, policy as never, idempotency as never);
+  const service = new FinanceCommandService(
+    {} as never,
+    policy as never,
+    idempotency as never,
+    {} as never,
+  );
   const principal = {
     userId: actorId,
     capabilities: ['finance:manage'],
@@ -88,6 +95,153 @@ test('posts an approved correction as a new immutable finance fact', async () =>
   expect(tx.auditLog.create).toHaveBeenCalledWith(
     expect.objectContaining({
       data: expect.objectContaining({ action: 'finance.correction.posted' }),
+    }),
+  );
+  expect(tx.journalEntry.create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        debitRp: 25_000,
+        creditRp: 0,
+        statusCode: 'POSTED_CORRECTION',
+      }),
+    }),
+  );
+});
+
+test('closes a month with exactly one immutable authoritative snapshot', async () => {
+  const totals = {
+    grossSalesRp: 1_000_000,
+    packagePromotionDiscountRp: 0,
+    voucherDiscountRp: 0,
+    revenueRp: 1_000_000,
+    projectionRp: 400_000,
+    instructorRealtimeRp: 200_000,
+    otherCostRp: 150_000,
+    correctionRp: 25_000,
+    profitRp: 450_000,
+  };
+  const period = {
+    id: '00000000-0000-4000-8000-000000000401',
+    branchId,
+    period: '2026-08',
+    status: 'OPEN',
+    version: 0,
+  };
+  const tx = {
+    $queryRaw: jest.fn().mockResolvedValue([{ id: branchId }]),
+    financePeriod: {
+      findUnique: jest.fn().mockResolvedValue(period),
+      update: jest.fn().mockResolvedValue({ ...period, status: 'CLOSED', version: 1 }),
+    },
+    financeCloseSnapshot: {
+      create: jest
+        .fn()
+        .mockImplementation(({ data }) => Promise.resolve({ id: 'snapshot-1', ...data })),
+    },
+    auditLog: { create: jest.fn().mockResolvedValue({}) },
+  };
+  const idempotency = {
+    execute: jest.fn().mockImplementation(async (_command, execute) => ({
+      ...(await execute(tx)),
+      replay: false,
+    })),
+  };
+  const aggregation = {
+    aggregate: jest.fn().mockResolvedValue({
+      totals,
+      controlHash: 'a'.repeat(64),
+      sourceCutoffAt: new Date('2026-09-01T00:00:00.000Z'),
+      sourceVersion: 'financial-facts-v1',
+    }),
+  };
+  const service = new FinanceCommandService(
+    {} as never,
+    { requireCapability: jest.fn(), hasCapability: jest.fn().mockReturnValue(true) } as never,
+    idempotency as never,
+    aggregation as never,
+  );
+  const result = await service.closeMonth(
+    {
+      userId: approverId,
+      capabilities: ['finance:manage'],
+      branchIds: [branchId],
+      roles: [],
+    } as never,
+    {
+      branchId,
+      period: '2026-08',
+      controlHash: 'a'.repeat(64),
+      reason: 'Finance reconciliation passed',
+      expectedVersion: 0,
+    },
+    key,
+    'correlation-id',
+  );
+
+  expect(result.body).toEqual(expect.objectContaining({ snapshotIds: ['snapshot-1'] }));
+  expect(tx.financeCloseSnapshot.create).toHaveBeenCalledTimes(1);
+  expect(tx.financeCloseSnapshot.create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({ ...totals, controlHash: 'a'.repeat(64) }),
+    }),
+  );
+});
+
+test('exports the same authoritative branch-scoped aggregation and audits it', async () => {
+  const auditCreate = jest.fn().mockResolvedValue({});
+  const aggregation = {
+    aggregate: jest.fn().mockResolvedValue({
+      branches: [
+        {
+          branchId,
+          branchCode: 'JKT',
+          branchName: 'Jakarta',
+          grossSalesRp: 1_000_000,
+          revenueRp: 1_000_000,
+          projectionRp: 400_000,
+          instructorRealtimeRp: 200_000,
+          otherCostRp: 150_000,
+          profitRp: 450_000,
+          correctionRp: 25_000,
+        },
+      ],
+      controlHash: 'a'.repeat(64),
+      sourceCutoffAt: new Date('2026-09-01T00:00:00.000Z'),
+      completeness: 'COMPLETE',
+    }),
+  };
+  const service = new FinanceCommandService(
+    { auditLog: { create: auditCreate } } as never,
+    { requireCapability: jest.fn(), hasCapability: jest.fn().mockReturnValue(true) } as never,
+    {} as never,
+    aggregation as never,
+  );
+
+  const result = await service.exportReport(
+    {
+      userId: approverId,
+      capabilities: ['finance:export'],
+      branchIds: [branchId],
+      roles: [],
+    } as never,
+    { branchId, from: '2026-08-01', until: '2026-08-31' },
+    'correlation-id',
+  );
+
+  expect(aggregation.aggregate).toHaveBeenCalledWith({
+    branchIds: [branchId],
+    from: '2026-08-01',
+    until: '2026-08-31',
+    strict: true,
+  });
+  expect(result.content).toContain('"450000"');
+  expect(result.controlHash).toBe('a'.repeat(64));
+  expect(auditCreate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        action: 'finance.report.exported',
+        branchId,
+      }),
     }),
   );
 });

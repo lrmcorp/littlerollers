@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
+import 'package:openapi/src/model/dashboard_financial_summary.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/dashboard_sections.dart';
@@ -23,6 +24,7 @@ part 'dashboard_overview.g.dart';
 /// Properties:
 /// * [generatedAt] 
 /// * [period] 
+/// * [financial] 
 /// * [roleFocus] 
 /// * [sections] 
 /// * [metrics] 
@@ -39,6 +41,9 @@ abstract class DashboardOverview implements Built<DashboardOverview, DashboardOv
 
   @BuiltValueField(wireName: r'period')
   DashboardOverviewPeriod get period;
+
+  @BuiltValueField(wireName: r'financial')
+  DashboardFinancialSummary get financial;
 
   @BuiltValueField(wireName: r'roleFocus')
   DashboardOverviewRoleFocusEnum get roleFocus;
@@ -100,6 +105,11 @@ class _$DashboardOverviewSerializer implements PrimitiveSerializer<DashboardOver
     yield serializers.serialize(
       object.period,
       specifiedType: const FullType(DashboardOverviewPeriod),
+    );
+    yield r'financial';
+    yield serializers.serialize(
+      object.financial,
+      specifiedType: const FullType(DashboardFinancialSummary),
     );
     yield r'roleFocus';
     yield serializers.serialize(
@@ -182,6 +192,13 @@ class _$DashboardOverviewSerializer implements PrimitiveSerializer<DashboardOver
             specifiedType: const FullType(DashboardOverviewPeriod),
           ) as DashboardOverviewPeriod;
           result.period.replace(valueDes);
+          break;
+        case r'financial':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(DashboardFinancialSummary),
+          ) as DashboardFinancialSummary;
+          result.financial.replace(valueDes);
           break;
         case r'roleFocus':
           final valueDes = serializers.deserialize(

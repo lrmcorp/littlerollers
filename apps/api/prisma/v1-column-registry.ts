@@ -5,10 +5,7 @@ export const V1_EXPECTED_TABLE_COUNT = 34;
 export const V1_EXPECTED_COLUMN_COUNT = 309;
 
 export type V1ColumnDisposition =
-  | 'FIRST_CLASS'
-  | 'ENCRYPTED_ARCHIVE'
-  | 'DEFERRED_MEDIA'
-  | 'EXPLICIT_IGNORE';
+  'FIRST_CLASS' | 'ENCRYPTED_ARCHIVE' | 'DEFERRED_MEDIA' | 'EXPLICIT_IGNORE';
 
 export type V1ColumnRegistryEntry = {
   sourceTable: string;
@@ -28,7 +25,7 @@ const TABLE_TARGETS: Record<string, string> = {
   failed_jobs: 'none',
   jurnals: 'LegacyFinancialEntry',
   kelas: 'ClassType + ClassTypeBranchScope + ClassTypeBranchConfiguration',
-  kelas_activities: 'ClassSlot',
+  kelas_activities: 'ClassSlot + InstructorHourLog (only after approved historical fee mapping)',
   kelas_images: 'MigrationDeferredMediaReference',
   kelas_pakets: 'PackageClassTypeScope',
   kelas_pertamuans: 'legacy class-meeting projection',
@@ -76,10 +73,7 @@ const DEFERRED_MEDIA_COLUMNS = new Set([
   'vouchers.image',
 ]);
 
-const ENCRYPTED_ARCHIVE_COLUMNS = new Set([
-  'activity_log.properties',
-  'notifications.data',
-]);
+const ENCRYPTED_ARCHIVE_COLUMNS = new Set(['activity_log.properties', 'notifications.data']);
 
 const EXPLICIT_IGNORES: Record<string, string> = {
   'users.remember_token': 'Session/token v1 tidak boleh dipindahkan.',
@@ -123,7 +117,7 @@ export const V1_COLUMN_REGISTRY: readonly V1ColumnRegistryEntry[] = Object.entri
           ? 'none'
           : disposition === 'DEFERRED_MEDIA'
             ? 'MigrationDeferredMediaReference'
-            : TABLE_TARGETS[sourceTable] ?? 'UNMAPPED_TABLE',
+            : (TABLE_TARGETS[sourceTable] ?? 'UNMAPPED_TABLE'),
       reason: reasonFor(sourceTable, sourceColumn, disposition),
     };
   }),

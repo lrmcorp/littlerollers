@@ -12,6 +12,7 @@ Method | HTTP request | Description
 [**closeMonth**](FinanceApi.md#closemonth) | **POST** /monthly-closes | 
 [**createOtherCost**](FinanceApi.md#createothercost) | **POST** /other-costs | 
 [**decideCorrection**](FinanceApi.md#decidecorrection) | **POST** /correction-journals/{id}/{decision} | 
+[**exportAuthoritativeFinanceReport**](FinanceApi.md#exportauthoritativefinancereport) | **POST** /finance-exports | 
 [**getFinanceReconciliationAnomalies**](FinanceApi.md#getfinancereconciliationanomalies) | **GET** /finance/reconciliation/anomalies | 
 [**getFinanceReconciliationOverview**](FinanceApi.md#getfinancereconciliationoverview) | **GET** /finance/reconciliation/overview | 
 [**getFinancialReport**](FinanceApi.md#getfinancialreport) | **GET** /reports/{reportType} | 
@@ -142,6 +143,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**CorrectionDecisionResult**](CorrectionDecisionResult.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **exportAuthoritativeFinanceReport**
+> FinanceExportResult exportAuthoritativeFinanceReport(exportAuthoritativeFinanceReportRequest)
+
+
+
+Builds an audited CSV from the same authoritative server-side aggregation used by dashboard, reports, and monthly close.
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getFinanceApi();
+final ExportAuthoritativeFinanceReportRequest exportAuthoritativeFinanceReportRequest = ; // ExportAuthoritativeFinanceReportRequest | 
+
+try {
+    final response = api.exportAuthoritativeFinanceReport(exportAuthoritativeFinanceReportRequest);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling FinanceApi->exportAuthoritativeFinanceReport: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **exportAuthoritativeFinanceReportRequest** | [**ExportAuthoritativeFinanceReportRequest**](ExportAuthoritativeFinanceReportRequest.md)|  | 
+
+### Return type
+
+[**FinanceExportResult**](FinanceExportResult.md)
 
 ### Authorization
 

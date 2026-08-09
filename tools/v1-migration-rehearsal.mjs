@@ -104,6 +104,9 @@ export function validateRehearsalEnvironment(environment) {
     'MIGRATION_PII_KEY_BASE64',
     'MIGRATION_PII_HASH_PEPPER',
     'V1_EXPECTED_SOURCE_MYSQL_VERSION',
+    'V1_DEC006_CONFIGURATION_PACK_SHA256',
+    'V1_PROJECTION_RATES',
+    'V1_PROJECTION_RATE_EVIDENCE',
   ];
   for (const key of requiredKeys) required(environment[key], `${key}_REQUIRED`);
   if (environment.V1_MIGRATION_MEDIA_MODE !== 'metadata-only')
@@ -114,6 +117,8 @@ export function validateRehearsalEnvironment(environment) {
     throw new Error('V1_REHEARSAL_CONFIRMATION_REQUIRED');
   if (!/^[a-f0-9]{64}$/u.test(environment.V1_DUMP_SHA256))
     throw new Error('V1_DUMP_SHA256_INVALID');
+  if (!/^[a-f0-9]{64}$/u.test(environment.V1_DEC006_CONFIGURATION_PACK_SHA256))
+    throw new Error('V1_DEC006_CONFIGURATION_PACK_SHA256_INVALID');
   const started = parseIso(environment.V1_SNAPSHOT_STARTED_AT, 'V1_SNAPSHOT_STARTED_AT_INVALID');
   const completed = parseIso(
     environment.V1_SNAPSHOT_COMPLETED_AT,
@@ -270,6 +275,44 @@ async function verifyManifest(directory) {
   return { runId: manifest.runId, files: manifest.files.length, verified: true };
 }
 
+async function verifyFinanceConfiguration(directory, environment) {
+  const manifest = JSON.parse(await readFile(join(directory, 'manifest.json'), 'utf8'));
+  if (
+    manifest.decisionId !== 'DEC-006' ||
+    manifest.mappingVersion !== environment.V1_MAPPING_VERSION ||
+    manifest.configurationPackSha256 !== environment.V1_DEC006_CONFIGURATION_PACK_SHA256
+  )
+    throw new Error('DEC006_CONFIGURATION_PACK_MISMATCH');
+  if (
+    manifest.coverage?.missingProjectionKeys?.length ||
+    manifest.coverage?.missingInstructorKeys?.length
+  )
+    throw new Error('DEC006_CONFIGURATION_COVERAGE_INCOMPLETE');
+  if (!Array.isArray(manifest.files) || !manifest.files.length)
+    throw new Error('DEC006_CONFIGURATION_MANIFEST_INVALID');
+  for (const file of manifest.files) {
+    if (!/^[A-Za-z0-9_.-]{1,100}$/u.test(file.name))
+      throw new Error('DEC006_CONFIGURATION_MANIFEST_INVALID');
+    if ((await sha256File(join(directory, file.name))) !== file.sha256)
+      throw new Error('DEC006_CONFIGURATION_CHECKSUM_MISMATCH');
+  }
+  const fragment = parseEnv(await readFile(join(directory, 'rehearsal.env.fragment'), 'utf8'));
+  if (
+    fragment.V1_DEC006_CONFIGURATION_PACK_SHA256 !==
+      environment.V1_DEC006_CONFIGURATION_PACK_SHA256 ||
+    fragment.V1_PROJECTION_RATES !== environment.V1_PROJECTION_RATES ||
+    fragment.V1_PROJECTION_RATE_EVIDENCE !== environment.V1_PROJECTION_RATE_EVIDENCE
+  )
+    throw new Error('DEC006_CONFIGURATION_ENV_MISMATCH');
+  return {
+    decisionId: manifest.decisionId,
+    packId: manifest.packId,
+    mappingVersion: manifest.mappingVersion,
+    checksum: manifest.configurationPackSha256,
+    coverage: manifest.coverage,
+  };
+}
+
 async function main() {
   const args = parseArguments(process.argv.slice(2));
   if (args._[0] === 'verify-evidence') {
@@ -284,11 +327,14 @@ async function main() {
   const envFile = required(args['env-file'], 'ENV_FILE_REQUIRED');
   const dumpPath = required(args.dump, 'DUMP_PATH_REQUIRED');
   const output = required(args.output, 'OUTPUT_REQUIRED');
-  if (![envFile, dumpPath, output].every(isAbsolute)) throw new Error('ABSOLUTE_PATH_REQUIRED');
+  const financeConfig = required(args['finance-config'], 'FINANCE_CONFIG_REQUIRED');
+  if (![envFile, dumpPath, output, financeConfig].every(isAbsolute))
+    throw new Error('ABSOLUTE_PATH_REQUIRED');
   const envStat = await stat(envFile);
   if ((envStat.mode & 0o077) !== 0) throw new Error('ENV_FILE_PERMISSIONS_TOO_OPEN');
   const environment = { ...process.env, ...parseEnv(await readFile(envFile, 'utf8')) };
   const snapshot = validateRehearsalEnvironment(environment);
+  const financeConfiguration = await verifyFinanceConfiguration(financeConfig, environment);
   const dumpStat = await stat(dumpPath);
   if (!dumpStat.isFile()) throw new Error('DUMP_FILE_REQUIRED');
   const dumpChecksum = await sha256File(dumpPath);
@@ -302,7 +348,8 @@ async function main() {
     if (
       state.dump.sha256 !== dumpChecksum ||
       state.mappingVersion !== environment.V1_MAPPING_VERSION ||
-      state.snapshotCompletedAt !== snapshot.snapshotCompletedAt
+      state.snapshotCompletedAt !== snapshot.snapshotCompletedAt ||
+      state.financeConfiguration?.checksum !== financeConfiguration.checksum
     )
       throw new Error('REHEARSAL_RESUME_INPUT_MISMATCH');
   } catch (error) {
@@ -322,6 +369,7 @@ async function main() {
       snapshotCompletedAt: snapshot.snapshotCompletedAt,
       snapshotGtidHash: snapshot.snapshotGtidHash,
       mappingVersion: environment.V1_MAPPING_VERSION,
+      financeConfiguration,
       mediaMode: 'metadata-only',
       dump: { name: basename(dumpPath), sizeBytes: dumpStat.size, sha256: dumpChecksum },
       phases: [],
@@ -392,6 +440,7 @@ async function main() {
       await atomicJson(join(output, 'preflight.json'), {
         ...preflight,
         snapshot,
+        financeConfiguration,
         dump: state.dump,
         metrics: {
           generation: generation.metrics,
@@ -522,6 +571,7 @@ async function main() {
         '- [ ] Security scan contains no credential, raw NIK, token, or private path.',
         '- [ ] Data Owner approved mapping and resolutions.',
         '- [ ] Finance approved Rupiah, COA, and journal controls.',
+        '- [ ] Finance and Product Owner approved the DEC-006 configuration pack used by this run.',
         '- [ ] Technical Lead approved replay, performance, and evidence.',
         '',
       ].join('\n'),

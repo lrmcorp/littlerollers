@@ -42,5 +42,25 @@ void main() {
       // TODO
     });
 
+    // String configurationId
+    test('to test the property `configurationId`', () async {
+      // TODO
+    });
+
+    // String approvedEvidence
+    test('to test the property `approvedEvidence`', () async {
+      // TODO
+    });
+
+    // String configurationPackChecksum
+    test('to test the property `configurationPackChecksum`', () async {
+      // TODO
+    });
+
+    // Dec006Approval approval
+    test('to test the property `approval`', () async {
+      // TODO
+    });
+
   });
 }

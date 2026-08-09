@@ -9,6 +9,7 @@ import { useAppFeedback } from '../components/app-feedback';
 import type { FinanceClient } from './finance-client';
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7);
+const currentDate = () => new Date().toISOString().slice(0, 10);
 
 export function FinanceCommandsPanel({
   client,
@@ -23,6 +24,8 @@ export function FinanceCommandsPanel({
   const [periodVersion, setPeriodVersion] = useState(0);
   const [periodStatus, setPeriodStatus] = useState('OPEN');
   const [description, setDescription] = useState('');
+  const [occurredOn, setOccurredOn] = useState(currentDate);
+  const [categoryCode, setCategoryCode] = useState('OPERATING_EXPENSE');
   const [amount, setAmount] = useState('');
   const [referencePeriod, setReferencePeriod] = useState(currentPeriod);
   const [correctionAmount, setCorrectionAmount] = useState('');
@@ -105,6 +108,17 @@ export function FinanceCommandsPanel({
             onChange={(event) => setDescription(event.target.value)}
           />
           <TextInput
+            label="Tanggal kejadian"
+            type="date"
+            value={occurredOn}
+            onChange={(event) => setOccurredOn(event.target.value)}
+          />
+          <TextInput
+            label="Kode kategori"
+            value={categoryCode}
+            onChange={(event) => setCategoryCode(event.target.value.toUpperCase())}
+          />
+          <TextInput
             label="Nominal Rupiah"
             type="number"
             min="1"
@@ -116,6 +130,9 @@ export function FinanceCommandsPanel({
               busy ||
               periodStatus === 'CLOSED' ||
               description.trim().length === 0 ||
+              occurredOn.slice(0, 7) !== period ||
+              !/^[A-Z][A-Z0-9_]{1,63}$/u.test(categoryCode) ||
+              reason.trim().length < 3 ||
               Number(amount) < 1 ||
               !client.createOtherCost
             }
@@ -124,7 +141,10 @@ export function FinanceCommandsPanel({
                 await client.createOtherCost?.({
                   branchId,
                   period,
+                  occurredOn: new Date(`${occurredOn}T00:00:00.000Z`),
+                  categoryCode,
                   description: description.trim(),
+                  reason: reason.trim(),
                   amountRp: Number(amount),
                 });
                 setDescription('');

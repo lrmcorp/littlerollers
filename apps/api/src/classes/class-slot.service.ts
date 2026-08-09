@@ -593,6 +593,60 @@ export class ClassSlotService {
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         if (slot.endAt > now) throw new ApiProblem('CLASS_NOT_ENDED', HttpStatus.CONFLICT);
 
+        const instructorAttendance = await tx.instructorAttendance.findUnique({
+          where: { classSlotId: id },
+        });
+        let instructorFee: { id: string; feeRp: number; instructorUserId: string } | undefined;
+        if (instructorAttendance) {
+          await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${slot.branchId} FOR UPDATE`;
+          if (
+            !slot.instructorUserId ||
+            instructorAttendance.instructorUserId !== slot.instructorUserId ||
+            instructorAttendance.branchId !== slot.branchId
+          )
+            throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+          const localDate = dateInTimeZone(slot.endAt, slot.timezone);
+          const effectiveDate = new Date(`${localDate}T00:00:00.000Z`);
+          const candidates = await tx.effectiveConfiguration.findMany({
+            where: {
+              kind: 'INSTRUCTOR_FEE',
+              branchId: slot.branchId,
+              classTypeId: slot.classTypeId,
+              effectiveFrom: { lte: effectiveDate },
+              OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
+            },
+            select: { id: true, value: true },
+          });
+          const matched = candidates.flatMap((candidate) => {
+            const value = candidate.value as { instructorUserId?: unknown; feeRp?: unknown };
+            return value.instructorUserId === slot.instructorUserId &&
+              Number.isSafeInteger(value.feeRp) &&
+              (value.feeRp as number) >= 0
+              ? [
+                  {
+                    id: candidate.id,
+                    instructorUserId: slot.instructorUserId!,
+                    feeRp: value.feeRp as number,
+                  },
+                ]
+              : [];
+          });
+          if (matched.length !== 1)
+            throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+          instructorFee = matched[0];
+          const financePeriod = await tx.financePeriod.findUnique({
+            where: {
+              branchId_period: {
+                branchId: slot.branchId,
+                period: localDate.slice(0, 7),
+              },
+            },
+            select: { status: true },
+          });
+          if (financePeriod?.status === 'CLOSED')
+            throw new ApiProblem('FINANCE_PERIOD_CLOSED', HttpStatus.LOCKED);
+        }
+
         const bookings = await tx.booking.findMany({
           where: { classSlotId: id },
           orderBy: { id: 'asc' },
@@ -640,7 +694,7 @@ export class ClassSlotService {
               quantity: -booking.reservedQuantity,
               referenceType: 'CLASS_COMPLETION',
               referenceId: booking.id,
-              occurredAt: now,
+              occurredAt: slot.endAt,
             },
           });
           ledgerEntryIds.push(ledger.id);
@@ -681,6 +735,25 @@ export class ClassSlotService {
         if (invalidActiveReservation)
           throw new ApiProblem('RESERVATION_INVARIANT_VIOLATION', HttpStatus.CONFLICT);
 
+        const hourLogIds: string[] = [];
+        if (instructorAttendance && instructorFee) {
+          const hourLog = await tx.instructorHourLog.create({
+            data: {
+              classSlotId: id,
+              instructorUserId: instructorAttendance.instructorUserId,
+              branchId: slot.branchId,
+              classTypeId: slot.classTypeId,
+              effectiveConfigurationId: instructorFee.id,
+              matchedUnits: 1,
+              feeRpSnapshot: instructorFee.feeRp,
+              amountRp: instructorFee.feeRp,
+              period: dateInTimeZone(slot.endAt, slot.timezone).slice(0, 7),
+              occurredAt: now,
+            },
+          });
+          hourLogIds.push(hourLog.id);
+        }
+
         const completed = await tx.classSlot.update({
           where: { id },
           data: { status: 'COMPLETED', bookedCount: 0, version: { increment: 1 } },
@@ -717,6 +790,7 @@ export class ClassSlotService {
               attendedCount,
               noShowCount,
               ledgerEntryIds,
+              hourLogIds,
             },
             correlationId,
           },
@@ -728,7 +802,7 @@ export class ClassSlotService {
           noShowCount,
           releasedReservationIds,
           ledgerEntryIds,
-          hourLogIds: [],
+          hourLogIds,
           auditLogId,
           outboxEventIds: [outbox.id],
           completedAt: now.toISOString(),

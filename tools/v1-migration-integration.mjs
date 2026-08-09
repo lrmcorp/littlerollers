@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { basename, join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
+import { compileConfigurationPack, configurationPackChecksum } from './dec-006-configuration.mjs';
 import { syntheticV1FixtureSql } from './v1-migration-integration-fixture.mjs';
 
 const repositoryRoot = resolve(import.meta.dirname, '..');
@@ -105,6 +106,7 @@ const evidenceDirectory = join(runDirectory, 'evidence');
 const rehearsalDirectory = join(runDirectory, 'rehearsal-1');
 const operatorEvidenceDirectory = join(rehearsalDirectory, 'final-evidence');
 const rehearsalEnvPath = join(runDirectory, 'rehearsal-1.env');
+const financeConfigDirectory = join(runDirectory, 'dec-006-compiled');
 const privateRoot = join(runDirectory, 'private');
 const spoolDirectory = join(runDirectory, 'spool');
 await Promise.all([
@@ -137,6 +139,49 @@ const deltaKey = randomBytes(32).toString('base64');
 const piiKey = randomBytes(32).toString('base64');
 const snapshotCompletedAt = new Date().toISOString();
 const snapshotStartedAt = new Date(Date.now() - 1000).toISOString();
+const syntheticApproval = {
+  evidenceReference: 'SYNTHETIC_INTEGRATION_ONLY',
+  financeApproverId: '40000000-0000-4000-8000-000000000001',
+  productOwnerApproverId: '50000000-0000-4000-8000-000000000001',
+  approvedAt: snapshotCompletedAt,
+};
+const syntheticFinancePack = {
+  schemaVersion: '1.0.0',
+  decisionId: 'DEC-006',
+  packId: 'DEC006-INTEGRATION',
+  mappingVersion: '2.0.0',
+  operational: { projectionRates: [], instructorFees: [] },
+  historical: {
+    projectionRates: [
+      {
+        sourcePackageId: '1',
+        sourceLocationId: '1',
+        rateRp: 10000,
+        approval: syntheticApproval,
+      },
+    ],
+    instructorCompensations: [],
+  },
+};
+const syntheticFinanceCatalog = {
+  branches: [],
+  classTypes: [],
+  instructors: [],
+  sourcePackages: ['1'],
+  sourceLocations: ['1'],
+  sourceClasses: [],
+  requiredHistoricalProjectionKeys: ['1:1'],
+  requiredHistoricalInstructorKeys: [],
+};
+const financePackPath = join(runDirectory, 'dec-006-pack.json');
+const financeCatalogPath = join(runDirectory, 'dec-006-catalog.json');
+await Promise.all([
+  writeFile(financePackPath, `${JSON.stringify(syntheticFinancePack, null, 2)}\n`, { mode: 0o600 }),
+  writeFile(financeCatalogPath, `${JSON.stringify(syntheticFinanceCatalog, null, 2)}\n`, {
+    mode: 0o600,
+  }),
+]);
+await compileConfigurationPack(financePackPath, financeCatalogPath, financeConfigDirectory);
 const environment = {
   ...process.env,
   ...composeEnvironment,
@@ -152,6 +197,9 @@ const environment = {
   V1_REHEARSAL_CONFIRMATION: 'REHEARSAL_1_DATABASE_ONLY',
   V1_BRANCH_CODES: '{"1":"SYN","99":"CDC"}',
   V1_BRANCH_TIMEZONES: '{"1":"Asia/Jakarta","99":"Asia/Jakarta"}',
+  V1_PROJECTION_RATES: '{"1:1":10000}',
+  V1_PROJECTION_RATE_EVIDENCE: `DEC-006:${syntheticFinancePack.packId}:${configurationPackChecksum(syntheticFinancePack)}`,
+  V1_DEC006_CONFIGURATION_PACK_SHA256: configurationPackChecksum(syntheticFinancePack),
   V1_MIGRATION_ACTOR_SOURCE_USER_ID: '1',
   MIGRATION_ALLOW_WRITES: 'true',
   MIGRATION_PII_KEY_BASE64: piiKey,
@@ -255,6 +303,7 @@ FLUSH PRIVILEGES;`;
     'MIGRATION_PII_HASH_PEPPER',
     'MIGRATION_INTEGRATION_TEST',
     'V1_EXPECTED_SOURCE_MYSQL_VERSION',
+    'V1_DEC006_CONFIGURATION_PACK_SHA256',
     'V1_REHEARSAL_CONFIRMATION',
   ];
   await writeFile(
@@ -274,6 +323,8 @@ FLUSH PRIVILEGES;`;
       dumpPath,
       '--output',
       rehearsalDirectory,
+      '--finance-config',
+      financeConfigDirectory,
       '--run-id',
       `r1_${runId}`,
       '--apply-migrations',
@@ -297,6 +348,8 @@ FLUSH PRIVILEGES;`;
       dumpPath,
       '--output',
       rehearsalDirectory,
+      '--finance-config',
+      financeConfigDirectory,
       '--resume',
       '--execute',
     ],

@@ -620,6 +620,18 @@ export class PaymentReviewService {
             throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
 
           const decidedAt = new Date();
+          if (decision === 'APPROVED') {
+            await tx.$queryRaw`SELECT \`id\` FROM \`Branch\` WHERE \`id\` = ${purchase.branchId} FOR UPDATE`;
+            const approvalPeriod = dateInTimeZone(decidedAt, purchase.branch.timezone).slice(0, 7);
+            const financePeriod = await tx.financePeriod.findUnique({
+              where: {
+                branchId_period: { branchId: purchase.branchId, period: approvalPeriod },
+              },
+              select: { status: true },
+            });
+            if (financePeriod?.status === 'CLOSED')
+              throw new ApiProblem('FINANCE_PERIOD_CLOSED', HttpStatus.LOCKED);
+          }
           const nextStatus =
             decision === 'REJECTED' && input.reasonCode !== 'DUPLICATE_PURCHASE'
               ? ('ACTION_REQUIRED' as const)
@@ -657,7 +669,7 @@ export class PaymentReviewService {
               .toISOString()
               .slice(0, 10);
             const effectiveDate = new Date(`${activationDate}T00:00:00Z`);
-            const projection = await tx.effectiveConfiguration.findFirst({
+            const projections = await tx.effectiveConfiguration.findMany({
               where: {
                 kind: 'PROJECTION_RATE',
                 branchId: purchase.branchId,
@@ -666,10 +678,14 @@ export class PaymentReviewService {
                 OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
               },
               orderBy: { effectiveFrom: 'desc' },
+              take: 2,
             });
+            if (projections.length !== 1)
+              throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+            const projection = projections[0]!;
             const rate = (projection?.value as { rateRp?: unknown } | undefined)?.rateRp;
             if (!Number.isSafeInteger(rate) || Number(rate) < 0)
-              throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
+              throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
             customerPackage = await tx.customerPackage.create({
               data: {
                 id: newId(),

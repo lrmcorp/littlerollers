@@ -143,6 +143,7 @@ import 'package:openapi/src/model/customer_reschedule_target.dart';
 import 'package:openapi/src/model/customer_session_usage_summary.dart';
 import 'package:openapi/src/model/dashboard_activity_item.dart';
 import 'package:openapi/src/model/dashboard_branch_performance.dart';
+import 'package:openapi/src/model/dashboard_financial_summary.dart';
 import 'package:openapi/src/model/dashboard_metric.dart';
 import 'package:openapi/src/model/dashboard_overview.dart';
 import 'package:openapi/src/model/dashboard_overview_period.dart';
@@ -150,6 +151,7 @@ import 'package:openapi/src/model/dashboard_queue_summary.dart';
 import 'package:openapi/src/model/dashboard_risk_item.dart';
 import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
+import 'package:openapi/src/model/dec006_approval.dart';
 import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/decide_internal_v1_migration_resolution_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
@@ -165,14 +167,22 @@ import 'package:openapi/src/model/end_assignment_command.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/error_envelope_error.dart';
 import 'package:openapi/src/model/error_envelope_error_details_inner.dart';
+import 'package:openapi/src/model/export_authoritative_finance_report_request.dart';
 import 'package:openapi/src/model/finalize_upload_command.dart';
 import 'package:openapi/src/model/finance_anomaly.dart';
 import 'package:openapi/src/model/finance_branch_reconciliation.dart';
+import 'package:openapi/src/model/finance_close_snapshot.dart';
+import 'package:openapi/src/model/finance_export_result.dart';
 import 'package:openapi/src/model/finance_reconciliation_metric.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview.dart';
 import 'package:openapi/src/model/finance_reconciliation_overview_period.dart';
+import 'package:openapi/src/model/financial_branch_profit_row.dart';
+import 'package:openapi/src/model/financial_projection_row.dart';
 import 'package:openapi/src/model/financial_report.dart';
 import 'package:openapi/src/model/financial_report_page.dart';
+import 'package:openapi/src/model/financial_report_page_items_inner.dart';
+import 'package:openapi/src/model/financial_revenue_row.dart';
+import 'package:openapi/src/model/financial_totals.dart';
 import 'package:openapi/src/model/get_class_completion_control200_response.dart';
 import 'package:openapi/src/model/get_finance_reconciliation_anomalies200_response.dart';
 import 'package:openapi/src/model/get_my_notification_unread_count200_response.dart';
@@ -188,6 +198,7 @@ import 'package:openapi/src/model/identity_verification_review_page.dart';
 import 'package:openapi/src/model/identity_verification_review_summary.dart';
 import 'package:openapi/src/model/identity_verification_review_user.dart';
 import 'package:openapi/src/model/identity_verification_summary.dart';
+import 'package:openapi/src/model/instructor_compensation_row.dart';
 import 'package:openapi/src/model/instructor_fee_command.dart';
 import 'package:openapi/src/model/internal_package_detail.dart';
 import 'package:openapi/src/model/invite_user_request.dart';
@@ -505,6 +516,7 @@ part 'serializers.g.dart';
   CustomerSessionUsageSummary,
   DashboardActivityItem,
   DashboardBranchPerformance,
+  DashboardFinancialSummary,
   DashboardMetric,
   DashboardOverview,
   DashboardOverviewPeriod,
@@ -512,6 +524,7 @@ part 'serializers.g.dart';
   DashboardRiskItem,
   DashboardSections,
   DashboardTrendPoint,
+  Dec006Approval,
   DecideCorrectionRequest,
   DecideInternalV1MigrationResolutionRequest,
   DeleteIdentityVerificationFileRequest,
@@ -527,14 +540,22 @@ part 'serializers.g.dart';
   ErrorEnvelope,
   ErrorEnvelopeError,
   ErrorEnvelopeErrorDetailsInner,
+  ExportAuthoritativeFinanceReportRequest,
   FinalizeUploadCommand,
   FinanceAnomaly,
   FinanceBranchReconciliation,
+  FinanceCloseSnapshot,
+  FinanceExportResult,
   FinanceReconciliationMetric,
   FinanceReconciliationOverview,
   FinanceReconciliationOverviewPeriod,
+  FinancialBranchProfitRow,
+  FinancialProjectionRow,
   FinancialReport,
   FinancialReportPage,
+  FinancialReportPageItemsInner,
+  FinancialRevenueRow,
+  FinancialTotals,
   GetClassCompletionControl200Response,
   GetFinanceReconciliationAnomalies200Response,
   GetMyNotificationUnreadCount200Response,
@@ -550,6 +571,7 @@ part 'serializers.g.dart';
   IdentityVerificationReviewSummary,
   IdentityVerificationReviewUser,
   IdentityVerificationSummary,
+  InstructorCompensationRow,
   InstructorFeeCommand,
   InternalPackageDetail,
   InviteUserRequest,

@@ -22,8 +22,23 @@ void main() {
       // TODO
     });
 
+    // Date occurredOn
+    test('to test the property `occurredOn`', () async {
+      // TODO
+    });
+
+    // String categoryCode
+    test('to test the property `categoryCode`', () async {
+      // TODO
+    });
+
     // String description
     test('to test the property `description`', () async {
+      // TODO
+    });
+
+    // String reason
+    test('to test the property `reason`', () async {
       // TODO
     });
 

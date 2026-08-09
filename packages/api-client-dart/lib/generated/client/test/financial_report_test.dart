@@ -27,12 +27,27 @@ void main() {
       // TODO
     });
 
+    // DateTime sourceCutoffAt
+    test('to test the property `sourceCutoffAt`', () async {
+      // TODO
+    });
+
+    // String completeness
+    test('to test the property `completeness`', () async {
+      // TODO
+    });
+
+    // int anomalyCount
+    test('to test the property `anomalyCount`', () async {
+      // TODO
+    });
+
     // String controlHash
     test('to test the property `controlHash`', () async {
       // TODO
     });
 
-    // BuiltMap<String, Money> totals
+    // FinancialTotals totals
     test('to test the property `totals`', () async {
       // TODO
     });

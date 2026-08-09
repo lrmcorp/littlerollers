@@ -34,7 +34,10 @@ export class FinanceService {
       !principal.branchIds.includes(branchId)
     )
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    return branchId ? { branchId } : {};
+    if (branchId) return { branchId };
+    return globalFinanceRole || principal.capabilities.includes('branch:all')
+      ? {}
+      : { branchId: { in: principal.branchIds } };
   }
 
   private async records(

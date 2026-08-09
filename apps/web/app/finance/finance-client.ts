@@ -9,6 +9,7 @@ import {
   type Correction,
   type CorrectionDecisionResult,
   type FinancialReportPage,
+  type FinanceExportResult,
   type OtherCost,
   type OtherCostCommand,
   type OtherCostPage,
@@ -40,6 +41,11 @@ export interface FinanceClient {
     cursor?: string,
   ): Promise<LegacyFinancialEntryPage>;
   financialReport?(branchId: string, period: string): Promise<FinancialReportPage>;
+  exportReport?(input: {
+    branchId?: string;
+    from: string;
+    until: string;
+  }): Promise<FinanceExportResult>;
   otherCosts?(branchId: string, period: string, cursor?: string): Promise<OtherCostPage>;
   createOtherCost?(command: OtherCostCommand): Promise<OtherCost>;
   periods?(branchId: string, cursor?: string): Promise<BranchPeriodPage>;
@@ -112,6 +118,18 @@ export const browserFinanceClient: FinanceClient = {
     return appLoading.track(api.getFinancialReport({ reportType: 'profit', branchId, period }), {
       label: 'Memuat kontrol periode…',
     });
+  },
+  exportReport(input) {
+    return appLoading.track(
+      api.exportAuthoritativeFinanceReport({
+        exportAuthoritativeFinanceReportRequest: {
+          branchId: input.branchId,
+          from: new Date(`${input.from}T00:00:00.000Z`),
+          until: new Date(`${input.until}T00:00:00.000Z`),
+        },
+      }),
+      { label: 'Membuat export Finance…' },
+    );
   },
   otherCosts(branchId, period, cursor) {
     return appLoading.track(api.listOtherCosts({ branchId, period, cursor }), {

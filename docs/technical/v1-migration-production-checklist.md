@@ -22,6 +22,7 @@ Every environment must use separate source and target database identities, separ
 - [ ] Source database credential is limited to `SELECT`.
 - [ ] `rehearsal-preflight` reports `credentialReadOnly=true` and the expected MySQL version.
 - [ ] Snapshot start/end time and GTID/binlog coordinate are recorded; `V1_SNAPSHOT_AT` equals snapshot completion.
+- [ ] Signed DEC-006 configuration pack validates with full historical coverage and its compiled manifest checksum equals `V1_DEC006_CONFIGURATION_PACK_SHA256`.
 - [ ] `V1_MIGRATION_MEDIA_MODE=metadata-only` is set for every operator process.
 - [ ] Every legacy media column is represented by encrypted `MigrationDeferredMediaReference` metadata.
 - [ ] Active identity-document, payment-proof, and media-asset counts created by migration are zero.

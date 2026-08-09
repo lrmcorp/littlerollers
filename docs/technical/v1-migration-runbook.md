@@ -35,6 +35,9 @@ V1_REHEARSAL_CONFIRMATION=REHEARSAL_1_DATABASE_ONLY
 V1_BRANCH_CODES={"1":"GREEN_GARDEN","2":"MUARA_KARANG","3":"GRAHA_FAMILY","4":"UNTAR","5":"ORANGE_GROVES"}
 V1_BRANCH_TIMEZONES={"1":"Asia/Jakarta","2":"Asia/Jakarta","3":"Asia/Jakarta","4":"Asia/Jakarta","5":"Asia/Jakarta"}
 V1_MIGRATION_ACTOR_SOURCE_USER_ID=<approved v1 Super Owner user id>
+V1_DEC006_CONFIGURATION_PACK_SHA256=<compiled signed pack SHA-256>
+V1_PROJECTION_RATES=<compiled historical projection JSON map>
+V1_PROJECTION_RATE_EVIDENCE=<DEC-006 pack evidence reference>
 MIGRATION_PII_KEY_BASE64=<base64-encoded 32-byte AES key>
 MIGRATION_PII_HASH_PEPPER=<separate high-entropy pepper>
 MIGRATION_DELTA_KEY_BASE64=<different base64-encoded 32-byte AES key>
@@ -51,21 +54,22 @@ Resolution decisions through the internal API additionally require a verified OT
    pnpm db:migration:v1 profile
    ```
 
-3. Verify the empty-target and checksum gates:
+3. Use the generated `source-profile.json` as the DEC-006 catalog, complete Finance/PO approval, validate and compile the pack, then copy the three generated environment values into the protected rehearsal env file.
+4. Verify the empty-target and checksum gates:
 
    ```bash
    pnpm db:migration:v1 gate --dump /absolute/path/to/dailydose.sql
    ```
 
-4. Enable writes only for the operator process, prepare the first batch, then use the returned batch ID:
+5. Enable writes only for the operator process, prepare the first batch, then use the returned batch ID:
 
    ```bash
    MIGRATION_ALLOW_WRITES=true pnpm db:migration:v1 prepare --phase branch-master --dump /absolute/path/to/dailydose.sql
    MIGRATION_ALLOW_WRITES=true pnpm db:migration:v1 import --batch <batch-id> --dump /absolute/path/to/dailydose.sql
    ```
 
-5. A rerun of the same completed batch returns `replay: true`. A source row whose checksum changed fails with `SOURCE_RECORD_OR_MAPPING_CHANGED` instead of overwriting v2 silently.
-6. Inspect progress and reconciliation:
+6. A rerun of the same completed batch returns `replay: true`. A source row whose checksum changed fails with `SOURCE_RECORD_OR_MAPPING_CHANGED` instead of overwriting v2 silently.
+7. Inspect progress and reconciliation:
 
    ```bash
    pnpm db:migration:v1 resume --batch <batch-id>
@@ -73,7 +77,7 @@ Resolution decisions through the internal API additionally require a verified OT
    pnpm db:migration:v1 rollback-report --batch <batch-id>
    ```
 
-7. Setelah fase keenam lulus, buat evidence operator ke direktori absolut yang masih kosong:
+8. Setelah fase keenam lulus, buat evidence operator ke direktori absolut yang masih kosong:
 
    ```bash
    MIGRATION_ALLOW_WRITES=true pnpm db:migration:v1 evidence \
@@ -93,17 +97,24 @@ Rehearsal 1 uses a fresh, consistent production snapshot restored to an isolated
 
 Run the six phases strictly in order. For every phase execute `prepare → import → reconcile → replay import → rollback-report`; stop immediately when `blocking=true`. Rehearsal 1 does not freeze production and does not import live delta. CDC starts from the recorded snapshot GTID in Rehearsal 2 after the full-import result and all database-only resolution decisions have been signed off.
 
-The exact reconciliation gate includes user/role/assignment/capability cardinality; order count and Rupiah by branch, package, legacy status, and date; CustomerPackage/opening-ledger cardinality; reserved, consumed, released, and available sessions; booking/reservation/attendance status; voucher entitlement/redemption; COA/journal hierarchy and debit/credit; audit/notification counts; orphan references; duplicate opening ledgers; and deferred-media metadata reported separately as nonblocking.
+The exact reconciliation gate includes user/role/assignment/capability cardinality; order count and Rupiah by branch, package, legacy status, and date; CustomerPackage/opening-ledger cardinality; reserved, consumed, released, and available sessions; booking/reservation/attendance status; voucher entitlement/redemption; COA/journal hierarchy and debit/credit; audit/notification counts; orphan references; duplicate opening ledgers; and deferred-media metadata reported separately as nonblocking. Financial controls additionally compare gross sales, final revenue, projection cost, proven historical instructor compensation, OtherCost, correction, and operational profit per branch/period.
 
 ### Automated Rehearsal 1 runner
 
 Store the Rehearsal 1 environment in an absolute-path file with mode `0600`. The runner refuses a source credential containing write privileges, a non-empty target, active media mode, an unapproved mapping version, mismatched dump checksum, missing snapshot window/GTID, or a source/target identity collision.
+
+Projection snapshots must not be inferred from package price. Provide an approved JSON map in `V1_PROJECTION_RATES`, keyed as `<sourcePackageId>:<sourceLocationId>`, together with `V1_PROJECTION_RATE_EVIDENCE`, or approve the generated `PROJECTION_RATE_MAPPING_REQUIRED` resolutions through the migration control plane. Historical instructor compensation is created only from approved `INSTRUCTOR_COMPENSATION_MAPPING_REQUIRED` decisions; an explicit not-applicable decision is allowed when no historical amount can be proven. Neither missing fact is converted to zero.
+
+DEC-006 is supplied as a signed configuration pack conforming to `docs/technical/dec-006-configuration-pack.schema.json`. Instructor compensation uses one `MATCHED_CLASS` unit for a completed class with the matching instructor check-in; it is not prorated by duration. The `profile` output contains a non-PII `financeConfigurationCatalog` with the target UUID references and required historical coverage keys from that exact snapshot; use that `source-profile.json` as `--catalog`. Validate and compile the private pack with `pnpm finance:config:validate -- --pack <absolute-pack> --catalog <absolute-source-profile>` and `pnpm finance:config:compile -- --pack <absolute-pack> --catalog <absolute-source-profile> --output <new-absolute-directory>`. The compiled manifest checksum must equal `V1_DEC006_CONFIGURATION_PACK_SHA256`. The rehearsal runner rejects missing, changed, incomplete, or mapping-version-incompatible packs.
+
+Apply the compiled operational configuration only after its referenced branches, class types, and instructors exist: `DD_DEC006_API_TOKEN=<step-up-operator-token> pnpm finance:config:apply -- --compiled <absolute-compiled-directory> --api-base <internal-api-base>`. The token is read only from the process environment and is never written to the compiled pack or evidence. Exact replay is a no-op; a changed value for the same business key and effective start is rejected as an overlap. Historical instructor decisions remain batch-bound and are applied through the migration resolution control plane using `historical-instructor-resolutions.json`.
 
 ```bash
 pnpm db:migration:rehearsal -- \
   --env-file /absolute/secure/rehearsal-1.env \
   --dump /absolute/snapshots/dailydose-latest.sql \
   --output /absolute/evidence/rehearsal-1-<date> \
+  --finance-config /absolute/secure/dec-006-compiled \
   --run-id r1_<date> \
   --apply-migrations \
   --execute
@@ -118,6 +129,7 @@ pnpm db:migration:rehearsal -- \
   --env-file /absolute/secure/rehearsal-1.env \
   --dump /absolute/snapshots/dailydose-latest.sql \
   --output /absolute/evidence/rehearsal-1-<date> \
+  --finance-config /absolute/secure/dec-006-compiled \
   --resume \
   --execute
 ```
@@ -129,7 +141,7 @@ pnpm db:migration:rehearsal:verify -- \
   --output /absolute/evidence/rehearsal-1-<date>
 ```
 
-`PASSED_AUTOMATED_GATES` is not the final organizational sign-off. Rehearsal 1 is complete only after the generated `smoke-and-signoff.md` is approved by Data Owner, Finance, and Technical Lead.
+`PASSED_AUTOMATED_GATES` is not the final organizational sign-off. Rehearsal 1 is complete only after the generated `smoke-and-signoff.md` is approved by Data Owner, Finance, and Technical Lead. Rehearsal may be used for profiling while DEC-006 is open, but Finance sign-off and use of the numbers as production-authoritative remain blocked until the actual projection and instructor-fee forms, effective periods, evidence, and PO/Finance approvals are recorded.
 
 ## Implemented phases
 

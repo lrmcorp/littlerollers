@@ -15,7 +15,7 @@ import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
 import { Button } from './components/actions';
 import { Badge, Panel, StatCard } from './components/admin/admin-ui';
-import { DateInput } from './components/forms';
+import { DateInput, SearchSelect } from './components/forms';
 import {
   browserDashboardClient,
   type DashboardClient,
@@ -29,6 +29,16 @@ const rupiah = new Intl.NumberFormat('id-ID', {
 });
 const number = new Intl.NumberFormat('id-ID');
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
+const financialMetricKeys = new Set([
+  'gross-sales',
+  'revenue',
+  'projection',
+  'instructor-realtime',
+  'other-cost',
+  'profit',
+  'correction',
+  'finance-anomalies',
+]);
 
 const jobStatusLabel: Record<string, string> = {
   QUEUED: 'Menunggu',
@@ -77,9 +87,16 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
   if (points.length < 2)
     return <p className="py-12 text-center text-sm text-dd-muted">Belum cukup data untuk tren.</p>;
   const values = points.map((point) => (finance ? point.revenue : point.bookings));
-  const maximum = Math.max(...values, 1);
+  const profitValues = finance ? points.map((point) => point.profit) : [];
+  const minimum = Math.min(...values, ...profitValues, 0);
+  const maximum = Math.max(...values, ...profitValues, 1);
+  const span = Math.max(1, maximum - minimum);
+  const y = (value: number) => 92 - ((value - minimum) / span) * 76;
   const polyline = values
-    .map((value, index) => `${(index / (values.length - 1)) * 100},${92 - (value / maximum) * 76}`)
+    .map((value, index) => `${(index / (values.length - 1)) * 100},${y(value)}`)
+    .join(' ');
+  const profitPolyline = profitValues
+    .map((value, index) => `${(index / (profitValues.length - 1)) * 100},${y(value)}`)
     .join(' ');
   return (
     <figure className="mt-5">
@@ -114,7 +131,24 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
           strokeWidth="2"
           vectorEffect="non-scaling-stroke"
         />
+        {finance && (
+          <polyline
+            points={profitPolyline}
+            fill="none"
+            stroke="currentColor"
+            className="text-dd-brass"
+            strokeWidth="2"
+            strokeDasharray="4 3"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
       </svg>
+      {finance && (
+        <div className="mt-2 flex gap-4 text-xs text-dd-muted">
+          <span>— Omzet</span>
+          <span className="text-dd-brass">-- Profit</span>
+        </div>
+      )}
       <figcaption className="mt-2 flex justify-between text-xs text-dd-muted">
         <span>{String(points[0]!.date).slice(0, 10)}</span>
         <span>{String(points.at(-1)!.date).slice(0, 10)}</span>
@@ -131,6 +165,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const [failure, setFailure] = useState(false);
   const [until, setUntil] = useState(() => dateInput(new Date()));
   const [from, setFrom] = useState(() => dateInput(new Date(Date.now() - 29 * 86_400_000)));
+  const [dashboardBranchId, setDashboardBranchId] = useState('');
   const pages = useMemo(
     () =>
       session
@@ -143,27 +178,17 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const activeBranch = context?.activeBranch;
 
   const load = useCallback(async () => {
-    if (
-      !session ||
-      (session.branches.length > 0 &&
-        !context?.activeBranchId &&
-        !session.roles.includes('SUPER_OWNER') &&
-        !session.roles.includes('FINANCE') &&
-        !session.roles.includes('OPS'))
-    )
-      return;
+    if (!session) return;
     setLoading(true);
     setFailure(false);
     try {
-      setOverview(
-        await client.overview({ branchId: context?.activeBranchId || undefined, from, until }),
-      );
+      setOverview(await client.overview({ branchId: dashboardBranchId || undefined, from, until }));
     } catch {
       setFailure(true);
     } finally {
       setLoading(false);
     }
-  }, [client, context?.activeBranchId, from, session, until]);
+  }, [client, dashboardBranchId, from, session, until]);
 
   useEffect(() => {
     void load();
@@ -202,6 +227,21 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2 rounded-dd-lg border border-dd-line bg-dd-surface p-3 shadow-sm">
+          <SearchSelect
+            label="Studio/Cabang"
+            value={dashboardBranchId}
+            compact
+            wrapperClassName="min-w-52"
+            placeholder="Semua Studio/Cabang yang diizinkan"
+            searchPlaceholder="Cari Studio/Cabang…"
+            clearable
+            options={session.branches.map((branch) => ({
+              id: branch.id,
+              label: branch.name,
+              description: branch.code,
+            }))}
+            onChange={setDashboardBranchId}
+          />
           <DateInput
             label="Dari"
             value={from}
@@ -249,7 +289,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {activeBranch && (
         <div className="flex flex-wrap items-center gap-3 rounded-dd-lg border border-emerald-200 bg-dd-success-soft px-4 py-3 text-sm text-dd-success">
           <Building2 className="size-4" />
-          <strong>{activeBranch.name}</strong>
+          <strong>Cabang operasional: {activeBranch.name}</strong>
           <span className="text-dd-success/70">
             {activeBranch.code} · {activeBranch.timezone}
           </span>
@@ -261,7 +301,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           <span>
             Scope:{' '}
             <strong className="text-dd-ink">
-              {activeBranch?.name ?? 'Semua cabang yang diizinkan'}
+              {session.branches.find((branch) => branch.id === dashboardBranchId)?.name ??
+                'Semua Studio/Cabang yang diizinkan'}
             </strong>
           </span>
           <time dateTime={String(overview.generatedAt)}>
@@ -274,21 +315,45 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       )}
 
+      {overview?.financial.completeness === 'INCOMPLETE' && (
+        <Feedback kind="warning">
+          Laporan keuangan belum lengkap ({overview.financial.anomalyCount} anomali). Angka ini
+          belum boleh digunakan untuk monthly close atau sign-off Finance.
+        </Feedback>
+      )}
+      {overview && (
+        <p className="text-xs text-dd-muted">
+          Cutoff sumber:{' '}
+          {new Date(overview.financial.sourceCutoffAt).toLocaleString('id-ID', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })}
+        </p>
+      )}
+
       <section aria-label="Indikator utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(overview?.metrics ?? []).map((metric) => (
           <StatCard
             key={metric.key}
             label={metric.label}
             value={
-              metric.unit === 'IDR'
-                ? rupiah.format(metric.value)
-                : metric.unit === 'PERCENT'
-                  ? `${number.format(metric.value)}%`
-                  : number.format(metric.value)
+              overview?.financial.completeness === 'INCOMPLETE' &&
+              financialMetricKeys.has(metric.key)
+                ? 'Belum tersedia'
+                : metric.unit === 'IDR'
+                  ? rupiah.format(metric.value)
+                  : metric.unit === 'PERCENT'
+                    ? `${number.format(metric.value)}%`
+                    : number.format(metric.value)
             }
             change={metric.changePercent}
             helper={
-              metric.changePercent == null ? 'Periode terpilih' : 'dibanding periode sebelumnya'
+              overview?.financial.completeness === 'INCOMPLETE' &&
+              financialMetricKeys.has(metric.key)
+                ? 'Konfigurasi atau sumber belum lengkap'
+                : metric.changePercent == null
+                  ? 'Periode terpilih'
+                  : 'dibanding periode sebelumnya'
             }
           />
         ))}
@@ -309,7 +374,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </p>
           <h2 className="mt-1 text-xl font-semibold">
             {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
-              ? 'Pendapatan disetujui'
+              ? 'Omzet dan profit operasional'
               : 'Pergerakan booking'}
           </h2>
           <TrendChart
@@ -406,7 +471,11 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               <thead>
                 <tr>
                   <th>Cabang</th>
-                  <th>Pendapatan</th>
+                  <th>Omzet</th>
+                  <th>Projection</th>
+                  <th>Instruktur</th>
+                  <th>Pengeluaran</th>
+                  <th>Profit</th>
                   <th>Booking</th>
                   <th>Okupansi</th>
                 </tr>
@@ -419,6 +488,10 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                       <span className="ml-2 text-xs text-dd-muted">{branch.code}</span>
                     </td>
                     <td>{rupiah.format(branch.revenueRp)}</td>
+                    <td>{rupiah.format(branch.projectionRp)}</td>
+                    <td>{rupiah.format(branch.instructorRealtimeRp)}</td>
+                    <td>{rupiah.format(branch.otherCostRp)}</td>
+                    <td>{rupiah.format(branch.profitRp)}</td>
                     <td>{number.format(branch.bookings)}</td>
                     <td>
                       <div className="flex items-center gap-3">

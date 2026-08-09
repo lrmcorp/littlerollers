@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/dec006_approval.dart';
 import 'package:openapi/src/model/effective_period.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/json_object.dart';
@@ -22,6 +23,10 @@ part 'instructor_fee_command.g.dart';
 /// * [instructorUserId] 
 /// * [feeRp] 
 /// * [reason] 
+/// * [configurationId] 
+/// * [approvedEvidence] 
+/// * [configurationPackChecksum] 
+/// * [approval] 
 @BuiltValue()
 abstract class InstructorFeeCommand implements EffectivePeriod, Built<InstructorFeeCommand, InstructorFeeCommandBuilder> {
   @BuiltValueField(wireName: r'branchId')
@@ -30,11 +35,23 @@ abstract class InstructorFeeCommand implements EffectivePeriod, Built<Instructor
   @BuiltValueField(wireName: r'reason')
   String get reason;
 
+  @BuiltValueField(wireName: r'configurationPackChecksum')
+  String? get configurationPackChecksum;
+
   @BuiltValueField(wireName: r'kind')
   JsonObject? get kind;
 
+  @BuiltValueField(wireName: r'approvedEvidence')
+  String? get approvedEvidence;
+
+  @BuiltValueField(wireName: r'approval')
+  Dec006Approval? get approval;
+
   @BuiltValueField(wireName: r'feeRp')
   int get feeRp;
+
+  @BuiltValueField(wireName: r'configurationId')
+  String? get configurationId;
 
   @BuiltValueField(wireName: r'instructorUserId')
   String get instructorUserId;
@@ -82,16 +99,44 @@ class _$InstructorFeeCommandSerializer implements PrimitiveSerializer<Instructor
         specifiedType: const FullType.nullable(Date),
       );
     }
+    if (object.configurationPackChecksum != null) {
+      yield r'configurationPackChecksum';
+      yield serializers.serialize(
+        object.configurationPackChecksum,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'kind';
     yield object.kind == null ? null : serializers.serialize(
       object.kind,
       specifiedType: const FullType.nullable(JsonObject),
     );
+    if (object.approvedEvidence != null) {
+      yield r'approvedEvidence';
+      yield serializers.serialize(
+        object.approvedEvidence,
+        specifiedType: const FullType(String),
+      );
+    }
+    if (object.approval != null) {
+      yield r'approval';
+      yield serializers.serialize(
+        object.approval,
+        specifiedType: const FullType(Dec006Approval),
+      );
+    }
     yield r'feeRp';
     yield serializers.serialize(
       object.feeRp,
       specifiedType: const FullType(int),
     );
+    if (object.configurationId != null) {
+      yield r'configurationId';
+      yield serializers.serialize(
+        object.configurationId,
+        specifiedType: const FullType(String),
+      );
+    }
     yield r'instructorUserId';
     yield serializers.serialize(
       object.instructorUserId,
@@ -152,6 +197,13 @@ class _$InstructorFeeCommandSerializer implements PrimitiveSerializer<Instructor
           if (valueDes == null) continue;
           result.effectiveUntil = valueDes;
           break;
+        case r'configurationPackChecksum':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.configurationPackChecksum = valueDes;
+          break;
         case r'kind':
           final valueDes = serializers.deserialize(
             value,
@@ -160,12 +212,33 @@ class _$InstructorFeeCommandSerializer implements PrimitiveSerializer<Instructor
           if (valueDes == null) continue;
           result.kind = valueDes;
           break;
+        case r'approvedEvidence':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.approvedEvidence = valueDes;
+          break;
+        case r'approval':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(Dec006Approval),
+          ) as Dec006Approval;
+          result.approval.replace(valueDes);
+          break;
         case r'feeRp':
           final valueDes = serializers.deserialize(
             value,
             specifiedType: const FullType(int),
           ) as int;
           result.feeRp = valueDes;
+          break;
+        case r'configurationId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.configurationId = valueDes;
           break;
         case r'instructorUserId':
           final valueDes = serializers.deserialize(

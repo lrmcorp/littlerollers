@@ -11,7 +11,12 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **code** | **String** |  | 
 **name** | **String** |  | 
+**grossSalesRp** | **int** |  | 
 **revenueRp** | **int** |  | 
+**projectionRp** | **int** |  | 
+**instructorRealtimeRp** | **int** |  | 
+**otherCostRp** | **int** |  | 
+**profitRp** | **int** |  | 
 **bookings** | **int** |  | 
 **occupancyPercent** | **num** |  | 
 
