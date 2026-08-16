@@ -11,14 +11,18 @@ import { PublicClassQueryService } from './public-class-query.service';
 import { PublicPackageQueryService } from './public-package-query.service';
 import { PublicScheduleQueryService } from './public-schedule-query.service';
 import { PublicStudioQueryService } from './public-studio-query.service';
+import { IdentityModule } from '../identity/identity.module';
+import { PublicContentManagementController } from './public-content-management.controller';
+import { PublicContentManagementService } from './public-content-management.service';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, IdentityModule],
   controllers: [
     PublicSiteConfigController,
     PublicPackageCatalogController,
     PublicScheduleCatalogController,
     PublicProfileController,
+    PublicContentManagementController,
   ],
   providers: [
     PublicSiteConfigService,
@@ -26,6 +30,7 @@ import { PublicStudioQueryService } from './public-studio-query.service';
     PublicScheduleQueryService,
     PublicClassQueryService,
     PublicStudioQueryService,
+    PublicContentManagementService,
   ],
 })
 export class PublicContentModule {}

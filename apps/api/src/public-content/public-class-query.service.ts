@@ -21,6 +21,8 @@ export class PublicClassQueryService {
       },
       select: {
         id: true,
+        code: true,
+        name: true,
         branch: {
           select: {
             id: true,
@@ -31,28 +33,42 @@ export class PublicClassQueryService {
             publicProfile: true,
           },
         },
-        packages: {
+        packageScopes: {
           where: {
-            status: 'ACTIVE',
-            effectiveFrom: { lte: now },
-            OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
-            publicProfile: { isNot: null },
+            active: true,
+            package: {
+              status: 'ACTIVE',
+              effectiveFrom: { lte: now },
+              OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
+              publicProfile: { isNot: null },
+            },
           },
           select: {
-            id: true,
-            name: true,
-            sessionCount: true,
-            durationDays: true,
-            priceRp: true,
-            promotions: {
-              where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
-              orderBy: [{ activeFrom: 'desc' as const }],
-              take: 1,
+            package: {
+              select: {
+                id: true,
+                name: true,
+                sessionCount: true,
+                durationDays: true,
+                priceRp: true,
+                promotions: {
+                  where: {
+                    status: 'ACTIVE',
+                    activeFrom: { lte: now },
+                    activeUntil: { gt: now },
+                  },
+                  orderBy: [{ activeFrom: 'desc' as const }],
+                  take: 1,
+                },
+                publicProfile: { select: { summary: true } },
+                branchScopes: {
+                  where: { active: true },
+                  select: { branchId: true },
+                },
+              },
             },
-            publicProfile: { select: { summary: true } },
           },
-          orderBy: [{ priceRp: 'asc' }],
-          take: 4,
+          orderBy: [{ package: { priceRp: 'asc' } }],
         },
         classSlots: {
           where: { status: { in: ['PUBLISHED', 'CONFIRMED'] }, startAt: { gt: now } },
@@ -75,12 +91,26 @@ export class PublicClassQueryService {
     return {
       profile,
       studios: classTypes.map(({ branch }) => branch),
-      packages: classTypes.flatMap(({ branch, packages }) =>
-        packages.map(({ promotions, ...item }) => ({
-          ...item,
-          ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
-          branch,
-        })),
+      packages: classTypes.flatMap(
+        ({ id: classTypeId, code, name, branch, packageScopes }) => {
+          if (!branch) return [];
+          return packageScopes
+            .filter(({ package: item }) =>
+              item.branchScopes.some(({ branchId }) => branchId === branch.id),
+            )
+            .slice(0, 4)
+            .map(({ package: { promotions, branchScopes: _branchScopes, ...item } }) => ({
+              ...item,
+              branchId: branch.id,
+              classTypes: [{ id: classTypeId, code, name }],
+              ...calculatePackagePromotion({
+                priceRp: item.priceRp,
+                promotion: promotions?.[0],
+                now,
+              }),
+              branch,
+            }));
+        },
       ),
       schedules: classTypes
         .flatMap(({ branch, classSlots }) =>

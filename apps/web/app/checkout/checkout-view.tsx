@@ -8,7 +8,7 @@ import { CustomerPaymentFlow } from '../components/customer/customer-payment-flo
 import { AlertBanner, useAppFeedback } from '../components/app-feedback';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
-import { TextInput } from '../components/forms';
+import { SelectInput, TextInput } from '../components/forms';
 import { PackagePrice } from '../components/public/package-price';
 import {
   browserOrderClient,
@@ -30,9 +30,11 @@ export function CheckoutView() {
   const feedback = useAppFeedback();
   const packageId = params.get('package') ?? '';
   const branchId = params.get('branch');
+  const requestedClassTypeId = params.get('classType') ?? '';
   const slot = params.get('slot');
   const orderId = params.get('order');
   const [options, setOptions] = useState<CheckoutOptions | null>(null);
+  const [selectedClassTypeId, setSelectedClassTypeId] = useState('');
   const [order, setOrder] = useState<CustomerOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -52,10 +54,24 @@ export function CheckoutView() {
     const request = orderId
       ? browserOrderClient.detail(orderId).then((value) => setOrder(value))
       : packageId
-        ? browserOrderClient.checkout(packageId, branchId).then(setOptions)
+        ? browserOrderClient.checkout(packageId, branchId).then((value) => {
+            setOptions(value);
+
+            const requestedIsValid = value.package.classTypes.some(
+              (item) => item.id === requestedClassTypeId,
+            );
+
+            setSelectedClassTypeId(
+              requestedIsValid
+                ? requestedClassTypeId
+                : value.package.classTypes.length === 1
+                  ? value.package.classTypes[0]!.id
+                  : '',
+            );
+          })
         : Promise.reject(new Error('RESOURCE_NOT_FOUND'));
     request.catch((cause) => setError(orderError(cause))).finally(() => setLoading(false));
-  }, [branchId, orderId, packageId]);
+  }, [branchId, orderId, packageId, requestedClassTypeId]);
 
   if (loading)
     return (
@@ -154,8 +170,31 @@ export function CheckoutView() {
           </p>
           <h2 className="mt-3 text-2xl font-semibold">{options.package.name}</h2>
           <p className="mt-1 text-sm text-dd-muted">
-            {options.package.classTypeName} · {options.package.branchName}
+            {options.package.classTypes.find((item) => item.id === selectedClassTypeId)?.name ??
+              'Pilih jenis kelas'}{' '}
+            · {options.package.branchName}
           </p>
+
+          {options.package.classTypes.length > 1 && (
+            <SelectInput
+              wrapperClassName="mt-5 max-w-md"
+              label="Jenis kelas"
+              description="Pilih satu jenis kelas yang akan digunakan untuk paket ini."
+              value={selectedClassTypeId}
+              required
+              onChange={(event) => {
+                setSelectedClassTypeId(event.target.value);
+                setVoucherPreview(null);
+              }}
+            >
+              <option value="">Pilih jenis kelas</option>
+              {options.package.classTypes.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </SelectInput>
+          )}
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-dd-lg bg-dd-surface-muted p-4">
               <dt className="text-xs text-dd-muted">Jumlah sesi</dt>
@@ -221,15 +260,25 @@ export function CheckoutView() {
           <Button
             type="button"
             variant="secondary"
-            disabled={voucherBusy || voucherCode.trim().length < 3}
+            disabled={
+              voucherBusy || !branchId || !selectedClassTypeId || voucherCode.trim().length < 3
+            }
             loading={voucherBusy}
             onClick={async () => {
               setVoucherBusy(true);
               setError('');
               try {
+                const effectiveBranchId = branchId?.trim();
+                if (!effectiveBranchId) {
+                  setVoucherPreview(null);
+                  setError('Cabang checkout tidak valid.');
+                  return;
+                }
+
                 const result = await browserOrderClient.previewVoucher(
                   packageId,
-                  branchId,
+                  effectiveBranchId,
+                  selectedClassTypeId,
                   voucherCode,
                 );
                 setVoucherPreview(result);
@@ -284,6 +333,7 @@ export function CheckoutView() {
           type="button"
           size="lg"
           fullWidth
+          disabled={!selectedClassTypeId}
           loading={submitting}
           loadingLabel="Membuat pesanan…"
           trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
@@ -302,6 +352,7 @@ export function CheckoutView() {
                 packageId,
                 slot,
                 branchId,
+                selectedClassTypeId,
                 voucherPreview?.code,
                 options.package,
               );

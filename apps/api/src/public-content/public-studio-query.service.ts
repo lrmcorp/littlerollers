@@ -24,27 +24,42 @@ export class PublicStudioQueryService {
             id: true,
             code: true,
             name: true,
-            packages: {
+            packageScopes: {
               where: {
-                status: 'ACTIVE',
-                effectiveFrom: { lte: now },
-                OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
-                publicProfile: { isNot: null },
+                active: true,
+                package: {
+                  status: 'ACTIVE',
+                  effectiveFrom: { lte: now },
+                  OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
+                  publicProfile: { isNot: null },
+                },
               },
               select: {
-                id: true,
-                name: true,
-                sessionCount: true,
-                durationDays: true,
-                priceRp: true,
-                promotions: {
-                  where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
-                  orderBy: [{ activeFrom: 'desc' as const }],
-                  take: 1,
+                package: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sessionCount: true,
+                    durationDays: true,
+                    priceRp: true,
+                    promotions: {
+                      where: {
+                        status: 'ACTIVE',
+                        activeFrom: { lte: now },
+                        activeUntil: { gt: now },
+                      },
+                      orderBy: [{ activeFrom: 'desc' as const }],
+                      take: 1,
+                    },
+                    publicProfile: { select: { summary: true } },
+                    branchScopes: {
+                      where: { active: true },
+                      select: { branchId: true },
+                    },
+                  },
                 },
-                publicProfile: { select: { summary: true } },
               },
-              orderBy: [{ priceRp: 'asc' }],
+              orderBy: [{ package: { priceRp: 'asc' } }],
             },
             classSlots: {
               where: { status: { in: ['PUBLISHED', 'CONFIRMED'] }, startAt: { gt: now } },
@@ -70,21 +85,49 @@ export class PublicStudioQueryService {
       where: { code: { in: branch.classTypes.map(({ code }) => code) }, active: true },
     });
     const profilesByCode = new Map(classProfiles.map((profile) => [profile.code, profile]));
+
+    const contextualPackages = branch.classTypes.flatMap(
+      ({ id: classTypeId, code, name, packageScopes }) =>
+        packageScopes
+          .filter(({ package: item }) =>
+            item.branchScopes.some(({ branchId }) => branchId === branch.id),
+          )
+          .map(({ package: { promotions, branchScopes: _branchScopes, ...item } }) => ({
+            ...item,
+            branchId: branch.id,
+            classTypes: [{ id: classTypeId, code, name }],
+            ...calculatePackagePromotion({
+              priceRp: item.priceRp,
+              promotion: promotions?.[0],
+              now,
+            }),
+          })),
+    );
+
+    const packages = contextualPackages.reduce<typeof contextualPackages>((items, item) => {
+      const existing = items.find(({ id }) => id === item.id);
+      if (!existing) {
+        items.push(item);
+        return items;
+      }
+
+      for (const classType of item.classTypes) {
+        if (!existing.classTypes.some(({ id }) => id === classType.id)) {
+          existing.classTypes.push(classType);
+        }
+      }
+      return items;
+    }, []);
+
     return {
       ...branch,
       classes: branch.classTypes
-        .map(({ id: _id, packages: _packages, classSlots: _slots, ...type }) => ({
+        .map(({ id: _id, packageScopes: _packageScopes, classSlots: _slots, ...type }) => ({
           ...type,
           profile: profilesByCode.get(type.code),
         }))
         .filter(({ profile }) => profile),
-      packages: branch.classTypes.flatMap(({ code, name, packages }) =>
-        packages.map(({ promotions, ...item }) => ({
-          ...item,
-          ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
-          classType: { code, name },
-        })),
-      ),
+      packages,
       schedules: branch.classTypes
         .flatMap(({ code, name, classSlots }) =>
           classSlots.map(({ bookedCount, ...slot }) => ({

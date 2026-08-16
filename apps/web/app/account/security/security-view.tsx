@@ -6,11 +6,17 @@ import { useAppFeedback } from '../../components/app-feedback';
 import { Button, IconButton } from '../../components/actions';
 import { browserIdentityClient, type IdentityClient } from '../../identity-client';
 import { Skeleton } from '../../ui';
+import { useSessionContext } from '../../session-context';
+import { useTrackedRouter } from '../../components/app-loading';
 
-type Status = Awaited<ReturnType<IdentityClient['securityStatus']>>;
+type Status = Awaited<ReturnType<IdentityClient['securityStatus']>> & {
+  passwordChangeRequired?: boolean;
+};
 
 export function SecurityView({ client = browserIdentityClient }: { client?: IdentityClient }) {
   const feedback = useAppFeedback();
+  const sessionContext = useSessionContext();
+  const [redirectTo, setRedirectTo] = useState('');
   const [status, setStatus] = useState<Status>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,6 +52,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
 
   return (
     <main className="mx-auto max-w-3xl space-y-6" aria-labelledby="security-title">
+      {redirectTo && <PasswordChangeRedirect target={redirectTo} />}
       <header>
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Akun</p>
         <h1 id="security-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
@@ -55,6 +62,15 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
           Perbarui password dan lindungi sesi aktif pada perangkat Anda.
         </p>
       </header>
+
+      {status?.passwordChangeRequired && (
+        <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft p-5 text-sm text-dd-warning">
+          <strong>Password awal wajib diganti.</strong>
+          <p className="mt-1">
+            Setelah password baru tersimpan, akses akun dan transaksi akan dibuka.
+          </p>
+        </section>
+      )}
 
       {error && (
         <section className="rounded-dd-xl border border-dd-danger/20 bg-white p-5">
@@ -105,6 +121,9 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
                 message: 'Sesi lain telah dicabut untuk melindungi akun Anda.',
               });
               await load();
+              const refreshed = await sessionContext?.refresh({ quiet: true });
+              if (refreshed && !refreshed.passwordChangeRequired)
+                setRedirectTo(refreshed.roles.includes('CUSTOMER') ? '/account' : '/workspace');
             } catch {
               setError('Password saat ini tidak valid atau password baru belum memenuhi syarat.');
             } finally {
@@ -166,6 +185,12 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
       )}
     </main>
   );
+}
+
+function PasswordChangeRedirect({ target }: { target: string }) {
+  const router = useTrackedRouter();
+  useEffect(() => router.replace(target), [router, target]);
+  return null;
 }
 
 function PasswordField({

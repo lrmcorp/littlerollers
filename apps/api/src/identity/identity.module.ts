@@ -20,10 +20,14 @@ import { IdentityDocumentWorkflowService } from './identity-document-workflow.se
 import { UserAdministrationService } from './user-administration.service';
 import { AccessManagementController } from './access-management.controller';
 import { AccessManagementService } from './access-management.service';
+import { CustomerManagementController } from './customer-management.controller';
+import { CustomerManagementService } from './customer-management.service';
+import { InstructorManagementController } from './instructor-management.controller';
+import { InstructorManagementService } from './instructor-management.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [IdentityController, AccessManagementController],
+  controllers: [IdentityController, AccessManagementController, CustomerManagementController, InstructorManagementController],
   providers: [
     IdentityService,
     CustomerProfileService,
@@ -33,6 +37,8 @@ import { AccessManagementService } from './access-management.service';
     IdentityDocumentWorkflowService,
     UserAdministrationService,
     AccessManagementService,
+    CustomerManagementService,
+    InstructorManagementService,
     PolicyService,
     ConfigGatedGoogleProvider,
     ConfigGatedOtpProvider,

@@ -37,7 +37,7 @@ import {
 } from './session-audience';
 
 const roleLabels: Record<string, string> = {
-  SUPER_OWNER: 'Super Owner',
+  SUPER_OWNER: 'Super Admin',
   OWNER: 'Owner',
   ADMIN: 'Admin',
   MANAGER: 'Manager',

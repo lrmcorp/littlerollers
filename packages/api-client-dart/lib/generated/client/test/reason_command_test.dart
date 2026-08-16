@@ -1,12 +1,12 @@
 import 'package:test/test.dart';
 import 'package:openapi/openapi.dart';
 
-// tests for DecideCorrectionRequest
+// tests for ReasonCommand
 void main() {
-  final instance = DecideCorrectionRequestBuilder();
+  final instance = ReasonCommandBuilder();
   // TODO add properties to the builder and call build()
 
-  group(DecideCorrectionRequest, () {
+  group(ReasonCommand, () {
     // String reason
     test('to test the property `reason`', () async {
       // TODO

@@ -20,12 +20,9 @@ ENV NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED=false
 ENV API_BASE_URL=$API_BASE_URL
 
 RUN pnpm --filter @dailydose/api exec prisma generate --schema prisma/schema.prisma \
-    && pnpm build
-
-RUN pnpm --filter @dailydose/api exec prisma generate --schema prisma/schema.prisma \
     && pnpm build \
-    && mkdir -p apps/web/.next/standalone/apps/web/.next/static \
-    && mkdir -p apps/web/.next/standalone/apps/web/public \
+    && install -d apps/web/.next/standalone/apps/web/.next/static \
+    && install -d apps/web/.next/standalone/apps/web/public \
     && cp -a apps/web/.next/static/. apps/web/.next/standalone/apps/web/.next/static/ \
     && cp -a apps/web/public/. apps/web/.next/standalone/apps/web/public/
 

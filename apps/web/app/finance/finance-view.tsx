@@ -425,7 +425,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         <div>
           <strong>Antrean keputusan pembayaran</strong>
           <p className="mt-1 text-sm text-dd-muted">
-            Keputusan final hanya tersedia untuk Finance dan Super Owner, lengkap dengan reason
+            Keputusan final hanya tersedia untuk Finance dan Super Admin, lengkap dengan alasan
             serta expected version.
           </p>
         </div>

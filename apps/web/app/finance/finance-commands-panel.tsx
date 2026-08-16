@@ -7,6 +7,7 @@ import { controlClassName, TextInput } from '../components/forms';
 import { Feedback } from '../ui';
 import { useAppFeedback } from '../components/app-feedback';
 import type { FinanceClient } from './finance-client';
+import type { Correction } from '@dailydose/api-client-ts/generated';
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7);
 const currentDate = () => new Date().toISOString().slice(0, 10);
@@ -30,6 +31,7 @@ export function FinanceCommandsPanel({
   const [referencePeriod, setReferencePeriod] = useState(currentPeriod);
   const [correctionAmount, setCorrectionAmount] = useState('');
   const [correctionId, setCorrectionId] = useState('');
+  const [correctionQueue, setCorrectionQueue] = useState<Correction[]>([]);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -37,14 +39,17 @@ export function FinanceCommandsPanel({
 
   const refresh = useCallback(async () => {
     if (!client.financialReport || !client.periods) return;
-    const [report, periods] = await Promise.all([
+    const [report, periods, corrections] = await Promise.all([
       client.financialReport(branchId, period),
       client.periods(branchId),
+      client.corrections?.(branchId, period, 'PENDING') ?? Promise.resolve({ items: [], page: { hasMore: false, nextCursor: null } }),
     ]);
     const existing = periods.items.find((item) => item.period === period);
     setControlHash(report.report.controlHash);
     setPeriodVersion(existing?.version ?? 0);
     setPeriodStatus(existing?.status ?? 'OPEN');
+    setCorrectionQueue(corrections.items);
+    if (correctionId && !corrections.items.some((item) => item.id === correctionId)) setCorrectionId('');
   }, [branchId, client, period]);
 
   useEffect(() => {
@@ -199,11 +204,18 @@ export function FinanceCommandsPanel({
         </fieldset>
         <fieldset className="space-y-3 rounded-dd-md border border-dd-line p-4">
           <legend className="px-1 font-semibold">Approval dan close</legend>
-          <TextInput
-            label="ID correction"
-            value={correctionId}
-            onChange={(event) => setCorrectionId(event.target.value)}
-          />
+          <label className="grid gap-1 text-xs font-bold text-dd-muted">
+            Antrean correction
+            <select className={controlClassName} value={correctionId} onChange={(event) => setCorrectionId(event.target.value)}>
+              <option value="">Pilih correction menunggu keputusan</option>
+              {correctionQueue.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.referencePeriod} · Rp{item.amount.amountMinor.toLocaleString('id-ID')} · {item.reason}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!correctionQueue.length && <p className="text-sm text-dd-muted">Tidak ada correction yang menunggu keputusan pada periode ini.</p>}
           <div className="flex flex-wrap gap-2">
             {(['approve', 'reject'] as const).map((decision) => (
               <Button

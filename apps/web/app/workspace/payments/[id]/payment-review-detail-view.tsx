@@ -300,7 +300,7 @@ export function PaymentReviewDetailView({
         <AlertBanner
           tone="info"
           title="Mode hanya baca"
-          message="Anda dapat melihat transaksi dan bukti. Keputusan dilakukan oleh Finance atau Super Owner."
+          message="Anda dapat melihat transaksi dan bukti. Keputusan dilakukan oleh Finance atau Super Admin."
         />
       )}
 
@@ -729,7 +729,7 @@ export function PaymentReviewDetailView({
                 title={purchase.status === 'PENDING' ? 'Mode hanya baca' : 'Keputusan telah dibuat'}
                 message={
                   purchase.status === 'PENDING'
-                    ? 'Keputusan dilakukan Finance atau Super Owner.'
+                    ? 'Keputusan dilakukan Finance atau Super Admin.'
                     : 'Mutation control ditutup untuk transaksi yang sudah diputus.'
                 }
               />

@@ -130,6 +130,7 @@ databaseDescribe('identity MySQL integration', () => {
         userId: lookupCustomerId,
         branchId,
         packageId: lookupPackageId,
+        classTypeId: lookupClassTypeId,
         packageNameSnapshot: 'Lookup Package',
         priceRpSnapshot: 500_000,
         sessionCountSnapshot: 5,

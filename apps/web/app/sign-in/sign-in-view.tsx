@@ -16,10 +16,10 @@ import { BrandMark } from '../components/public/brand-mark';
 
 const messages: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Email atau password tidak valid.',
-  CONFIGURATION_REQUIRED: 'Konfigurasi autentikasi belum tersedia. Hubungi administrator.',
-  INTERNAL_ERROR: 'Autentikasi mengalami gangguan internal.',
+  CONFIGURATION_REQUIRED: 'Layanan masuk sementara tidak tersedia. Silakan coba kembali nanti.',
+  INTERNAL_ERROR: 'Layanan masuk sedang mengalami gangguan.',
   RATE_LIMITED: 'Terlalu banyak percobaan. Coba kembali nanti.',
-  SERVICE_UNAVAILABLE: 'Layanan autentikasi tidak dapat dihubungi.',
+  SERVICE_UNAVAILABLE: 'Proses masuk sementara tidak tersedia. Silakan coba kembali nanti.',
   FORBIDDEN: 'Akses tidak diizinkan.',
   IDENTITY_CONFLICT: 'Identitas memerlukan tinjauan dukungan.',
   STALE_VERSION: 'Data telah berubah. Muat ulang lalu coba kembali.',
@@ -55,6 +55,7 @@ function GoogleIdentityButton({
   onFailure(error: unknown): void;
 }) {
   const target = useRef<HTMLDivElement>(null);
+  const [unavailable, setUnavailable] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
@@ -91,14 +92,18 @@ function GoogleIdentityButton({
     script.defer = true;
     script.dataset.googleIdentity = 'true';
     script.addEventListener('load', render, { once: true });
+    script.addEventListener('error', () => setUnavailable(true), { once: true });
     document.head.append(script);
   }, [client, clientId, onComplete, onFailure]);
 
-  return clientId ? (
-    <div className="flex min-h-[44px] w-full justify-center overflow-hidden" ref={target} />
-  ) : (
-    <Feedback kind="info">Login Google menunggu konfigurasi client production.</Feedback>
-  );
+  if (!clientId) return null;
+  if (unavailable)
+    return (
+      <Feedback kind="info">
+        Masuk dengan Google sementara tidak tersedia. Gunakan email dan password.
+      </Feedback>
+    );
+  return <div className="flex min-h-[44px] w-full justify-center overflow-hidden" ref={target} />;
 }
 
 export function SignInView({ client = browserIdentityClient }: { client?: IdentityClient }) {
@@ -106,6 +111,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
   const [reference, setReference] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const sessionContext = useSessionContext();
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
   const complete = useCallback(async () => {
     if (sessionContext) {
@@ -181,7 +187,9 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             Masuk ke Daily Dose
           </h2>
           <p className="mt-5 text-base leading-7 text-dd-muted">
-            Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.
+            {googleEnabled
+              ? 'Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.'
+              : 'Gunakan email dan password yang terdaftar.'}
           </p>
 
           <form
@@ -253,17 +261,20 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             <Feedback kind="error">
               {messages[state as UiFailure]}
               {reference && (state === 'INTERNAL_ERROR' || state === 'SERVICE_UNAVAILABLE')
-                ? ` Kode referensi: ${reference}.`
+                ? ` Kode bantuan: ${reference}.`
                 : ''}
             </Feedback>
           )}
           {state === 'success' && <Feedback kind="status">Identitas terverifikasi.</Feedback>}
 
-          <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
-            atau
-          </div>
-
-          <GoogleIdentityButton client={client} onComplete={complete} onFailure={fail} />
+          {googleEnabled && (
+            <>
+              <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
+                atau
+              </div>
+              <GoogleIdentityButton client={client} onComplete={complete} onFailure={fail} />
+            </>
+          )}
 
           <div className="mt-6 border-y border-dd-line py-4 text-[13px] leading-6 text-dd-muted">
             <strong className="block text-sm text-dd-ink">Akses terlindungi</strong>

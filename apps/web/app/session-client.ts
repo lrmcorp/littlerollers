@@ -26,6 +26,7 @@ export interface WebSession {
   sessionExpiresAt: Date;
   branches: SessionBranch[];
   preferredBranch?: PreferredStudio | null;
+  passwordChangeRequired?: boolean;
 }
 
 export interface SessionClient {

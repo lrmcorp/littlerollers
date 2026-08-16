@@ -51,6 +51,12 @@ databaseDescribe('package promotion MySQL integration', () => {
         effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
       },
     });
+    await db.packageBranchScope.create({
+      data: { packageId, branchId },
+    });
+    await db.packageClassTypeScope.create({
+      data: { packageId, classTypeId },
+    });
     const access = new PackageAccessService(db as never, new PolicyService());
     service = new PackagePromotionService(db as never, access, new IdempotencyService(db as never));
   });
@@ -67,6 +73,8 @@ databaseDescribe('package promotion MySQL integration', () => {
     });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.packagePromotion.deleteMany({ where: { packageId } });
+    await db.packageClassTypeScope.deleteMany({ where: { packageId } });
+    await db.packageBranchScope.deleteMany({ where: { packageId } });
     await db.package.deleteMany({ where: { id: packageId } });
     await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
     await db.classType.deleteMany({ where: { id: classTypeId } });

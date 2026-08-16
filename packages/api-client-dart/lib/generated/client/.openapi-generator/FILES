@@ -13,6 +13,7 @@ doc/AccessRolePage.md
 doc/AccessRoleScope.md
 doc/AccountLinkCommand.md
 doc/ActionCommand.md
+doc/AddSupportCaseInternalNoteRequest.md
 doc/AdjustmentActor.md
 doc/AdjustmentCommand.md
 doc/AdjustmentCustomer.md
@@ -99,10 +100,12 @@ doc/CloseMonthRequest.md
 doc/CloseResult.md
 doc/CompleteClassCommand.md
 doc/CompletionResult.md
+doc/ContentManagementApi.md
 doc/Correction.md
 doc/CorrectionCommand.md
 doc/CorrectionDecisionResult.md
 doc/CreateAccessRoleCommand.md
+doc/CreateManagedCustomerRequest.md
 doc/CreateOrderCommand.md
 doc/CreatePaymentProofUploadRequest.md
 doc/CreatePermissionOverrideCommand.md
@@ -124,6 +127,7 @@ doc/CustomerDashboardOverviewVerificationDocumentsInner.md
 doc/CustomerLookupOption.md
 doc/CustomerLookupOptionMetadata.md
 doc/CustomerLookupPage.md
+doc/CustomerManagementApi.md
 doc/CustomerOrderActivation.md
 doc/CustomerOrderSummary.md
 doc/CustomerOrderTimelineItem.md
@@ -147,7 +151,6 @@ doc/DashboardRiskItem.md
 doc/DashboardSections.md
 doc/DashboardTrendPoint.md
 doc/Dec006Approval.md
-doc/DecideCorrectionRequest.md
 doc/DecideInternalV1MigrationResolutionRequest.md
 doc/DeleteIdentityVerificationFileRequest.md
 doc/DownloadAuthorization.md
@@ -197,6 +200,7 @@ doc/IdentityVerificationReviewUser.md
 doc/IdentityVerificationSummary.md
 doc/InstructorCompensationRow.md
 doc/InstructorFeeCommand.md
+doc/InstructorManagementApi.md
 doc/InternalPackageDetail.md
 doc/InviteUserRequest.md
 doc/IssueCustomerCheckInLinkCommand.md
@@ -317,6 +321,7 @@ doc/PurchasePage.md
 doc/QuotaCapacityCommand.md
 doc/QuotaEvaluationCommand.md
 doc/QuotaEvaluationResult.md
+doc/ReasonCommand.md
 doc/ReasonedVersionCommand.md
 doc/RecoveryRequestCommand.md
 doc/RecoveryVerifyCommand.md
@@ -353,6 +358,7 @@ doc/StudioCommand.md
 doc/StudioPage.md
 doc/StudioUpdateCommand.md
 doc/SubmitPurchaseRequest.md
+doc/SupportApi.md
 doc/TimeRangeCommand.md
 doc/TokenCheckInCommand.md
 doc/UpdateAccessRoleCommand.md
@@ -377,6 +383,7 @@ doc/UserVerificationDocumentSummary.md
 doc/UserVerificationSummary.md
 doc/VersionCommand.md
 doc/VersionedAccessReason.md
+doc/VersionedReasonCommand.md
 doc/Voucher.md
 doc/VoucherCommand.md
 doc/VoucherPackagesInner.md
@@ -394,15 +401,19 @@ lib/src/api/audit_api.dart
 lib/src/api/auth_api.dart
 lib/src/api/bookings_api.dart
 lib/src/api/classes_api.dart
+lib/src/api/content_management_api.dart
+lib/src/api/customer_management_api.dart
 lib/src/api/dashboard_api.dart
 lib/src/api/finance_api.dart
 lib/src/api/identity_api.dart
+lib/src/api/instructor_management_api.dart
 lib/src/api/ledger_api.dart
 lib/src/api/master_api.dart
 lib/src/api/migration_api.dart
 lib/src/api/notifications_api.dart
 lib/src/api/operations_api.dart
 lib/src/api/packages_api.dart
+lib/src/api/support_api.dart
 lib/src/api_util.dart
 lib/src/auth/api_key_auth.dart
 lib/src/auth/auth.dart
@@ -420,6 +431,7 @@ lib/src/model/access_role_page.dart
 lib/src/model/access_role_scope.dart
 lib/src/model/account_link_command.dart
 lib/src/model/action_command.dart
+lib/src/model/add_support_case_internal_note_request.dart
 lib/src/model/adjustment_actor.dart
 lib/src/model/adjustment_command.dart
 lib/src/model/adjustment_customer.dart
@@ -505,6 +517,7 @@ lib/src/model/correction.dart
 lib/src/model/correction_command.dart
 lib/src/model/correction_decision_result.dart
 lib/src/model/create_access_role_command.dart
+lib/src/model/create_managed_customer_request.dart
 lib/src/model/create_order_command.dart
 lib/src/model/create_payment_proof_upload_request.dart
 lib/src/model/create_permission_override_command.dart
@@ -549,7 +562,6 @@ lib/src/model/dashboard_sections.dart
 lib/src/model/dashboard_trend_point.dart
 lib/src/model/date.dart
 lib/src/model/dec006_approval.dart
-lib/src/model/decide_correction_request.dart
 lib/src/model/decide_internal_v1_migration_resolution_request.dart
 lib/src/model/delete_identity_verification_file_request.dart
 lib/src/model/download_authorization.dart
@@ -711,6 +723,7 @@ lib/src/model/purchase_page.dart
 lib/src/model/quota_capacity_command.dart
 lib/src/model/quota_evaluation_command.dart
 lib/src/model/quota_evaluation_result.dart
+lib/src/model/reason_command.dart
 lib/src/model/reasoned_version_command.dart
 lib/src/model/recovery_request_command.dart
 lib/src/model/recovery_verify_command.dart
@@ -771,6 +784,7 @@ lib/src/model/user_verification_document_summary.dart
 lib/src/model/user_verification_summary.dart
 lib/src/model/version_command.dart
 lib/src/model/versioned_access_reason.dart
+lib/src/model/versioned_reason_command.dart
 lib/src/model/voucher.dart
 lib/src/model/voucher_command.dart
 lib/src/model/voucher_packages_inner.dart
@@ -793,6 +807,7 @@ test/access_role_page_test.dart
 test/access_role_scope_test.dart
 test/account_link_command_test.dart
 test/action_command_test.dart
+test/add_support_case_internal_note_request_test.dart
 test/adjustment_actor_test.dart
 test/adjustment_command_test.dart
 test/adjustment_customer_test.dart
@@ -879,10 +894,12 @@ test/close_month_request_test.dart
 test/close_result_test.dart
 test/complete_class_command_test.dart
 test/completion_result_test.dart
+test/content_management_api_test.dart
 test/correction_command_test.dart
 test/correction_decision_result_test.dart
 test/correction_test.dart
 test/create_access_role_command_test.dart
+test/create_managed_customer_request_test.dart
 test/create_order_command_test.dart
 test/create_payment_proof_upload_request_test.dart
 test/create_permission_override_command_test.dart
@@ -904,6 +921,7 @@ test/customer_dashboard_overview_verification_test.dart
 test/customer_lookup_option_metadata_test.dart
 test/customer_lookup_option_test.dart
 test/customer_lookup_page_test.dart
+test/customer_management_api_test.dart
 test/customer_order_activation_test.dart
 test/customer_order_summary_test.dart
 test/customer_order_timeline_item_test.dart
@@ -927,7 +945,6 @@ test/dashboard_risk_item_test.dart
 test/dashboard_sections_test.dart
 test/dashboard_trend_point_test.dart
 test/dec006_approval_test.dart
-test/decide_correction_request_test.dart
 test/decide_internal_v1_migration_resolution_request_test.dart
 test/delete_identity_verification_file_request_test.dart
 test/download_authorization_test.dart
@@ -977,6 +994,7 @@ test/identity_verification_review_user_test.dart
 test/identity_verification_summary_test.dart
 test/instructor_compensation_row_test.dart
 test/instructor_fee_command_test.dart
+test/instructor_management_api_test.dart
 test/internal_package_detail_test.dart
 test/invite_user_request_test.dart
 test/issue_customer_check_in_link_command_test.dart
@@ -1097,6 +1115,7 @@ test/purchase_test.dart
 test/quota_capacity_command_test.dart
 test/quota_evaluation_command_test.dart
 test/quota_evaluation_result_test.dart
+test/reason_command_test.dart
 test/reasoned_version_command_test.dart
 test/recovery_request_command_test.dart
 test/recovery_verify_command_new_verified_identity_test.dart
@@ -1133,6 +1152,7 @@ test/studio_page_test.dart
 test/studio_test.dart
 test/studio_update_command_test.dart
 test/submit_purchase_request_test.dart
+test/support_api_test.dart
 test/time_range_command_test.dart
 test/token_check_in_command_test.dart
 test/update_access_role_command_test.dart
@@ -1157,6 +1177,7 @@ test/user_verification_document_summary_test.dart
 test/user_verification_summary_test.dart
 test/version_command_test.dart
 test/versioned_access_reason_test.dart
+test/versioned_reason_command_test.dart
 test/voucher_command_test.dart
 test/voucher_packages_inner_test.dart
 test/voucher_page_test.dart

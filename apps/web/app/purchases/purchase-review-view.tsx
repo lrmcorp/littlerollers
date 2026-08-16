@@ -390,7 +390,7 @@ export function PurchaseReviewView({
           eyebrow={`Scope · ${scopeLabel}`}
           title="Antrean Pembayaran"
           titleId="payment-review-title"
-          description="Periksa bukti privat dan snapshot transaksi. Keputusan hanya tersedia bagi Finance dan Super Owner."
+          description="Periksa bukti privat dan snapshot transaksi. Keputusan hanya tersedia bagi Finance dan Super Admin."
           context={
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs text-dd-muted">

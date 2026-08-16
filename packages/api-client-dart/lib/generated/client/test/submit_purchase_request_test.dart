@@ -12,6 +12,16 @@ void main() {
       // TODO
     });
 
+    // String branchId
+    test('to test the property `branchId`', () async {
+      // TODO
+    });
+
+    // String classTypeId
+    test('to test the property `classTypeId`', () async {
+      // TODO
+    });
+
     // String customerUserId
     test('to test the property `customerUserId`', () async {
       // TODO

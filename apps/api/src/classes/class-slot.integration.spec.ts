@@ -203,6 +203,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         userId: customerId,
         branchId,
         packageId,
+        classTypeId,
         paymentProofId: proofId,
         packageNameSnapshot: 'Synthetic',
         priceRpSnapshot: 100000,

@@ -45,8 +45,21 @@ export class PaymentProofService {
     const branch = await this.db.branch.findUnique({ where: { id: input.branchId } });
     if (!branch?.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (input.packageId) {
-      const pkg = await this.db.package.findUnique({ where: { id: input.packageId } });
-      if (!pkg || pkg.branchId !== input.branchId)
+      const pkg = await this.db.package.findUnique({
+        where: { id: input.packageId },
+        select: {
+          id: true,
+          branchScopes: {
+            where: { active: true },
+            select: { branchId: true },
+          },
+        },
+      });
+
+      if (
+        !pkg ||
+        !pkg.branchScopes.some((scope) => scope.branchId === input.branchId)
+      )
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
     if (input.orderId) {

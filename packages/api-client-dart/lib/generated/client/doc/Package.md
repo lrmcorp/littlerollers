@@ -9,8 +9,6 @@ import 'package:openapi/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
-**branchId** | **String** |  | 
-**classTypeId** | **String** |  | 
 **branchScopes** | [**BuiltList&lt;PackageBranchScope&gt;**](PackageBranchScope.md) |  | [optional] 
 **classTypeScopes** | [**BuiltList&lt;PackageClassTypeScope&gt;**](PackageClassTypeScope.md) |  | [optional] 
 **revisions** | [**BuiltList&lt;PackageRevision&gt;**](PackageRevision.md) |  | [optional] 

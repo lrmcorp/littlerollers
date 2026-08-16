@@ -12,12 +12,20 @@ part 'submit_purchase_request.g.dart';
 ///
 /// Properties:
 /// * [packageId] 
+/// * [branchId] 
+/// * [classTypeId] 
 /// * [customerUserId] 
 /// * [paymentProofUploadId] 
 @BuiltValue()
 abstract class SubmitPurchaseRequest implements Built<SubmitPurchaseRequest, SubmitPurchaseRequestBuilder> {
   @BuiltValueField(wireName: r'packageId')
   String get packageId;
+
+  @BuiltValueField(wireName: r'branchId')
+  String get branchId;
+
+  @BuiltValueField(wireName: r'classTypeId')
+  String get classTypeId;
 
   @BuiltValueField(wireName: r'customerUserId')
   String? get customerUserId;
@@ -51,6 +59,16 @@ class _$SubmitPurchaseRequestSerializer implements PrimitiveSerializer<SubmitPur
     yield r'packageId';
     yield serializers.serialize(
       object.packageId,
+      specifiedType: const FullType(String),
+    );
+    yield r'branchId';
+    yield serializers.serialize(
+      object.branchId,
+      specifiedType: const FullType(String),
+    );
+    yield r'classTypeId';
+    yield serializers.serialize(
+      object.classTypeId,
       specifiedType: const FullType(String),
     );
     if (object.customerUserId != null) {
@@ -94,6 +112,20 @@ class _$SubmitPurchaseRequestSerializer implements PrimitiveSerializer<SubmitPur
             specifiedType: const FullType(String),
           ) as String;
           result.packageId = valueDes;
+          break;
+        case r'branchId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.branchId = valueDes;
+          break;
+        case r'classTypeId':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.classTypeId = valueDes;
           break;
         case r'customerUserId':
           final valueDes = serializers.deserialize(

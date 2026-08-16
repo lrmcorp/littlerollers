@@ -16,8 +16,8 @@ export class PublicPackageCatalogController {
 
   @Get(':id')
   @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60')
-  detail(@Param('id') id: string) {
-    return this.packages.detail(id);
+  detail(@Param('id') id: string, @Query('branchId') branchId = '') {
+    return this.packages.detail(id, branchId);
   }
 }
 

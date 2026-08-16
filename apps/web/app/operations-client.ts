@@ -51,7 +51,7 @@ export const browserOperationsClient: OperationsClient = {
       api.retryOperationalJob({
         id,
         idempotencyKey: crypto.randomUUID(),
-        decideCorrectionRequest: { reason },
+        reasonCommand: { reason },
       }),
       { label: 'Menjadwalkan ulang job…' },
     );
@@ -61,7 +61,7 @@ export const browserOperationsClient: OperationsClient = {
       api.deadLetterOperationalJob({
         id,
         idempotencyKey: crypto.randomUUID(),
-        decideCorrectionRequest: { reason },
+        reasonCommand: { reason },
       }),
       { label: 'Memindahkan job ke dead-letter…' },
     );
@@ -72,7 +72,7 @@ export const browserOperationsClient: OperationsClient = {
     });
   },
   retryEmail(id, reason) {
-    return appLoading.track(api.retryEmailDelivery({ id, decideCorrectionRequest: { reason } }), {
+    return appLoading.track(api.retryEmailDelivery({ id, reasonCommand: { reason } }), {
       label: 'Mengulangi pengiriman…',
     });
   },

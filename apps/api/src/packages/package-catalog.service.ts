@@ -328,8 +328,8 @@ export class PackageCatalogService {
     return item;
   }
 
-  private primaryBranchId(item: { branchId: string | null; branchScopes: { branchId: string }[] }) {
-    const branchId = item.branchScopes[0]?.branchId ?? item.branchId;
+  private primaryBranchId(item: { branchScopes: { branchId: string }[] }) {
+    const branchId = item.branchScopes[0]?.branchId;
     if (!branchId) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     return branchId;
   }
@@ -621,6 +621,12 @@ export class PackageCatalogService {
     const current = await this.packageForManage(principal, id);
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    const activeBranchIds = current.branchScopes.map((scope) => scope.branchId);
+    const activeClassTypeIds = current.classTypeScopes.map((scope) => scope.classTypeId);
+    if (activeBranchIds.length === 0 || activeClassTypeIds.length === 0)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
     const result = await this.idempotency.execute(
       {
         scope: `package-transition:${id}`,
@@ -635,11 +641,27 @@ export class PackageCatalogService {
             where: {
               id: { not: id },
               status: 'ACTIVE',
-              branchId: current.branchId,
-              classTypeId: current.classTypeId,
               businessKey: current.businessKey,
               effectiveFrom: current.effectiveUntil ? { lt: current.effectiveUntil } : undefined,
               OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: current.effectiveFrom } }],
+              AND: [
+                {
+                  branchScopes: {
+                    some: {
+                      branchId: { in: activeBranchIds },
+                      active: true,
+                    },
+                  },
+                },
+                {
+                  classTypeScopes: {
+                    some: {
+                      classTypeId: { in: activeClassTypeIds },
+                      active: true,
+                    },
+                  },
+                },
+              ],
             },
           });
           if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);

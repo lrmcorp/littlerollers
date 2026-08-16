@@ -36,14 +36,21 @@ export class PublicPackageQueryService {
                 branch: { active: true, publicProfile: { isNot: null } },
               },
             },
-            classType: { active: true },
+            classTypeScopes: {
+              some: {
+                active: true,
+                classType: {
+                  active: true,
+                  branchScopes: { some: { branchId, active: true } },
+                },
+              },
+            },
             status: 'ACTIVE',
             effectiveFrom: { lte: now },
             OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
           },
           select: {
             id: true,
-            branchId: true,
             businessKey: true,
             name: true,
             sessionCount: true,
@@ -56,7 +63,18 @@ export class PublicPackageQueryService {
               orderBy: [{ activeFrom: 'desc' as const }],
               take: 1,
             },
-            classType: { select: { id: true, code: true, name: true } },
+            classTypeScopes: {
+              where: {
+                active: true,
+                classType: {
+                  active: true,
+                  branchScopes: { some: { branchId, active: true } },
+                },
+              },
+              select: {
+                classType: { select: { id: true, code: true, name: true } },
+              },
+            },
           },
           orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
           take: 100,
@@ -67,17 +85,26 @@ export class PublicPackageQueryService {
     const branch = branches.find(({ id }) => id === branchId);
     const items = packages
       .filter((item) => {
-        const key = `${branchId}:${item.classType.id}:${item.businessKey}`;
+        const key = `${branchId}:${item.businessKey}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
-      .map(({ businessKey: _businessKey, updatedAt: _updatedAt, promotions, ...item }) => ({
-        ...item,
-        branchId: branchId!,
-        ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
-        branch,
-      }))
+      .map(
+        ({
+          businessKey: _businessKey,
+          updatedAt: _updatedAt,
+          promotions,
+          classTypeScopes,
+          ...item
+        }) => ({
+          ...item,
+          branchId: branchId!,
+          classTypes: classTypeScopes.map(({ classType }) => classType),
+          ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
+          branch,
+        }),
+      )
       .sort(
         (left, right) =>
           left.priceRp - right.priceRp ||
@@ -88,19 +115,29 @@ export class PublicPackageQueryService {
     return { branches, items };
   }
 
-  async detail(id: string) {
+  async detail(id: string, branchId: string) {
     assertPublicUuid(id);
+    assertPublicUuid(branchId);
     const now = new Date();
     const item = await this.db.package.findFirst({
       where: {
         id,
         branchScopes: {
           some: {
+            branchId,
             active: true,
             branch: { active: true, publicProfile: { isNot: null } },
           },
         },
-        classType: { active: true },
+        classTypeScopes: {
+          some: {
+            active: true,
+            classType: {
+              active: true,
+              branchScopes: { some: { branchId, active: true } },
+            },
+          },
+        },
         publicProfile: { isNot: null },
         status: 'ACTIVE',
         effectiveFrom: { lte: now },
@@ -128,7 +165,18 @@ export class PublicPackageQueryService {
             terms: true,
           },
         },
-        classType: { select: { id: true, code: true, name: true } },
+        classTypeScopes: {
+          where: {
+            active: true,
+            classType: {
+              active: true,
+              branchScopes: { some: { branchId, active: true } },
+            },
+          },
+          select: {
+            classType: { select: { id: true, code: true, name: true } },
+          },
+        },
         branch: {
           select: {
             id: true,
@@ -141,6 +189,7 @@ export class PublicPackageQueryService {
         },
         branchScopes: {
           where: {
+            branchId,
             active: true,
             branch: { active: true, publicProfile: { isNot: null } },
           },
@@ -161,13 +210,15 @@ export class PublicPackageQueryService {
         },
       },
     });
-    const branch = item?.branchScopes[0]?.branch ?? item?.branch;
+    const branch = item?.branchScopes[0]?.branch;
     if (!item?.publicProfile || !branch?.publicProfile)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const schedules = await this.db.classSlot.findMany({
       where: {
         branchId: branch.id,
-        classTypeId: item.classType.id,
+        classTypeId: {
+          in: item.classTypeScopes.map(({ classType }) => classType.id),
+        },
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
         startAt: { gt: now },
       },
@@ -188,9 +239,17 @@ export class PublicPackageQueryService {
       promotion: item.promotions?.[0],
       now,
     });
-    const { promotions: _promotions, ...publicItem } = item;
+    const {
+      promotions: _promotions,
+      classTypeScopes,
+      branchScopes: _branchScopes,
+      branch: _legacyBranch,
+      ...publicItem
+    } = item;
     return {
       ...publicItem,
+      branch,
+      classTypes: classTypeScopes.map(({ classType }) => classType),
       ...pricing,
       pricePerSessionRp: Math.round(pricing.effectivePriceRp / item.sessionCount),
       schedules: schedules.map(({ bookedCount, ...schedule }) => ({

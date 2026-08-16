@@ -50,6 +50,7 @@ export interface SessionPrincipal {
   capabilityGrants?: CapabilityGrant[];
   capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
   sessionExpiresAt?: Date;
+  passwordChangeRequired?: boolean;
 }
 
 @Injectable()
@@ -204,6 +205,7 @@ export class IdentityService {
       where: { id: userId },
       include: {
         roles: { where: this.activeRoleWhere(at) },
+        passwordCredential: { select: { mustChangePassword: true } },
         preferredBranch: {
           select: {
             id: true,
@@ -232,6 +234,7 @@ export class IdentityService {
         this.policy.hasGlobalCapability(access, capability),
       ),
       preferredBranch: user.preferredBranch?.active ? user.preferredBranch : null,
+      passwordChangeRequired: user.passwordCredential?.mustChangePassword ?? false,
     };
   }
 
@@ -500,7 +503,14 @@ export class IdentityService {
   async authenticateBearer(raw: string): Promise<SessionPrincipal> {
     const session = await this.db.userSession.findUnique({
       where: { accessTokenHash: digest(raw) },
-      include: { user: { include: { roles: { where: this.activeRoleWhere() } } } },
+      include: {
+        user: {
+          include: {
+            roles: { where: this.activeRoleWhere() },
+            passwordCredential: { select: { mustChangePassword: true } },
+          },
+        },
+      },
     });
     if (
       !session ||
@@ -519,6 +529,7 @@ export class IdentityService {
       capabilityGrants: access.grants,
       capabilityDenials: access.denials,
       sessionExpiresAt: session.expiresAt,
+      passwordChangeRequired: session.user.passwordCredential?.mustChangePassword ?? false,
     };
   }
 
@@ -801,7 +812,12 @@ export class IdentityService {
       if (claimed.count !== 1) throw new ApiProblem('CHALLENGE_EXPIRED', HttpStatus.GONE);
       await tx.passwordCredential.update({
         where: { userId: action.userId! },
-        data: { passwordHash, passwordChangedAt: new Date(), version: { increment: 1 } },
+        data: {
+          passwordHash,
+          passwordChangedAt: new Date(),
+          mustChangePassword: false,
+          version: { increment: 1 },
+        },
       });
       await tx.userSession.updateMany({
         where: { userId: action.userId!, revokedAt: null },
@@ -837,7 +853,12 @@ export class IdentityService {
     await this.db.$transaction(async (tx) => {
       await tx.passwordCredential.update({
         where: { userId: principal.userId },
-        data: { passwordHash, passwordChangedAt: new Date(), version: { increment: 1 } },
+        data: {
+          passwordHash,
+          passwordChangedAt: new Date(),
+          mustChangePassword: false,
+          version: { increment: 1 },
+        },
       });
       await tx.userSession.updateMany({
         where: { userId: principal.userId, id: { not: principal.sessionId }, revokedAt: null },
@@ -906,6 +927,7 @@ export class IdentityService {
     return {
       passwordEnabled: Boolean(password),
       passwordChangedAt: password?.passwordChangedAt.toISOString() ?? null,
+      passwordChangeRequired: password?.mustChangePassword ?? false,
     };
   }
 

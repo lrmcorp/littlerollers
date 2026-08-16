@@ -64,7 +64,7 @@ function settingValue(item: MasterSetting) {
     : '—';
 }
 
-const tabItems: { id: MasterTab; label: string; kind?: MasterKind }[] = [
+const allTabItems: { id: MasterTab; label: string; kind?: MasterKind }[] = [
   { id: 'branches', label: 'Cabang' },
   { id: 'classTypes', label: 'Tipe Kelas' },
   { id: 'venues', label: 'Area/Ruangan' },
@@ -81,12 +81,17 @@ export function MasterView({
   activeTab = 'branches',
   onTabChange,
   access,
+  visibleTabs,
 }: {
   client?: MasterClient;
   activeTab?: MasterTab;
   onTabChange?: (tab: MasterTab) => void;
   access?: { canManage: boolean; canFinance: boolean };
+  visibleTabs?: MasterTab[];
 }) {
+  const tabItems = visibleTabs
+    ? allTabItems.filter((item) => visibleTabs.includes(item.id))
+    : allTabItems.filter((item) => ['classTypes', 'projection', 'capacity', 'fees'].includes(item.id));
   const [branchId, setBranchId] = useActiveBranchState();
   const [selectedTab, setSelectedTab] = useState<MasterTab>(activeTab);
   useEffect(() => setSelectedTab(activeTab), [activeTab]);
@@ -253,7 +258,7 @@ export function MasterView({
           eyebrow="Master operasional"
           title="Data Master"
           titleId="master-title"
-          description="Kelola cabang, tipe kelas, kapasitas, proyeksi, dan honor instructor dalam satu panel."
+          description="Kelola katalog tipe kelas global serta konfigurasi kapasitas, proyeksi, dan honor instructor."
           context={
             <>
               <StatusBadge tone={canManage ? 'success' : 'neutral'}>

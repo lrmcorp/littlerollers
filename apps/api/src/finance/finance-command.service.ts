@@ -97,6 +97,34 @@ export class FinanceCommandService {
     };
   }
 
+  async listCorrections(
+    principal: SessionPrincipal,
+    query: { branchId: string; period?: string; status?: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED'; q?: string; cursor?: string },
+  ) {
+    this.authorize(principal, query.branchId, 'finance:read');
+    if (query.period) periodRange(query.period);
+    if (query.cursor && !UUID.test(query.cursor))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const rows = await this.db.financeCorrection.findMany({
+      where: {
+        branchId: query.branchId,
+        ...(query.period ? { currentPeriod: query.period } : {}),
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.q?.trim()
+          ? { OR: [{ reason: { contains: query.q.trim() } }, { referencePeriod: { contains: query.q.trim() } }] }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+    const items = rows.slice(0, PAGE_SIZE);
+    return {
+      items: items.map((item) => this.correctionView(item)),
+      page: { hasMore: rows.length > PAGE_SIZE, nextCursor: rows.length > PAGE_SIZE ? items.at(-1)?.id ?? null : null },
+    };
+  }
+
   createOtherCost(
     principal: SessionPrincipal,
     input: {

@@ -22,6 +22,16 @@ export class AuthGuard implements CanActivate {
     const token = bearer ?? cookie;
     if (!token) throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
     request.principal = await this.identities.authenticateBearer(token);
+    if (request.principal.passwordChangeRequired) {
+      const allowed = [
+        '/me',
+        '/auth/security',
+        '/auth/password/change',
+        '/auth/logout',
+      ].some((path) => request.path === path || request.path.endsWith(path));
+      if (!allowed)
+        throw new ApiProblem('PASSWORD_CHANGE_REQUIRED', HttpStatus.FORBIDDEN);
+    }
     return true;
   }
 }

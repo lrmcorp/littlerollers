@@ -109,6 +109,7 @@ enum NotificationProjectionStatus {
 }
 
 enum NotificationChannel {
+  IN_APP
   EMAIL
 }
 
@@ -474,6 +475,27 @@ enum ContactAliasKind {
   EMAIL
 }
 
+enum ManagedContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SupportCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportCasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model User {
   id                                 String                              @id @db.Char(36)
   displayName                        String
@@ -543,6 +565,11 @@ model User {
   customerVoucherEntitlements        CustomerVoucherEntitlement[]
   historical                         Boolean                             @default(false)
   sourceDeletedAt                    DateTime?
+  createdNotificationTemplates       NotificationTemplate[]              @relation("NotificationTemplateCreator")
+  createdPublicContents              PublicContentEntry[]                @relation("PublicContentCreator")
+  customerSupportCases               SupportCase[]                       @relation("SupportCaseCustomer")
+  assignedSupportCases               SupportCase[]                       @relation("SupportCaseAssignee")
+  supportNotes                       SupportCaseNote[]                   @relation("SupportNoteAuthor")
 
   @@index([preferredBranchId])
 }
@@ -566,11 +593,11 @@ model IdentityVerificationDocument {
   reviewedAt            DateTime?
   reviewedById          String?                             @db.Char(36)
   rejectionReasonCode   String?
-  rejectionNote         String?
+  rejectionNote         String?                             @db.Text
   replacedById          String?                             @db.Char(36)
   deletedAt             DateTime?
   deletedById           String?                             @db.Char(36)
-  deletionReason        String?
+  deletionReason        String?                             @db.Text
   version               Int                                 @default(0)
   createdAt             DateTime                            @default(now())
   updatedAt             DateTime                            @updatedAt
@@ -682,6 +709,8 @@ model Branch {
   migrationDeltaEvents     MigrationDeltaEvent[]
   pilotRollbackOutbox      MigrationPilotOutbox[]
   pilotMediaAliases        MigrationPilotMediaAlias[]
+  publicContents           PublicContentEntry[]
+  supportCases             SupportCase[]
   historical               Boolean                        @default(false)
   sourceDeletedAt          DateTime?
 }
@@ -747,6 +776,7 @@ model ClassType {
   branchConfigurations     ClassTypeBranchConfiguration[]
   configurations           EffectiveConfiguration[]
   packages                 Package[]
+  purchases                Purchase[]
   packageScopes            PackageClassTypeScope[]
   voucherScopes            Voucher[]
   customerPackages         CustomerPackage[]
@@ -794,8 +824,8 @@ model ClassTypeBranchConfiguration {
   classType       ClassType @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
-  @@unique([classTypeId, branchId, effectiveFrom])
-  @@index([branchId, effectiveFrom, effectiveUntil])
+  @@unique([classTypeId, branchId, effectiveFrom], map: "CTBranchConfig_type_branch_from_key")
+  @@index([branchId, effectiveFrom, effectiveUntil], map: "CTBranchConfig_branch_from_until_idx")
 }
 
 model CustomerClassEnrollment {
@@ -945,7 +975,7 @@ model CapabilityDefinition {
   systemOnly       Boolean                  @default(false)
   globalOnly       Boolean                  @default(false)
   createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  updatedAt        DateTime                 @default(now()) @updatedAt
   roleCapabilities RoleCapability[]
   userOverrides    UserCapabilityOverride[]
 }
@@ -962,7 +992,7 @@ model RoleDefinition {
   active       Boolean                @default(true)
   version      Int                    @default(0)
   createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  updatedAt    DateTime               @default(now()) @updatedAt
   capabilities RoleCapability[]
   assignments  AccessRoleAssignment[]
 
@@ -1011,7 +1041,7 @@ model UserCapabilityOverride {
   revokeReason  String?                  @db.VarChar(64)
   version       Int                      @default(0)
   createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
+  updatedAt     DateTime                 @default(now()) @updatedAt
   user          User                     @relation("CapabilityOverrideTarget", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   capability    CapabilityDefinition     @relation(fields: [capabilityKey], references: [key], onDelete: Restrict, onUpdate: Restrict)
   branch        Branch?                  @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1086,16 +1116,17 @@ model UserInvitation {
 }
 
 model PasswordCredential {
-  id                String    @id @default(uuid()) @db.Char(36)
-  userId            String    @unique @db.Char(36)
-  emailHash         String    @unique
-  passwordHash      String
-  verifiedAt        DateTime?
-  passwordChangedAt DateTime
-  version           Int       @default(0)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id                 String    @id @default(uuid()) @db.Char(36)
+  userId             String    @unique @db.Char(36)
+  emailHash          String    @unique
+  passwordHash       String
+  verifiedAt         DateTime?
+  passwordChangedAt  DateTime
+  mustChangePassword Boolean   @default(false)
+  version            Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 }
 
 model PasswordActionToken {
@@ -1321,12 +1352,96 @@ model UserNotification {
   @@index([branchId, createdAt])
 }
 
+model NotificationTemplate {
+  id          String               @id @default(uuid()) @db.Char(36)
+  templateKey String               @db.VarChar(96)
+  channel     NotificationChannel
+  version     Int
+  eventType   String               @db.VarChar(128)
+  audience    Json
+  subject     String?              @db.VarChar(200)
+  title       String               @db.VarChar(200)
+  body        String               @db.Text
+  status      ManagedContentStatus @default(DRAFT)
+  createdById String               @db.Char(36)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdBy   User                 @relation("NotificationTemplateCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([templateKey, channel, version])
+  @@index([eventType, status])
+  @@index([channel, status])
+}
+
+model PublicContentEntry {
+  id          String               @id @default(uuid()) @db.Char(36)
+  contentKey  String               @db.VarChar(96)
+  branchId    String?              @db.Char(36)
+  /// Stable non-null scope used to make global content versioning race-safe on MySQL.
+  scopeKey    String               @db.VarChar(64)
+  kind        String               @db.VarChar(64)
+  locale      String               @default("id-ID") @db.VarChar(16)
+  version     Int
+  payload     Json
+  status      ManagedContentStatus @default(DRAFT)
+  createdById String               @db.Char(36)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  branch      Branch?              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy   User                 @relation("PublicContentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([contentKey, scopeKey, locale, version])
+  @@index([branchId, kind, status])
+  @@index([contentKey, status])
+}
+
+model SupportCase {
+  id             String              @id @default(uuid()) @db.Char(36)
+  customerUserId String              @db.Char(36)
+  branchId       String?             @db.Char(36)
+  assignedUserId String?             @db.Char(36)
+  subject        String              @db.VarChar(200)
+  status         SupportCaseStatus   @default(OPEN)
+  priority       SupportCasePriority @default(NORMAL)
+  tags           Json
+  version        Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  resolvedAt     DateTime?
+  customer       User                @relation("SupportCaseCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch         Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  assignedUser   User?               @relation("SupportCaseAssignee", fields: [assignedUserId], references: [id], onDelete: Restrict)
+  notes          SupportCaseNote[]
+
+  @@index([branchId, status, priority, updatedAt])
+  @@index([customerUserId, updatedAt])
+  @@index([assignedUserId, status])
+}
+
+model SupportCaseNote {
+  id          String      @id @default(uuid()) @db.Char(36)
+  caseId      String      @db.Char(36)
+  authorId    String      @db.Char(36)
+  body        String      @db.Text
+  internal    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  supportCase SupportCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  author      User        @relation("SupportNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@index([authorId, createdAt])
+}
+
 model Package {
   id               String                  @id @db.Char(36)
   /// Compatibility projection only. Availability is authoritative in branchScopes.
   branchId         String?                 @db.Char(36)
   /// Compatibility projection only. Eligibility is authoritative in classTypeScopes.
-  classTypeId      String                  @db.Char(36)
+  classTypeId      String?                 @db.Char(36)
   businessKey      String
   name             String
   sessionCount     Int
@@ -1339,7 +1454,7 @@ model Package {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   branch           Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType               @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  classType        ClassType?              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   revisions        PackageRevision[]
   branchScopes     PackageBranchScope[]
   classTypeScopes  PackageClassTypeScope[]
@@ -1495,6 +1610,7 @@ model Purchase {
   userId                                String                        @db.Char(36)
   branchId                              String                        @db.Char(36)
   packageId                             String                        @db.Char(36)
+  classTypeId                           String                        @db.Char(36)
   voucherId                             String?                       @db.Char(36)
   packagePromotionId                    String?                       @db.Char(36)
   packagePromotionNameSnapshot          String?                       @db.VarChar(160)
@@ -1540,6 +1656,7 @@ model Purchase {
   user                                  User                          @relation(fields: [userId], references: [id], onDelete: Restrict)
   branch                                Branch                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
   package                               Package                       @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  classType                             ClassType                     @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   voucher                               Voucher?                      @relation(fields: [voucherId], references: [id], onDelete: Restrict)
   packagePromotion                      PackagePromotion?             @relation(fields: [packagePromotionId], references: [id], onDelete: Restrict)
   paymentProof                          PaymentProof?                 @relation(fields: [paymentProofId], references: [id], onDelete: Restrict)
@@ -1560,6 +1677,7 @@ model Purchase {
   @@unique([userId, idempotencyKeyHash])
   @@index([userId, submittedAt])
   @@index([branchId, status])
+  @@index([classTypeId])
   @@index([paymentAccountId, status, paymentExpiresAt])
   @@index([packagePromotionId, submittedAt])
 }
@@ -2490,6 +2608,7 @@ model OtherCost {
   createdBy        User            @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([branchId, period, createdAt, id])
+  @@index([branchId, occurredOn, status], map: "OtherCost_branchId_occurredOn_status_idx")
   @@index([status, period])
 }
 

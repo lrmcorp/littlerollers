@@ -42,6 +42,13 @@ const submissionFake = (overrides: Partial<PurchaseClient> = {}): PurchaseClient
         id: 'package-1',
         branchId: 'branch-1',
         classTypeId: 'class-1',
+        classTypeScopes: [
+          {
+            id: 'package-class-scope-1',
+            classTypeId: 'class-1',
+            active: true,
+          },
+        ],
         businessKey: 'PKG-10',
         name: 'Ten Sessions',
         sessionCount: 10,
@@ -197,7 +204,13 @@ describe('purchase submission workspace', () => {
     await user.click(upload);
     expect(await screen.findByText('Bersih')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Kirim pengajuan' }));
-    expect(client.submit).toHaveBeenCalledWith('package-1', 'proof-1', expect.any(String));
+    expect(client.submit).toHaveBeenCalledWith(
+      'package-1',
+      'proof-1',
+      'branch-1',
+      'class-1',
+      expect.any(String),
+    );
     expect(await screen.findByText(/Purchase PENDING/)).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
@@ -348,7 +361,7 @@ describe('purchase internal review workspace', () => {
     });
     render(<PurchaseReviewView client={failing} branchOverride={branch} />);
     expect(
-      await screen.findByText('Layanan penyimpanan atau pemindaian belum dikonfigurasi.'),
+      await screen.findByText('Bukti pembayaran sementara belum dapat diproses.'),
     ).toBeVisible();
   });
 });

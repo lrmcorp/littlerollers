@@ -44,11 +44,10 @@ export class PackagePromotionService {
 
   private scopePackage(
     principal: SessionPrincipal,
-    pkg: { branchId: string | null; branchScopes?: { branchId: string }[] },
+    pkg: { branchScopes: { branchId: string }[] },
     manage = false,
   ) {
-    const branchIds = pkg.branchScopes?.map(({ branchId }) => branchId) ?? [];
-    if (!branchIds.length && pkg.branchId) branchIds.push(pkg.branchId);
+    const branchIds = pkg.branchScopes.map(({ branchId }) => branchId);
     if (!branchIds.length) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     for (const branchId of branchIds) {
       if (manage) this.requireManage(principal, branchId);
@@ -268,7 +267,7 @@ export class PackagePromotionService {
             id: newId(),
             actorType: 'USER',
             actorId: principal.userId,
-            branchId: pkg.branchId,
+            branchId: null,
             action: 'package_promotion.created',
             objectType: 'PackagePromotion',
             objectId: created.id,

@@ -57,6 +57,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         userId: customerId,
         branchId,
         packageId,
+        classTypeId,
         packageNameSnapshot: 'Financial package',
         priceRpSnapshot: 1_000_000,
         catalogAmountRpSnapshot: 1_000_000,

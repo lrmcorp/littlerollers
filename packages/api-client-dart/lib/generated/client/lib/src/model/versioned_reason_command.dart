@@ -6,40 +6,49 @@
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
-part 'decide_correction_request.g.dart';
+part 'versioned_reason_command.g.dart';
 
-/// DecideCorrectionRequest
+/// VersionedReasonCommand
 ///
 /// Properties:
+/// * [expectedVersion] 
 /// * [reason] 
 @BuiltValue()
-abstract class DecideCorrectionRequest implements Built<DecideCorrectionRequest, DecideCorrectionRequestBuilder> {
+abstract class VersionedReasonCommand implements Built<VersionedReasonCommand, VersionedReasonCommandBuilder> {
+  @BuiltValueField(wireName: r'expectedVersion')
+  int get expectedVersion;
+
   @BuiltValueField(wireName: r'reason')
   String get reason;
 
-  DecideCorrectionRequest._();
+  VersionedReasonCommand._();
 
-  factory DecideCorrectionRequest([void updates(DecideCorrectionRequestBuilder b)]) = _$DecideCorrectionRequest;
+  factory VersionedReasonCommand([void updates(VersionedReasonCommandBuilder b)]) = _$VersionedReasonCommand;
 
   @BuiltValueHook(initializeBuilder: true)
-  static void _defaults(DecideCorrectionRequestBuilder b) => b;
+  static void _defaults(VersionedReasonCommandBuilder b) => b;
 
   @BuiltValueSerializer(custom: true)
-  static Serializer<DecideCorrectionRequest> get serializer => _$DecideCorrectionRequestSerializer();
+  static Serializer<VersionedReasonCommand> get serializer => _$VersionedReasonCommandSerializer();
 }
 
-class _$DecideCorrectionRequestSerializer implements PrimitiveSerializer<DecideCorrectionRequest> {
+class _$VersionedReasonCommandSerializer implements PrimitiveSerializer<VersionedReasonCommand> {
   @override
-  final Iterable<Type> types = const [DecideCorrectionRequest, _$DecideCorrectionRequest];
+  final Iterable<Type> types = const [VersionedReasonCommand, _$VersionedReasonCommand];
 
   @override
-  final String wireName = r'DecideCorrectionRequest';
+  final String wireName = r'VersionedReasonCommand';
 
   Iterable<Object?> _serializeProperties(
     Serializers serializers,
-    DecideCorrectionRequest object, {
+    VersionedReasonCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
+    yield r'expectedVersion';
+    yield serializers.serialize(
+      object.expectedVersion,
+      specifiedType: const FullType(int),
+    );
     yield r'reason';
     yield serializers.serialize(
       object.reason,
@@ -50,7 +59,7 @@ class _$DecideCorrectionRequestSerializer implements PrimitiveSerializer<DecideC
   @override
   Object serialize(
     Serializers serializers,
-    DecideCorrectionRequest object, {
+    VersionedReasonCommand object, {
     FullType specifiedType = FullType.unspecified,
   }) {
     return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
@@ -61,13 +70,20 @@ class _$DecideCorrectionRequestSerializer implements PrimitiveSerializer<DecideC
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
     required List<Object?> serializedList,
-    required DecideCorrectionRequestBuilder result,
+    required VersionedReasonCommandBuilder result,
     required List<Object?> unhandled,
   }) {
     for (var i = 0; i < serializedList.length; i += 2) {
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
+        case r'expectedVersion':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(int),
+          ) as int;
+          result.expectedVersion = valueDes;
+          break;
         case r'reason':
           final valueDes = serializers.deserialize(
             value,
@@ -84,12 +100,12 @@ class _$DecideCorrectionRequestSerializer implements PrimitiveSerializer<DecideC
   }
 
   @override
-  DecideCorrectionRequest deserialize(
+  VersionedReasonCommand deserialize(
     Serializers serializers,
     Object serialized, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    final result = DecideCorrectionRequestBuilder();
+    final result = VersionedReasonCommandBuilder();
     final serializedList = (serialized as Iterable<Object?>).toList();
     final unhandled = <Object?>[];
     _deserializeProperties(

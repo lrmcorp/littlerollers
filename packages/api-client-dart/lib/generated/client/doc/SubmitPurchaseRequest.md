@@ -9,6 +9,8 @@ import 'package:openapi/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **packageId** | **String** |  | 
+**branchId** | **String** |  | 
+**classTypeId** | **String** |  | 
 **customerUserId** | **String** |  | [optional] 
 **paymentProofUploadId** | **String** |  | 
 

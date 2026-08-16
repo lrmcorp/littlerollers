@@ -289,7 +289,7 @@ export async function ledgerFailure(error: unknown) {
     PENDING_ADJUSTMENT_EXISTS:
       'Paket ini sudah memiliki penyesuaian yang menunggu keputusan. Buka antrean sebelum membuat permintaan baru.',
     SEPARATION_OF_DUTIES_VIOLATION:
-      'Permintaan harus diputuskan oleh Manager atau Super Owner yang berbeda dari requester.',
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari requester.',
     ADJUSTMENT_ALREADY_DECIDED:
       'Permintaan sudah diputuskan. Muat ulang antrean untuk melihat hasil terbaru.',
     STALE_VERSION: 'Data penyesuaian telah berubah. Perbarui data sebelum mengambil keputusan.',
@@ -298,7 +298,7 @@ export async function ledgerFailure(error: unknown) {
     LEDGER_INVARIANT_VIOLATION:
       'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan.',
     CONFIGURATION_REQUIRED:
-      'Penyesuaian sesi belum diaktifkan pada environment ini. Ledger tetap dapat dibaca.',
+      'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
     CONFLICT: 'Data berubah. Perbarui saldo dan antrean sebelum mencoba lagi.',
   };
   if (fromMessage) return messages[fromMessage] ?? fromMessage;

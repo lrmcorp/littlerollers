@@ -11,7 +11,7 @@ import { Drawer, useOptionalAppFeedback } from '../components/app-feedback';
 import { SearchSelect, TextInput } from '../components/forms';
 
 export const roleLabels: Record<ApplicationRole, string> = {
-  SUPER_OWNER: 'Super Owner',
+  SUPER_OWNER: 'Super Admin',
   OWNER: 'Owner cabang',
   ADMIN: 'Admin cabang',
   MANAGER: 'Manager cabang',

@@ -162,7 +162,7 @@ describe('identity UI', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
     await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Autentikasi mengalami gangguan internal. Kode referensi: auth-reference-456.',
+      'Layanan masuk sedang mengalami gangguan. Kode bantuan: auth-reference-456.',
     );
   });
 
@@ -175,7 +175,7 @@ describe('identity UI', () => {
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.queryByText(/synthetic non-production/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Email Google synthetic/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Login Google menunggu konfigurasi/i)).toBeVisible();
+    expect(screen.queryByText(/Google|konfigurasi|production|client ID/i)).not.toBeInTheDocument();
   });
 
   it('supports authoritative invite and links every user to a dedicated detail route', async () => {
@@ -218,7 +218,7 @@ describe('identity UI', () => {
     );
   });
 
-  it('exposes the customer tab and safe verification summary only to global identity readers', async () => {
+  it('keeps customer management separate from the internal user list', async () => {
     const customer = {
       id: 'customer-1',
       displayName: 'Ayu Customer',
@@ -259,13 +259,11 @@ describe('identity UI', () => {
         capabilitiesOverride={['branch:all', 'user:read', 'identity-verification:read']}
       />,
     );
-    await userEvent.click(await screen.findByRole('tab', { name: 'Customer' }));
     await waitFor(() =>
-      expect(listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ audience: 'CUSTOMER' })),
+      expect(listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ audience: 'STAFF' })),
     );
-    expect((await screen.findAllByText('Ayu Customer'))[0]).toBeVisible();
-    expect(screen.getAllByText('Perlu perbaikan').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('Status verifikasi')).toBeVisible();
+    expect(screen.queryByRole('tab', { name: 'Customer' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Customer dikelola melalui Customer Management/)).toBeVisible();
   });
 
   it('shows customer identity metadata without loading images on the user detail page', async () => {

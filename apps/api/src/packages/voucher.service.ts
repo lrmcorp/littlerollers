@@ -586,15 +586,14 @@ export class VoucherService {
 
   async preview(
     principal: SessionPrincipal,
-    input: { packageId: string; branchId?: string; code: string },
+    input: { packageId: string; branchId: string; classTypeId: string; code: string },
   ) {
     this.access.requireVerifiedCustomer(principal);
     if (!principal.capabilities.includes('voucher:redeem'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     const pkg = await this.db.package.findFirst({
-      where: { id: input.packageId, status: 'ACTIVE', branch: { active: true } },
+      where: { id: input.packageId, status: 'ACTIVE' },
       include: {
-        branch: true,
         promotions: {
           where: { status: 'ACTIVE' },
           orderBy: [{ activeFrom: 'desc' }],
@@ -602,8 +601,45 @@ export class VoucherService {
         },
       },
     });
-    if (!pkg || (input.branchId && pkg.branchId !== input.branchId))
+    if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    // Jenis kelas checkout wajib berasal dari pilihan customer.
+    // Package.classTypeId tidak lagi menjadi fallback voucher modern.
+    const effectiveBranchId =
+      typeof input.branchId === 'string' ? input.branchId.trim() : '';
+    const effectiveClassTypeId =
+      typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+
+    if (!effectiveBranchId || !effectiveClassTypeId)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    const [branch, packageBranchScope, packageClassTypeScope, classTypeBranchScope] =
+      await Promise.all([
+        this.db.branch.findFirst({
+          where: { id: effectiveBranchId, active: true },
+          select: { id: true },
+        }),
+        this.db.packageBranchScope.findFirst({
+          where: { packageId: pkg.id, branchId: effectiveBranchId, active: true },
+          select: { id: true },
+        }),
+        this.db.packageClassTypeScope.findFirst({
+          where: { packageId: pkg.id, classTypeId: effectiveClassTypeId, active: true },
+          select: { id: true },
+        }),
+        this.db.classTypeBranchScope.findFirst({
+          where: {
+            branchId: effectiveBranchId,
+            classTypeId: effectiveClassTypeId,
+            active: true,
+          },
+          select: { id: true },
+        }),
+      ]);
+
+    if (!branch || !packageBranchScope || !packageClassTypeScope || !classTypeBranchScope)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
     const code = normalizeVoucherCode(input.code);
     const now = new Date();
     const activePromotion = pkg.promotions.find(
@@ -617,8 +653,8 @@ export class VoucherService {
         activeFrom: { lte: now },
         OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
         AND: [
-          { OR: [{ branchId: null }, { branchId: pkg.branchId }] },
-          { OR: [{ classTypeId: null }, { classTypeId: pkg.classTypeId }] },
+          { OR: [{ branchId: null }, { branchId: effectiveBranchId }] },
+          { OR: [{ classTypeId: null }, { classTypeId: effectiveClassTypeId }] },
           { OR: [{ packages: { none: {} } }, { packages: { some: { packageId: pkg.id } } }] },
         ],
       },

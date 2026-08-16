@@ -17,7 +17,7 @@ void main() {
       // TODO
     });
 
-    //Future<CorrectionDecisionResult> decideCorrection(String id, String decision, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
+    //Future<CorrectionDecisionResult> decideCorrection(String id, String decision, String idempotencyKey, ReasonCommand reasonCommand) async
     test('test decideCorrection', () async {
       // TODO
     });
@@ -45,6 +45,11 @@ void main() {
 
     //Future<FinancialReportPage> getFinancialReport(String reportType, String period, { String branchId, String cursor }) async
     test('test getFinancialReport', () async {
+      // TODO
+    });
+
+    //Future<JsonObject> listCorrections(String period, { String branchId, String status, String q, String cursor }) async
+    test('test listCorrections', () async {
       // TODO
     });
 

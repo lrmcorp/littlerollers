@@ -209,8 +209,8 @@ export function messageForApiError(error: unknown): {
     NOT_FOUND: ['Data tidak ditemukan', 'Data mungkin telah dipindahkan atau tidak lagi tersedia.'],
     SERVICE_UNAVAILABLE: ['Layanan belum tersedia', 'Coba kembali beberapa saat lagi.'],
     CONFIGURATION_REQUIRED: [
-      'Storage privat belum tersedia',
-      'Konfigurasi penyimpanan dokumen belum siap. Hubungi pengelola sistem.',
+      'Dokumen belum dapat diproses',
+      'Layanan dokumen sementara tidak tersedia. Silakan coba kembali nanti.',
     ],
     IDENTITY_DOCUMENT_NOT_READY: [
       'Dokumen belum siap diperiksa',
@@ -248,7 +248,7 @@ export function AlertBanner({
         <strong className="block text-sm">{title}</strong>
         {message && <p className="mt-1 text-sm leading-6 opacity-90">{message}</p>}
         {correlationReference && (
-          <p className="mt-2 text-xs opacity-70">Referensi: {correlationReference}</p>
+          <p className="mt-2 text-xs opacity-70">Kode bantuan: {correlationReference}</p>
         )}
         {action && (
           <Button

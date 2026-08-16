@@ -60,7 +60,13 @@ export interface PurchaseClient {
   finalize(id: string, sha256: string, sizeBytes: number): Promise<PaymentProof>;
   status(id: string): Promise<PaymentProof>;
   replace(purchaseId: string, proofId: string, expectedVersion: number, key: string): Promise<void>;
-  submit(packageId: string, proofId: string, key: string): Promise<Purchase>;
+  submit(
+    packageId: string,
+    proofId: string,
+    branchId: string,
+    classTypeId: string,
+    key: string,
+  ): Promise<Purchase>;
 }
 
 export interface PurchaseReviewClient {
@@ -122,10 +128,15 @@ export const browserPurchaseClient: PurchaseClient = {
       },
     });
   },
-  submit(packageId, paymentProofUploadId, idempotencyKey) {
+  submit(packageId, paymentProofUploadId, branchId, classTypeId, idempotencyKey) {
     return api.submitPurchase({
       idempotencyKey,
-      submitPurchaseRequest: { packageId, paymentProofUploadId },
+      submitPurchaseRequest: {
+        packageId,
+        branchId,
+        classTypeId,
+        paymentProofUploadId,
+      },
     });
   },
 };
@@ -191,12 +202,12 @@ export function purchaseFailure(error: unknown): string {
   )?.response;
   const code = response?.data?.error?.code;
   const messages: Record<string, string> = {
-    CONFIGURATION_REQUIRED: 'Layanan penyimpanan atau pemindaian belum dikonfigurasi.',
+    CONFIGURATION_REQUIRED: 'Bukti pembayaran sementara belum dapat diproses.',
     PAYMENT_PROOF_NOT_CLEAN: 'Bukti belum dinyatakan bersih dan belum dapat digunakan.',
     PAYMENT_PROOF_UNSAFE: 'Bukti ditolak karena hasil pemeriksaan keamanan.',
     PAYMENT_PROOF_SCAN_UNAVAILABLE:
       'Pemindai bukti sedang tidak tersedia. Coba kembali beberapa saat lagi.',
-    PRIVATE_STORAGE_UNAVAILABLE: 'File bukti tidak ditemukan pada penyimpanan privat.',
+    PRIVATE_STORAGE_UNAVAILABLE: 'File bukti belum tersedia. Silakan unggah kembali.',
     VALIDATION_ERROR: 'File atau data purchase belum valid.',
     IDEMPOTENCY_KEY_REUSED: 'Intent yang sama sudah digunakan dengan data berbeda.',
     IDEMPOTENCY_IN_PROGRESS: 'Permintaan sebelumnya masih diproses. Coba lagi tanpa mengubah data.',

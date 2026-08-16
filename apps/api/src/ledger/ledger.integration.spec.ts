@@ -94,6 +94,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         userId: customerId,
         branchId,
         packageId,
+        classTypeId,
         paymentProofId: proofId,
         packageNameSnapshot: 'Ten sessions',
         priceRpSnapshot: 1000000,

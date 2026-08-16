@@ -23,11 +23,15 @@ describe('PublicPackageQueryService', () => {
           priceRp: 1200000,
           effectiveUntil: null,
           updatedAt: new Date('2026-07-27T00:00:00.000Z'),
-          classType: {
-            id: '00000000-0000-4000-8000-000000000003',
-            code: 'PRIVATE',
-            name: 'Private Class',
-          },
+          classTypeScopes: [
+            {
+              classType: {
+                id: '00000000-0000-4000-8000-000000000003',
+                code: 'PRIVATE',
+                name: 'Private Class',
+              },
+            },
+          ],
         },
       ]),
     },
@@ -58,7 +62,9 @@ describe('PublicPackageQueryService', () => {
         branchId,
         name: 'Pilates Starter',
         priceRp: 1200000,
-        classType: expect.objectContaining({ name: 'Private Class' }),
+        classTypes: [
+          expect.objectContaining({ name: 'Private Class' }),
+        ],
       }),
     ]);
     expect(result.items[0]).not.toHaveProperty('businessKey');
@@ -88,11 +94,15 @@ describe('PublicPackageQueryService', () => {
         priceRp: 1200000,
         effectiveUntil: null,
         updatedAt: new Date('2026-07-27T00:00:00.000Z'),
-        classType: {
-          id: '00000000-0000-4000-8000-000000000003',
-          code: 'PRIVATE',
-          name: 'Private Class',
-        },
+        classTypeScopes: [
+          {
+            classType: {
+              id: '00000000-0000-4000-8000-000000000003',
+              code: 'PRIVATE',
+              name: 'Private Class',
+            },
+          },
+        ],
       },
       {
         id: '00000000-0000-4000-8000-000000000005',
@@ -104,11 +114,15 @@ describe('PublicPackageQueryService', () => {
         priceRp: 1200000,
         effectiveUntil: null,
         updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        classType: {
-          id: '00000000-0000-4000-8000-000000000003',
-          code: 'PRIVATE',
-          name: 'Private Class',
-        },
+        classTypeScopes: [
+          {
+            classType: {
+              id: '00000000-0000-4000-8000-000000000003',
+              code: 'PRIVATE',
+              name: 'Private Class',
+            },
+          },
+        ],
       },
     ]);
 

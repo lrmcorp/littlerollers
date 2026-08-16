@@ -26,8 +26,11 @@ export interface CheckoutOptions {
     durationDays: number;
     branchId: string;
     branchName: string;
-    classTypeId: string;
-    classTypeName: string;
+
+    classTypes: Array<{
+      id: string;
+      name: string;
+    }>;
   };
   paymentAccount: {
     id: string;
@@ -264,6 +267,7 @@ export const browserOrderClient = {
     packageId: string,
     slotId?: string | null,
     branchId?: string | null,
+    classTypeId?: string | null,
     voucherCode?: string,
     pricing?: CheckoutOptions['package'],
   ) {
@@ -274,6 +278,7 @@ export const browserOrderClient = {
         packageId,
         ...(slotId ? { slotId } : {}),
         ...(branchId ? { branchId } : {}),
+        ...(classTypeId ? { classTypeId } : {}),
         ...(voucherCode ? { voucherCode } : {}),
         ...(pricing
           ? {
@@ -286,7 +291,12 @@ export const browserOrderClient = {
     });
     return orderDates(value);
   },
-  async previewVoucher(packageId: string, branchId: string | null | undefined, code: string) {
+  async previewVoucher(
+    packageId: string,
+    branchId: string,
+    classTypeId: string,
+    code: string,
+  ) {
     return request<{
       valid: boolean;
       voucherId: string;
@@ -300,7 +310,7 @@ export const browserOrderClient = {
     }>('/checkout/voucher-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ packageId, branchId, code }),
+      body: JSON.stringify({ packageId, branchId, classTypeId, code }),
     });
   },
   async list(filters: CustomerOrderFilters = {}): Promise<CustomerOrderPage> {
@@ -477,10 +487,9 @@ export function orderErrorDetails(error: unknown) {
     PAYMENT_PROOF_NOT_CLEAN:
       'File ditolak oleh pemeriksaan keamanan. Pilih file bukti yang berbeda.',
     UPLOAD_NOT_COMPLETE: 'Upload belum lengkap. Silakan coba kembali.',
-    API_UNAVAILABLE:
-      'API atau database belum dapat dijangkau. Pastikan layanan aktif lalu coba lagi.',
+    API_UNAVAILABLE: 'Layanan pesanan sementara tidak tersedia. Silakan coba kembali nanti.',
     CONFIGURATION_REQUIRED:
-      'Layanan pemeriksaan bukti pembayaran belum dikonfigurasi. Hubungi administrator.',
+      'Bukti pembayaran belum dapat diproses. Silakan coba kembali nanti.',
     PAYMENT_PROOF_SCAN_UNAVAILABLE:
       'Pemeriksaan keamanan file sedang tidak tersedia. Bukti Anda tetap dapat dicoba kembali.',
     PAYMENT_PROOF_STORAGE_UNAVAILABLE:
@@ -492,7 +501,7 @@ export function orderErrorDetails(error: unknown) {
     HTTP_401: 'Sesi telah berakhir. Silakan masuk kembali untuk melihat bukti pembayaran.',
     HTTP_403: 'Akun ini tidak memiliki akses untuk melihat bukti pembayaran.',
     INTERNAL_ERROR:
-      'API atau database belum dapat menyelesaikan permintaan. Gunakan referensi bantuan lalu coba lagi.',
+      'Permintaan belum dapat diselesaikan. Gunakan kode bantuan saat menghubungi dukungan.',
     HTTP_502: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
     HTTP_503: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
     RESOURCE_NOT_FOUND: 'Data pesanan atau paket tidak ditemukan.',

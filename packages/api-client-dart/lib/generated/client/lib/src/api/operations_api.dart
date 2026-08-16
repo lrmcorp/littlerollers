@@ -11,7 +11,6 @@ import 'package:dio/dio.dart';
 import 'package:openapi/src/api_util.dart';
 import 'package:openapi/src/model/dashboard_overview.dart';
 import 'package:openapi/src/model/date.dart';
-import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/error_envelope.dart';
 import 'package:openapi/src/model/health_result.dart';
 import 'package:openapi/src/model/notification_occurrence_page.dart';
@@ -20,6 +19,7 @@ import 'package:openapi/src/model/operational_job_page.dart';
 import 'package:openapi/src/model/operational_job_result.dart';
 import 'package:openapi/src/model/quota_evaluation_command.dart';
 import 'package:openapi/src/model/quota_evaluation_result.dart';
+import 'package:openapi/src/model/reason_command.dart';
 
 class OperationsApi {
 
@@ -35,7 +35,7 @@ class OperationsApi {
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [decideCorrectionRequest] 
+  /// * [reasonCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -48,7 +48,7 @@ class OperationsApi {
   Future<Response<OperationalJobResult>> deadLetterOperationalJob({ 
     required String id,
     required String idempotencyKey,
-    required DecideCorrectionRequest decideCorrectionRequest,
+    required ReasonCommand reasonCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -80,8 +80,8 @@ class OperationsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DecideCorrectionRequest);
-      _bodyData = _serializers.serialize(decideCorrectionRequest, specifiedType: _type);
+      const _type = FullType(ReasonCommand);
+      _bodyData = _serializers.serialize(reasonCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -489,7 +489,7 @@ class OperationsApi {
   ///
   /// Parameters:
   /// * [id] 
-  /// * [decideCorrectionRequest] 
+  /// * [reasonCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -501,7 +501,7 @@ class OperationsApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<NotificationRetryResult>> retryEmailDelivery({ 
     required String id,
-    required DecideCorrectionRequest decideCorrectionRequest,
+    required ReasonCommand reasonCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -532,8 +532,8 @@ class OperationsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DecideCorrectionRequest);
-      _bodyData = _serializers.serialize(decideCorrectionRequest, specifiedType: _type);
+      const _type = FullType(ReasonCommand);
+      _bodyData = _serializers.serialize(reasonCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(
@@ -593,7 +593,7 @@ class OperationsApi {
   /// Parameters:
   /// * [id] 
   /// * [idempotencyKey] 
-  /// * [decideCorrectionRequest] 
+  /// * [reasonCommand] 
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -606,7 +606,7 @@ class OperationsApi {
   Future<Response<OperationalJobResult>> retryOperationalJob({ 
     required String id,
     required String idempotencyKey,
-    required DecideCorrectionRequest decideCorrectionRequest,
+    required ReasonCommand reasonCommand,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -638,8 +638,8 @@ class OperationsApi {
     dynamic _bodyData;
 
     try {
-      const _type = FullType(DecideCorrectionRequest);
-      _bodyData = _serializers.serialize(decideCorrectionRequest, specifiedType: _type);
+      const _type = FullType(ReasonCommand);
+      _bodyData = _serializers.serialize(reasonCommand, specifiedType: _type);
 
     } catch(error, stackTrace) {
       throw DioException(

@@ -23,6 +23,7 @@ part 'me.g.dart';
 /// * [capabilities] 
 /// * [globalCapabilities] - Capabilities with an effective global grant after deny precedence.
 /// * [identityVerificationStatus] 
+/// * [passwordChangeRequired] 
 /// * [sessionExpiresAt] 
 /// * [branches] 
 /// * [preferredBranch] 
@@ -54,6 +55,9 @@ abstract class Me implements Built<Me, MeBuilder> {
   @BuiltValueField(wireName: r'identityVerificationStatus')
   MeIdentityVerificationStatusEnum get identityVerificationStatus;
   // enum identityVerificationStatusEnum {  NOT_REQUIRED,  PENDING,  ACTION_REQUIRED,  APPROVED,  };
+
+  @BuiltValueField(wireName: r'passwordChangeRequired')
+  bool get passwordChangeRequired;
 
   @BuiltValueField(wireName: r'sessionExpiresAt')
   DateTime get sessionExpiresAt;
@@ -126,6 +130,11 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
     yield serializers.serialize(
       object.identityVerificationStatus,
       specifiedType: const FullType(MeIdentityVerificationStatusEnum),
+    );
+    yield r'passwordChangeRequired';
+    yield serializers.serialize(
+      object.passwordChangeRequired,
+      specifiedType: const FullType(bool),
     );
     yield r'sessionExpiresAt';
     yield serializers.serialize(
@@ -220,6 +229,13 @@ class _$MeSerializer implements PrimitiveSerializer<Me> {
             specifiedType: const FullType(MeIdentityVerificationStatusEnum),
           ) as MeIdentityVerificationStatusEnum;
           result.identityVerificationStatus = valueDes;
+          break;
+        case r'passwordChangeRequired':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.passwordChangeRequired = valueDes;
           break;
         case r'sessionExpiresAt':
           final valueDes = serializers.deserialize(

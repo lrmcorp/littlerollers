@@ -149,6 +149,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           userId: customerIds[index]!,
           branchId,
           packageId,
+          classTypeId,
           paymentProofId: proofId,
           packageNameSnapshot: 'Synthetic booking package',
           priceRpSnapshot: 100000,

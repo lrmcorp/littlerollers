@@ -5,15 +5,19 @@ apis/AuditApi.ts
 apis/AuthApi.ts
 apis/BookingsApi.ts
 apis/ClassesApi.ts
+apis/ContentManagementApi.ts
+apis/CustomerManagementApi.ts
 apis/DashboardApi.ts
 apis/FinanceApi.ts
 apis/IdentityApi.ts
+apis/InstructorManagementApi.ts
 apis/LedgerApi.ts
 apis/MasterApi.ts
 apis/MigrationApi.ts
 apis/NotificationsApi.ts
 apis/OperationsApi.ts
 apis/PackagesApi.ts
+apis/SupportApi.ts
 apis/index.ts
 index.ts
 models/AcceptedStatus.ts
@@ -26,6 +30,7 @@ models/AccessRolePage.ts
 models/AccessRoleScope.ts
 models/AccountLinkCommand.ts
 models/ActionCommand.ts
+models/AddSupportCaseInternalNoteRequest.ts
 models/AdjustmentActor.ts
 models/AdjustmentCommand.ts
 models/AdjustmentCustomer.ts
@@ -111,6 +116,7 @@ models/Correction.ts
 models/CorrectionCommand.ts
 models/CorrectionDecisionResult.ts
 models/CreateAccessRoleCommand.ts
+models/CreateManagedCustomerRequest.ts
 models/CreateOrderCommand.ts
 models/CreatePaymentProofUploadRequest.ts
 models/CreatePermissionOverrideCommand.ts
@@ -154,7 +160,6 @@ models/DashboardRiskItem.ts
 models/DashboardSections.ts
 models/DashboardTrendPoint.ts
 models/Dec006Approval.ts
-models/DecideCorrectionRequest.ts
 models/DecideInternalV1MigrationResolutionRequest.ts
 models/DeleteIdentityVerificationFileRequest.ts
 models/DownloadAuthorization.ts
@@ -316,6 +321,7 @@ models/PurchasePage.ts
 models/QuotaCapacityCommand.ts
 models/QuotaEvaluationCommand.ts
 models/QuotaEvaluationResult.ts
+models/ReasonCommand.ts
 models/ReasonedVersionCommand.ts
 models/RecoveryRequestCommand.ts
 models/RecoveryVerifyCommand.ts
@@ -376,6 +382,7 @@ models/UserVerificationDocumentSummary.ts
 models/UserVerificationSummary.ts
 models/VersionCommand.ts
 models/VersionedAccessReason.ts
+models/VersionedReasonCommand.ts
 models/Voucher.ts
 models/VoucherCommand.ts
 models/VoucherPackagesInner.ts

@@ -210,7 +210,21 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       { sha256: sha256(cleanBytes), sizeBytes: 2048 },
       `${namespace}-finalize`,
     );
-    const input = { packageId: pkg.id, paymentProofUploadId: proof.id };
+    await expect(
+      orders.submit(
+        principal,
+        { packageId: pkg.id, paymentProofUploadId: proof.id },
+        'purchase-missing-scope-key',
+        `${namespace}-submit-missing-scope`,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    const input = {
+      packageId: pkg.id,
+      branchId,
+      classTypeId,
+      paymentProofUploadId: proof.id,
+    };
     const first = await orders.submit(principal, input, 'purchase-key-1', `${namespace}-submit`);
     const replay = await orders.submit(
       principal,
@@ -257,6 +271,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
           userId: queueCustomerId,
           branchId,
           packageId: pkg.id,
+          classTypeId: pkg.classTypeId,
           packageNameSnapshot: pkg.name,
           priceRpSnapshot: pkg.priceRp,
           payableAmountRpSnapshot: pkg.priceRp + 101,
@@ -272,6 +287,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
           userId: queueCustomerId,
           branchId: secondBranchId,
           packageId: pkg.id,
+          classTypeId: pkg.classTypeId,
           packageNameSnapshot: pkg.name,
           priceRpSnapshot: pkg.priceRp,
           sessionCountSnapshot: pkg.sessionCount,
@@ -460,7 +476,12 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     await expect(
       orders.submit(
         principal,
-        { packageId: purchase.packageId, paymentProofUploadId: randomUUID() },
+        {
+          packageId: purchase.packageId,
+          branchId: purchase.branchId,
+          classTypeId: purchase.classTypeId,
+          paymentProofUploadId: randomUUID(),
+        },
         'purchase-key-1',
         `${namespace}-changed`,
       ),
@@ -642,7 +663,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         paymentWindowHours: 24,
       },
     });
-    const input = { packageId: pkg.id, branchId };
+    const input = { packageId: pkg.id, branchId, classTypeId };
     const first = await orders.createOrder(
       principal,
       input,
@@ -823,7 +844,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     });
     const created = await orders.createOrder(
       principal,
-      { packageId: pkg.id, branchId },
+      { packageId: pkg.id, branchId, classTypeId },
       'full-order-key',
       `${namespace}-full-order`,
     );
@@ -938,6 +959,344 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     expect(customerPage.summary.total).toBeGreaterThan(0);
     expect(customerPage.summary.approved).toBeGreaterThan(0);
     expect(customerPage.items).toHaveLength(1);
+  });
+
+  it('persists selected second class type from order through activated customer package', async () => {
+    const secondClassTypeId = randomUUID();
+    let multiPackageId: string | null = null;
+    let orderId: string | null = null;
+    let proofId: string | null = null;
+    let createdPaymentAccountId: string | null = null;
+
+    try {
+      // Jenis kelas kedua sengaja berbeda dari compatibility
+      // Package.classTypeId agar test membuktikan pilihan customer
+      // benar-benar menjadi sumber transaksi.
+      await db.classType.create({
+        data: {
+          id: secondClassTypeId,
+          branchId,
+          code: `CADILLAC-${namespace.toUpperCase()}`,
+          name: 'Cadillac',
+        },
+      });
+
+      await db.classTypeBranchScope.create({
+        data: {
+          id: randomUUID(),
+          classTypeId: secondClassTypeId,
+          branchId,
+          active: true,
+        },
+      });
+
+      const pkg = await catalog.create(
+        principal,
+        {
+          branchId,
+          classTypeId,
+          businessKey: `PKG-MULTI-${namespace}`.toUpperCase(),
+          name: 'Multi Class Package',
+          sessionCount: 8,
+          durationDays: 45,
+          priceRp: 1750000,
+          effectiveFrom: '2026-01-01',
+          reason: 'multi class integration fixture',
+        },
+        `${namespace}-multi-package-key`,
+        `${namespace}-multi-package`,
+      );
+
+      multiPackageId = pkg.id;
+
+      await db.packageClassTypeScope.upsert({
+        where: {
+          packageId_classTypeId: {
+            packageId: pkg.id,
+            classTypeId: secondClassTypeId,
+          },
+        },
+        update: { active: true },
+        create: {
+          id: randomUUID(),
+          packageId: pkg.id,
+          classTypeId: secondClassTypeId,
+          active: true,
+        },
+      });
+
+      const compatibilityPackage = await db.package.findUniqueOrThrow({
+        where: { id: pkg.id },
+        select: { classTypeId: true },
+      });
+
+      // Compatibility projection tetap jenis kelas pertama.
+      expect(compatibilityPackage.classTypeId).toBe(classTypeId);
+      expect(compatibilityPackage.classTypeId).not.toBe(secondClassTypeId);
+
+      const projectionRateRp = 234567;
+
+      await db.effectiveConfiguration.create({
+        data: {
+          id: randomUUID(),
+          kind: 'PROJECTION_RATE',
+          businessKey: `${branchId}:${secondClassTypeId}:MULTI:${namespace}`,
+          branchId,
+          classTypeId: secondClassTypeId,
+          value: {
+            rateRp: projectionRateRp,
+            currency: 'IDR',
+            unit: 'SOLD_SESSION',
+          },
+          effectiveFrom: new Date('2020-01-01T00:00:00Z'),
+          approvedEvidence: 'SYNTHETIC_MULTI_CLASS',
+        },
+      });
+
+      let account = await db.paymentAccount.findFirst({
+        where: {
+          branchId,
+          active: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!account) {
+        account = await db.paymentAccount.create({
+          data: {
+            id: randomUUID(),
+            branchId,
+            activeBranchKey: branchId,
+            bankCode: 'BCA',
+            bankName: 'Bank Central Asia',
+            accountNumberEncrypted: encryptAccountNumber('9876543210'),
+            accountNumberLast4: '3210',
+            accountHolderName: 'Daily Dose Multi Class',
+            paymentWindowHours: 24,
+          },
+        });
+
+        createdPaymentAccountId = account.id;
+      }
+
+      await expect(
+        orders.createOrder(
+          principal,
+          {
+            packageId: pkg.id,
+            branchId,
+          },
+          `${namespace}-multi-missing-class-key`,
+          `${namespace}-multi-missing-class`,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+      const checkout = await orders.checkoutOptions(principal, pkg.id, branchId);
+
+      expect(checkout.package.classTypes.map((item) => item.id)).toEqual(
+        expect.arrayContaining([classTypeId, secondClassTypeId]),
+      );
+      expect(checkout.package).not.toHaveProperty('classTypeId');
+      expect(checkout.package).not.toHaveProperty('classTypeName');
+
+      const created = await orders.createOrder(
+        principal,
+        {
+          packageId: pkg.id,
+          branchId,
+          classTypeId: secondClassTypeId,
+        },
+        `${namespace}-multi-order-key`,
+        `${namespace}-multi-order`,
+      );
+
+      const order = created.body as unknown as {
+        id: string;
+        version: number;
+        baseAmountRp: number;
+      };
+
+      orderId = order.id;
+
+      const storedPurchase = await db.purchase.findUniqueOrThrow({
+        where: { id: order.id },
+        include: {
+          package: {
+            select: {
+              classTypeId: true,
+            },
+          },
+        },
+      });
+
+      expect(storedPurchase.classTypeId).toBe(secondClassTypeId);
+      expect(storedPurchase.package.classTypeId).toBe(classTypeId);
+      expect(storedPurchase.classTypeId).not.toBe(storedPurchase.package.classTypeId);
+
+      const bytes = pngBytes(3072);
+
+      const proof = await proofs.issue(
+        principal,
+        {
+          orderId: order.id,
+          branchId,
+          packageId: pkg.id,
+          fileName: 'multi-class-flow.png',
+          mimeType: 'image/png',
+          sizeBytes: bytes.length,
+          sha256: sha256(bytes),
+        },
+        `${namespace}-multi-proof-issue`,
+      );
+
+      proofId = proof.id;
+
+      await proofs.uploadContent(principal, proof.id, bytes);
+
+      await proofs.finalize(
+        principal,
+        proof.id,
+        {
+          sha256: sha256(bytes),
+          sizeBytes: bytes.length,
+        },
+        `${namespace}-multi-proof-finalize`,
+      );
+
+      const attached = (await orders.attachOrderProof(
+        principal,
+        order.id,
+        {
+          paymentProofId: proof.id,
+          expectedVersion: order.version,
+        },
+        `${namespace}-multi-attach`,
+      )) as {
+        status: string;
+        version: number;
+      };
+
+      expect(attached.status).toBe('PENDING');
+
+      await reviews.decide(
+        reviewer,
+        order.id,
+        'APPROVED',
+        {
+          reasonCode: 'PAYMENT_VERIFIED',
+          expectedVersion: attached.version,
+        },
+        `${namespace}-multi-decision-key`,
+        `${namespace}-multi-approve`,
+      );
+
+      const activated = await db.customerPackage.findUniqueOrThrow({
+        where: { purchaseId: order.id },
+      });
+
+      const approvedPurchase = await db.purchase.findUniqueOrThrow({
+        where: { id: order.id },
+      });
+
+      expect(approvedPurchase.classTypeId).toBe(secondClassTypeId);
+      expect(activated.classTypeId).toBe(secondClassTypeId);
+      expect(activated.classTypeId).toBe(approvedPurchase.classTypeId);
+      expect(activated.projectionRateRp).toBe(projectionRateRp);
+      expect(activated.salePriceRp).toBe(order.baseAmountRp);
+    } finally {
+      if (orderId) {
+        await db.ledgerEntry.deleteMany({
+          where: {
+            referenceType: 'PURCHASE',
+            referenceId: orderId,
+          },
+        });
+
+        await db.customerPackage.deleteMany({
+          where: { purchaseId: orderId },
+        });
+
+        await db.paymentUniqueCodeReservation.deleteMany({
+          where: { purchaseId: orderId },
+        });
+
+        await db.purchase.deleteMany({
+          where: { id: orderId },
+        });
+
+        await db.idempotencyRecord.deleteMany({
+          where: {
+            OR: [
+              { scope: `order:${actorId}` },
+              { scope: `purchase-decision:${orderId}` },
+            ],
+          },
+        });
+      }
+
+      if (proofId) {
+        await db.paymentProof.deleteMany({
+          where: { id: proofId },
+        });
+      }
+
+      await db.outboxEvent.deleteMany({
+        where: {
+          correlationId: {
+            startsWith: `${namespace}-multi-`,
+          },
+        },
+      });
+
+      await db.auditLog.deleteMany({
+        where: {
+          correlationId: {
+            startsWith: `${namespace}-multi-`,
+          },
+        },
+      });
+
+      if (multiPackageId) {
+        await db.packageClassTypeScope.deleteMany({
+          where: { packageId: multiPackageId },
+        });
+
+        await db.packageBranchScope.deleteMany({
+          where: { packageId: multiPackageId },
+        });
+
+        await db.packageRevision.deleteMany({
+          where: { packageId: multiPackageId },
+        });
+
+        await db.package.deleteMany({
+          where: { id: multiPackageId },
+        });
+      }
+
+      await db.effectiveConfiguration.deleteMany({
+        where: {
+          branchId,
+          classTypeId: secondClassTypeId,
+        },
+      });
+
+      await db.classTypeBranchScope.deleteMany({
+        where: {
+          classTypeId: secondClassTypeId,
+        },
+      });
+
+      await db.classType.deleteMany({
+        where: { id: secondClassTypeId },
+      });
+
+      if (createdPaymentAccountId) {
+        await db.paymentAccount.deleteMany({
+          where: { id: createdPaymentAccountId },
+        });
+      }
+    }
   });
 
   it('enforces separation of duties, reason codes and decided state', async () => {

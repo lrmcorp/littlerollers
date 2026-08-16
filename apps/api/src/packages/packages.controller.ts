@@ -105,7 +105,7 @@ export class PackagesController {
   }
   @Post('checkout/voucher-preview') previewVoucher(
     @Req() r: AuthenticatedRequest,
-    @Body() body: { packageId: string; branchId?: string; code: string },
+    @Body() body: { packageId: string; branchId: string; classTypeId: string; code: string },
   ) {
     return this.vouchers.preview(r.principal, body);
   }

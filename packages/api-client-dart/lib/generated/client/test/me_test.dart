@@ -49,6 +49,11 @@ void main() {
       // TODO
     });
 
+    // bool passwordChangeRequired
+    test('to test the property `passwordChangeRequired`', () async {
+      // TODO
+    });
+
     // DateTime sessionExpiresAt
     test('to test the property `sessionExpiresAt`', () async {
       // TODO

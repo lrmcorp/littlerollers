@@ -2239,6 +2239,7 @@ async function importPackageOrder(
           userId: userId!,
           branchId: branchId!,
           packageId: packageId!,
+          classTypeId: packageClassScope.classTypeId,
           packageNameSnapshot: packageRecord.name,
           priceRpSnapshot: price,
           priceAfterDiscountRpSnapshot: price,
@@ -7994,6 +7995,7 @@ async function applyPackageOrderDelta(
         userId,
         branchId,
         packageId,
+        classTypeId: packageClassScope.classTypeId,
         packageNameSnapshot: pkg.name,
         priceRpSnapshot: price,
         priceAfterDiscountRpSnapshot: price,
@@ -8026,6 +8028,7 @@ async function applyPackageOrderDelta(
         ]),
       },
       update: {
+        classTypeId: packageClassScope.classTypeId,
         status: purchaseStatus,
         amountPaidRpSnapshot: asDate(row.tanggal_pembayaran) ? price : null,
         paymentMethodCode: textValue(row.metode_pembayaran) || null,

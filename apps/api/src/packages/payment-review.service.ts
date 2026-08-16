@@ -669,11 +669,16 @@ export class PaymentReviewService {
               .toISOString()
               .slice(0, 10);
             const effectiveDate = new Date(`${activationDate}T00:00:00Z`);
+
+            // Purchase.classTypeId adalah snapshot jenis kelas yang dipilih
+            // customer saat transaksi dan menjadi sumber otoritatif entitlement.
+            const purchasedClassTypeId = purchase.classTypeId;
+
             const projections = await tx.effectiveConfiguration.findMany({
               where: {
                 kind: 'PROJECTION_RATE',
                 branchId: purchase.branchId,
-                classTypeId: purchase.package.classTypeId,
+                classTypeId: purchasedClassTypeId,
                 effectiveFrom: { lte: effectiveDate },
                 OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
               },
@@ -693,7 +698,7 @@ export class PaymentReviewService {
                 customerUserId: purchase.userId,
                 branchId: purchase.branchId,
                 packageId: purchase.packageId,
-                classTypeId: purchase.package.classTypeId,
+                classTypeId: purchasedClassTypeId,
                 activationDate: effectiveDate,
                 expiryAt: startOfLocalDateUtc(expiryDate, purchase.branch.timezone),
                 salePriceRp: purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,

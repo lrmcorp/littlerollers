@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // bool passwordChangeRequired
+    test('to test the property `passwordChangeRequired`', () async {
+      // TODO
+    });
+
   });
 }

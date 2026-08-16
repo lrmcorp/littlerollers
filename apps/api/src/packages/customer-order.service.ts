@@ -40,7 +40,7 @@ export class CustomerOrderService {
       },
       include: {
         branchScopes: { where: { active: true }, include: { branch: true } },
-        classType: true,
+        classTypeScopes: { where: { active: true }, select: { classTypeId: true } },
         promotions: {
           where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
           orderBy: [{ activeFrom: 'desc' }],
@@ -54,6 +54,42 @@ export class CustomerOrderService {
     if (!pkg || !selectedScope?.branch.active)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const effectiveBranchId = selectedScope.branchId;
+
+    
+    // Paket dapat tersedia untuk beberapa jenis kelas. Ambil hanya jenis kelas
+    // yang aktif untuk paket dan tersedia pada cabang checkout yang dipilih.
+    const packageClassTypeIds = pkg.classTypeScopes.map((scope) => scope.classTypeId);
+    const availableClassTypeScopes = packageClassTypeIds.length
+      ? await this.db.classTypeBranchScope.findMany({
+          where: {
+            branchId: effectiveBranchId,
+            classTypeId: { in: packageClassTypeIds },
+            active: true,
+          },
+          select: { classTypeId: true },
+        })
+      : [];
+
+    const availableClassTypeIds = [
+      ...new Set(availableClassTypeScopes.map((scope) => scope.classTypeId)),
+    ];
+
+    const classTypes = availableClassTypeIds.length
+      ? await this.db.classType.findMany({
+          where: {
+            id: { in: availableClassTypeIds },
+            active: true,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: { name: 'asc' },
+        })
+      : [];
+
+    if (classTypes.length === 0)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const account = await this.db.paymentAccount.findFirst({
       where: { branchId: effectiveBranchId, active: true },
       orderBy: { createdAt: 'desc' },
@@ -72,8 +108,9 @@ export class CustomerOrderService {
         durationDays: pkg.durationDays,
         branchId: effectiveBranchId,
         branchName: selectedScope.branch.name,
-        classTypeId: pkg.classTypeId,
-        classTypeName: pkg.classType.name,
+
+        // Sumber authoritative jenis kelas untuk checkout modern.
+        classTypes,
       },
       paymentAccount: {
         id: account.id,
@@ -263,7 +300,10 @@ export class CustomerOrderService {
             effectiveFrom: { lte: now },
             OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
           },
-          include: { branchScopes: { where: { active: true }, select: { branchId: true } } },
+          include: {
+            branchScopes: { where: { active: true }, select: { branchId: true } },
+            classTypeScopes: { where: { active: true }, select: { classTypeId: true } },
+          },
         });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const effectiveBranchId = input.branchId ?? pkg.branchScopes[0]?.branchId;
@@ -272,6 +312,30 @@ export class CustomerOrderService {
           !pkg.branchScopes.some((scope) => scope.branchId === effectiveBranchId)
         )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+
+          // Flow modern wajib membawa jenis kelas yang dipilih customer.
+          // Package.classTypeId tidak lagi menjadi fallback transaksi.
+          const effectiveClassTypeId =
+            typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+
+          if (!effectiveClassTypeId)
+            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+          if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
+            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+          const classTypeAvailableAtBranch = await tx.classTypeBranchScope.findFirst({
+            where: {
+              branchId: effectiveBranchId,
+              classTypeId: effectiveClassTypeId,
+              active: true,
+            },
+            select: { id: true },
+          });
+
+          if (!classTypeAvailableAtBranch)
+            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const account = await tx.paymentAccount.findFirst({
           where: { branchId: effectiveBranchId, active: true },
           orderBy: { createdAt: 'desc' },
@@ -279,7 +343,11 @@ export class CustomerOrderService {
         if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
         if (input.slotId) {
           const slot = await tx.classSlot.findUnique({ where: { id: input.slotId } });
-          if (!slot || slot.branchId !== effectiveBranchId || slot.classTypeId !== pkg.classTypeId)
+          if (
+            !slot ||
+            slot.branchId !== effectiveBranchId ||
+            slot.classTypeId !== effectiveClassTypeId
+          )
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         }
         const activePromotion = await this.pricing.activePromotion(tx, pkg.id, now);
@@ -318,7 +386,7 @@ export class CustomerOrderService {
               OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
               AND: [
                 { OR: [{ branchId: null }, { branchId: effectiveBranchId }] },
-                { OR: [{ classTypeId: null }, { classTypeId: pkg.classTypeId }] },
+                { OR: [{ classTypeId: null }, { classTypeId: effectiveClassTypeId }] },
                 { OR: [{ packages: { none: {} } }, { packages: { some: { packageId: pkg.id } } }] },
               ],
             },
@@ -368,6 +436,7 @@ export class CustomerOrderService {
             userId: p.userId,
             branchId: effectiveBranchId,
             packageId: pkg.id,
+            classTypeId: effectiveClassTypeId,
             paymentAccountId: account.id,
             paymentBankNameSnapshot: account.bankName,
             paymentAccountNumberSnapshotEncrypted: account.accountNumberEncrypted,
@@ -745,12 +814,31 @@ export class CustomerOrderService {
     this.access.catalog(p);
     await this.access.requireVerifiedCustomer(p);
     if (!key) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    const branchId = typeof input.branchId === 'string' ? input.branchId.trim() : '';
+    const classTypeId = typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+
+    if (!branchId || !classTypeId)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
     syntheticConfigSeconds('PURCHASE_IDEMPOTENCY_TTL_SECONDS', 86400);
     return this.idem.execute(
       { scope: `purchase:${p.userId}`, key, payload: input, ttlMs: 86400000, leaseMs: 30000 },
       async (tx) => {
         const proofId = input.paymentProofId ?? input.paymentProofUploadId;
-        const pkg = await tx.package.findUnique({ where: { id: input.packageId } });
+        const pkg = await tx.package.findUnique({
+          where: { id: input.packageId },
+          include: {
+            branchScopes: {
+              where: { active: true },
+              select: { branchId: true },
+            },
+            classTypeScopes: {
+              where: { active: true },
+              select: { classTypeId: true },
+            },
+          },
+        });
         const proof = await tx.paymentProof.findUnique({ where: { id: proofId } });
         const now = new Date();
         if (
@@ -761,9 +849,28 @@ export class CustomerOrderService {
         )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (
+          !pkg.branchScopes.some((scope) => scope.branchId === branchId) ||
+          !pkg.classTypeScopes.some((scope) => scope.classTypeId === classTypeId)
+        )
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const classTypeAvailableAtBranch = await tx.classTypeBranchScope.findFirst({
+          where: {
+            branchId,
+            classTypeId,
+            active: true,
+          },
+          select: { id: true },
+        });
+
+        if (!classTypeAvailableAtBranch)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        if (
           !proof ||
           proof.userId !== p.userId ||
-          proof.branchId !== pkg.branchId ||
+          proof.branchId !== branchId ||
+          proof.packageId !== pkg.id ||
           proof.scanStatus !== 'CLEAN' ||
           proof.uploadStatus !== 'FINALIZED'
         )
@@ -772,8 +879,9 @@ export class CustomerOrderService {
           data: {
             id: newId(),
             userId: p.userId,
-            branchId: pkg.branchId,
+            branchId,
             packageId: pkg.id,
+            classTypeId,
             paymentProofId: proof.id,
             packageNameSnapshot: pkg.name,
             priceRpSnapshot: pkg.priceRp,
@@ -824,11 +932,11 @@ export class CustomerOrderService {
           'PURCHASE_SUBMITTED',
           'Purchase',
           purchase.id,
-          pkg.branchId,
+          branchId,
           correlationId,
         );
         await this.pilotOutbox?.record(tx, {
-          branchId: pkg.branchId,
+          branchId,
           aggregateType: 'Purchase',
           aggregateId: purchase.id,
           operation: 'CREATE',
@@ -844,7 +952,7 @@ export class CustomerOrderService {
           },
         });
         await this.pilotOutbox?.record(tx, {
-          branchId: pkg.branchId,
+          branchId,
           aggregateType: 'PaymentProof',
           aggregateId: proof.id,
           operation: 'ATTACH_TO_PURCHASE',

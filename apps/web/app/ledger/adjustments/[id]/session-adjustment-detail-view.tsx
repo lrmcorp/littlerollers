@@ -198,7 +198,7 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
             </p>
           ) : !canDecide ? (
             <p className="mt-3 text-sm leading-6 text-dd-muted">
-              Akun Anda memiliki akses baca. Keputusan dilakukan Manager atau Super Owner.
+              Akun Anda memiliki akses baca. Keputusan dilakukan Manager atau Super Admin.
             </p>
           ) : (
             <div className="mt-4 grid gap-2">

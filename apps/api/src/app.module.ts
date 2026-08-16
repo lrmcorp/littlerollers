@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PublicContentModule } from './public-content/public-content.module';
 import { EmailModule } from './email/email.module';
 import { MigrationModule } from './migration/migration.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MigrationModule } from './migration/migration.module';
     NotificationsModule,
     PublicContentModule,
     MigrationModule,
+    SupportModule,
   ],
 })
 export class AppModule {}

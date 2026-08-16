@@ -110,15 +110,15 @@ function initialUrlState() {
 
 function errorMessage(code: string) {
   const messages: Record<string, string> = {
-    FORBIDDEN: 'Hanya Super Owner dengan role-permission:manage yang dapat membuka halaman ini.',
+    FORBIDDEN: 'Hanya Super Admin dengan izin pengelolaan role yang dapat membuka halaman ini.',
     CONFIGURATION_REQUIRED:
       'Management RBAC belum diaktifkan. Set RBAC_POLICY_SOURCE=database dan RBAC_MANAGEMENT_ENABLED=true.',
     ROLE_CODE_CONFLICT: 'Kode role sudah digunakan.',
     ROLE_IN_USE: 'Role masih digunakan user aktif dan tidak dapat dinonaktifkan.',
     PROTECTED_ROLE_CHANGE: 'Perubahan ini melanggar proteksi system role.',
     PROTECTED_CAPABILITY: 'Capability inti hanya dapat dimiliki SUPER_OWNER.',
-    LAST_SUPER_OWNER: 'Perubahan ditolak karena akan menghilangkan Super Owner aktif terakhir.',
-    SELF_ACCESS_CHANGE_FORBIDDEN: 'Super Owner tidak boleh mengubah akses akunnya sendiri.',
+    LAST_SUPER_OWNER: 'Perubahan ditolak karena akan menghilangkan Super Admin aktif terakhir.',
+    SELF_ACCESS_CHANGE_FORBIDDEN: 'Super Admin tidak boleh mengubah akses akunnya sendiri.',
     PERMISSION_OVERRIDE_EXISTS: 'Override aktif untuk user, capability, dan scope itu sudah ada.',
     STALE_VERSION: 'Data telah berubah. Muat ulang sebelum menyimpan kembali.',
     IDEMPOTENCY_KEY_REUSED: 'Intent penyimpanan telah berubah. Ulangi dari data terbaru.',
@@ -599,7 +599,7 @@ export function RolePermissionsView({
             <div className="grid justify-items-start gap-3 sm:justify-items-end">
               <div className="flex flex-wrap gap-2">
                 <StatusBadge tone="success">RBAC dari database</StatusBadge>
-                <StatusBadge tone="info">Khusus Super Owner</StatusBadge>
+                <StatusBadge tone="info">Khusus Super Admin</StatusBadge>
               </div>
               <div className="flex flex-wrap gap-2">
                 <ButtonLink
@@ -1028,7 +1028,7 @@ export function RolePermissionsView({
                                     <StatusBadge tone="info">Hanya global</StatusBadge>
                                   )}
                                   {capability.systemOnly && (
-                                    <StatusBadge tone="danger">Khusus Super Owner</StatusBadge>
+                                    <StatusBadge tone="danger">Khusus Super Admin</StatusBadge>
                                   )}
                                 </span>
                                 <span className="mt-1 block text-sm">{capability.label}</span>

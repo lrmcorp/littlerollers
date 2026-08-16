@@ -133,6 +133,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           userId: customerIds[index]!,
           branchId,
           packageId,
+          classTypeId,
           paymentProofId: proofId,
           packageNameSnapshot: 'Synthetic reschedule package',
           priceRpSnapshot: 100000,

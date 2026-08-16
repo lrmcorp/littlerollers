@@ -7,7 +7,7 @@ void main() {
   final instance = Openapi(basePathOverride: 'http://localhost/api/v1').getOperationsApi();
 
   group(OperationsApi, () {
-    //Future<OperationalJobResult> deadLetterOperationalJob(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
+    //Future<OperationalJobResult> deadLetterOperationalJob(String id, String idempotencyKey, ReasonCommand reasonCommand) async
     test('test deadLetterOperationalJob', () async {
       // TODO
     });
@@ -36,12 +36,12 @@ void main() {
       // TODO
     });
 
-    //Future<NotificationRetryResult> retryEmailDelivery(String id, DecideCorrectionRequest decideCorrectionRequest) async
+    //Future<NotificationRetryResult> retryEmailDelivery(String id, ReasonCommand reasonCommand) async
     test('test retryEmailDelivery', () async {
       // TODO
     });
 
-    //Future<OperationalJobResult> retryOperationalJob(String id, String idempotencyKey, DecideCorrectionRequest decideCorrectionRequest) async
+    //Future<OperationalJobResult> retryOperationalJob(String id, String idempotencyKey, ReasonCommand reasonCommand) async
     test('test retryOperationalJob', () async {
       // TODO
     });

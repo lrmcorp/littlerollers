@@ -61,7 +61,7 @@ export function UsersView({
     (capabilities.includes('branch:all') ? capabilities : []);
   const sessionReady = Boolean(capabilitiesOverride || context?.session);
   const canAdmin = sessionReady && capabilities.includes('user:admin');
-  const canViewCustomers = sessionReady && globalCapabilities.includes('user:read');
+  const canViewCustomers = false;
   const canReadIdentity = sessionReady && globalCapabilities.includes('identity-verification:read');
   const branches = context?.session?.branches ?? [];
   const [items, setItems] = useState<UserSummary[]>([]);
@@ -76,9 +76,7 @@ export function UsersView({
   const [status, setStatus] = useState(() => queryValue('status'));
   const [role, setRole] = useState(() => queryValue('role'));
   const [branchId, setBranchId] = useState(() => queryValue('branchId'));
-  const [audience, setAudience] = useState<'STAFF' | 'CUSTOMER'>(() =>
-    queryValue('audience') === 'CUSTOMER' ? 'CUSTOMER' : 'STAFF',
-  );
+  const [audience, setAudience] = useState<'STAFF' | 'CUSTOMER'>('STAFF');
   const [verificationStatus, setVerificationStatus] = useState(() =>
     queryValue('verificationStatus'),
   );
@@ -162,9 +160,9 @@ export function UsersView({
       <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card sm:p-8">
         <PageHeader
           eyebrow="Administrasi identitas"
-          title="Pengguna"
+          title="Pengguna internal"
           titleId="users-title"
-          description="Kelola profil staf, role, scope cabang, aktivasi, dan audit dengan authorization backend sebagai sumber kebenaran."
+          description="Kelola profil staf, role, scope cabang, aktivasi, dan audit. Customer dikelola melalui Customer Management."
           context={
             <>
               <StatusBadge tone={canAdmin ? 'info' : 'neutral'}>

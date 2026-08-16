@@ -24,6 +24,7 @@ import 'package:openapi/src/model/access_role_page.dart';
 import 'package:openapi/src/model/access_role_scope.dart';
 import 'package:openapi/src/model/account_link_command.dart';
 import 'package:openapi/src/model/action_command.dart';
+import 'package:openapi/src/model/add_support_case_internal_note_request.dart';
 import 'package:openapi/src/model/adjustment_actor.dart';
 import 'package:openapi/src/model/adjustment_command.dart';
 import 'package:openapi/src/model/adjustment_customer.dart';
@@ -109,6 +110,7 @@ import 'package:openapi/src/model/correction.dart';
 import 'package:openapi/src/model/correction_command.dart';
 import 'package:openapi/src/model/correction_decision_result.dart';
 import 'package:openapi/src/model/create_access_role_command.dart';
+import 'package:openapi/src/model/create_managed_customer_request.dart';
 import 'package:openapi/src/model/create_order_command.dart';
 import 'package:openapi/src/model/create_payment_proof_upload_request.dart';
 import 'package:openapi/src/model/create_permission_override_command.dart';
@@ -152,7 +154,6 @@ import 'package:openapi/src/model/dashboard_risk_item.dart';
 import 'package:openapi/src/model/dashboard_sections.dart';
 import 'package:openapi/src/model/dashboard_trend_point.dart';
 import 'package:openapi/src/model/dec006_approval.dart';
-import 'package:openapi/src/model/decide_correction_request.dart';
 import 'package:openapi/src/model/decide_internal_v1_migration_resolution_request.dart';
 import 'package:openapi/src/model/delete_identity_verification_file_request.dart';
 import 'package:openapi/src/model/download_authorization.dart';
@@ -314,6 +315,7 @@ import 'package:openapi/src/model/purchase_page.dart';
 import 'package:openapi/src/model/quota_capacity_command.dart';
 import 'package:openapi/src/model/quota_evaluation_command.dart';
 import 'package:openapi/src/model/quota_evaluation_result.dart';
+import 'package:openapi/src/model/reason_command.dart';
 import 'package:openapi/src/model/reasoned_version_command.dart';
 import 'package:openapi/src/model/recovery_request_command.dart';
 import 'package:openapi/src/model/recovery_verify_command.dart';
@@ -374,6 +376,7 @@ import 'package:openapi/src/model/user_verification_document_summary.dart';
 import 'package:openapi/src/model/user_verification_summary.dart';
 import 'package:openapi/src/model/version_command.dart';
 import 'package:openapi/src/model/versioned_access_reason.dart';
+import 'package:openapi/src/model/versioned_reason_command.dart';
 import 'package:openapi/src/model/voucher.dart';
 import 'package:openapi/src/model/voucher_command.dart';
 import 'package:openapi/src/model/voucher_packages_inner.dart';
@@ -397,6 +400,7 @@ part 'serializers.g.dart';
   AccessRoleScope,
   AccountLinkCommand,
   ActionCommand,
+  AddSupportCaseInternalNoteRequest,
   AdjustmentActor,
   AdjustmentCommand,
   AdjustmentCustomer,
@@ -482,6 +486,7 @@ part 'serializers.g.dart';
   CorrectionCommand,
   CorrectionDecisionResult,
   CreateAccessRoleCommand,
+  CreateManagedCustomerRequest,
   CreateOrderCommand,
   CreatePaymentProofUploadRequest,
   CreatePermissionOverrideCommand,
@@ -525,7 +530,6 @@ part 'serializers.g.dart';
   DashboardSections,
   DashboardTrendPoint,
   Dec006Approval,
-  DecideCorrectionRequest,
   DecideInternalV1MigrationResolutionRequest,
   DeleteIdentityVerificationFileRequest,
   DownloadAuthorization,
@@ -687,6 +691,7 @@ part 'serializers.g.dart';
   QuotaCapacityCommand,
   QuotaEvaluationCommand,
   QuotaEvaluationResult,
+  ReasonCommand,
   ReasonedVersionCommand,
   RecoveryRequestCommand,
   RecoveryVerifyCommand,
@@ -747,6 +752,7 @@ part 'serializers.g.dart';
   UserVerificationSummary,
   VersionCommand,
   VersionedAccessReason,
+  VersionedReasonCommand,
   Voucher,
   VoucherCommand,$VoucherCommand,
   VoucherPackagesInner,
@@ -758,6 +764,10 @@ part 'serializers.g.dart';
   VoucherUpdateCommand,
 ])
 Serializers serializers = (_$serializers.toBuilder()
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(JsonObject)]),
+        () => ListBuilder<JsonObject>(),
+      )
       ..add(AccessReason.serializer)
       ..add(Branch.serializer)
       ..add(CustomerRescheduleSlot.serializer)

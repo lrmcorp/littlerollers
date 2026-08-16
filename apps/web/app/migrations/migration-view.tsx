@@ -121,7 +121,7 @@ export function MigrationView() {
     <section className="space-y-6" aria-labelledby="migration-page-title">
       <Panel className="p-6 sm:p-8">
         <PageHeader
-          eyebrow="Super Owner"
+          eyebrow="Super Admin"
           title="Kontrol migrasi v1 → v2"
           titleId="migration-page-title"
           description="Pantau batch, control total, reject, dan resolution. Import tetap dijalankan melalui CLI operator terbatas."

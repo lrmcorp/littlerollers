@@ -60,6 +60,7 @@ export function PurchaseView({
   const authorityKey = sessionContext?.session?.id ?? 'test';
   const [packages, setPackages] = useState<PurchasePackage[]>([]);
   const [selectedId, setSelectedId] = useState('');
+  const [selectedClassTypeId, setSelectedClassTypeId] = useState('');
   const [proof, setProof] = useState<PaymentProof | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [purchase, setPurchase] = useState<Purchase | null>(null);
@@ -72,6 +73,10 @@ export function PurchaseView({
   const selected = useMemo(
     () => packages.find((item) => item.id === selectedId) ?? null,
     [packages, selectedId],
+  );
+  const selectedClassTypes = useMemo(
+    () => (selected?.classTypeScopes ?? []).filter((scope) => scope.active),
+    [selected],
   );
 
   useEffect(() => {
@@ -86,6 +91,7 @@ export function PurchaseView({
   useEffect(() => {
     setPackages([]);
     setSelectedId('');
+    setSelectedClassTypeId('');
     setProof(null);
     setSelectedFile(null);
     setPurchase(null);
@@ -120,11 +126,18 @@ export function PurchaseView({
     void run('packages', async () => {
       const result = await client.list(branch.id);
       setPackages(result.items);
-      setSelectedId(
-        result.items.some(({ id }) => id === requestedPackageId) ? requestedPackageId : '',
+
+      const requestedPackage =
+        result.items.find(({ id }) => id === requestedPackageId) ?? null;
+      const requestedClassTypes =
+        requestedPackage?.classTypeScopes?.filter((scope) => scope.active) ?? [];
+
+      setSelectedId(requestedPackage?.id ?? '');
+      setSelectedClassTypeId(
+        requestedClassTypes.length === 1 ? requestedClassTypes[0]!.classTypeId : '',
       );
       setMessage(
-        result.items.some(({ id }) => id === requestedPackageId)
+        requestedPackage
           ? 'Paket pilihan siap diproses.'
           : 'Paket pilihan tidak lagi tersedia.',
       );
@@ -184,7 +197,13 @@ export function PurchaseView({
                 value={item.id}
                 checked={selectedId === item.id}
                 onChange={() => {
+                  const activeClassTypes =
+                    item.classTypeScopes?.filter((scope) => scope.active) ?? [];
+
                   setSelectedId(item.id);
+                  setSelectedClassTypeId(
+                    activeClassTypes.length === 1 ? activeClassTypes[0]!.classTypeId : '',
+                  );
                   setProof(null);
                   setSelectedFile(null);
                   setPurchase(null);
@@ -196,7 +215,9 @@ export function PurchaseView({
                 {item.sessionCount} sesi · {item.durationDays} hari
               </span>
               <b>{rupiah.format(item.priceRp)}</b>
-              <small>Class type •{item.classTypeId.slice(-6)}</small>
+              <small>
+                {item.classTypeScopes?.filter((scope) => scope.active).length ?? 0} jenis kelas tersedia
+              </small>
               <small>
                 Efektif {item.effectiveFrom.toLocaleDateString('id-ID')}–
                 {item.effectiveUntil?.toLocaleDateString('id-ID') ?? 'tanpa akhir'}
@@ -219,11 +240,46 @@ export function PurchaseView({
           Muat paket berikutnya
         </Button>
       )}
+      {selected && selectedClassTypes.length > 1 && (
+        <label>
+          Jenis kelas
+          <select
+            className={controlClassName}
+            value={selectedClassTypeId}
+            required
+            onChange={(event) => {
+              setSelectedClassTypeId(event.target.value);
+              setProof(null);
+              setSelectedFile(null);
+              setPurchase(null);
+              setIntentKey('');
+            }}
+          >
+            <option value="">Pilih jenis kelas</option>
+            {selectedClassTypes.map((scope) => (
+              <option key={scope.id} value={scope.classTypeId}>
+                {scope.classType?.name ?? `Class •${scope.classTypeId.slice(-6)}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {selected && selectedClassTypes.length === 0 && (
+        <Feedback kind="warning">
+          Paket ini belum memiliki jenis kelas aktif.
+        </Feedback>
+      )}
+
       {selected && (
         <form
           aria-label={purchase ? 'Ganti bukti pembayaran' : 'Upload bukti pembayaran'}
           onSubmit={(event) => {
             event.preventDefault();
+            if (!selectedClassTypeId) {
+              setError('Pilih jenis kelas terlebih dahulu.');
+              return;
+            }
             if (!selectedFile?.size) {
               setError('Pilih file PNG, JPEG, atau PDF terlebih dahulu.');
               return;
@@ -323,14 +379,20 @@ export function PurchaseView({
             review.
           </p>
           <Button
-            disabled={loading || !canSubmit}
+            disabled={loading || !canSubmit || !selectedClassTypeId}
             loading={busyAction === 'submit'}
             loadingLabel="Mengirim pengajuan…"
             onClick={() =>
               void run('submit', async () => {
                 const key = intentKey || crypto.randomUUID();
                 if (!intentKey) setIntentKey(key);
-                const result = await client.submit(selected.id, proof.id, key);
+                const result = await client.submit(
+                  selected.id,
+                  proof.id,
+                  branch.id,
+                  selectedClassTypeId,
+                  key,
+                );
                 setPurchase(result);
                 setMessage(
                   result.status === 'PENDING'

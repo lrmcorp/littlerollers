@@ -35,6 +35,11 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/migrations', ['migration:read']],
   ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
+  ['/customers', ['customer:read']],
+  ['/instructors', ['assignment:read']],
+  ['/notification-management', ['notification:manage']],
+  ['/public-content-management', ['public-content:read']],
+  ['/support-cases', ['support:read']],
   ['/assignments', ['assignment:read']],
   ['/master', ['master:read']],
   ['/checkout', ['customer:self']],
@@ -101,6 +106,7 @@ const internalRoles = new Set([
 ]);
 
 export function defaultSessionDestination(session: WebSession): string {
+  if (session.passwordChangeRequired) return '/account/security?required=true';
   if (session.roles.some((role) => internalRoles.has(role))) return '/workspace';
   if (session.roles.includes('CUSTOMER'))
     return session.identityVerificationStatus === 'APPROVED'
@@ -126,6 +132,7 @@ export function forbiddenSessionDestination(session: WebSession, pathname: strin
 export function canAccessSessionPath(session: WebSession, value: string): boolean {
   const path = new URL(value, 'http://local.invalid').pathname;
   if (isPublicExperiencePath(path)) return true;
+  if (session.passwordChangeRequired) return path === '/account/security';
   const customerOnly =
     session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
   if (!customerOnly && (path === '/bookings' || path.startsWith('/bookings/'))) return false;

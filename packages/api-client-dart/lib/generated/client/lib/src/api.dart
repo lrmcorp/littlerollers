@@ -15,15 +15,19 @@ import 'package:openapi/src/api/audit_api.dart';
 import 'package:openapi/src/api/auth_api.dart';
 import 'package:openapi/src/api/bookings_api.dart';
 import 'package:openapi/src/api/classes_api.dart';
+import 'package:openapi/src/api/content_management_api.dart';
+import 'package:openapi/src/api/customer_management_api.dart';
 import 'package:openapi/src/api/dashboard_api.dart';
 import 'package:openapi/src/api/finance_api.dart';
 import 'package:openapi/src/api/identity_api.dart';
+import 'package:openapi/src/api/instructor_management_api.dart';
 import 'package:openapi/src/api/ledger_api.dart';
 import 'package:openapi/src/api/master_api.dart';
 import 'package:openapi/src/api/migration_api.dart';
 import 'package:openapi/src/api/notifications_api.dart';
 import 'package:openapi/src/api/operations_api.dart';
 import 'package:openapi/src/api/packages_api.dart';
+import 'package:openapi/src/api/support_api.dart';
 
 class Openapi {
   static const String basePath = r'/api/v1';
@@ -115,6 +119,18 @@ class Openapi {
     return ClassesApi(dio, serializers);
   }
 
+  /// Get ContentManagementApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  ContentManagementApi getContentManagementApi() {
+    return ContentManagementApi(dio, serializers);
+  }
+
+  /// Get CustomerManagementApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  CustomerManagementApi getCustomerManagementApi() {
+    return CustomerManagementApi(dio, serializers);
+  }
+
   /// Get DashboardApi instance, base route and serializer can be overridden by a given but be careful,
   /// by doing that all interceptors will not be executed
   DashboardApi getDashboardApi() {
@@ -131,6 +147,12 @@ class Openapi {
   /// by doing that all interceptors will not be executed
   IdentityApi getIdentityApi() {
     return IdentityApi(dio, serializers);
+  }
+
+  /// Get InstructorManagementApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  InstructorManagementApi getInstructorManagementApi() {
+    return InstructorManagementApi(dio, serializers);
   }
 
   /// Get LedgerApi instance, base route and serializer can be overridden by a given but be careful,
@@ -167,5 +189,11 @@ class Openapi {
   /// by doing that all interceptors will not be executed
   PackagesApi getPackagesApi() {
     return PackagesApi(dio, serializers);
+  }
+
+  /// Get SupportApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  SupportApi getSupportApi() {
+    return SupportApi(dio, serializers);
   }
 }

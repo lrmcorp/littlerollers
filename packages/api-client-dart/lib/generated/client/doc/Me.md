@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **capabilities** | **BuiltList&lt;String&gt;** |  | 
 **globalCapabilities** | **BuiltList&lt;String&gt;** | Capabilities with an effective global grant after deny precedence. | 
 **identityVerificationStatus** | **String** |  | 
+**passwordChangeRequired** | **bool** |  | 
 **sessionExpiresAt** | [**DateTime**](DateTime.md) |  | 
 **branches** | [**BuiltList&lt;SessionBranch&gt;**](SessionBranch.md) |  | 
 **preferredBranch** | [**PreferredStudio**](PreferredStudio.md) |  | 

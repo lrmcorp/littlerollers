@@ -229,7 +229,7 @@ export function DocumentReviewCard({
         <AlertBanner
           tone="warning"
           title="Penghapusan gagal"
-          message="Storage belum dapat menghapus file. Tindakan dapat dicoba ulang oleh Super Owner."
+          message="File belum dapat dihapus. Tindakan dapat dicoba ulang oleh Super Admin."
         />
       )}
       {document.status === 'PENDING' && !canDecide && (

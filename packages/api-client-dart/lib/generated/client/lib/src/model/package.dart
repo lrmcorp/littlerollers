@@ -13,12 +13,10 @@ import 'package:built_value/serializer.dart';
 
 part 'package.g.dart';
 
-/// Global package identity. branchId/classTypeId are transitional primary projections; availability is authoritative in branchScopes and classTypeScopes.
+/// Global package identity. Availability and eligibility are authoritative in branchScopes and classTypeScopes.
 ///
 /// Properties:
 /// * [id] 
-/// * [branchId] 
-/// * [classTypeId] 
 /// * [branchScopes] 
 /// * [classTypeScopes] 
 /// * [revisions] 
@@ -37,12 +35,6 @@ part 'package.g.dart';
 abstract class Package  {
   @BuiltValueField(wireName: r'id')
   String get id;
-
-  @BuiltValueField(wireName: r'branchId')
-  String get branchId;
-
-  @BuiltValueField(wireName: r'classTypeId')
-  String get classTypeId;
 
   @BuiltValueField(wireName: r'branchScopes')
   BuiltList<PackageBranchScope>? get branchScopes;
@@ -107,16 +99,6 @@ class _$PackageSerializer implements PrimitiveSerializer<Package> {
     yield r'id';
     yield serializers.serialize(
       object.id,
-      specifiedType: const FullType(String),
-    );
-    yield r'branchId';
-    yield serializers.serialize(
-      object.branchId,
-      specifiedType: const FullType(String),
-    );
-    yield r'classTypeId';
-    yield serializers.serialize(
-      object.classTypeId,
       specifiedType: const FullType(String),
     );
     if (object.branchScopes != null) {
@@ -270,20 +252,6 @@ class _$$PackageSerializer implements PrimitiveSerializer<$Package> {
             specifiedType: const FullType(String),
           ) as String;
           result.id = valueDes;
-          break;
-        case r'branchId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.branchId = valueDes;
-          break;
-        case r'classTypeId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.classTypeId = valueDes;
           break;
         case r'branchScopes':
           final valueDes = serializers.deserialize(

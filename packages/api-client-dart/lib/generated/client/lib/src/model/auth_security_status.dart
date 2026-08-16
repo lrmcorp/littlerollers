@@ -13,6 +13,7 @@ part 'auth_security_status.g.dart';
 /// Properties:
 /// * [passwordEnabled] 
 /// * [passwordChangedAt] 
+/// * [passwordChangeRequired] 
 @BuiltValue()
 abstract class AuthSecurityStatus implements Built<AuthSecurityStatus, AuthSecurityStatusBuilder> {
   @BuiltValueField(wireName: r'passwordEnabled')
@@ -20,6 +21,9 @@ abstract class AuthSecurityStatus implements Built<AuthSecurityStatus, AuthSecur
 
   @BuiltValueField(wireName: r'passwordChangedAt')
   DateTime? get passwordChangedAt;
+
+  @BuiltValueField(wireName: r'passwordChangeRequired')
+  bool get passwordChangeRequired;
 
   AuthSecurityStatus._();
 
@@ -53,6 +57,11 @@ class _$AuthSecurityStatusSerializer implements PrimitiveSerializer<AuthSecurity
     yield object.passwordChangedAt == null ? null : serializers.serialize(
       object.passwordChangedAt,
       specifiedType: const FullType.nullable(DateTime),
+    );
+    yield r'passwordChangeRequired';
+    yield serializers.serialize(
+      object.passwordChangeRequired,
+      specifiedType: const FullType(bool),
     );
   }
 
@@ -91,6 +100,13 @@ class _$AuthSecurityStatusSerializer implements PrimitiveSerializer<AuthSecurity
           ) as DateTime?;
           if (valueDes == null) continue;
           result.passwordChangedAt = valueDes;
+          break;
+        case r'passwordChangeRequired':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(bool),
+          ) as bool;
+          result.passwordChangeRequired = valueDes;
           break;
         default:
           unhandled.add(key);

@@ -88,7 +88,7 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     }
     const code = 101 + index;
     const expiresAt = status === 'EXPIRED' ? ctx.at(-1) : ctx.at(1);
-    await ctx.db.purchase.upsert({ where: { id }, update: { status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt, timelineComplete: status !== 'EXPIRED' }, create: { id, userId: customerId, branchId, packageId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, timelineComplete: status !== 'EXPIRED', idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    await ctx.db.purchase.upsert({ where: { id }, update: { classTypeId, status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt, timelineComplete: status !== 'EXPIRED' }, create: { id, userId: customerId, branchId, packageId, classTypeId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, timelineComplete: status !== 'EXPIRED', idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
     const decisionType =
       status === 'APPROVED'
         ? 'PAYMENT_APPROVED'
@@ -364,6 +364,7 @@ async function seedBsdOperationalScenarios(
   await ctx.db.purchase.upsert({
     where: { id: approvedPurchaseId },
     update: {
+      classTypeId,
       status: 'APPROVED',
       paymentProofId: approvedProofId,
       paymentAccountId: paymentAccount.id,
@@ -376,6 +377,7 @@ async function seedBsdOperationalScenarios(
       userId: customerId,
       branchId,
       packageId,
+      classTypeId,
       paymentProofId: approvedProofId,
       paymentAccountId: paymentAccount.id,
       paymentBankNameSnapshot: paymentAccount.bankName,
@@ -427,12 +429,13 @@ async function seedBsdOperationalScenarios(
   });
   await ctx.db.purchase.upsert({
     where: { id: ctx.id('purchase', 'bsd-pending') },
-    update: { status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1), timelineComplete: true },
+    update: { classTypeId, status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1), timelineComplete: true },
     create: {
       id: ctx.id('purchase', 'bsd-pending'),
       userId: customerId,
       branchId,
       packageId,
+      classTypeId,
       paymentProofId: pendingProofId,
       paymentAccountId: paymentAccount.id,
       paymentBankNameSnapshot: paymentAccount.bankName,
@@ -593,7 +596,7 @@ export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, use
     await ctx.db.user.upsert({ where: { id: customerId }, update: { displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}` }, create: { id: customerId, displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}`, status: 'ACTIVE' } });
     await ctx.db.userRole.upsert({ where: { id: ctx.id('volume-role', index) }, update: { userId: customerId, role: 'CUSTOMER' }, create: { id: ctx.id('volume-role', index), userId: customerId, role: 'CUSTOMER', activeFrom: new Date('2026-01-01') } });
     await ctx.db.classSlot.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, studioId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
-    await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: { timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
+    await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: { classTypeId, timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, classTypeId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
     await seedPurchaseTimeline(ctx, purchaseId, [
       { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-(index % 90), index % 12) },
       { key: 'approved', type: 'PAYMENT_APPROVED', occurredAt: ctx.at(-(index % 90), (index % 12) + 1), reasonCode: 'PAYMENT_VERIFIED' },

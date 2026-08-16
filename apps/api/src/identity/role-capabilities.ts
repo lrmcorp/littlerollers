@@ -21,6 +21,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:read',
   ],
   ADMIN: [
+    'support:read',
+    'support:manage',
     'branch:operate',
     'user:read',
     'payment:review',
@@ -37,6 +39,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:manage',
   ],
   MANAGER: [
+    'support:read',
+    'support:manage',
     'branch:manage',
     'user:read',
     'ledger:read',
@@ -67,6 +71,15 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:read',
   ],
   SUPER_OWNER: [
+    'notification:manage',
+    'public-content:read',
+    'public-content:manage',
+    'support:read',
+    'support:manage',
+    'customer:read',
+    'customer:manage',
+    'customer:credential:initialize',
+    'customer:security:manage',
     'role-permission:manage',
     'migration:read',
     'migration:resolve',

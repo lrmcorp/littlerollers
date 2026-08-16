@@ -380,7 +380,7 @@ export function PublicPackagesView({
                 <div className="mt-3 grid gap-5 md:grid-cols-2" aria-label="Daftar paket aktif">
                   {orderedVisible.map((item) => {
                     const recommended = item.id === recommendedId;
-                    const purchase = `/checkout?package=${item.id}&branch=${item.branchId}${continuationSlot ? `&slot=${encodeURIComponent(continuationSlot)}` : ''}`;
+                    const purchase = `/checkout?package=${item.id}&branch=${item.branchId}${classTypeId ? `&classType=${encodeURIComponent(classTypeId)}` : ''}${continuationSlot ? `&slot=${encodeURIComponent(continuationSlot)}` : ''}`;
                     const href = packageCtaHref(audience, purchase);
                     return (
                       <article

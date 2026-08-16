@@ -12,16 +12,6 @@ void main() {
       // TODO
     });
 
-    // String branchId
-    test('to test the property `branchId`', () async {
-      // TODO
-    });
-
-    // String classTypeId
-    test('to test the property `classTypeId`', () async {
-      // TODO
-    });
-
     // BuiltList<PackageBranchScope> branchScopes
     test('to test the property `branchScopes`', () async {
       // TODO

@@ -198,7 +198,7 @@ export function BranchDetailView({ id }: { id: string }) {
               </p>
               <p className="text-sm leading-6 text-dd-muted">{branch.publicProfile.address}</p>
               <ButtonLink
-                href={`/master?tab=publicProfiles&branch=${branch.id}`}
+                href={`/workspace/branches/${branch.id}/public-profile`}
                 variant="secondary"
                 size="sm"
                 leadingIcon={<ExternalLink className="size-4" aria-hidden="true" />}
@@ -211,7 +211,7 @@ export function BranchDetailView({ id }: { id: string }) {
             <div className="mt-4">
               <p className="text-sm text-dd-muted">Profil publik cabang belum dilengkapi.</p>
               <ButtonLink
-                href={`/master?tab=publicProfiles&branch=${branch.id}`}
+                href={`/workspace/branches/${branch.id}/public-profile`}
                 variant="secondary"
                 size="sm"
                 className="mt-3 w-fit"
@@ -222,6 +222,15 @@ export function BranchDetailView({ id }: { id: string }) {
           )}
         </Panel>
       </div>
+      <Panel className="p-5">
+        <h2 className="text-lg font-semibold">Konfigurasi Studio/Cabang</h2>
+        <p className="mt-2 text-sm text-dd-muted">Kelola venue dan rekening dari halaman Studio/Cabang ini, bukan dari Master Data.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <ButtonLink href={`/workspace/branches/${branch.id}/venues`} variant="secondary">Area Studio &amp; Ruangan</ButtonLink>
+          <ButtonLink href={`/workspace/branches/${branch.id}/payment-accounts`} variant="secondary">Rekening pembayaran</ButtonLink>
+          <ButtonLink href={`/workspace/branches/${branch.id}/public-profile`} variant="secondary">Profil publik</ButtonLink>
+        </div>
+      </Panel>
       <Panel className="p-5">
         <h2 className="text-lg font-semibold">Dependency operasional</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

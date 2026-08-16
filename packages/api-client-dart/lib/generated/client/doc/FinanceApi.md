@@ -16,6 +16,7 @@ Method | HTTP request | Description
 [**getFinanceReconciliationAnomalies**](FinanceApi.md#getfinancereconciliationanomalies) | **GET** /finance/reconciliation/anomalies | 
 [**getFinanceReconciliationOverview**](FinanceApi.md#getfinancereconciliationoverview) | **GET** /finance/reconciliation/overview | 
 [**getFinancialReport**](FinanceApi.md#getfinancialreport) | **GET** /reports/{reportType} | 
+[**listCorrections**](FinanceApi.md#listcorrections) | **GET** /correction-journals | 
 [**listLegacyFinancialEntries**](FinanceApi.md#listlegacyfinancialentries) | **GET** /finance/reconciliation/legacy-cashflow | 
 [**listOtherCosts**](FinanceApi.md#listothercosts) | **GET** /other-costs | 
 [**listPeriods**](FinanceApi.md#listperiods) | **GET** /periods | 
@@ -109,7 +110,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **decideCorrection**
-> CorrectionDecisionResult decideCorrection(id, decision, idempotencyKey, decideCorrectionRequest)
+> CorrectionDecisionResult decideCorrection(id, decision, idempotencyKey, reasonCommand)
 
 
 
@@ -121,10 +122,10 @@ final api = Openapi().getFinanceApi();
 final String id = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final String decision = decision_example; // String | 
 final String idempotencyKey = idempotencyKey_example; // String | 
-final DecideCorrectionRequest decideCorrectionRequest = ; // DecideCorrectionRequest | 
+final ReasonCommand reasonCommand = ; // ReasonCommand | 
 
 try {
-    final response = api.decideCorrection(id, decision, idempotencyKey, decideCorrectionRequest);
+    final response = api.decideCorrection(id, decision, idempotencyKey, reasonCommand);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling FinanceApi->decideCorrection: $e\n');
@@ -138,7 +139,7 @@ Name | Type | Description  | Notes
  **id** | **String**|  | 
  **decision** | **String**|  | 
  **idempotencyKey** | **String**|  | 
- **decideCorrectionRequest** | [**DecideCorrectionRequest**](DecideCorrectionRequest.md)|  | 
+ **reasonCommand** | [**ReasonCommand**](ReasonCommand.md)|  | 
 
 ### Return type
 
@@ -331,6 +332,55 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**FinancialReportPage**](FinancialReportPage.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listCorrections**
+> JsonObject listCorrections(period, branchId, status, q, cursor)
+
+
+
+### Example
+```dart
+import 'package:openapi/api.dart';
+
+final api = Openapi().getFinanceApi();
+final String period = period_example; // String | 
+final String branchId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Filter only; never grants authority
+final String status = status_example; // String | 
+final String q = q_example; // String | 
+final String cursor = cursor_example; // String | 
+
+try {
+    final response = api.listCorrections(period, branchId, status, q, cursor);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling FinanceApi->listCorrections: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **period** | **String**|  | 
+ **branchId** | **String**| Filter only; never grants authority | [optional] 
+ **status** | **String**|  | [optional] 
+ **q** | **String**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
+
+### Return type
+
+[**JsonObject**](JsonObject.md)
 
 ### Authorization
 

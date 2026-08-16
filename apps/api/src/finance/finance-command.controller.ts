@@ -120,6 +120,18 @@ export class FinanceCommandController {
     );
   }
 
+  @Get('correction-journals')
+  listCorrections(
+    @Req() req: AuthenticatedRequest,
+    @Query('branchId') branchId: string,
+    @Query('period') period?: string,
+    @Query('status') status?: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED',
+    @Query('q') q?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.finance.listCorrections(req.principal, { branchId, period, status, q, cursor });
+  }
+
   @Post('correction-journals/:id/:decision')
   decideCorrection(
     @Req() req: AuthenticatedRequest,

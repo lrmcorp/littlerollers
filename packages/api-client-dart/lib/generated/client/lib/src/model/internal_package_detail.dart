@@ -20,8 +20,6 @@ part 'internal_package_detail.g.dart';
 ///
 /// Properties:
 /// * [id] 
-/// * [branchId] 
-/// * [classTypeId] 
 /// * [branchScopes] 
 /// * [classTypeScopes] 
 /// * [revisions] 
@@ -69,11 +67,6 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
     InternalPackageDetail object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
-    yield r'branchId';
-    yield serializers.serialize(
-      object.branchId,
-      specifiedType: const FullType(String),
-    );
     if (object.livePromotion != null) {
       yield r'livePromotion';
       yield serializers.serialize(
@@ -92,11 +85,6 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
     yield serializers.serialize(
       object.version,
       specifiedType: const FullType(int),
-    );
-    yield r'classTypeId';
-    yield serializers.serialize(
-      object.classTypeId,
-      specifiedType: const FullType(String),
     );
     yield r'durationDays';
     yield serializers.serialize(
@@ -199,13 +187,6 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
-        case r'branchId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.branchId = valueDes;
-          break;
         case r'livePromotion':
           final valueDes = serializers.deserialize(
             value,
@@ -227,13 +208,6 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
             specifiedType: const FullType(int),
           ) as int;
           result.version = valueDes;
-          break;
-        case r'classTypeId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.classTypeId = valueDes;
           break;
         case r'durationDays':
           final valueDes = serializers.deserialize(
