@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { LedgerService } from './ledger.service';
+import { LedgerService } from './buku-besar-sesi.service';
 
 @Controller()
 @UseGuards(AuthGuard)

@@ -8,6 +8,7 @@ import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
 export type PublicPackageBranch = Pick<PublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
   Partial<Pick<PublicBranch, 'publicProfile'>>;
+
 export type PublicPackage = Omit<
   PublicPackageSummary,
   'effectiveUntil' | 'classType' | 'branch' | 'promotion' | 'effectivePriceRp'
@@ -47,20 +48,37 @@ export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
     );
     return {
       branches: result.branches,
-      items: result.items.map((item) => ({
-        ...item,
-        branchId: item.branch?.id ?? branchId ?? '',
-        classType: item.classType as PublicClassTypeRef,
-        effectiveUntil: item.effectiveUntil?.toISOString() ?? null,
-        effectivePriceRp: (item as any).effectivePriceRp ?? item.priceRp,
-        promotion: (item as any).promotion
-          ? {
-              ...(item as any).promotion,
-              activeFrom: new Date((item as any).promotion.activeFrom).toISOString(),
-              activeUntil: new Date((item as any).promotion.activeUntil).toISOString(),
-            }
-          : null,
-      })),
+      items: result.items.map((item) => {
+        const raw = item as unknown as { classTypes?: PublicClassTypeRef[] };
+        const classType =
+          item.classType ??
+          raw.classTypes?.[0] ??
+          ({ id: 'all', code: 'ALL', name: 'Semua Kelas' } as PublicClassTypeRef);
+        return {
+          ...item,
+          branchId: item.branch?.id ?? item.branchId ?? branchId ?? '',
+          classType,
+          effectiveUntil: item.effectiveUntil
+            ? typeof item.effectiveUntil === 'string'
+              ? item.effectiveUntil
+              : item.effectiveUntil.toISOString()
+            : null,
+          effectivePriceRp: item.effectivePriceRp ?? item.priceRp,
+          promotion: item.promotion
+            ? {
+                ...item.promotion,
+                activeFrom:
+                  typeof item.promotion.activeFrom === 'string'
+                    ? item.promotion.activeFrom
+                    : new Date(item.promotion.activeFrom).toISOString(),
+                activeUntil:
+                  typeof item.promotion.activeUntil === 'string'
+                    ? item.promotion.activeUntil
+                    : new Date(item.promotion.activeUntil).toISOString(),
+              }
+            : null,
+        };
+      }),
     };
   },
 };

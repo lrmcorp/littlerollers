@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { AvailabilityService } from './availability.service';
+import { AvailabilityService } from './ketersediaan-instruktur.service';
 
 @Controller('instructor-availabilities')
 @UseGuards(AuthGuard)

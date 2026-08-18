@@ -41,7 +41,7 @@ databaseDescribe('dynamic RBAC MySQL integration', () => {
   beforeAll(async () => {
     process.env.RBAC_POLICY_SOURCE = 'database';
     await db.$connect();
-    await db.branch.createMany({
+    await db.cabang.createMany({
       data: [
         { id: branchA, code: `${namespace}-a`, name: 'RBAC A', timezone: 'Asia/Jakarta' },
         { id: branchB, code: `${namespace}-b`, name: 'RBAC B', timezone: 'Asia/Jakarta' },
@@ -84,7 +84,7 @@ databaseDescribe('dynamic RBAC MySQL integration', () => {
       await db.roleDefinition.deleteMany({ where: { id: customRoleId } });
     }
     await db.user.deleteMany({ where: { id: { in: [actorId, targetId] } } });
-    await db.branch.deleteMany({ where: { id: { in: [branchA, branchB] } } });
+    await db.cabang.deleteMany({ where: { id: { in: [branchA, branchB] } } });
     await db.$disconnect();
   });
 

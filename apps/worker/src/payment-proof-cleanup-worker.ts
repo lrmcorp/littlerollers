@@ -28,7 +28,7 @@ export class PaymentProofCleanupWorker {
 
   async runOnce(now = new Date()) {
     const cutoff = new Date(now.getTime() - this.options.abandonedUploadTtlMinutes * 60_000);
-    const uploads = await this.db.paymentProof.findMany({
+    const uploads = await this.db.buktiPembayaran.findMany({
       where: {
         issuedAt: { lt: cutoff },
         uploadStatus: { in: ['ISSUED', 'UPLOADED'] },
@@ -43,7 +43,7 @@ export class PaymentProofCleanupWorker {
       await unlink(target).catch((error: NodeJS.ErrnoException) => {
         if (error.code !== 'ENOENT') throw error;
       });
-      const result = await this.db.paymentProof.deleteMany({
+      const result = await this.db.buktiPembayaran.deleteMany({
         where: {
           id: upload.id,
           issuedAt: { lt: cutoff },

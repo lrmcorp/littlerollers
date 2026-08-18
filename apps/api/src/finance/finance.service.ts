@@ -46,7 +46,7 @@ export class FinanceService {
   ) {
     const range = boundaries(query);
     const scope = this.scope(principal, query.branchId);
-    const purchases = await this.db.purchase.findMany({
+    const purchases = await this.db.pembelian.findMany({
       where: { ...scope, submittedAt: { gte: range.from, lte: range.until } },
       include: {
         branch: { select: { id: true, code: true, name: true } },
@@ -250,7 +250,7 @@ export class FinanceService {
     };
     let cursorWhere = {};
     if (query.cursor) {
-      const cursor = await this.db.legacyFinancialEntry.findFirst({
+      const cursor = await this.db.entriKeuanganHistoris.findFirst({
         where: { id: query.cursor, ...baseWhere },
         select: { id: true, occurredAt: true },
       });
@@ -263,7 +263,7 @@ export class FinanceService {
       };
     }
     const [rows, totals, total] = await Promise.all([
-      this.db.legacyFinancialEntry.findMany({
+      this.db.entriKeuanganHistoris.findMany({
         where: { AND: [baseWhere, cursorWhere] },
         include: {
           branch: { select: { id: true, code: true, name: true } },
@@ -273,13 +273,13 @@ export class FinanceService {
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         take: limit + 1,
       }),
-      this.db.legacyFinancialEntry.groupBy({
+      this.db.entriKeuanganHistoris.groupBy({
         by: ['type'],
         where: baseWhere,
         _sum: { amountRp: true },
         _count: { _all: true },
       }),
-      this.db.legacyFinancialEntry.count({ where: baseWhere }),
+      this.db.entriKeuanganHistoris.count({ where: baseWhere }),
     ]);
     const hasMore = rows.length > limit;
     const items = rows.slice(0, limit);
@@ -294,5 +294,27 @@ export class FinanceService {
       ),
       page: { hasMore, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async ringkasanKeuangan(
+    principal: SessionPrincipal,
+    query: Parameters<FinanceService['overview']>[1],
+  ) {
+    return this.overview(principal, query);
+  }
+
+  async deteksiAnomali(
+    principal: SessionPrincipal,
+    query: Parameters<FinanceService['anomalies']>[1],
+  ) {
+    return this.anomalies(principal, query);
+  }
+
+  async arusKasHistoris(
+    principal: SessionPrincipal,
+    query: Parameters<FinanceService['legacyCashflow']>[1],
+  ) {
+    return this.legacyCashflow(principal, query);
   }
 }

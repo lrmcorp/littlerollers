@@ -21,9 +21,9 @@ import { UserAdministrationService } from './user-administration.service';
 import { AccessManagementController } from './access-management.controller';
 import { AccessManagementService } from './access-management.service';
 import { CustomerManagementController } from './customer-management.controller';
-import { CustomerManagementService } from './customer-management.service';
+import { CustomerManagementService } from './manajemen-pelanggan.service';
 import { InstructorManagementController } from './instructor-management.controller';
-import { InstructorManagementService } from './instructor-management.service';
+import { InstructorManagementService } from './manajemen-instruktur.service';
 
 @Module({
   imports: [DatabaseModule],

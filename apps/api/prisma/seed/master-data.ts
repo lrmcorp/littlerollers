@@ -241,7 +241,7 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
   const studios: Record<string, string> = {};
   const classTypes: Record<string, string> = {};
   for (const template of branchTemplates) {
-    const branch = await ctx.db.branch.upsert({
+    const branch = await ctx.db.cabang.upsert({
       where: { code: template.code },
       update: {
         name: template.name,
@@ -258,7 +258,7 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
       },
     });
     branches[template.code] = branch.id;
-    await ctx.db.accountingAccount.upsert({
+    await ctx.db.akunAkuntansi.upsert({
       where: { branchId_code: { branchId: branch.id, code: 'FINANCE_CORRECTION' } },
       update: { active: true, historical: false },
       create: {
@@ -282,7 +282,7 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
     studios[template.code] = studio.id;
   }
   for (const item of masterCatalog) {
-    const classType = await ctx.db.classType.upsert({
+    const classType = await ctx.db.jenisKelas.upsert({
       where: { code: item.code },
       update: {
         name: item.name,
@@ -302,7 +302,7 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
     });
     for (const template of branchTemplates) {
       const branchId = branches[template.code]!;
-      await ctx.db.classTypeBranchScope.upsert({
+      await ctx.db.cakupanCabangJenisKelas.upsert({
         where: { classTypeId_branchId: { classTypeId: classType.id, branchId } },
         update: { active: true },
         create: {
@@ -335,7 +335,7 @@ export async function seedCommercialMaster(
     effectiveUntil?: Date | null;
     active?: boolean;
   }) => {
-    await ctx.db.packageBranchScope.upsert({
+    await ctx.db.cakupanCabangPaket.upsert({
       where: {
         packageId_branchId: { packageId: input.packageId, branchId: input.branchId },
       },
@@ -348,7 +348,7 @@ export async function seedCommercialMaster(
         historical: !(input.active ?? true),
       },
     });
-    await ctx.db.packageClassTypeScope.upsert({
+    await ctx.db.cakupanJenisKelasPaket.upsert({
       where: {
         packageId_classTypeId: {
           packageId: input.packageId,
@@ -364,7 +364,7 @@ export async function seedCommercialMaster(
         historical: !(input.active ?? true),
       },
     });
-    await ctx.db.packageRevision.upsert({
+    await ctx.db.revisiPaket.upsert({
       where: { packageId_revisionNumber: { packageId: input.packageId, revisionNumber: 1 } },
       update: {
         sessionCount: input.sessionCount,
@@ -396,7 +396,7 @@ export async function seedCommercialMaster(
     if (instructorIds.length < 2)
       throw new Error(`Branch ${template.code} requires at least two seeded instructors.`);
     const publicProfile = branchPublicProfiles[template.code as keyof typeof branchPublicProfiles];
-    await ctx.db.branchPublicProfile.upsert({
+    await ctx.db.profilPublikCabang.upsert({
       where: { branchId },
       update: {
         ...publicProfile,
@@ -442,7 +442,7 @@ export async function seedCommercialMaster(
         const businessKey = `${branchId}:${classTypeId}`;
         const id = ctx.id('configuration', `${template.code}:${item.code}:${config.kind}:active`);
         const effectiveUntil = config.kind === 'PROJECTION_RATE' ? new Date('2027-01-01') : null;
-        await ctx.db.effectiveConfiguration.upsert({
+        await ctx.db.konfigurasiEfektif.upsert({
           where: { id },
           update: {
             kind: config.kind,
@@ -471,7 +471,7 @@ export async function seedCommercialMaster(
             'configuration',
             `${template.code}:${item.code}:${config.kind}:future`,
           );
-          await ctx.db.effectiveConfiguration.upsert({
+          await ctx.db.konfigurasiEfektif.upsert({
             where: { id: futureId },
             update: {
               value: { ...config.value, rateRp: config.value.rateRp + 5_000 },
@@ -493,7 +493,7 @@ export async function seedCommercialMaster(
       }
 
       for (const [instructorIndex, instructorId] of instructorIds.entries()) {
-        const assignment = await ctx.db.assignment.findFirst({
+        const assignment = await ctx.db.penugasan.findFirst({
           where: { userId: instructorId, branchId, type: 'INSTRUCTOR', activeUntil: null },
           select: { id: true },
         });
@@ -504,7 +504,7 @@ export async function seedCommercialMaster(
           'configuration',
           `${template.code}:${item.code}:INSTRUCTOR_FEE:${suffix}`,
         );
-        await ctx.db.effectiveConfiguration.upsert({
+        await ctx.db.konfigurasiEfektif.upsert({
           where: { id },
           update: {
             kind: 'INSTRUCTOR_FEE',
@@ -543,7 +543,7 @@ export async function seedCommercialMaster(
         const packageId = ctx.id('package', `${template.code}:${item.code}:${pkg.key}`);
         const priceRp = Math.round((pkg.price * template.priceMultiplier) / 10_000) * 10_000;
         packages[`${template.code}:${item.code}:${pkg.key}`] = packageId;
-        await ctx.db.package.upsert({
+        await ctx.db.paket.upsert({
           where: { id: packageId },
           update: {
             branchId,
@@ -579,7 +579,7 @@ export async function seedCommercialMaster(
           effectiveFrom: new Date('2026-01-01'),
         });
         const sessionsLabel = `${pkg.sessions} sesi`;
-        await ctx.db.packagePublicProfile.upsert({
+        await ctx.db.profilPublikPaket.upsert({
           where: { packageId },
           update: {
             summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
@@ -609,7 +609,7 @@ export async function seedCommercialMaster(
         });
       }
       const inactiveId = ctx.id('package', `${template.code}:${item.code}:inactive`);
-      await ctx.db.package.upsert({
+      await ctx.db.paket.upsert({
         where: { id: inactiveId },
         update: { status: 'INACTIVE' },
         create: {
@@ -644,7 +644,7 @@ export async function seedCommercialMaster(
       const revisionBusinessKey = 'REFORMER-REVISION-DEMO';
       const historicalId = ctx.id('package', `${template.code}:REFORMER:revision-history`);
       const scheduledId = ctx.id('package', `${template.code}:REFORMER:revision-scheduled`);
-      await ctx.db.package.upsert({
+      await ctx.db.paket.upsert({
         where: { id: historicalId },
         update: {
           status: 'ACTIVE',
@@ -675,7 +675,7 @@ export async function seedCommercialMaster(
         effectiveFrom: new Date('2025-01-01'),
         effectiveUntil: new Date('2026-01-01'),
       });
-      await ctx.db.package.upsert({
+      await ctx.db.paket.upsert({
         where: { id: scheduledId },
         update: {
           status: 'ACTIVE',
@@ -707,7 +707,7 @@ export async function seedCommercialMaster(
     }
 
     const number = template.payment.accountNumber;
-    await ctx.db.paymentAccount.upsert({
+    await ctx.db.rekeningPembayaran.upsert({
       where: { activeBranchKey: branchId },
       update: {
         branchId,
@@ -734,7 +734,7 @@ export async function seedCommercialMaster(
     });
   }
   for (const [code, profile] of Object.entries(classPublicProfiles)) {
-    await ctx.db.publicClassProfile.upsert({
+    await ctx.db.profilPublikKelas.upsert({
       where: { code },
       update: { ...profile, active: true },
       create: { code, ...profile },

@@ -77,7 +77,7 @@ async function main() {
     });
 
     if (!failureMode) await db.$transaction(async (tx) => {
-      await tx.booking.update({
+      await tx.pemesananKelas.update({
         where: { id: bookingKey.targetId },
         data: {
           status: 'CANCELLED',

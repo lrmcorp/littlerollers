@@ -15,8 +15,8 @@ import { useSessionContext } from '../../../session-context';
 import { Skeleton } from '../../../ui';
 import { paymentStatusTone } from '../../../purchases/purchase-review-view';
 import { SelectInput, Textarea } from '../../../components/forms';
+import { formatRupiah } from '../../../lib/formatters';
 
-const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
 const statusLabels: Record<string, string> = {
   AWAITING_PAYMENT: 'Menunggu pembayaran',
   PENDING: 'Menunggu pemeriksaan',
@@ -165,7 +165,7 @@ export function PaymentReviewDetailView({
       ? await feedback.confirm({
           tone: action === 'APPROVE' ? 'warning' : 'danger',
           title: copy[action][0],
-          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${rupiah.format(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Scope ${purchase.branch.name}, versi ${purchase.version}.`,
+          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Scope ${purchase.branch.name}, versi ${purchase.version}.`,
           confirmLabel: copy[action][0],
         })
       : Boolean(authorityOverride);
@@ -324,7 +324,7 @@ export function PaymentReviewDetailView({
               </div>
               <div>
                 <dt className="text-dd-muted">Harga paket</dt>
-                <dd className="mt-1 font-semibold">{rupiah.format(purchase.priceRpSnapshot)}</dd>
+                <dd className="mt-1 font-semibold">{formatRupiah(purchase.priceRpSnapshot)}</dd>
               </div>
               {purchase.packagePromotionId && (
                 <>
@@ -335,13 +335,13 @@ export function PaymentReviewDetailView({
                   <div>
                     <dt className="text-dd-muted">Diskon promo</dt>
                     <dd className="mt-1 font-semibold text-dd-success">
-                      − {rupiah.format(purchase.packagePromotionDiscountRpSnapshot ?? 0)}
+                      − {formatRupiah(purchase.packagePromotionDiscountRpSnapshot ?? 0)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-dd-muted">Harga promo</dt>
                     <dd className="mt-1 font-semibold">
-                      {rupiah.format(
+                      {formatRupiah(
                         purchase.promotionalPriceRpSnapshot ?? purchase.priceRpSnapshot,
                       )}
                     </dd>
@@ -357,13 +357,13 @@ export function PaymentReviewDetailView({
                   <div>
                     <dt className="text-dd-muted">Diskon voucher</dt>
                     <dd className="mt-1 font-semibold text-dd-success">
-                      − {rupiah.format(purchase.voucherDiscountRpSnapshot ?? 0)}
+                      − {formatRupiah(purchase.voucherDiscountRpSnapshot ?? 0)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-dd-muted">Harga setelah diskon</dt>
                     <dd className="mt-1 font-semibold">
-                      {rupiah.format(
+                      {formatRupiah(
                         purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
                       )}
                     </dd>
@@ -381,7 +381,7 @@ export function PaymentReviewDetailView({
               <div>
                 <dt className="text-dd-muted">Nominal transfer</dt>
                 <dd className="mt-1 font-semibold text-dd-forest">
-                  {rupiah.format(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}
+                  {formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}
                 </dd>
               </div>
               <div>

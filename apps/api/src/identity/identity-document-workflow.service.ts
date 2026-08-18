@@ -11,6 +11,8 @@ import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-st
 import { PolicyService } from './policy.service';
 import { ApiProblem, configurationRequired, digest, newId } from './security';
 import { recordPilotRollbackOutbox } from '../migration/pilot-rollback-outbox.service';
+import { NotificationWriterService } from '../notifications/notification-writer.service';
+import { EmailNotificationService } from '../email/email-notification.service';
 
 const IDENTITY_REJECTION_REASONS = new Set([
   'BLURRY',
@@ -29,6 +31,8 @@ export class IdentityDocumentWorkflowService {
     private readonly policy: PolicyService,
     @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateFiles?: PrivateFileStorage,
     @Optional() private readonly runtimeConfig?: RuntimeConfigService,
+    @Optional() private readonly notificationWriter?: NotificationWriterService,
+    @Optional() private readonly emails?: EmailNotificationService,
   ) {}
 
   private audit(
@@ -118,7 +122,7 @@ export class IdentityDocumentWorkflowService {
     if (!['SELFIE', 'KTP_FRONT'].includes(kind))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const input = validateIdentityDocumentUpload(upload, this.uploadLimit());
-    const current = await this.db.identityVerificationDocument.findFirst({
+    const current = await this.db.dokumenVerifikasiIdentitas.findFirst({
       where: { userId: principal.userId, kind, replacedById: null },
       orderBy: { createdAt: 'desc' },
     });
@@ -140,7 +144,7 @@ export class IdentityDocumentWorkflowService {
     await this.identityStorage().put({ key: objectKey, content: input.buffer });
     try {
       return await this.db.$transaction(async (tx) => {
-        const replacement = await tx.identityVerificationDocument.create({
+        const replacement = await tx.dokumenVerifikasiIdentitas.create({
           data: {
             id: replacementId,
             userId: principal.userId,
@@ -157,7 +161,7 @@ export class IdentityDocumentWorkflowService {
             finalizedAt: new Date(),
           },
         });
-        const claimed = await tx.identityVerificationDocument.updateMany({
+        const claimed = await tx.dokumenVerifikasiIdentitas.updateMany({
           where: { id: current.id, version: expectedVersion, replacedById: null },
           data: {
             replacedById: replacement.id,
@@ -170,7 +174,7 @@ export class IdentityDocumentWorkflowService {
         if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
         if (current.objectKey && !pilotMediaImmutable) {
           const retentionDays = this.runtimeConfig?.value.privateUploads.retentionDays ?? 30;
-          await tx.identityDocumentDeletionJob.create({
+          await tx.antreanHapusDokumenIdentitas.create({
             data: {
               id: newId(),
               documentId: current.id,
@@ -240,7 +244,7 @@ export class IdentityDocumentWorkflowService {
         (input.reasonCode === 'OTHER_REQUIRES_NOTE' && !input.note?.trim()))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const current = await this.db.identityVerificationDocument.findUnique({
+    const current = await this.db.dokumenVerifikasiIdentitas.findUnique({
       where: { id },
       include: { user: { select: { preferredBranchId: true } } },
     });
@@ -251,7 +255,7 @@ export class IdentityDocumentWorkflowService {
       throw new ApiProblem('IDENTITY_DOCUMENT_NOT_READY', HttpStatus.CONFLICT);
     let auditReference = '';
     await this.db.$transaction(async (tx) => {
-      const changed = await tx.identityVerificationDocument.updateMany({
+      const changed = await tx.dokumenVerifikasiIdentitas.updateMany({
         where: {
           id,
           status: 'PENDING',
@@ -309,10 +313,74 @@ export class IdentityDocumentWorkflowService {
             version: input.expectedVersion + 1,
           },
         });
+      // Notifikasi in-app ke customer: hasil keputusan verifikasi
+      if (this.notificationWriter) {
+        const nextVersion = input.expectedVersion + 1;
+        await this.notificationWriter.writeForUser(tx, {
+          userId: current.userId,
+          eventKey: `identity.verification.${decision.toLowerCase()}:${id}:v${nextVersion}`,
+          category: 'VERIFICATION',
+          tone: decision === 'APPROVED' ? 'SUCCESS' : 'WARNING',
+          title:
+            decision === 'APPROVED'
+              ? 'Verifikasi identitas disetujui!'
+              : 'Verifikasi identitas memerlukan perbaikan',
+          message:
+            decision === 'APPROVED'
+              ? 'Dokumen identitas Anda telah diverifikasi. Anda kini dapat menggunakan seluruh fitur aplikasi.'
+              : `Dokumen Anda perlu diperbaiki (${input.reasonCode ?? 'lihat detail'})${input.note ? `: ${input.note}` : ''}. Silakan unggah ulang dokumen Anda.`,
+          href: decision === 'APPROVED' ? '/account' : '/account/verification',
+          expiresInDays: 30,
+        });
+      }
     });
+    // Kirim email notifikasi ke customer (di luar transaksi)
+    if (this.emails) {
+      const user = await this.db.user.findUnique({
+        where: { id: current.userId },
+        select: { email: true },
+      });
+      if (user?.email) {
+        const publicBaseUrl = process.env.PUBLIC_WEB_BASE_URL?.trim();
+        if (publicBaseUrl) {
+          await this.emails
+            .enqueue(
+              decision === 'APPROVED'
+                ? {
+                    eventType: 'identity.verification.approved.v1',
+                    templateKey: 'IDENTITY_APPROVED_V1',
+                    recipient: user.email,
+                    variables: {
+                      href: `${publicBaseUrl}/account`,
+                      detail: 'Anda sekarang dapat mengakses seluruh fitur aplikasi.',
+                    },
+                    correlationId,
+                    occurrenceParts: ['identity-approved', current.userId, id],
+                    userId: current.userId,
+                  }
+                : {
+                    eventType: 'identity.verification.rejected.v1',
+                    templateKey: 'IDENTITY_ACTION_REQUIRED_V1',
+                    recipient: user.email,
+                    variables: {
+                      href: `${publicBaseUrl}/account/verification`,
+                      detail:
+                        input.reasonCode === 'OTHER_REQUIRES_NOTE' && input.note
+                          ? input.note
+                          : `Alasan: ${input.reasonCode ?? 'lihat aplikasi'}`,
+                    },
+                    correlationId,
+                    occurrenceParts: ['identity-rejected', current.userId, id],
+                    userId: current.userId,
+                  },
+            )
+            .catch(() => undefined); // jangan gagalkan request utama jika email gagal
+        }
+      }
+    }
     return {
       ...this.documentView(
-        (await this.db.identityVerificationDocument.findUnique({ where: { id } }))!,
+        (await this.db.dokumenVerifikasiIdentitas.findUnique({ where: { id } }))!,
       ),
       auditReference,
     };
@@ -329,7 +397,7 @@ export class IdentityDocumentWorkflowService {
     this.policy.requireGlobalCapability(principal, 'identity-verification:delete');
     if (!input.reason?.trim())
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const document = await this.db.identityVerificationDocument.findUnique({
+    const document = await this.db.dokumenVerifikasiIdentitas.findUnique({
       where: { id },
       include: { user: { select: { preferredBranchId: true } } },
     });
@@ -347,7 +415,7 @@ export class IdentityDocumentWorkflowService {
     }
     if (!document.objectKey) {
       return this.db.$transaction(async (tx) => {
-        const changed = await tx.identityVerificationDocument.updateMany({
+        const changed = await tx.dokumenVerifikasiIdentitas.updateMany({
           where: { id, version: input.expectedVersion },
           data: {
             status: 'DELETED',
@@ -379,7 +447,7 @@ export class IdentityDocumentWorkflowService {
     const jobId = newId();
     let auditReference = '';
     await this.db.$transaction(async (tx) => {
-      const changed = await tx.identityVerificationDocument.updateMany({
+      const changed = await tx.dokumenVerifikasiIdentitas.updateMany({
         where: { id, version: input.expectedVersion, status: { not: 'DELETED' } },
         data: {
           status: 'PENDING_DELETION',
@@ -389,7 +457,7 @@ export class IdentityDocumentWorkflowService {
         },
       });
       if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      await tx.identityDocumentDeletionJob.upsert({
+      await tx.antreanHapusDokumenIdentitas.upsert({
         where: { documentId: id },
         update: {
           requestedById: principal.userId,
@@ -422,7 +490,7 @@ export class IdentityDocumentWorkflowService {
     try {
       await this.identityStorage().delete(document.objectKey);
       await this.db.$transaction(async (tx) => {
-        await tx.identityVerificationDocument.update({
+        await tx.dokumenVerifikasiIdentitas.update({
           where: { id },
           data: {
             status: 'DELETED',
@@ -432,7 +500,7 @@ export class IdentityDocumentWorkflowService {
             version: { increment: 1 },
           },
         });
-        await tx.identityDocumentDeletionJob.update({
+        await tx.antreanHapusDokumenIdentitas.update({
           where: { documentId: id },
           data: { status: 'SUCCEEDED', completedAt: new Date(), lastErrorCode: null },
         });
@@ -456,11 +524,11 @@ export class IdentityDocumentWorkflowService {
     } catch {
       const nextAttemptAt = new Date(Date.now() + 5 * 60_000);
       await this.db.$transaction(async (tx) => {
-        await tx.identityVerificationDocument.update({
+        await tx.dokumenVerifikasiIdentitas.update({
           where: { id },
           data: { status: 'DELETE_FAILED', version: { increment: 1 } },
         });
-        await tx.identityDocumentDeletionJob.update({
+        await tx.antreanHapusDokumenIdentitas.update({
           where: { documentId: id },
           data: { status: 'FAILED', lastErrorCode: 'PRIVATE_STORAGE_DELETE_FAILED', nextAttemptAt },
         });
@@ -483,5 +551,35 @@ export class IdentityDocumentWorkflowService {
         auditReference,
       };
     }
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async gantiDokumenIdentitas(
+    principal: SessionPrincipal,
+    kind: IdentityDocumentKind,
+    upload: IdentityDocumentUpload,
+    expectedVersion: number,
+    correlationId: string,
+  ) {
+    return this.replaceIdentityDocument(principal, kind, upload, expectedVersion, correlationId);
+  }
+
+  async putuskanVerifikasiDokumen(
+    principal: SessionPrincipal,
+    id: string,
+    decision: 'APPROVED' | 'REJECTED',
+    input: { expectedVersion: number; reasonCode?: string; note?: string },
+    correlationId: string,
+  ) {
+    return this.decideIdentityDocument(principal, id, decision, input, correlationId);
+  }
+
+  async hapusDokumenIdentitas(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<IdentityDocumentWorkflowService['deleteIdentityDocument']>[2],
+    correlationId: string,
+  ) {
+    return this.deleteIdentityDocument(principal, id, input, correlationId);
   }
 }

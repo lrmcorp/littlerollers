@@ -15,11 +15,11 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { CustomerOrderService } from './customer-order.service';
-import { PackageCatalogService } from './package-catalog.service';
-import { PaymentAccountService } from './payment-account.service';
-import { PaymentReviewService } from './payment-review.service';
-import { PaymentProofService } from './payment-proof.service';
+import { CustomerOrderService } from './pembelian-paket.service';
+import { PackageCatalogService } from './katalog-paket.service';
+import { PaymentAccountService } from './rekening-pembayaran.service';
+import { PaymentReviewService } from './verifikasi-pembayaran.service';
+import { PaymentProofService } from './bukti-pembayaran.service';
 import { VoucherService } from './voucher.service';
 import { PackagePromotionService } from './package-promotion.service';
 import { ApiProblem } from '../identity/security';

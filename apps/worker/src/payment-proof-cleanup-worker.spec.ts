@@ -13,7 +13,7 @@ describe('PaymentProofCleanupWorker', () => {
       .mockResolvedValue([{ id: 'proof-1', objectKey: 'payment-proofs/proof-1' }]);
     const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
     const worker = new PaymentProofCleanupWorker(
-      { paymentProof: { findMany, deleteMany } } as never,
+      { buktiPembayaran: { findMany, deleteMany } } as never,
       { privateUploadRoot: root, abandonedUploadTtlMinutes: 60 },
     );
 
@@ -30,7 +30,7 @@ describe('PaymentProofCleanupWorker', () => {
     const root = await mkdtemp(join(tmpdir(), 'dd-proof-cleanup-'));
     const worker = new PaymentProofCleanupWorker(
       {
-        paymentProof: {
+        buktiPembayaran: {
           findMany: jest.fn().mockResolvedValue([{ id: 'bad', objectKey: '../escape' }]),
         },
       } as never,

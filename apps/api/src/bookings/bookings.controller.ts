@@ -16,8 +16,8 @@ import {
   BookingsService,
   type BookingCommand,
   type CancelBookingCommand,
-} from './bookings.service';
-import { ReschedulesService } from './reschedules.service';
+} from './pemesanan-kelas.service';
+import { ReschedulesService } from './ubah-jadwal.service';
 
 @Controller('bookings')
 @UseGuards(AuthGuard)

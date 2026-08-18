@@ -44,16 +44,16 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         ...customerIds.map((id, index) => ({ id, displayName: `Synthetic customer ${index}` })),
       ],
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Booking branch', timezone: 'Asia/Jakarta' },
     });
     await db.studio.create({
       data: { id: studioId, branchId, code: 'MAIN', name: 'Booking main studio' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: { id: classTypeId, branchId, code: 'BOOKING', name: 'Booking class' },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         branchId,
@@ -67,7 +67,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       },
     });
     const now = Date.now();
-    await db.classSlot.createMany({
+    await db.slotKelas.createMany({
       data: [
         {
           id: slotId,
@@ -96,7 +96,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       ],
     });
     for (let index = 0; index < customerIds.length; index += 1) {
-      await db.identityVerificationDocument.createMany({
+      await db.dokumenVerifikasiIdentitas.createMany({
         data: [
           {
             id: randomUUID(),
@@ -128,7 +128,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       });
       const proofId = randomUUID();
       const purchaseId = randomUUID();
-      await db.paymentProof.create({
+      await db.buktiPembayaran.create({
         data: {
           id: proofId,
           userId: customerIds[index]!,
@@ -143,7 +143,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           scanStatus: 'CLEAN',
         },
       });
-      await db.purchase.create({
+      await db.pembelian.create({
         data: {
           id: purchaseId,
           userId: customerIds[index]!,
@@ -162,7 +162,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           idempotencyKeyHash: randomUUID(),
         },
       });
-      await db.customerPackage.create({
+      await db.paketPelanggan.create({
         data: {
           id: customerPackageIds[index]!,
           purchaseId,
@@ -178,7 +178,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           projectionRateRp: 10000,
         },
       });
-      await db.ledgerEntry.create({
+      await db.entriBukuBesar.create({
         data: {
           id: randomUUID(),
           customerPackageId: customerPackageIds[index]!,
@@ -198,24 +198,24 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     await db.idempotencyRecord.deleteMany({
       where: { scope: { startsWith: 'booking-cancel:' } },
     });
-    await db.booking.deleteMany({ where: { branchId } });
-    await db.sessionReservation.deleteMany({
+    await db.pemesananKelas.deleteMany({ where: { branchId } });
+    await db.reservasiSesi.deleteMany({
       where: { customerPackageId: { in: [...customerPackageIds] } },
     });
-    await db.ledgerEntry.deleteMany({
+    await db.entriBukuBesar.deleteMany({
       where: { customerPackageId: { in: [...customerPackageIds] } },
     });
-    await db.customerPackage.deleteMany({ where: { id: { in: [...customerPackageIds] } } });
-    await db.purchase.deleteMany({ where: { userId: { in: [...customerIds] } } });
-    await db.paymentProof.deleteMany({ where: { userId: { in: [...customerIds] } } });
-    await db.identityVerificationDocument.deleteMany({
+    await db.paketPelanggan.deleteMany({ where: { id: { in: [...customerPackageIds] } } });
+    await db.pembelian.deleteMany({ where: { userId: { in: [...customerIds] } } });
+    await db.buktiPembayaran.deleteMany({ where: { userId: { in: [...customerIds] } } });
+    await db.dokumenVerifikasiIdentitas.deleteMany({
       where: { userId: { in: [...customerIds] } },
     });
-    await db.classSlot.deleteMany({ where: { branchId } });
-    await db.package.delete({ where: { id: packageId } });
-    await db.classType.delete({ where: { id: classTypeId } });
+    await db.slotKelas.deleteMany({ where: { branchId } });
+    await db.paket.delete({ where: { id: packageId } });
+    await db.jenisKelas.delete({ where: { id: classTypeId } });
     await db.studio.delete({ where: { id: studioId } });
-    await db.branch.delete({ where: { id: branchId } });
+    await db.cabang.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, ...customerIds] } } });
     await db.$disconnect();
   });
@@ -248,7 +248,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
   });
 
   it('returns actionable eligibility without exposing another customer package', async () => {
-    await db.identityVerificationDocument.updateMany({
+    await db.dokumenVerifikasiIdentitas.updateMany({
       where: { userId: customerIds[1], kind: 'KTP_FRONT' },
       data: { status: 'PENDING' },
     });
@@ -270,7 +270,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       });
       expect(result.packages.every(({ id }) => id === customerPackageIds[1])).toBe(true);
     } finally {
-      await db.identityVerificationDocument.updateMany({
+      await db.dokumenVerifikasiIdentitas.updateMany({
         where: { userId: customerIds[1], kind: 'KTP_FRONT' },
         data: { status: 'APPROVED' },
       });
@@ -298,9 +298,9 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     );
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    expect(await db.booking.count({ where: { branchId } })).toBe(1);
+    expect(await db.pemesananKelas.count({ where: { branchId } })).toBe(1);
     expect(
-      await db.sessionReservation.count({ where: { classSlotId: slotId, status: 'ACTIVE' } }),
+      await db.reservasiSesi.count({ where: { classSlotId: slotId, status: 'ACTIVE' } }),
     ).toBe(1);
     expect(await db.auditLog.count({ where: { correlationId: `${namespace}-create` } })).toBe(1);
     expect(await db.outboxEvent.count({ where: { correlationId: `${namespace}-create` } })).toBe(1);
@@ -387,7 +387,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     const now = Date.now();
     const seatSlotId = randomUUID();
     const sessionSlotIds = [randomUUID(), randomUUID()] as const;
-    await db.classSlot.createMany({
+    await db.slotKelas.createMany({
       data: [
         {
           id: seatSlotId,
@@ -431,14 +431,14 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       ),
     );
     expect(seatResults.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
-    expect(await db.booking.count({ where: { classSlotId: seatSlotId } })).toBe(1);
+    expect(await db.pemesananKelas.count({ where: { classSlotId: seatSlotId } })).toBe(1);
 
-    const activeReserved = await db.sessionReservation.aggregate({
+    const activeReserved = await db.reservasiSesi.aggregate({
       where: { customerPackageId: customerPackageIds[0], status: 'ACTIVE' },
       _sum: { quantity: true },
     });
     const reserved = activeReserved._sum.quantity ?? 0;
-    await db.ledgerEntry.create({
+    await db.entriBukuBesar.create({
       data: {
         id: randomUUID(),
         customerPackageId: customerPackageIds[0],
@@ -464,7 +464,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       ),
     );
     expect(sessionResults.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
-    expect(await db.booking.count({ where: { classSlotId: { in: [...sessionSlotIds] } } })).toBe(1);
+    expect(await db.pemesananKelas.count({ where: { classSlotId: { in: [...sessionSlotIds] } } })).toBe(1);
   });
 
   it('separates customer upcoming/history and paginates by class time without duplicates', async () => {
@@ -489,7 +489,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         status: 'PUBLISHED' as const,
       },
     ];
-    await db.classSlot.createMany({
+    await db.slotKelas.createMany({
       data: timelineSlots.map((slot) => ({
         ...slot,
         branchId,
@@ -502,7 +502,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     });
     for (const slot of timelineSlots) {
       const reservationId = randomUUID();
-      await db.sessionReservation.create({
+      await db.reservasiSesi.create({
         data: {
           id: reservationId,
           customerPackageId: customerPackageIds[1],
@@ -510,7 +510,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
           referenceHash: `${namespace}-timeline-${slot.id}`,
         },
       });
-      await db.booking.create({
+      await db.pemesananKelas.create({
         data: {
           id: randomUUID(),
           branchId,
@@ -572,7 +572,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     const classSlotId = randomUUID();
     const reservationId = randomUUID();
     const bookingId = randomUUID();
-    await db.classSlot.create({
+    await db.slotKelas.create({
       data: {
         id: classSlotId,
         branchId,
@@ -587,7 +587,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         status: 'PUBLISHED',
       },
     });
-    await db.sessionReservation.create({
+    await db.reservasiSesi.create({
       data: {
         id: reservationId,
         customerPackageId: customerPackageIds[1],
@@ -595,7 +595,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
         referenceHash: `${namespace}-cancel`,
       },
     });
-    await db.booking.create({
+    await db.pemesananKelas.create({
       data: {
         id: bookingId,
         branchId,
@@ -615,7 +615,7 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       branchIds: [],
     };
     const options = await service.cancellationOptions(customerPrincipal, bookingId);
-    const ledgerBefore = await db.ledgerEntry.count({
+    const ledgerBefore = await db.entriBukuBesar.count({
       where: { customerPackageId: customerPackageIds[1] },
     });
     const first = await service.cancel(
@@ -634,19 +634,19 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     );
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    expect(await db.booking.findUnique({ where: { id: bookingId } })).toMatchObject({
+    expect(await db.pemesananKelas.findUnique({ where: { id: bookingId } })).toMatchObject({
       status: 'CANCELLED',
       cancellationReasonCode: 'PERSONAL_UNAVAILABLE',
       cancelledById: customerIds[1],
     });
-    expect(await db.sessionReservation.findUnique({ where: { id: reservationId } })).toMatchObject({
+    expect(await db.reservasiSesi.findUnique({ where: { id: reservationId } })).toMatchObject({
       status: 'RELEASED',
     });
-    expect(await db.classSlot.findUnique({ where: { id: classSlotId } })).toMatchObject({
+    expect(await db.slotKelas.findUnique({ where: { id: classSlotId } })).toMatchObject({
       bookedCount: 0,
     });
     expect(
-      await db.ledgerEntry.count({ where: { customerPackageId: customerPackageIds[1] } }),
+      await db.entriBukuBesar.count({ where: { customerPackageId: customerPackageIds[1] } }),
     ).toBe(ledgerBefore);
     expect(
       await db.outboxEvent.count({

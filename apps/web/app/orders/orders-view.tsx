@@ -18,12 +18,8 @@ import { useTrackedRouter } from '../components/app-loading';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { Pagination } from '../components/admin/admin-ui';
+import { formatRupiah } from '../lib/formatters';
 
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
 const emptySummary: CustomerOrderSummary = {
   total: 0,
   awaitingPayment: 0,
@@ -245,7 +241,7 @@ export function OrdersView() {
                 </span>
                 <span className="flex items-center justify-between gap-4 sm:justify-end">
                   <strong className="text-lg text-dd-forest">
-                    {rupiah.format(item.payableAmountRp)}
+                    {formatRupiah(item.payableAmountRp)}
                   </strong>
                   <ArrowRight
                     className="size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest"

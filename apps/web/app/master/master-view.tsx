@@ -24,6 +24,7 @@ import {
   TextInput,
 } from '../components/forms';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { formatRupiah } from '../lib/formatters';
 
 type BranchPage = Awaited<ReturnType<MasterClient['listBranches']>>;
 type Branches = BranchPage['items'];
@@ -55,13 +56,7 @@ function settingValue(item: MasterSetting) {
   if (item.kind === 'QUOTA_CAPACITY')
     return `Minimum ${value.minimumQuota ?? '—'} · kapasitas ${value.defaultCapacity ?? '—'}`;
   const amount = Number(item.kind === 'INSTRUCTOR_FEE' ? value.feeRp : value.rateRp);
-  return Number.isFinite(amount)
-    ? new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-      }).format(amount)
-    : '—';
+  return Number.isFinite(amount) ? formatRupiah(amount) : '—';
 }
 
 const allTabItems: { id: MasterTab; label: string; kind?: MasterKind }[] = [

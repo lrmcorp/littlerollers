@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { ClassSlotService, type ClassSlotCancellationReason } from './class-slot.service';
+import { ClassSlotService, type ClassSlotCancellationReason } from './slot-kelas.service';
 
 @Controller('class-slots')
 @UseGuards(AuthGuard)

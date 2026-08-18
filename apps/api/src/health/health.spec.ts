@@ -5,7 +5,7 @@ const config = {
     redisUrl: 'redis://127.0.0.1:6379',
     healthProbeTimeoutMs: 10,
     privateUploads: { root: '/private/identity-files' },
-    paymentProof: {
+    buktiPembayaran: {
       scanDriver: 'synthetic',
       clamAvHost: null,
       clamAvPort: 3310,

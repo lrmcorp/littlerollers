@@ -27,10 +27,10 @@ databaseDescribe('package promotion MySQL integration', () => {
   beforeAll(async () => {
     await db.$connect();
     await db.user.create({ data: { id: userId, displayName: 'Promotion owner' } });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Promotion branch', timezone: 'Asia/Jakarta' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: {
         id: classTypeId,
         branchId,
@@ -38,7 +38,7 @@ databaseDescribe('package promotion MySQL integration', () => {
         name: 'Reformer',
       },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         branchId,
@@ -51,10 +51,10 @@ databaseDescribe('package promotion MySQL integration', () => {
         effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
       },
     });
-    await db.packageBranchScope.create({
+    await db.cakupanCabangPaket.create({
       data: { packageId, branchId },
     });
-    await db.packageClassTypeScope.create({
+    await db.cakupanJenisKelasPaket.create({
       data: { packageId, classTypeId },
     });
     const access = new PackageAccessService(db as never, new PolicyService());
@@ -72,13 +72,13 @@ databaseDescribe('package promotion MySQL integration', () => {
       },
     });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
-    await db.packagePromotion.deleteMany({ where: { packageId } });
-    await db.packageClassTypeScope.deleteMany({ where: { packageId } });
-    await db.packageBranchScope.deleteMany({ where: { packageId } });
-    await db.package.deleteMany({ where: { id: packageId } });
-    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
-    await db.classType.deleteMany({ where: { id: classTypeId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.promosiPaket.deleteMany({ where: { packageId } });
+    await db.cakupanJenisKelasPaket.deleteMany({ where: { packageId } });
+    await db.cakupanCabangPaket.deleteMany({ where: { packageId } });
+    await db.paket.deleteMany({ where: { id: packageId } });
+    await db.cakupanCabangJenisKelas.deleteMany({ where: { classTypeId } });
+    await db.jenisKelas.deleteMany({ where: { id: classTypeId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: userId } });
     await db.$disconnect();
   });
@@ -109,7 +109,7 @@ databaseDescribe('package promotion MySQL integration', () => {
       `${namespace}-create-replay`,
     )) as any;
     expect(replay.id).toBe(created.id);
-    expect(await db.packagePromotion.count({ where: { packageId } })).toBe(1);
+    expect(await db.promosiPaket.count({ where: { packageId } })).toBe(1);
 
     await expect(
       service.create(

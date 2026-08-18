@@ -247,7 +247,17 @@ export function RelatedSchedules({
               </span>
             )}
           </span>
-          <span className="text-xs font-bold text-dd-forest">{item.available} tempat</span>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              item.available < 1
+                ? 'border border-red-200 bg-red-50 text-red-700'
+                : item.available <= 2
+                  ? 'border border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+            }`}
+          >
+            {item.available < 1 ? 'Penuh' : `Sisa ${item.available} tempat`}
+          </span>
         </Link>
       ))}
     </div>

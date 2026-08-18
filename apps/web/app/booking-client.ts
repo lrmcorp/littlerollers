@@ -130,6 +130,9 @@ export type CustomerBookingOptions = {
     available: number;
     branch: { id: string; code: string; name: string; timezone: string };
     classType: { id: string; code: string; name: string };
+    instructor?: { displayName: string } | null;
+    studio?: { name: string } | null;
+    room?: { name: string } | null;
   };
   packages: Array<{
     id: string;

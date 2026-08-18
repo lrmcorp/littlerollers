@@ -24,7 +24,7 @@ export class IdentityDocumentAccessService {
     if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
     this.policy.requireGlobalCapability(principal, 'identity-verification:read');
-    const document = await this.db.identityVerificationDocument.findUnique({
+    const document = await this.db.dokumenVerifikasiIdentitas.findUnique({
       where: { id: documentId },
     });
     if (
@@ -53,7 +53,7 @@ export class IdentityDocumentAccessService {
     this.policy.requireCustomerSelf(principal.roles, principal.capabilities);
     if (!['SELFIE', 'KTP_FRONT'].includes(kind))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const document = await this.db.identityVerificationDocument.findFirst({
+    const document = await this.db.dokumenVerifikasiIdentitas.findFirst({
       where: {
         userId: principal.userId,
         kind,
@@ -77,7 +77,7 @@ export class IdentityDocumentAccessService {
   }
 
   async read(principal: SessionPrincipal, authorizationId: string, correlationId = 'unknown') {
-    const authorization = await this.db.identityDocumentViewAuthorization.findUnique({
+    const authorization = await this.db.otorisasiLihatDokumenIdentitas.findUnique({
       where: { id: authorizationId },
       include: { document: true },
     });
@@ -99,7 +99,7 @@ export class IdentityDocumentAccessService {
       (authorization.purpose === 'SELF_VIEW' && authorization.document.userId !== principal.userId)
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const claimed = await this.db.identityDocumentViewAuthorization.updateMany({
+    const claimed = await this.db.otorisasiLihatDokumenIdentitas.updateMany({
       where: { id: authorizationId, consumedAt: null, expiresAt: { gt: new Date() } },
       data: { consumedAt: new Date() },
     });
@@ -131,7 +131,7 @@ export class IdentityDocumentAccessService {
       Date.now() +
         (this.runtimeConfig?.value.privateUploads.viewAuthorizationTtlSeconds ?? 300) * 1000,
     );
-    const authorization = await this.db.identityDocumentViewAuthorization.create({
+    const authorization = await this.db.otorisasiLihatDokumenIdentitas.create({
       data: {
         id: newId(),
         documentId,

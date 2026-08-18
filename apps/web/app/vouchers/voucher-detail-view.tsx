@@ -519,7 +519,11 @@ export function VoucherDetailView({ id }: { id: string }) {
             selectedOptions={packageOptions.map((item) => ({
               id: item.id,
               label: item.name,
-              description: item.branch?.name,
+              description:
+                item.branchScopes
+                  ?.map((scope) => scope.branch?.name)
+                  .filter(Boolean)
+                  .join(', ') || undefined,
             }))}
             loadOptions={async (query, cursor) => {
               const page = await browserPackagePromotionClient.packages({
@@ -533,7 +537,11 @@ export function VoucherDetailView({ id }: { id: string }) {
                 items: page.items.map((item) => ({
                   id: item.id,
                   label: item.name,
-                  description: item.branch?.name,
+                  description:
+                    item.branchScopes
+                      ?.map((scope) => scope.branch?.name)
+                      .filter(Boolean)
+                      .join(', ') || undefined,
                 })),
                 nextCursor: page.page.nextCursor ?? undefined,
               };

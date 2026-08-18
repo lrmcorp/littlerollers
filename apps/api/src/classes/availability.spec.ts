@@ -10,7 +10,7 @@ const principal = {
 };
 
 describe('AvailabilityService boundary', () => {
-  const db = { instructorAvailability: { findMany: jest.fn().mockResolvedValue([]) } };
+  const db = { ketersediaanInstruktur: { findMany: jest.fn().mockResolvedValue([]) } };
   const service = new AvailabilityService(db as never, new PolicyService(), {} as never);
 
   it('rejects offset-less and non-positive intervals before persistence', async () => {

@@ -29,7 +29,7 @@ export class IdentityDeletionWorker {
 
   async poll(): Promise<boolean> {
     const now = this.clock();
-    const job = await this.db.identityDocumentDeletionJob.findFirst({
+    const job = await this.db.antreanHapusDokumenIdentitas.findFirst({
       where: {
         status: { in: ['QUEUED', 'FAILED'] },
         OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
@@ -37,7 +37,7 @@ export class IdentityDeletionWorker {
       orderBy: [{ nextAttemptAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
     if (!job) return false;
-    const claimed = await this.db.identityDocumentDeletionJob.updateMany({
+    const claimed = await this.db.antreanHapusDokumenIdentitas.updateMany({
       where: { id: job.id, status: { in: ['QUEUED', 'FAILED'] } },
       data: {
         status: 'RUNNING',
@@ -53,7 +53,7 @@ export class IdentityDeletionWorker {
         if (error.code !== 'ENOENT') throw error;
       });
       await this.db.$transaction(async (tx) => {
-        await tx.identityVerificationDocument.updateMany({
+        await tx.dokumenVerifikasiIdentitas.updateMany({
           where: { id: job.documentId, status: { in: ['PENDING_DELETION', 'DELETE_FAILED'] } },
           data: {
             status: 'DELETED',
@@ -63,7 +63,7 @@ export class IdentityDeletionWorker {
             version: { increment: 1 },
           },
         });
-        await tx.identityDocumentDeletionJob.update({
+        await tx.antreanHapusDokumenIdentitas.update({
           where: { id: job.id },
           data: { status: 'SUCCEEDED', completedAt: now, lastErrorCode: null },
         });
@@ -81,7 +81,7 @@ export class IdentityDeletionWorker {
       });
     } catch {
       const attempts = job.attempts + 1;
-      await this.db.identityDocumentDeletionJob.update({
+      await this.db.antreanHapusDokumenIdentitas.update({
         where: { id: job.id },
         data: {
           status: 'FAILED',

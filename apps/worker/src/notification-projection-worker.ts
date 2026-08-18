@@ -97,7 +97,7 @@ export class NotificationProjectionWorker {
     const payload = payloadOf(event);
     const branchId = typeof payload.branchId === 'string' ? payload.branchId : undefined;
     if (event.eventType.startsWith('purchase.') || event.eventType.startsWith('order.')) {
-      const purchase = await this.db.purchase.findUnique({
+      const purchase = await this.db.pembelian.findUnique({
         where: { id: event.aggregateId },
         select: { userId: true, branchId: true, status: true },
       });
@@ -155,7 +155,7 @@ export class NotificationProjectionWorker {
       return null;
     }
     if (event.aggregateType === 'Booking') {
-      const booking = await this.db.booking.findUnique({
+      const booking = await this.db.pemesananKelas.findUnique({
         where: { id: event.aggregateId },
         select: {
           id: true,
@@ -262,7 +262,7 @@ export class NotificationProjectionWorker {
       ];
     }
     if (event.eventType === 'class.completed.v1') {
-      const noShows = await this.db.booking.findMany({
+      const noShows = await this.db.pemesananKelas.findMany({
         where: { classSlotId: event.aggregateId, status: 'NO_SHOW' },
         select: { id: true, customerUserId: true, branchId: true, classSlotId: true },
       });
@@ -280,7 +280,7 @@ export class NotificationProjectionWorker {
       }));
     }
     if (event.eventType === 'class.manual_cancelled.v1') {
-      const bookings = await this.db.booking.findMany({
+      const bookings = await this.db.pemesananKelas.findMany({
         where: { classSlotId: event.aggregateId, status: { in: ['BOOKED', 'ATTENDED'] } },
         select: { customerUserId: true, branchId: true },
       });
@@ -295,7 +295,7 @@ export class NotificationProjectionWorker {
       }));
     }
     if (event.aggregateType === 'SessionAdjustment') {
-      const adjustment = await this.db.sessionAdjustment.findUnique({
+      const adjustment = await this.db.penyesuaianSesi.findUnique({
         where: { id: event.aggregateId },
         select: { customerPackage: { select: { customerUserId: true, branchId: true } } },
       });
@@ -337,7 +337,7 @@ export class NotificationProjectionWorker {
       return null;
     }
     if (event.eventType.startsWith('identity.verification.')) {
-      const document = await this.db.identityVerificationDocument.findUnique({
+      const document = await this.db.dokumenVerifikasiIdentitas.findUnique({
         where: { id: event.aggregateId },
         select: { userId: true, kind: true },
       });

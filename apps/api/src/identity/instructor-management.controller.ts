@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
-import { InstructorManagementService } from './instructor-management.service';
+import { InstructorManagementService } from './manajemen-instruktur.service';
 
 @Controller('instructors')
 @UseGuards(AuthGuard)

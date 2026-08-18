@@ -7,8 +7,8 @@ describe('PaymentExpirationWorker', () => {
     const deleteMany = jest.fn().mockReturnValue({ kind: 'delete' });
     const transaction = jest.fn().mockResolvedValue([]);
     const worker = new PaymentExpirationWorker({
-      paymentUniqueCodeReservation: { findMany, deleteMany },
-      purchase: { updateMany },
+      reservasiKodeUnikPembayaran: { findMany, deleteMany },
+      pembelian: { updateMany },
       $transaction: transaction,
     } as never);
     expect(await worker.runOnce(new Date('2026-07-28T00:00:00Z'))).toBe(1);

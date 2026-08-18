@@ -5,7 +5,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import { calculatePackagePromotion, promotionEffectiveState } from './package-pricing.service';
+import { calculatePackagePromotion, promotionEffectiveState } from './kalkulasi-harga-paket.service';
 
 type PromotionCommand = {
   name: string;
@@ -118,11 +118,9 @@ export class PackagePromotionService {
       if (!principal.capabilities.includes('package-promotion:manage'))
         throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     } else this.requireRead(principal);
-    const pkg = await this.db.package.findUnique({
+    const pkg = await this.db.paket.findUnique({
       where: { id: packageId },
       include: {
-        branch: { select: { id: true, code: true, name: true } },
-        classType: true,
         branchScopes: {
           where: { active: true },
           include: { branch: { select: { id: true, code: true, name: true } } },
@@ -147,7 +145,7 @@ export class PackagePromotionService {
   async packageDetail(principal: SessionPrincipal, packageId: string) {
     const pkg = await this.packageOrThrow(principal, packageId);
     const [promotions, auditActivity] = await Promise.all([
-      this.db.packagePromotion.findMany({
+      this.db.promosiPaket.findMany({
         where: { packageId },
         include: { package: true, _count: { select: { purchases: true } } },
         orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
@@ -173,7 +171,7 @@ export class PackagePromotionService {
     await this.packageOrThrow(principal, packageId);
     const limit = Math.min(50, Math.max(1, Number(rawLimit ?? 20)));
     if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const rows = await this.db.packagePromotion.findMany({
+    const rows = await this.db.promosiPaket.findMany({
       where: { packageId },
       include: { package: true, _count: { select: { purchases: true } } },
       orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
@@ -195,7 +193,7 @@ export class PackagePromotionService {
     activeUntil: Date,
     excludeId?: string,
   ) {
-    const overlap = await tx.packagePromotion.findFirst({
+    const overlap = await tx.promosiPaket.findFirst({
       where: {
         packageId,
         id: excludeId ? { not: excludeId } : undefined,
@@ -246,9 +244,9 @@ export class PackagePromotionService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        await tx.$queryRaw`SELECT id FROM Package WHERE id = ${packageId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM \`Paket\` WHERE id = ${packageId} FOR UPDATE`;
         await this.assertNoOverlap(tx, packageId, dates.activeFrom, dates.activeUntil);
-        const created = await tx.packagePromotion.create({
+        const created = await tx.promosiPaket.create({
           data: {
             id: newId(),
             packageId,
@@ -290,7 +288,7 @@ export class PackagePromotionService {
   ) {
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const current = await this.db.packagePromotion.findUnique({
+    const current = await this.db.promosiPaket.findUnique({
       where: { id },
       include: { package: { include: { branchScopes: { where: { active: true } } } } },
     });
@@ -328,9 +326,9 @@ export class PackagePromotionService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        await tx.$queryRaw`SELECT id FROM Package WHERE id = ${current.packageId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM \`Paket\` WHERE id = ${current.packageId} FOR UPDATE`;
         await this.assertNoOverlap(tx, current.packageId, dates.activeFrom, dates.activeUntil, id);
-        const changed = await tx.packagePromotion.updateMany({
+        const changed = await tx.promosiPaket.updateMany({
           where: { id, version: input.expectedVersion, status: { not: 'ARCHIVED' } },
           data: {
             name: merged.name.trim(),
@@ -343,7 +341,7 @@ export class PackagePromotionService {
           },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const updated = await tx.packagePromotion.findUniqueOrThrow({
+        const updated = await tx.promosiPaket.findUniqueOrThrow({
           where: { id },
           include: { package: true, _count: { select: { purchases: true } } },
         });
@@ -352,7 +350,7 @@ export class PackagePromotionService {
             id: newId(),
             actorType: 'USER',
             actorId: principal.userId,
-            branchId: current.package.branchId,
+            branchId: null,
             action: 'package_promotion.updated',
             objectType: 'PackagePromotion',
             objectId: id,
@@ -376,7 +374,7 @@ export class PackagePromotionService {
   ) {
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const current = await this.db.packagePromotion.findUnique({
+    const current = await this.db.promosiPaket.findUnique({
       where: { id },
       include: { package: { include: { branchScopes: { where: { active: true } } } } },
     });
@@ -395,12 +393,12 @@ export class PackagePromotionService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const changed = await tx.packagePromotion.updateMany({
+        const changed = await tx.promosiPaket.updateMany({
           where: { id, version: input.expectedVersion },
           data: { status, version: { increment: 1 } },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const updated = await tx.packagePromotion.findUniqueOrThrow({
+        const updated = await tx.promosiPaket.findUniqueOrThrow({
           where: { id },
           include: { package: true, _count: { select: { purchases: true } } },
         });
@@ -409,7 +407,7 @@ export class PackagePromotionService {
             id: newId(),
             actorType: 'USER',
             actorId: principal.userId,
-            branchId: current.package.branchId,
+            branchId: null,
             action: `package_promotion.${status.toLowerCase()}`,
             objectType: 'PackagePromotion',
             objectId: id,
@@ -425,14 +423,14 @@ export class PackagePromotionService {
 
   async orders(principal: SessionPrincipal, id: string, cursor?: string, rawLimit?: string) {
     this.requireRead(principal);
-    const promotion = await this.db.packagePromotion.findUnique({
+    const promotion = await this.db.promosiPaket.findUnique({
       where: { id },
       include: { package: { include: { branchScopes: { where: { active: true } } } } },
     });
     if (!promotion) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     this.scopePackage(principal, promotion.package);
     const limit = Math.min(50, Math.max(1, Number(rawLimit ?? 20)));
-    const rows = await this.db.purchase.findMany({
+    const rows = await this.db.pembelian.findMany({
       where: { packagePromotionId: id },
       orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -455,5 +453,59 @@ export class PackagePromotionService {
       items,
       page: { hasMore, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async daftarPromosi(
+    principal: SessionPrincipal,
+    packageId: string,
+    cursor?: string,
+    rawLimit?: string,
+  ) {
+    return this.list(principal, packageId, cursor, rawLimit);
+  }
+
+  async detailPromosiPaket(principal: SessionPrincipal, packageId: string) {
+    return this.packageDetail(principal, packageId);
+  }
+
+  async buatPromosi(
+    principal: SessionPrincipal,
+    packageId: string,
+    input: Parameters<PackagePromotionService['create']>[2],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.create(principal, packageId, input, key, correlationId);
+  }
+
+  async perbaruiPromosi(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<PackagePromotionService['update']>[2],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.update(principal, id, input, key, correlationId);
+  }
+
+  async ubahStatusPromosi(
+    principal: SessionPrincipal,
+    id: string,
+    status: Parameters<PackagePromotionService['transition']>[2],
+    input: Parameters<PackagePromotionService['transition']>[3],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.transition(principal, id, status, input, key, correlationId);
+  }
+
+  async riwayatPesananPromosi(
+    principal: SessionPrincipal,
+    id: string,
+    cursor?: string,
+    rawLimit?: string,
+  ) {
+    return this.orders(principal, id, cursor, rawLimit);
   }
 }

@@ -16,12 +16,8 @@ import {
 } from '../package-promotion-client';
 import { useTrackedRouter } from '../components/app-loading';
 import { browserMasterClient } from '../master-client';
+import { formatRupiah } from '../lib/formatters';
 
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
 const stateLabels = {
   ACTIVE: 'Aktif',
   SCHEDULED: 'Terjadwal',
@@ -241,9 +237,9 @@ export function PackagesManagementView() {
                   ? item.branchScopes
                       .map((scope) => scope.branch?.name ?? scope.branchId.slice(0, 8))
                       .join(', ')
-                  : (item.branch?.name ?? '—'),
+                  : '—',
             },
-            { id: 'price', header: 'Harga normal', cell: (item) => rupiah.format(item.priceRp) },
+            { id: 'price', header: 'Harga normal', cell: (item) => formatRupiah(item.priceRp) },
             {
               id: 'period',
               header: 'Periode',
@@ -297,9 +293,9 @@ export function PackagesManagementView() {
                 {item.branchScopes
                   ?.map((scope) => scope.branch?.name)
                   .filter(Boolean)
-                  .join(', ') || item.branch?.name}
+                  .join(', ') || '—'}
               </span>
-              <span className="font-semibold">{rupiah.format(item.priceRp)}</span>
+              <span className="font-semibold">{formatRupiah(item.priceRp)}</span>
             </div>
           )}
         />

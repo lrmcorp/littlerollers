@@ -39,7 +39,7 @@ export async function seedIdentityVerificationFixtures(
     const objectKey = `identity/${userId}/${fixture.kind.toLowerCase()}/${id}`;
     const file = await ensurePrivatePngFixture(objectKey);
     const providerReferenceHash = createHash('sha256').update(objectKey).digest('hex');
-    const document = await ctx.db.identityVerificationDocument.upsert({
+    const document = await ctx.db.dokumenVerifikasiIdentitas.upsert({
       where: { id },
       update: {
         userId,

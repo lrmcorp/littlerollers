@@ -14,15 +14,15 @@ function database() {
   const count = jest.fn().mockResolvedValue(0);
   const findMany = jest.fn().mockResolvedValue([]);
   return {
-    purchase: { aggregate, count, findMany },
-    booking: { count, findMany },
-    customerPackage: { findMany },
-    classSlot: { findMany },
-    identityVerificationDocument: { count },
-    reschedule: { count },
-    sessionAdjustment: { count },
+    pembelian: { aggregate, count, findMany },
+    pemesananKelas: { count, findMany },
+    paketPelanggan: { findMany },
+    slotKelas: { findMany },
+    dokumenVerifikasiIdentitas: { count },
+    ubahJadwal: { count },
+    penyesuaianSesi: { count },
     quotaEvaluationJob: { count, findMany },
-    branch: {
+    cabang: {
       findMany: jest
         .fn()
         .mockResolvedValue([
@@ -120,7 +120,7 @@ describe('DashboardService', () => {
       until: '2026-07-07',
     });
 
-    expect(db.branch.findMany).toHaveBeenCalledWith(
+    expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { active: true, id: { in: ['branch-1'] } } }),
     );
     expect(financial.aggregate).toHaveBeenCalledWith(
@@ -151,6 +151,6 @@ describe('DashboardService', () => {
     await expect(
       service.overview(principal(), { from: '2026-08-01', until: '2026-07-01' }),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR', status: 422 });
-    expect(db.purchase.aggregate).not.toHaveBeenCalled();
+    expect(db.pembelian.aggregate).not.toHaveBeenCalled();
   });
 });

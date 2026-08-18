@@ -31,10 +31,10 @@ describe('PaymentReviewService customer-owned proof preview', () => {
 
   it('issues a one-time CUSTOMER_SELF authorization only from an owned attached order', async () => {
     const db = {
-      purchase: {
+      pembelian: {
         findFirst: jest.fn().mockResolvedValue({ id: 'order-1', paymentProof: proof }),
       },
-      paymentProofViewAuthorization: {
+      otorisasiLihatBuktiPembayaran: {
         create: jest.fn().mockResolvedValue({ id: 'authorization-1' }),
       },
       auditLog: { create: jest.fn().mockResolvedValue(undefined) },
@@ -53,7 +53,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
     ).resolves.toMatchObject({
       url: '/api/v1/uploads/payment-proofs/view-authorizations/authorization-1/content',
     });
-    expect(db.purchase.findFirst).toHaveBeenCalledWith(
+    expect(db.pembelian.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           id: 'order-1',
@@ -62,7 +62,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
         },
       }),
     );
-    expect(db.paymentProofViewAuthorization.create).toHaveBeenCalledWith({
+    expect(db.otorisasiLihatBuktiPembayaran.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         proofId: 'proof-1',
         viewerId: 'customer-1',
@@ -87,8 +87,8 @@ describe('PaymentReviewService customer-owned proof preview', () => {
       proof,
     };
     const db = {
-      purchase: { findFirst: jest.fn().mockResolvedValue({ id: 'order-1' }) },
-      paymentProofViewAuthorization: {
+      pembelian: { findFirst: jest.fn().mockResolvedValue({ id: 'order-1' }) },
+      otorisasiLihatBuktiPembayaran: {
         findUnique: jest.fn().mockResolvedValue(authorization),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
@@ -113,11 +113,11 @@ describe('PaymentReviewService customer-owned proof preview', () => {
     });
     expect(access.catalog).toHaveBeenCalledWith(customer);
     expect(access.review).not.toHaveBeenCalled();
-    expect(db.purchase.findFirst).toHaveBeenCalledWith({
+    expect(db.pembelian.findFirst).toHaveBeenCalledWith({
       where: { userId: 'customer-1', paymentProofId: 'proof-1' },
       select: { id: true },
     });
-    expect(db.paymentProofViewAuthorization.updateMany).toHaveBeenCalledWith({
+    expect(db.otorisasiLihatBuktiPembayaran.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'authorization-1',
         consumedAt: null,
@@ -137,7 +137,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
     const access = { catalog: jest.fn() };
     const storage = { existsPrivateObject: jest.fn().mockResolvedValue(true) };
     const missing = new PaymentReviewService(
-      { purchase: { findFirst: jest.fn().mockResolvedValue(null) } } as never,
+      { pembelian: { findFirst: jest.fn().mockResolvedValue(null) } } as never,
       {} as never,
       storage as never,
       access as never,
@@ -148,7 +148,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
 
     const foreign = new PaymentReviewService(
       {
-        purchase: {
+        pembelian: {
           findFirst: jest
             .fn()
             .mockResolvedValue({ paymentProof: { ...proof, userId: 'customer-2' } }),
@@ -164,7 +164,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
 
     const unsafe = new PaymentReviewService(
       {
-        purchase: {
+        pembelian: {
           findFirst: jest.fn().mockResolvedValue({
             paymentProof: { ...proof, scanStatus: 'PENDING' },
           }),

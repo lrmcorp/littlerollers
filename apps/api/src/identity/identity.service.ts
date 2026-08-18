@@ -40,6 +40,7 @@ import {
   safeEqual,
   syntheticConfigSeconds,
 } from './security';
+import { NotificationWriterService } from '../notifications/notification-writer.service';
 
 export interface SessionPrincipal {
   sessionId: string;
@@ -66,6 +67,7 @@ export class IdentityService {
     @Optional() private readonly idempotency?: IdempotencyService,
     @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateFiles?: PrivateFileStorage,
     @Optional() private readonly runtimeConfig?: RuntimeConfigService,
+    @Optional() private readonly notificationWriter?: NotificationWriterService,
   ) {}
 
   private audit(
@@ -173,7 +175,7 @@ export class IdentityService {
   }
 
   async verificationStatus(userId: string) {
-    const documents = await this.db.identityVerificationDocument.findMany({
+    const documents = await this.db.dokumenVerifikasiIdentitas.findMany({
       where: { userId, replacedById: null },
       orderBy: [{ kind: 'asc' }, { createdAt: 'desc' }],
     });
@@ -243,7 +245,7 @@ export class IdentityService {
     const branchScope = projection.capabilities.includes('branch:all')
       ? undefined
       : { in: projection.branchIds };
-    const branches = await this.db.branch.findMany({
+    const branches = await this.db.cabang.findMany({
       where: { active: true, ...(branchScope ? { id: branchScope } : {}) },
       orderBy: [{ code: 'asc' }, { id: 'asc' }],
       select: { id: true, code: true, name: true, timezone: true },
@@ -271,7 +273,7 @@ export class IdentityService {
   ) {
     const verified = await this.google.verify(input.idToken, input.nonce);
     const user = await this.db.$transaction(async (tx) => {
-      const existing = await tx.identity.findUnique({
+      const existing = await tx.identitas.findUnique({
         where: {
           provider_subjectHash: { provider: verified.provider, subjectHash: verified.subjectHash },
         },
@@ -299,7 +301,7 @@ export class IdentityService {
         const pending = await tx.user.findUnique({ where: { id: invitation.userId } });
         if (!pending || pending.status !== 'PENDING_ACTIVATION')
           throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
-        await tx.identity.create({
+        await tx.identitas.create({
           data: {
             id: newId(),
             userId: pending.id,
@@ -321,7 +323,7 @@ export class IdentityService {
       const created = await tx.user.create({
         data: { id: newId(), displayName: invitation.displayName ?? 'Invited internal user' },
       });
-      await tx.identity.create({
+      await tx.identitas.create({
         data: {
           id: newId(),
           userId: created.id,
@@ -408,7 +410,7 @@ export class IdentityService {
       });
       throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
     }
-    const identity = await this.db.identity.findUnique({
+    const identity = await this.db.identitas.findUnique({
       where: {
         provider_subjectHash: { provider: 'WHATSAPP_PHONE', subjectHash: challenge.subjectHash },
       },
@@ -718,7 +720,7 @@ export class IdentityService {
           passwordChangedAt: new Date(),
         },
       });
-      await tx.identity.create({
+      await tx.identitas.create({
         data: {
           id: newId(),
           userId: targetUserId,
@@ -940,7 +942,7 @@ export class IdentityService {
     const subjectHash =
       requestedChannel === 'GOOGLE' ? digest(`google:${normalized}`) : digest(normalized);
     await this.rateLimit.consume('RECOVERY_REQUEST', subjectHash);
-    const identity = await this.db.identity.findFirst({ where: { subjectHash } });
+    const identity = await this.db.identitas.findFirst({ where: { subjectHash } });
     const expiresAt = new Date(
       Date.now() + syntheticConfigSeconds('AUTH_RECOVERY_TTL_SECONDS', 900) * 1000,
     );
@@ -1032,14 +1034,14 @@ export class IdentityService {
         throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
       subjectHash = challenge.subjectHash;
     }
-    const existing = await this.db.identity.findUnique({
+    const existing = await this.db.identitas.findUnique({
       where: { provider_subjectHash: { provider: input.provider, subjectHash } },
     });
     if (existing?.userId === principal.userId) return { id: existing.id, status: 'LINKED' };
     if (existing) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
     try {
       const identity = await this.db.$transaction(async (tx) => {
-        const created = await tx.identity.create({
+        const created = await tx.identitas.create({
           data: {
             id: newId(),
             userId: principal.userId,
@@ -1122,7 +1124,7 @@ export class IdentityService {
             passwordChangedAt: new Date(),
           },
         });
-        await tx.identity.create({
+        await tx.identitas.create({
           data: {
             id: newId(),
             userId: user.id,
@@ -1132,7 +1134,7 @@ export class IdentityService {
           },
         });
         for (const { id, kind, document, objectKey } of prepared) {
-          await tx.identityVerificationDocument.create({
+          await tx.dokumenVerifikasiIdentitas.create({
             data: {
               id,
               userId: user.id,
@@ -1158,6 +1160,47 @@ export class IdentityService {
           correlationId,
           after: { role: 'CUSTOMER', documentKinds: ['SELFIE', 'KTP_FRONT'], consent: true },
         });
+        // Notifikasi in-app: sambut customer baru dan minta verifikasi dokumen
+        if (this.notificationWriter) {
+          await this.notificationWriter.writeForUser(tx, {
+            userId: user.id,
+            eventKey: `customer.registered:${user.id}`,
+            category: 'VERIFICATION',
+            tone: 'INFO',
+            title: 'Selamat datang! Verifikasi dokumen diperlukan.',
+            message:
+              'Akun Anda berhasil dibuat. Dokumen KTP dan Selfie Anda sedang menunggu peninjauan oleh tim kami.',
+            href: '/account/verification',
+            expiresInDays: 30,
+          });
+          // Notifikasi in-app ke staf: customer baru menunggu review
+          const reviewers = await tx.userRole.findMany({
+            where: {
+              role: { in: ['SUPER_OWNER', 'OWNER', 'ADMIN'] },
+              OR: [{ activeUntil: null }, { activeUntil: { gt: new Date() } }],
+            },
+            select: { userId: true },
+            distinct: ['userId'],
+          });
+          if (reviewers.length > 0) {
+            const { randomUUID } = await import('crypto');
+            await tx.userNotification.createMany({
+              data: reviewers.map(({ userId: staffUserId }) => ({
+                id: randomUUID(),
+                userId: staffUserId,
+                eventKey: `customer.registered.review:${user.id}:${staffUserId}`,
+                category: 'VERIFICATION' as const,
+                tone: 'INFO' as const,
+                title: 'Customer baru mendaftar',
+                message: `${displayName} telah mendaftar dan dokumen identitasnya menunggu peninjauan.`,
+                href: '/identity-verifications',
+                expiresInDays: undefined,
+                expiresAt: new Date(Date.now() + 7 * 86_400_000),
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
       });
       committed = true;
     } catch (error) {

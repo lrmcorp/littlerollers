@@ -71,10 +71,10 @@ databaseDescribe('identity MySQL integration', () => {
         subjectHash: { in: [digest('+628111111111'), digest('+628222222222')] },
       },
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: namespace, timezone: 'Asia/Jakarta' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: {
         id: lookupClassTypeId,
         branchId,
@@ -82,7 +82,7 @@ databaseDescribe('identity MySQL integration', () => {
         name: 'Lookup Reformer',
       },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: lookupPackageId,
         branchId,
@@ -110,7 +110,7 @@ databaseDescribe('identity MySQL integration', () => {
     await db.userRole.create({
       data: { userId: lookupCustomerId, role: 'CUSTOMER', activeFrom: new Date() },
     });
-    await db.identityVerificationDocument.createMany({
+    await db.dokumenVerifikasiIdentitas.createMany({
       data: (['SELFIE', 'KTP_FRONT'] as const).map((kind) => ({
         id: randomUUID(),
         userId: lookupCustomerId,
@@ -124,7 +124,7 @@ databaseDescribe('identity MySQL integration', () => {
         scanStatus: 'CLEAN' as const,
       })),
     });
-    await db.purchase.create({
+    await db.pembelian.create({
       data: {
         id: lookupPurchaseId,
         userId: lookupCustomerId,
@@ -139,7 +139,7 @@ databaseDescribe('identity MySQL integration', () => {
         idempotencyKeyHash: digest(`${namespace}:lookup-purchase`),
       },
     });
-    await db.customerPackage.create({
+    await db.paketPelanggan.create({
       data: {
         id: lookupCustomerPackageId,
         purchaseId: lookupPurchaseId,
@@ -157,7 +157,7 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.user.create({ data: { id: otpUserId, displayName: 'Integration OTP user' } });
     await db.user.create({ data: { id: passwordUserId, displayName: 'Migrated password user' } });
-    await db.identity.create({
+    await db.identitas.create({
       data: {
         id: randomUUID(),
         userId: passwordUserId,
@@ -183,7 +183,7 @@ databaseDescribe('identity MySQL integration', () => {
         phoneE164,
       })),
     });
-    await db.identityVerificationDocument.createMany({
+    await db.dokumenVerifikasiIdentitas.createMany({
       data: reviewFixtures.map(({ userId, documentId, status }, index) => ({
         id: documentId,
         userId,
@@ -200,7 +200,7 @@ databaseDescribe('identity MySQL integration', () => {
         createdAt: new Date(Date.now() - (reviewFixtures.length - index) * 60_000),
       })),
     });
-    await db.identity.create({
+    await db.identitas.create({
       data: {
         id: randomUUID(),
         userId: otpUserId,
@@ -251,8 +251,8 @@ databaseDescribe('identity MySQL integration', () => {
         ...users.map(({ id }) => id),
       ]),
     ];
-    await db.customerPackage.deleteMany({ where: { id: lookupCustomerPackageId } });
-    await db.purchase.deleteMany({ where: { id: lookupPurchaseId } });
+    await db.paketPelanggan.deleteMany({ where: { id: lookupCustomerPackageId } });
+    await db.pembelian.deleteMany({ where: { id: lookupPurchaseId } });
     await db.auditLog.deleteMany({
       where: {
         OR: [
@@ -264,14 +264,14 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.authChallenge.deleteMany({ where: { userId: { in: userIds } } });
     await db.userSession.deleteMany({ where: { userId: { in: userIds } } });
-    await db.identityDocumentViewAuthorization.deleteMany({
+    await db.otorisasiLihatDokumenIdentitas.deleteMany({
       where: { document: { userId: { in: userIds } } },
     });
-    await db.identityDocumentDeletionJob.deleteMany({
+    await db.antreanHapusDokumenIdentitas.deleteMany({
       where: { document: { userId: { in: userIds } } },
     });
-    await db.identityVerificationDocument.deleteMany({ where: { userId: { in: userIds } } });
-    await db.identity.deleteMany({ where: { userId: { in: userIds } } });
+    await db.dokumenVerifikasiIdentitas.deleteMany({ where: { userId: { in: userIds } } });
+    await db.identitas.deleteMany({ where: { userId: { in: userIds } } });
     await db.passwordCredential.deleteMany({ where: { userId: { in: userIds } } });
     await db.passwordActionToken.deleteMany({
       where: {
@@ -280,11 +280,11 @@ databaseDescribe('identity MySQL integration', () => {
     });
     await db.userInvitation.deleteMany({ where: { invitedById: inviterId } });
     await db.userRole.deleteMany({ where: { userId: { in: userIds } } });
-    await db.assignment.deleteMany({ where: { userId: { in: userIds } } });
+    await db.penugasan.deleteMany({ where: { userId: { in: userIds } } });
     await db.user.deleteMany({ where: { id: { in: userIds } } });
-    await db.package.deleteMany({ where: { id: lookupPackageId } });
-    await db.classType.deleteMany({ where: { id: lookupClassTypeId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.paket.deleteMany({ where: { id: lookupPackageId } });
+    await db.jenisKelas.deleteMany({ where: { id: lookupClassTypeId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.rateLimitCounter.deleteMany({
       where: {
         subjectHash: {
@@ -401,7 +401,7 @@ databaseDescribe('identity MySQL integration', () => {
     ]);
     expect(results.some(({ status }) => status === 'fulfilled')).toBe(true);
     expect(
-      await db.identity.count({
+      await db.identitas.count({
         where: { provider: 'GOOGLE', subjectHash: digest(`google:${email}`) },
       }),
     ).toBe(1);
@@ -451,7 +451,7 @@ databaseDescribe('identity MySQL integration', () => {
 
   it('returns authoritative session expiry and active branch contexts', async () => {
     const inactiveBranchId = randomUUID();
-    await db.branch.create({
+    await db.cabang.create({
       data: {
         id: inactiveBranchId,
         code: `${namespace}-inactive`,
@@ -474,7 +474,7 @@ databaseDescribe('identity MySQL integration', () => {
         expect.arrayContaining([expect.objectContaining({ id: inactiveBranchId })]),
       );
     } finally {
-      await db.branch.delete({ where: { id: inactiveBranchId } });
+      await db.cabang.delete({ where: { id: inactiveBranchId } });
     }
   });
 
@@ -693,7 +693,7 @@ databaseDescribe('identity MySQL integration', () => {
     ]);
     expect(linked.some(({ status }) => status === 'fulfilled')).toBe(true);
     expect(
-      await db.identity.count({
+      await db.identitas.count({
         where: { provider: 'GOOGLE', subjectHash: digest(`google:${token}`) },
       }),
     ).toBe(1);
@@ -725,7 +725,7 @@ databaseDescribe('identity MySQL integration', () => {
       },
       `${namespace}-assignment-create`,
     );
-    const assignment = await db.assignment.findUniqueOrThrow({
+    const assignment = await db.penugasan.findUniqueOrThrow({
       where: { id: created.id },
       include: { projectedRole: true },
     });
@@ -788,7 +788,7 @@ databaseDescribe('identity MySQL integration', () => {
     ]);
     expect(concurrent.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
     expect(
-      await db.assignment.count({
+      await db.penugasan.count({
         where: { userId: assignmentUserId, branchId, type: 'OWNER' },
       }),
     ).toBe(1);
@@ -805,7 +805,7 @@ databaseDescribe('identity MySQL integration', () => {
   });
 
   it('ends once with branch-local boundary and keeps /me projection consistent', async () => {
-    const assignment = await db.assignment.findFirstOrThrow({
+    const assignment = await db.penugasan.findFirstOrThrow({
       where: { userId: assignmentUserId, branchId, type: 'INSTRUCTOR' },
     });
     const ended = await assignments.end(

@@ -21,7 +21,7 @@ function fixture(actorId: string) {
   };
   const tx = {
     $queryRaw: jest.fn().mockResolvedValue([{ id: correctionId }]),
-    financeCorrection: {
+    koreksiKeuangan: {
       findUnique: jest.fn().mockResolvedValue(correction),
       update: jest
         .fn()
@@ -29,9 +29,9 @@ function fixture(actorId: string) {
           Promise.resolve({ ...correction, ...data, status: data.status, decidedById: actorId }),
         ),
     },
-    financePeriod: { findUnique: jest.fn().mockResolvedValue(null) },
-    accountingAccount: { findFirst: jest.fn().mockResolvedValue({ id: 'account-1' }) },
-    journalEntry: { create: jest.fn().mockResolvedValue({ id: 'journal-1' }) },
+    periodeKeuangan: { findUnique: jest.fn().mockResolvedValue(null) },
+    akunAkuntansi: { findFirst: jest.fn().mockResolvedValue({ id: 'account-1' }) },
+    entriJurnal: { create: jest.fn().mockResolvedValue({ id: 'journal-1' }) },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   const idempotency = {
@@ -71,7 +71,7 @@ test('enforces separation of duties on a finance correction decision', async () 
       'correlation-id',
     ),
   ).rejects.toEqual(expect.objectContaining({ code: 'SEPARATION_OF_DUTIES' }));
-  expect(tx.financeCorrection.update).not.toHaveBeenCalled();
+  expect(tx.koreksiKeuangan.update).not.toHaveBeenCalled();
 });
 
 test('posts an approved correction as a new immutable finance fact', async () => {
@@ -87,7 +87,7 @@ test('posts an approved correction as a new immutable finance fact', async () =>
   );
 
   expect(result).toEqual(expect.objectContaining({ status: 200, replay: false }));
-  expect(tx.financeCorrection.update).toHaveBeenCalledWith(
+  expect(tx.koreksiKeuangan.update).toHaveBeenCalledWith(
     expect.objectContaining({
       data: expect.objectContaining({ status: 'POSTED', decidedById: approverId }),
     }),
@@ -97,7 +97,7 @@ test('posts an approved correction as a new immutable finance fact', async () =>
       data: expect.objectContaining({ action: 'finance.correction.posted' }),
     }),
   );
-  expect(tx.journalEntry.create).toHaveBeenCalledWith(
+  expect(tx.entriJurnal.create).toHaveBeenCalledWith(
     expect.objectContaining({
       data: expect.objectContaining({
         debitRp: 25_000,
@@ -129,11 +129,11 @@ test('closes a month with exactly one immutable authoritative snapshot', async (
   };
   const tx = {
     $queryRaw: jest.fn().mockResolvedValue([{ id: branchId }]),
-    financePeriod: {
+    periodeKeuangan: {
       findUnique: jest.fn().mockResolvedValue(period),
       update: jest.fn().mockResolvedValue({ ...period, status: 'CLOSED', version: 1 }),
     },
-    financeCloseSnapshot: {
+    snapshotTutupBukuKeuangan: {
       create: jest
         .fn()
         .mockImplementation(({ data }) => Promise.resolve({ id: 'snapshot-1', ...data })),
@@ -179,8 +179,8 @@ test('closes a month with exactly one immutable authoritative snapshot', async (
   );
 
   expect(result.body).toEqual(expect.objectContaining({ snapshotIds: ['snapshot-1'] }));
-  expect(tx.financeCloseSnapshot.create).toHaveBeenCalledTimes(1);
-  expect(tx.financeCloseSnapshot.create).toHaveBeenCalledWith(
+  expect(tx.snapshotTutupBukuKeuangan.create).toHaveBeenCalledTimes(1);
+  expect(tx.snapshotTutupBukuKeuangan.create).toHaveBeenCalledWith(
     expect.objectContaining({
       data: expect.objectContaining({ ...totals, controlHash: 'a'.repeat(64) }),
     }),

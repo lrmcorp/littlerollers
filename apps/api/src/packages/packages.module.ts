@@ -3,18 +3,18 @@ import { DatabaseModule } from '../database/database.module';
 import { FoundationModule } from '../foundation/foundation.module';
 import { IdentityModule } from '../identity/identity.module';
 import { PackagesController } from './packages.controller';
-import { CustomerOrderService } from './customer-order.service';
+import { CustomerOrderService } from './pembelian-paket.service';
 import {
   ConfigGatedMalwareScanProvider,
   ConfigGatedObjectStorageProvider,
 } from './proof-providers';
 import { PackageAccessService } from './package-access.service';
-import { PackageCatalogService } from './package-catalog.service';
-import { PaymentAccountService } from './payment-account.service';
-import { PaymentReviewService } from './payment-review.service';
-import { PaymentProofService } from './payment-proof.service';
+import { PackageCatalogService } from './katalog-paket.service';
+import { PaymentAccountService } from './rekening-pembayaran.service';
+import { PaymentReviewService } from './verifikasi-pembayaran.service';
+import { PaymentProofService } from './bukti-pembayaran.service';
 import { VoucherService } from './voucher.service';
-import { PackagePricingService } from './package-pricing.service';
+import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import { PackagePromotionService } from './package-promotion.service';
 
 @Module({

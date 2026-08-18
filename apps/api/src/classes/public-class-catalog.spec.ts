@@ -4,14 +4,14 @@ const branchId = '00000000-0000-4000-8000-000000000002';
 
 describe('PublicScheduleQueryService', () => {
   const db = {
-    branch: {
+    cabang: {
       findMany: jest
         .fn()
         .mockResolvedValue([
           { id: branchId, code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' },
         ]),
     },
-    classSlot: {
+    slotKelas: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: '00000000-0000-4000-8000-000000000004',
@@ -39,8 +39,8 @@ describe('PublicScheduleQueryService', () => {
     const result = await service.list({});
     expect(result.branches).toHaveLength(1);
     expect(result.items).toEqual([]);
-    expect(db.classSlot.findMany).not.toHaveBeenCalled();
-    expect(db.branch.findMany).toHaveBeenCalledWith(
+    expect(db.slotKelas.findMany).not.toHaveBeenCalled();
+    expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
           supportWhatsappE164: true,
@@ -65,7 +65,7 @@ describe('PublicScheduleQueryService', () => {
     ]);
     expect(result.items[0]).not.toHaveProperty('bookedCount');
     expect(result.items[0]).not.toHaveProperty('instructorUserId');
-    expect(db.classSlot.findMany).toHaveBeenCalledWith(
+    expect(db.slotKelas.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ status: { in: ['PUBLISHED', 'CONFIRMED'] } }),
       }),

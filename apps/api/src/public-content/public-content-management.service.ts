@@ -27,7 +27,7 @@ export class PublicContentManagementService {
         ? { branchId: input.branchId }
         : {}
       : { branchId: { in: principal.branchIds } };
-    return this.db.publicContentEntry.findMany({
+    return this.db.entriKontenPublik.findMany({
       where: {
         ...visibleScope,
         ...(input.kind ? { kind: input.kind } : {}),
@@ -61,12 +61,12 @@ export class PublicContentManagementService {
     if (!contentKey || !kind || !input.payload || typeof input.payload !== 'object')
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(async (tx) => {
-      const latest = await tx.publicContentEntry.findFirst({
+      const latest = await tx.entriKontenPublik.findFirst({
         where: { contentKey, scopeKey, locale: input.locale || 'id-ID' },
         orderBy: { version: 'desc' },
         select: { version: true },
       });
-      const item = await tx.publicContentEntry.create({
+      const item = await tx.entriKontenPublik.create({
         data: {
           id: newId(),
           contentKey,
@@ -103,7 +103,7 @@ export class PublicContentManagementService {
   ) {
     this.policy.requireCapability(principal.capabilities, 'public-content:manage');
     return this.db.$transaction(async (tx) => {
-      const current = await tx.publicContentEntry.findUnique({ where: { id } });
+      const current = await tx.entriKontenPublik.findUnique({ where: { id } });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       if (
         current.branchId &&
@@ -114,7 +114,7 @@ export class PublicContentManagementService {
       if (status === 'PUBLISHED' && current.status !== 'DRAFT')
         throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
       if (status === 'PUBLISHED')
-        await tx.publicContentEntry.updateMany({
+        await tx.entriKontenPublik.updateMany({
           where: {
             contentKey: current.contentKey,
             scopeKey: current.scopeKey,
@@ -124,7 +124,7 @@ export class PublicContentManagementService {
           },
           data: { status: 'ARCHIVED', archivedAt: new Date() },
         });
-      const updated = await tx.publicContentEntry.update({
+      const updated = await tx.entriKontenPublik.update({
         where: { id },
         data: {
           status,

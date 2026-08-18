@@ -24,6 +24,8 @@ import { useOverlayInteraction, type OverlayPhase } from '../app-feedback';
 import { BrandMark } from '../public/brand-mark';
 import { useStudioPreference } from '../public/public-experience';
 
+import { useCustomerBadges } from './use-customer-badges';
+
 export type CustomerNavigationItem = {
   href: string;
   label: string;
@@ -80,6 +82,7 @@ export function CustomerNavigation({
 }) {
   const pathname = usePathname();
   const studioPreference = useStudioPreference();
+  const badges = useCustomerBadges();
   const panel = useRef<HTMLElement>(null);
   useOverlayInteraction({ open, onClose, panelRef: panel });
   const visible = phase === 'open';
@@ -135,6 +138,15 @@ export function CustomerNavigation({
                   const Icon = item.icon;
                   const selected = isCustomerNavigationActive(pathname, item.href);
                   const locked = Boolean(item.requiresApproval && !approved);
+                  const showOrderBadge =
+                    item.href === '/orders' && badges.actionableOrdersCount > 0;
+                  const showBookingBadge =
+                    item.href === '/bookings' && badges.upcomingBookingsCount > 0;
+                  const showVerificationDot =
+                    item.href === '/account/verification' && badges.verificationActionRequired;
+                  const showPackageDot =
+                    item.href === '/account/packages' && badges.expiringPackagesCount > 0;
+
                   return (
                     <Link
                       key={item.href}
@@ -150,6 +162,28 @@ export function CustomerNavigation({
                     >
                       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
                       <span className="min-w-0 flex-1">{item.label}</span>
+                      {showOrderBadge && (
+                        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                          {badges.actionableOrdersCount}
+                        </span>
+                      )}
+                      {showBookingBadge && (
+                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                          {badges.upcomingBookingsCount}
+                        </span>
+                      )}
+                      {showVerificationDot && (
+                        <span
+                          className="size-2.5 rounded-full bg-amber-400 ring-2 ring-dd-sidebar"
+                          title="Perlu perbaikan dokumen"
+                        />
+                      )}
+                      {showPackageDot && (
+                        <span
+                          className="size-2.5 rounded-full bg-amber-400 ring-2 ring-dd-sidebar"
+                          title="Segera kedaluwarsa atau kuota sisa 1 sesi"
+                        />
+                      )}
                       {locked && (
                         <LockKeyhole
                           className={selected ? 'size-3.5 text-dd-muted' : 'size-3.5 text-white/45'}

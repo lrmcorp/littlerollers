@@ -34,7 +34,7 @@ describe('PaymentProofService upload lifecycle', () => {
     };
     const service = new PaymentProofService(
       {
-        paymentProof: {
+        buktiPembayaran: {
           findUnique: jest.fn().mockResolvedValue(proof),
           update: jest.fn().mockRejectedValue(new Error('DATABASE_UNAVAILABLE')),
         },
@@ -59,7 +59,7 @@ describe('PaymentProofService upload lifecycle', () => {
     };
     const service = new PaymentProofService(
       {
-        paymentProof: {
+        buktiPembayaran: {
           findUnique: jest.fn().mockResolvedValue({ ...proof, uploadStatus: 'UPLOADED' }),
           update: jest.fn(),
         },

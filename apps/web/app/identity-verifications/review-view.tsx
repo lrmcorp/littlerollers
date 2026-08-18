@@ -224,6 +224,15 @@ export function IdentityReviewView({
     }
   };
 
+  useEffect(() => {
+    if (!selected) return;
+    for (const doc of selected.documents) {
+      if (!['DELETED', 'PENDING_DELETION'].includes(doc.status) && !previews[doc.id]) {
+        void loadPreview(doc);
+      }
+    }
+  }, [selected?.id]);
+
   const updateSelectedDocument = (document: VerificationDocument) => {
     setSelected((current) =>
       current
@@ -578,17 +587,22 @@ export function IdentityReviewView({
         open={Boolean(selected)}
         title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
         onClose={closeDrawer}
-        className="max-w-4xl"
+        className="w-full max-w-4xl lg:max-w-5xl"
       >
         {selected && (
           <div className="space-y-6">
-            <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <strong>{selected.user.displayName}</strong>
-                  <p className="mt-1 text-sm text-dd-muted">
-                    {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · {selected.user.status}
-                  </p>
+            <div className="rounded-dd-xl border border-dd-line/80 bg-linear-to-r from-dd-surface-muted/80 to-white p-4.5 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="grid size-11 place-items-center rounded-full bg-dd-forest text-sm font-bold text-white shadow-xs">
+                    {selected.user.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-dd-ink">{selected.user.displayName}</h3>
+                    <p className="mt-0.5 text-xs text-dd-muted">
+                      {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · Akun: <span className="font-semibold text-dd-ink">{selected.user.status}</span>
+                    </p>
+                  </div>
                 </div>
                 <Badge
                   tone={

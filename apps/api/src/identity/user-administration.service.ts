@@ -457,7 +457,7 @@ export class UserAdministrationService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     if (
       branchIds.length &&
-      (await this.db.branch.count({ where: { id: { in: branchIds }, active: true } })) !==
+      (await this.db.cabang.count({ where: { id: { in: branchIds }, active: true } })) !==
         branchIds.length
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -468,7 +468,7 @@ export class UserAdministrationService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     await this.rateLimit.consume('USER_INVITE', digest(principal.userId));
     const [existingIdentity, existingPassword, acceptedInvitation] = await Promise.all([
-      this.db.identity.findUnique({
+      this.db.identitas.findUnique({
         where: { provider_subjectHash: { provider: 'GOOGLE', subjectHash } },
       }),
       this.db.passwordCredential.findUnique({ where: { emailHash } }),
@@ -612,7 +612,7 @@ export class UserAdministrationService {
     if (new Set(keys).size !== keys.length)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const branchIds = input.roles.flatMap(({ branchId }) => (branchId ? [branchId] : []));
-    const branches = await this.db.branch.count({
+    const branches = await this.db.cabang.count({
       where: { id: { in: branchIds }, active: true },
     });
     if (branches !== new Set(branchIds).size)
@@ -904,7 +904,7 @@ export class UserAdministrationService {
           })
         : [],
       branchIds.length
-        ? this.db.branch.findMany({
+        ? this.db.cabang.findMany({
             where: { id: { in: branchIds } },
             select: { id: true, code: true, name: true },
           })
@@ -990,6 +990,72 @@ export class UserAdministrationService {
         ? { identityVerification: identityVerificationSummary(user.identityDocuments ?? []) }
         : {}),
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async daftarPengguna(
+    principal: SessionPrincipal,
+    filters: Parameters<UserAdministrationService['listUsers']>[1],
+  ) {
+    return this.listUsers(principal, filters);
+  }
+
+  async detailPengguna(principal: SessionPrincipal, targetId: string) {
+    return this.getUser(principal, targetId);
+  }
+
+  async undangPengguna(
+    principal: SessionPrincipal,
+    input: Parameters<UserAdministrationService['inviteUser']>[1],
+    correlationId: string,
+  ) {
+    return this.inviteUser(principal, input, correlationId);
+  }
+
+  async perbaruiProfilPengguna(
+    principal: SessionPrincipal,
+    targetId: string,
+    input: Parameters<UserAdministrationService['updateUserProfile']>[2],
+    correlationId: string,
+  ) {
+    return this.updateUserProfile(principal, targetId, input, correlationId);
+  }
+
+  async perbaruiPeranPengguna(
+    principal: SessionPrincipal,
+    targetId: string,
+    input: Parameters<UserAdministrationService['updateUserRoles']>[2],
+    idempotencyKey: string,
+    correlationId: string,
+  ) {
+    return this.updateUserRoles(principal, targetId, input, idempotencyKey, correlationId);
+  }
+
+  async nonaktifkanPengguna(
+    principal: SessionPrincipal,
+    targetId: string,
+    reason: string,
+    expectedVersion: number,
+    correlationId: string,
+  ) {
+    return this.deactivate(principal, targetId, reason, expectedVersion, correlationId);
+  }
+
+  async aktifkanKembaliPengguna(
+    principal: SessionPrincipal,
+    targetId: string,
+    reason: string,
+    expectedVersion: number,
+    correlationId: string,
+  ) {
+    return this.reactivate(principal, targetId, reason, expectedVersion, correlationId);
+  }
+
+  async daftarJejakAudit(
+    principal: SessionPrincipal,
+    filters: Parameters<UserAdministrationService['listAuditLogs']>[1],
+  ) {
+    return this.listAuditLogs(principal, filters);
   }
 }
 

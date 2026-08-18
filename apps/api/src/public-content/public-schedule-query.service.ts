@@ -10,7 +10,7 @@ export class PublicScheduleQueryService {
   async list(input: { branchId?: string; from?: string; until?: string }) {
     if (input.branchId) assertPublicUuid(input.branchId, 'VALIDATION_ERROR');
     const { from, until } = publicScheduleRange(input.from, input.until);
-    const branches = await this.db.branch.findMany({
+    const branches = await this.db.cabang.findMany({
       where: { active: true, publicProfile: { isNot: null } },
       select: {
         id: true,
@@ -26,7 +26,7 @@ export class PublicScheduleQueryService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const slots = input.branchId
-      ? await this.db.classSlot.findMany({
+      ? await this.db.slotKelas.findMany({
           where: {
             branchId: input.branchId,
             branch: { active: true, publicProfile: { isNot: null } },
@@ -65,24 +65,26 @@ export class PublicScheduleQueryService {
 
   async detail(id: string) {
     assertPublicUuid(id);
-    const slot = await this.db.classSlot.findFirst({
+    const slot = await this.db.slotKelas.findFirst({
       where: {
         id,
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
-        endAt: { gt: new Date() },
         branch: { active: true, publicProfile: { isNot: null } },
         classType: { active: true },
       },
       select: {
         id: true,
+        branchId: true,
         startAt: true,
         endAt: true,
         timezone: true,
         status: true,
         capacity: true,
         bookedCount: true,
-        classType: { select: { id: true, code: true, name: true } },
+        classType: { select: { id: true, code: true, name: true, defaultDurationMinutes: true } },
         instructor: { select: { displayName: true } },
+        studio: { select: { id: true, name: true } },
+        room: { select: { id: true, name: true } },
         branch: {
           select: {
             id: true,
@@ -97,7 +99,7 @@ export class PublicScheduleQueryService {
     });
     if (!slot?.branch.publicProfile)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const classProfile = await this.db.publicClassProfile.findFirst({
+    const classProfile = await this.db.profilPublikKelas.findFirst({
       where: { code: slot.classType.code, active: true },
     });
     if (!classProfile) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -109,3 +111,4 @@ export class PublicScheduleQueryService {
     };
   }
 }
+

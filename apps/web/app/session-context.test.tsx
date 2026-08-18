@@ -395,7 +395,7 @@ describe('capability-aware session shell', () => {
     expect(
       await screen.findByRole('navigation', { name: 'Navigasi customer' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getAllByRole('link', { name: 'Jadwal' })[0]).toHaveAttribute('aria-current', 'page');
     expect(view.container.querySelector('[data-customer-shell]')).toBeInTheDocument();
     expect(view.container.querySelector('[data-admin-shell]')).not.toBeInTheDocument();
   });
@@ -421,7 +421,7 @@ describe('capability-aware session shell', () => {
     expect(
       customerNav.querySelector<HTMLAnchorElement>('a[aria-current="page"]'),
     ).toHaveTextContent('Dashboard');
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/account');
+    expect(screen.getAllByRole('link', { name: 'Dashboard' })[0]).toHaveAttribute('href', '/account');
     expect(
       screen.getByRole('link', { name: 'Daily Dose Pilates — Kembali ke situs utama' }),
     ).toHaveAttribute('href', '/');

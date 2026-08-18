@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { FinanceCommandService } from './finance-command.service';
+import { FinanceCommandService } from './transaksi-keuangan.service';
 
 @Controller()
 @UseGuards(AuthGuard)

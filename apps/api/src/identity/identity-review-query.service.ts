@@ -72,7 +72,7 @@ export class IdentityReviewQueryService {
     const until = parseDate(filters.until);
     if (from && until && from > until)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const baseWhere: Prisma.IdentityVerificationDocumentWhereInput = {
+    const baseWhere: Prisma.DokumenVerifikasiIdentitasWhereInput = {
       replacedById: null,
       ...(customerUserId ? { userId: customerUserId } : {}),
       ...(kind ? { kind } : {}),
@@ -92,7 +92,7 @@ export class IdentityReviewQueryService {
         : {}),
     };
     const cursor = decodeCursor(filters.cursor);
-    const having: Prisma.IdentityVerificationDocumentScalarWhereWithAggregatesInput | undefined =
+    const having: Prisma.DokumenVerifikasiIdentitasScalarWhereWithAggregatesInput | undefined =
       cursor
         ? {
             OR: [
@@ -106,7 +106,7 @@ export class IdentityReviewQueryService {
             ],
           }
         : undefined;
-    const caseWhere: Prisma.IdentityVerificationDocumentWhereInput = {
+    const caseWhere: Prisma.DokumenVerifikasiIdentitasWhereInput = {
       ...baseWhere,
       ...(status ? { status } : {}),
     };
@@ -119,7 +119,7 @@ export class IdentityReviewQueryService {
       rejectedDocuments,
       deletionIssues,
     ] = await Promise.all([
-      this.db.identityVerificationDocument.groupBy({
+      this.db.dokumenVerifikasiIdentitas.groupBy({
         by: ['userId'],
         where: caseWhere,
         _min: { createdAt: true },
@@ -127,12 +127,12 @@ export class IdentityReviewQueryService {
         ...(having ? { having } : {}),
         take: limit + 1,
       }),
-      this.db.identityVerificationDocument.groupBy({ by: ['userId'], where: baseWhere }),
-      this.db.identityVerificationDocument.count({ where: baseWhere }),
-      this.db.identityVerificationDocument.count({ where: { ...baseWhere, status: 'PENDING' } }),
-      this.db.identityVerificationDocument.count({ where: { ...baseWhere, status: 'APPROVED' } }),
-      this.db.identityVerificationDocument.count({ where: { ...baseWhere, status: 'REJECTED' } }),
-      this.db.identityVerificationDocument.count({
+      this.db.dokumenVerifikasiIdentitas.groupBy({ by: ['userId'], where: baseWhere }),
+      this.db.dokumenVerifikasiIdentitas.count({ where: baseWhere }),
+      this.db.dokumenVerifikasiIdentitas.count({ where: { ...baseWhere, status: 'PENDING' } }),
+      this.db.dokumenVerifikasiIdentitas.count({ where: { ...baseWhere, status: 'APPROVED' } }),
+      this.db.dokumenVerifikasiIdentitas.count({ where: { ...baseWhere, status: 'REJECTED' } }),
+      this.db.dokumenVerifikasiIdentitas.count({
         where: { ...baseWhere, status: { in: ['PENDING_DELETION', 'DELETE_FAILED'] } },
       }),
     ]);
@@ -140,7 +140,7 @@ export class IdentityReviewQueryService {
     const pageGroups = grouped.slice(0, limit);
     const userIds = pageGroups.map(({ userId }) => userId);
     const documents = userIds.length
-      ? await this.db.identityVerificationDocument.findMany({
+      ? await this.db.dokumenVerifikasiIdentitas.findMany({
           where: { replacedById: null, userId: { in: userIds } },
           include: {
             user: {
@@ -206,7 +206,7 @@ export class IdentityReviewQueryService {
     if (this.runtimeConfig && !this.runtimeConfig.value.identityReview.enabled)
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
     this.policy.requireGlobalCapability(principal, 'identity-verification:read');
-    const documents = await this.db.identityVerificationDocument.findMany({
+    const documents = await this.db.dokumenVerifikasiIdentitas.findMany({
       where: { userId, replacedById: null },
       include: {
         user: { select: { id: true, displayName: true, phoneE164: true, status: true } },

@@ -5,7 +5,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import { PackagePricingService } from './package-pricing.service';
+import { PackagePricingService } from './kalkulasi-harga-paket.service';
 
 export const normalizeVoucherCode = (value: unknown) =>
   String(value ?? '')
@@ -120,7 +120,7 @@ export class VoucherService {
   ) {
     if (branchId) this.access.scope(principal, branchId, ['voucher:manage']);
     if (packageIds.length) {
-      const packages = await this.db.package.findMany({
+      const packages = await this.db.paket.findMany({
         where: { id: { in: packageIds } },
         select: {
           id: true,
@@ -138,7 +138,7 @@ export class VoucherService {
           this.access.scope(principal, scope.branchId, ['voucher:manage']);
     }
     if (classTypeId) {
-      const classType = await this.db.classType.findUnique({
+      const classType = await this.db.jenisKelas.findUnique({
         where: { id: classTypeId },
         select: { branchScopes: { where: { active: true }, select: { branchId: true } } },
       });
@@ -438,9 +438,9 @@ export class VoucherService {
           },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        await tx.voucherPackageScope.deleteMany({ where: { voucherId: id } });
+        await tx.cakupanPaketVoucher.deleteMany({ where: { voucherId: id } });
         if (merged.packageIds?.length)
-          await tx.voucherPackageScope.createMany({
+          await tx.cakupanPaketVoucher.createMany({
             data: merged.packageIds.map((packageId) => ({
               id: newId(),
               voucherId: id,
@@ -510,7 +510,7 @@ export class VoucherService {
             (current.activeUntil && current.activeUntil <= now)
           )
             throw new ApiProblem('VOUCHER_INVALID_STATUS', HttpStatus.CONFLICT);
-          const claimed = await tx.voucherRedemption.count({
+          const claimed = await tx.penukaranVoucher.count({
             where: { voucherId: id, releasedAt: null },
           });
           if (current.totalUsageLimit !== null && claimed >= current.totalUsageLimit)
@@ -551,7 +551,7 @@ export class VoucherService {
     const voucher = await this.detail(principal, id);
     const limit = Math.min(50, Math.max(1, Number(rawLimit ?? 20)));
     if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const rows = await this.db.voucherRedemption.findMany({
+    const rows = await this.db.penukaranVoucher.findMany({
       where: { voucherId: id },
       orderBy: [{ redeemedAt: 'desc' }, { id: 'desc' }],
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -591,7 +591,7 @@ export class VoucherService {
     this.access.requireVerifiedCustomer(principal);
     if (!principal.capabilities.includes('voucher:redeem'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    const pkg = await this.db.package.findFirst({
+    const pkg = await this.db.paket.findFirst({
       where: { id: input.packageId, status: 'ACTIVE' },
       include: {
         promotions: {
@@ -615,19 +615,19 @@ export class VoucherService {
 
     const [branch, packageBranchScope, packageClassTypeScope, classTypeBranchScope] =
       await Promise.all([
-        this.db.branch.findFirst({
+        this.db.cabang.findFirst({
           where: { id: effectiveBranchId, active: true },
           select: { id: true },
         }),
-        this.db.packageBranchScope.findFirst({
+        this.db.cakupanCabangPaket.findFirst({
           where: { packageId: pkg.id, branchId: effectiveBranchId, active: true },
           select: { id: true },
         }),
-        this.db.packageClassTypeScope.findFirst({
+        this.db.cakupanJenisKelasPaket.findFirst({
           where: { packageId: pkg.id, classTypeId: effectiveClassTypeId, active: true },
           select: { id: true },
         }),
-        this.db.classTypeBranchScope.findFirst({
+        this.db.cakupanCabangJenisKelas.findFirst({
           where: {
             branchId: effectiveBranchId,
             classTypeId: effectiveClassTypeId,
@@ -663,7 +663,7 @@ export class VoucherService {
     if (!voucher) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
     if (packagePricing.effectivePriceRp < voucher.minimumPurchaseRp)
       throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
-    const customerUsage = await this.db.voucherRedemption.count({
+    const customerUsage = await this.db.penukaranVoucher.count({
       where: { voucherId: voucher.id, customerUserId: principal.userId, releasedAt: null },
     });
     if (voucher.totalUsageLimit !== null && voucher._count.redemptions >= voucher.totalUsageLimit)
@@ -687,5 +687,63 @@ export class VoucherService {
       discountRp,
       priceAfterDiscountRp: packagePricing.effectivePriceRp - discountRp,
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async daftarVoucher(
+    principal: SessionPrincipal,
+    filters: Parameters<VoucherService['list']>[1],
+  ) {
+    return this.list(principal, filters);
+  }
+
+  async detailVoucher(principal: SessionPrincipal, id: string) {
+    return this.detail(principal, id);
+  }
+
+  async buatVoucher(
+    principal: SessionPrincipal,
+    input: Parameters<VoucherService['create']>[1],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.create(principal, input, key, correlationId);
+  }
+
+  async perbaruiVoucher(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<VoucherService['update']>[2],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.update(principal, id, input, key, correlationId);
+  }
+
+  async ubahStatusVoucher(
+    principal: SessionPrincipal,
+    id: string,
+    status: Parameters<VoucherService['transition']>[2],
+    input: Parameters<VoucherService['transition']>[3],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.transition(principal, id, status, input, key, correlationId);
+  }
+
+  async riwayatKlaimVoucher(
+    principal: SessionPrincipal,
+    id: string,
+    cursor?: string,
+    rawLimit?: string,
+  ) {
+    return this.redemptions(principal, id, cursor, rawLimit);
+  }
+
+  async pratinjauVoucher(
+    principal: SessionPrincipal,
+    input: Parameters<VoucherService['preview']>[1],
+  ) {
+    return this.preview(principal, input);
   }
 }

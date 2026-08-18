@@ -53,7 +53,7 @@ export class CustomerProfileService {
     if (!isCustomer && input.preferredBranchId)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const branch = input.preferredBranchId
-      ? await this.db.branch.findFirst({
+      ? await this.db.cabang.findFirst({
           where: { id: input.preferredBranchId, active: true },
           select: { id: true },
         })
@@ -119,6 +119,19 @@ export class CustomerProfileService {
         });
     });
     return this.get(principal);
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async ambilProfil(principal: SessionPrincipal) {
+    return this.get(principal);
+  }
+
+  async perbaruiProfil(
+    principal: SessionPrincipal,
+    input: Parameters<CustomerProfileService['update']>[1],
+    correlationId: string,
+  ) {
+    return this.update(principal, input, correlationId);
   }
 }
 

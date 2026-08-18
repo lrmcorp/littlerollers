@@ -9,7 +9,7 @@ const finance = {
 
 describe('FinanceService', () => {
   it('denies principals without reconciliation capability', async () => {
-    const service = new FinanceService({ purchase: { findMany: jest.fn() } } as never);
+    const service = new FinanceService({ pembelian: { findMany: jest.fn() } } as never);
     await expect(
       service.overview(
         {
@@ -50,7 +50,7 @@ describe('FinanceService', () => {
         customerPackage: null,
       },
     ]);
-    const result = await new FinanceService({ purchase: { findMany } } as never).overview(finance, {
+    const result = await new FinanceService({ pembelian: { findMany } } as never).overview(finance, {
       branchId: 'b1',
       from: '2026-07-01',
       until: '2026-07-31',
@@ -86,7 +86,7 @@ describe('FinanceService', () => {
         customerPackage: null,
       },
     ]);
-    const result = await new FinanceService({ purchase: { findMany } } as never).anomalies(
+    const result = await new FinanceService({ pembelian: { findMany } } as never).anomalies(
       finance,
       {},
     );
@@ -112,7 +112,7 @@ describe('FinanceService', () => {
       customerPackage: null,
     }));
     const service = new FinanceService({
-      purchase: { findMany: jest.fn().mockResolvedValue(purchases) },
+      pembelian: { findMany: jest.fn().mockResolvedValue(purchases) },
     } as never);
 
     const first = await service.anomalies(finance, {});

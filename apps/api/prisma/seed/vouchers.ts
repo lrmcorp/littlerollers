@@ -167,7 +167,7 @@ export async function seedVouchers(
       },
     });
     for (const packageId of item.packageIds) {
-      await ctx.db.voucherPackageScope.upsert({
+      await ctx.db.cakupanPaketVoucher.upsert({
         where: { voucherId_packageId: { voucherId, packageId } },
         update: {},
         create: { id: ctx.id('voucher-scope', `${item.key}:${packageId}`), voucherId, packageId },
@@ -185,14 +185,14 @@ export async function seedVoucherRedemptionFixture(
   const purchaseId = ctx.id('purchase', 'approved');
   const customerUserId = users.customer;
   if (!customerUserId) return;
-  const purchase = await ctx.db.purchase.findUnique({
+  const purchase = await ctx.db.pembelian.findUnique({
     where: { id: purchaseId },
     select: { priceRpSnapshot: true, paymentUniqueCode: true },
   });
   if (!purchase) return;
   const discountRp = Math.floor(purchase.priceRpSnapshot * 0.1);
   const netRp = purchase.priceRpSnapshot - discountRp;
-  await ctx.db.purchase.update({
+  await ctx.db.pembelian.update({
     where: { id: purchaseId },
     data: {
       voucherId,
@@ -204,7 +204,7 @@ export async function seedVoucherRedemptionFixture(
       payableAmountRpSnapshot: netRp + (purchase.paymentUniqueCode ?? 0),
     },
   });
-  await ctx.db.voucherRedemption.upsert({
+  await ctx.db.penukaranVoucher.upsert({
     where: { purchaseId },
     update: { voucherId, customerUserId, discountRp, releasedAt: null },
     create: {
@@ -215,7 +215,7 @@ export async function seedVoucherRedemptionFixture(
       discountRp,
     },
   });
-  await ctx.db.customerPackage.updateMany({
+  await ctx.db.paketPelanggan.updateMany({
     where: { purchaseId },
     data: { salePriceRp: netRp },
   });

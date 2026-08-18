@@ -25,12 +25,7 @@ import {
 import { formatPaymentCode, orderReasonLabels, orderStatusLabels } from '../../order-presenters';
 import { Button, ButtonLink, IconButton } from '../actions';
 import { AlertBanner, useAppFeedback } from '../app-feedback';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../../lib/formatters';
 
 const steps = ['Ringkasan', 'Pembayaran', 'Unggah bukti', 'Status'];
 
@@ -267,13 +262,13 @@ export function CustomerPaymentFlow({
           <dl className="mt-6 divide-y divide-dd-line rounded-dd-lg border border-dd-line">
             <div className="flex items-center justify-between gap-4 px-4 py-3">
               <dt className="text-sm text-dd-muted">Harga paket</dt>
-              <dd className="font-semibold">{rupiah.format(order.baseAmountRp)}</dd>
+              <dd className="font-semibold">{formatRupiah(order.baseAmountRp)}</dd>
             </div>
             {order.promotion && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <dt className="text-sm text-dd-muted">Promo paket · {order.promotion.name}</dt>
                 <dd className="font-semibold text-dd-forest">
-                  -{rupiah.format(order.promotion.discountRp)}
+                  -{formatRupiah(order.promotion.discountRp)}
                 </dd>
               </div>
             )}
@@ -281,7 +276,7 @@ export function CustomerPaymentFlow({
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <dt className="text-sm text-dd-muted">Harga promo</dt>
                 <dd className="font-semibold">
-                  {rupiah.format(order.promotionalPriceRp ?? order.baseAmountRp)}
+                  {formatRupiah(order.promotionalPriceRp ?? order.baseAmountRp)}
                 </dd>
               </div>
             )}
@@ -289,7 +284,7 @@ export function CustomerPaymentFlow({
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <dt className="text-sm text-dd-muted">Diskon voucher · {order.voucher.code}</dt>
                 <dd className="font-semibold text-dd-forest">
-                  -{rupiah.format(order.voucher.discountRp)}
+                  -{formatRupiah(order.voucher.discountRp)}
                 </dd>
               </div>
             )}
@@ -297,7 +292,7 @@ export function CustomerPaymentFlow({
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <dt className="text-sm text-dd-muted">Harga setelah diskon</dt>
                 <dd className="font-semibold">
-                  {rupiah.format(order.priceAfterDiscountRp ?? order.baseAmountRp)}
+                  {formatRupiah(order.priceAfterDiscountRp ?? order.baseAmountRp)}
                 </dd>
               </div>
             )}
@@ -311,7 +306,7 @@ export function CustomerPaymentFlow({
                 </span>
               </dt>
               <dd className="text-xl font-bold text-dd-forest">
-                {rupiah.format(order.payableAmountRp)}
+                {formatRupiah(order.payableAmountRp)}
               </dd>
             </div>
           </dl>
@@ -338,7 +333,7 @@ export function CustomerPaymentFlow({
               />
               <CopyRow
                 label="Nominal transfer"
-                value={rupiah.format(order.payableAmountRp)}
+                value={formatRupiah(order.payableAmountRp)}
                 onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
               />
             </div>

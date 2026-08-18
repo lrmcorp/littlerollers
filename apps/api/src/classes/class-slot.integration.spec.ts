@@ -46,13 +46,13 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         { id: customerId, displayName: 'Synthetic customer' },
       ],
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Synthetic branch', timezone: 'Asia/Jakarta' },
     });
     await db.studio.create({
       data: { id: studioId, branchId, code: 'MAIN', name: 'Synthetic main studio' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: {
         id: classTypeId,
         branchId,
@@ -60,10 +60,10 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         name: 'Reformer',
       },
     });
-    await db.classTypeBranchScope.create({
+    await db.cakupanCabangJenisKelas.create({
       data: { id: randomUUID(), classTypeId, branchId },
     });
-    await db.assignment.create({
+    await db.penugasan.create({
       data: {
         id: assignmentId,
         userId: instructorId,
@@ -72,7 +72,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         activeFrom: new Date('2026-01-01'),
       },
     });
-    await db.instructorAvailability.create({
+    await db.ketersediaanInstruktur.create({
       data: {
         id: availabilityId,
         instructorUserId: instructorId,
@@ -83,7 +83,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         timezone: 'Asia/Jakarta',
       },
     });
-    await db.effectiveConfiguration.create({
+    await db.konfigurasiEfektif.create({
       data: {
         id: configId,
         kind: 'QUOTA_CAPACITY',
@@ -97,7 +97,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     });
   });
   afterAll(async () => {
-    const slots = await db.classSlot.findMany({ where: { branchId }, select: { id: true } });
+    const slots = await db.slotKelas.findMany({ where: { branchId }, select: { id: true } });
     const slotIds = slots.map(({ id }) => id);
     await db.outboxEvent.deleteMany({
       where: { aggregateType: 'ClassSlot', aggregateId: { in: slotIds } },
@@ -114,19 +114,19 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         ],
       },
     });
-    await db.sessionReservation.deleteMany({ where: { customerPackageId } });
-    await db.customerPackage.deleteMany({ where: { id: customerPackageId } });
-    await db.purchase.deleteMany({ where: { id: purchaseId } });
-    await db.paymentProof.deleteMany({ where: { id: proofId } });
-    await db.package.deleteMany({ where: { id: packageId } });
-    await db.classSlot.deleteMany({ where: { branchId } });
-    await db.effectiveConfiguration.deleteMany({ where: { id: configId } });
-    await db.instructorAvailability.deleteMany({ where: { id: availabilityId } });
-    await db.assignment.deleteMany({ where: { id: assignmentId } });
-    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
-    await db.classType.deleteMany({ where: { id: classTypeId } });
+    await db.reservasiSesi.deleteMany({ where: { customerPackageId } });
+    await db.paketPelanggan.deleteMany({ where: { id: customerPackageId } });
+    await db.pembelian.deleteMany({ where: { id: purchaseId } });
+    await db.buktiPembayaran.deleteMany({ where: { id: proofId } });
+    await db.paket.deleteMany({ where: { id: packageId } });
+    await db.slotKelas.deleteMany({ where: { branchId } });
+    await db.konfigurasiEfektif.deleteMany({ where: { id: configId } });
+    await db.ketersediaanInstruktur.deleteMany({ where: { id: availabilityId } });
+    await db.penugasan.deleteMany({ where: { id: assignmentId } });
+    await db.cakupanCabangJenisKelas.deleteMany({ where: { classTypeId } });
+    await db.jenisKelas.deleteMany({ where: { id: classTypeId } });
     await db.studio.deleteMany({ where: { id: studioId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId, customerId] } } });
     await db.$disconnect();
   });
@@ -169,7 +169,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
       namespace,
     );
     expect(replay.replay).toBe(true);
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         branchId,
@@ -182,7 +182,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         effectiveFrom: new Date('2026-01-01'),
       },
     });
-    await db.paymentProof.create({
+    await db.buktiPembayaran.create({
       data: {
         id: proofId,
         userId: customerId,
@@ -197,7 +197,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         scanStatus: 'CLEAN',
       },
     });
-    await db.purchase.create({
+    await db.pembelian.create({
       data: {
         id: purchaseId,
         userId: customerId,
@@ -216,7 +216,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         idempotencyKeyHash: randomUUID(),
       },
     });
-    await db.customerPackage.create({
+    await db.paketPelanggan.create({
       data: {
         id: customerPackageId,
         purchaseId,
@@ -232,7 +232,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         projectionRateRp: 10000,
       },
     });
-    await db.sessionReservation.create({
+    await db.reservasiSesi.create({
       data: {
         id: reservationId,
         customerPackageId,
@@ -249,7 +249,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
       namespace,
     );
     expect(cancelled.body).toMatchObject({ status: 'CANCELLED', version: 3 });
-    expect(await db.sessionReservation.findUnique({ where: { id: reservationId } })).toMatchObject({
+    expect(await db.reservasiSesi.findUnique({ where: { id: reservationId } })).toMatchObject({
       status: 'RELEASED',
     });
     expect(await db.outboxEvent.count({ where: { aggregateId: id } })).toBe(2);
@@ -285,7 +285,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     };
     const confirmed = await createAndPublish(14, 'confirmed');
     const confirmedReservation = randomUUID();
-    await db.sessionReservation.create({
+    await db.reservasiSesi.create({
       data: {
         id: confirmedReservation,
         customerPackageId,
@@ -333,7 +333,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
 
     const cancelled = await createAndPublish(16, 'auto-cancelled');
     const releasedReservation = randomUUID();
-    await db.sessionReservation.create({
+    await db.reservasiSesi.create({
       data: {
         id: releasedReservation,
         customerPackageId,
@@ -352,7 +352,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
     expect(cancelledResult).toMatchObject({ status: 'AUTO_CANCELLED', bookingCount: 1 });
     expect(cancelledResult.releasedReservationIds).toEqual([releasedReservation]);
     expect(
-      await db.sessionReservation.findUniqueOrThrow({ where: { id: releasedReservation } }),
+      await db.reservasiSesi.findUniqueOrThrow({ where: { id: releasedReservation } }),
     ).toMatchObject({ status: 'RELEASED' });
     const started = await createAndPublish(18, 'already-started');
     await expect(
@@ -414,7 +414,7 @@ databaseDescribe('synthetic class-slot MySQL integration', () => {
         namespace,
       ),
     ).rejects.toMatchObject({ code: 'AVAILABILITY_REQUIRED' });
-    await db.effectiveConfiguration.update({
+    await db.konfigurasiEfektif.update({
       where: { id: configId },
       data: { effectiveUntil: new Date('2026-07-01') },
     });

@@ -10,7 +10,7 @@ export class PublicSiteConfigService {
   ) {}
 
   async get() {
-    const branches = await this.db.branch.findMany({
+    const branches = await this.db.cabang.findMany({
       where: { active: true, publicProfile: { isNot: null } },
       select: {
         id: true,
@@ -37,13 +37,13 @@ export class PublicSiteConfigService {
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
 
-    const activeClassTypes = await this.db.classType.findMany({
+    const activeClassTypes = await this.db.jenisKelas.findMany({
       where: { active: true, branch: { active: true, publicProfile: { isNot: null } } },
       select: { code: true, name: true },
       distinct: ['code'],
       orderBy: [{ code: 'asc' }],
     });
-    const classProfiles = await this.db.publicClassProfile.findMany({
+    const classProfiles = await this.db.profilPublikKelas.findMany({
       where: {
         active: true,
         code: { in: activeClassTypes.map(({ code }) => code) },
@@ -80,5 +80,10 @@ export class PublicSiteConfigService {
         instructorCheckIn: this.runtimeConfig.value.mobileFeatures.instructorCheckIn,
       },
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async ambilKonfigurasiSitus() {
+    return this.get();
   }
 }

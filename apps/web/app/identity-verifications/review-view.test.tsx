@@ -137,10 +137,6 @@ describe('professional identity verification queue', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Periksa' })[0]!);
     expect(await screen.findByRole('dialog', { name: 'Verifikasi · Ayu Customer' })).toBeVisible();
 
-    const previewButtons = screen.getAllByRole('button', { name: 'Lihat dokumen' });
-    fireEvent.click(previewButtons[0]!);
-    fireEvent.click(previewButtons[1]!);
-
     expect(await screen.findByAltText('Preview privat Selfie')).toBeVisible();
     expect(await screen.findByAltText('Preview privat KTP depan')).toBeVisible();
     expect(client.authorizeView).toHaveBeenCalledTimes(2);
@@ -157,13 +153,12 @@ describe('professional identity verification queue', () => {
     renderReview(client);
     await screen.findAllByText('Ayu Customer');
     fireEvent.click(screen.getAllByRole('button', { name: 'Periksa' })[0]!);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Lihat dokumen' })[0]!);
 
     expect(await screen.findByRole('button', { name: 'Coba lagi preview' })).toBeVisible();
     expect(screen.getByRole('dialog', { name: 'Verifikasi · Ayu Customer' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi preview' }));
     expect(await screen.findByAltText('Preview privat Selfie')).toBeVisible();
-    expect(client.authorizeView).toHaveBeenCalledTimes(2);
+    expect(client.authorizeView).toHaveBeenCalledTimes(3);
   });
 });

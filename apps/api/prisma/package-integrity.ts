@@ -7,7 +7,7 @@ const db = new PrismaClient();
 const repair = process.argv.includes('--repair');
 
 async function loadPackages() {
-  return db.package.findMany({
+  return db.paket.findMany({
     where: { status: 'ACTIVE' },
     include: {
       _count: {
@@ -86,7 +86,7 @@ async function main() {
       const keep = candidates[0]!;
       const legacy = candidates[1]!;
       if (repaired.has(legacy.id)) continue;
-      const stillActive = await db.package.findFirst({
+      const stillActive = await db.paket.findFirst({
         where: { id: legacy.id, status: 'ACTIVE' },
         select: { id: true },
       });
@@ -99,7 +99,7 @@ async function main() {
           ? repairedAt
           : new Date(current.effectiveFrom.getTime() + 1));
       await db.$transaction([
-        db.package.update({
+        db.paket.update({
           where: { id: legacy.id },
           data: {
             status: 'INACTIVE',

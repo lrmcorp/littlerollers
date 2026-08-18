@@ -1,8 +1,4 @@
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../../lib/formatters';
 
 export type PublicPromotionPrice = {
   label: string;
@@ -33,9 +29,9 @@ export function PackagePrice({
         <div className={`flex flex-wrap items-center gap-2 ${compact ? 'justify-end' : ''}`}>
           <del
             className="text-sm font-medium text-dd-muted"
-            aria-label={`Harga normal ${rupiah.format(priceRp)}`}
+            aria-label={`Harga normal ${formatRupiah(priceRp)}`}
           >
-            {rupiah.format(priceRp)}
+            {formatRupiah(priceRp)}
           </del>
           <span className="rounded-full bg-dd-brass-soft px-2.5 py-1 text-[11px] font-bold text-dd-brass-dark">
             {promotion?.label}
@@ -45,16 +41,16 @@ export function PackagePrice({
       <strong
         className={compact ? 'text-base text-dd-forest' : 'text-3xl tracking-tight text-dd-forest'}
       >
-        {rupiah.format(effectivePriceRp)}
+        {formatRupiah(effectivePriceRp)}
       </strong>
       {promoted && !compact && (
         <span className="text-xs font-semibold text-dd-brass-dark">
-          Hemat {rupiah.format(promotion?.discountRp ?? 0)}
+          Hemat {formatRupiah(promotion?.discountRp ?? 0)}
         </span>
       )}
       {sessionCount && !compact && (
         <span className="text-sm text-dd-muted">
-          {rupiah.format(Math.round(effectivePriceRp / sessionCount))} per sesi
+          {formatRupiah(Math.round(effectivePriceRp / sessionCount))} per sesi
         </span>
       )}
     </div>

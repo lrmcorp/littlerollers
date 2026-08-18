@@ -17,12 +17,7 @@ import {
   type PromotionOrderPage,
 } from '../package-promotion-client';
 import { browserMasterClient } from '../master-client';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../lib/formatters';
 const stateLabels: Record<string, string> = {
   DRAFT: 'Draft',
   ACTIVE: 'Aktif',
@@ -153,7 +148,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             {(pkg.branchScopes ?? [])
               .map((scope) => scope.branch?.name)
               .filter(Boolean)
-              .join(', ') || pkg.branch?.name}{' '}
+              .join(', ') || '—'}{' '}
             · {pkg.sessionCount} sesi · {pkg.durationDays} hari
           </p>
         </div>
@@ -179,7 +174,6 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                   ?.map((scope) => scope.branch?.name)
                   .filter(Boolean)
                   .join(', ') ||
-                pkg.branch?.name ||
                 '—'
               }
             />
@@ -190,7 +184,6 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                   ?.map((scope) => scope.classType?.name)
                   .filter(Boolean)
                   .join(', ') ||
-                pkg.classType?.name ||
                 '—'
               }
             />
@@ -203,7 +196,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         <Panel className="p-5">
           <h2 className="text-lg font-semibold">Konfigurasi komersial</h2>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            <PackageInfo label="Harga normal" value={rupiah.format(pkg.priceRp)} />
+            <PackageInfo label="Harga normal" value={formatRupiah(pkg.priceRp)} />
             <PackageInfo label="Jumlah sesi" value={`${pkg.sessionCount} sesi`} />
             <PackageInfo label="Masa berlaku" value={`${pkg.durationDays} hari`} />
             <PackageInfo
@@ -292,7 +285,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             {
               id: 'price',
               header: 'Harga',
-              cell: (item) => rupiah.format(item.priceRp),
+              cell: (item) => formatRupiah(item.priceRp),
             },
             {
               id: 'sessions',
@@ -329,7 +322,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           mobileCard={(item) => (
             <div className="grid gap-1">
               <strong>Revisi {item.revisionNumber}</strong>
-              <span>{rupiah.format(item.priceRp)}</span>
+              <span>{formatRupiah(item.priceRp)}</span>
               <span className="text-xs text-dd-muted">
                 {item.sessionCount} sesi · {item.durationDays} hari
               </span>
@@ -365,9 +358,9 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
               header: 'Harga promo',
               cell: (item) => (
                 <div>
-                  <del className="text-xs text-dd-muted">{rupiah.format(pkg.priceRp)}</del>
+                  <del className="text-xs text-dd-muted">{formatRupiah(pkg.priceRp)}</del>
                   <strong className="block text-dd-forest">
-                    {rupiah.format(item.promotionalPriceRp)}
+                    {formatRupiah(item.promotionalPriceRp)}
                   </strong>
                 </div>
               ),
@@ -461,7 +454,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                 <Badge>{stateLabels[item.effectiveState] ?? item.effectiveState}</Badge>
               </div>
               <span className="text-sm text-dd-muted">{item.label}</span>
-              <strong className="text-dd-forest">{rupiah.format(item.promotionalPriceRp)}</strong>
+              <strong className="text-dd-forest">{formatRupiah(item.promotionalPriceRp)}</strong>
             </div>
           )}
         />
@@ -516,7 +509,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
               {
                 id: 'discount',
                 header: 'Diskon promo',
-                cell: (item) => rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0),
+                cell: (item) => formatRupiah(item.packagePromotionDiscountRpSnapshot ?? 0),
               },
               {
                 id: 'submitted',
@@ -528,7 +521,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
               <div className="grid gap-1">
                 <strong>{item.user.displayName}</strong>
                 <span className="text-sm text-dd-muted">{item.branch.name}</span>
-                <span>{rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0)}</span>
+                <span>{formatRupiah(item.packagePromotionDiscountRpSnapshot ?? 0)}</span>
               </div>
             )}
           />
@@ -833,8 +826,26 @@ function PackageLifecycleEditor({
                   : 'Cabang, tipe kelas, business key, harga, sesi, masa berlaku, dan periode tidak dapat diubah langsung. Gunakan revisi paket.'
               }
             />
-            <TextInput label="Cabang / studio" value={pkg.branch?.name ?? '—'} disabled />
-            <TextInput label="Tipe kelas" value={pkg.classType?.name ?? '—'} disabled />
+            <TextInput
+              label="Cabang / studio"
+              value={
+                pkg.branchScopes
+                  ?.map((scope) => scope.branch?.name)
+                  .filter(Boolean)
+                  .join(', ') || '—'
+              }
+              disabled
+            />
+            <TextInput
+              label="Tipe kelas"
+              value={
+                pkg.classTypeScopes
+                  ?.map((scope) => scope.classType?.name)
+                  .filter(Boolean)
+                  .join(', ') || '—'
+              }
+              disabled
+            />
             <TextInput label="Business key" value={pkg.businessKey} disabled />
             {canEditCommercialInPlace && (
               <>
@@ -1005,7 +1016,7 @@ function PromotionEditor({
       }
     >
       <p className="mb-4 text-sm text-dd-muted">
-        Harga normal {rupiah.format(pkg.priceRp)}. Promo harus menyisakan minimal Rp1.
+        Harga normal {formatRupiah(pkg.priceRp)}. Promo harus menyisakan minimal Rp1.
       </p>
       {failure && <AlertBanner tone="danger" title="Promo belum tersimpan" message={failure} />}
       <form

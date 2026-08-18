@@ -22,7 +22,7 @@ export class PublicProfileAdminService {
   async list(principal: SessionPrincipal, branchId: string) {
     this.access.authorize(principal);
     this.access.ensureBranchScope(principal, branchId);
-    const branch = await this.db.branch.findUnique({
+    const branch = await this.db.cabang.findUnique({
       where: { id: branchId },
       select: {
         id: true,
@@ -44,7 +44,7 @@ export class PublicProfileAdminService {
       },
     });
     if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const classProfiles = await this.db.publicClassProfile.findMany({
+    const classProfiles = await this.db.profilPublikKelas.findMany({
       where: { code: { in: branch.classTypes.map(({ code }) => code) } },
       orderBy: { code: 'asc' },
     });
@@ -89,7 +89,7 @@ export class PublicProfileAdminService {
     strings: (value: unknown) => boolean,
   ) {
     this.access.ensureBranchScope(principal, id, true);
-    const current = await tx.branchPublicProfile.findUnique({ where: { branchId: id } });
+    const current = await tx.profilPublikCabang.findUnique({ where: { branchId: id } });
     if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     const heroImageKey = String(input.heroImageKey ?? '');
     const galleryImageKeys = input.galleryImageKeys;
@@ -99,7 +99,7 @@ export class PublicProfileAdminService {
       !(galleryImageKeys as string[]).every((key) => PUBLIC_ASSET_KEY_SET.has(key))
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const updated = await tx.branchPublicProfile.updateMany({
+    const updated = await tx.profilPublikCabang.updateMany({
       where: { branchId: id, version: input.expectedVersion },
       data: {
         slug: String(input.slug ?? '').trim(),
@@ -117,7 +117,7 @@ export class PublicProfileAdminService {
       },
     });
     if (!updated.count) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    const result = await tx.branchPublicProfile.findUniqueOrThrow({ where: { branchId: id } });
+    const result = await tx.profilPublikCabang.findUniqueOrThrow({ where: { branchId: id } });
     await this.access.audit(
       tx,
       principal,
@@ -142,7 +142,7 @@ export class PublicProfileAdminService {
   ) {
     if (!principal.capabilities.includes('branch:all'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    const current = await tx.publicClassProfile.findUnique({ where: { code: id } });
+    const current = await tx.profilPublikKelas.findUnique({ where: { code: id } });
     if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     const heroImageKey = String(input.heroImageKey ?? '');
     if (
@@ -151,7 +151,7 @@ export class PublicProfileAdminService {
       !strings(input.benefits)
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const updated = await tx.publicClassProfile.updateMany({
+    const updated = await tx.profilPublikKelas.updateMany({
       where: { code: id, version: input.expectedVersion },
       data: {
         slug: String(input.slug ?? '').trim(),
@@ -166,9 +166,9 @@ export class PublicProfileAdminService {
       },
     });
     if (!updated.count) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    const result = await tx.publicClassProfile.findUniqueOrThrow({ where: { code: id } });
+    const result = await tx.profilPublikKelas.findUniqueOrThrow({ where: { code: id } });
     const branchId =
-      principal.branchIds[0] ?? (await tx.branch.findFirst({ select: { id: true } }))?.id;
+      principal.branchIds[0] ?? (await tx.cabang.findFirst({ select: { id: true } }))?.id;
     if (!branchId) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     await this.access.audit(
       tx,
@@ -192,7 +192,7 @@ export class PublicProfileAdminService {
     correlationId: string,
     strings: (value: unknown) => boolean,
   ) {
-    const pkg = await tx.package.findUnique({
+    const pkg = await tx.paket.findUnique({
       where: { id },
       select: {
         branchScopes: { where: { active: true }, select: { branchId: true } },
@@ -205,7 +205,7 @@ export class PublicProfileAdminService {
     for (const branchId of branchIds) this.access.ensureBranchScope(principal, branchId, true);
     if (!strings(input.highlights) || !strings(input.terms))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const updated = await tx.packagePublicProfile.updateMany({
+    const updated = await tx.profilPublikPaket.updateMany({
       where: { packageId: id, version: input.expectedVersion },
       data: {
         summary: String(input.summary ?? '').trim(),
@@ -217,7 +217,7 @@ export class PublicProfileAdminService {
       },
     });
     if (!updated.count) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    const result = await tx.packagePublicProfile.findUniqueOrThrow({ where: { packageId: id } });
+    const result = await tx.profilPublikPaket.findUniqueOrThrow({ where: { packageId: id } });
     await this.access.audit(
       tx,
       principal,

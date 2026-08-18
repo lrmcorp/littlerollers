@@ -29,6 +29,8 @@ import {
   CustomerNavigation,
   isCustomerNavigationActive,
 } from './components/customer/customer-navigation';
+import { useCustomerBadges } from './components/customer/use-customer-badges';
+import { MobileBottomNavigation } from './components/mobile-bottom-navigation';
 import { BrandMark } from './components/public/brand-mark';
 import {
   isCustomerCatalogPath,
@@ -168,6 +170,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('pointerdown', outsideHandler);
     };
   }, [profileOpen]);
+  const customerBadges = useCustomerBadges();
   const customerOnly = isCustomerOnlySession(session);
   const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
   if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
@@ -188,75 +191,82 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         />
         <header
           className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
-          aria-hidden={mobileOverlay.rendered || undefined}
           inert={mobileOverlay.rendered || undefined}
         >
-          <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
-            <IconButton
-              label="Buka navigasi akun"
-              variant="secondary"
-              aria-controls="customer-navigation"
-              onClick={() => {
-                setProfileOpen(false);
-                setNotificationOpen(false);
-                setCommandOpen(false);
-                setMobileOpen(true);
-              }}
-              className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
-            >
-              <Menu className="size-5" />
-            </IconButton>
-            <BrandMark
-              href="/"
-              priority
-              className="hidden w-40 shrink-0 lg:inline-flex xl:w-44"
-              ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
-            />
-            <nav
-              aria-label="Navigasi customer"
-              className="hidden min-w-0 items-center gap-1 lg:flex xl:ml-3"
-            >
-              {CUSTOMER_PRIMARY_NAVIGATION.map((item) => {
-                const selected = isCustomerNavigationActive(pathname, item.href);
-                const locked = Boolean(item.requiresApproval && !approved);
-                const href = locked
-                  ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
-                  : item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={href}
-                    aria-current={!mobileOpen && selected ? 'page' : undefined}
-                    aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
-                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
-                      selected
-                        ? 'bg-dd-forest text-white shadow-dd-soft'
-                        : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-forest'
-                    }`}
-                  >
-                    {item.label}
-                    {locked && <LockKeyhole className="size-3" aria-hidden="true" />}
-                  </Link>
-                );
-              })}
-            </nav>
-            <div className="min-w-0 flex-1 lg:hidden">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-                Akun Daily Dose
-              </span>
-              <strong className="block truncate text-sm sm:text-base">
-                {currentPageLabel ?? 'Akun Saya'}
-              </strong>
+          <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
+            <div className="flex items-center gap-3">
+              <IconButton
+                label="Buka navigasi akun"
+                variant="secondary"
+                aria-controls="customer-navigation"
+                onClick={() => {
+                  setProfileOpen(false);
+                  setNotificationOpen(false);
+                  setCommandOpen(false);
+                  setMobileOpen(true);
+                }}
+                className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
+              >
+                <Menu className="size-5" />
+              </IconButton>
+              <BrandMark
+                href="/"
+                priority
+                className="w-32 shrink-0 sm:w-40 xl:w-44"
+                ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
+              />
+              <nav
+                aria-label="Navigasi customer"
+                className="hidden min-w-0 items-center gap-1 lg:flex xl:ml-3"
+              >
+                {CUSTOMER_PRIMARY_NAVIGATION.map((item) => {
+                  const selected = isCustomerNavigationActive(pathname, item.href);
+                  const locked = Boolean(item.requiresApproval && !approved);
+                  const href = locked
+                    ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
+                    : item.href;
+                  const showOrderBadge =
+                    item.href === '/orders' && customerBadges.actionableOrdersCount > 0;
+                  const showBookingBadge =
+                    item.href === '/bookings' && customerBadges.upcomingBookingsCount > 0;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={href}
+                      aria-current={!mobileOpen && selected ? 'page' : undefined}
+                      aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
+                        selected
+                          ? 'bg-dd-forest text-white shadow-dd-soft'
+                          : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-forest'
+                      }`}
+                    >
+                      {item.label}
+                      {showOrderBadge && (
+                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                          {customerBadges.actionableOrdersCount}
+                        </span>
+                      )}
+                      {showBookingBadge && (
+                        <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                          {customerBadges.upcomingBookingsCount}
+                        </span>
+                      )}
+                      {locked && <LockKeyhole className="size-3" aria-hidden="true" />}
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {session?.preferredBranch && (
                 <button
                   type="button"
                   onClick={() => studioPreference?.openStudioPreference()}
-                  className="hidden min-h-10 max-w-48 items-center gap-2 truncate rounded-dd-md border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-ink xl:flex"
+                  className="flex min-h-9 max-w-44 items-center gap-1.5 truncate rounded-full border border-dd-line/80 bg-white px-2.5 py-1 text-xs font-semibold text-dd-ink shadow-2xs hover:border-dd-forest/40 sm:max-w-48 sm:rounded-dd-md sm:px-3 sm:py-2"
                 >
-                  <MapPin className="size-4 shrink-0 text-dd-forest" aria-hidden="true" />
-                  Studio: {session.preferredBranch.name}
+                  <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
+                  <span className="truncate">{session.preferredBranch.name}</span>
                 </button>
               )}
               <Link
@@ -384,15 +394,15 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         <div
           className={
             customerCatalog
-              ? 'min-w-0'
-              : 'mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8'
+              ? 'min-w-0 pb-20 lg:pb-0'
+              : 'mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 pb-24 lg:pb-8'
           }
           id="main-content"
-          aria-hidden={mobileOverlay.rendered || undefined}
           inert={mobileOverlay.rendered || undefined}
         >
           {children}
         </div>
+        <MobileBottomNavigation customerOnly={true} approved={approved} />
       </div>
     );
   }
@@ -412,7 +422,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       />
       <div
         className="min-w-0 flex-1"
-        aria-hidden={mobileOverlay.rendered || undefined}
         inert={mobileOverlay.rendered || undefined}
       >
         <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
@@ -606,11 +615,12 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           )}
         </header>
         <main
-          className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+          className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 pb-24 lg:pb-8"
           id="main-content"
         >
           {children}
         </main>
+        <MobileBottomNavigation customerOnly={false} onOpenMenu={() => setMobileOpen(true)} />
       </div>
       <Modal
         open={commandOpen}

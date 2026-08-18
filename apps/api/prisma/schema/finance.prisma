@@ -1,0 +1,237 @@
+enum LedgerEntryType {
+  PURCHASE
+  MIGRATION_OPENING
+  ATTEND
+  REVERSAL
+  ADJUST_MANUAL
+}
+
+enum LegacyFinancialEntryType {
+  INCOME
+  EXPENSE
+}
+
+enum OtherCostStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum FinancePeriodStatus {
+  OPEN
+  CLOSING
+  CLOSED
+}
+
+enum FinanceCorrectionStatus {
+  PENDING
+  APPROVED
+  POSTED
+  REJECTED
+}
+
+model EntriBukuBesar {
+  id                  String             @id @db.Char(36)
+  customerPackageId   String             @db.Char(36) @map("paket_pelanggan_id")
+  type                LedgerEntryType @map("tipe")
+  quantity            Int @map("kuantitas")
+  referenceType       String @map("tipe_referensi")
+  referenceId         String @map("referensi_id")
+  occurredAt          DateTime           @default(now()) @map("terjadi_pada")
+  sessionAdjustmentId String?            @unique @db.Char(36)
+  customerPackage     PaketPelanggan    @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  sessionAdjustment   PenyesuaianSesi? @relation(fields: [sessionAdjustmentId], references: [id], onDelete: Restrict)
+
+  @@unique([type, referenceType, referenceId])
+  @@index([customerPackageId, occurredAt])
+
+  @@map("EntriBukuBesar")
+}
+
+model AkunAkuntansi {
+  id              String              @id @default(uuid()) @db.Char(36)
+  branchId        String?             @db.Char(36)
+  parentId        String?             @db.Char(36)
+  code            String              @db.VarChar(64)
+  name            String              @db.VarChar(191)
+  accountType     String              @db.VarChar(64)
+  active          Boolean             @default(true)
+  historical      Boolean             @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  branch          Cabang?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  parent          AkunAkuntansi?  @relation("AccountingAccountTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        AkunAkuntansi[] @relation("AccountingAccountTree")
+  journalEntries  EntriJurnal[]
+
+  @@unique([branchId, code])
+  @@index([parentId])
+
+  @@map("AkunAkuntansi")
+}
+
+model EntriJurnal {
+  id                String             @id @default(uuid()) @db.Char(36)
+  branchId          String?            @db.Char(36)
+  accountId         String             @db.Char(36)
+  purchaseId        String?            @db.Char(36)
+  actorUserId       String?            @db.Char(36)
+  parentId          String?            @db.Char(36)
+  referenceNumber   String?            @db.VarChar(191)
+  description       String?            @db.Text
+  debitRp           Int                @default(0)
+  creditRp          Int                @default(0)
+  occurredAt        DateTime
+  statusCode        String             @db.VarChar(64)
+  attachmentKey     String?            @db.VarChar(512)
+  historical        Boolean            @default(false)
+  sourceDeletedAt   DateTime?
+  sourceMetadata    Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  branch            Cabang?            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  account           AkunAkuntansi  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  purchase          Pembelian?          @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor             User?              @relation("JournalEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  parent            EntriJurnal?      @relation("JournalEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children          EntriJurnal[]     @relation("JournalEntryTree")
+  financeCorrection KoreksiKeuangan?
+
+  @@index([branchId, occurredAt])
+  @@index([accountId, occurredAt])
+  @@index([purchaseId])
+  @@index([parentId])
+
+  @@map("EntriJurnal")
+}
+
+model BiayaLain {
+  id               String          @id @default(uuid()) @db.Char(36)
+  branchId         String          @db.Char(36)
+  period           String          @db.Char(7)
+  description      String          @db.VarChar(300)
+  categoryCode     String          @default("LEGACY_UNCLASSIFIED") @db.VarChar(64)
+  occurredOn       DateTime        @db.Date
+  reason           String          @db.VarChar(500)
+  amountRp         Int
+  evidenceUploadId String?         @db.Char(36)
+  status           OtherCostStatus @default(ACTIVE)
+  createdById      String          @db.Char(36)
+  version          Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  branch           Cabang          @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy        User            @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, createdAt, id])
+  @@index([branchId, occurredOn, status], map: "OtherCost_branchId_occurredOn_status_idx")
+  @@index([status, period])
+
+  @@map("BiayaLain")
+}
+
+model PeriodeKeuangan {
+  id            String                @id @default(uuid()) @db.Char(36)
+  branchId      String                @db.Char(36)
+  period        String                @db.Char(7)
+  status        FinancePeriodStatus   @default(OPEN)
+  controlHash   String                @db.Char(64)
+  closedAt      DateTime?
+  closedById    String?               @db.Char(36)
+  version       Int                   @default(0)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  branch        Cabang                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  closedBy      User?                 @relation("FinancePeriodCloser", fields: [closedById], references: [id], onDelete: Restrict)
+  closeSnapshot SnapshotTutupBukuKeuangan?
+
+  @@unique([branchId, period])
+  @@index([status, period])
+
+  @@map("PeriodeKeuangan")
+}
+
+model SnapshotTutupBukuKeuangan {
+  id                         String        @id @default(uuid()) @db.Char(36)
+  financePeriodId            String        @unique @db.Char(36)
+  branchId                   String        @db.Char(36)
+  period                     String        @db.Char(7)
+  grossSalesRp               Int
+  packagePromotionDiscountRp Int
+  voucherDiscountRp          Int
+  revenueRp                  Int
+  projectionRp               Int
+  instructorRealtimeRp       Int
+  otherCostRp                Int
+  correctionRp               Int
+  profitRp                   Int
+  sourceCutoffAt             DateTime
+  sourceVersion              String        @db.VarChar(64)
+  controlHash                String        @db.Char(64)
+  createdAt                  DateTime      @default(now())
+  financePeriod              PeriodeKeuangan @relation(fields: [financePeriodId], references: [id], onDelete: Restrict)
+  branch                     Cabang        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, period])
+  @@index([sourceCutoffAt])
+
+  @@map("SnapshotTutupBukuKeuangan")
+}
+
+model KoreksiKeuangan {
+  id               String                  @id @default(uuid()) @db.Char(36)
+  branchId         String                  @db.Char(36)
+  currentPeriod    String                  @db.Char(7)
+  referencePeriod  String                  @db.Char(7)
+  amountRp         Int
+  reason           String                  @db.VarChar(500)
+  requestedById    String                  @db.Char(36)
+  decidedById      String?                 @db.Char(36)
+  decisionReason   String?                 @db.VarChar(500)
+  status           FinanceCorrectionStatus @default(PENDING)
+  decidedAt        DateTime?
+  postedAt         DateTime?
+  postingJournalId String?                 @unique @db.Char(36)
+  version          Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  branch           Cabang                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  requestedBy      User                    @relation("FinanceCorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy        User?                   @relation("FinanceCorrectionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  postingJournal   EntriJurnal?           @relation(fields: [postingJournalId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, currentPeriod, status])
+  @@index([requestedById, createdAt])
+
+  @@map("KoreksiKeuangan")
+}
+
+model EntriKeuanganHistoris {
+  id              String                   @id @default(uuid()) @db.Char(36)
+  branchId        String?                  @db.Char(36)
+  purchaseId      String?                  @db.Char(36)
+  actorUserId     String?                  @db.Char(36)
+  parentId        String?                  @db.Char(36)
+  type            LegacyFinancialEntryType
+  amountRp        Int
+  occurredAt      DateTime
+  description     String?                  @db.Text
+  sourceTypeCode  String                   @db.VarChar(64)
+  historical      Boolean                  @default(false)
+  sourceDeletedAt DateTime?
+  sourceMetadata  Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  branch          Cabang?                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  purchase        Pembelian?                @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor           User?                    @relation("LegacyFinancialEntryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  parent          EntriKeuanganHistoris?    @relation("LegacyFinancialEntryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        EntriKeuanganHistoris[]   @relation("LegacyFinancialEntryTree")
+
+  @@index([branchId, occurredAt])
+  @@index([purchaseId])
+  @@index([parentId])
+  @@index([type, occurredAt])
+
+  @@map("EntriKeuanganHistoris")
+}

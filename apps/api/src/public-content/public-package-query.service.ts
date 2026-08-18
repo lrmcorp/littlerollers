@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid } from './public-query.validation';
-import { calculatePackagePromotion } from '../packages/package-pricing.service';
+import { calculatePackagePromotion } from '../packages/kalkulasi-harga-paket.service';
 
 @Injectable()
 export class PublicPackageQueryService {
@@ -10,7 +10,7 @@ export class PublicPackageQueryService {
 
   async list(branchId?: string) {
     if (branchId) assertPublicUuid(branchId, 'VALIDATION_ERROR');
-    const branches = await this.db.branch.findMany({
+    const branches = await this.db.cabang.findMany({
       where: { active: true, publicProfile: { isNot: null } },
       select: {
         id: true,
@@ -27,7 +27,7 @@ export class PublicPackageQueryService {
 
     const now = new Date();
     const packages = branchId
-      ? await this.db.package.findMany({
+      ? await this.db.paket.findMany({
           where: {
             branchScopes: {
               some: {
@@ -97,13 +97,17 @@ export class PublicPackageQueryService {
           promotions,
           classTypeScopes,
           ...item
-        }) => ({
-          ...item,
-          branchId: branchId!,
-          classTypes: classTypeScopes.map(({ classType }) => classType),
-          ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
-          branch,
-        }),
+        }) => {
+          const classTypes = classTypeScopes.map(({ classType }) => classType);
+          return {
+            ...item,
+            branchId: branchId!,
+            classType: classTypes[0] ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
+            classTypes,
+            ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
+            branch,
+          };
+        },
       )
       .sort(
         (left, right) =>
@@ -119,7 +123,7 @@ export class PublicPackageQueryService {
     assertPublicUuid(id);
     assertPublicUuid(branchId);
     const now = new Date();
-    const item = await this.db.package.findFirst({
+    const item = await this.db.paket.findFirst({
       where: {
         id,
         branchScopes: {
@@ -213,7 +217,7 @@ export class PublicPackageQueryService {
     const branch = item?.branchScopes[0]?.branch;
     if (!item?.publicProfile || !branch?.publicProfile)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const schedules = await this.db.classSlot.findMany({
+    const schedules = await this.db.slotKelas.findMany({
       where: {
         branchId: branch.id,
         classTypeId: {

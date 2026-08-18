@@ -30,7 +30,7 @@ async function main() {
       db.user.count({ where: { status: 'ACTIVE' } }),
       db.user.count({ where: { historical: true } }),
       db.passwordCredential.findMany({ select: { userId: true, passwordHash: true } }),
-      db.identity.findMany({
+      db.identitas.findMany({
         where: { provider: 'EMAIL_PASSWORD', user: { status: 'ACTIVE', historical: false } },
         select: { userId: true },
       }),

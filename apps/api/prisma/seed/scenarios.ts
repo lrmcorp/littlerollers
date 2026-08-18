@@ -21,10 +21,10 @@ async function seedPurchaseTimeline(
     derived?: boolean;
   }>,
 ) {
-  await ctx.db.purchaseTimelineEvent.deleteMany({ where: { purchaseId, derived: true } });
+  await ctx.db.peristiwaLinimasaPembelian.deleteMany({ where: { purchaseId, derived: true } });
   for (const event of events) {
     const sourceKey = `${purchaseId}:seed:${event.key}`;
-    await ctx.db.purchaseTimelineEvent.upsert({
+    await ctx.db.peristiwaLinimasaPembelian.upsert({
       where: { sourceKey },
       update: {
         eventType: event.type,
@@ -62,8 +62,8 @@ export function bsdQuotaJobFixture(
 export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>) {
   const customerId = users.customer!; const financeId = users.finance!; const managerId = users.manager!; const instructorId = users.instructor!;
   const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
-  const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
-  const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
+  const pkg = await ctx.db.paket.findUniqueOrThrow({ where: { id: packageId } });
+  const paymentAccount = await ctx.db.rekeningPembayaran.findFirstOrThrow({
     where: { branchId, active: true },
   });
   const statuses: { key: string; status: ClassSlotStatus; day: number; booked: number; cancellation?: 'INSTRUCTOR_UNAVAILABLE' }[] = [
@@ -74,7 +74,7 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   const slots: Record<string, string> = {};
   for (const item of statuses) {
     const id = ctx.id('class-slot', item.key); slots[item.key] = id;
-    await ctx.db.classSlot.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked }, create: { id, branchId, studioId, classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
+    await ctx.db.slotKelas.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked }, create: { id, branchId, studioId, classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
   }
   const purchaseStatuses: PurchaseStatus[] = ['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED'];
   const purchases: Record<string, string> = {};
@@ -84,11 +84,11 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     if (proofId) {
       const objectKey = `seed/proofs/${key}`;
       const file = await ensurePrivatePngFixture(objectKey);
-      await ctx.db.paymentProof.upsert({ where: { id: proofId }, update: { objectKey, checksum: file.checksum, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' }, create: { id: proofId, userId: customerId, branchId, packageId, objectKey, checksum: file.checksum, fileName: `${key}.png`, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN', finalizedAt: ctx.at(-index) } });
+      await ctx.db.buktiPembayaran.upsert({ where: { id: proofId }, update: { objectKey, checksum: file.checksum, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' }, create: { id: proofId, userId: customerId, branchId, packageId, objectKey, checksum: file.checksum, fileName: `${key}.png`, mimeType: file.mimeType, sizeBytes: file.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN', finalizedAt: ctx.at(-index) } });
     }
     const code = 101 + index;
     const expiresAt = status === 'EXPIRED' ? ctx.at(-1) : ctx.at(1);
-    await ctx.db.purchase.upsert({ where: { id }, update: { classTypeId, status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt, timelineComplete: status !== 'EXPIRED' }, create: { id, userId: customerId, branchId, packageId, classTypeId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, timelineComplete: status !== 'EXPIRED', idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
+    await ctx.db.pembelian.upsert({ where: { id }, update: { classTypeId, status, paymentProofId: proofId, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, paymentAccountId: paymentAccount.id, paymentExpiresAt: expiresAt, timelineComplete: status !== 'EXPIRED' }, create: { id, userId: customerId, branchId, packageId, classTypeId, paymentProofId: proofId, paymentAccountId: paymentAccount.id, paymentBankNameSnapshot: paymentAccount.bankName, paymentAccountNumberSnapshotEncrypted: paymentAccount.accountNumberEncrypted, paymentAccountLast4Snapshot: paymentAccount.accountNumberLast4, paymentAccountHolderSnapshot: paymentAccount.accountHolderName, paymentExpiresAt: expiresAt, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, paymentUniqueCode: code, payableAmountRpSnapshot: pkg.priceRp + code, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status, timelineComplete: status !== 'EXPIRED', idempotencyKeyHash: `seed-${key}`, submittedAt: ctx.at(-index), decidedAt: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? ctx.at(-index, 1) : null, decidedById: ['APPROVED', 'REJECTED', 'ACTION_REQUIRED'].includes(status) ? financeId : null, decisionReasonCode: status === 'APPROVED' ? 'PAYMENT_VERIFIED' : status === 'REJECTED' ? 'DUPLICATE_PURCHASE' : status === 'ACTION_REQUIRED' ? 'PROOF_INVALID' : null } });
     const decisionType =
       status === 'APPROVED'
         ? 'PAYMENT_APPROVED'
@@ -126,21 +126,21 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
         : []),
     ]);
     if (['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED'].includes(status)) {
-      await ctx.db.paymentUniqueCodeReservation.upsert({
+      await ctx.db.reservasiKodeUnikPembayaran.upsert({
         where: { purchaseId: id },
         update: { paymentAccountId: paymentAccount.id, code, expiresAt },
         create: { id: ctx.id('payment-code-reservation', key), paymentAccountId: paymentAccount.id, purchaseId: id, code, expiresAt },
       });
     } else {
-      await ctx.db.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: id } });
+      await ctx.db.reservasiKodeUnikPembayaran.deleteMany({ where: { purchaseId: id } });
     }
   }
   const customerPackageId = ctx.id('customer-package', 'approved');
-  await ctx.db.customerPackage.upsert({ where: { purchaseId: purchases.approved! }, update: { status: 'ACTIVE' }, create: { id: customerPackageId, purchaseId: purchases.approved!, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 175_000 } });
+  await ctx.db.paketPelanggan.upsert({ where: { purchaseId: purchases.approved! }, update: { status: 'ACTIVE' }, create: { id: customerPackageId, purchaseId: purchases.approved!, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 175_000 } });
   await seedPurchaseTimeline(ctx, purchases.approved!, [
     { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.anchor },
   ]);
-  await ctx.db.ledgerEntry.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchases.approved! } }, update: { quantity: pkg.sessionCount }, create: { id: ctx.id('ledger', 'purchase'), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchases.approved! } });
+  await ctx.db.entriBukuBesar.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchases.approved! } }, update: { quantity: pkg.sessionCount }, create: { id: ctx.id('ledger', 'purchase'), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchases.approved! } });
   const bookingStates = [
     { key: 'active', status: 'BOOKED' as const, slot: 'published' },
     { key: 'checkin', status: 'BOOKED' as const, slot: 'confirmed' },
@@ -153,8 +153,8 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     const reservationStatus = item.status === 'ATTENDED' ? 'CONSUMED' as const : item.status === 'CANCELLED' ? 'RELEASED' as const : 'ACTIVE' as const;
     const consumedAt = reservationStatus === 'CONSUMED' ? ctx.anchor : null;
     const releasedAt = reservationStatus === 'RELEASED' ? ctx.anchor : null;
-    await ctx.db.sessionReservation.upsert({ where: { customerPackageId_referenceHash: { customerPackageId, referenceHash: `seed-${item.key}` } }, update: { status: reservationStatus, consumedAt, releasedAt }, create: { id: reservationId, customerPackageId, classSlotId: slots[item.slot], referenceHash: `seed-${item.key}`, quantity: 1, status: reservationStatus, consumedAt, releasedAt } });
-    await ctx.db.booking.upsert({ where: { id: bookingId }, update: { status: item.status }, create: { id: bookingId, branchId, classSlotId: slots[item.slot]!, customerUserId: customerId, customerPackageId, reservationId, createdById: managerId, source: 'ADMIN_ASSISTED', status: item.status } });
+    await ctx.db.reservasiSesi.upsert({ where: { customerPackageId_referenceHash: { customerPackageId, referenceHash: `seed-${item.key}` } }, update: { status: reservationStatus, consumedAt, releasedAt }, create: { id: reservationId, customerPackageId, classSlotId: slots[item.slot], referenceHash: `seed-${item.key}`, quantity: 1, status: reservationStatus, consumedAt, releasedAt } });
+    await ctx.db.pemesananKelas.upsert({ where: { id: bookingId }, update: { status: item.status }, create: { id: bookingId, branchId, classSlotId: slots[item.slot]!, customerUserId: customerId, customerPackageId, reservationId, createdById: managerId, source: 'ADMIN_ASSISTED', status: item.status } });
   }
   const tokenHash = (key: string) =>
     createHash('sha256').update(ctx.id('check-in-token-material', key)).digest('hex');
@@ -249,7 +249,7 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
       afterMasked: { bookingId: bookings.attended!, source: 'QR' },
     },
   });
-  await ctx.db.customerAttendance.upsert({
+  await ctx.db.kehadiranPelanggan.upsert({
     where: { bookingId: bookings.attended! },
     update: {
       tokenId: ctx.id('check-in-token', 'used'),
@@ -269,12 +269,12 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
     },
   });
   const reschedules: { key: string; status: RescheduleStatus }[] = [{ key: 'pending', status: 'PENDING' }, { key: 'approved', status: 'APPROVED' }, { key: 'rejected', status: 'REJECTED' }];
-  for (const [index, item] of reschedules.entries()) await ctx.db.reschedule.upsert({ where: { id: ctx.id('reschedule', item.key) }, update: { status: item.status }, create: { id: ctx.id('reschedule', item.key), branchId, bookingId: bookings.active!, sourceClassSlotId: slots.published!, targetClassSlotId: slots.confirmed!, requestedById: customerId, decidedById: item.status === 'PENDING' ? null : managerId, requestReasonCode: 'CUSTOMER_SCHEDULE_CONFLICT', decisionReasonCode: item.status === 'APPROVED' ? 'ELIGIBILITY_VERIFIED' : item.status === 'REJECTED' ? 'TARGET_UNAVAILABLE' : null, status: item.status, entitlementCutoffAt: ctx.at(1), entitledAtRequest: true, requestedAt: ctx.at(-index), decidedAt: item.status === 'PENDING' ? null : ctx.at(-index, 1) } });
+  for (const [index, item] of reschedules.entries()) await ctx.db.ubahJadwal.upsert({ where: { id: ctx.id('reschedule', item.key) }, update: { status: item.status }, create: { id: ctx.id('reschedule', item.key), branchId, bookingId: bookings.active!, sourceClassSlotId: slots.published!, targetClassSlotId: slots.confirmed!, requestedById: customerId, decidedById: item.status === 'PENDING' ? null : managerId, requestReasonCode: 'CUSTOMER_SCHEDULE_CONFLICT', decisionReasonCode: item.status === 'APPROVED' ? 'ELIGIBILITY_VERIFIED' : item.status === 'REJECTED' ? 'TARGET_UNAVAILABLE' : null, status: item.status, entitlementCutoffAt: ctx.at(1), entitledAtRequest: true, requestedAt: ctx.at(-index), decidedAt: item.status === 'PENDING' ? null : ctx.at(-index, 1) } });
   const adjustments: { key: string; status: SessionAdjustmentStatus; quantity: number }[] = [{ key: 'pending', status: 'PENDING', quantity: 1 }, { key: 'posted', status: 'POSTED', quantity: 1 }, { key: 'rejected', status: 'REJECTED', quantity: -1 }];
   for (const item of adjustments) {
     const adjustmentId = ctx.id('adjustment', item.key);
-    await ctx.db.sessionAdjustment.upsert({ where: { id: adjustmentId }, update: { status: item.status }, create: { id: adjustmentId, customerPackageId, quantity: item.quantity, reasonCode: 'SUPPORT_RECONCILIATION', requestedById: managerId, decidedById: item.status === 'PENDING' ? null : financeId, decisionCode: item.status === 'POSTED' ? 'CORRECTION_VERIFIED' : item.status === 'REJECTED' ? 'INVALID_EVIDENCE' : null, status: item.status, decidedAt: item.status === 'PENDING' ? null : ctx.anchor } });
-    if (item.status === 'POSTED') await ctx.db.ledgerEntry.upsert({ where: { sessionAdjustmentId: adjustmentId }, update: { quantity: item.quantity }, create: { id: ctx.id('ledger', `adjustment-${item.key}`), customerPackageId, type: 'ADJUST_MANUAL', quantity: item.quantity, referenceType: 'SESSION_ADJUSTMENT', referenceId: adjustmentId, sessionAdjustmentId: adjustmentId } });
+    await ctx.db.penyesuaianSesi.upsert({ where: { id: adjustmentId }, update: { status: item.status }, create: { id: adjustmentId, customerPackageId, quantity: item.quantity, reasonCode: 'SUPPORT_RECONCILIATION', requestedById: managerId, decidedById: item.status === 'PENDING' ? null : financeId, decisionCode: item.status === 'POSTED' ? 'CORRECTION_VERIFIED' : item.status === 'REJECTED' ? 'INVALID_EVIDENCE' : null, status: item.status, decidedAt: item.status === 'PENDING' ? null : ctx.anchor } });
+    if (item.status === 'POSTED') await ctx.db.entriBukuBesar.upsert({ where: { sessionAdjustmentId: adjustmentId }, update: { quantity: item.quantity }, create: { id: ctx.id('ledger', `adjustment-${item.key}`), customerPackageId, type: 'ADJUST_MANUAL', quantity: item.quantity, referenceType: 'SESSION_ADJUSTMENT', referenceId: adjustmentId, sessionAdjustmentId: adjustmentId } });
   }
   const jobStates = ['QUEUED', 'RETRYING', 'FAILED', 'SUCCEEDED'] as const;
   for (const [index, status] of jobStates.entries()) {
@@ -299,8 +299,8 @@ async function seedBsdOperationalScenarios(
   const financeId = users.finance!;
   const instructorId = users['instructor-bsd-2']!;
   if (!managerId || !instructorId) throw new Error('BSD operational scenarios require manager and instructor fixtures.');
-  const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
-  const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
+  const pkg = await ctx.db.paket.findUniqueOrThrow({ where: { id: packageId } });
+  const paymentAccount = await ctx.db.rekeningPembayaran.findFirstOrThrow({
     where: { branchId, active: true },
   });
   const slots = [
@@ -313,7 +313,7 @@ async function seedBsdOperationalScenarios(
   for (const slot of slots) {
     const id = ctx.id('class-slot', `bsd-${slot.key}`);
     slotIds[slot.key] = id;
-    await ctx.db.classSlot.upsert({
+    await ctx.db.slotKelas.upsert({
       where: { id },
       update: { status: slot.status, bookedCount: slot.bookedCount },
       create: {
@@ -336,7 +336,7 @@ async function seedBsdOperationalScenarios(
   const approvedPurchaseId = ctx.id('purchase', 'bsd-approved');
   const approvedProofId = ctx.id('payment-proof', 'bsd-approved');
   const bsdApprovedProof = await ensurePrivatePngFixture('seed/proofs/bsd-approved');
-  await ctx.db.paymentProof.upsert({
+  await ctx.db.buktiPembayaran.upsert({
     where: { id: approvedProofId },
     update: {
       checksum: bsdApprovedProof.checksum,
@@ -361,7 +361,7 @@ async function seedBsdOperationalScenarios(
       finalizedAt: ctx.at(-2, 0.75),
     },
   });
-  await ctx.db.purchase.upsert({
+  await ctx.db.pembelian.upsert({
     where: { id: approvedPurchaseId },
     update: {
       classTypeId,
@@ -409,7 +409,7 @@ async function seedBsdOperationalScenarios(
   ]);
   const pendingProofId = ctx.id('payment-proof', 'bsd-pending');
   const bsdProof = await ensurePrivatePngFixture('seed/proofs/bsd-pending');
-  await ctx.db.paymentProof.upsert({
+  await ctx.db.buktiPembayaran.upsert({
     where: { id: pendingProofId },
     update: { checksum: bsdProof.checksum, mimeType: bsdProof.mimeType, sizeBytes: bsdProof.sizeBytes, uploadStatus: 'FINALIZED', scanStatus: 'CLEAN' },
     create: {
@@ -427,7 +427,7 @@ async function seedBsdOperationalScenarios(
       finalizedAt: ctx.at(-1),
     },
   });
-  await ctx.db.purchase.upsert({
+  await ctx.db.pembelian.upsert({
     where: { id: ctx.id('purchase', 'bsd-pending') },
     update: { classTypeId, status: 'PENDING', paymentProofId: pendingProofId, paymentUniqueCode: 401, payableAmountRpSnapshot: pkg.priceRp + 401, paymentAccountId: paymentAccount.id, paymentExpiresAt: ctx.at(1), timelineComplete: true },
     create: {
@@ -461,7 +461,7 @@ async function seedBsdOperationalScenarios(
     { key: 'proof', type: 'PROOF_SUBMITTED', occurredAt: ctx.at(-1) },
     { key: 'scan', type: 'PROOF_SCAN_COMPLETED', occurredAt: ctx.at(-1) },
   ]);
-  await ctx.db.paymentUniqueCodeReservation.upsert({
+  await ctx.db.reservasiKodeUnikPembayaran.upsert({
     where: { purchaseId: ctx.id('purchase', 'bsd-pending') },
     update: { paymentAccountId: paymentAccount.id, code: 401, expiresAt: ctx.at(1) },
     create: {
@@ -474,7 +474,7 @@ async function seedBsdOperationalScenarios(
   });
 
   const customerPackageId = ctx.id('customer-package', 'bsd-approved');
-  await ctx.db.customerPackage.upsert({
+  await ctx.db.paketPelanggan.upsert({
     where: { purchaseId: approvedPurchaseId },
     update: { status: 'ACTIVE' },
     create: {
@@ -495,7 +495,7 @@ async function seedBsdOperationalScenarios(
   await seedPurchaseTimeline(ctx, approvedPurchaseId, [
     { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.anchor },
   ]);
-  await ctx.db.ledgerEntry.upsert({
+  await ctx.db.entriBukuBesar.upsert({
     where: {
       type_referenceType_referenceId: {
         type: 'PURCHASE',
@@ -514,7 +514,7 @@ async function seedBsdOperationalScenarios(
     },
   });
   const reservationId = ctx.id('reservation', 'bsd-active');
-  await ctx.db.sessionReservation.upsert({
+  await ctx.db.reservasiSesi.upsert({
     where: {
       customerPackageId_referenceHash: {
         customerPackageId,
@@ -531,7 +531,7 @@ async function seedBsdOperationalScenarios(
       status: 'ACTIVE',
     },
   });
-  await ctx.db.booking.upsert({
+  await ctx.db.pemesananKelas.upsert({
     where: { id: ctx.id('booking', 'bsd-active') },
     update: { status: 'BOOKED' },
     create: {
@@ -589,23 +589,23 @@ async function seedBsdOperationalScenarios(
 
 export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>, count = 500) {
   const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:MAT']!; const packageId = master.packages['DD-JKT:MAT:8']!;
-  const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
+  const pkg = await ctx.db.paket.findUniqueOrThrow({ where: { id: packageId } });
   for (let index = 0; index < count; index++) {
     const customerId = ctx.id('volume-user', index); const purchaseId = ctx.id('volume-purchase', index); const customerPackageId = ctx.id('volume-customer-package', index);
     const slotId = ctx.id('volume-slot', index); const reservationId = ctx.id('volume-reservation', index); const bookingId = ctx.id('volume-booking', index);
     await ctx.db.user.upsert({ where: { id: customerId }, update: { displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}` }, create: { id: customerId, displayName: `Volume Customer ${String(index + 1).padStart(3, '0')}`, status: 'ACTIVE' } });
     await ctx.db.userRole.upsert({ where: { id: ctx.id('volume-role', index) }, update: { userId: customerId, role: 'CUSTOMER' }, create: { id: ctx.id('volume-role', index), userId: customerId, role: 'CUSTOMER', activeFrom: new Date('2026-01-01') } });
-    await ctx.db.classSlot.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, studioId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
-    await ctx.db.purchase.upsert({ where: { id: purchaseId }, update: { classTypeId, timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, classTypeId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
+    await ctx.db.slotKelas.upsert({ where: { id: slotId }, update: { bookedCount: 1 }, create: { id: slotId, branchId, studioId, classTypeId, instructorUserId: users.instructor!, startAt: ctx.at((index % 60) + 1, 6 + (index % 10)), endAt: ctx.at((index % 60) + 1, 7 + (index % 10)), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 14, bookedCount: 1, status: 'PUBLISHED' } });
+    await ctx.db.pembelian.upsert({ where: { id: purchaseId }, update: { classTypeId, timelineComplete: true }, create: { id: purchaseId, userId: customerId, branchId, packageId, classTypeId, packageNameSnapshot: pkg.name, priceRpSnapshot: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, status: 'APPROVED', timelineComplete: true, idempotencyKeyHash: `volume-${index}`, submittedAt: ctx.at(-(index % 90), index % 12), decidedAt: ctx.at(-(index % 90), (index % 12) + 1), decidedById: users.finance!, decisionReasonCode: 'PAYMENT_VERIFIED' } });
     await seedPurchaseTimeline(ctx, purchaseId, [
       { key: 'created', type: 'ORDER_CREATED', occurredAt: ctx.at(-(index % 90), index % 12) },
       { key: 'approved', type: 'PAYMENT_APPROVED', occurredAt: ctx.at(-(index % 90), (index % 12) + 1), reasonCode: 'PAYMENT_VERIFIED' },
       { key: 'activated', type: 'PACKAGE_ACTIVATED', occurredAt: ctx.at(-(index % 90), (index % 12) + 1) },
     ]);
-    await ctx.db.customerPackage.upsert({ where: { purchaseId }, update: {}, create: { id: customerPackageId, purchaseId, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 125_000 } });
-    await ctx.db.ledgerEntry.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchaseId } }, update: {}, create: { id: ctx.id('volume-ledger', index), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchaseId } });
-    await ctx.db.sessionReservation.upsert({ where: { customerPackageId_referenceHash: { customerPackageId, referenceHash: `volume-${index}` } }, update: {}, create: { id: reservationId, customerPackageId, classSlotId: slotId, referenceHash: `volume-${index}`, quantity: 1, status: 'ACTIVE' } });
-    await ctx.db.booking.upsert({ where: { id: bookingId }, update: {}, create: { id: bookingId, branchId, classSlotId: slotId, customerUserId: customerId, customerPackageId, reservationId, createdById: users.manager!, source: 'ADMIN_ASSISTED', status: 'BOOKED' } });
+    await ctx.db.paketPelanggan.upsert({ where: { purchaseId }, update: {}, create: { id: customerPackageId, purchaseId, customerUserId: customerId, branchId, packageId, classTypeId, activationDate: ctx.anchor, expiryAt: ctx.at(90), salePriceRp: pkg.priceRp, sessionCountSnapshot: pkg.sessionCount, durationDaysSnapshot: pkg.durationDays, projectionRateRp: 125_000 } });
+    await ctx.db.entriBukuBesar.upsert({ where: { type_referenceType_referenceId: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchaseId } }, update: {}, create: { id: ctx.id('volume-ledger', index), customerPackageId, type: 'PURCHASE', quantity: pkg.sessionCount, referenceType: 'PURCHASE', referenceId: purchaseId } });
+    await ctx.db.reservasiSesi.upsert({ where: { customerPackageId_referenceHash: { customerPackageId, referenceHash: `volume-${index}` } }, update: {}, create: { id: reservationId, customerPackageId, classSlotId: slotId, referenceHash: `volume-${index}`, quantity: 1, status: 'ACTIVE' } });
+    await ctx.db.pemesananKelas.upsert({ where: { id: bookingId }, update: {}, create: { id: bookingId, branchId, classSlotId: slotId, customerUserId: customerId, customerPackageId, reservationId, createdById: users.manager!, source: 'ADMIN_ASSISTED', status: 'BOOKED' } });
     await ctx.db.quotaEvaluationJob.upsert({ where: { classSlotId: slotId }, update: {}, create: { id: ctx.id('volume-job', index), classSlotId: slotId, evaluationKey: `volume-${index}`, dueAt: ctx.at(index % 60), status: index % 20 === 0 ? 'FAILED' : 'QUEUED', attempts: index % 20 === 0 ? 3 : 0, maxAttempts: 5, nextAttemptAt: ctx.at(index % 60, 1), lastErrorCode: index % 20 === 0 ? 'VOLUME_TIMEOUT' : null } });
     await ctx.db.auditLog.upsert({ where: { id: ctx.id('volume-audit', index) }, update: {}, create: { id: ctx.id('volume-audit', index), occurredAt: ctx.at(-(index % 90)), actorType: 'SYSTEM', branchId, targetUserId: customerId, action: 'VOLUME_FIXTURE_CREATED', objectType: 'Purchase', objectId: purchaseId, correlationId: `volume-${index}` } });
   }

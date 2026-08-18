@@ -16,7 +16,7 @@ import {
   ReschedulesService,
   type RescheduleDecisionCommand,
   type RescheduleRequestCommand,
-} from './reschedules.service';
+} from './ubah-jadwal.service';
 
 @Controller('reschedules')
 @UseGuards(AuthGuard)

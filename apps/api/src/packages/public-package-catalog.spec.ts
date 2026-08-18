@@ -4,14 +4,14 @@ const branchId = '00000000-0000-4000-8000-000000000002';
 
 describe('PublicPackageQueryService', () => {
   const db = {
-    branch: {
+    cabang: {
       findMany: jest
         .fn()
         .mockResolvedValue([
           { id: branchId, code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' },
         ]),
     },
-    package: {
+    paket: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: '00000000-0000-4000-8000-000000000004',
@@ -44,8 +44,8 @@ describe('PublicPackageQueryService', () => {
     const result = await service.list();
     expect(result.branches).toHaveLength(1);
     expect(result.items).toEqual([]);
-    expect(db.package.findMany).not.toHaveBeenCalled();
-    expect(db.branch.findMany).toHaveBeenCalledWith(
+    expect(db.paket.findMany).not.toHaveBeenCalled();
+    expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
           supportWhatsappE164: true,
@@ -70,7 +70,7 @@ describe('PublicPackageQueryService', () => {
     expect(result.items[0]).not.toHaveProperty('businessKey');
     expect(result.items[0]).not.toHaveProperty('version');
     expect(result.items[0]).not.toHaveProperty('createdAt');
-    expect(db.package.findMany).toHaveBeenCalledWith(
+    expect(db.paket.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'ACTIVE',
@@ -83,7 +83,7 @@ describe('PublicPackageQueryService', () => {
   });
 
   it('deduplicates overlapping legacy seed records by commercial business key', async () => {
-    db.package.findMany.mockResolvedValueOnce([
+    db.paket.findMany.mockResolvedValueOnce([
       {
         id: '00000000-0000-4000-8000-000000000004',
         branchId,

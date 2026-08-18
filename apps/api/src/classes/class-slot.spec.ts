@@ -11,7 +11,7 @@ const principal = {
 };
 
 describe('ClassSlotService contract boundaries', () => {
-  const db = { classSlot: { findMany: jest.fn().mockResolvedValue([]) } };
+  const db = { slotKelas: { findMany: jest.fn().mockResolvedValue([]) } };
   const service = new ClassSlotService(
     db as never,
     new PolicyService(),
@@ -65,7 +65,7 @@ describe('ClassSlotService contract boundaries', () => {
       },
       {},
     );
-    expect(db.classSlot.findMany).toHaveBeenLastCalledWith(
+    expect(db.slotKelas.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: 'PUBLISHED' }) }),
     );
   });

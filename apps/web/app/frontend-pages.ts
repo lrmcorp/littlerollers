@@ -186,6 +186,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     mutationCapabilities: ['identity-verification:decide'],
     priority: 6,
     accent: 'warning',
+    queueBadgeSource: 'verifications',
+    dashboardDeepLink: '/identity-verifications?status=PENDING',
   },
   {
     href: '/audit',
@@ -301,6 +303,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     mutationCapabilities: ['operations:recover'],
     priority: 8,
     accent: 'warning',
+    queueBadgeSource: 'jobs',
+    dashboardDeepLink: '/operations?status=FAILED',
   },
   {
     href: '/health',

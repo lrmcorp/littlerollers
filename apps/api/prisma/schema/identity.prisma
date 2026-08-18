@@ -1,0 +1,530 @@
+enum UserStatus {
+  PENDING_ACTIVATION
+  ACTIVE
+  INACTIVE
+}
+
+enum IdentityProvider {
+  GOOGLE
+  WHATSAPP_PHONE
+  EMAIL_PASSWORD
+}
+
+enum PasswordActionKind {
+  ACTIVATION
+  RESET
+  SETUP
+}
+
+enum AssignmentType {
+  OWNER
+  INSTRUCTOR
+}
+
+enum ApplicationRole {
+  CUSTOMER
+  INSTRUCTOR
+  ADMIN
+  MANAGER
+  OWNER
+  SUPER_OWNER
+  FINANCE
+  OPS
+}
+
+enum AccessRoleScope {
+  GLOBAL
+  BRANCH
+}
+
+enum CapabilityOverrideEffect {
+  GRANT
+  DENY
+}
+
+enum SessionChannel {
+  WEB
+  MOBILE
+}
+
+enum ChallengeKind {
+  OTP
+  RECOVERY
+}
+
+enum ChallengeStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  LOCKED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum IdentityDocumentKind {
+  SELFIE
+  KTP_FRONT
+}
+
+enum IdentityVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PENDING_DELETION
+  DELETE_FAILED
+  DELETED
+}
+
+enum IdentityDocumentDeletionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum IdentityDocumentViewPurpose {
+  SELF_VIEW
+  REVIEW
+}
+
+enum ContactAliasKind {
+  PHONE
+  EMAIL
+}
+
+model User {
+  id                                 String                              @id @db.Char(36)
+  displayName                        String
+  email                              String?                             @unique
+  phoneE164                          String?                             @unique
+  preferredBranchId                  String?                             @db.Char(36)
+  status                             UserStatus                          @default(ACTIVE)
+  version                            Int                                 @default(0)
+  createdAt                          DateTime                            @default(now())
+  updatedAt                          DateTime                            @updatedAt
+  identities                         Identitas[]
+  assignments                        Penugasan[]
+  roles                              UserRole[]
+  sessions                           UserSession[]
+  challenges                         AuthChallenge[]
+  passwordCredential                 PasswordCredential?
+  passwordActions                    PasswordActionToken[]
+  createdInvitations                 UserInvitation[]                    @relation("InvitationCreator")
+  activationInvitation               UserInvitation?                     @relation("InvitationTarget")
+  paymentProofs                      BuktiPembayaran[]
+  purchases                          Pembelian[]
+  voucherRedemptions                 PenukaranVoucher[]
+  createdVouchers                    Voucher[]                           @relation("VoucherCreator")
+  createdPackagePromotions           PromosiPaket[]                  @relation("PackagePromotionCreator")
+  decidedPurchases                   Pembelian[]                          @relation("PurchaseDecisionActor")
+  customerPackages                   PaketPelanggan[]
+  requestedAdjustments               PenyesuaianSesi[]                 @relation("AdjustmentRequester")
+  decidedAdjustments                 PenyesuaianSesi[]                 @relation("AdjustmentDecider")
+  instructorAvailabilities           KetersediaanInstruktur[]
+  instructedClassSlots               SlotKelas[]                         @relation("ClassSlotInstructor")
+  customerBookings                   PemesananKelas[]                           @relation("BookingCustomer")
+  createdBookings                    PemesananKelas[]                           @relation("BookingActor")
+  cancelledBookings                  PemesananKelas[]                           @relation("BookingCanceller")
+  requestedReschedules               UbahJadwal[]                        @relation("RescheduleRequester")
+  decidedReschedules                 UbahJadwal[]                        @relation("RescheduleDecider")
+  issuedCheckInTokens                CheckInToken[]                      @relation("CheckInTokenIssuer")
+  recordedAttendances                KehadiranPelanggan[]                @relation("AttendanceRecorder")
+  instructorCheckInTokens            InstructorCheckInToken[]            @relation("InstructorTokenOwner")
+  issuedInstructorCheckInTokens      InstructorCheckInToken[]            @relation("InstructorTokenIssuer")
+  instructorAttendances              KehadiranInstruktur[]              @relation("InstructorAttendanceOwner")
+  instructorHourLogs                 RekapJamInstruktur[]                 @relation("InstructorHourLogOwner")
+  identityDocuments                  DokumenVerifikasiIdentitas[]      @relation("IdentityDocumentOwner")
+  reviewedIdentityDocuments          DokumenVerifikasiIdentitas[]      @relation("IdentityDocumentReviewer")
+  deletedIdentityDocuments           DokumenVerifikasiIdentitas[]      @relation("IdentityDocumentDeleter")
+  identityDocumentViewAuthorizations OtorisasiLihatDokumenIdentitas[] @relation("IdentityDocumentViewer")
+  paymentProofViewAuthorizations     OtorisasiLihatBuktiPembayaran[]     @relation("PaymentProofViewer")
+  requestedIdentityDocumentDeletions AntreanHapusDokumenIdentitas[]       @relation("IdentityDocumentDeletionRequester")
+  preferredBranch                    Cabang?                             @relation("PreferredBranchCustomers", fields: [preferredBranchId], references: [id], onDelete: SetNull)
+  notifications                      UserNotification[]
+  notificationOccurrences            NotificationOccurrence[]
+  accessRoleAssignments              AccessRoleAssignment[]
+  capabilityOverrides                UserCapabilityOverride[]            @relation("CapabilityOverrideTarget")
+  createdCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideCreator")
+  revokedCapabilityOverrides         UserCapabilityOverride[]            @relation("CapabilityOverrideRevoker")
+  profile                            ProfilPengguna?
+  recurringSchedules                 JadwalRutinPelanggan[]
+  bookingFeedbacks                   UlasanPemesanan[]
+  authoredJournalEntries             EntriJurnal[]                      @relation("JournalEntryActor")
+  authoredLegacyFinancialEntries     EntriKeuanganHistoris[]              @relation("LegacyFinancialEntryActor")
+  createdOtherCosts                  BiayaLain[]                         @relation("OtherCostCreator")
+  closedFinancePeriods               PeriodeKeuangan[]                     @relation("FinancePeriodCloser")
+  requestedFinanceCorrections        KoreksiKeuangan[]                 @relation("FinanceCorrectionRequester")
+  decidedFinanceCorrections          KoreksiKeuangan[]                 @relation("FinanceCorrectionDecider")
+  mediaAssets                        AsetMedia[]
+  contactAliases                     AliasKontakPengguna[]
+  customerClassEnrollments           PendaftaranKelasPelanggan[]
+  customerVoucherEntitlements        HakVoucherPelanggan[]
+  historical                         Boolean                             @default(false)
+  sourceDeletedAt                    DateTime?
+  createdNotificationTemplates       NotificationTemplate[]              @relation("NotificationTemplateCreator")
+  createdPublicContents              EntriKontenPublik[]                @relation("PublicContentCreator")
+  customerSupportCases               KasusBantuan[]                       @relation("SupportCaseCustomer")
+  assignedSupportCases               KasusBantuan[]                       @relation("SupportCaseAssignee")
+  supportNotes                       CatatanKasusBantuan[]                   @relation("SupportNoteAuthor")
+
+  @@index([preferredBranchId])
+}
+
+model DokumenVerifikasiIdentitas {
+  id                    String                              @id @db.Char(36)
+  userId                String                              @db.Char(36)
+  kind                  IdentityDocumentKind
+  status                IdentityVerificationStatus          @default(PENDING)
+  objectKey             String?                             @unique
+  checksum              String
+  fileName              String
+  mimeType              String
+  sizeBytes             Int
+  uploadStatus          PaymentProofUploadStatus            @default(ISSUED)
+  scanStatus            PaymentProofScanStatus              @default(PENDING)
+  providerReferenceHash String?
+  issuedAt              DateTime                            @default(now())
+  uploadedAt            DateTime?
+  finalizedAt           DateTime?
+  reviewedAt            DateTime?
+  reviewedById          String?                             @db.Char(36)
+  rejectionReasonCode   String?
+  rejectionNote         String?                             @db.Text
+  replacedById          String?                             @db.Char(36)
+  deletedAt             DateTime?
+  deletedById           String?                             @db.Char(36)
+  deletionReason        String?                             @db.Text
+  version               Int                                 @default(0)
+  createdAt             DateTime                            @default(now())
+  updatedAt             DateTime                            @updatedAt
+  user                  User                                @relation("IdentityDocumentOwner", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy            User?                               @relation("IdentityDocumentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  deletedBy             User?                               @relation("IdentityDocumentDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
+  replacedBy            DokumenVerifikasiIdentitas?       @relation("IdentityDocumentReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces              DokumenVerifikasiIdentitas[]      @relation("IdentityDocumentReplacement")
+  viewAuthorizations    OtorisasiLihatDokumenIdentitas[]
+  deletionJob           AntreanHapusDokumenIdentitas?
+
+  @@index([userId, kind, createdAt])
+  @@index([status, kind, createdAt])
+
+  @@map("DokumenVerifikasiIdentitas")
+}
+
+model OtorisasiLihatDokumenIdentitas {
+  id         String                       @id @db.Char(36)
+  documentId String                       @db.Char(36)
+  viewerId   String                       @db.Char(36)
+  purpose    IdentityDocumentViewPurpose  @default(REVIEW)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime                     @default(now())
+  document   DokumenVerifikasiIdentitas @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  viewer     User                         @relation("IdentityDocumentViewer", fields: [viewerId], references: [id], onDelete: Restrict)
+
+  @@index([viewerId, expiresAt])
+  @@index([documentId, expiresAt])
+
+  @@map("OtorisasiLihatDokumenIdentitas")
+}
+
+model AntreanHapusDokumenIdentitas {
+  id            String                         @id @db.Char(36)
+  documentId    String                         @unique @db.Char(36)
+  requestedById String                         @db.Char(36)
+  objectKey     String
+  status        IdentityDocumentDeletionStatus @default(QUEUED)
+  attempts      Int                            @default(0)
+  lastErrorCode String?
+  nextAttemptAt DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+  document      DokumenVerifikasiIdentitas   @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  requestedBy   User                           @relation("IdentityDocumentDeletionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
+
+  @@map("AntreanHapusDokumenIdentitas")
+}
+
+model Identitas {
+  id          String           @id @db.Char(36)
+  userId      String           @db.Char(36)
+  provider    IdentityProvider
+  subjectHash String
+  verifiedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, subjectHash])
+  @@index([userId])
+
+  @@map("Identitas")
+}
+
+model Penugasan {
+  id                       String                   @id @db.Char(36)
+  userId                   String                   @db.Char(36)
+  branchId                 String                   @db.Char(36)
+  type                     AssignmentType
+  activeFrom               DateTime                 @db.Date
+  activeUntil              DateTime?                @db.Date
+  version                  Int                      @default(0)
+  user                     User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch                   Cabang                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  projectedRole            UserRole?                @relation("AssignmentRoleProjection")
+  instructorAvailabilities KetersediaanInstruktur[]
+
+  @@index([userId, activeFrom, activeUntil])
+  @@index([branchId, type, activeFrom, activeUntil])
+
+  @@map("Penugasan")
+}
+
+model UserRole {
+  id                 String          @id @default(uuid()) @db.Char(36)
+  userId             String          @db.Char(36)
+  role               ApplicationRole
+  branchId           String?         @db.Char(36)
+  activeFrom         DateTime
+  activeUntil        DateTime?
+  sourceAssignmentId String?         @unique @db.Char(36)
+  createdAt          DateTime        @default(now())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch             Cabang?         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceAssignment   Penugasan?     @relation("AssignmentRoleProjection", fields: [sourceAssignmentId], references: [id], onDelete: Restrict)
+
+  @@index([userId, activeFrom, activeUntil])
+  @@index([branchId, role, activeFrom, activeUntil])
+}
+
+model CapabilityDefinition {
+  key              String                   @id @db.VarChar(96)
+  label            String                   @db.VarChar(160)
+  description      String                   @db.VarChar(500)
+  category         String                   @db.VarChar(64)
+  sensitive        Boolean                  @default(false)
+  active           Boolean                  @default(true)
+  systemOnly       Boolean                  @default(false)
+  globalOnly       Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @default(now()) @updatedAt
+  roleCapabilities RoleCapability[]
+  userOverrides    UserCapabilityOverride[]
+}
+
+model RoleDefinition {
+  id           String                 @id @db.Char(36)
+  code         String                 @unique @db.VarChar(64)
+  displayName  String                 @db.VarChar(160)
+  description  String                 @db.VarChar(500)
+  scope        AccessRoleScope
+  systemRole   ApplicationRole?       @unique
+  system       Boolean                @default(false)
+  protected    Boolean                @default(false)
+  active       Boolean                @default(true)
+  version      Int                    @default(0)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @default(now()) @updatedAt
+  capabilities RoleCapability[]
+  assignments  AccessRoleAssignment[]
+
+  @@index([active, scope, code])
+}
+
+model RoleCapability {
+  roleId        String               @db.Char(36)
+  capabilityKey String               @db.VarChar(96)
+  createdAt     DateTime             @default(now())
+  role          RoleDefinition       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  capability    CapabilityDefinition @relation(fields: [capabilityKey], references: [key], onDelete: Restrict)
+
+  @@id([roleId, capabilityKey])
+  @@index([capabilityKey])
+}
+
+model AccessRoleAssignment {
+  id          String         @id @default(uuid()) @db.Char(36)
+  userId      String         @db.Char(36)
+  roleId      String         @db.Char(36)
+  branchId    String?        @db.Char(36)
+  activeFrom  DateTime
+  activeUntil DateTime?
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  role        RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  branch      Cabang?        @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId, activeFrom, activeUntil])
+  @@index([roleId, branchId, activeFrom, activeUntil])
+  @@index([branchId])
+}
+
+model UserCapabilityOverride {
+  id            String                   @id @default(uuid()) @db.Char(36)
+  userId        String                   @db.Char(36)
+  capabilityKey String                   @db.VarChar(96)
+  branchId      String?                  @db.Char(36)
+  effect        CapabilityOverrideEffect
+  reasonCode    String                   @db.VarChar(64)
+  note          String?                  @db.VarChar(500)
+  createdById   String                   @db.Char(36)
+  revokedAt     DateTime?
+  revokedById   String?                  @db.Char(36)
+  revokeReason  String?                  @db.VarChar(64)
+  version       Int                      @default(0)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @default(now()) @updatedAt
+  user          User                     @relation("CapabilityOverrideTarget", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  capability    CapabilityDefinition     @relation(fields: [capabilityKey], references: [key], onDelete: Restrict, onUpdate: Restrict)
+  branch        Cabang?                  @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy     User                     @relation("CapabilityOverrideCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revokedBy     User?                    @relation("CapabilityOverrideRevoker", fields: [revokedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId, revokedAt, capabilityKey])
+  @@index([branchId, capabilityKey, revokedAt])
+  @@index([createdById])
+  @@index([revokedById])
+}
+
+model UserSession {
+  id               String         @id @default(uuid()) @db.Char(36)
+  userId           String         @db.Char(36)
+  channel          SessionChannel
+  tokenFamilyHash  String
+  accessTokenHash  String         @unique
+  refreshTokenHash String?        @unique
+  expiresAt        DateTime
+  refreshExpiresAt DateTime?
+  revokedAt        DateTime?
+  revocationReason String?
+  createdAt        DateTime       @default(now())
+  rotatedAt        DateTime?
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, expiresAt, revokedAt])
+  @@index([tokenFamilyHash, revokedAt])
+}
+
+model AuthChallenge {
+  id          String          @id @default(uuid()) @db.Char(36)
+  userId      String?         @db.Char(36)
+  kind        ChallengeKind
+  purpose     String
+  subjectHash String
+  proofHash   String
+  status      ChallengeStatus @default(PENDING)
+  attempts    Int             @default(0)
+  maxAttempts Int
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  user        User?           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([kind, subjectHash, createdAt])
+  @@index([status, expiresAt])
+}
+
+model UserInvitation {
+  id               String                @id @default(uuid()) @db.Char(36)
+  invitedById      String                @db.Char(36)
+  userId           String?               @unique @db.Char(36)
+  identityProvider IdentityProvider      @default(GOOGLE)
+  subjectHash      String
+  emailHash        String?
+  displayName      String?
+  roles            Json
+  branchIds        Json
+  status           InvitationStatus      @default(PENDING)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  createdAt        DateTime              @default(now())
+  invitedBy        User                  @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Restrict)
+  user             User?                 @relation("InvitationTarget", fields: [userId], references: [id], onDelete: Restrict)
+  passwordActions  PasswordActionToken[]
+
+  @@index([identityProvider, subjectHash, status, expiresAt])
+  @@index([emailHash, status, expiresAt])
+  @@index([invitedById, createdAt])
+
+  @@map("UndanganPengguna")
+}
+
+model PasswordCredential {
+  id                 String    @id @default(uuid()) @db.Char(36)
+  userId             String    @unique @db.Char(36)
+  emailHash          String    @unique
+  passwordHash       String
+  verifiedAt         DateTime?
+  passwordChangedAt  DateTime
+  mustChangePassword Boolean   @default(false)
+  version            Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model PasswordActionToken {
+  id           String             @id @default(uuid()) @db.Char(36)
+  kind         PasswordActionKind
+  tokenHash    String             @unique
+  emailHash    String
+  userId       String?            @db.Char(36)
+  invitationId String?            @db.Char(36)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  invitation   UserInvitation?    @relation(fields: [invitationId], references: [id], onDelete: Restrict)
+
+  @@index([emailHash, kind, expiresAt])
+  @@index([userId, kind, expiresAt])
+}
+
+model ProfilPengguna {
+  userId             String    @id @db.Char(36) @map("pengguna_id")
+  address            String?   @db.Text @map("alamat")
+  genderCode         String?   @db.VarChar(32) @map("jenis_kelamin")
+  countryCode        String?   @db.Char(2) @map("kode_negara")
+  birthDate          DateTime? @db.Date @map("tanggal_lahir")
+  nikEncrypted       String?   @db.Text
+  nikHash            String?   @db.Char(64)
+  barcode            String?   @db.VarChar(191) @map("kode_batang")
+  historicalMetadata Json?
+  historical         Boolean   @default(false)
+  sourceDeletedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([nikHash])
+  @@index([barcode])
+
+  @@map("ProfilPengguna")
+}
+
+model AliasKontakPengguna {
+  id              String           @id @default(uuid()) @db.Char(36)
+  userId          String           @db.Char(36)
+  kind            ContactAliasKind
+  normalizedHash  String           @db.Char(64)
+  valueEncrypted  String           @db.Text
+  canonical       Boolean          @default(false)
+  verifiedAt      DateTime?
+  historical      Boolean          @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, kind, normalizedHash])
+  @@index([kind, normalizedHash])
+
+  @@map("AliasKontakPengguna")
+}

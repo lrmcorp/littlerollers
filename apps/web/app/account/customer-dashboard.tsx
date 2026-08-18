@@ -40,11 +40,7 @@ type CustomerDashboardOverview = {
   unreadNotifications: number;
 };
 
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../lib/formatters';
 
 export function CustomerDashboard() {
   const session = useSessionContext()?.session;
@@ -196,7 +192,7 @@ export function CustomerDashboard() {
                 </span>
               </div>
               <strong className="text-sm text-dd-forest">
-                {rupiah.format(order.payableAmountRp)}
+                {formatRupiah(order.payableAmountRp)}
               </strong>
             </Link>
           ))}

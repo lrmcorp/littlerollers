@@ -54,13 +54,13 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         { id: adminId, displayName: 'Ledger admin' },
       ],
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Ledger branch', timezone: 'Asia/Jakarta' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: { id: classTypeId, branchId, code: 'LEDGER', name: 'Ledger class' },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         branchId,
@@ -73,7 +73,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         effectiveFrom: new Date('2026-01-01T00:00:00Z'),
       },
     });
-    await db.paymentProof.create({
+    await db.buktiPembayaran.create({
       data: {
         id: proofId,
         userId: customerId,
@@ -88,7 +88,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         scanStatus: 'CLEAN',
       },
     });
-    await db.purchase.create({
+    await db.pembelian.create({
       data: {
         id: purchaseId,
         userId: customerId,
@@ -107,7 +107,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         decisionReasonCode: 'PAYMENT_VERIFIED',
       },
     });
-    await db.customerPackage.create({
+    await db.paketPelanggan.create({
       data: {
         id: customerPackageId,
         purchaseId,
@@ -123,7 +123,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         projectionRateRp: 100000,
       },
     });
-    await db.ledgerEntry.create({
+    await db.entriBukuBesar.create({
       data: {
         id: randomUUID(),
         customerPackageId,
@@ -133,7 +133,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         referenceId: purchaseId,
       },
     });
-    await db.sessionReservation.createMany({
+    await db.reservasiSesi.createMany({
       data: [
         { id: randomUUID(), customerPackageId, referenceHash: `${namespace}-active-1` },
         { id: randomUUID(), customerPackageId, referenceHash: `${namespace}-active-2` },
@@ -154,7 +154,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         aggregateType: 'SessionAdjustment',
         aggregateId: {
           in: (
-            await db.sessionAdjustment.findMany({
+            await db.penyesuaianSesi.findMany({
               where: { customerPackageId },
               select: { id: true },
             })
@@ -167,7 +167,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         objectType: 'SessionAdjustment',
         objectId: {
           in: (
-            await db.sessionAdjustment.findMany({
+            await db.penyesuaianSesi.findMany({
               where: { customerPackageId },
               select: { id: true },
             })
@@ -175,18 +175,18 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         },
       },
     });
-    await db.ledgerEntry.deleteMany({ where: { customerPackageId } });
-    await db.sessionAdjustment.deleteMany({ where: { customerPackageId } });
+    await db.entriBukuBesar.deleteMany({ where: { customerPackageId } });
+    await db.penyesuaianSesi.deleteMany({ where: { customerPackageId } });
     await db.idempotencyRecord.deleteMany({
       where: { scope: { startsWith: 'session-adjustment-' } },
     });
-    await db.sessionReservation.deleteMany({ where: { customerPackageId } });
-    await db.customerPackage.deleteMany({ where: { id: customerPackageId } });
-    await db.purchase.deleteMany({ where: { id: purchaseId } });
-    await db.paymentProof.deleteMany({ where: { id: proofId } });
-    await db.package.deleteMany({ where: { id: packageId } });
-    await db.classType.deleteMany({ where: { id: classTypeId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.reservasiSesi.deleteMany({ where: { customerPackageId } });
+    await db.paketPelanggan.deleteMany({ where: { id: customerPackageId } });
+    await db.pembelian.deleteMany({ where: { id: purchaseId } });
+    await db.buktiPembayaran.deleteMany({ where: { id: proofId } });
+    await db.paket.deleteMany({ where: { id: packageId } });
+    await db.jenisKelas.deleteMany({ where: { id: classTypeId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [customerId, managerId, adminId] } } });
     await db.$disconnect();
   });
@@ -251,7 +251,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
   });
 
   it('returns zero available when expired or inactive while preserving history', async () => {
-    await db.customerPackage.update({
+    await db.paketPelanggan.update({
       where: { id: customerPackageId },
       data: { status: 'INACTIVE' },
     });
@@ -259,7 +259,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     expect(result.balance.available).toBe(0);
     expect(result.balance.ledgerBalance).toBe(10);
     expect(result.entries).toHaveLength(1);
-    await db.customerPackage.update({
+    await db.paketPelanggan.update({
       where: { id: customerPackageId },
       data: { status: 'ACTIVE' },
     });
@@ -271,7 +271,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
         code: 'VALIDATION_ERROR',
       },
     );
-    const extra = await db.sessionReservation.create({
+    const extra = await db.reservasiSesi.create({
       data: {
         id: randomUUID(),
         customerPackageId,
@@ -282,11 +282,11 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     await expect(service.detail(customer, customerPackageId)).rejects.toMatchObject({
       code: 'LEDGER_INVARIANT_VIOLATION',
     });
-    await db.sessionReservation.delete({ where: { id: extra.id } });
+    await db.reservasiSesi.delete({ where: { id: extra.id } });
   });
 
   it('requests without ledger mutation and posts exactly one adjustment by a different authorized actor', async () => {
-    const before = await db.ledgerEntry.count({ where: { customerPackageId } });
+    const before = await db.entriBukuBesar.count({ where: { customerPackageId } });
     const requested = await service.requestAdjustment(
       admin,
       { customerPackageId, quantity: -2, reasonCode: 'ATTENDANCE_CORRECTION' },
@@ -300,7 +300,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
       namespace,
     );
     expect(replay.replay).toBe(true);
-    expect(await db.ledgerEntry.count({ where: { customerPackageId } })).toBe(before);
+    expect(await db.entriBukuBesar.count({ where: { customerPackageId } })).toBe(before);
     const id = (requested.body as { id: string }).id;
     expect(requested.body).toMatchObject({ ledgerBalanceAtRequest: 10, reservedAtRequest: 2 });
     const queue = await service.listAdjustments(
@@ -332,7 +332,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     expect((decided.body as { resultingBalance: number }).resultingBalance).toBe(8);
     expect(decided.body).toMatchObject({ auditReference: namespace });
     expect(
-      await db.ledgerEntry.count({ where: { customerPackageId, type: 'ADJUST_MANUAL' } }),
+      await db.entriBukuBesar.count({ where: { customerPackageId, type: 'ADJUST_MANUAL' } }),
     ).toBe(1);
     const detail = await service.detail(customer, customerPackageId);
     expect(detail.balance).toMatchObject({ ledgerBalance: 8, reserved: 2, available: 6 });
@@ -386,7 +386,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
       `${namespace}-reject`,
       namespace,
     );
-    expect(await db.ledgerEntry.count({ where: { sessionAdjustmentId: id } })).toBe(0);
+    expect(await db.entriBukuBesar.count({ where: { sessionAdjustmentId: id } })).toBe(0);
   });
 
   it('allows only one concurrent pending request and one concurrent ledger post', async () => {
@@ -409,7 +409,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
     if (!fulfilled || fulfilled.status !== 'fulfilled') throw new Error('missing request');
     const id = (fulfilled.value.body as { id: string }).id;
     expect(
-      await db.sessionAdjustment.count({ where: { customerPackageId, status: 'PENDING' } }),
+      await db.penyesuaianSesi.count({ where: { customerPackageId, status: 'PENDING' } }),
     ).toBe(1);
 
     const decisions = await Promise.allSettled([
@@ -431,7 +431,7 @@ databaseDescribe('synthetic ledger read MySQL integration', () => {
       ),
     ]);
     expect(decisions.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
-    expect(await db.ledgerEntry.count({ where: { sessionAdjustmentId: id } })).toBe(1);
+    expect(await db.entriBukuBesar.count({ where: { sessionAdjustmentId: id } })).toBe(1);
     expect(
       await db.auditLog.count({ where: { objectId: id, action: 'session.adjustment.posted' } }),
     ).toBe(1);

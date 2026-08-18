@@ -1,0 +1,351 @@
+enum MigrationLegacyPayloadKind {
+  ACTIVITY_LOG
+  NOTIFICATION
+}
+
+enum MigrationBatchStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum MigrationRejectStatus {
+  OPEN
+  RESOLVED
+  WAIVED
+}
+
+enum MigrationControlStatus {
+  PENDING
+  MATCH
+  MISMATCH
+}
+
+enum MigrationDeltaOperation {
+  INSERT
+  UPDATE
+  SOFT_DELETE
+  DELETE
+}
+
+enum MigrationDeltaStatus {
+  CAPTURED
+  VERIFIED
+  APPLIED
+  BLOCKED
+  FAILED
+}
+
+enum MigrationCheckpointKind {
+  CAPTURE
+  VERIFY
+  APPLY
+  DRAIN
+}
+
+enum BranchCutoverStatus {
+  V1_ACTIVE
+  FREEZING
+  DRAINING
+  V2_ACTIVE
+  ROLLING_BACK
+  ROLLED_BACK
+}
+
+enum PilotOutboxStatus {
+  PENDING
+  APPLIED_TO_V1
+  FAILED
+  CANCELLED
+}
+
+enum PilotMediaAliasStatus {
+  PREPARED
+  ACTIVE
+  FAILED
+}
+
+enum DeferredMediaStatus {
+  DEFERRED
+}
+
+enum MigrationResolutionStatus {
+  OPEN
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+model MigrationBatch {
+  id                      String                            @id @default(uuid()) @db.Char(36)
+  sourceSystem            String                            @db.VarChar(32)
+  sourceSnapshotAt        DateTime
+  sourceChecksum          String                            @db.Char(64)
+  storageManifestChecksum String?                           @db.Char(64)
+  mappingVersion          String                            @db.VarChar(64)
+  phase                   String                            @db.VarChar(64)
+  status                  MigrationBatchStatus              @default(PENDING)
+  delta                   Boolean                           @default(false)
+  parentBatchId           String?                           @db.Char(36)
+  startedAt               DateTime?
+  completedAt             DateTime?
+  failureCode             String?                           @db.VarChar(64)
+  createdAt               DateTime                          @default(now())
+  updatedAt               DateTime                          @updatedAt
+  parentBatch             MigrationBatch?                   @relation("MigrationBatchDelta", fields: [parentBatchId], references: [id], onDelete: Restrict)
+  deltaBatches            MigrationBatch[]                  @relation("MigrationBatchDelta")
+  sourceKeys              MigrationSourceKey[]
+  rejects                 MigrationReject[]
+  controlTotals           MigrationControlTotal[]
+  resolutions             MigrationResolution[]
+  deltaEvents             MigrationDeltaEvent[]
+  deferredMediaReferences MigrationDeferredMediaReference[]
+
+  @@unique([sourceSystem, sourceChecksum, mappingVersion, phase])
+  @@index([status, createdAt])
+  @@index([parentBatchId, createdAt])
+}
+
+model MigrationDeferredMediaReference {
+  id                 String              @id @db.Char(36)
+  batchId            String              @db.Char(36)
+  sourceSystem       String              @db.VarChar(32)
+  sourceTable        String              @db.VarChar(64)
+  sourceId           String              @db.VarChar(191)
+  sourceField        String              @db.VarChar(64)
+  mediaKind          String              @db.VarChar(32)
+  referenceEncrypted String              @db.Text
+  referenceHash      String              @db.Char(64)
+  status             DeferredMediaStatus @default(DEFERRED)
+  historical         Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  batch              MigrationBatch      @relation(fields: [batchId], references: [id], onDelete: Restrict, map: "DeferredMedia_batch_fkey")
+
+  @@unique([sourceSystem, sourceTable, sourceId, sourceField], map: "DeferredMedia_source_key")
+  @@index([batchId, status, mediaKind], map: "DeferredMedia_batch_status_kind_idx")
+  @@index([referenceHash], map: "DeferredMedia_reference_hash_idx")
+}
+
+model MigrationSourceKey {
+  id             String         @id @default(uuid()) @db.Char(36)
+  batchId        String         @db.Char(36)
+  sourceSystem   String         @db.VarChar(32)
+  sourceTable    String         @db.VarChar(64)
+  sourceId       String         @db.VarChar(191)
+  targetType     String         @db.VarChar(64)
+  targetId       String         @db.VarChar(191)
+  recordChecksum String         @db.Char(64)
+  mappingVersion String         @db.VarChar(64)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  batch          MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceSystem, sourceTable, sourceId, targetType])
+  @@index([targetType, targetId])
+  @@index([batchId, sourceTable])
+}
+
+model MigrationReject {
+  id             String                @id @default(uuid()) @db.Char(36)
+  batchId        String                @db.Char(36)
+  sourceTable    String                @db.VarChar(64)
+  sourceId       String                @db.VarChar(191)
+  reasonCode     String                @db.VarChar(64)
+  fieldCode      String?               @db.VarChar(64)
+  recordChecksum String?               @db.Char(64)
+  status         MigrationRejectStatus @default(OPEN)
+  resolutionId   String?               @unique @db.Char(36)
+  createdAt      DateTime              @default(now())
+  resolvedAt     DateTime?
+  batch          MigrationBatch        @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  resolution     MigrationResolution?  @relation(fields: [resolutionId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, sourceTable, sourceId, reasonCode])
+  @@index([status, reasonCode, createdAt])
+}
+
+model MigrationControlTotal {
+  id            String                 @id @default(uuid()) @db.Char(36)
+  batchId       String                 @db.Char(36)
+  controlKey    String                 @db.VarChar(128)
+  dimensionHash String                 @db.Char(64)
+  dimensions    Json
+  expectedValue Decimal                @db.Decimal(30, 0)
+  actualValue   Decimal?               @db.Decimal(30, 0)
+  status        MigrationControlStatus @default(PENDING)
+  checkedAt     DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  batch         MigrationBatch         @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, controlKey, dimensionHash])
+  @@index([status, controlKey])
+}
+
+model MigrationResolution {
+  id                  String                    @id @default(uuid()) @db.Char(36)
+  batchId             String                    @db.Char(36)
+  resolutionKey       String                    @db.VarChar(191)
+  reasonCode          String                    @db.VarChar(64)
+  proposal            Json?
+  decision            Json?
+  decisionRequestHash String?                   @db.Char(64)
+  status              MigrationResolutionStatus @default(OPEN)
+  decidedById         String?                   @db.Char(36)
+  decisionReason      String?                   @db.VarChar(500)
+  decidedAt           DateTime?
+  appliedAt           DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  batch               MigrationBatch            @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  reject              MigrationReject?
+
+  @@unique([batchId, resolutionKey])
+  @@index([status, reasonCode, createdAt])
+}
+
+model MigrationDeltaEvent {
+  id                String                  @id @default(uuid()) @db.Char(36)
+  batchId           String?                 @db.Char(36)
+  eventKey          String                  @unique @db.VarChar(191)
+  sourceSystem      String                  @db.VarChar(32)
+  sourceTable       String                  @db.VarChar(64)
+  sourceId          String                  @db.VarChar(191)
+  operation         MigrationDeltaOperation
+  gtid              String                  @db.VarChar(191)
+  transactionOrder  BigInt
+  eventOrder        Int
+  binlogFile        String?                 @db.VarChar(191)
+  binlogPosition    BigInt?
+  sourceBranchId    String?                 @db.VarChar(191)
+  branchId          String?                 @db.Char(36)
+  beforeChecksum    String?                 @db.Char(64)
+  afterChecksum     String?                 @db.Char(64)
+  payloadCiphertext String                  @db.LongText
+  payloadIv         String                  @db.VarChar(32)
+  payloadAuthTag    String                  @db.VarChar(32)
+  payloadKeyVersion String                  @db.VarChar(32)
+  status            MigrationDeltaStatus    @default(CAPTURED)
+  correlationId     String                  @db.VarChar(191)
+  sourceOccurredAt  DateTime
+  capturedAt        DateTime                @default(now())
+  verifiedAt        DateTime?
+  appliedAt         DateTime?
+  failureCode       String?                 @db.VarChar(64)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  batch             MigrationBatch?         @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  branch            Cabang?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceSystem, gtid, eventOrder])
+  @@index([status, transactionOrder, eventOrder])
+  @@index([sourceTable, sourceId, transactionOrder])
+  @@index([branchId, status, transactionOrder])
+}
+
+model MigrationGtidCheckpoint {
+  id                String                  @id @default(uuid()) @db.Char(36)
+  sourceSystem      String                  @db.VarChar(32)
+  kind              MigrationCheckpointKind
+  gtidSet           String                  @db.LongText
+  lastGtid          String?                 @db.VarChar(191)
+  transactionOrder  BigInt                  @default(0)
+  binlogFile        String?                 @db.VarChar(191)
+  binlogPosition    BigInt?
+  capturedThroughAt DateTime?
+  updatedBy         String                  @db.VarChar(191)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@unique([sourceSystem, kind])
+}
+
+model MigrationBranchCutover {
+  id                  String              @id @default(uuid()) @db.Char(36)
+  branchId            String              @unique @db.Char(36)
+  sourceBranchId      String              @unique @db.VarChar(191)
+  status              BranchCutoverStatus @default(V1_ACTIVE)
+  snapshotGtid        String?             @db.VarChar(191)
+  highWaterGtid       String?             @db.VarChar(191)
+  highWaterOrder      BigInt?
+  v1WritesFrozenAt    DateTime?
+  deltaDrainedAt      DateTime?
+  v2ActivatedAt       DateTime?
+  rollbackStartedAt   DateTime?
+  rollbackCompletedAt DateTime?
+  version             Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  branch              Cabang              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([status, updatedAt])
+}
+
+model MigrationPilotOutbox {
+  id                String            @id @default(uuid()) @db.Char(36)
+  sequence          BigInt            @unique @default(autoincrement())
+  eventKey          String            @unique @db.VarChar(191)
+  branchId          String            @db.Char(36)
+  aggregateType     String            @db.VarChar(64)
+  aggregateId       String            @db.VarChar(191)
+  operation         String            @db.VarChar(64)
+  payloadCiphertext String            @db.LongText
+  payloadIv         String            @db.VarChar(32)
+  payloadAuthTag    String            @db.VarChar(32)
+  payloadKeyVersion String            @db.VarChar(32)
+  payloadChecksum   String            @db.Char(64)
+  status            PilotOutboxStatus @default(PENDING)
+  attempts          Int               @default(0)
+  failureCode       String?           @db.VarChar(64)
+  correlationId     String            @db.VarChar(191)
+  occurredAt        DateTime
+  appliedToV1At     DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  branch            Cabang            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, occurredAt])
+  @@index([branchId, status, sequence])
+  @@index([aggregateType, aggregateId, occurredAt])
+}
+
+model MigrationPilotMediaAlias {
+  id             String                @id @default(uuid()) @db.Char(36)
+  eventKey       String                @unique @db.VarChar(191)
+  branchId       String                @db.Char(36)
+  targetType     String                @db.VarChar(64)
+  targetId       String                @db.VarChar(191)
+  mediaKind      String                @db.VarChar(32)
+  aliasReference String                @unique @db.VarChar(191)
+  checksum       String                @db.Char(64)
+  mimeType       String                @db.VarChar(128)
+  sizeBytes      Int
+  status         PilotMediaAliasStatus @default(PREPARED)
+  attempts       Int                   @default(0)
+  failureCode    String?               @db.VarChar(64)
+  activatedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  branch         Cabang                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, createdAt])
+  @@index([targetType, targetId])
+}
+
+model MigrationLegacyPayload {
+  id                 String                     @id @default(uuid()) @db.Char(36)
+  kind               MigrationLegacyPayloadKind
+  auditLogId         String?                    @unique @db.Char(36)
+  userNotificationId String?                    @unique @db.Char(36)
+  payloadEncrypted   String                     @db.LongText
+  payloadChecksum    String                     @db.Char(64)
+  encryptionVersion  String                     @db.VarChar(32)
+  createdAt          DateTime                   @default(now())
+  auditLog           AuditLog?                  @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
+  userNotification   UserNotification?          @relation(fields: [userNotificationId], references: [id], onDelete: Restrict)
+
+  @@index([kind, createdAt])
+}

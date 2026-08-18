@@ -130,7 +130,7 @@ export class PackageReminderWorker {
     let created = 0;
     let cursor: string | undefined;
     while (true) {
-      const packages = await this.db.customerPackage.findMany({
+      const packages = await this.db.paketPelanggan.findMany({
         where: {
           status: 'ACTIVE',
           expiryAt: { gt: now },
@@ -146,11 +146,11 @@ export class PackageReminderWorker {
       for (const item of packages) {
         if (!item.customer.email) continue;
         const [ledger, reservations] = await Promise.all([
-          this.db.ledgerEntry.aggregate({
+          this.db.entriBukuBesar.aggregate({
             where: { customerPackageId: item.id },
             _sum: { quantity: true },
           }),
-          this.db.sessionReservation.aggregate({
+          this.db.reservasiSesi.aggregate({
             where: { customerPackageId: item.id, status: 'ACTIVE' },
             _sum: { quantity: true },
           }),

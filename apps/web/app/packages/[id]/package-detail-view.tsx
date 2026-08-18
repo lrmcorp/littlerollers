@@ -19,12 +19,7 @@ import {
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../../lib/formatters';
 
 export function PackageDetailView({
   id,
@@ -71,8 +66,8 @@ export function PackageDetailView({
             facts={
               <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  ['Harga', rupiah.format(item.effectivePriceRp)],
-                  ['Per sesi', rupiah.format(item.pricePerSessionRp)],
+                  ['Harga', formatRupiah(item.effectivePriceRp)],
+                  ['Per sesi', formatRupiah(item.pricePerSessionRp)],
                   ['Jumlah', `${item.sessionCount} sesi`],
                   ['Berlaku', `${item.durationDays} hari`],
                 ].map(([label, value]) => (

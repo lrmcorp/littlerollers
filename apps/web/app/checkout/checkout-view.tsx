@@ -8,7 +8,7 @@ import { CustomerPaymentFlow } from '../components/customer/customer-payment-flo
 import { AlertBanner, useAppFeedback } from '../components/app-feedback';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
-import { SelectInput, TextInput } from '../components/forms';
+import { SearchSelect, TextInput } from '../components/forms';
 import { PackagePrice } from '../components/public/package-price';
 import {
   browserOrderClient,
@@ -17,12 +17,7 @@ import {
   type CustomerOrder,
 } from '../order-client';
 import { Skeleton } from '../ui';
-
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
+import { formatRupiah } from '../lib/formatters';
 
 export function CheckoutView() {
   const params = useSearchParams();
@@ -176,24 +171,22 @@ export function CheckoutView() {
           </p>
 
           {options.package.classTypes.length > 1 && (
-            <SelectInput
-              wrapperClassName="mt-5 max-w-md"
-              label="Jenis kelas"
-              description="Pilih satu jenis kelas yang akan digunakan untuk paket ini."
-              value={selectedClassTypeId}
-              required
-              onChange={(event) => {
-                setSelectedClassTypeId(event.target.value);
-                setVoucherPreview(null);
-              }}
-            >
-              <option value="">Pilih jenis kelas</option>
-              {options.package.classTypes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </SelectInput>
+            <div className="mt-5 max-w-md">
+              <SearchSelect
+                label="Jenis kelas"
+                description="Pilih satu jenis kelas yang akan digunakan untuk paket ini."
+                value={selectedClassTypeId}
+                placeholder="Pilih jenis kelas"
+                options={options.package.classTypes.map((item) => ({
+                  id: item.id,
+                  label: item.name,
+                }))}
+                onChange={(value) => {
+                  setSelectedClassTypeId(value);
+                  setVoucherPreview(null);
+                }}
+              />
+            </div>
           )}
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-dd-lg bg-dd-surface-muted p-4">
@@ -299,7 +292,7 @@ export function CheckoutView() {
               <div>
                 <dt className="text-dd-muted">Promo paket</dt>
                 <dd className="font-semibold text-dd-forest">
-                  -{rupiah.format(voucherPreview.packagePromotionDiscountRp)}
+                  -{formatRupiah(voucherPreview.packagePromotionDiscountRp)}
                 </dd>
               </div>
             )}
@@ -310,13 +303,13 @@ export function CheckoutView() {
             <div>
               <dt className="text-dd-muted">Diskon</dt>
               <dd className="font-semibold text-dd-forest">
-                -{rupiah.format(voucherPreview.discountRp)}
+                -{formatRupiah(voucherPreview.discountRp)}
               </dd>
             </div>
             <div>
               <dt className="text-dd-muted">Harga setelah diskon</dt>
               <dd className="font-semibold">
-                {rupiah.format(voucherPreview.priceAfterDiscountRp)}
+                {formatRupiah(voucherPreview.priceAfterDiscountRp)}
               </dd>
             </div>
           </dl>

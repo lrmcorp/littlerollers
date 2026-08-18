@@ -48,7 +48,7 @@ export class PackageAccessService {
 
   async requireVerifiedCustomer(principal: SessionPrincipal) {
     if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return;
-    const approved = await this.db.identityVerificationDocument.groupBy({
+    const approved = await this.db.dokumenVerifikasiIdentitas.groupBy({
       by: ['kind'],
       where: { userId: principal.userId, status: 'APPROVED', replacedById: null },
     });

@@ -14,12 +14,12 @@ describe('IdentityDeletionWorker', () => {
       attempts: 0,
     };
     const tx = {
-      identityVerificationDocument: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
-      identityDocumentDeletionJob: { update: jest.fn().mockResolvedValue({}) },
+      dokumenVerifikasiIdentitas: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      antreanHapusDokumenIdentitas: { update: jest.fn().mockResolvedValue({}) },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
     };
     const db = {
-      identityDocumentDeletionJob: {
+      antreanHapusDokumenIdentitas: {
         findFirst: jest.fn().mockResolvedValue(job),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         update: jest.fn().mockResolvedValue({}),
@@ -33,15 +33,15 @@ describe('IdentityDeletionWorker', () => {
     );
 
     await expect(worker.poll()).resolves.toBe(true);
-    expect(tx.identityVerificationDocument.updateMany).toHaveBeenCalled();
-    expect(tx.identityDocumentDeletionJob.update).toHaveBeenCalledWith(
+    expect(tx.dokumenVerifikasiIdentitas.updateMany).toHaveBeenCalled();
+    expect(tx.antreanHapusDokumenIdentitas.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'SUCCEEDED' }) }),
     );
   });
 
   it('does not claim work when no deletion is due', async () => {
     const db = {
-      identityDocumentDeletionJob: { findFirst: jest.fn().mockResolvedValue(null) },
+      antreanHapusDokumenIdentitas: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     const worker = new IdentityDeletionWorker(db as never, {
       driver: 'local',

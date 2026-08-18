@@ -64,7 +64,7 @@ export async function seedInstructorAvailability(
     throw new Error('Instructor availability requires seeded users and branches.');
   validateAvailabilityPeriods(fixtures);
   for (const fixture of fixtures) {
-    await ctx.db.instructorAvailability.upsert({
+    await ctx.db.ketersediaanInstruktur.upsert({
       where: { id: ctx.id('instructor-availability', fixture.key) },
       update: {
         instructorUserId: fixture.instructorUserId,

@@ -78,10 +78,10 @@ databaseDescribe('effective master MySQL integration', () => {
       },
     });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
-    await db.effectiveConfiguration.deleteMany({ where: { branchId } });
-    await db.classTypeBranchScope.deleteMany({ where: { branchId } });
+    await db.konfigurasiEfektif.deleteMany({ where: { branchId } });
+    await db.cakupanCabangJenisKelas.deleteMany({ where: { branchId } });
 
-    await db.classType.deleteMany({
+    await db.jenisKelas.deleteMany({
       where: {
         id: {
           in: [classTypeId, lifecycleClassTypeId].filter(Boolean),
@@ -89,8 +89,8 @@ databaseDescribe('effective master MySQL integration', () => {
       },
     });
 
-    await db.accountingAccount.deleteMany({ where: { branchId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.akunAkuntansi.deleteMany({ where: { branchId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, instructorId] } } });
     await db.$disconnect();
   });
@@ -167,7 +167,7 @@ databaseDescribe('effective master MySQL integration', () => {
         unit: 'MATCHED_CLASS',
         configurationPackChecksum: checksum,
       });
-      expect(await db.effectiveConfiguration.count({ where: { id: created.id } })).toBe(1);
+      expect(await db.konfigurasiEfektif.count({ where: { id: created.id } })).toBe(1);
       await expect(
         settings.create(
           principal(),
@@ -219,7 +219,7 @@ databaseDescribe('effective master MySQL integration', () => {
     );
     expect(attempts.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
     expect(
-      await db.effectiveConfiguration.count({
+      await db.konfigurasiEfektif.count({
         where: { kind: 'PROJECTION_RATE', branchId, classTypeId },
       }),
     ).toBe(1);

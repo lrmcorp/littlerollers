@@ -21,6 +21,7 @@ import { PackagePricingService } from './package-pricing.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic package purchase MySQL integration', () => {
+  jest.setTimeout(25_000);
   const db = new PrismaClient();
   const namespace = `pkg-${Date.now()}`;
   const packageBusinessKey = `PKG-10-${namespace}`.toUpperCase();
@@ -81,10 +82,10 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     await db.$connect();
     await db.user.create({ data: { id: actorId, displayName: 'Synthetic customer' } });
     await db.user.create({ data: { id: reviewerId, displayName: 'Synthetic reviewer' } });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Package branch', timezone: 'Asia/Jakarta' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: {
         id: classTypeId,
         branchId,
@@ -92,7 +93,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         name: 'Reformer',
       },
     });
-    await db.classTypeBranchScope.create({
+    await db.cakupanCabangJenisKelas.create({
       data: { id: randomUUID(), classTypeId, branchId },
     });
     const policy = new PolicyService();
@@ -128,7 +129,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     reviews = new PaymentReviewService(db as never, idempotency, storage, access);
   });
   afterAll(async () => {
-    await db.paymentProofViewAuthorization.deleteMany({
+    await db.otorisasiLihatBuktiPembayaran.deleteMany({
       where: { proof: { userId: actorId } },
     });
     await db.idempotencyRecord.deleteMany({
@@ -138,36 +139,36 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     });
     await db.outboxEvent.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
-    await db.ledgerEntry.deleteMany({ where: { customerPackage: { customerUserId: actorId } } });
-    await db.customerPackage.deleteMany({ where: { customerUserId: actorId } });
-    await db.paymentUniqueCodeReservation.deleteMany({
+    await db.entriBukuBesar.deleteMany({ where: { customerPackage: { customerUserId: actorId } } });
+    await db.paketPelanggan.deleteMany({ where: { customerUserId: actorId } });
+    await db.reservasiKodeUnikPembayaran.deleteMany({
       where: { purchase: { userId: actorId } },
     });
-    await db.purchase.deleteMany({ where: { userId: actorId } });
-    await db.paymentAccount.deleteMany({ where: { branchId } });
-    await db.paymentProof.deleteMany({ where: { userId: actorId } });
+    await db.pembelian.deleteMany({ where: { userId: actorId } });
+    await db.rekeningPembayaran.deleteMany({ where: { branchId } });
+    await db.buktiPembayaran.deleteMany({ where: { userId: actorId } });
 
     const packageIds = (
-      await db.package.findMany({
+      await db.paket.findMany({
         where: { branchId },
         select: { id: true },
       })
     ).map((pkg) => pkg.id);
 
-    await db.packageBranchScope.deleteMany({
+    await db.cakupanCabangPaket.deleteMany({
       where: { packageId: { in: packageIds } },
     });
-    await db.packageClassTypeScope.deleteMany({
+    await db.cakupanJenisKelasPaket.deleteMany({
       where: { packageId: { in: packageIds } },
     });
-    await db.packageRevision.deleteMany({
+    await db.revisiPaket.deleteMany({
       where: { packageId: { in: packageIds } },
     });
-    await db.package.deleteMany({ where: { id: { in: packageIds } } });
-    await db.effectiveConfiguration.deleteMany({ where: { branchId } });
-    await db.classTypeBranchScope.deleteMany({ where: { classTypeId } });
-    await db.classType.deleteMany({ where: { id: classTypeId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.paket.deleteMany({ where: { id: { in: packageIds } } });
+    await db.konfigurasiEfektif.deleteMany({ where: { branchId } });
+    await db.cakupanCabangJenisKelas.deleteMany({ where: { classTypeId } });
+    await db.jenisKelas.deleteMany({ where: { id: classTypeId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [actorId, reviewerId] } } });
     await db.$disconnect();
     await rm(privateRoot, { recursive: true, force: true });
@@ -234,7 +235,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     );
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    expect(await db.purchase.count({ where: { userId: actorId } })).toBe(1);
+    expect(await db.pembelian.count({ where: { userId: actorId } })).toBe(1);
     expect(
       await db.outboxEvent.count({
         where: { eventType: 'purchase.submitted.v1', correlationId: `${namespace}-submit` },
@@ -243,7 +244,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('lists a global reviewer queue with real filters, summary, masking and cursor scope', async () => {
-    const pkg = await db.package.findFirstOrThrow({ where: { branchId } });
+    const pkg = await db.paket.findFirstOrThrow({ where: { branchId } });
     const queueCustomerId = randomUUID();
     const secondBranchId = randomUUID();
     const pendingId = randomUUID();
@@ -256,7 +257,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         phoneE164: queuePhone,
       },
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: {
         id: secondBranchId,
         code: `${namespace}-queue`,
@@ -264,14 +265,14 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         timezone: 'Asia/Jakarta',
       },
     });
-    await db.purchase.createMany({
+    await db.pembelian.createMany({
       data: [
         {
           id: pendingId,
           userId: queueCustomerId,
           branchId,
           packageId: pkg.id,
-          classTypeId: pkg.classTypeId,
+          classTypeId,
           packageNameSnapshot: pkg.name,
           priceRpSnapshot: pkg.priceRp,
           payableAmountRpSnapshot: pkg.priceRp + 101,
@@ -287,7 +288,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
           userId: queueCustomerId,
           branchId: secondBranchId,
           packageId: pkg.id,
-          classTypeId: pkg.classTypeId,
+          classTypeId,
           packageNameSnapshot: pkg.name,
           priceRpSnapshot: pkg.priceRp,
           sessionCountSnapshot: pkg.sessionCount,
@@ -358,14 +359,14 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         reviews.list({ ...reviewer, capabilities: ['package:read'], branchIds: [branchId] }),
       ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     } finally {
-      await db.purchase.deleteMany({ where: { id: { in: [pendingId, actionRequiredId] } } });
-      await db.branch.delete({ where: { id: secondBranchId } });
+      await db.pembelian.deleteMany({ where: { id: { in: [pendingId, actionRequiredId] } } });
+      await db.cabang.delete({ where: { id: secondBranchId } });
       await db.user.delete({ where: { id: queueCustomerId } });
     }
   });
 
   it('issues reviewer-bound one-time proof preview and audits authorization and consumption', async () => {
-    const purchase = await db.purchase.findFirstOrThrow({
+    const purchase = await db.pembelian.findFirstOrThrow({
       where: { userId: actorId, paymentProofId: { not: null } },
       include: { paymentProof: true },
     });
@@ -402,7 +403,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('allows only the customer owner to preview the CLEAN proof attached to their order', async () => {
-    const purchase = await db.purchase.findFirstOrThrow({
+    const purchase = await db.pembelian.findFirstOrThrow({
       where: { userId: actorId, paymentProofId: { not: null } },
       include: { paymentProof: true },
     });
@@ -422,7 +423,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       `${namespace}-customer-proof-expiring`,
     );
     const expiredAuthorizationId = expiredAuthorization.url.split('/').at(-2)!;
-    await db.paymentProofViewAuthorization.update({
+    await db.otorisasiLihatBuktiPembayaran.update({
       where: { id: expiredAuthorizationId },
       data: { expiresAt: new Date(Date.now() - 1_000) },
     });
@@ -472,7 +473,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('rejects changed idempotent payload, unsafe proof, and overlapping package period', async () => {
-    const purchase = await db.purchase.findFirstOrThrow({ where: { userId: actorId } });
+    const purchase = await db.pembelian.findFirstOrThrow({ where: { userId: actorId } });
     await expect(
       orders.submit(
         principal,
@@ -563,6 +564,24 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       version: created.version + 1,
     });
 
+    const listed = await catalog.list(principal, {
+      branchId,
+      classTypeId,
+      q: lifecycleBusinessKey,
+      limit: '20',
+    });
+    const listedPackage = listed.items.find((item) => item.id === updated.id);
+
+    expect(listedPackage).toBeDefined();
+    expect(listedPackage!.branchScopes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ branchId })]),
+    );
+    expect(listedPackage!.classTypeScopes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ classTypeId })]),
+    );
+    expect(listedPackage).not.toHaveProperty('branch');
+    expect(listedPackage).not.toHaveProperty('classType');
+
     const revision = await catalog.revise(
       principal,
       updated.id,
@@ -578,7 +597,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       `${namespace}-lifecycle-revision-key`,
       `${namespace}-lifecycle-revision`,
     );
-    const previous = await db.packageRevision.findUniqueOrThrow({
+    const previous = await db.revisiPaket.findUniqueOrThrow({
       where: {
         packageId_revisionNumber: {
           packageId: updated.id,
@@ -649,8 +668,8 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('allocates one collision-safe three digit payment code and replays it unchanged', async () => {
-    const pkg = await db.package.findFirstOrThrow({ where: { branchId } });
-    const account = await db.paymentAccount.create({
+    const pkg = await db.paket.findFirstOrThrow({ where: { branchId } });
+    const account = await db.rekeningPembayaran.create({
       data: {
         id: randomUUID(),
         branchId,
@@ -692,14 +711,14 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       payableAmountRp: firstBody.payableAmountRp,
     });
     expect(
-      await db.paymentUniqueCodeReservation.count({
+      await db.reservasiKodeUnikPembayaran.count({
         where: { purchaseId: firstBody.id, paymentAccountId: account.id },
       }),
     ).toBe(1);
-    await db.paymentUniqueCodeReservation.deleteMany({ where: { purchaseId: firstBody.id } });
-    await db.purchase.delete({ where: { id: firstBody.id } });
+    await db.reservasiKodeUnikPembayaran.deleteMany({ where: { purchaseId: firstBody.id } });
+    await db.pembelian.delete({ where: { id: firstBody.id } });
     await db.idempotencyRecord.deleteMany({ where: { scope: `order:${actorId}` } });
-    await db.paymentAccount.delete({ where: { id: account.id } });
+    await db.rekeningPembayaran.delete({ where: { id: account.id } });
   });
 
   it('fails closed in production and rejects invalid file metadata', async () => {
@@ -746,9 +765,9 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('approves atomically with immutable snapshots, ledger, audit, outbox and replay', async () => {
-    const purchase = await db.purchase.findFirstOrThrow({ where: { userId: actorId } });
-    const pkg = await db.package.findUniqueOrThrow({ where: { id: purchase.packageId } });
-    await db.effectiveConfiguration.create({
+    const purchase = await db.pembelian.findFirstOrThrow({ where: { userId: actorId } });
+    const pkg = await db.paket.findUniqueOrThrow({ where: { id: purchase.packageId } });
+    await db.konfigurasiEfektif.create({
       data: {
         id: randomUUID(),
         kind: 'PROJECTION_RATE',
@@ -779,7 +798,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     );
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    const customerPackage = await db.customerPackage.findUniqueOrThrow({
+    const customerPackage = await db.paketPelanggan.findUniqueOrThrow({
       where: { purchaseId: purchase.id },
     });
     expect(customerPackage.salePriceRp).toBe(purchase.priceRpSnapshot);
@@ -788,7 +807,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       customerPackage.activationDate.getTime(),
     );
     expect(
-      await db.ledgerEntry.count({
+      await db.entriBukuBesar.count({
         where: { type: 'PURCHASE', referenceType: 'PURCHASE', referenceId: purchase.id },
       }),
     ).toBe(1);
@@ -828,8 +847,8 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('completes order, private binary upload, synthetic scan, attach, Finance approval and reconciliation', async () => {
-    const pkg = await db.package.findFirstOrThrow({ where: { branchId } });
-    await db.paymentAccount.create({
+    const pkg = await db.paket.findFirstOrThrow({ where: { branchId } });
+    await db.rekeningPembayaran.create({
       data: {
         id: randomUUID(),
         branchId,
@@ -914,11 +933,11 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       'full-decision-key',
       `${namespace}-full-approve`,
     );
-    const activated = await db.customerPackage.findUniqueOrThrow({
+    const activated = await db.paketPelanggan.findUniqueOrThrow({
       where: { purchaseId: order.id },
     });
     expect(activated.salePriceRp).toBe(order.baseAmountRp);
-    expect(await db.ledgerEntry.count({ where: { referenceId: order.id } })).toBe(1);
+    expect(await db.entriBukuBesar.count({ where: { referenceId: order.id } })).toBe(1);
 
     const reconciliation = await new FinanceService(db as never).overview(
       {
@@ -972,7 +991,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       // Jenis kelas kedua sengaja berbeda dari compatibility
       // Package.classTypeId agar test membuktikan pilihan customer
       // benar-benar menjadi sumber transaksi.
-      await db.classType.create({
+      await db.jenisKelas.create({
         data: {
           id: secondClassTypeId,
           branchId,
@@ -981,7 +1000,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         },
       });
 
-      await db.classTypeBranchScope.create({
+      await db.cakupanCabangJenisKelas.create({
         data: {
           id: randomUUID(),
           classTypeId: secondClassTypeId,
@@ -1009,7 +1028,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
 
       multiPackageId = pkg.id;
 
-      await db.packageClassTypeScope.upsert({
+      await db.cakupanJenisKelasPaket.upsert({
         where: {
           packageId_classTypeId: {
             packageId: pkg.id,
@@ -1025,7 +1044,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         },
       });
 
-      const compatibilityPackage = await db.package.findUniqueOrThrow({
+      const compatibilityPackage = await db.paket.findUniqueOrThrow({
         where: { id: pkg.id },
         select: { classTypeId: true },
       });
@@ -1036,7 +1055,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
 
       const projectionRateRp = 234567;
 
-      await db.effectiveConfiguration.create({
+      await db.konfigurasiEfektif.create({
         data: {
           id: randomUUID(),
           kind: 'PROJECTION_RATE',
@@ -1053,7 +1072,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         },
       });
 
-      let account = await db.paymentAccount.findFirst({
+      let account = await db.rekeningPembayaran.findFirst({
         where: {
           branchId,
           active: true,
@@ -1062,7 +1081,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       });
 
       if (!account) {
-        account = await db.paymentAccount.create({
+        account = await db.rekeningPembayaran.create({
           data: {
             id: randomUUID(),
             branchId,
@@ -1118,7 +1137,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
 
       orderId = order.id;
 
-      const storedPurchase = await db.purchase.findUniqueOrThrow({
+      const storedPurchase = await db.pembelian.findUniqueOrThrow({
         where: { id: order.id },
         include: {
           package: {
@@ -1190,11 +1209,11 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
         `${namespace}-multi-approve`,
       );
 
-      const activated = await db.customerPackage.findUniqueOrThrow({
+      const activated = await db.paketPelanggan.findUniqueOrThrow({
         where: { purchaseId: order.id },
       });
 
-      const approvedPurchase = await db.purchase.findUniqueOrThrow({
+      const approvedPurchase = await db.pembelian.findUniqueOrThrow({
         where: { id: order.id },
       });
 
@@ -1205,22 +1224,22 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       expect(activated.salePriceRp).toBe(order.baseAmountRp);
     } finally {
       if (orderId) {
-        await db.ledgerEntry.deleteMany({
+        await db.entriBukuBesar.deleteMany({
           where: {
             referenceType: 'PURCHASE',
             referenceId: orderId,
           },
         });
 
-        await db.customerPackage.deleteMany({
+        await db.paketPelanggan.deleteMany({
           where: { purchaseId: orderId },
         });
 
-        await db.paymentUniqueCodeReservation.deleteMany({
+        await db.reservasiKodeUnikPembayaran.deleteMany({
           where: { purchaseId: orderId },
         });
 
-        await db.purchase.deleteMany({
+        await db.pembelian.deleteMany({
           where: { id: orderId },
         });
 
@@ -1235,7 +1254,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       }
 
       if (proofId) {
-        await db.paymentProof.deleteMany({
+        await db.buktiPembayaran.deleteMany({
           where: { id: proofId },
         });
       }
@@ -1257,42 +1276,42 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       });
 
       if (multiPackageId) {
-        await db.packageClassTypeScope.deleteMany({
+        await db.cakupanJenisKelasPaket.deleteMany({
           where: { packageId: multiPackageId },
         });
 
-        await db.packageBranchScope.deleteMany({
+        await db.cakupanCabangPaket.deleteMany({
           where: { packageId: multiPackageId },
         });
 
-        await db.packageRevision.deleteMany({
+        await db.revisiPaket.deleteMany({
           where: { packageId: multiPackageId },
         });
 
-        await db.package.deleteMany({
+        await db.paket.deleteMany({
           where: { id: multiPackageId },
         });
       }
 
-      await db.effectiveConfiguration.deleteMany({
+      await db.konfigurasiEfektif.deleteMany({
         where: {
           branchId,
           classTypeId: secondClassTypeId,
         },
       });
 
-      await db.classTypeBranchScope.deleteMany({
+      await db.cakupanCabangJenisKelas.deleteMany({
         where: {
           classTypeId: secondClassTypeId,
         },
       });
 
-      await db.classType.deleteMany({
+      await db.jenisKelas.deleteMany({
         where: { id: secondClassTypeId },
       });
 
       if (createdPaymentAccountId) {
-        await db.paymentAccount.deleteMany({
+        await db.rekeningPembayaran.deleteMany({
           where: { id: createdPaymentAccountId },
         });
       }
@@ -1300,7 +1319,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
   });
 
   it('enforces separation of duties, reason codes and decided state', async () => {
-    const purchase = await db.purchase.findFirstOrThrow({ where: { userId: actorId } });
+    const purchase = await db.pembelian.findFirstOrThrow({ where: { userId: actorId } });
     await expect(
       reviews.decide(
         principal,

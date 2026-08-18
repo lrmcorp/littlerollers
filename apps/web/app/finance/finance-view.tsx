@@ -18,12 +18,8 @@ import { Button } from '../components/actions';
 import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
 import { controlClassName } from '../components/forms';
 import { FinanceCommandsPanel } from './finance-commands-panel';
+import { formatRupiah } from '../lib/formatters';
 
-const money = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
 const date = (value: Date) => value.toISOString().slice(0, 10);
 
 export function FinanceView({ client = browserFinanceClient }: { client?: FinanceClient }) {
@@ -209,27 +205,27 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       >
         <StatCard
           label="Expected"
-          value={money.format(metrics?.expectedRp ?? 0)}
+          value={formatRupiah(metrics?.expectedRp ?? 0)}
           helper="Nilai transaksi periode"
         />
         <StatCard
           label="Received"
-          value={money.format(metrics?.receivedRp ?? 0)}
+          value={formatRupiah(metrics?.receivedRp ?? 0)}
           helper="Bukti final dan bersih"
         />
         <StatCard
           label="Approved"
-          value={money.format(metrics?.approvedRp ?? 0)}
+          value={formatRupiah(metrics?.approvedRp ?? 0)}
           helper="Keputusan Finance"
         />
         <StatCard
           label="Identifikasi transfer"
-          value={money.format(metrics?.identificationAmountRp ?? 0)}
+          value={formatRupiah(metrics?.identificationAmountRp ?? 0)}
           helper="Penyesuaian tiga digit, terpisah dari harga paket"
         />
         <StatCard
           label="Ledger delta"
-          value={money.format(metrics?.ledgerDeltaRp ?? 0)}
+          value={formatRupiah(metrics?.ledgerDeltaRp ?? 0)}
           tone={metrics?.ledgerDeltaRp ? 'danger' : 'success'}
           helper={`${metrics?.unreconciledCount ?? 0} belum direkonsiliasi`}
         />
@@ -265,10 +261,10 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         <strong>{item.name}</strong>
                         <span className="ml-2 text-xs text-dd-muted">{item.code}</span>
                       </td>
-                      <td>{money.format(item.expectedRp)}</td>
-                      <td>{money.format(item.receivedRp)}</td>
-                      <td>{money.format(item.approvedRp)}</td>
-                      <td>{money.format(item.identificationAmountRp)}</td>
+                      <td>{formatRupiah(item.expectedRp)}</td>
+                      <td>{formatRupiah(item.receivedRp)}</td>
+                      <td>{formatRupiah(item.approvedRp)}</td>
+                      <td>{formatRupiah(item.identificationAmountRp)}</td>
                       <td>
                         <Badge tone={item.pendingCount ? 'warning' : 'success'}>
                           {item.pendingCount}
@@ -310,7 +306,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   <span>
                     <strong className="block text-sm">{item.code.replaceAll('_', ' ')}</strong>
                     <span className="text-xs text-dd-muted">
-                      {item.branchCode} · {money.format(item.amountRp)}
+                      {item.branchCode} · {formatRupiah(item.amountRp)}
                     </span>
                   </span>
                 </Link>
@@ -359,10 +355,10 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           </div>
           <div className="flex gap-2">
             <Badge tone="success">
-              Income {money.format(data?.legacyCashflow.summary.INCOME?.amountRp ?? 0)}
+              Income {formatRupiah(data?.legacyCashflow.summary.INCOME?.amountRp ?? 0)}
             </Badge>
             <Badge tone="warning">
-              Expense {money.format(data?.legacyCashflow.summary.EXPENSE?.amountRp ?? 0)}
+              Expense {formatRupiah(data?.legacyCashflow.summary.EXPENSE?.amountRp ?? 0)}
             </Badge>
           </div>
         </div>
@@ -393,7 +389,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               header: 'Studio/Cabang',
               cell: (item) => item.branch?.name ?? 'Global',
             },
-            { id: 'amount', header: 'Nominal', cell: (item) => money.format(item.amountRp) },
+            { id: 'amount', header: 'Nominal', cell: (item) => formatRupiah(item.amountRp) },
           ]}
         />
         {data && (

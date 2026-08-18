@@ -69,7 +69,7 @@ export async function seedPackagePromotions(
     const packageId = master.packages[item.packageKey];
     if (!packageId) throw new Error(`Missing package for promotion ${item.packageKey}`);
     const id = ctx.id('package-promotion', item.key);
-    await ctx.db.packagePromotion.upsert({
+    await ctx.db.promosiPaket.upsert({
       where: { id },
       update: {
         packageId,
@@ -101,13 +101,13 @@ export async function seedPackagePromotionOrderFixtures(ctx: SeedContext) {
   if (ctx.profile === 'minimal') return;
   const jktPurchaseId = ctx.id('purchase', 'approved');
   const jktPromotionId = ctx.id('package-promotion', 'jkt-reformer-live');
-  const jktPurchase = await ctx.db.purchase.findUnique({ where: { id: jktPurchaseId } });
+  const jktPurchase = await ctx.db.pembelian.findUnique({ where: { id: jktPurchaseId } });
   if (jktPurchase) {
     const promotionDiscountRp = Math.floor(jktPurchase.priceRpSnapshot * 0.1);
     const promotionalPriceRp = jktPurchase.priceRpSnapshot - promotionDiscountRp;
     const voucherDiscountRp = Math.floor(promotionalPriceRp * 0.1);
     const netRp = promotionalPriceRp - voucherDiscountRp;
-    await ctx.db.purchase.update({
+    await ctx.db.pembelian.update({
       where: { id: jktPurchaseId },
       data: {
         packagePromotionId: jktPromotionId,
@@ -121,11 +121,11 @@ export async function seedPackagePromotionOrderFixtures(ctx: SeedContext) {
         payableAmountRpSnapshot: netRp + (jktPurchase.paymentUniqueCode ?? 0),
       },
     });
-    await ctx.db.voucherRedemption.updateMany({
+    await ctx.db.penukaranVoucher.updateMany({
       where: { purchaseId: jktPurchaseId },
       data: { discountRp: voucherDiscountRp },
     });
-    await ctx.db.customerPackage.updateMany({
+    await ctx.db.paketPelanggan.updateMany({
       where: { purchaseId: jktPurchaseId },
       data: { salePriceRp: netRp },
     });
@@ -133,11 +133,11 @@ export async function seedPackagePromotionOrderFixtures(ctx: SeedContext) {
 
   const bsdPurchaseId = ctx.id('purchase', 'bsd-approved');
   const bsdPromotionId = ctx.id('package-promotion', 'bsd-reformer-live');
-  const bsdPurchase = await ctx.db.purchase.findUnique({ where: { id: bsdPurchaseId } });
+  const bsdPurchase = await ctx.db.pembelian.findUnique({ where: { id: bsdPurchaseId } });
   if (bsdPurchase) {
     const promotionDiscountRp = 120_000;
     const netRp = bsdPurchase.priceRpSnapshot - promotionDiscountRp;
-    await ctx.db.purchase.update({
+    await ctx.db.pembelian.update({
       where: { id: bsdPurchaseId },
       data: {
         packagePromotionId: bsdPromotionId,
@@ -150,7 +150,7 @@ export async function seedPackagePromotionOrderFixtures(ctx: SeedContext) {
         payableAmountRpSnapshot: netRp + (bsdPurchase.paymentUniqueCode ?? 0),
       },
     });
-    await ctx.db.customerPackage.updateMany({
+    await ctx.db.paketPelanggan.updateMany({
       where: { purchaseId: bsdPurchaseId },
       data: { salePriceRp: netRp },
     });

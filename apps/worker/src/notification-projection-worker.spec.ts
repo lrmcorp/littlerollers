@@ -70,7 +70,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      identityVerificationDocument: {
+      dokumenVerifikasiIdentitas: {
         findUnique: jest.fn().mockResolvedValue({ userId: 'customer-1', kind: 'SELFIE' }),
       },
       $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
@@ -110,7 +110,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      booking: {
+      pemesananKelas: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'booking-1',
           customerUserId: 'customer-1',
@@ -156,7 +156,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      sessionAdjustment: {
+      penyesuaianSesi: {
         findUnique: jest.fn().mockResolvedValue({
           customerPackage: { customerUserId: 'customer-1', branchId: 'branch-1' },
         }),
@@ -192,7 +192,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      booking: {
+      pemesananKelas: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'booking-1',
           customerUserId: 'customer-1',
@@ -237,7 +237,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      booking: {
+      pemesananKelas: {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'booking-no-show',
@@ -250,7 +250,7 @@ describe('NotificationProjectionWorker', () => {
       $transaction: jest.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
     };
     await expect(new NotificationProjectionWorker(db as never).poll()).resolves.toBe(true);
-    expect(db.booking.findMany).toHaveBeenCalledWith(
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { classSlotId: 'slot-1', status: 'NO_SHOW' } }),
     );
     expect(tx.userNotification.createMany).toHaveBeenCalledWith({
@@ -292,7 +292,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      sessionAdjustment: {
+      penyesuaianSesi: {
         findUnique: jest.fn().mockResolvedValue({
           customerPackage: { customerUserId: 'customer-1', branchId: 'branch-1' },
         }),
@@ -350,7 +350,7 @@ describe('NotificationProjectionWorker', () => {
     };
     const db = {
       outboxEvent: { findFirst: jest.fn().mockResolvedValue(event) },
-      booking: {
+      pemesananKelas: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'booking-1',
           customerUserId: 'customer-1',

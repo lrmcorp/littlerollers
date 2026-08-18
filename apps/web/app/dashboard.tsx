@@ -21,12 +21,8 @@ import {
   type DashboardClient,
   type DashboardOverview,
 } from './dashboard-client';
+import { formatRupiah } from './lib/formatters';
 
-const rupiah = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
 const number = new Intl.NumberFormat('id-ID');
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
 const financialMetricKeys = new Set([
@@ -341,7 +337,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               financialMetricKeys.has(metric.key)
                 ? 'Belum tersedia'
                 : metric.unit === 'IDR'
-                  ? rupiah.format(metric.value)
+                  ? formatRupiah(metric.value)
                   : metric.unit === 'PERCENT'
                     ? `${number.format(metric.value)}%`
                     : number.format(metric.value)
@@ -487,11 +483,11 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                       <strong>{branch.name}</strong>
                       <span className="ml-2 text-xs text-dd-muted">{branch.code}</span>
                     </td>
-                    <td>{rupiah.format(branch.revenueRp)}</td>
-                    <td>{rupiah.format(branch.projectionRp)}</td>
-                    <td>{rupiah.format(branch.instructorRealtimeRp)}</td>
-                    <td>{rupiah.format(branch.otherCostRp)}</td>
-                    <td>{rupiah.format(branch.profitRp)}</td>
+                    <td>{formatRupiah(branch.revenueRp)}</td>
+                    <td>{formatRupiah(branch.projectionRp)}</td>
+                    <td>{formatRupiah(branch.instructorRealtimeRp)}</td>
+                    <td>{formatRupiah(branch.otherCostRp)}</td>
+                    <td>{formatRupiah(branch.profitRp)}</td>
                     <td>{number.format(branch.bookings)}</td>
                     <td>
                       <div className="flex items-center gap-3">

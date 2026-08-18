@@ -30,16 +30,16 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         { id: financeId, displayName: 'Financial actor' },
       ],
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Financial branch', timezone: 'Asia/Jakarta' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: { id: classTypeId, code: namespace.toUpperCase(), name: 'Financial class' },
     });
     await db.studio.create({
       data: { id: studioId, branchId, code: 'MAIN', name: 'Financial studio' },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         classTypeId,
@@ -51,7 +51,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
       },
     });
-    await db.purchase.create({
+    await db.pembelian.create({
       data: {
         id: purchaseId,
         userId: customerId,
@@ -71,7 +71,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         decisionReasonCode: 'PAYMENT_VERIFIED',
       },
     });
-    await db.customerPackage.create({
+    await db.paketPelanggan.create({
       data: {
         id: customerPackageId,
         purchaseId,
@@ -87,7 +87,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         projectionRateRp: 40_000,
       },
     });
-    await db.effectiveConfiguration.create({
+    await db.konfigurasiEfektif.create({
       data: {
         id: feeConfigurationId,
         kind: 'INSTRUCTOR_FEE',
@@ -99,7 +99,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         approvedEvidence: 'SYNTHETIC_NON_PRODUCTION',
       },
     });
-    await db.classSlot.create({
+    await db.slotKelas.create({
       data: {
         id: slotId,
         branchId,
@@ -114,7 +114,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         status: 'COMPLETED',
       },
     });
-    await db.instructorHourLog.create({
+    await db.rekapJamInstruktur.create({
       data: {
         id: randomUUID(),
         classSlotId: slotId,
@@ -129,7 +129,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         occurredAt: new Date('2026-08-01T03:00:00.000Z'),
       },
     });
-    await db.otherCost.create({
+    await db.biayaLain.create({
       data: {
         id: randomUUID(),
         branchId,
@@ -142,7 +142,7 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
         createdById: financeId,
       },
     });
-    await db.financeCorrection.create({
+    await db.koreksiKeuangan.create({
       data: {
         id: correctionId,
         branchId,
@@ -161,17 +161,17 @@ databaseDescribe('authoritative financial facts MySQL integration', () => {
   });
 
   afterAll(async () => {
-    await db.financeCorrection.deleteMany({ where: { id: correctionId } });
-    await db.otherCost.deleteMany({ where: { branchId } });
-    await db.instructorHourLog.deleteMany({ where: { branchId } });
-    await db.classSlot.deleteMany({ where: { id: slotId } });
-    await db.effectiveConfiguration.deleteMany({ where: { id: feeConfigurationId } });
-    await db.customerPackage.deleteMany({ where: { id: customerPackageId } });
-    await db.purchase.deleteMany({ where: { id: purchaseId } });
-    await db.package.deleteMany({ where: { id: packageId } });
+    await db.koreksiKeuangan.deleteMany({ where: { id: correctionId } });
+    await db.biayaLain.deleteMany({ where: { branchId } });
+    await db.rekapJamInstruktur.deleteMany({ where: { branchId } });
+    await db.slotKelas.deleteMany({ where: { id: slotId } });
+    await db.konfigurasiEfektif.deleteMany({ where: { id: feeConfigurationId } });
+    await db.paketPelanggan.deleteMany({ where: { id: customerPackageId } });
+    await db.pembelian.deleteMany({ where: { id: purchaseId } });
+    await db.paket.deleteMany({ where: { id: packageId } });
     await db.studio.deleteMany({ where: { id: studioId } });
-    await db.classType.deleteMany({ where: { id: classTypeId } });
-    await db.branch.deleteMany({ where: { id: branchId } });
+    await db.jenisKelas.deleteMany({ where: { id: classTypeId } });
+    await db.cabang.deleteMany({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [customerId, instructorId, financeId] } } });
     await db.$disconnect();
   });

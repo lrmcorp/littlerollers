@@ -2,14 +2,14 @@ import { FinancialAggregationService } from './financial-aggregation.service';
 
 function database(overrides: Record<string, unknown> = {}) {
   return {
-    branch: {
+    cabang: {
       findMany: jest
         .fn()
         .mockResolvedValue([
           { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
         ]),
     },
-    purchase: {
+    pembelian: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: 'purchase-1',
@@ -28,7 +28,7 @@ function database(overrides: Record<string, unknown> = {}) {
         },
       ]),
     },
-    instructorHourLog: {
+    rekapJamInstruktur: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: 'hour-log-1',
@@ -42,7 +42,7 @@ function database(overrides: Record<string, unknown> = {}) {
         },
       ]),
     },
-    otherCost: {
+    biayaLain: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: 'cost-1',
@@ -55,7 +55,7 @@ function database(overrides: Record<string, unknown> = {}) {
         },
       ]),
     },
-    financeCorrection: {
+    koreksiKeuangan: {
       findMany: jest.fn().mockResolvedValue([
         {
           id: 'correction-1',
@@ -90,7 +90,7 @@ describe('FinancialAggregationService', () => {
       profitRp: 450_000,
     });
     expect(result.completeness).toBe('COMPLETE');
-    expect(db.purchase.findMany).toHaveBeenCalledWith(
+    expect(db.pembelian.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           decidedAt: {
@@ -104,7 +104,7 @@ describe('FinancialAggregationService', () => {
 
   it('fails authoritative aggregation when an approved purchase lacks its package fact', async () => {
     const db = database({
-      purchase: {
+      pembelian: {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'purchase-invalid',
@@ -114,7 +114,7 @@ describe('FinancialAggregationService', () => {
             voucherDiscountRpSnapshot: 0,
             priceAfterDiscountRpSnapshot: 1,
             sessionCountSnapshot: 1,
-            customerPackage: null,
+            paketPelanggan: null,
           },
         ]),
       },

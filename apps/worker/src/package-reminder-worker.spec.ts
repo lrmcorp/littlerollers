@@ -38,7 +38,7 @@ test('creates deterministic once-per-package balance and branch-timezone expiry 
     userNotification: { createMany },
   };
   const db = {
-    customerPackage: {
+    paketPelanggan: {
       findMany: jest
         .fn()
         .mockResolvedValueOnce([item])
@@ -46,8 +46,8 @@ test('creates deterministic once-per-package balance and branch-timezone expiry 
         .mockResolvedValueOnce([item])
         .mockResolvedValueOnce([]),
     },
-    ledgerEntry: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 4 } }) },
-    sessionReservation: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 1 } }) },
+    entriBukuBesar: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 4 } }) },
+    reservasiSesi: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 1 } }) },
     $transaction: jest.fn((callback: (value: typeof tx) => unknown) => callback(tx)),
   };
 
@@ -83,7 +83,7 @@ test('creates in-app reminders when email delivery is not configured', async () 
     userNotification: { createMany },
   };
   const db = {
-    customerPackage: {
+    paketPelanggan: {
       findMany: jest
         .fn()
         .mockResolvedValueOnce([
@@ -98,8 +98,8 @@ test('creates in-app reminders when email delivery is not configured', async () 
         ])
         .mockResolvedValueOnce([]),
     },
-    ledgerEntry: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 1 } }) },
-    sessionReservation: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 0 } }) },
+    entriBukuBesar: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 1 } }) },
+    reservasiSesi: { aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 0 } }) },
     $transaction: jest.fn((callback: (value: typeof tx) => unknown) => callback(tx)),
   };
   const noEmail = { ...config, deliveryEnabled: false, encryptionKey: null };

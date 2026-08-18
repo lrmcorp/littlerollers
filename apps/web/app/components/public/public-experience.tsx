@@ -171,7 +171,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
           className={`public-whatsapp-fab fixed right-3 z-40 grid size-14 min-h-14 w-14 place-items-center rounded-full border border-white/30 bg-[#1f8f5f] p-0 text-white shadow-dd-float transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-dd-forest/25 motion-reduce:transform-none sm:right-6 ${
             pathname === '/checkout'
               ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-6'
-              : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom))] sm:bottom-6'
+              : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-6'
           }`}
         >
           <MessageCircle className="size-6" aria-hidden="true" />

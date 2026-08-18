@@ -35,13 +35,13 @@ export class AssignmentService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const cursor = decodeAssignmentCursor(input.cursor);
     const now = new Date();
-    const scopeWhere: Prisma.AssignmentWhereInput = input.branchId
+    const scopeWhere: Prisma.PenugasanWhereInput = input.branchId
       ? { branchId: input.branchId }
       : principal.capabilities.includes('branch:all')
         ? {}
         : { branchId: { in: principal.branchIds } };
     const query = input.q?.trim();
-    const commonWhere: Prisma.AssignmentWhereInput = {
+    const commonWhere: Prisma.PenugasanWhereInput = {
       ...scopeWhere,
       type: input.type,
       ...(query
@@ -57,13 +57,13 @@ export class AssignmentService {
           }
         : {}),
     };
-    const statusWhere: Prisma.AssignmentWhereInput =
+    const statusWhere: Prisma.PenugasanWhereInput =
       input.status === 'ACTIVE'
         ? { OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] }
         : input.status === 'ENDED'
           ? { activeUntil: { lte: now } }
           : {};
-    const cursorWhere: Prisma.AssignmentWhereInput = cursor
+    const cursorWhere: Prisma.PenugasanWhereInput = cursor
       ? {
           OR: [
             { activeFrom: { lt: cursor.activeFrom } },
@@ -72,7 +72,7 @@ export class AssignmentService {
         }
       : {};
     const [rows, total, active, ended] = await this.db.$transaction([
-      this.db.assignment.findMany({
+      this.db.penugasan.findMany({
         where: { AND: [commonWhere, statusWhere, cursorWhere] },
         include: {
           user: { select: { id: true, displayName: true, phoneE164: true } },
@@ -81,13 +81,13 @@ export class AssignmentService {
         orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
         take: limit + 1,
       }),
-      this.db.assignment.count({ where: commonWhere }),
-      this.db.assignment.count({
+      this.db.penugasan.count({ where: commonWhere }),
+      this.db.penugasan.count({
         where: {
           AND: [commonWhere, { OR: [{ activeUntil: null }, { activeUntil: { gt: now } }] }],
         },
       }),
-      this.db.assignment.count({
+      this.db.penugasan.count({
         where: { AND: [commonWhere, { activeUntil: { lte: now } }] },
       }),
     ]);
@@ -138,11 +138,11 @@ export class AssignmentService {
           `;
           const [user, branch] = await Promise.all([
             tx.user.findUnique({ where: { id: input.userId } }),
-            tx.branch.findUnique({ where: { id: input.branchId } }),
+            tx.cabang.findUnique({ where: { id: input.branchId } }),
           ]);
           if (!user || user.status !== 'ACTIVE' || !branch || !branch.active)
             throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-          const overlap = await tx.assignment.findFirst({
+          const overlap = await tx.penugasan.findFirst({
             where: {
               userId: input.userId,
               branchId: input.branchId,
@@ -156,7 +156,7 @@ export class AssignmentService {
           });
           if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
           const id = newId();
-          const assignment = await tx.assignment.create({
+          const assignment = await tx.penugasan.create({
             data: {
               id,
               userId: input.userId,
@@ -216,7 +216,7 @@ export class AssignmentService {
     try {
       return await this.db.$transaction(
         async (tx) => {
-          const assignment = await tx.assignment.findUnique({
+          const assignment = await tx.penugasan.findUnique({
             where: { id: assignmentId },
             include: { branch: true, projectedRole: true },
           });
@@ -228,7 +228,7 @@ export class AssignmentService {
             throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
           if (assignment.activeUntil || assignment.version !== input.expectedVersion)
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-          const updated = await tx.assignment.updateMany({
+          const updated = await tx.penugasan.updateMany({
             where: { id: assignment.id, version: input.expectedVersion, activeUntil: null },
             data: {
               activeUntil: new Date(`${effectiveDate}T00:00:00Z`),

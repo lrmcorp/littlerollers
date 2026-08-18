@@ -14,8 +14,7 @@ import type { PaymentProof, Purchase } from '@dailydose/api-client-ts/generated'
 import { controlClassName } from '../components/forms';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';
-
-const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
+import { formatRupiah } from '../lib/formatters';
 const scanLabels: Record<string, string> = {
   PENDING: 'Sedang dipindai',
   CLEAN: 'Bersih',
@@ -214,7 +213,7 @@ export function PurchaseView({
               <span>
                 {item.sessionCount} sesi · {item.durationDays} hari
               </span>
-              <b>{rupiah.format(item.priceRp)}</b>
+              <b>{formatRupiah(item.priceRp)}</b>
               <small>
                 {item.classTypeScopes?.filter((scope) => scope.active).length ?? 0} jenis kelas tersedia
               </small>
@@ -375,7 +374,7 @@ export function PurchaseView({
             {selected.name} · {selected.sessionCount} sesi selama {selected.durationDays} hari.
           </p>
           <p>
-            Total pembayaran {rupiah.format(selected.priceRp)}. Purchase akan berstatus menunggu
+            Total pembayaran {formatRupiah(selected.priceRp)}. Purchase akan berstatus menunggu
             review.
           </p>
           <Button

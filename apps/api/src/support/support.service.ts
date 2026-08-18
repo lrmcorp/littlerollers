@@ -13,7 +13,7 @@ export class SupportService {
     private readonly policy: PolicyService,
     private readonly repository: SupportRepository,
   ) {}
-  private buatScopeCabang(principal: SessionPrincipal, branchId?: string): Prisma.SupportCaseWhereInput {
+  private buatScopeCabang(principal: SessionPrincipal, branchId?: string): Prisma.KasusBantuanWhereInput {
     this.policy.requireCapability(principal.capabilities, 'support:read');
     if (
       branchId &&
@@ -37,7 +37,7 @@ export class SupportService {
       cursor?: string;
     },
   ) {
-    const where: Prisma.SupportCaseWhereInput = {
+    const where: Prisma.KasusBantuanWhereInput = {
       ...this.buatScopeCabang(principal, input.branchId),
       ...(input.status ? { status: input.status } : {}),
       ...(input.priority ? { priority: input.priority } : {}),

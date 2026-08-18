@@ -3,7 +3,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
-import { FinancialAggregationService } from '../finance/financial-aggregation.service';
+import { FinancialAggregationService } from '../finance/agregasi-keuangan.service';
 
 const DAY = 86_400_000;
 
@@ -28,7 +28,7 @@ export class DashboardService {
     const now = new Date();
     const [upcomingBookings, packages, actionableOrders, documents, unreadNotifications] =
       await Promise.all([
-        this.db.booking.findMany({
+        this.db.pemesananKelas.findMany({
           where: {
             customerUserId: principal.userId,
             status: 'BOOKED',
@@ -43,7 +43,7 @@ export class DashboardService {
           orderBy: { classSlot: { startAt: 'asc' } },
           take: 3,
         }),
-        this.db.customerPackage.findMany({
+        this.db.paketPelanggan.findMany({
           where: { customerUserId: principal.userId, status: 'ACTIVE', expiryAt: { gt: now } },
           include: {
             branch: { select: { id: true, name: true } },
@@ -55,7 +55,7 @@ export class DashboardService {
           orderBy: { expiryAt: 'asc' },
           take: 6,
         }),
-        this.db.purchase.findMany({
+        this.db.pembelian.findMany({
           where: {
             userId: principal.userId,
             status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED', 'PENDING'] },
@@ -64,7 +64,7 @@ export class DashboardService {
           orderBy: { submittedAt: 'desc' },
           take: 5,
         }),
-        this.db.identityVerificationDocument.findMany({
+        this.db.dokumenVerifikasiIdentitas.findMany({
           where: { userId: principal.userId, replacedById: null },
           select: { kind: true, status: true, updatedAt: true },
         }),
@@ -146,7 +146,7 @@ export class DashboardService {
     ) {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    const allowedBranches = await this.db.branch.findMany({
+    const allowedBranches = await this.db.cabang.findMany({
       where: {
         active: true,
         ...(query.branchId
@@ -213,29 +213,29 @@ export class DashboardService {
         from: previousFromDate,
         until: previousUntilDate,
       }),
-      this.db.booking.count({ where: { OR: bookingCurrentScopes, status: 'BOOKED' } }),
-      this.db.booking.count({
+      this.db.pemesananKelas.count({ where: { OR: bookingCurrentScopes, status: 'BOOKED' } }),
+      this.db.pemesananKelas.count({
         where: {
           OR: bookingPreviousScopes,
           status: 'BOOKED',
         },
       }),
-      this.db.customerPackage.findMany({
+      this.db.paketPelanggan.findMany({
         where: { ...scoped, status: 'ACTIVE' },
         distinct: ['customerUserId'],
         select: { customerUserId: true },
       }),
-      this.db.classSlot.findMany({
+      this.db.slotKelas.findMany({
         where: {
           OR: slotCurrentScopes,
           status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
         },
         select: { capacity: true, bookedCount: true },
       }),
-      this.db.purchase.count({ where: { ...scoped, status: 'PENDING' } }),
-      this.db.identityVerificationDocument.count({ where: { status: 'PENDING', deletedAt: null } }),
-      this.db.reschedule.count({ where: { ...scoped, status: 'PENDING' } }),
-      this.db.sessionAdjustment.count({
+      this.db.pembelian.count({ where: { ...scoped, status: 'PENDING' } }),
+      this.db.dokumenVerifikasiIdentitas.count({ where: { status: 'PENDING', deletedAt: null } }),
+      this.db.ubahJadwal.count({ where: { ...scoped, status: 'PENDING' } }),
+      this.db.penyesuaianSesi.count({
         where: {
           status: 'PENDING',
           ...(branchWhere ? { customerPackage: { branchId: branchWhere } } : {}),
@@ -247,11 +247,11 @@ export class DashboardService {
           ...(branchWhere ? { classSlot: { branchId: branchWhere } } : {}),
         },
       }),
-      this.db.booking.findMany({
+      this.db.pemesananKelas.findMany({
         where: { OR: bookingCurrentScopes, status: 'BOOKED' },
         select: { createdAt: true },
       }),
-      this.db.classSlot.findMany({
+      this.db.slotKelas.findMany({
         where: {
           ...scoped,
           startAt: { gte: now, lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
@@ -319,11 +319,11 @@ export class DashboardService {
           lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
         };
         const [branchSlots, branchBookings] = await Promise.all([
-          this.db.classSlot.findMany({
+          this.db.slotKelas.findMany({
             where: { branchId: branch.id, startAt: branchRange },
             select: { capacity: true, bookedCount: true },
           }),
-          this.db.booking.count({
+          this.db.pemesananKelas.count({
             where: { branchId: branch.id, createdAt: branchRange, status: 'BOOKED' },
           }),
         ]);
@@ -651,5 +651,17 @@ export class DashboardService {
       activities: allowedSections.auditActivity ? activities : [],
       jobs: allowedSections.jobHealth ? mappedJobs : [],
     };
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async ringkasanPelanggan(principal: SessionPrincipal) {
+    return this.customerOverview(principal);
+  }
+
+  async ringkasanDashboard(
+    principal: SessionPrincipal,
+    query: Parameters<DashboardService['overview']>[1],
+  ) {
+    return this.overview(principal, query);
   }
 }

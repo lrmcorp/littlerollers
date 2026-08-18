@@ -57,16 +57,16 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
         })),
       ],
     });
-    await db.branch.create({
+    await db.cabang.create({
       data: { id: branchId, code: namespace, name: 'Reschedule branch', timezone: 'Asia/Jakarta' },
     });
     await db.studio.create({
       data: { id: studioId, branchId, code: 'MAIN', name: 'Reschedule main studio' },
     });
-    await db.classType.create({
+    await db.jenisKelas.create({
       data: { id: classTypeId, branchId, code: 'RESCHEDULE', name: 'Reschedule class' },
     });
-    await db.package.create({
+    await db.paket.create({
       data: {
         id: packageId,
         branchId,
@@ -80,7 +80,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       },
     });
     const now = Date.now();
-    await db.classSlot.createMany({
+    await db.slotKelas.createMany({
       data: [
         ...sourceSlotIds.map((id, index) => ({
           id,
@@ -112,7 +112,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     for (let index = 0; index < customerIds.length; index += 1) {
       const proofId = randomUUID();
       const purchaseId = randomUUID();
-      await db.paymentProof.create({
+      await db.buktiPembayaran.create({
         data: {
           id: proofId,
           userId: customerIds[index]!,
@@ -127,7 +127,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           scanStatus: 'CLEAN',
         },
       });
-      await db.purchase.create({
+      await db.pembelian.create({
         data: {
           id: purchaseId,
           userId: customerIds[index]!,
@@ -146,7 +146,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           idempotencyKeyHash: randomUUID(),
         },
       });
-      await db.customerPackage.create({
+      await db.paketPelanggan.create({
         data: {
           id: customerPackageIds[index]!,
           purchaseId,
@@ -162,7 +162,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           projectionRateRp: 10000,
         },
       });
-      await db.sessionReservation.create({
+      await db.reservasiSesi.create({
         data: {
           id: reservationIds[index]!,
           customerPackageId: customerPackageIds[index]!,
@@ -170,7 +170,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
           referenceHash: randomUUID(),
         },
       });
-      await db.booking.create({
+      await db.pemesananKelas.create({
         data: {
           id: bookingIds[index]!,
           branchId,
@@ -189,19 +189,19 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     await db.outboxEvent.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.auditLog.deleteMany({ where: { correlationId: { startsWith: namespace } } });
     await db.idempotencyRecord.deleteMany({ where: { scope: { startsWith: 'reschedule-' } } });
-    await db.reschedule.deleteMany({ where: { branchId } });
-    await db.booking.deleteMany({ where: { branchId } });
-    await db.sessionReservation.deleteMany({
+    await db.ubahJadwal.deleteMany({ where: { branchId } });
+    await db.pemesananKelas.deleteMany({ where: { branchId } });
+    await db.reservasiSesi.deleteMany({
       where: { customerPackageId: { in: [...customerPackageIds] } },
     });
-    await db.customerPackage.deleteMany({ where: { id: { in: [...customerPackageIds] } } });
-    await db.purchase.deleteMany({ where: { userId: { in: [...customerIds] } } });
-    await db.paymentProof.deleteMany({ where: { userId: { in: [...customerIds] } } });
-    await db.classSlot.deleteMany({ where: { branchId } });
-    await db.package.delete({ where: { id: packageId } });
-    await db.classType.delete({ where: { id: classTypeId } });
+    await db.paketPelanggan.deleteMany({ where: { id: { in: [...customerPackageIds] } } });
+    await db.pembelian.deleteMany({ where: { userId: { in: [...customerIds] } } });
+    await db.buktiPembayaran.deleteMany({ where: { userId: { in: [...customerIds] } } });
+    await db.slotKelas.deleteMany({ where: { branchId } });
+    await db.paket.delete({ where: { id: packageId } });
+    await db.jenisKelas.delete({ where: { id: classTypeId } });
     await db.studio.delete({ where: { id: studioId } });
-    await db.branch.delete({ where: { id: branchId } });
+    await db.cabang.delete({ where: { id: branchId } });
     await db.user.deleteMany({ where: { id: { in: [adminId, ...customerIds] } } });
     await db.$disconnect();
   });
@@ -219,11 +219,11 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       `${namespace}-request-0`,
     );
     const reschedule = requested.body as unknown as { id: string; version: number };
-    expect((await db.booking.findUnique({ where: { id: bookingIds[0] } }))?.status).toBe(
+    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[0] } }))?.status).toBe(
       'RESCHEDULE_PENDING',
     );
     expect(
-      (await db.sessionReservation.findUnique({ where: { id: reservationIds[0] } }))?.classSlotId,
+      (await db.reservasiSesi.findUnique({ where: { id: reservationIds[0] } }))?.classSlotId,
     ).toBe(sourceSlotIds[0]);
 
     const command = {
@@ -262,11 +262,11 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     );
     expect(approved.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    expect((await db.booking.findUnique({ where: { id: bookingIds[0] } }))?.classSlotId).toBe(
+    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[0] } }))?.classSlotId).toBe(
       targetSlotIds[0],
     );
     expect(
-      (await db.sessionReservation.findUnique({ where: { id: reservationIds[0] } }))?.classSlotId,
+      (await db.reservasiSesi.findUnique({ where: { id: reservationIds[0] } }))?.classSlotId,
     ).toBe(targetSlotIds[0]);
     expect(
       await db.outboxEvent.count({ where: { correlationId: `${namespace}-decision-0` } }),
@@ -299,7 +299,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     const reschedule = requested.body as unknown as { id: string; version: number };
     const duplicateReservationId = randomUUID();
     const duplicateBookingId = randomUUID();
-    await db.sessionReservation.create({
+    await db.reservasiSesi.create({
       data: {
         id: duplicateReservationId,
         customerPackageId: customerPackageIds[1],
@@ -309,7 +309,7 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
         referenceHash: `${namespace}-duplicate-target-reservation`,
       },
     });
-    await db.booking.create({
+    await db.pemesananKelas.create({
       data: {
         id: duplicateBookingId,
         branchId,
@@ -332,10 +332,10 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       ),
     ).rejects.toThrow('DUPLICATE_ACTIVE_BOOKING');
     expect(
-      (await db.sessionReservation.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
+      (await db.reservasiSesi.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
     ).toBe(sourceSlotIds[1]);
-    await db.booking.delete({ where: { id: duplicateBookingId } });
-    await db.sessionReservation.delete({ where: { id: duplicateReservationId } });
+    await db.pemesananKelas.delete({ where: { id: duplicateBookingId } });
+    await db.reservasiSesi.delete({ where: { id: duplicateReservationId } });
     await service.decide(
       admin,
       reschedule.id,
@@ -344,9 +344,9 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       `${namespace}-decision-1`,
       `${namespace}-decision-1`,
     );
-    expect((await db.booking.findUnique({ where: { id: bookingIds[1] } }))?.status).toBe('BOOKED');
+    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[1] } }))?.status).toBe('BOOKED');
     expect(
-      (await db.sessionReservation.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
+      (await db.reservasiSesi.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
     ).toBe(sourceSlotIds[1]);
   });
 

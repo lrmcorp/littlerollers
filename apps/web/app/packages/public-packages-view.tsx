@@ -207,10 +207,16 @@ export function PublicPackagesView({
   };
 
   const classTypes = useMemo(
-    () => [...new Map(items.map((item) => [item.classType.id, item.classType])).values()],
+    () => [
+      ...new Map(
+        items
+          .filter((item) => item.classType && item.classType.id)
+          .map((item) => [item.classType.id, item.classType]),
+      ).values(),
+    ],
     [items],
   );
-  const visible = items.filter((item) => !classTypeId || item.classType.id === classTypeId);
+  const visible = items.filter((item) => !classTypeId || item.classType?.id === classTypeId);
   const recommendedId = recommendedPackageId(visible);
   const orderedVisible = recommendedFirst(visible, recommendedId);
   const ctaLabel = packageCtaLabel(session ?? null);

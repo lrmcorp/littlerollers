@@ -251,6 +251,14 @@ export function NotificationCenter({
               </button>
             )}
           </div>
+          {/* Footer: lihat semua */}
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="flex min-h-10 w-full items-center justify-center gap-1.5 border-t border-dd-line bg-dd-surface-muted/60 px-4 text-xs font-semibold text-dd-forest no-underline transition-colors hover:bg-dd-surface-muted"
+          >
+            Lihat semua notifikasi →
+          </Link>
         </section>
       )}
     </div>

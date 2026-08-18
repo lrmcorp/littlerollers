@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import { AttendanceService } from './attendance.service';
+import { AttendanceService } from './kehadiran.service';
 
 @Controller()
 @UseGuards(AuthGuard)

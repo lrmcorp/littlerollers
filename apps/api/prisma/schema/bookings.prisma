@@ -1,0 +1,270 @@
+enum SessionReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+}
+
+enum SessionAdjustmentStatus {
+  PENDING
+  POSTED
+  REJECTED
+}
+
+enum SessionAdjustmentReasonCode {
+  MIGRATION_CORRECTION
+  ATTENDANCE_CORRECTION
+  PACKAGE_COMPENSATION
+  SUPPORT_RECONCILIATION
+}
+
+enum SessionAdjustmentDecisionCode {
+  CORRECTION_VERIFIED
+  INVALID_EVIDENCE
+  DUPLICATE_REQUEST
+  OUT_OF_SCOPE
+}
+
+enum BookingStatus {
+  BOOKED
+  RESCHEDULE_PENDING
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+enum BookingAttendanceOutcomeCode {
+  ATTENDED
+  EXCUSED
+  NO_SHOW
+  UNKNOWN_HISTORICAL
+}
+
+enum BookingSource {
+  SELF
+  ADMIN_ASSISTED
+}
+
+enum BookingCancellationReasonCode {
+  PERSONAL_UNAVAILABLE
+  CUSTOMER_SCHEDULE_CONFLICT
+  WRONG_CLASS_SELECTED
+  OTHER
+}
+
+enum RescheduleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RescheduleRequestReasonCode {
+  CUSTOMER_SCHEDULE_CONFLICT
+  WRONG_CLASS_SELECTED
+  PERSONAL_UNAVAILABLE
+}
+
+enum RescheduleDecisionReasonCode {
+  ELIGIBILITY_VERIFIED
+  TARGET_UNAVAILABLE
+  OUTSIDE_POLICY
+  OUT_OF_SCOPE
+}
+
+model PendaftaranKelasPelanggan {
+  id              String    @id @default(uuid()) @db.Char(36)
+  customerUserId  String    @db.Char(36)
+  classTypeId     String    @db.Char(36)
+  statusCode      String    @db.VarChar(64)
+  paidAt          DateTime?
+  sessionCount    Int       @default(0)
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  customer        User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  classType       JenisKelas @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, statusCode])
+  @@index([classTypeId, statusCode])
+
+  @@map("PendaftaranKelasPelanggan")
+}
+
+model ReservasiSesi {
+  id                String                   @id @db.Char(36)
+  customerPackageId String                   @db.Char(36)
+  classSlotId       String?                  @db.Char(36)
+  referenceHash     String
+  quantity          Int                      @default(1)
+  status            SessionReservationStatus @default(ACTIVE)
+  createdAt         DateTime                 @default(now())
+  releasedAt        DateTime?
+  consumedAt        DateTime?
+  customerPackage   PaketPelanggan          @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  classSlot         SlotKelas?               @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  booking           PemesananKelas?
+
+  @@unique([customerPackageId, referenceHash])
+  @@index([customerPackageId, status, createdAt])
+  @@index([classSlotId, status])
+
+  @@map("ReservasiSesi")
+}
+
+model PemesananKelas {
+  id                     String                         @id @db.Char(36)
+  branchId               String                         @db.Char(36) @map("cabang_id")
+  classSlotId            String                         @db.Char(36) @map("slot_kelas_id")
+  customerUserId         String                         @db.Char(36) @map("pengguna_pelanggan_id")
+  customerPackageId      String                         @db.Char(36) @map("paket_pelanggan_id")
+  reservationId          String                         @unique @db.Char(36) @map("reservasi_id")
+  createdById            String                         @db.Char(36) @map("dibuat_oleh_id")
+  source                 BookingSource @map("sumber")
+  status                 BookingStatus                  @default(BOOKED) @map("status")
+  reservedQuantity       Int                            @default(1) @map("jumlah_dipesan")
+  version                Int                            @default(0)
+  cancellationReasonCode BookingCancellationReasonCode? @map("kode_alasan_pembatalan")
+  cancelledAt            DateTime? @map("dibatalkan_pada")
+  cancelledById          String?                        @db.Char(36) @map("dibatalkan_oleh_id")
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  branch                 Cabang                         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot              SlotKelas                      @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  customer               User                           @relation("BookingCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  customerPackage        PaketPelanggan                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  reservation            ReservasiSesi             @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  createdBy              User                           @relation("BookingActor", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy            User?                          @relation("BookingCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  reschedules            UbahJadwal[]
+  checkInTokens          CheckInToken[]
+  attendance             KehadiranPelanggan?
+  feedback               UlasanPemesanan?
+  attendanceOutcome      HasilKehadiranPemesanan?
+  historical             Boolean                        @default(false)
+  sourceDeletedAt        DateTime?
+  sourceMetadata         Json?
+
+  @@index([branchId, createdAt, id])
+  @@index([customerUserId, createdAt, id])
+  @@index([classSlotId, status])
+
+  @@map("PemesananKelas")
+}
+
+model HasilKehadiranPemesanan {
+  id               String                       @id @default(uuid()) @db.Char(36)
+  bookingId        String                       @unique @db.Char(36)
+  outcome          BookingAttendanceOutcomeCode
+  sourceStatusCode String?                      @db.VarChar(64)
+  note             String?                      @db.Text
+  occurredAt       DateTime?
+  historical       Boolean                      @default(false)
+  sourceDeletedAt  DateTime?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  booking          PemesananKelas                      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([outcome, occurredAt])
+
+  @@map("HasilKehadiranPemesanan")
+}
+
+model UbahJadwal {
+  id                  String                        @id @db.Char(36)
+  branchId            String                        @db.Char(36)
+  bookingId           String                        @db.Char(36)
+  sourceClassSlotId   String                        @db.Char(36)
+  targetClassSlotId   String                        @db.Char(36)
+  requestedById       String                        @db.Char(36)
+  decidedById         String?                       @db.Char(36)
+  requestReasonCode   RescheduleRequestReasonCode
+  decisionReasonCode  RescheduleDecisionReasonCode?
+  status              RescheduleStatus              @default(PENDING)
+  entitlementCutoffAt DateTime
+  entitledAtRequest   Boolean                       @default(true)
+  decidedAt           DateTime?
+  version             Int                           @default(0)
+  requestedAt         DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  branch              Cabang                        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  booking             PemesananKelas                       @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  sourceClassSlot     SlotKelas                     @relation("RescheduleSourceSlot", fields: [sourceClassSlotId], references: [id], onDelete: Restrict)
+  targetClassSlot     SlotKelas                     @relation("RescheduleTargetSlot", fields: [targetClassSlotId], references: [id], onDelete: Restrict)
+  requestedBy         User                          @relation("RescheduleRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy           User?                         @relation("RescheduleDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, requestedAt, id])
+  @@index([bookingId, requestedAt])
+
+  @@map("UbahJadwal")
+}
+
+model PenyesuaianSesi {
+  id                     String                         @id @db.Char(36)
+  customerPackageId      String                         @db.Char(36)
+  quantity               Int
+  ledgerBalanceAtRequest Int?
+  reservedAtRequest      Int?
+  reasonCode             SessionAdjustmentReasonCode
+  requestedById          String                         @db.Char(36)
+  decidedById            String?                        @db.Char(36)
+  decisionCode           SessionAdjustmentDecisionCode?
+  decisionNote           String?                        @db.VarChar(500)
+  status                 SessionAdjustmentStatus        @default(PENDING)
+  decidedAt              DateTime?
+  version                Int                            @default(0)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  customerPackage        PaketPelanggan                @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  requestedBy            User                           @relation("AdjustmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy              User?                          @relation("AdjustmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  ledgerEntry            EntriBukuBesar?
+
+  @@index([customerPackageId, createdAt])
+  @@index([status, createdAt])
+
+  @@map("PenyesuaianSesi")
+}
+
+model JadwalRutinPelanggan {
+  id              String     @id @default(uuid()) @db.Char(36)
+  customerUserId  String     @db.Char(36)
+  branchId        String?    @db.Char(36)
+  classTypeId     String?    @db.Char(36)
+  weekday         Weekday
+  startMinute     Int
+  timezone        String     @db.VarChar(64)
+  note            String?    @db.Text
+  active          Boolean    @default(true)
+  historical      Boolean    @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  customer        User       @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch          Cabang?    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType       JenisKelas? @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, active])
+  @@index([branchId, weekday, startMinute])
+
+  @@map("JadwalRutinPelanggan")
+}
+
+model UlasanPemesanan {
+  id              String    @id @default(uuid()) @db.Char(36)
+  bookingId       String    @unique @db.Char(36)
+  customerUserId  String    @db.Char(36)
+  rating          Int?
+  feedback        String?   @db.Text
+  historical      Boolean   @default(false)
+  sourceDeletedAt DateTime?
+  submittedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  booking         PemesananKelas   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  customer        User      @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+
+  @@index([customerUserId, submittedAt])
+
+  @@map("UlasanPemesanan")
+}

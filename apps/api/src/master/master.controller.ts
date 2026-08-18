@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { MasterCatalogService } from './master-catalog.service';
-import { EffectiveSettingsService, type SettingInput } from './effective-settings.service';
+import { EffectiveSettingsService, type SettingInput } from './konfigurasi-efektif.service';
 import { PublicProfileAdminService, type PublicProfileInput } from './public-profile-admin.service';
 
 @Controller()

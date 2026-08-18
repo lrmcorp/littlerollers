@@ -659,7 +659,7 @@ export class AccessManagementService {
       const branchIds = input.roles.flatMap(({ branchId }) => (branchId ? [branchId] : []));
       if (
         branchIds.length &&
-        (await tx.branch.count({
+        (await tx.cabang.count({
           where: { id: { in: [...new Set(branchIds)] }, active: true },
         })) !== new Set(branchIds).size
       )
@@ -793,7 +793,7 @@ export class AccessManagementService {
           }),
           tx.capabilityDefinition.findUnique({ where: { key: input.capabilityKey } }),
           input.branchId
-            ? tx.branch.findFirst({ where: { id: input.branchId, active: true } })
+            ? tx.cabang.findFirst({ where: { id: input.branchId, active: true } })
             : Promise.resolve(null),
           tx.userCapabilityOverride.findFirst({
             where: {

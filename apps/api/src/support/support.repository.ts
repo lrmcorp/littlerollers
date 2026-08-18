@@ -13,10 +13,10 @@ export class SupportRepository {
    * yang sudah ditentukan oleh service.
    */
   daftarKasus(
-    where: Prisma.SupportCaseWhereInput,
+    where: Prisma.KasusBantuanWhereInput,
     cursor?: string,
   ) {
-    return this.db.supportCase.findMany({
+    return this.db.kasusBantuan.findMany({
       where,
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: 21,
@@ -60,8 +60,8 @@ export class SupportRepository {
   /**
    * Mengambil detail lengkap sebuah kasus bantuan.
    */
-  detailKasus(where: Prisma.SupportCaseWhereInput) {
-    return this.db.supportCase.findFirst({
+  detailKasus(where: Prisma.KasusBantuanWhereInput) {
+    return this.db.kasusBantuan.findFirst({
       where,
       include: {
         customer: {
@@ -104,8 +104,8 @@ export class SupportRepository {
   /**
    * Mengambil kasus bantuan untuk proses perubahan.
    */
-  cariKasus(where: Prisma.SupportCaseWhereInput) {
-    return this.db.supportCase.findFirst({
+  cariKasus(where: Prisma.KasusBantuanWhereInput) {
+    return this.db.kasusBantuan.findFirst({
       where,
     });
   }
@@ -170,9 +170,9 @@ export class SupportRepository {
    */
   buatKasus(
     tx: Transaction,
-    data: Prisma.SupportCaseUncheckedCreateInput,
+    data: Prisma.KasusBantuanUncheckedCreateInput,
   ) {
-    return tx.supportCase.create({
+    return tx.kasusBantuan.create({
       data,
     });
   }
@@ -184,9 +184,9 @@ export class SupportRepository {
     tx: Transaction,
     id: string,
     expectedVersion: number,
-    data: Prisma.SupportCaseUncheckedUpdateManyInput,
+    data: Prisma.KasusBantuanUncheckedUpdateManyInput,
   ) {
-    return tx.supportCase.updateMany({
+    return tx.kasusBantuan.updateMany({
       where: {
         id,
         version: expectedVersion,
@@ -202,7 +202,7 @@ export class SupportRepository {
     tx: Transaction,
     id: string,
   ) {
-    return tx.supportCase.findUnique({
+    return tx.kasusBantuan.findUnique({
       where: {
         id,
       },
@@ -214,9 +214,9 @@ export class SupportRepository {
    */
   buatCatatanInternal(
     tx: Transaction,
-    data: Prisma.SupportCaseNoteUncheckedCreateInput,
+    data: Prisma.CatatanKasusBantuanUncheckedCreateInput,
   ) {
-    return tx.supportCaseNote.create({
+    return tx.catatanKasusBantuan.create({
       data,
     });
   }

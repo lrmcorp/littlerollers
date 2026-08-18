@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
-import { CustomerManagementService } from './customer-management.service';
+import { CustomerManagementService } from './manajemen-pelanggan.service';
 
 @Controller('customers')
 @UseGuards(AuthGuard)

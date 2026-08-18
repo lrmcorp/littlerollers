@@ -1,0 +1,134 @@
+enum CheckInTokenStatus {
+  ACTIVE
+  USED
+  REVOKED
+}
+
+enum AttendanceSource {
+  QR
+  MIGRATION
+  MANUAL_BACKFILL
+}
+
+model CheckInToken {
+  id                 String              @id @db.Char(36)
+  bookingId          String              @db.Char(36)
+  issuedById         String              @db.Char(36)
+  tokenHash          String              @unique
+  activeBookingKey   String?             @unique @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  purpose            String              @default("CUSTOMER_CHECK_IN")
+  notBeforeAt        DateTime
+  expiresAt          DateTime
+  status             CheckInTokenStatus  @default(ACTIVE)
+  usedAt             DateTime?
+  revokedAt          DateTime?
+  version            Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  booking            PemesananKelas             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  issuedBy           User                @relation("CheckInTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  attendance         KehadiranPelanggan?
+
+  @@unique([issuedById, idempotencyKeyHash])
+  @@index([bookingId, status, expiresAt])
+  @@index([expiresAt, status])
+}
+
+model KehadiranPelanggan {
+  id           String           @id @db.Char(36)
+  bookingId    String           @unique @db.Char(36)
+  tokenId      String?          @unique @db.Char(36)
+  branchId     String           @db.Char(36)
+  classSlotId  String           @db.Char(36)
+  recordedById String           @db.Char(36)
+  source       AttendanceSource @default(QR)
+  checkedInAt  DateTime
+  auditLogId   String           @db.Char(36)
+  createdAt    DateTime         @default(now())
+  booking      PemesananKelas          @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  token        CheckInToken?    @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  branch       Cabang           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classSlot    SlotKelas        @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  recordedBy   User             @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([branchId, checkedInAt])
+  @@index([classSlotId, checkedInAt])
+
+  @@map("KehadiranPelanggan")
+}
+
+model InstructorCheckInToken {
+  id                 String                @id @db.Char(36)
+  classSlotId        String                @db.Char(36)
+  instructorUserId   String                @db.Char(36)
+  issuedById         String                @db.Char(36)
+  tokenHash          String                @unique
+  activeClassSlotKey String?               @unique @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  notBeforeAt        DateTime
+  expiresAt          DateTime
+  status             CheckInTokenStatus    @default(ACTIVE)
+  usedAt             DateTime?
+  revokedAt          DateTime?
+  version            Int                   @default(0)
+  createdAt          DateTime              @default(now())
+  classSlot          SlotKelas             @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor         User                  @relation("InstructorTokenOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  issuedBy           User                  @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  attendance         KehadiranInstruktur?
+
+  @@unique([instructorUserId, idempotencyKeyHash])
+  @@index([classSlotId, status, expiresAt])
+  @@index([expiresAt, status])
+}
+
+model KehadiranInstruktur {
+  id               String                 @id @db.Char(36)
+  classSlotId      String                 @unique @db.Char(36)
+  instructorUserId String                 @db.Char(36)
+  tokenId          String                 @unique @db.Char(36)
+  branchId         String                 @db.Char(36)
+  checkedInAt      DateTime
+  auditLogId       String                 @db.Char(36)
+  createdAt        DateTime               @default(now())
+  classSlot        SlotKelas              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor       User                   @relation("InstructorAttendanceOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  token            InstructorCheckInToken @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  branch           Cabang                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([instructorUserId, checkedInAt])
+  @@index([branchId, checkedInAt])
+
+  @@map("KehadiranInstruktur")
+}
+
+model RekapJamInstruktur {
+  id                       String                 @id @default(uuid()) @db.Char(36)
+  classSlotId              String                 @unique @db.Char(36)
+  instructorUserId         String                 @db.Char(36)
+  branchId                 String                 @db.Char(36)
+  classTypeId              String                 @db.Char(36)
+  effectiveConfigurationId String                 @db.Char(36)
+  matchedUnits             Int                    @default(1)
+  feeRpSnapshot            Int
+  amountRp                 Int
+  period                   String                 @db.Char(7)
+  occurredAt               DateTime
+  historical               Boolean                @default(false)
+  sourceDeletedAt          DateTime?
+  sourceMetadata           Json?
+  createdAt                DateTime               @default(now())
+  classSlot                SlotKelas              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  instructor               User                   @relation("InstructorHourLogOwner", fields: [instructorUserId], references: [id], onDelete: Restrict)
+  branch                   Cabang                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType                JenisKelas              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  effectiveConfiguration   KonfigurasiEfektif @relation(fields: [effectiveConfigurationId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, period, occurredAt])
+  @@index([instructorUserId, occurredAt])
+  @@index([classTypeId, occurredAt])
+
+  @@map("RekapJamInstruktur")
+}

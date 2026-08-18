@@ -30,13 +30,13 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
   beforeAll(async () => {
     await db.$connect();
     await db.user.create({ data: { id: instructorId, displayName: 'Synthetic instructor' } });
-    await db.branch.createMany({
+    await db.cabang.createMany({
       data: [
         { id: branchId, code: `${namespace}-a`, name: 'Jakarta', timezone: 'Asia/Jakarta' },
         { id: otherBranchId, code: `${namespace}-b`, name: 'Bali', timezone: 'Asia/Makassar' },
       ],
     });
-    await db.assignment.createMany({
+    await db.penugasan.createMany({
       data: [
         {
           id: assignmentId,
@@ -57,7 +57,7 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
   });
   afterAll(async () => {
     const ids = (
-      await db.instructorAvailability.findMany({
+      await db.ketersediaanInstruktur.findMany({
         where: { instructorUserId: instructorId },
         select: { id: true },
       })
@@ -65,12 +65,12 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
     await db.auditLog.deleteMany({
       where: { objectType: 'InstructorAvailability', objectId: { in: ids } },
     });
-    await db.instructorAvailability.deleteMany({ where: { instructorUserId: instructorId } });
+    await db.ketersediaanInstruktur.deleteMany({ where: { instructorUserId: instructorId } });
     await db.idempotencyRecord.deleteMany({
       where: { scope: `instructor-availability:${instructorId}` },
     });
-    await db.assignment.deleteMany({ where: { id: { in: [assignmentId, otherAssignmentId] } } });
-    await db.branch.deleteMany({ where: { id: { in: [branchId, otherBranchId] } } });
+    await db.penugasan.deleteMany({ where: { id: { in: [assignmentId, otherAssignmentId] } } });
+    await db.cabang.deleteMany({ where: { id: { in: [branchId, otherBranchId] } } });
     await db.user.delete({ where: { id: instructorId } });
     await db.$disconnect();
   });
@@ -86,7 +86,7 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
     expect(
-      await db.instructorAvailability.count({ where: { instructorUserId: instructorId } }),
+      await db.ketersediaanInstruktur.count({ where: { instructorUserId: instructorId } }),
     ).toBe(1);
     expect(
       await db.auditLog.count({ where: { objectType: 'InstructorAvailability' } }),

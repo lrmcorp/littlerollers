@@ -189,7 +189,7 @@ describe('identity security foundation', () => {
     };
     const db = {
       auditLog: { create: jest.fn().mockResolvedValue({}) },
-      branch: { findMany: jest.fn().mockResolvedValue([]) },
+      cabang: { findMany: jest.fn().mockResolvedValue([]) },
       userSession: {
         findUnique: jest.fn().mockResolvedValue(activeSession),
         update: jest.fn().mockResolvedValue({}),
@@ -235,7 +235,7 @@ describe('identity security foundation', () => {
       AUTH_SYNTHETIC_ENABLED: 'true',
     };
     const tx = {
-      identity: { findUnique: jest.fn().mockResolvedValue(null) },
+      identitas: { findUnique: jest.fn().mockResolvedValue(null) },
       userInvitation: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     const service = new IdentityService(
@@ -261,7 +261,7 @@ describe('identity security foundation', () => {
       role: 'ADMIN' as const,
       branchId: 'branch-a',
       sourceAssignmentId: null,
-      branch: { id: 'branch-a', code: 'JKT', name: 'Jakarta' },
+      cabang: { id: 'branch-a', code: 'JKT', name: 'Jakarta' },
     };
     const before = {
       id: 'staff-1',
@@ -355,7 +355,7 @@ describe('identity security foundation', () => {
         findUnique: jest.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      branch: { findFirst: jest.fn().mockResolvedValue({ id: 'branch-jkt' }) },
+      cabang: { findFirst: jest.fn().mockResolvedValue({ id: 'branch-jkt' }) },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
       $transaction: (callback: (client: unknown) => unknown) => callback(db),
     };
@@ -393,7 +393,7 @@ describe('identity security foundation', () => {
 
   it('issues a private one-time self-view authorization only for the customer document owner', async () => {
     const db = {
-      identityVerificationDocument: {
+      dokumenVerifikasiIdentitas: {
         findFirst: jest.fn().mockResolvedValue({
           id: 'document-1',
           userId: 'customer-1',
@@ -401,7 +401,7 @@ describe('identity security foundation', () => {
           objectKey: 'identity/customer-1/selfie/document-1',
         }),
       },
-      identityDocumentViewAuthorization: {
+      otorisasiLihatDokumenIdentitas: {
         create: jest.fn().mockResolvedValue({ id: 'authorization-1' }),
       },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
@@ -423,10 +423,10 @@ describe('identity security foundation', () => {
       url: '/api/v1/identity-verification-files/authorization-1/content',
       expiresAt: expect.any(String),
     });
-    expect(db.identityVerificationDocument.findFirst).toHaveBeenCalledWith(
+    expect(db.dokumenVerifikasiIdentitas.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ userId: 'customer-1' }) }),
     );
-    expect(db.identityDocumentViewAuthorization.create).toHaveBeenCalledWith(
+    expect(db.otorisasiLihatDokumenIdentitas.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           viewerId: 'customer-1',
@@ -446,8 +446,8 @@ describe('identity security foundation', () => {
   it('refuses reviewer authorization unless the active file is finalized and clean', async () => {
     const findUnique = jest.fn();
     const db = {
-      identityVerificationDocument: { findUnique },
-      identityDocumentViewAuthorization: { create: jest.fn() },
+      dokumenVerifikasiIdentitas: { findUnique },
+      otorisasiLihatDokumenIdentitas: { create: jest.fn() },
       auditLog: { create: jest.fn() },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
@@ -484,13 +484,13 @@ describe('identity security foundation', () => {
         service.authorizeReview(principal, baseline.id, 'correlation-1'),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     }
-    expect(db.identityDocumentViewAuthorization.create).not.toHaveBeenCalled();
+    expect(db.otorisasiLihatDokumenIdentitas.create).not.toHaveBeenCalled();
   });
 
   it('revalidates document lifecycle when a one-time reviewer authorization is consumed', async () => {
     const db = {
-      identityVerificationDocument: { findUnique: jest.fn() },
-      identityDocumentViewAuthorization: {
+      dokumenVerifikasiIdentitas: { findUnique: jest.fn() },
+      otorisasiLihatDokumenIdentitas: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'authorization-1',
           viewerId: 'reviewer-1',
@@ -530,7 +530,7 @@ describe('identity security foundation', () => {
         'correlation-1',
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    expect(db.identityDocumentViewAuthorization.updateMany).not.toHaveBeenCalled();
+    expect(db.otorisasiLihatDokumenIdentitas.updateMany).not.toHaveBeenCalled();
     expect(storage.read).not.toHaveBeenCalled();
     expect(db.auditLog.create).not.toHaveBeenCalled();
   });
@@ -573,7 +573,7 @@ describe('identity security foundation', () => {
       },
     });
     const db = {
-      identityVerificationDocument: {
+      dokumenVerifikasiIdentitas: {
         groupBy,
         count,
         findMany: jest
@@ -622,7 +622,7 @@ describe('identity security foundation', () => {
 
   it('reports scan-incomplete documents separately from stale decisions', async () => {
     const db = {
-      identityVerificationDocument: {
+      dokumenVerifikasiIdentitas: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'document-1',
           replacedById: null,

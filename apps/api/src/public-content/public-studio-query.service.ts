@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
-import { calculatePackagePromotion } from '../packages/package-pricing.service';
+import { calculatePackagePromotion } from '../packages/kalkulasi-harga-paket.service';
 
 @Injectable()
 export class PublicStudioQueryService {
@@ -9,7 +9,7 @@ export class PublicStudioQueryService {
 
   async detail(slug: string) {
     const now = new Date();
-    const branch = await this.db.branch.findFirst({
+    const branch = await this.db.cabang.findFirst({
       where: { active: true, publicProfile: { is: { slug } } },
       select: {
         id: true,
@@ -81,7 +81,7 @@ export class PublicStudioQueryService {
       },
     });
     if (!branch?.publicProfile) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const classProfiles = await this.db.publicClassProfile.findMany({
+    const classProfiles = await this.db.profilPublikKelas.findMany({
       where: { code: { in: branch.classTypes.map(({ code }) => code) }, active: true },
     });
     const profilesByCode = new Map(classProfiles.map((profile) => [profile.code, profile]));

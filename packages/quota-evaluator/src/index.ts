@@ -71,7 +71,7 @@ export async function evaluateQuota(
     if (job.classSlot.status !== 'PUBLISHED')
       throw new QuotaEvaluationError('INVALID_STATE_TRANSITION');
 
-    const reservations = await tx.sessionReservation.findMany({
+    const reservations = await tx.reservasiSesi.findMany({
       where: { classSlotId: job.classSlotId, status: 'ACTIVE' },
       select: { id: true, quantity: true },
       orderBy: { id: 'asc' },
@@ -81,11 +81,11 @@ export async function evaluateQuota(
     const status = confirmed ? 'CONFIRMED' : 'AUTO_CANCELLED';
     const releasedReservationIds = confirmed ? [] : reservations.map(({ id }) => id);
     if (!confirmed && releasedReservationIds.length)
-      await tx.sessionReservation.updateMany({
+      await tx.reservasiSesi.updateMany({
         where: { id: { in: releasedReservationIds }, status: 'ACTIVE' },
         data: { status: 'RELEASED', releasedAt: input.now },
       });
-    await tx.classSlot.update({
+    await tx.slotKelas.update({
       where: { id: job.classSlotId },
       data: {
         status,

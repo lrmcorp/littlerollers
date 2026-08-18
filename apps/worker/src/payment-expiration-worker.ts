@@ -18,7 +18,7 @@ export class PaymentExpirationWorker {
   }
 
   async runOnce(now = new Date()) {
-    const reservations = await this.db.paymentUniqueCodeReservation.findMany({
+    const reservations = await this.db.reservasiKodeUnikPembayaran.findMany({
       where: { expiresAt: { lte: now } },
       select: { purchaseId: true },
       take: 250,
@@ -26,7 +26,7 @@ export class PaymentExpirationWorker {
     if (!reservations.length) return 0;
     const purchaseIds = reservations.map(({ purchaseId }) => purchaseId);
     await this.db.$transaction([
-      this.db.purchase.updateMany({
+      this.db.pembelian.updateMany({
         where: {
           id: { in: purchaseIds },
           status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED'] },
@@ -34,7 +34,7 @@ export class PaymentExpirationWorker {
         },
         data: { status: 'EXPIRED', version: { increment: 1 } },
       }),
-      this.db.paymentUniqueCodeReservation.deleteMany({
+      this.db.reservasiKodeUnikPembayaran.deleteMany({
         where: {
           purchaseId: { in: purchaseIds },
           OR: [

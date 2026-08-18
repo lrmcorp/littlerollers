@@ -1,0 +1,433 @@
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+enum NotificationCategory {
+  VERIFICATION
+  PAYMENT
+  PACKAGE
+  BOOKING
+  RESCHEDULE
+  CLASS
+  ATTENDANCE
+  ADJUSTMENT
+  OPERATIONS
+  APPROVAL
+  SYSTEM
+}
+
+enum NotificationTone {
+  SUCCESS
+  INFO
+  WARNING
+  DANGER
+}
+
+enum NotificationProjectionStatus {
+  SUCCEEDED
+  SKIPPED
+  FAILED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENDING
+  ACCEPTED_BY_SMTP
+  FAILED_RETRYABLE
+  FAILED_TERMINAL
+  EXPIRED
+  FALLBACK_IN_APP
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum QuotaEvaluationJobStatus {
+  QUEUED
+  RUNNING
+  RETRYING
+  SUCCEEDED
+  FAILED
+  DEAD_LETTER
+}
+
+enum MediaVisibility {
+  PRIVATE
+  AUTHORIZED
+  PUBLIC
+}
+
+enum ManagedContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SupportCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportCasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model QuotaEvaluationJob {
+  id             String                   @id @db.Char(36)
+  classSlotId    String                   @unique @db.Char(36)
+  evaluationKey  String                   @unique
+  dueAt          DateTime
+  status         QuotaEvaluationJobStatus @default(QUEUED)
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  attempts       Int                      @default(0)
+  maxAttempts    Int
+  nextAttemptAt  DateTime
+  lastErrorCode  String?
+  result         Json?
+  version        Int                      @default(0)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  classSlot      SlotKelas                @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+
+  @@index([status, dueAt, nextAttemptAt])
+  @@index([leaseExpiresAt])
+}
+
+model RateLimitCounter {
+  id          String   @id @default(uuid()) @db.Char(36)
+  scope       String
+  subjectHash String
+  windowStart DateTime
+  attempts    Int      @default(1)
+  expiresAt   DateTime
+
+  @@unique([scope, subjectHash, windowStart])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id              String                  @id @db.Char(36)
+  occurredAt      DateTime                @default(now())
+  actorType       String
+  actorId         String?                 @db.Char(36)
+  branchId        String?                 @db.Char(36)
+  action          String
+  objectType      String
+  objectId        String
+  targetUserId    String?                 @db.Char(36)
+  beforeMasked    Json?
+  afterMasked     Json?
+  correlationId   String
+  sourceSystem    String?                 @db.VarChar(32)
+  sourceTable     String?                 @db.VarChar(64)
+  sourceId        String?                 @db.VarChar(191)
+  historical      Boolean                 @default(false)
+  sourceDeletedAt DateTime?
+  legacyPayload   MigrationLegacyPayload?
+
+  @@index([branchId, occurredAt])
+  @@index([objectType, objectId, occurredAt])
+  @@index([targetUserId, occurredAt])
+  @@index([sourceSystem, sourceTable, sourceId])
+}
+
+enum AuditExportStatus {
+  QUEUED
+  RUNNING
+  READY
+  FAILED
+  EXPIRED
+}
+
+enum AuditExportFormat {
+  CSV
+  JSONL
+}
+
+model AuditExport {
+  id                 String            @id @db.Char(36)
+  requestedById      String            @db.Char(36)
+  idempotencyKeyHash String
+  requestHash        String
+  branchIds          Json
+  from               DateTime
+  until              DateTime
+  actorId            String?           @db.Char(36)
+  objectType         String?
+  format             AuditExportFormat
+  reasonPresent      Boolean           @default(true)
+  status             AuditExportStatus @default(QUEUED)
+  rowCount           Int               @default(0)
+  content            String?           @db.LongText
+  failureCode        String?
+  downloadTokenHash  String?
+  downloadExpiresAt  DateTime?
+  requestedAt        DateTime          @default(now())
+  completedAt        DateTime?
+  expiresAt          DateTime
+  version            Int               @default(0)
+
+  @@unique([requestedById, idempotencyKeyHash])
+  @@index([requestedById, requestedAt])
+  @@index([status, requestedAt])
+  @@index([expiresAt])
+}
+
+model IdempotencyRecord {
+  id              String            @id @db.Char(36)
+  scope           String
+  keyHash         String
+  requestHash     String
+  status          IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus  Int?
+  responseBody    Json?
+  responseHeaders Json?
+  createdAt       DateTime          @default(now())
+  completedAt     DateTime?
+  leaseExpiresAt  DateTime
+  expiresAt       DateTime
+
+  @@unique([scope, keyHash])
+  @@index([expiresAt])
+  @@index([status, leaseExpiresAt])
+}
+
+model OutboxEvent {
+  id                      String                   @id @db.Char(36)
+  eventType               String
+  aggregateType           String
+  aggregateId             String
+  payload                 Json
+  correlationId           String
+  status                  OutboxStatus             @default(PENDING)
+  occurredAt              DateTime                 @default(now())
+  publishedAt             DateTime?
+  attempts                Int                      @default(0)
+  notificationProjection  NotificationProjection?
+  userNotifications       UserNotification[]
+  notificationOccurrences NotificationOccurrence[]
+
+  @@index([status, occurredAt])
+  @@index([aggregateType, aggregateId])
+}
+
+model NotificationOccurrence {
+  id                 String                     @id @db.Char(36)
+  occurrenceKey      String                     @unique
+  sourceEventId      String?                    @db.Char(36)
+  userId             String?                    @db.Char(36)
+  branchId           String?                    @db.Char(36)
+  channel            NotificationChannel        @default(EMAIL)
+  eventType          String
+  templateKey        String
+  templateVersion    Int                        @default(1)
+  recipientHash      String
+  recipientMasked    String
+  envelopeEncrypted  String?                    @db.LongText
+  status             NotificationDeliveryStatus @default(PENDING)
+  attemptCount       Int                        @default(0)
+  rateLimitWaitCount Int                        @default(0)
+  maxAttempts        Int                        @default(5)
+  nextAttemptAt      DateTime                   @default(now())
+  leaseExpiresAt     DateTime?
+  lastErrorCode      String?
+  correlationId      String
+  expiresAt          DateTime?
+  acceptedAt         DateTime?
+  fallbackCreatedAt  DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  sourceEvent        OutboxEvent?               @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  user               User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  attempts           NotificationAttempt[]
+
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt])
+  @@index([sourceEventId])
+  @@index([branchId, createdAt])
+}
+
+model NotificationAttempt {
+  id            String                     @id @db.Char(36)
+  occurrenceId  String                     @db.Char(36)
+  attemptNumber Int
+  status        NotificationDeliveryStatus
+  providerCode  String?
+  errorCode     String?
+  startedAt     DateTime                   @default(now())
+  completedAt   DateTime?
+  occurrence    NotificationOccurrence     @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@unique([occurrenceId, attemptNumber])
+  @@index([status, startedAt])
+}
+
+model NotificationProjection {
+  id            String                       @id @db.Char(36)
+  sourceEventId String                       @unique @db.Char(36)
+  status        NotificationProjectionStatus
+  errorCode     String?
+  projectedAt   DateTime                     @default(now())
+  sourceEvent   OutboxEvent                  @relation(fields: [sourceEventId], references: [id], onDelete: Cascade)
+
+  @@index([status, projectedAt])
+}
+
+model UserNotification {
+  id             String                  @id @db.Char(36)
+  userId         String                  @db.Char(36)
+  branchId       String?                 @db.Char(36)
+  sourceEventId  String?                 @db.Char(36)
+  eventKey       String
+  category       NotificationCategory
+  tone           NotificationTone
+  title          String
+  message        String
+  href           String?
+  metadataMasked Json?
+  readAt         DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime                @default(now())
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch         Cabang?                 @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  sourceEvent    OutboxEvent?            @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+  legacyPayload  MigrationLegacyPayload?
+
+  @@unique([userId, eventKey])
+  @@index([userId, readAt, createdAt])
+  @@index([userId, expiresAt])
+  @@index([branchId, createdAt])
+}
+
+model NotificationTemplate {
+  id          String               @id @default(uuid()) @db.Char(36)
+  templateKey String               @db.VarChar(96)
+  channel     NotificationChannel
+  version     Int
+  eventType   String               @db.VarChar(128)
+  audience    Json
+  subject     String?              @db.VarChar(200)
+  title       String               @db.VarChar(200)
+  body        String               @db.Text
+  status      ManagedContentStatus @default(DRAFT)
+  createdById String               @db.Char(36)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdBy   User                 @relation("NotificationTemplateCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([templateKey, channel, version])
+  @@index([eventType, status])
+  @@index([channel, status])
+}
+
+model EntriKontenPublik {
+  id          String               @id @default(uuid()) @db.Char(36)
+  contentKey  String               @db.VarChar(96)
+  branchId    String?              @db.Char(36)
+  /// Stable non-null scope used to make global content versioning race-safe on MySQL.
+  scopeKey    String               @db.VarChar(64)
+  kind        String               @db.VarChar(64)
+  locale      String               @default("id-ID") @db.VarChar(16)
+  version     Int
+  payload     Json
+  status      ManagedContentStatus @default(DRAFT)
+  createdById String               @db.Char(36)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  branch      Cabang?              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy   User                 @relation("PublicContentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([contentKey, scopeKey, locale, version])
+  @@index([branchId, kind, status])
+  @@index([contentKey, status])
+
+  @@map("EntriKontenPublik")
+}
+
+model KasusBantuan {
+  id             String              @id @default(uuid()) @db.Char(36)
+  customerUserId String              @db.Char(36)
+  branchId       String?             @db.Char(36)
+  assignedUserId String?             @db.Char(36)
+  subject        String              @db.VarChar(200)
+  status         SupportCaseStatus   @default(OPEN)
+  priority       SupportCasePriority @default(NORMAL)
+  tags           Json
+  version        Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  resolvedAt     DateTime?
+  customer       User                @relation("SupportCaseCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch         Cabang?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  assignedUser   User?               @relation("SupportCaseAssignee", fields: [assignedUserId], references: [id], onDelete: Restrict)
+  notes          CatatanKasusBantuan[]
+
+  @@index([branchId, status, priority, updatedAt])
+  @@index([customerUserId, updatedAt])
+  @@index([assignedUserId, status])
+
+  @@map("KasusBantuan")
+}
+
+model CatatanKasusBantuan {
+  id          String      @id @default(uuid()) @db.Char(36)
+  caseId      String      @db.Char(36)
+  authorId    String      @db.Char(36)
+  body        String      @db.Text
+  internal    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  supportCase KasusBantuan @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  author      User        @relation("SupportNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@index([authorId, createdAt])
+
+  @@map("CatatanKasusBantuan")
+}
+
+model AsetMedia {
+  id              String                 @id @default(uuid()) @db.Char(36)
+  ownerUserId     String?                @db.Char(36)
+  branchId        String?                @db.Char(36)
+  entityType      String                 @db.VarChar(64)
+  entityId        String                 @db.VarChar(191)
+  purposeCode     String                 @db.VarChar(64)
+  objectKey       String                 @unique @db.VarChar(512)
+  checksum        String                 @db.Char(64)
+  mimeType        String                 @db.VarChar(191)
+  sizeBytes       Int
+  scanStatus      PaymentProofScanStatus @default(PENDING)
+  visibility      MediaVisibility        @default(AUTHORIZED)
+  historical      Boolean                @default(false)
+  sourceDeletedAt DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  owner           User?                  @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  branch          Cabang?                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, purposeCode])
+  @@index([checksum])
+
+  @@map("AsetMedia")
+}

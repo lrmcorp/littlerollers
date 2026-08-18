@@ -396,8 +396,8 @@ export function Modal({
         aria-busy={busy || undefined}
         className={`${
           drawer
-            ? `flex h-dvh w-full max-w-xl flex-col overflow-hidden border-l border-dd-line bg-dd-surface shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-x-0' : 'translate-x-full'}`
-            : `flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-dd-xl border border-dd-line bg-dd-surface shadow-dd-float transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-[0.98] opacity-0'}`
+            ? `flex h-dvh w-full ${className.includes('max-w-') ? '' : 'max-w-xl'} flex-col overflow-hidden border-l border-dd-line bg-dd-surface shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-x-0' : 'translate-x-full'}`
+            : `flex max-h-[calc(100dvh-2rem)] w-full ${className.includes('max-w-') ? '' : 'max-w-lg'} flex-col overflow-hidden rounded-dd-xl border border-dd-line bg-dd-surface shadow-dd-float transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 ${visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-[0.98] opacity-0'}`
         } ${className}`}
       >
         <div

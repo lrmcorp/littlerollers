@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma, type Branch, type ClassType } from '@prisma/client';
+import { Prisma, type Cabang, type JenisKelas } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
@@ -29,7 +29,7 @@ export class MasterCatalogService {
         ? { id: { notIn: scope.excluded } }
         : {}
       : { id: { in: scope.included } };
-    const where: Prisma.BranchWhereInput = {
+    const where: Prisma.CabangWhereInput = {
       ...branchScope,
       active: query.status === 'ACTIVE' ? true : query.status === 'INACTIVE' ? false : undefined,
       OR: query.q?.trim()
@@ -42,7 +42,7 @@ export class MasterCatalogService {
         : undefined,
     };
     const [rows, active, inactive] = await Promise.all([
-      this.db.branch.findMany({
+      this.db.cabang.findMany({
         where,
         include: { publicProfile: true },
         orderBy: [{ code: 'asc' }, { id: 'asc' }],
@@ -50,8 +50,8 @@ export class MasterCatalogService {
         skip: query.cursor ? 1 : undefined,
         take: limit + 1,
       }),
-      this.db.branch.count({ where: { ...where, active: true } }),
-      this.db.branch.count({ where: { ...where, active: false } }),
+      this.db.cabang.count({ where: { ...where, active: true } }),
+      this.db.cabang.count({ where: { ...where, active: false } }),
     ]);
     const hasMore = rows.length > limit;
     const items = rows.slice(0, limit);
@@ -65,7 +65,7 @@ export class MasterCatalogService {
   async branchDetail(principal: SessionPrincipal, id: string) {
     this.access.authorize(principal);
     this.access.ensureBranchScope(principal, id);
-    const branch = await this.db.branch.findUnique({
+    const branch = await this.db.cabang.findUnique({
       where: { id },
       include: { publicProfile: true },
     });
@@ -80,21 +80,21 @@ export class MasterCatalogService {
       staff,
       auditActivity,
     ] = await Promise.all([
-      this.db.assignment.count({
+      this.db.penugasan.count({
         where: {
           branchId: id,
           activeFrom: { lte: now },
           OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
         },
       }),
-      this.db.classSlot.count({
+      this.db.slotKelas.count({
         where: {
           branchId: id,
           endAt: { gt: now },
           status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
         },
       }),
-      this.db.package.count({
+      this.db.paket.count({
         where: {
           branchScopes: { some: { branchId: id, active: true } },
           status: 'ACTIVE',
@@ -102,8 +102,8 @@ export class MasterCatalogService {
           OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
         },
       }),
-      this.db.paymentAccount.count({ where: { branchId: id, active: true } }),
-      this.db.classType.count({
+      this.db.rekeningPembayaran.count({ where: { branchId: id, active: true } }),
+      this.db.jenisKelas.count({
         where: { active: true, branchScopes: { some: { branchId: id, active: true } } },
       }),
       this.db.userRole.count({
@@ -156,7 +156,7 @@ export class MasterCatalogService {
     if (!/^[A-Z0-9_-]{2,64}$/u.test(code) || name.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     return this.db.$transaction(async (tx) => {
-      const branch = await tx.branch.findUnique({ where: { id: branchId } });
+      const branch = await tx.cabang.findUnique({ where: { id: branchId } });
       if (!branch?.active) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       const studio = await tx.studio.create({
         data: {
@@ -224,7 +224,7 @@ export class MasterCatalogService {
     const studio = await this.db.studio.findUnique({ where: { id: studioId } });
     if (!studio) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     this.access.ensureBranchScope(principal, studio.branchId);
-    const items = await this.db.room.findMany({
+    const items = await this.db.ruangan.findMany({
       where: { studioId, historical: false },
       orderBy: [{ code: 'asc' }, { id: 'asc' }],
     });
@@ -250,7 +250,7 @@ export class MasterCatalogService {
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     return this.db.$transaction(async (tx) => {
-      const room = await tx.room.create({
+      const room = await tx.ruangan.create({
         data: { id: newId(), studioId, code, name, capacity: input.capacity ?? null },
       });
       await this.access.audit(
@@ -274,10 +274,10 @@ export class MasterCatalogService {
   ) {
     this.access.authorize(principal, true);
     return this.db.$transaction(async (tx) => {
-      const current = await tx.room.findUnique({ where: { id }, include: { studio: true } });
+      const current = await tx.ruangan.findUnique({ where: { id }, include: { studio: true } });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, current.studio.branchId, true);
-      const updated = await tx.room.update({
+      const updated = await tx.ruangan.update({
         where: { id },
         data: { name: input.name?.trim(), capacity: input.capacity, active: input.active },
       });
@@ -306,7 +306,7 @@ export class MasterCatalogService {
     },
     key: string | undefined,
     correlationId: string,
-  ): Promise<Branch> {
+  ): Promise<Cabang> {
     this.access.authorize(principal, true);
     this.access.ensureBranchScope(principal, id, true);
     const name = input.name?.trim();
@@ -329,9 +329,9 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.branch.findUnique({ where: { id } });
+        const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-        const changed = await tx.branch.updateMany({
+        const changed = await tx.cabang.updateMany({
           where: { id, version: input.expectedVersion },
           data: {
             name,
@@ -341,7 +341,7 @@ export class MasterCatalogService {
           },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const updated = await tx.branch.findUniqueOrThrow({ where: { id } });
+        const updated = await tx.cabang.findUniqueOrThrow({ where: { id } });
         await this.access.audit(
           tx,
           principal,
@@ -361,7 +361,7 @@ export class MasterCatalogService {
         return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
-    return result.body as unknown as Branch;
+    return result.body as unknown as Cabang;
   }
 
   async transitionBranch(
@@ -371,7 +371,7 @@ export class MasterCatalogService {
     input: { expectedVersion: number; reason: string },
     key: string | undefined,
     correlationId: string,
-  ): Promise<Branch> {
+  ): Promise<Cabang> {
     this.access.authorize(principal, true);
     this.access.ensureBranchScope(principal, id, true);
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
@@ -385,28 +385,28 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.branch.findUnique({ where: { id } });
+        const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (current.version !== input.expectedVersion)
           throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
         if (status === 'INACTIVE') {
           const now = new Date();
           const [assignments, futureClasses, packages, paymentAccounts] = await Promise.all([
-            tx.assignment.count({
+            tx.penugasan.count({
               where: {
                 branchId: id,
                 activeFrom: { lte: now },
                 OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
               },
             }),
-            tx.classSlot.count({
+            tx.slotKelas.count({
               where: {
                 branchId: id,
                 endAt: { gt: now },
                 status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
               },
             }),
-            tx.package.count({
+            tx.paket.count({
               where: {
                 branchScopes: { some: { branchId: id, active: true } },
                 status: 'ACTIVE',
@@ -414,12 +414,12 @@ export class MasterCatalogService {
                 OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
               },
             }),
-            tx.paymentAccount.count({ where: { branchId: id, active: true } }),
+            tx.rekeningPembayaran.count({ where: { branchId: id, active: true } }),
           ]);
           if (assignments || futureClasses || packages || paymentAccounts)
             throw new ApiProblem('ACTIVE_DEPENDENCY', HttpStatus.CONFLICT);
         }
-        const updated = await tx.branch.update({
+        const updated = await tx.cabang.update({
           where: { id },
           data: { active: status === 'ACTIVE', version: { increment: 1 } },
         });
@@ -437,7 +437,7 @@ export class MasterCatalogService {
         return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
-    return result.body as unknown as Branch;
+    return result.body as unknown as Cabang;
   }
 
   async createBranch(
@@ -451,7 +451,7 @@ export class MasterCatalogService {
     },
     correlationId: string,
     key?: string,
-  ): Promise<Branch> {
+  ): Promise<Cabang> {
     this.access.authorize(principal, true);
     const code = input.code.trim().toUpperCase();
     const name = input.name.trim();
@@ -466,7 +466,7 @@ export class MasterCatalogService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     try {
       const create = async (tx: Prisma.TransactionClient) => {
-        const branch = await tx.branch.create({
+        const branch = await tx.cabang.create({
           data: {
             id: newId(),
             code,
@@ -475,7 +475,7 @@ export class MasterCatalogService {
             supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
           },
         });
-        await tx.accountingAccount.create({
+        await tx.akunAkuntansi.create({
           data: {
             branchId: branch.id,
             code: 'FINANCE_CORRECTION',
@@ -518,7 +518,7 @@ export class MasterCatalogService {
           body: (await create(tx)) as unknown as Prisma.InputJsonValue,
         }),
       );
-      return result.body as unknown as Branch;
+      return result.body as unknown as Cabang;
     } catch (error) {
       if (isUnique(error)) throw new ApiProblem('BUSINESS_KEY_CONFLICT', HttpStatus.CONFLICT);
       throw error;
@@ -534,15 +534,15 @@ export class MasterCatalogService {
     this.access.authorize(principal, true);
     this.access.ensureBranchScope(principal, id, true);
     return this.db.$transaction(async (tx) => {
-      const current = await tx.branch.findUnique({ where: { id } });
+      const current = await tx.cabang.findUnique({ where: { id } });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       if (!current.active || current.version !== expectedVersion)
         throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      const dependencies = await tx.assignment.count({
+      const dependencies = await tx.penugasan.count({
         where: { branchId: id, activeUntil: null },
       });
       if (dependencies) throw new ApiProblem('ACTIVE_DEPENDENCY', HttpStatus.CONFLICT);
-      const result = await tx.branch.update({
+      const result = await tx.cabang.update({
         where: { id },
         data: { active: false, version: { increment: 1 } },
       });
@@ -565,7 +565,7 @@ export class MasterCatalogService {
     this.access.authorize(principal);
     if (branchId) this.access.ensureBranchScope(principal, branchId);
     const scope = this.access.branchScope(principal);
-    const items = await this.db.classType.findMany({
+    const items = await this.db.jenisKelas.findMany({
       where: {
         branchScopes: branchId
           ? { some: { branchId, active: true } }
@@ -610,13 +610,13 @@ export class MasterCatalogService {
     try {
       return await this.db.$transaction(async (tx) => {
         if (branchIds.length) {
-          const activeBranches = await tx.branch.count({
+          const activeBranches = await tx.cabang.count({
             where: { id: { in: branchIds }, active: true },
           });
           if (activeBranches !== branchIds.length)
             throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         }
-        const item = await tx.classType.create({
+        const item = await tx.jenisKelas.create({
           data: {
             id: newId(),
             code,
@@ -659,15 +659,15 @@ export class MasterCatalogService {
   ) {
     this.access.authorize(principal, true);
     return this.db.$transaction(async (tx) => {
-      const item = await tx.classType.findUnique({ where: { id } });
+      const item = await tx.jenisKelas.findUnique({ where: { id } });
       if (!item) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       if (!item.active || item.version !== expectedVersion)
         throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      const activeSettings = await tx.effectiveConfiguration.count({
+      const activeSettings = await tx.konfigurasiEfektif.count({
         where: { classTypeId: id, effectiveUntil: null },
       });
       if (activeSettings) throw new ApiProblem('ACTIVE_DEPENDENCY', HttpStatus.CONFLICT);
-      const result = await tx.classType.update({
+      const result = await tx.jenisKelas.update({
         where: { id },
         data: { active: false, version: { increment: 1 } },
       });
@@ -692,7 +692,7 @@ export class MasterCatalogService {
     input: { expectedVersion: number; reason: string },
     key: string | undefined,
     correlationId: string,
-  ): Promise<ClassType> {
+  ): Promise<JenisKelas> {
     this.access.authorize(principal, true);
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -705,16 +705,16 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.classType.findUnique({ where: { id } });
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (!current.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
         if (current.version !== input.expectedVersion)
           throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const activeSettings = await tx.effectiveConfiguration.count({
+        const activeSettings = await tx.konfigurasiEfektif.count({
           where: { classTypeId: id, effectiveUntil: null },
         });
         if (activeSettings) throw new ApiProblem('ACTIVE_DEPENDENCY', HttpStatus.CONFLICT);
-        const updated = await tx.classType.update({
+        const updated = await tx.jenisKelas.update({
           where: { id, version: input.expectedVersion },
           data: { active: false, version: { increment: 1 } },
         });
@@ -732,7 +732,7 @@ export class MasterCatalogService {
         return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
-    return result.body as unknown as ClassType;
+    return result.body as unknown as JenisKelas;
   }
 
   async updateClassType(
@@ -741,7 +741,7 @@ export class MasterCatalogService {
     input: { name: string; expectedVersion: number; reason: string },
     key: string | undefined,
     correlationId: string,
-  ): Promise<ClassType> {
+  ): Promise<JenisKelas> {
     this.access.authorize(principal, true);
     const name = input.name?.trim();
     const reason = input.reason?.trim();
@@ -758,14 +758,14 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.classType.findUnique({ where: { id } });
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-        const changed = await tx.classType.updateMany({
+        const changed = await tx.jenisKelas.updateMany({
           where: { id, version: input.expectedVersion },
           data: { name, version: { increment: 1 } },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const updated = await tx.classType.findUniqueOrThrow({ where: { id } });
+        const updated = await tx.jenisKelas.findUniqueOrThrow({ where: { id } });
         await this.access.audit(
           tx,
           principal,
@@ -780,7 +780,7 @@ export class MasterCatalogService {
         return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
-    return result.body as unknown as ClassType;
+    return result.body as unknown as JenisKelas;
   }
 
   async reactivateClassType(
@@ -789,7 +789,7 @@ export class MasterCatalogService {
     input: { expectedVersion: number; reason: string },
     key: string | undefined,
     correlationId: string,
-  ): Promise<ClassType> {
+  ): Promise<JenisKelas> {
     this.access.authorize(principal, true);
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -802,15 +802,15 @@ export class MasterCatalogService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        const current = await tx.classType.findUnique({ where: { id } });
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (current.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-        const changed = await tx.classType.updateMany({
+        const changed = await tx.jenisKelas.updateMany({
           where: { id, version: input.expectedVersion, active: false },
           data: { active: true, version: { increment: 1 } },
         });
         if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const updated = await tx.classType.findUniqueOrThrow({ where: { id } });
+        const updated = await tx.jenisKelas.findUniqueOrThrow({ where: { id } });
         await this.access.audit(
           tx,
           principal,
@@ -825,7 +825,7 @@ export class MasterCatalogService {
         return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
       },
     );
-    return result.body as unknown as ClassType;
+    return result.body as unknown as JenisKelas;
   }
 
   async replaceClassTypeScopes(
@@ -840,27 +840,27 @@ export class MasterCatalogService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     for (const branchId of branchIds) this.access.ensureBranchScope(principal, branchId, true);
     return this.db.$transaction(async (tx) => {
-      const current = await tx.classType.findUnique({
+      const current = await tx.jenisKelas.findUnique({
         where: { id },
         include: { branchScopes: true },
       });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      const activeBranches = await tx.branch.count({
+      const activeBranches = await tx.cabang.count({
         where: { id: { in: branchIds }, active: true },
       });
       if (activeBranches !== branchIds.length)
         throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      const changed = await tx.classType.updateMany({
+      const changed = await tx.jenisKelas.updateMany({
         where: { id, version: input.expectedVersion },
         data: { version: { increment: 1 } },
       });
       if (!changed.count) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      await tx.classTypeBranchScope.updateMany({
+      await tx.cakupanCabangJenisKelas.updateMany({
         where: { classTypeId: id, branchId: { notIn: branchIds } },
         data: { active: false },
       });
       for (const branchId of branchIds)
-        await tx.classTypeBranchScope.upsert({
+        await tx.cakupanCabangJenisKelas.upsert({
           where: { classTypeId_branchId: { classTypeId: id, branchId } },
           create: { id: newId(), classTypeId: id, branchId },
           update: { active: true, historical: false, sourceDeletedAt: null },
@@ -880,11 +880,136 @@ export class MasterCatalogService {
         },
         { branchIds, reasonPresent: true },
       );
-      return tx.classType.findUniqueOrThrow({
+      return tx.jenisKelas.findUniqueOrThrow({
         where: { id },
         include: { branchScopes: { include: { branch: true } } },
       });
     });
+  }
+
+  // --- Indonesian Domain Aliases ---
+  async daftarCabang(
+    principal: SessionPrincipal,
+    query?: Parameters<MasterCatalogService['listBranches']>[1],
+  ) {
+    return this.listBranches(principal, query);
+  }
+
+  async detailCabang(principal: SessionPrincipal, id: string) {
+    return this.branchDetail(principal, id);
+  }
+
+  async buatCabang(
+    principal: SessionPrincipal,
+    input: Parameters<MasterCatalogService['createBranch']>[1],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.createBranch(principal, input, key, correlationId);
+  }
+
+  async perbaruiCabang(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['updateBranch']>[2],
+    key: string,
+    correlationId: string,
+  ) {
+    return this.updateBranch(principal, id, input, key, correlationId);
+  }
+
+  async nonaktifkanCabang(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['deactivateBranch']>[2],
+    correlationId: string,
+  ) {
+    return this.deactivateBranch(principal, id, input, correlationId);
+  }
+
+  async daftarStudio(principal: SessionPrincipal, branchId: string) {
+    return this.listStudios(principal, branchId);
+  }
+
+  async buatStudio(
+    principal: SessionPrincipal,
+    branchId: string,
+    input: Parameters<MasterCatalogService['createStudio']>[2],
+    correlationId: string,
+  ) {
+    return this.createStudio(principal, branchId, input, correlationId);
+  }
+
+  async perbaruiStudio(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['updateStudio']>[2],
+    correlationId: string,
+  ) {
+    return this.updateStudio(principal, id, input, correlationId);
+  }
+
+  async daftarRuangan(principal: SessionPrincipal, studioId: string) {
+    return this.listRooms(principal, studioId);
+  }
+
+  async buatRuangan(
+    principal: SessionPrincipal,
+    studioId: string,
+    input: Parameters<MasterCatalogService['createRoom']>[2],
+    correlationId: string,
+  ) {
+    return this.createRoom(principal, studioId, input, correlationId);
+  }
+
+  async perbaruiRuangan(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['updateRoom']>[2],
+    correlationId: string,
+  ) {
+    return this.updateRoom(principal, id, input, correlationId);
+  }
+
+  async daftarJenisKelas(principal: SessionPrincipal, branchId?: string) {
+    return this.listClassTypes(principal, branchId);
+  }
+
+  async buatJenisKelas(
+    principal: SessionPrincipal,
+    input: Parameters<MasterCatalogService['createClassType']>[1],
+    correlationId: string,
+  ) {
+    return this.createClassType(principal, input, correlationId);
+  }
+
+  async perbaruiJenisKelas(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['updateClassType']>[2],
+    key: string | undefined,
+    correlationId: string,
+  ) {
+    return this.updateClassType(principal, id, input, key, correlationId);
+  }
+
+  async nonaktifkanJenisKelas(
+    principal: SessionPrincipal,
+    id: string,
+    expectedVersion: number,
+    correlationId: string,
+  ) {
+    return this.deactivateClassType(principal, id, expectedVersion, correlationId);
+  }
+
+  async aktifkanKembaliJenisKelas(
+    principal: SessionPrincipal,
+    id: string,
+    input: Parameters<MasterCatalogService['reactivateClassType']>[2],
+    key: string | undefined,
+    correlationId: string,
+  ) {
+    return this.reactivateClassType(principal, id, input, key, correlationId);
   }
 }
 

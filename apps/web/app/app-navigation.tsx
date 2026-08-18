@@ -244,11 +244,21 @@ export function AppNavigation({
                         href={item.href}
                         aria-current={active ? 'page' : undefined}
                         key={item.href}
-                        title={collapsed ? item.shortLabel : undefined}
+                        title={collapsed ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}` : undefined}
                         onClick={onClose}
                         className={linkClass(active)}
                       >
-                        <Icon className="size-[18px] shrink-0" aria-hidden="true" />
+                        <div className="relative shrink-0">
+                          <Icon className="size-[18px]" aria-hidden="true" />
+                          {collapsed &&
+                            item.queueBadgeSource &&
+                            (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
+                              <span
+                                aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
+                                className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                              />
+                            )}
+                        </div>
                         {!collapsed && <span className="truncate">{item.shortLabel}</span>}
                         {!collapsed &&
                           item.queueBadgeSource &&

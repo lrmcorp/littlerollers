@@ -50,9 +50,15 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
   const selected =
     ctx.profile === 'minimal'
       ? demoUsers.filter((item) =>
-          ['ralamzah-super-owner', 'super-owner', 'owner-jkt', 'owner-bsd', 'instructor', 'instructor-jkt-2', 'instructor-bsd-2'].includes(
-            item.key,
-          ),
+          [
+            'ralamzah-super-owner',
+            'super-owner',
+            'owner-jkt',
+            'owner-bsd',
+            'instructor',
+            'instructor-jkt-2',
+            'instructor-bsd-2',
+          ].includes(item.key),
         )
       : demoUsers;
   const ids: Record<string, string> = {};
@@ -75,7 +81,7 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
       },
     });
     const emailHash = canonicalEmailHash(user.email);
-    await ctx.db.identity.upsert({ where: { provider_subjectHash: { provider: 'EMAIL_PASSWORD', subjectHash: emailHash } }, update: { userId }, create: { id: ctx.id('identity', user.key), userId, provider: 'EMAIL_PASSWORD', subjectHash: emailHash, verifiedAt: new Date('2026-01-01') } });
+    await ctx.db.identitas.upsert({ where: { provider_subjectHash: { provider: 'EMAIL_PASSWORD', subjectHash: emailHash } }, update: { userId }, create: { id: ctx.id('identity', user.key), userId, provider: 'EMAIL_PASSWORD', subjectHash: emailHash, verifiedAt: new Date('2026-01-01') } });
     const password =
       user.password ?? (user.key === 'customer' ? 'Customer#2026' : 'DailyDose#2026');
     const passwordHash = await hashPassword(password);
@@ -96,7 +102,7 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
   for (const item of assignments) {
     if (!ids[item.user]) continue;
     const assignmentId = ctx.id('assignment', item.key);
-    await ctx.db.assignment.upsert({ where: { id: assignmentId }, update: { userId: ids[item.user], branchId: branchIds[item.branch]!, type: item.type, activeUntil: null }, create: { id: assignmentId, userId: ids[item.user]!, branchId: branchIds[item.branch]!, type: item.type, activeFrom: new Date('2026-01-01') } });
+    await ctx.db.penugasan.upsert({ where: { id: assignmentId }, update: { userId: ids[item.user], branchId: branchIds[item.branch]!, type: item.type, activeUntil: null }, create: { id: assignmentId, userId: ids[item.user]!, branchId: branchIds[item.branch]!, type: item.type, activeFrom: new Date('2026-01-01') } });
     await ctx.db.userRole.upsert({ where: { sourceAssignmentId: assignmentId }, update: { userId: ids[item.user], branchId: branchIds[item.branch], role: item.role, activeUntil: null }, create: { id: ctx.id('assignment-role', item.key), userId: ids[item.user]!, branchId: branchIds[item.branch]!, role: item.role, activeFrom: new Date('2026-01-01'), sourceAssignmentId: assignmentId } });
   }
   return ids;

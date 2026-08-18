@@ -17,8 +17,8 @@ import { Button, ButtonLink } from '../components/actions';
 import { AlertBanner, PreviewModal, useOptionalAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
+import { formatRupiah } from '../lib/formatters';
 
-const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' });
 const statusLabels: Record<string, string> = {
   AWAITING_PAYMENT: 'Menunggu pembayaran',
   PENDING: 'Menunggu pemeriksaan',
@@ -305,7 +305,7 @@ export function PurchaseReviewView({
       ? await feedback.confirm({
           tone: 'warning',
           title: 'Setujui pembayaran',
-          message: `${item.customer.displayName} · ${item.branch.name} · ${item.packageNameSnapshot} · ${rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}. Paket customer akan diaktifkan dan ledger pembelian dibuat. Versi ${item.version}.`,
+          message: `${item.customer.displayName} · ${item.branch.name} · ${item.packageNameSnapshot} · ${formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}. Paket customer akan diaktifkan dan ledger pembelian dibuat. Versi ${item.version}.`,
           confirmLabel: 'Setujui dan aktifkan paket',
         })
       : testAuthority;
@@ -435,7 +435,7 @@ export function PurchaseReviewView({
         <Panel className="p-4">
           <span className="text-xs font-semibold text-dd-muted">Nilai dalam hasil filter</span>
           <strong className="mt-1 block text-xl text-dd-ink">
-            {rupiah.format(summary.totalAmountRp)}
+            {formatRupiah(summary.totalAmountRp)}
           </strong>
         </Panel>
         <Panel className="p-4">
@@ -588,22 +588,22 @@ export function PurchaseReviewView({
             cell: (item) => (
               <div>
                 <strong>
-                  {rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
+                  {formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
                 </strong>
                 <p className="text-xs text-dd-muted">
-                  Harga {rupiah.format(item.priceRpSnapshot)}
+                  Harga {formatRupiah(item.priceRpSnapshot)}
                   {item.packagePromotionId && (
                     <>
                       {' '}
                       · Promo {item.packagePromotionNameSnapshot} −
-                      {rupiah.format(item.packagePromotionDiscountRpSnapshot ?? 0)}
+                      {formatRupiah(item.packagePromotionDiscountRpSnapshot ?? 0)}
                     </>
                   )}
                   {item.voucherCodeSnapshot && (
                     <>
                       {' '}
                       · {item.voucherCodeSnapshot} −
-                      {rupiah.format(item.voucherDiscountRpSnapshot ?? 0)}
+                      {formatRupiah(item.voucherDiscountRpSnapshot ?? 0)}
                     </>
                   )}
                 </p>
@@ -683,7 +683,7 @@ export function PurchaseReviewView({
             </div>
             <div>
               <p className="text-xs text-dd-muted">Nominal transfer</p>
-              <strong>{rupiah.format(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}</strong>
+              <strong>{formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}</strong>
               <p className="mt-1 text-xs text-dd-muted">
                 Bukti dikirim {item.submittedAt.toLocaleString('id-ID')}
               </p>

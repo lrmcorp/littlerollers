@@ -3,7 +3,7 @@ import { PublicSiteConfigService } from './public-site-config.service';
 describe('PublicSiteConfigService', () => {
   it('projects only active public studios and class profiles from the database', async () => {
     const db = {
-      branch: {
+      cabang: {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'branch-jakarta',
@@ -15,10 +15,10 @@ describe('PublicSiteConfigService', () => {
           },
         ]),
       },
-      classType: {
+      jenisKelas: {
         findMany: jest.fn().mockResolvedValue([{ code: 'REFORMER', name: 'Reformer Pilates' }]),
       },
-      publicClassProfile: {
+      profilPublikKelas: {
         findMany: jest.fn().mockResolvedValue([
           {
             code: 'REFORMER',
@@ -64,12 +64,12 @@ describe('PublicSiteConfigService', () => {
         instructorCheckIn: false,
       },
     });
-    expect(db.branch.findMany).toHaveBeenCalledWith(
+    expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { active: true, publicProfile: { isNot: null } },
       }),
     );
-    expect(db.publicClassProfile.findMany).toHaveBeenCalledWith(
+    expect(db.profilPublikKelas.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { active: true, code: { in: ['REFORMER'] } },
       }),
