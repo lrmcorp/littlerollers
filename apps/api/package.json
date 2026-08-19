@@ -19,6 +19,7 @@
     "prisma:seed:volume": "SEED_PROFILE=volume node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1112.0",
     "@dailydose/config": "workspace:*",
     "@dailydose/notification-core": "workspace:*",
     "@dailydose/quota-evaluator": "workspace:*",

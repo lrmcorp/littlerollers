@@ -12,6 +12,8 @@ import {
 import { RateLimitService } from './rate-limit.service';
 import { QueuedPasswordEmailProvider } from './email-provider';
 import { LocalPrivateFileStorage, PRIVATE_FILE_STORAGE } from './private-file-storage';
+import { S3PrivateFileStorage } from './s3-private-file-storage';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { CustomerProfileService } from './customer-profile.service';
 import { IdentityReviewQueryService } from './identity-review-query.service';
 import { IdentityDocumentAccessService } from './identity-document-access.service';
@@ -46,7 +48,21 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
     RateLimitService,
     QueuedPasswordEmailProvider,
     LocalPrivateFileStorage,
-    { provide: PRIVATE_FILE_STORAGE, useExisting: LocalPrivateFileStorage },
+    S3PrivateFileStorage,
+    {
+      provide: PRIVATE_FILE_STORAGE,
+      useFactory: (
+        config: RuntimeConfigService,
+        local: LocalPrivateFileStorage,
+        s3: S3PrivateFileStorage,
+      ) => {
+        return config.value.privateUploads.driver === 's3' ||
+          config.value.privateUploads.driver === 'minio'
+          ? s3
+          : local;
+      },
+      inject: [RuntimeConfigService, LocalPrivateFileStorage, S3PrivateFileStorage],
+    },
     AuthGuard,
   ],
   exports: [IdentityService, PolicyService, AuthGuard, PRIVATE_FILE_STORAGE],

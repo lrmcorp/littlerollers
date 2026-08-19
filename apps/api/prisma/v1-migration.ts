@@ -382,13 +382,12 @@ function jsonStringArray(value: unknown): string[] {
 
 function minuteOfDay(value: unknown): number {
   if (value instanceof Date) {
-    // When Date represents 1970-01-01 time value, use getUTCHours / getHours
     const hour = value.getUTCHours();
     const minute = value.getUTCMinutes();
     return hour * 60 + minute;
   }
   const str = textValue(value).trim();
-  const match = str.match(/(\d{1,2}):(\d{2})(?::\d{2})?/u);
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/u);
   if (match) {
     const hour = Number(match[1]);
     const minute = Number(match[2]);
@@ -398,7 +397,15 @@ function minuteOfDay(value: unknown): number {
   }
   const [hour = '0', minute = '0'] = str.split(':');
   const result = Number(hour) * 60 + Number(minute);
-  if (!Number.isInteger(result) || result < 0 || result > 1439) return 0;
+  if (
+    !Number.isInteger(result) ||
+    result < 0 ||
+    result > 1439 ||
+    Number(hour) > 23 ||
+    Number(minute) > 59
+  ) {
+    throw new Error(`INVALID_TIME:${str}`);
+  }
   return result;
 }
 
@@ -2105,7 +2112,10 @@ async function importPackageOrder(
       where: { packageId: packageId! },
       orderBy: [{ active: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
-    const classTypeId = packageClassScope?.classTypeId ?? packageRecord.classTypeId;
+    const classTypeId =
+      packageClassScope?.classTypeId ??
+      packageRecord.classTypeId ??
+      deterministicId(`${SOURCE_SYSTEM}:class_types:default:ClassType`);
     const sourceBalance = intValue(row.sisa);
     const sourceSessionCount = positiveInt(row.jumlah_pertemuan, packageRecord.sessionCount);
     let openingBalance = sourceBalance;

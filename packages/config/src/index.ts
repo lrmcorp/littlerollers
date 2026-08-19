@@ -44,11 +44,20 @@ export interface RuntimeConfig {
     enabled: boolean;
   };
   privateUploads: {
-    driver: 'local';
+    driver: 'local' | 's3' | 'minio';
     root: string;
     maxBytes: number;
     viewAuthorizationTtlSeconds: number;
     retentionDays: number;
+    objectStorage?: {
+      endpoint: string | null;
+      bucket: string;
+      accessKey: string;
+      secretKey: string;
+      useSsl: boolean;
+      region: string;
+      forcePathStyle: boolean;
+    };
   };
   paymentProof: {
     maxBytes: number;
@@ -145,13 +154,37 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   if (rbacManagementEnabled && rbacPolicySource !== 'database')
     throw new Error('CONFIGURATION_INVALID:RBAC_MANAGEMENT_ENABLED');
   const privateUploadDriver = env.PRIVATE_UPLOAD_DRIVER?.trim() || 'local';
-  if (privateUploadDriver !== 'local')
+  if (!['local', 's3', 'minio'].includes(privateUploadDriver))
     throw new Error('CONFIGURATION_INVALID:PRIVATE_UPLOAD_DRIVER');
   const privateUploadRoot =
     env.PRIVATE_UPLOAD_ROOT?.trim() ||
-    (environment === 'production'
+    (environment === 'production' && privateUploadDriver === 'local'
       ? required(env, 'PRIVATE_UPLOAD_ROOT')
       : 'apps/api/.local-data/private');
+  let objectStorageConfig: RuntimeConfig['privateUploads']['objectStorage'] | undefined = undefined;
+  if (privateUploadDriver === 's3' || privateUploadDriver === 'minio' || env.OBJECT_STORAGE_BUCKET) {
+    const bucket = env.OBJECT_STORAGE_BUCKET?.trim() || 'dailydose-private';
+    const endpoint = env.OBJECT_STORAGE_ENDPOINT?.trim() || null;
+    const accessKey = env.OBJECT_STORAGE_ACCESS_KEY?.trim() || '';
+    const secretKey = env.OBJECT_STORAGE_SECRET_KEY?.trim() || '';
+    const useSsl = env.OBJECT_STORAGE_USE_SSL?.trim() === 'true';
+    const region = env.OBJECT_STORAGE_REGION?.trim() || 'us-east-1';
+    const forcePathStyle = env.OBJECT_STORAGE_FORCE_PATH_STYLE?.trim() !== 'false';
+    if ((privateUploadDriver === 's3' || privateUploadDriver === 'minio') && environment === 'production') {
+      if (!accessKey) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_ACCESS_KEY');
+      if (!secretKey) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_SECRET_KEY');
+      if (!bucket) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_BUCKET');
+    }
+    objectStorageConfig = {
+      endpoint,
+      bucket,
+      accessKey,
+      secretKey,
+      useSsl,
+      region,
+      forcePathStyle,
+    };
+  }
   const configuredPositiveInteger = (key: string, fallback: number): number => {
     const raw = env[key]?.trim();
     if (!raw) return fallback;
@@ -269,11 +302,12 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
         (environment !== 'production' || env.IDENTITY_REVIEW_ENABLED?.trim() === 'true'),
     },
     privateUploads: {
-      driver: 'local',
+      driver: privateUploadDriver as 'local' | 's3' | 'minio',
       root: privateUploadRoot,
       maxBytes: privateUploadMaxBytes,
       viewAuthorizationTtlSeconds: configuredPositiveInteger('PRIVATE_VIEW_AUTH_TTL_SECONDS', 300),
       retentionDays: configuredPositiveInteger('IDENTITY_DOCUMENT_RETENTION_DAYS', 30),
+      ...(objectStorageConfig ? { objectStorage: objectStorageConfig } : {}),
     },
     paymentProof: {
       maxBytes: configuredPositiveInteger('PAYMENT_PROOF_MAX_BYTES', 10_000_000),

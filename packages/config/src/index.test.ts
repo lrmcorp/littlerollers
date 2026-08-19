@@ -104,7 +104,23 @@ test('validates RBAC rollout source and management gate', () => {
 
 test('does not require object storage credentials for local private uploads', () => {
   const config = loadRuntimeConfig(validEnvironment);
-  assert.equal('objectStorage' in config, false);
+  assert.equal(config.privateUploads.driver, 'local');
+  assert.equal(config.privateUploads.objectStorage, undefined);
+});
+
+test('loads object storage configuration for s3 and minio drivers', () => {
+  const minioConfig = loadRuntimeConfig({
+    ...validEnvironment,
+    PRIVATE_UPLOAD_DRIVER: 'minio',
+    OBJECT_STORAGE_ENDPOINT: 'http://localhost:9000',
+    OBJECT_STORAGE_BUCKET: 'dailydose-private',
+    OBJECT_STORAGE_ACCESS_KEY: 'dailydose_local',
+    OBJECT_STORAGE_SECRET_KEY: 'dailydose_local_only',
+  });
+  assert.equal(minioConfig.privateUploads.driver, 'minio');
+  assert.equal(minioConfig.privateUploads.objectStorage?.endpoint, 'http://localhost:9000');
+  assert.equal(minioConfig.privateUploads.objectStorage?.bucket, 'dailydose-private');
+  assert.equal(minioConfig.privateUploads.objectStorage?.accessKey, 'dailydose_local');
 });
 
 test('loads and validates the public WhatsApp fallback as E.164', () => {

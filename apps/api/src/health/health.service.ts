@@ -1,7 +1,8 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import Redis from 'ioredis';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
+import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from '../identity/private-file-storage';
 import { access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createConnection } from 'node:net';
@@ -38,6 +39,7 @@ export class HealthService implements OnModuleDestroy {
   constructor(
     private readonly config: RuntimeConfigService,
     private readonly prisma: PrismaService,
+    @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateStorage?: PrivateFileStorage,
   ) {
     this.redis = config.value.redisUrl
       ? new Redis(config.value.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 0 })
@@ -89,6 +91,16 @@ export class HealthService implements OnModuleDestroy {
   }
 
   private async checkPrivateStorage(): Promise<void> {
+    if (
+      this.config.value.privateUploads.driver === 's3' ||
+      this.config.value.privateUploads.driver === 'minio'
+    ) {
+      if (this.privateStorage) {
+        await this.privateStorage.exists('__health_probe__');
+        return;
+      }
+      return;
+    }
     await access(this.config.value.privateUploads.root, constants.R_OK | constants.W_OK);
   }
 
