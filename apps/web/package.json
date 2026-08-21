@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NEXT_DIST_DIR=.next-dev next dev -p ${WEB_PORT:-32120}",
-    "build": "NEXT_DIST_DIR=.next next build",
+    "build": "NEXT_DIST_DIR=.next next build && node -e \"const fs=require('node:fs'); fs.mkdirSync('.next/standalone/apps/web/.next', {recursive:true}); fs.cpSync('.next/static', '.next/standalone/apps/web/.next/static', {recursive:true, force:true}); fs.cpSync('public', '.next/standalone/apps/web/public', {recursive:true, force:true});\"",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

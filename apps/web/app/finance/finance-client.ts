@@ -68,7 +68,11 @@ export interface FinanceClient {
     decision: 'approve' | 'reject',
     reason: string,
   ): Promise<CorrectionDecisionResult>;
-  corrections?(branchId: string, period?: string, status?: string): Promise<{ items: Correction[]; page: { hasMore: boolean; nextCursor: string | null } }>;
+  corrections?(
+    branchId: string,
+    period?: string,
+    status?: string,
+  ): Promise<{ items: Correction[]; page: { hasMore: boolean; nextCursor: string | null } }>;
 }
 
 const api = new FinanceApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
@@ -174,7 +178,9 @@ export const browserFinanceClient: FinanceClient = {
   async corrections(branchId, period, status = 'PENDING') {
     const params = new URLSearchParams({ branchId, status });
     if (period) params.set('period', period);
-    const response = await fetch(`/api/v1/correction-journals?${params}`, { credentials: 'include' });
+    const response = await fetch(`/api/v1/correction-journals?${params}`, {
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error('CORRECTION_QUEUE_UNAVAILABLE');
     return response.json();
   },

@@ -812,7 +812,7 @@ export class PaymentReviewService {
                 {
                   id: randomUUID(),
                   userId: purchase.userId,
-                  eventKey: `payment.${nextStatus.toLowerCase()}:${purchase.id}:v${(updated.version ?? 1)}`,
+                  eventKey: `payment.${nextStatus.toLowerCase()}:${purchase.id}:v${updated.version ?? 1}`,
                   category: 'PAYMENT' as const,
                   tone:
                     nextStatus === 'APPROVED'
@@ -832,8 +832,7 @@ export class PaymentReviewService {
                       : nextStatus === 'ACTION_REQUIRED'
                         ? `Bukti pembayaran Anda memerlukan perbaikan (${input.reasonCode}). Silakan unggah ulang.`
                         : `Pembayaran Anda ditolak (${input.reasonCode}). Hubungi cabang untuk informasi lebih lanjut.`,
-                  href:
-                    nextStatus === 'APPROVED' ? '/packages' : `/orders/${purchase.id}`,
+                  href: nextStatus === 'APPROVED' ? '/packages' : `/orders/${purchase.id}`,
                   branchId: purchase.branchId,
                   expiresAt: new Date(Date.now() + 30 * 86_400_000),
                 },

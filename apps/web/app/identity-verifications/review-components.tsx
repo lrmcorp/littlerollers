@@ -169,7 +169,9 @@ export function DocumentReviewCard({
         <div className="grid size-12 place-items-center rounded-full bg-white shadow-xs border border-dd-line">
           <ShieldCheck className="size-6 text-dd-muted" />
         </div>
-        <strong className="mt-4 block text-base font-semibold text-dd-ink">Dokumen belum diunggah</strong>
+        <strong className="mt-4 block text-base font-semibold text-dd-ink">
+          Dokumen belum diunggah
+        </strong>
         <p className="mt-1 max-w-xs text-xs text-dd-muted">
           Customer belum mengunggah dokumen aktif untuk bagian ini.
         </p>
@@ -218,7 +220,9 @@ export function DocumentReviewCard({
                 variant="secondary"
                 size="sm"
                 className="absolute top-2.5 right-2.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-dd-ink shadow-sm border border-dd-line backdrop-blur-xs hover:bg-white hover:text-dd-forest"
-                leadingIcon={<ExternalLink className="size-3.5 text-dd-forest" aria-hidden="true" />}
+                leadingIcon={
+                  <ExternalLink className="size-3.5 text-dd-forest" aria-hidden="true" />
+                }
                 onClick={() => window.open(previewUrl, '_blank')}
               >
                 Buka Detail
@@ -233,7 +237,9 @@ export function DocumentReviewCard({
           ) : previewError ? (
             <div className="p-6 text-center space-y-3">
               <AlertCircle className="mx-auto size-8 text-dd-danger" />
-              <p className="text-xs font-semibold text-dd-danger">{previewError.title || 'Gagal memuat preview'}</p>
+              <p className="text-xs font-semibold text-dd-danger">
+                {previewError.title || 'Gagal memuat preview'}
+              </p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -324,7 +330,9 @@ export function DocumentReviewCard({
             <Button
               variant="secondary"
               className="w-full justify-center border-amber-300 bg-amber-50/50 text-amber-900 hover:bg-amber-100/70 font-semibold py-2.5 shadow-2xs"
-              leadingIcon={<AlertCircle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />}
+              leadingIcon={
+                <AlertCircle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />
+              }
               onClick={() => onReject(document)}
             >
               Minta perbaikan

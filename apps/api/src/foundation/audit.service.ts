@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
-type DataAudit = Omit<
-  Prisma.AuditLogUncheckedCreateInput,
-  'id' | 'occurredAt'
->;
+type DataAudit = Omit<Prisma.AuditLogUncheckedCreateInput, 'id' | 'occurredAt'>;
 
 @Injectable()
 export class AuditService {
@@ -15,10 +12,7 @@ export class AuditService {
    * Transaction diberikan oleh service pemanggil agar audit tersimpan
    * secara atomik bersama perubahan bisnis yang sedang dilakukan.
    */
-  catat(
-    tx: Prisma.TransactionClient,
-    data: DataAudit,
-  ) {
+  catat(tx: Prisma.TransactionClient, data: DataAudit) {
     return tx.auditLog.create({
       data: {
         id: randomUUID(),

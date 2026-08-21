@@ -14,11 +14,7 @@ export class PublicClassQueryService {
     // 1. Find profile by slug or code
     let profile = await this.db.profilPublikKelas.findFirst({
       where: {
-        OR: [
-          { slug: raw.toLowerCase() },
-          { code: raw.toUpperCase() },
-          { slug: raw },
-        ],
+        OR: [{ slug: raw.toLowerCase() }, { code: raw.toUpperCase() }, { slug: raw }],
         active: true,
       },
     });
@@ -228,4 +224,3 @@ export class PublicClassQueryService {
     };
   }
 }
-

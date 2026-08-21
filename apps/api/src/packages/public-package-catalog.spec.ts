@@ -62,9 +62,7 @@ describe('PublicPackageQueryService', () => {
         branchId,
         name: 'Pilates Starter',
         priceRp: 1200000,
-        classTypes: [
-          expect.objectContaining({ name: 'Private Class' }),
-        ],
+        classTypes: [expect.objectContaining({ name: 'Private Class' })],
       }),
     ]);
     expect(result.items[0]).not.toHaveProperty('businessKey');

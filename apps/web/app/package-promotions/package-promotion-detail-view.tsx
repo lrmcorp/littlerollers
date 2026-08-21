@@ -173,8 +173,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                 pkg.branchScopes
                   ?.map((scope) => scope.branch?.name)
                   .filter(Boolean)
-                  .join(', ') ||
-                '—'
+                  .join(', ') || '—'
               }
             />
             <PackageInfo
@@ -183,8 +182,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                 pkg.classTypeScopes
                   ?.map((scope) => scope.classType?.name)
                   .filter(Boolean)
-                  .join(', ') ||
-                '—'
+                  .join(', ') || '—'
               }
             />
           </dl>

@@ -262,9 +262,9 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
     );
     expect(approved.replay).toBe(false);
     expect(replay.replay).toBe(true);
-    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[0] } }))?.classSlotId).toBe(
-      targetSlotIds[0],
-    );
+    expect(
+      (await db.pemesananKelas.findUnique({ where: { id: bookingIds[0] } }))?.classSlotId,
+    ).toBe(targetSlotIds[0]);
     expect(
       (await db.reservasiSesi.findUnique({ where: { id: reservationIds[0] } }))?.classSlotId,
     ).toBe(targetSlotIds[0]);
@@ -344,7 +344,9 @@ databaseDescribe('synthetic reschedule MySQL integration', () => {
       `${namespace}-decision-1`,
       `${namespace}-decision-1`,
     );
-    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[1] } }))?.status).toBe('BOOKED');
+    expect((await db.pemesananKelas.findUnique({ where: { id: bookingIds[1] } }))?.status).toBe(
+      'BOOKED',
+    );
     expect(
       (await db.reservasiSesi.findUnique({ where: { id: reservationIds[1] } }))?.classSlotId,
     ).toBe(sourceSlotIds[1]);

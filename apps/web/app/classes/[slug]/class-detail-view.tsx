@@ -71,10 +71,7 @@ export function ClassDetailView({
 
   return (
     <PublicDetailFrame
-      breadcrumb={[
-        { label: 'Kelas', href: '/classes' },
-        { label: classNameFormatted },
-      ]}
+      breadcrumb={[{ label: 'Kelas', href: '/classes' }, { label: classNameFormatted }]}
     >
       {!item && !failure && <DetailLoading label="kelas" />}
       {failure && (
@@ -152,7 +149,8 @@ export function ClassDetailView({
                   </div>
                   <h3 className="mt-3 text-base font-semibold text-dd-ink">Postur & Keselarasan</h3>
                   <p className="mt-1 text-xs leading-relaxed text-dd-muted">
-                    Memperbaiki pola gerak harian dan meredakan ketegangan otot leher serta punggung.
+                    Memperbaiki pola gerak harian dan meredakan ketegangan otot leher serta
+                    punggung.
                   </p>
                 </div>
               </div>
@@ -188,7 +186,8 @@ export function ClassDetailView({
                   Perlengkapan Sesi
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-dd-muted">
-                  Studio menyediakan seluruh peralatan utama. Peserta disarankan membawa perlengkapan pribadi berikut:
+                  Studio menyediakan seluruh peralatan utama. Peserta disarankan membawa
+                  perlengkapan pribadi berikut:
                 </p>
                 <ul className="mt-4 space-y-2.5">
                   {item.profile.equipment.map((value) => (
@@ -267,7 +266,10 @@ export function ClassDetailView({
                         </div>
                       </div>
                       <div className="mt-6 border-t border-dd-line pt-4">
-                        <Link className={`${publicSecondaryButton} w-full justify-center`} href={`/packages/${pkg.id}`}>
+                        <Link
+                          className={`${publicSecondaryButton} w-full justify-center`}
+                          href={`/packages/${pkg.id}`}
+                        >
                           Lihat detail paket
                         </Link>
                       </div>
@@ -386,7 +388,8 @@ export function ClassDetailView({
                     Apakah kelas ini cocok untuk pemula yang belum pernah mencoba?
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Ya, instruktur kami akan memberikan panduan penyesuaian gerakan (modifikasi) sesuai tingkat fleksibilitas dan kenyamanan tubuh Anda.
+                    Ya, instruktur kami akan memberikan panduan penyesuaian gerakan (modifikasi)
+                    sesuai tingkat fleksibilitas dan kenyamanan tubuh Anda.
                   </p>
                 </div>
                 <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
@@ -395,7 +398,8 @@ export function ClassDetailView({
                     Apa yang harus saya siapkan sebelum kelas dimulai?
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Kenakan pakaian olahraga yang nyaman dan grip socks (kaos kaki antiselip). Datang 15 menit lebih awal untuk persiapan check-in dan pengenalan studio.
+                    Kenakan pakaian olahraga yang nyaman dan grip socks (kaos kaki antiselip).
+                    Datang 15 menit lebih awal untuk persiapan check-in dan pengenalan studio.
                   </p>
                 </div>
                 <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
@@ -404,7 +408,8 @@ export function ClassDetailView({
                     Bagaimana jika saya perlu membatalkan atau mengubah jadwal?
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Pembatalan dan permohonan reschedule dapat dilakukan secara mandiri melalui menu Dashboard akun Anda sebelum batas waktu yang ditentukan pada paket Anda.
+                    Pembatalan dan permohonan reschedule dapat dilakukan secara mandiri melalui menu
+                    Dashboard akun Anda sebelum batas waktu yang ditentukan pada paket Anda.
                   </p>
                 </div>
               </div>
@@ -415,4 +420,3 @@ export function ClassDetailView({
     </PublicDetailFrame>
   );
 }
-

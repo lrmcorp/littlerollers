@@ -15,5 +15,3 @@ import { NotificationWriterService } from './notification-writer.service';
   exports: [NotificationWriterService],
 })
 export class NotificationsModule {}
-
-

@@ -18,10 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  browserNotificationClient,
-  type UserNotification,
-} from '../notification-client';
+import { browserNotificationClient, type UserNotification } from '../notification-client';
 import { Button } from '../components/actions';
 
 // ── Tone helpers ─────────────────────────────────────────────────────────────
@@ -268,7 +265,10 @@ export function NotificationsView() {
 
       {/* ── Error banner ── */}
       {actionError && (
-        <p role="alert" className="mb-4 rounded-dd-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mb-4 rounded-dd-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {actionError}
         </p>
       )}
@@ -345,10 +345,7 @@ export function NotificationsView() {
                         {catIcon}
                         {catLabel}
                       </span>
-                      <time
-                        className="ml-auto text-[11px] text-dd-muted"
-                        dateTime={item.createdAt}
-                      >
+                      <time className="ml-auto text-[11px] text-dd-muted" dateTime={item.createdAt}>
                         {formatRelativeTime(item.createdAt)}
                       </time>
                       {isUnread && (

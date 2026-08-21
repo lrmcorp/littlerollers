@@ -38,9 +38,7 @@ export function formatWaktu(
   }).format(date);
 }
 
-export function formatTanggalWaktu(
-  value: Date | string | number | null | undefined,
-): string {
+export function formatTanggalWaktu(value: Date | string | number | null | undefined): string {
   if (!value) return '-';
   const date = typeof value === 'object' ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '-';

@@ -600,7 +600,8 @@ export function IdentityReviewView({
                   <div>
                     <h3 className="text-base font-bold text-dd-ink">{selected.user.displayName}</h3>
                     <p className="mt-0.5 text-xs text-dd-muted">
-                      {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · Akun: <span className="font-semibold text-dd-ink">{selected.user.status}</span>
+                      {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · Akun:{' '}
+                      <span className="font-semibold text-dd-ink">{selected.user.status}</span>
                     </p>
                   </div>
                 </div>

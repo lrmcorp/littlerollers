@@ -12,10 +12,7 @@ export class SupportRepository {
    * Mengambil daftar kasus bantuan sesuai scope dan filter
    * yang sudah ditentukan oleh service.
    */
-  daftarKasus(
-    where: Prisma.KasusBantuanWhereInput,
-    cursor?: string,
-  ) {
+  daftarKasus(where: Prisma.KasusBantuanWhereInput, cursor?: string) {
     return this.db.kasusBantuan.findMany({
       where,
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
@@ -133,10 +130,7 @@ export class SupportRepository {
    * Memastikan petugas aktif dan, bila kasus terikat cabang,
    * petugas mempunyai assignment aktif pada cabang tersebut.
    */
-  cariPetugas(
-    assignedUserId: string,
-    branchId?: string | null,
-  ) {
+  cariPetugas(assignedUserId: string, branchId?: string | null) {
     return this.db.user.findFirst({
       where: {
         id: assignedUserId,
@@ -168,10 +162,7 @@ export class SupportRepository {
   /**
    * Membuat kasus bantuan di dalam transaksi yang sedang berjalan.
    */
-  buatKasus(
-    tx: Transaction,
-    data: Prisma.KasusBantuanUncheckedCreateInput,
-  ) {
+  buatKasus(tx: Transaction, data: Prisma.KasusBantuanUncheckedCreateInput) {
     return tx.kasusBantuan.create({
       data,
     });
@@ -198,10 +189,7 @@ export class SupportRepository {
   /**
    * Mengambil kembali kasus setelah perubahan berhasil disimpan.
    */
-  cariKasusDalamTransaksi(
-    tx: Transaction,
-    id: string,
-  ) {
+  cariKasusDalamTransaksi(tx: Transaction, id: string) {
     return tx.kasusBantuan.findUnique({
       where: {
         id,
@@ -212,10 +200,7 @@ export class SupportRepository {
   /**
    * Membuat catatan internal untuk sebuah kasus bantuan.
    */
-  buatCatatanInternal(
-    tx: Transaction,
-    data: Prisma.CatatanKasusBantuanUncheckedCreateInput,
-  ) {
+  buatCatatanInternal(tx: Transaction, data: Prisma.CatatanKasusBantuanUncheckedCreateInput) {
     return tx.catatanKasusBantuan.create({
       data,
     });

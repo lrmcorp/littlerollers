@@ -50,11 +50,14 @@ describe('FinanceService', () => {
         customerPackage: null,
       },
     ]);
-    const result = await new FinanceService({ pembelian: { findMany } } as never).overview(finance, {
-      branchId: 'b1',
-      from: '2026-07-01',
-      until: '2026-07-31',
-    });
+    const result = await new FinanceService({ pembelian: { findMany } } as never).overview(
+      finance,
+      {
+        branchId: 'b1',
+        from: '2026-07-01',
+        until: '2026-07-31',
+      },
+    );
     expect(result.metrics).toMatchObject({
       expectedRp: 1_500_303,
       receivedRp: 1_500_303,

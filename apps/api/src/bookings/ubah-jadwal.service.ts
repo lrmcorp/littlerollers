@@ -530,7 +530,9 @@ export class ReschedulesService {
             throw new ApiProblem('SELF_APPROVAL_FORBIDDEN', HttpStatus.FORBIDDEN);
 
           await tx.$queryRaw`SELECT \`id\` FROM \`PemesananKelas\` WHERE \`id\` = ${reschedule.bookingId} FOR UPDATE`;
-          const booking = await tx.pemesananKelas.findUnique({ where: { id: reschedule.bookingId } });
+          const booking = await tx.pemesananKelas.findUnique({
+            where: { id: reschedule.bookingId },
+          });
           if (!booking || booking.status !== 'RESCHEDULE_PENDING')
             throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
 

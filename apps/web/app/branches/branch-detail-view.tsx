@@ -224,11 +224,22 @@ export function BranchDetailView({ id }: { id: string }) {
       </div>
       <Panel className="p-5">
         <h2 className="text-lg font-semibold">Konfigurasi Studio/Cabang</h2>
-        <p className="mt-2 text-sm text-dd-muted">Kelola venue dan rekening dari halaman Studio/Cabang ini, bukan dari Master Data.</p>
+        <p className="mt-2 text-sm text-dd-muted">
+          Kelola venue dan rekening dari halaman Studio/Cabang ini, bukan dari Master Data.
+        </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <ButtonLink href={`/workspace/branches/${branch.id}/venues`} variant="secondary">Area Studio &amp; Ruangan</ButtonLink>
-          <ButtonLink href={`/workspace/branches/${branch.id}/payment-accounts`} variant="secondary">Rekening pembayaran</ButtonLink>
-          <ButtonLink href={`/workspace/branches/${branch.id}/public-profile`} variant="secondary">Profil publik</ButtonLink>
+          <ButtonLink href={`/workspace/branches/${branch.id}/venues`} variant="secondary">
+            Area Studio &amp; Ruangan
+          </ButtonLink>
+          <ButtonLink
+            href={`/workspace/branches/${branch.id}/payment-accounts`}
+            variant="secondary"
+          >
+            Rekening pembayaran
+          </ButtonLink>
+          <ButtonLink href={`/workspace/branches/${branch.id}/public-profile`} variant="secondary">
+            Profil publik
+          </ButtonLink>
         </div>
       </Panel>
       <Panel className="p-5">

@@ -99,7 +99,13 @@ export class FinanceCommandService {
 
   async listCorrections(
     principal: SessionPrincipal,
-    query: { branchId: string; period?: string; status?: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED'; q?: string; cursor?: string },
+    query: {
+      branchId: string;
+      period?: string;
+      status?: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED';
+      q?: string;
+      cursor?: string;
+    },
   ) {
     this.authorize(principal, query.branchId, 'finance:read');
     if (query.period) periodRange(query.period);
@@ -111,7 +117,12 @@ export class FinanceCommandService {
         ...(query.period ? { currentPeriod: query.period } : {}),
         ...(query.status ? { status: query.status } : {}),
         ...(query.q?.trim()
-          ? { OR: [{ reason: { contains: query.q.trim() } }, { referencePeriod: { contains: query.q.trim() } }] }
+          ? {
+              OR: [
+                { reason: { contains: query.q.trim() } },
+                { referencePeriod: { contains: query.q.trim() } },
+              ],
+            }
           : {}),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -121,7 +132,10 @@ export class FinanceCommandService {
     const items = rows.slice(0, PAGE_SIZE);
     return {
       items: items.map((item) => this.correctionView(item)),
-      page: { hasMore: rows.length > PAGE_SIZE, nextCursor: rows.length > PAGE_SIZE ? items.at(-1)?.id ?? null : null },
+      page: {
+        hasMore: rows.length > PAGE_SIZE,
+        nextCursor: rows.length > PAGE_SIZE ? (items.at(-1)?.id ?? null) : null,
+      },
     };
   }
 
@@ -808,11 +822,7 @@ export class FinanceCommandService {
     return this.listCorrections(principal, query);
   }
 
-  async daftarPeriode(
-    principal: SessionPrincipal,
-    branchId: string,
-    cursor?: string,
-  ) {
+  async daftarPeriode(principal: SessionPrincipal, branchId: string, cursor?: string) {
     return this.listPeriods(principal, branchId, cursor);
   }
 }

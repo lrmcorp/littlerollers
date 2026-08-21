@@ -42,5 +42,14 @@ apps/api/.local-data/
 .migration-spool/
 *.binlog.enc
 Archive.zip
+*.zip
+*.backup
+*.dump
+*.sql
+package-lock.json
+yarn.lock
+struktur_*.txt
+tree_*.txt
+env-keys-*.txt
 .DS_Store
 **/.DS_Store

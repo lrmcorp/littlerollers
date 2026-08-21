@@ -420,10 +420,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         onClose={() => setMobileOpen(false)}
         onCollapse={() => setCollapsed((value) => !value)}
       />
-      <div
-        className="min-w-0 flex-1"
-        inert={mobileOverlay.rendered || undefined}
-      >
+      <div className="min-w-0 flex-1" inert={mobileOverlay.rendered || undefined}>
         <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 sm:px-6 xl:px-8">
             <IconButton

@@ -61,7 +61,7 @@ export function ScheduleDetailView({
   const durationMinutes =
     start && end
       ? Math.max(15, Math.round((end.getTime() - start.getTime()) / 60_000))
-      : item?.classProfile.durationMinutes ?? 60;
+      : (item?.classProfile.durationMinutes ?? 60);
 
   const isFull = item ? item.available < 1 : false;
 
@@ -160,10 +160,7 @@ export function ScheduleDetailView({
             actions={
               <>
                 <AudienceAction kind="schedule" id={item.id} disabled={item.available < 1} />
-                <Link
-                  className={publicSecondaryButton}
-                  href={`/classes/${item.classProfile.slug}`}
-                >
+                <Link className={publicSecondaryButton} href={`/classes/${item.classProfile.slug}`}>
                   Detail kelas
                 </Link>
                 <Link
@@ -292,7 +289,9 @@ export function ScheduleDetailView({
                       1
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">Datang 15 menit lebih awal</strong>{' '}
+                      <strong className="font-semibold text-dd-ink">
+                        Datang 15 menit lebih awal
+                      </strong>{' '}
                       untuk proses check-in QR pass dan persiapan sesi.
                     </span>
                   </li>
@@ -301,7 +300,9 @@ export function ScheduleDetailView({
                       2
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">Wajib memakai grip socks</strong>{' '}
+                      <strong className="font-semibold text-dd-ink">
+                        Wajib memakai grip socks
+                      </strong>{' '}
                       demi keamanan dan kenyamanan selama di studio.
                     </span>
                   </li>
@@ -310,7 +311,9 @@ export function ScheduleDetailView({
                       3
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">Fasilitas studio tersedia</strong>{' '}
+                      <strong className="font-semibold text-dd-ink">
+                        Fasilitas studio tersedia
+                      </strong>{' '}
                       seperti loker penyimpanan barang, ruang ganti, dan air minum.
                     </span>
                   </li>
@@ -332,4 +335,3 @@ export function ScheduleDetailView({
     </PublicDetailFrame>
   );
 }
-

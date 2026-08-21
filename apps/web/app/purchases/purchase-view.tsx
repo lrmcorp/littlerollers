@@ -126,8 +126,7 @@ export function PurchaseView({
       const result = await client.list(branch.id);
       setPackages(result.items);
 
-      const requestedPackage =
-        result.items.find(({ id }) => id === requestedPackageId) ?? null;
+      const requestedPackage = result.items.find(({ id }) => id === requestedPackageId) ?? null;
       const requestedClassTypes =
         requestedPackage?.classTypeScopes?.filter((scope) => scope.active) ?? [];
 
@@ -136,9 +135,7 @@ export function PurchaseView({
         requestedClassTypes.length === 1 ? requestedClassTypes[0]!.classTypeId : '',
       );
       setMessage(
-        requestedPackage
-          ? 'Paket pilihan siap diproses.'
-          : 'Paket pilihan tidak lagi tersedia.',
+        requestedPackage ? 'Paket pilihan siap diproses.' : 'Paket pilihan tidak lagi tersedia.',
       );
     });
   }, [branch?.id, canSubmit, client, requestedPackageId]);
@@ -215,7 +212,8 @@ export function PurchaseView({
               </span>
               <b>{formatRupiah(item.priceRp)}</b>
               <small>
-                {item.classTypeScopes?.filter((scope) => scope.active).length ?? 0} jenis kelas tersedia
+                {item.classTypeScopes?.filter((scope) => scope.active).length ?? 0} jenis kelas
+                tersedia
               </small>
               <small>
                 Efektif {item.effectiveFrom.toLocaleDateString('id-ID')}–
@@ -265,9 +263,7 @@ export function PurchaseView({
       )}
 
       {selected && selectedClassTypes.length === 0 && (
-        <Feedback kind="warning">
-          Paket ini belum memiliki jenis kelas aktif.
-        </Feedback>
+        <Feedback kind="warning">Paket ini belum memiliki jenis kelas aktif.</Feedback>
       )}
 
       {selected && (

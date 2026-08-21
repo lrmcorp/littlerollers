@@ -162,7 +162,11 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
       ? required(env, 'PRIVATE_UPLOAD_ROOT')
       : 'apps/api/.local-data/private');
   let objectStorageConfig: RuntimeConfig['privateUploads']['objectStorage'] | undefined = undefined;
-  if (privateUploadDriver === 's3' || privateUploadDriver === 'minio' || env.OBJECT_STORAGE_BUCKET) {
+  if (
+    privateUploadDriver === 's3' ||
+    privateUploadDriver === 'minio' ||
+    env.OBJECT_STORAGE_BUCKET
+  ) {
     const bucket = env.OBJECT_STORAGE_BUCKET?.trim() || 'dailydose-private';
     const endpoint = env.OBJECT_STORAGE_ENDPOINT?.trim() || null;
     const accessKey = env.OBJECT_STORAGE_ACCESS_KEY?.trim() || '';
@@ -170,7 +174,10 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     const useSsl = env.OBJECT_STORAGE_USE_SSL?.trim() === 'true';
     const region = env.OBJECT_STORAGE_REGION?.trim() || 'us-east-1';
     const forcePathStyle = env.OBJECT_STORAGE_FORCE_PATH_STYLE?.trim() !== 'false';
-    if ((privateUploadDriver === 's3' || privateUploadDriver === 'minio') && environment === 'production') {
+    if (
+      (privateUploadDriver === 's3' || privateUploadDriver === 'minio') &&
+      environment === 'production'
+    ) {
       if (!accessKey) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_ACCESS_KEY');
       if (!secretKey) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_SECRET_KEY');
       if (!bucket) throw new Error('CONFIGURATION_MISSING:OBJECT_STORAGE_BUCKET');

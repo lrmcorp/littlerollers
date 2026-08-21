@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { type ApplicationRole, type NotificationCategory, type NotificationTone, Prisma } from '@prisma/client';
+import {
+  type ApplicationRole,
+  type NotificationCategory,
+  type NotificationTone,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { randomUUID } from 'crypto';
 

@@ -5,7 +5,10 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import { calculatePackagePromotion, promotionEffectiveState } from './kalkulasi-harga-paket.service';
+import {
+  calculatePackagePromotion,
+  promotionEffectiveState,
+} from './kalkulasi-harga-paket.service';
 
 type PromotionCommand = {
   name: string;

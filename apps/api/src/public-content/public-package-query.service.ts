@@ -104,7 +104,11 @@ export class PublicPackageQueryService {
             branchId: branchId!,
             classType: classTypes[0] ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
             classTypes,
-            ...calculatePackagePromotion({ priceRp: item.priceRp, promotion: promotions?.[0], now }),
+            ...calculatePackagePromotion({
+              priceRp: item.priceRp,
+              promotion: promotions?.[0],
+              now,
+            }),
             branch,
           };
         },

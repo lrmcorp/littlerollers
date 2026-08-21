@@ -42,14 +42,16 @@ export function FinanceCommandsPanel({
     const [report, periods, corrections] = await Promise.all([
       client.financialReport(branchId, period),
       client.periods(branchId),
-      client.corrections?.(branchId, period, 'PENDING') ?? Promise.resolve({ items: [], page: { hasMore: false, nextCursor: null } }),
+      client.corrections?.(branchId, period, 'PENDING') ??
+        Promise.resolve({ items: [], page: { hasMore: false, nextCursor: null } }),
     ]);
     const existing = periods.items.find((item) => item.period === period);
     setControlHash(report.report.controlHash);
     setPeriodVersion(existing?.version ?? 0);
     setPeriodStatus(existing?.status ?? 'OPEN');
     setCorrectionQueue(corrections.items);
-    if (correctionId && !corrections.items.some((item) => item.id === correctionId)) setCorrectionId('');
+    if (correctionId && !corrections.items.some((item) => item.id === correctionId))
+      setCorrectionId('');
   }, [branchId, client, period]);
 
   useEffect(() => {
@@ -206,16 +208,25 @@ export function FinanceCommandsPanel({
           <legend className="px-1 font-semibold">Approval dan close</legend>
           <label className="grid gap-1 text-xs font-bold text-dd-muted">
             Antrean correction
-            <select className={controlClassName} value={correctionId} onChange={(event) => setCorrectionId(event.target.value)}>
+            <select
+              className={controlClassName}
+              value={correctionId}
+              onChange={(event) => setCorrectionId(event.target.value)}
+            >
               <option value="">Pilih correction menunggu keputusan</option>
               {correctionQueue.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.referencePeriod} · Rp{item.amount.amountMinor.toLocaleString('id-ID')} · {item.reason}
+                  {item.referencePeriod} · Rp{item.amount.amountMinor.toLocaleString('id-ID')} ·{' '}
+                  {item.reason}
                 </option>
               ))}
             </select>
           </label>
-          {!correctionQueue.length && <p className="text-sm text-dd-muted">Tidak ada correction yang menunggu keputusan pada periode ini.</p>}
+          {!correctionQueue.length && (
+            <p className="text-sm text-dd-muted">
+              Tidak ada correction yang menunggu keputusan pada periode ini.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {(['approve', 'reject'] as const).map((decision) => (
               <Button

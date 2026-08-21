@@ -13,7 +13,10 @@ export class SupportService {
     private readonly policy: PolicyService,
     private readonly repository: SupportRepository,
   ) {}
-  private buatScopeCabang(principal: SessionPrincipal, branchId?: string): Prisma.KasusBantuanWhereInput {
+  private buatScopeCabang(
+    principal: SessionPrincipal,
+    branchId?: string,
+  ): Prisma.KasusBantuanWhereInput {
     this.policy.requireCapability(principal.capabilities, 'support:read');
     if (
       branchId &&
@@ -50,10 +53,7 @@ export class SupportService {
           }
         : {}),
     };
-    const rows = await this.repository.daftarKasus(
-      where,
-      input.cursor,
-    );
+    const rows = await this.repository.daftarKasus(where, input.cursor);
     const items = rows.slice(0, 20);
     return {
       items,
@@ -94,22 +94,17 @@ export class SupportService {
     const subject = input.subject?.trim();
     if (!subject || subject.length > 200)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const customer = await this.repository.cariCustomer(
-      input.customerUserId,
-    );
+    const customer = await this.repository.cariCustomer(input.customerUserId);
     if (!customer) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.db.$transaction(async (tx) => {
-      const item = await this.repository.buatKasus(
-        tx,
-        {
-          id: newId(),
-          customerUserId: input.customerUserId,
-          branchId,
-          subject,
-          priority: input.priority || 'NORMAL',
-          tags: input.tags || [],
-        },
-      );
+      const item = await this.repository.buatKasus(tx, {
+        id: newId(),
+        customerUserId: input.customerUserId,
+        branchId,
+        subject,
+        priority: input.priority || 'NORMAL',
+        tags: input.tags || [],
+      });
       await this.catatAudit(tx, principal, item.id, 'support.case_created', correlationId, {
         priority: item.priority,
         branchConfigured: Boolean(item.branchId),
@@ -136,36 +131,25 @@ export class SupportService {
     });
     if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     if (input.assignedUserId) {
-      const assignee = await this.repository.cariPetugas(
-        input.assignedUserId,
-        current.branchId,
-      );
+      const assignee = await this.repository.cariPetugas(input.assignedUserId, current.branchId);
       if (!assignee) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
     return this.db.$transaction(async (tx) => {
-      const changed = await this.repository.ubahKasus(
-        tx,
-        id,
-        input.expectedVersion,
-        {
-          status: input.status,
-          priority: input.priority,
-          assignedUserId: input.assignedUserId || null,
-          tags: input.tags || [],
-          resolvedAt: ['RESOLVED', 'CLOSED'].includes(input.status) ? new Date() : null,
-          version: { increment: 1 },
-        },
-      );
+      const changed = await this.repository.ubahKasus(tx, id, input.expectedVersion, {
+        status: input.status,
+        priority: input.priority,
+        assignedUserId: input.assignedUserId || null,
+        tags: input.tags || [],
+        resolvedAt: ['RESOLVED', 'CLOSED'].includes(input.status) ? new Date() : null,
+        version: { increment: 1 },
+      });
       if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
       await this.catatAudit(tx, principal, id, 'support.case_updated', correlationId, {
         status: input.status,
         priority: input.priority,
         version: input.expectedVersion + 1,
       });
-      return this.repository.cariKasusDalamTransaksi(
-        tx,
-        id,
-      );
+      return this.repository.cariKasusDalamTransaksi(tx, id);
     });
   }
   async tambahCatatanInternal(
@@ -182,16 +166,13 @@ export class SupportService {
     if (!current || !body?.trim() || body.trim().length > 5000)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(async (tx) => {
-      const note = await this.repository.buatCatatanInternal(
-        tx,
-        {
-          id: newId(),
-          caseId: id,
-          authorId: principal.userId,
-          body: body.trim(),
-          internal: true,
-        },
-      );
+      const note = await this.repository.buatCatatanInternal(tx, {
+        id: newId(),
+        caseId: id,
+        authorId: principal.userId,
+        body: body.trim(),
+        internal: true,
+      });
       await this.catatAudit(tx, principal, id, 'support.internal_note_added', correlationId, {
         internal: true,
       });

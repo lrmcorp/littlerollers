@@ -50,7 +50,8 @@ export function useCustomerBadges(): CustomerBadgeMetrics {
       const verificationActionRequired =
         data.verification?.status === 'ACTION_REQUIRED' ||
         (data.documents ?? []).some(
-          (doc: { status: string }) => doc.status === 'ACTION_REQUIRED' || doc.status === 'REJECTED',
+          (doc: { status: string }) =>
+            doc.status === 'ACTION_REQUIRED' || doc.status === 'REJECTED',
         );
 
       setMetrics({

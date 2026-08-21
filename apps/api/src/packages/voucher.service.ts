@@ -605,8 +605,7 @@ export class VoucherService {
 
     // Jenis kelas checkout wajib berasal dari pilihan customer.
     // Package.classTypeId tidak lagi menjadi fallback voucher modern.
-    const effectiveBranchId =
-      typeof input.branchId === 'string' ? input.branchId.trim() : '';
+    const effectiveBranchId = typeof input.branchId === 'string' ? input.branchId.trim() : '';
     const effectiveClassTypeId =
       typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
 
@@ -690,10 +689,7 @@ export class VoucherService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async daftarVoucher(
-    principal: SessionPrincipal,
-    filters: Parameters<VoucherService['list']>[1],
-  ) {
+  async daftarVoucher(principal: SessionPrincipal, filters: Parameters<VoucherService['list']>[1]) {
     return this.list(principal, filters);
   }
 

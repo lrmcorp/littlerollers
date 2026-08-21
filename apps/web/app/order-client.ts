@@ -291,12 +291,7 @@ export const browserOrderClient = {
     });
     return orderDates(value);
   },
-  async previewVoucher(
-    packageId: string,
-    branchId: string,
-    classTypeId: string,
-    code: string,
-  ) {
+  async previewVoucher(packageId: string, branchId: string, classTypeId: string, code: string) {
     return request<{
       valid: boolean;
       voucherId: string;
@@ -488,8 +483,7 @@ export function orderErrorDetails(error: unknown) {
       'File ditolak oleh pemeriksaan keamanan. Pilih file bukti yang berbeda.',
     UPLOAD_NOT_COMPLETE: 'Upload belum lengkap. Silakan coba kembali.',
     API_UNAVAILABLE: 'Layanan pesanan sementara tidak tersedia. Silakan coba kembali nanti.',
-    CONFIGURATION_REQUIRED:
-      'Bukti pembayaran belum dapat diproses. Silakan coba kembali nanti.',
+    CONFIGURATION_REQUIRED: 'Bukti pembayaran belum dapat diproses. Silakan coba kembali nanti.',
     PAYMENT_PROOF_SCAN_UNAVAILABLE:
       'Pemeriksaan keamanan file sedang tidak tersedia. Bukti Anda tetap dapat dicoba kembali.',
     PAYMENT_PROOF_STORAGE_UNAVAILABLE:

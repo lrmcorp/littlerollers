@@ -299,9 +299,9 @@ databaseDescribe('synthetic booking MySQL integration', () => {
     expect(first.replay).toBe(false);
     expect(replay.replay).toBe(true);
     expect(await db.pemesananKelas.count({ where: { branchId } })).toBe(1);
-    expect(
-      await db.reservasiSesi.count({ where: { classSlotId: slotId, status: 'ACTIVE' } }),
-    ).toBe(1);
+    expect(await db.reservasiSesi.count({ where: { classSlotId: slotId, status: 'ACTIVE' } })).toBe(
+      1,
+    );
     expect(await db.auditLog.count({ where: { correlationId: `${namespace}-create` } })).toBe(1);
     expect(await db.outboxEvent.count({ where: { correlationId: `${namespace}-create` } })).toBe(1);
   });
@@ -464,7 +464,9 @@ databaseDescribe('synthetic booking MySQL integration', () => {
       ),
     );
     expect(sessionResults.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
-    expect(await db.pemesananKelas.count({ where: { classSlotId: { in: [...sessionSlotIds] } } })).toBe(1);
+    expect(
+      await db.pemesananKelas.count({ where: { classSlotId: { in: [...sessionSlotIds] } } }),
+    ).toBe(1);
   });
 
   it('separates customer upcoming/history and paginates by class time without duplicates', async () => {

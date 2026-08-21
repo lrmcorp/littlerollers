@@ -29,7 +29,12 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [IdentityController, AccessManagementController, CustomerManagementController, InstructorManagementController],
+  controllers: [
+    IdentityController,
+    AccessManagementController,
+    CustomerManagementController,
+    InstructorManagementController,
+  ],
   providers: [
     IdentityService,
     CustomerProfileService,

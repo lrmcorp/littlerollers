@@ -151,9 +151,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
             <h2 className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
               {slot.classType.name}
             </h2>
-            <p className="mt-1 text-sm text-dd-muted">
-              {dateTime(slot.startAt, slot.timezone)}
-            </p>
+            <p className="mt-1 text-sm text-dd-muted">{dateTime(slot.startAt, slot.timezone)}</p>
           </div>
           <StatusBadge tone={slot.status === 'CONFIRMED' ? 'success' : 'info'}>
             {slot.status === 'CONFIRMED' ? 'Kelas dikonfirmasi' : 'Terbuka untuk booking'}
@@ -331,10 +329,15 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           {step === 'select' ? (
             <div className="mt-4 space-y-4">
               <fieldset>
-                <legend className="text-base font-semibold text-dd-ink mb-3">Pilih paket aktif untuk sesi ini</legend>
+                <legend className="text-base font-semibold text-dd-ink mb-3">
+                  Pilih paket aktif untuk sesi ini
+                </legend>
                 <div className="space-y-3">
                   {options.packages.map((item) => (
-                    <label className="customer-package-option block rounded-dd-lg border border-dd-line bg-white p-4 cursor-pointer hover:border-dd-forest transition-colors" key={item.id}>
+                    <label
+                      className="customer-package-option block rounded-dd-lg border border-dd-line bg-white p-4 cursor-pointer hover:border-dd-forest transition-colors"
+                      key={item.id}
+                    >
                       <div className="flex items-start gap-3">
                         <input
                           className={`${controlClassName} mt-1`}
@@ -348,13 +351,22 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                           }}
                         />
                         <div className="flex-1">
-                          <strong className="block text-base font-semibold text-dd-ink">{item.name}</strong>
+                          <strong className="block text-base font-semibold text-dd-ink">
+                            {item.name}
+                          </strong>
                           <div className="mt-1 text-xs text-dd-muted">
-                            <span className="font-medium text-dd-forest">{item.available} sesi tersedia</span>
+                            <span className="font-medium text-dd-forest">
+                              {item.available} sesi tersedia
+                            </span>
                             {' · '}
                             setelah booking sisa {item.projectedAvailable} sesi
                             {' · '}
-                            berlaku sampai {item.expiryAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            berlaku sampai{' '}
+                            {item.expiryAt.toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
                           </div>
                         </div>
                       </div>
@@ -364,8 +376,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               </fieldset>
 
               <div className="rounded-dd-sm bg-dd-paper p-3.5 text-xs leading-relaxed text-dd-muted">
-                <Sparkles className="inline size-3.5 mr-1 text-dd-forest" />
-                1 kuota sesi akan dipotong dari paket yang Anda pilih setelah konfirmasi booking berhasil.
+                <Sparkles className="inline size-3.5 mr-1 text-dd-forest" />1 kuota sesi akan
+                dipotong dari paket yang Anda pilih setelah konfirmasi booking berhasil.
               </div>
 
               <Button
@@ -391,11 +403,15 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 </div>
                 <div>
                   <dt className="text-xs text-dd-muted">Jadwal Sesi</dt>
-                  <dd className="font-semibold">{dateTime(slot.startAt, slot.timezone)} ({durationMinutes} Menit)</dd>
+                  <dd className="font-semibold">
+                    {dateTime(slot.startAt, slot.timezone)} ({durationMinutes} Menit)
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-dd-muted">Instruktur</dt>
-                  <dd className="font-semibold">{slot.instructor?.displayName ?? 'Tim Daily Dose'}</dd>
+                  <dd className="font-semibold">
+                    {slot.instructor?.displayName ?? 'Tim Daily Dose'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-dd-muted">Paket Digunakan</dt>
@@ -409,7 +425,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 </div>
               </dl>
               <p className="mt-4 border-t border-amber-200/80 pt-3 text-xs leading-relaxed text-dd-muted">
-                Satu sesi akan direservasi. Permohonan reschedule dapat diajukan secara mandiri sampai tepat H-24 sebelum sesi dimulai.
+                Satu sesi akan direservasi. Permohonan reschedule dapat diajukan secara mandiri
+                sampai tepat H-24 sebelum sesi dimulai.
               </p>
               <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row">
                 <Button
@@ -449,4 +466,3 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
     </section>
   );
 }
-

@@ -1,2 +1,0 @@
-ALTER TYPE "PurchaseStatus" ADD VALUE 'APPROVED';
-ALTER TYPE "PurchaseStatus" ADD VALUE 'REJECTED';

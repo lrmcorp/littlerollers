@@ -244,7 +244,11 @@ export function AppNavigation({
                         href={item.href}
                         aria-current={active ? 'page' : undefined}
                         key={item.href}
-                        title={collapsed ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}` : undefined}
+                        title={
+                          collapsed
+                            ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
+                            : undefined
+                        }
                         onClick={onClose}
                         className={linkClass(active)}
                       >

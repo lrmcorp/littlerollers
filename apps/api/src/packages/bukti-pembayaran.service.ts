@@ -56,10 +56,7 @@ export class PaymentProofService {
         },
       });
 
-      if (
-        !pkg ||
-        !pkg.branchScopes.some((scope) => scope.branchId === input.branchId)
-      )
+      if (!pkg || !pkg.branchScopes.some((scope) => scope.branchId === input.branchId))
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
     if (input.orderId) {
@@ -319,19 +316,11 @@ export class PaymentProofService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async inisiasiUploadBukti(
-    principal: SessionPrincipal,
-    input: any,
-    correlationId: string,
-  ) {
+  async inisiasiUploadBukti(principal: SessionPrincipal, input: any, correlationId: string) {
     return this.issue(principal, input, correlationId);
   }
 
-  async unggahKontenBukti(
-    principal: SessionPrincipal,
-    id: string,
-    bytes: Buffer,
-  ) {
+  async unggahKontenBukti(principal: SessionPrincipal, id: string, bytes: Buffer) {
     return this.uploadContent(principal, id, bytes);
   }
 

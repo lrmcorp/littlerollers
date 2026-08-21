@@ -55,7 +55,6 @@ export class CustomerOrderService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const effectiveBranchId = selectedScope.branchId;
 
-    
     // Paket dapat tersedia untuk beberapa jenis kelas. Ambil hanya jenis kelas
     // yang aktif untuk paket dan tersedia pada cabang checkout yang dipilih.
     const packageClassTypeIds = pkg.classTypeScopes.map((scope) => scope.classTypeId);
@@ -88,8 +87,7 @@ export class CustomerOrderService {
         })
       : [];
 
-    if (classTypes.length === 0)
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (classTypes.length === 0) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const account = await this.db.rekeningPembayaran.findFirst({
       where: { branchId: effectiveBranchId, active: true },
       orderBy: { createdAt: 'desc' },
@@ -313,29 +311,27 @@ export class CustomerOrderService {
         )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Flow modern wajib membawa jenis kelas yang dipilih customer.
+        // Package.classTypeId tidak lagi menjadi fallback transaksi.
+        const effectiveClassTypeId =
+          typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
 
-          // Flow modern wajib membawa jenis kelas yang dipilih customer.
-          // Package.classTypeId tidak lagi menjadi fallback transaksi.
-          const effectiveClassTypeId =
-            typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+        if (!effectiveClassTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-          if (!effectiveClassTypeId)
-            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+        if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-          if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
-            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const classTypeAvailableAtBranch = await tx.cakupanCabangJenisKelas.findFirst({
+          where: {
+            branchId: effectiveBranchId,
+            classTypeId: effectiveClassTypeId,
+            active: true,
+          },
+          select: { id: true },
+        });
 
-          const classTypeAvailableAtBranch = await tx.cakupanCabangJenisKelas.findFirst({
-            where: {
-              branchId: effectiveBranchId,
-              classTypeId: effectiveClassTypeId,
-              active: true,
-            },
-            select: { id: true },
-          });
-
-          if (!classTypeAvailableAtBranch)
-            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (!classTypeAvailableAtBranch)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const account = await tx.rekeningPembayaran.findFirst({
           where: { branchId: effectiveBranchId, active: true },
           orderBy: { createdAt: 'desc' },
@@ -818,8 +814,7 @@ export class CustomerOrderService {
     const branchId = typeof input.branchId === 'string' ? input.branchId.trim() : '';
     const classTypeId = typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
 
-    if (!branchId || !classTypeId)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (!branchId || !classTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     syntheticConfigSeconds('PURCHASE_IDEMPOTENCY_TTL_SECONDS', 86400);
     return this.idem.execute(

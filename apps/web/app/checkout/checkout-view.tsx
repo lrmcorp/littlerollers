@@ -308,9 +308,7 @@ export function CheckoutView() {
             </div>
             <div>
               <dt className="text-dd-muted">Harga setelah diskon</dt>
-              <dd className="font-semibold">
-                {formatRupiah(voucherPreview.priceAfterDiscountRp)}
-              </dd>
+              <dd className="font-semibold">{formatRupiah(voucherPreview.priceAfterDiscountRp)}</dd>
             </div>
           </dl>
         )}

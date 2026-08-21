@@ -86,7 +86,9 @@ export function MasterView({
 }) {
   const tabItems = visibleTabs
     ? allTabItems.filter((item) => visibleTabs.includes(item.id))
-    : allTabItems.filter((item) => ['classTypes', 'projection', 'capacity', 'fees'].includes(item.id));
+    : allTabItems.filter((item) =>
+        ['classTypes', 'projection', 'capacity', 'fees'].includes(item.id),
+      );
   const [branchId, setBranchId] = useActiveBranchState();
   const [selectedTab, setSelectedTab] = useState<MasterTab>(activeTab);
   useEffect(() => setSelectedTab(activeTab), [activeTab]);
