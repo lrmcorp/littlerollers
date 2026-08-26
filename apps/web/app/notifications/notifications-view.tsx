@@ -18,7 +18,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { browserNotificationClient, type UserNotification } from '../notification-client';
+import {
+  browserNotificationClient,
+  type UserNotification,
+} from '@/api-clients/notification-client';
 import { Button } from '../components/actions';
 
 // ── Tone helpers ─────────────────────────────────────────────────────────────

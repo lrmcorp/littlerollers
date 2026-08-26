@@ -7,7 +7,7 @@ import {
   publicDetailClient,
   publicDetailFailure,
   type PublicPackageDetail,
-} from '../../public-detail-client';
+} from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
   DetailFailure,

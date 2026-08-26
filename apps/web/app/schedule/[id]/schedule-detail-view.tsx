@@ -19,7 +19,7 @@ import {
   publicDetailClient,
   publicDetailFailure,
   type PublicScheduleDetail,
-} from '../../public-detail-client';
+} from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
   DetailFailure,

@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../components/actions';
 import { Panel, StatCard } from '../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
-import { notifySessionFailure } from '../session-client';
+import { notifySessionFailure } from '@/api-clients/session-client';
 
 export type HealthStatus = 'READY' | 'DEGRADED' | 'NOT_READY';
 export type HealthDependency = {

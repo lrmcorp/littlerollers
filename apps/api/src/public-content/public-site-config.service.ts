@@ -67,9 +67,20 @@ export class PublicSiteConfigService {
       name: namesByCode.get(profile.code) ?? profile.code,
     }));
 
+    const heroCarouselEntry = await this.db.entriKontenPublik.findFirst({
+      where: {
+        contentKey: 'HOME_HERO_CAROUSEL',
+        status: 'PUBLISHED',
+        scopeKey: 'GLOBAL',
+      },
+      orderBy: { version: 'desc' },
+      select: { payload: true },
+    });
+
     return {
       branches,
       classes,
+      heroCarousel: (heroCarouselEntry?.payload as any) ?? null,
       fallbackWhatsappE164: this.runtimeConfig.value.publicSupportWhatsappE164 ?? null,
       mobileFeatures: {
         accountRecovery: this.runtimeConfig.value.mobileFeatures.accountRecovery,

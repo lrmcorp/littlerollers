@@ -3,7 +3,7 @@
 import { ArrowLeft, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { browserLedgerClient, ledgerFailure, type Adjustment } from '../../../ledger-client';
+import { browserLedgerClient, ledgerFailure, type Adjustment } from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../../components/actions';
 import { Modal, useAppFeedback } from '../../../components/app-feedback';
 import { SelectInput, Textarea } from '../../../components/forms';

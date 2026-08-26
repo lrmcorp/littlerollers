@@ -8,7 +8,7 @@ import {
   publicDetailClient,
   publicDetailFailure,
   type PublicStudioDetail,
-} from '../../public-detail-client';
+} from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
   DetailFailure,

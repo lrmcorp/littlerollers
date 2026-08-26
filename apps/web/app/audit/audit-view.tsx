@@ -9,7 +9,7 @@ import {
   type LookupOption,
   type AuditExportSummary,
   type UiFailure,
-} from '../identity-client';
+} from '@/api-clients/identity-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';

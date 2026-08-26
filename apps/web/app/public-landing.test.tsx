@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountClient } from './account-client';
+import { accountClient } from '@/api-clients/account-client';
 import { classDurationSummary, PublicLanding, studioAreaSummary } from './public-landing';
 
 describe('public landing page', () => {

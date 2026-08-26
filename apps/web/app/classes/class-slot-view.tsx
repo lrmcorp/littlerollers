@@ -9,14 +9,14 @@ import {
   type ClassTypeOption,
   type InstructorOption,
   type StudioOption,
-} from '../class-slot-client';
+} from '@/api-clients/class-slot-client';
 import {
   formatBranchDay,
   formatBranchTime,
   localDateKey,
   shiftWeek,
   weekWindow,
-} from '../class-time';
+} from '@/lib/class-time';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { CreatePanel, DetailPanel } from './class-slot-panels';
@@ -24,7 +24,7 @@ import { classStatusTone, statusLabels } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
-import { browserBookingClient, type BookingClient } from '../booking-client';
+import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };

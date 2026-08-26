@@ -1,4 +1,4 @@
-import type { DocumentKind } from '../../identity-verification-client';
+import type { DocumentKind } from '@/api-clients/identity-verification-client';
 
 const STORAGE_KEY = 'dd_verification_return_to';
 const allowedPaths = ['/checkout', '/bookings/new', '/packages', '/classes'] as const;

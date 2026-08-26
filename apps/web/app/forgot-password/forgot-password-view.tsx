@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { browserIdentityClient, failureCode, type IdentityClient } from '../identity-client';
+import {
+  browserIdentityClient,
+  failureCode,
+  type IdentityClient,
+} from '@/api-clients/identity-client';
 import { Feedback } from '../ui';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 

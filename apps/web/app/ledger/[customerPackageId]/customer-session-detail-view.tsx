@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTrackedRouter } from '../../components/app-loading';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
-import { browserLedgerClient, ledgerFailure, type LedgerHistory } from '../../ledger-client';
+import {
+  browserLedgerClient,
+  ledgerFailure,
+  type LedgerHistory,
+} from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
 import { Badge, Pagination, Panel, StatCard } from '../../components/admin/admin-ui';
 import { EmptyState, Feedback, PageHeader, Skeleton } from '../../ui';

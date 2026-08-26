@@ -21,8 +21,8 @@ import {
   sha256Upload,
   type CustomerOrder,
   type PaymentProofUploadSession,
-} from '../../order-client';
-import { formatPaymentCode, orderReasonLabels, orderStatusLabels } from '../../order-presenters';
+} from '@/api-clients/order-client';
+import { formatPaymentCode, orderReasonLabels, orderStatusLabels } from '@/lib/order-presenters';
 import { Button, ButtonLink, IconButton } from '../actions';
 import { AlertBanner, useAppFeedback } from '../app-feedback';
 import { formatRupiah } from '../../lib/formatters';

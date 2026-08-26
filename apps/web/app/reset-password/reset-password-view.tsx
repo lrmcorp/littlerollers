@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { browserIdentityClient, type IdentityClient } from '../identity-client';
+import { browserIdentityClient, type IdentityClient } from '@/api-clients/identity-client';
 import { Feedback } from '../ui';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 

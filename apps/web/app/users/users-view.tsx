@@ -12,7 +12,7 @@ import {
   type UiFailure,
   type UserListSummary,
   type UserSummary,
-} from '../identity-client';
+} from '@/api-clients/identity-client';
 import {
   AdminPageState,
   Badge,

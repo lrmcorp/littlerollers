@@ -7,7 +7,7 @@ import {
   browserNotificationClient,
   type NotificationClient,
   type UserNotification,
-} from '../notification-client';
+} from '@/api-clients/notification-client';
 import { Button, IconButton } from './actions';
 
 const toneDot = {

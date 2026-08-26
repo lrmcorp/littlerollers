@@ -4,15 +4,15 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   CalendarCheck2,
-  CalendarDays,
+  Check,
   CheckCircle2,
-  Clock3,
+  Clock,
   MapPin,
   MessageCircle,
-  Sparkles,
+  QrCode,
+  ShieldCheck,
   Timer,
-  UserCheck,
-  UsersRound,
+  User,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -21,11 +21,10 @@ import {
   type Booking,
   type BookingClient,
   type CustomerBookingOptions,
-} from '../../booking-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
-import { Button } from '../../components/actions';
-import { Panel } from '../../components/admin/admin-ui';
-import { controlClassName } from '../../components/forms';
+} from '@/api-clients/booking-client';
+import { AlertBanner, useAppFeedback } from '../../components/app-feedback';
+import { Button, ButtonLink } from '../../components/actions';
+import { EmptyState, Skeleton, StatusBadge } from '../../ui';
 
 const dateTime = (value: Date, timezone: string) =>
   new Intl.DateTimeFormat('id-ID', {
@@ -65,6 +64,7 @@ const eligibilityCopy = {
 const createIntent = () => ({ signature: '', key: crypto.randomUUID() });
 
 export function CustomerBookingFlow({ client = browserBookingClient }: { client?: BookingClient }) {
+  const feedback = useAppFeedback();
   const [options, setOptions] = useState<CustomerBookingOptions | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState('');
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -92,26 +92,36 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
       });
   }, [client]);
 
-  if (status === 'loading') return <Skeleton label="Memuat pilihan booking" />;
-  if (!options)
+  if (status === 'loading') {
     return (
-      <section className="space-y-5">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+        <Skeleton label="Menyiapkan rincian booking…" />
+      </section>
+    );
+  }
+
+  if (!options) {
+    return (
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
         <EmptyState
-          title={status === 'error' ? 'Kelas tidak dapat dibuka' : 'Pilih kelas terlebih dahulu'}
-          description={message || 'Buka jadwal kelas dan pilih satu kelas yang ingin Anda ikuti.'}
+          title={status === 'error' ? 'Jadwal kelas tidak dapat dibuka' : 'Pilih jadwal kelas terlebih dahulu'}
+          description={
+            message || 'Silakan buka halaman jadwal kelas dan pilih sesi latihan yang ingin Anda ikuti.'
+          }
         />
-        <div className="flex flex-wrap gap-3">
-          <Link className="customer-card-action" href="/classes#schedule">
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <ButtonLink href="/classes#schedule" leadingIcon={<ArrowLeft className="size-4" />}>
             Kembali ke jadwal
-          </Link>
+          </ButtonLink>
           {status === 'error' && (
-            <Link className="customer-card-action" href="/contact">
+            <ButtonLink variant="secondary" href="/contact">
               Hubungi studio
-            </Link>
+            </ButtonLink>
           )}
         </div>
       </section>
     );
+  }
 
   const { slot } = options;
   const selectedPackage = options.packages.find(({ id }) => id === selectedPackageId);
@@ -127,162 +137,144 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
   );
 
   return (
-    <section className="customer-booking-flow space-y-6" aria-labelledby="customer-booking-title">
-      <PageHeader
-        eyebrow="Booking kelas"
-        title="Konfirmasi kelas Anda"
-        titleId="customer-booking-title"
-        description="Pilih paket aktif yang sesuai. Satu sesi baru direservasi setelah konfirmasi berhasil."
-        context={
-          <StatusBadge tone={eligibility.canBook ? 'success' : 'warning'}>
-            {slot.available} tempat
-          </StatusBadge>
-        }
-      />
+    <main className="space-y-6 pt-2" aria-labelledby="customer-booking-title">
+      {/* Header */}
+      <header>
+        <Link
+          href="/classes#schedule"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline hover:underline"
+        >
+          <ArrowLeft className="size-4" />
+          Kembali ke jadwal
+        </Link>
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          Booking kelas
+        </p>
+        <h1 id="customer-booking-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+          Konfirmasi reservasi kelas
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">
+          Pilih paket aktif yang sesuai untuk mengonfirmasi sesi latihan Anda. Satu kuota sesi akan direservasi setelah konfirmasi berhasil.
+        </p>
+      </header>
 
-      {/* Selected Class Card with Comprehensive Schedule Information */}
-      <article className="customer-selected-class rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-dd-forest uppercase tracking-wider">
-              <MapPin className="size-3.5" />
-              Studio {slot.branch.name}
-            </span>
-            <h2 className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
-              {slot.classType.name}
-            </h2>
-            <p className="mt-1 text-sm text-dd-muted">{dateTime(slot.startAt, slot.timezone)}</p>
-          </div>
-          <StatusBadge tone={slot.status === 'CONFIRMED' ? 'success' : 'info'}>
-            {slot.status === 'CONFIRMED' ? 'Kelas dikonfirmasi' : 'Terbuka untuk booking'}
-          </StatusBadge>
-        </div>
+      {message && (
+        <AlertBanner tone="danger" title="Booking belum dapat diproses" message={message} />
+      )}
 
-        {/* Fact Pills */}
-        <div className="mt-5 flex flex-wrap gap-2.5 text-xs">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-line bg-dd-paper px-3 py-1.5 font-medium text-dd-ink">
-            <CalendarDays className="size-3.5 text-dd-forest" />
-            {new Intl.DateTimeFormat('id-ID', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              timeZone: slot.timezone,
-            }).format(slot.startAt)}
-          </span>
+      {/* Step Tracker (Identical to Checkout) */}
+      {!booking && (
+        <ol
+          aria-label="Tahapan booking"
+          className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3"
+        >
+          {[
+            { key: 'select', label: '1. Pilih paket' },
+            { key: 'review', label: '2. Review & Konfirmasi' },
+          ].map(({ key, label }, index) => {
+            const isActive = step === key;
+            const isDone = step === 'review' && key === 'select';
+            return (
+              <li
+                key={label}
+                aria-current={isActive ? 'step' : undefined}
+                className={`flex items-center gap-2 rounded-dd-lg px-3 py-2 text-xs font-semibold sm:text-sm ${
+                  isActive
+                    ? 'bg-dd-forest text-white'
+                    : isDone
+                      ? 'bg-dd-success-soft text-dd-success'
+                      : 'text-dd-muted'
+                }`}
+              >
+                <span className="grid size-6 place-items-center rounded-full border border-current text-[11px]">
+                  {isDone ? '✓' : index + 1}
+                </span>
+                {label}
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-line bg-dd-paper px-3 py-1.5 font-medium text-dd-ink">
-            <Clock3 className="size-3.5 text-dd-forest" />
-            {new Intl.DateTimeFormat('id-ID', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: slot.timezone,
-            }).format(slot.startAt)}{' '}
-            –{' '}
-            {new Intl.DateTimeFormat('id-ID', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: slot.timezone,
-            }).format(slot.endAt)}{' '}
-            WIB
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-800">
-            <Timer className="size-3.5 text-emerald-600" />
-            Durasi {durationMinutes} Menit
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-line bg-dd-paper px-3 py-1.5 font-medium text-dd-ink">
-            <UserCheck className="size-3.5 text-dd-forest" />
-            {slot.instructor?.displayName
-              ? `Instruktur: ${slot.instructor.displayName}`
-              : 'Instruktur: Tim Daily Dose'}
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-line bg-dd-paper px-3 py-1.5 font-medium text-dd-ink">
-            <UsersRound className="size-3.5 text-dd-forest" />
-            {slot.available} dari {slot.capacity} tempat tersisa
-          </span>
-        </div>
-
-        {/* Quick Links */}
-        <div className="mt-4 flex flex-wrap gap-4 border-t border-dd-line pt-3 text-xs">
-          <Link
-            href={`/schedule/${slot.id}`}
-            className="font-semibold text-dd-forest hover:underline"
-          >
-            Lihat detail jadwal lengkap →
-          </Link>
-          <Link href="/classes#schedule" className="text-dd-muted hover:text-dd-forest">
-            Ganti pilihan jadwal
-          </Link>
-        </div>
-      </article>
-
-      {!eligibility.canBook && eligibilityMessage ? (
-        <div className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <Feedback kind="warning">
-            <strong className="block text-dd-ink">{eligibilityMessage.title}</strong>
-            <span className="mt-1 block">{eligibilityMessage.description}</span>
-          </Feedback>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {eligibility.requiredAction === 'COMPLETE_IDENTITY_VERIFICATION' && (
-              <Link className="customer-card-action" href="/account/verification">
-                Selesaikan verifikasi
-              </Link>
-            )}
-            {eligibility.requiredAction === 'BUY_MATCHING_PACKAGE' && (
-              <Link className="customer-card-action" href={purchaseUrl}>
-                Lihat paket yang sesuai
-              </Link>
-            )}
-            {eligibility.requiredAction === 'CONTACT_STUDIO' && (
-              <Link className="customer-card-action" href="/contact">
-                Hubungi studio
-              </Link>
-            )}
-            <Link className="customer-card-action" href="/classes#schedule">
-              Pilih jadwal lain
-            </Link>
-          </div>
-        </div>
-      ) : booking ? (
+      {/* Booking Result (Success View) */}
+      {booking ? (
         <section
           className="rounded-dd-xl border border-emerald-200 bg-dd-success-soft p-6 shadow-dd-card"
           aria-live="polite"
         >
-          <CheckCircle2 className="size-9 text-dd-success" aria-hidden="true" />
-          <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-dd-success">
-            Booking berhasil
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">{slot.classType.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-success">
-            {dateTime(slot.startAt, slot.timezone)} · {slot.branch.name}
-          </p>
-          <dl className="mt-5 grid gap-3 rounded-dd-lg bg-white/70 p-4 text-sm sm:grid-cols-2">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="size-8 text-dd-success shrink-0" aria-hidden="true" />
             <div>
-              <dt className="text-dd-muted">Referensi booking</dt>
-              <dd className="mt-1 font-semibold">•{booking.id.slice(-8)}</dd>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-success">
+                Booking berhasil
+              </p>
+              <h2 className="text-2xl font-semibold text-dd-ink">{slot.classType.name}</h2>
+            </div>
+          </div>
+
+          <p className="mt-3 text-sm leading-6 text-dd-muted">
+            Sesi latihan Anda pada <strong>{dateTime(slot.startAt, slot.timezone)}</strong> di{' '}
+            <strong>{slot.branch.name}</strong> telah terkonfirmasi.
+          </p>
+
+          <dl className="mt-5 grid gap-3 rounded-dd-lg bg-white/80 p-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-dd-muted">ID Referensi</dt>
+              <dd className="mt-1 font-mono font-semibold text-dd-ink">•{booking.id.slice(-8)}</dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Sisa sesi tersedia</dt>
-              <dd className="mt-1 font-semibold">
+              <dt className="text-xs text-dd-muted">Paket Digunakan</dt>
+              <dd className="mt-1 font-semibold text-dd-ink truncate">{selectedPackage?.name}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-dd-muted">Sisa Sesi Tersedia</dt>
+              <dd className="mt-1 font-semibold text-dd-success">
                 {selectedPackage?.projectedAvailable ?? 0} sesi
               </dd>
             </div>
           </dl>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link className="customer-card-action" href={`/bookings/${booking.id}`}>
-              Lihat detail booking
-            </Link>
-            <Link className="customer-card-action" href="/classes#schedule">
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <ButtonLink
+              href={`/bookings/${encodeURIComponent(booking.id)}`}
+              leadingIcon={<QrCode className="size-4" />}
+            >
+              Lihat tiket & QR check-in
+            </ButtonLink>
+            <ButtonLink variant="secondary" href="/classes#schedule">
               Kembali ke jadwal
-            </Link>
+            </ButtonLink>
+          </div>
+        </section>
+      ) : !eligibility.canBook && eligibilityMessage ? (
+        /* Ineligible State */
+        <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card space-y-4">
+          <AlertBanner
+            tone="warning"
+            title={eligibilityMessage.title}
+            message={eligibilityMessage.description}
+          />
+          <div className="flex flex-wrap gap-3">
+            {eligibility.requiredAction === 'COMPLETE_IDENTITY_VERIFICATION' && (
+              <ButtonLink href="/account/verification">Selesaikan verifikasi identitas</ButtonLink>
+            )}
+            {eligibility.requiredAction === 'BUY_MATCHING_PACKAGE' && (
+              <ButtonLink href={purchaseUrl}>Beli paket yang sesuai</ButtonLink>
+            )}
+            {eligibility.requiredAction === 'CONTACT_STUDIO' && (
+              <ButtonLink variant="secondary" href="/contact">
+                Hubungi studio
+              </ButtonLink>
+            )}
+            <ButtonLink variant="secondary" href="/classes#schedule">
+              Pilih jadwal lain
+            </ButtonLink>
           </div>
         </section>
       ) : (
+        /* Two-Column Booking Layout */
         <form
-          aria-label="Konfirmasi booking mandiri"
+          aria-label="Formulir booking mandiri"
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedPackageId || step === 'select') {
@@ -307,6 +299,11 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               .then((result) => {
                 setBooking(result);
                 setStatus('ready');
+                feedback.showToast({
+                  tone: 'success',
+                  title: 'Booking berhasil dikonfirmasi',
+                  message: `Sesi ${slot.classType.name} terjadwal pada ${dateTime(slot.startAt, slot.timezone)}.`,
+                });
               })
               .catch(async (error) => {
                 setMessage(await bookingFailure(error));
@@ -314,155 +311,264 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               });
           }}
         >
-          <ol className="grid grid-cols-2 gap-2 text-sm" aria-label="Tahapan booking">
-            <li
-              className={`rounded-full px-4 py-2 font-semibold ${step === 'select' ? 'bg-dd-forest text-white' : 'bg-dd-success-soft text-dd-success'}`}
-            >
-              1. Pilih paket
-            </li>
-            <li
-              className={`rounded-full px-4 py-2 font-semibold ${step === 'review' ? 'bg-dd-forest text-white' : 'bg-dd-surface-muted text-dd-muted'}`}
-            >
-              2. Review
-            </li>
-          </ol>
-          {step === 'select' ? (
-            <div className="mt-4 space-y-4">
-              <fieldset>
-                <legend className="text-base font-semibold text-dd-ink mb-3">
-                  Pilih paket aktif untuk sesi ini
-                </legend>
-                <div className="space-y-3">
-                  {options.packages.map((item) => (
-                    <label
-                      className="customer-package-option block rounded-dd-lg border border-dd-line bg-white p-4 cursor-pointer hover:border-dd-forest transition-colors"
-                      key={item.id}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          className={`${controlClassName} mt-1`}
-                          type="radio"
-                          name="customerPackageId"
-                          value={item.id}
-                          checked={selectedPackageId === item.id}
-                          onChange={() => {
-                            setSelectedPackageId(item.id);
-                            intent.current = createIntent();
-                          }}
-                        />
-                        <div className="flex-1">
-                          <strong className="block text-base font-semibold text-dd-ink">
-                            {item.name}
-                          </strong>
-                          <div className="mt-1 text-xs text-dd-muted">
-                            <span className="font-medium text-dd-forest">
-                              {item.available} sesi tersedia
-                            </span>
-                            {' · '}
-                            setelah booking sisa {item.projectedAvailable} sesi
-                            {' · '}
-                            berlaku sampai{' '}
-                            {item.expiryAt.toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                            })}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
+            {/* Left Column: Class Detail & Package / Review Form */}
+            <div className="space-y-5">
+              {/* Selected Class Summary Card */}
+              <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                      Jadwal dipilih
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-dd-ink">{slot.classType.name}</h2>
+                    <p className="mt-1 text-sm text-dd-muted">
+                      {slot.branch.name} · {dateTime(slot.startAt, slot.timezone)}
+                    </p>
+                  </div>
+                  <StatusBadge tone={slot.status === 'CONFIRMED' ? 'success' : 'info'}>
+                    {slot.status === 'CONFIRMED' ? 'Dikonfirmasi' : 'Tersedia'}
+                  </StatusBadge>
+                </div>
+
+                <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+                      <Clock className="size-3.5 text-dd-forest" />
+                      Waktu sesi
+                    </dt>
+                    <dd className="mt-1 font-semibold text-dd-ink">
+                      {new Intl.DateTimeFormat('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: slot.timezone,
+                      }).format(slot.startAt)}{' '}
+                      –{' '}
+                      {new Intl.DateTimeFormat('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: slot.timezone,
+                      }).format(slot.endAt)}{' '}
+                      WIB
+                    </dd>
+                  </div>
+
+                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+                      <Timer className="size-3.5 text-dd-forest" />
+                      Durasi latihan
+                    </dt>
+                    <dd className="mt-1 font-semibold text-dd-ink">{durationMinutes} menit</dd>
+                  </div>
+
+                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+                      <User className="size-3.5 text-dd-forest" />
+                      Instruktur
+                    </dt>
+                    <dd className="mt-1 font-semibold text-dd-ink truncate">
+                      {slot.instructor?.displayName ?? 'Tim Daily Dose'}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Step 1: Package Selection */}
+              {step === 'select' ? (
+                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-dd-ink">
+                      Pilih paket aktif untuk sesi ini
+                    </h3>
+                    <p className="mt-1 text-xs text-dd-muted">
+                      Hanya paket yang sesuai dengan cabang dan jenis kelas ini yang dapat dipilih.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {options.packages.map((item) => {
+                      const isSelected = selectedPackageId === item.id;
+                      return (
+                        <label
+                          key={item.id}
+                          className={`block rounded-dd-lg border p-4 cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'border-dd-forest bg-emerald-50/25 ring-1 ring-dd-forest'
+                              : 'border-dd-line bg-white hover:border-stone-400'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="radio"
+                              name="customerPackageId"
+                              value={item.id}
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedPackageId(item.id);
+                                intent.current = createIntent();
+                              }}
+                              className="mt-1 size-4 accent-dd-forest"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <strong className="text-base font-semibold text-dd-ink">
+                                  {item.name}
+                                </strong>
+                                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                                  {item.available} sesi tersedia
+                                </span>
+                              </div>
+
+                              <div className="mt-1.5 text-xs text-dd-muted">
+                                <span>Setelah booking sisa {item.projectedAvailable} sesi</span>
+                                {' · '}
+                                <span>
+                                  Berlaku s/d{' '}
+                                  {item.expiryAt.toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+                        </label>
+                      );
+                    })}
+                  </div>
 
-              <div className="rounded-dd-sm bg-dd-paper p-3.5 text-xs leading-relaxed text-dd-muted">
-                <Sparkles className="inline size-3.5 mr-1 text-dd-forest" />1 kuota sesi akan
-                dipotong dari paket yang Anda pilih setelah konfirmasi booking berhasil.
-              </div>
+                  <div className="rounded-dd-lg bg-dd-surface-muted p-4 text-xs leading-relaxed text-dd-muted">
+                    1 kuota sesi akan direservasi dari paket terpilih setelah Anda mengonfirmasi booking.
+                  </div>
 
-              <Button
-                disabled={!selectedPackageId}
-                type="submit"
-                trailingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
-              >
-                Review booking
-              </Button>
+                  <div className="pt-2">
+                    <Button
+                      disabled={!selectedPackageId}
+                      type="submit"
+                      fullWidth
+                      trailingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
+                    >
+                      Lanjutkan ke review booking
+                    </Button>
+                  </div>
+                </section>
+              ) : (
+                /* Step 2: Review Final */
+                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                      Review reservasi
+                    </p>
+                    <h3 className="mt-1 text-xl font-semibold text-dd-ink">
+                      Konfirmasi detail booking
+                    </h3>
+                  </div>
+
+                  <dl className="grid gap-3 rounded-dd-lg bg-dd-surface-muted p-4 text-sm divide-y divide-dd-line/50">
+                    <div className="flex items-center justify-between py-2 first:pt-0">
+                      <dt className="text-xs text-dd-muted">Studio & Lokasi</dt>
+                      <dd className="font-semibold text-dd-ink">{slot.branch.name}</dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <dt className="text-xs text-dd-muted">Jenis Kelas</dt>
+                      <dd className="font-semibold text-dd-ink">{slot.classType.name}</dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <dt className="text-xs text-dd-muted">Waktu Sesi</dt>
+                      <dd className="font-semibold text-dd-ink">
+                        {dateTime(slot.startAt, slot.timezone)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <dt className="text-xs text-dd-muted">Instruktur</dt>
+                      <dd className="font-semibold text-dd-ink">
+                        {slot.instructor?.displayName ?? 'Tim Daily Dose'}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <dt className="text-xs text-dd-muted">Paket Digunakan</dt>
+                      <dd className="font-semibold text-dd-ink truncate max-w-[200px] sm:max-w-xs">
+                        {selectedPackage?.name}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2 last:pb-0">
+                      <dt className="text-xs text-dd-muted">Saldo Sesi</dt>
+                      <dd className="font-semibold text-dd-forest">
+                        {selectedPackage?.available} → {selectedPackage?.projectedAvailable} sesi
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={status === 'submitting'}
+                      leadingIcon={<ArrowLeft className="size-4" aria-hidden="true" />}
+                      onClick={() => setStep('select')}
+                    >
+                      Kembali ubah paket
+                    </Button>
+                    <Button
+                      disabled={status === 'submitting'}
+                      loading={status === 'submitting'}
+                      loadingLabel="Mengonfirmasi…"
+                      type="submit"
+                      leadingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
+                    >
+                      Ya, konfirmasi booking
+                    </Button>
+                  </div>
+                </section>
+              )}
             </div>
-          ) : (
-            <Panel
-              className="mt-4 border-amber-200 bg-dd-warning-soft p-5"
-              aria-label="Review final booking"
-            >
-              <strong className="text-dd-warning text-base font-bold">Review final booking</strong>
-              <dl className="mt-4 grid gap-3.5 text-dd-ink sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-dd-muted">Kelas dan studio</dt>
-                  <dd className="font-semibold">
-                    {slot.classType.name} · {slot.branch.name}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-dd-muted">Jadwal Sesi</dt>
-                  <dd className="font-semibold">
-                    {dateTime(slot.startAt, slot.timezone)} ({durationMinutes} Menit)
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-dd-muted">Instruktur</dt>
-                  <dd className="font-semibold">
-                    {slot.instructor?.displayName ?? 'Tim Daily Dose'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-dd-muted">Paket Digunakan</dt>
-                  <dd className="font-semibold">{selectedPackage?.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-dd-muted">Saldo Sesi</dt>
-                  <dd className="font-semibold">
-                    {selectedPackage?.available} → {selectedPackage?.projectedAvailable} sesi
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-4 border-t border-amber-200/80 pt-3 text-xs leading-relaxed text-dd-muted">
-                Satu sesi akan direservasi. Permohonan reschedule dapat diajukan secara mandiri
-                sampai tepat H-24 sebelum sesi dimulai.
-              </p>
-              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={status === 'submitting'}
-                  leadingIcon={<ArrowLeft className="size-4" aria-hidden="true" />}
-                  onClick={() => setStep('select')}
-                >
-                  Kembali ubah paket
-                </Button>
-                <Button
-                  disabled={status === 'submitting'}
-                  loading={status === 'submitting'}
-                  loadingLabel="Mengonfirmasi…"
-                  type="submit"
-                  leadingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
-                >
-                  Ya, konfirmasi booking
-                </Button>
+
+            {/* Right Column: Studio Guidelines & Policy (Aside) */}
+            <aside className="space-y-5">
+              <div className="rounded-dd-xl border border-dd-brass/50 bg-dd-brass-soft p-5 sm:p-6 shadow-dd-card">
+                <ShieldCheck className="size-8 text-dd-forest" />
+                <h3 className="mt-3 text-lg font-semibold text-dd-ink">
+                  Kebijakan & panduan studio
+                </h3>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-dd-muted">
+                  <li className="flex gap-2">
+                    <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+                    <span>Satu sesi akan langsung direservasi atas nama akun Anda.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+                    <span>
+                      Permohonan reschedule mandiri dapat diajukan hingga tepat <strong>H-24</strong> sebelum sesi dimulai.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+                    <span>
+                      QR Code Check-in Pass akan terbit dan siap dipindai di pintu masuk studio.
+                    </span>
+                  </li>
+                </ul>
               </div>
-            </Panel>
-          )}
+
+              <div className="rounded-dd-xl border border-dd-line bg-white p-5 text-xs leading-relaxed text-dd-muted shadow-dd-card">
+                <p className="flex items-center gap-1.5 font-semibold text-dd-ink mb-1">
+                  <MapPin className="size-3.5 text-dd-forest" />
+                  Alamat Studio
+                </p>
+                <p>Studio {slot.branch.name}</p>
+                <Link
+                  href="/contact"
+                  className="mt-3 inline-flex items-center gap-1.5 font-semibold text-dd-forest no-underline hover:underline"
+                >
+                  <MessageCircle className="size-3.5" />
+                  Hubungi customer service studio
+                </Link>
+              </div>
+            </aside>
+          </div>
         </form>
       )}
-
-      {message && <Feedback kind="error">{message}</Feedback>}
-      {!booking && (
-        <Link
-          href="/contact"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline hover:underline"
-        >
-          <MessageCircle className="size-4" aria-hidden="true" />
-          Hubungi studio jika Anda memerlukan bantuan
-        </Link>
-      )}
-    </section>
+    </main>
   );
 }

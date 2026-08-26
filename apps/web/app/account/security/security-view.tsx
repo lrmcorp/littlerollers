@@ -4,7 +4,7 @@ import { Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppFeedback } from '../../components/app-feedback';
 import { Button, IconButton } from '../../components/actions';
-import { browserIdentityClient, type IdentityClient } from '../../identity-client';
+import { browserIdentityClient, type IdentityClient } from '@/api-clients/identity-client';
 import { Skeleton } from '../../ui';
 import { useSessionContext } from '../../session-context';
 import { useTrackedRouter } from '../../components/app-loading';

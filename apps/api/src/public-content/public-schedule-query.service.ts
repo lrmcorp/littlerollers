@@ -10,7 +10,7 @@ export class PublicScheduleQueryService {
   async list(input: { branchId?: string; from?: string; until?: string }) {
     if (input.branchId) assertPublicUuid(input.branchId, 'VALIDATION_ERROR');
     const { from, until } = publicScheduleRange(input.from, input.until);
-    const branches = await this.db.cabang.findMany({
+    const rawBranches = await this.db.cabang.findMany({
       where: { active: true, publicProfile: { isNot: null } },
       select: {
         id: true,
@@ -22,6 +22,17 @@ export class PublicScheduleQueryService {
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+    const branches = rawBranches.map((b) => ({
+      ...b,
+      publicProfile: b.publicProfile
+        ? {
+            ...b.publicProfile,
+            openingHours: Array.isArray(b.publicProfile.openingHours)
+              ? b.publicProfile.openingHours
+              : [],
+          }
+        : null,
+    }));
     if (input.branchId && !branches.some(({ id }) => id === input.branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 

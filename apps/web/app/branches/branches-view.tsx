@@ -13,7 +13,7 @@ import {
   browserBranchClient,
   type BranchManagementItem,
   type BranchManagementPage,
-} from '../branch-client';
+} from '@/api-clients/branch-client';
 import { Skeleton } from '../ui';
 
 const emptyPage: BranchManagementPage = {

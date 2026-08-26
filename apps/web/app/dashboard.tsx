@@ -7,10 +7,14 @@ import {
   ArrowRight,
   Building2,
   CalendarClock,
+  CheckCircle2,
+  Clock,
+  Layers,
   RefreshCw,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
-import { canReadPage, frontendPages } from './frontend-pages';
+import { canReadPage, frontendPages } from '@/lib/frontend-pages';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
 import { Button } from './components/actions';
@@ -20,7 +24,7 @@ import {
   browserDashboardClient,
   type DashboardClient,
   type DashboardOverview,
-} from './dashboard-client';
+} from '@/api-clients/dashboard-client';
 import { formatRupiah } from './lib/formatters';
 
 const number = new Intl.NumberFormat('id-ID');
@@ -101,30 +105,31 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
         aria-labelledby="dashboard-trend-title dashboard-trend-description"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        className="h-52 w-full overflow-visible"
+        className="h-56 w-full overflow-visible"
       >
         <title id="dashboard-trend-title">Tren {finance ? 'pendapatan' : 'booking'}</title>
         <desc id="dashboard-trend-description">
           {values.map((value, index) => `${points[index]!.date}: ${value}`).join(', ')}
         </desc>
-        {[16, 41, 66, 91].map((y) => (
+        {[16, 41, 66, 91].map((gridY) => (
           <line
-            key={y}
+            key={gridY}
             x1="0"
-            y1={y}
+            y1={gridY}
             x2="100"
-            y2={y}
+            y2={gridY}
             stroke="currentColor"
-            className="text-dd-line"
-            strokeWidth="0.4"
+            className="text-dd-line/70"
+            strokeWidth="0.5"
+            strokeDasharray="2 2"
           />
         ))}
         <polyline
           points={polyline}
           fill="none"
           stroke="currentColor"
-          className="text-dd-forest"
-          strokeWidth="2"
+          className="text-dd-forest drop-shadow-sm"
+          strokeWidth="2.5"
           vectorEffect="non-scaling-stroke"
         />
         {finance && (
@@ -140,12 +145,16 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
         )}
       </svg>
       {finance && (
-        <div className="mt-2 flex gap-4 text-xs text-dd-muted">
-          <span>— Omzet</span>
-          <span className="text-dd-brass">-- Profit</span>
+        <div className="mt-3 flex items-center gap-6 text-xs font-semibold text-dd-muted border-t border-dd-line/60 pt-3">
+          <span className="flex items-center gap-1.5 text-dd-forest">
+            <span className="size-2.5 rounded-full bg-dd-forest" /> Omzet Bruto
+          </span>
+          <span className="flex items-center gap-1.5 text-dd-brass">
+            <span className="size-2.5 rounded-full bg-dd-brass" /> Profit Operasional
+          </span>
         </div>
       )}
-      <figcaption className="mt-2 flex justify-between text-xs text-dd-muted">
+      <figcaption className="mt-2 flex justify-between text-[11px] font-medium text-dd-muted">
         <span>{String(points[0]!.date).slice(0, 10)}</span>
         <span>{String(points.at(-1)!.date).slice(0, 10)}</span>
       </figcaption>
@@ -204,25 +213,24 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const copy = roleCopy[focus];
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-5 border-b border-dd-line pb-7 xl:flex-row xl:items-end xl:justify-between">
-        <div className="max-w-3xl">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-dd-brass-soft text-dd-brass">
-              <Sparkles className="size-4" />
-            </span>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-              {copy.eyebrow}
-            </p>
+    <div className="space-y-8 font-sans text-dd-ink">
+      {/* Header & Filter Card */}
+      <header className="flex flex-col gap-6 rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-3xl space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-dd-forest/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
+            <Sparkles className="size-3.5 text-dd-brass" />
+            <span>{copy.eyebrow}</span>
           </div>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-dd-ink sm:text-4xl">
+          <h1 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink">
             Selamat datang, {session.displayName}
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-dd-muted">
+          <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-dd-muted">
             <strong className="font-semibold text-dd-ink">{copy.title}.</strong> {copy.description}
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-2 rounded-dd-lg border border-dd-line bg-dd-surface p-3 shadow-sm">
+
+        {/* Global Filter Bar */}
+        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-dd-line/80 bg-dd-surface-muted/40 p-3.5 shadow-sm">
           <SearchSelect
             label="Studio/Cabang"
             value={dashboardBranchId}
@@ -267,6 +275,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       </header>
 
+      {/* Warnings & Scope Banners */}
       {!activeBranch &&
         session.branches.length > 0 &&
         !session.roles.includes('SUPER_OWNER') &&
@@ -283,17 +292,17 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Feedback>
       )}
       {activeBranch && (
-        <div className="flex flex-wrap items-center gap-3 rounded-dd-lg border border-emerald-200 bg-dd-success-soft px-4 py-3 text-sm text-dd-success">
-          <Building2 className="size-4" />
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-dd-success-soft px-4 py-3 text-xs sm:text-sm font-medium text-dd-success shadow-sm">
+          <Building2 className="size-4 shrink-0" />
           <strong>Cabang operasional: {activeBranch.name}</strong>
-          <span className="text-dd-success/70">
+          <span className="text-dd-success/75">
             {activeBranch.code} · {activeBranch.timezone}
           </span>
         </div>
       )}
 
       {overview && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-dd-muted">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-dd-muted border-b border-dd-line/60 pb-3">
           <span>
             Scope:{' '}
             <strong className="text-dd-ink">
@@ -301,7 +310,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                 'Semua Studio/Cabang yang diizinkan'}
             </strong>
           </span>
-          <time dateTime={String(overview.generatedAt)}>
+          <time dateTime={String(overview.generatedAt)} className="flex items-center gap-1.5">
+            <Clock className="size-3.5" />
             Diperbarui{' '}
             {new Date(overview.generatedAt).toLocaleString('id-ID', {
               dateStyle: 'medium',
@@ -327,7 +337,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </p>
       )}
 
-      <section aria-label="Indikator utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* KPI Metrics Stat Cards Grid */}
+      <section aria-label="Indikator utama" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {(overview?.metrics ?? []).map((metric) => (
           <StatCard
             key={metric.key}
@@ -355,24 +366,30 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         ))}
         {loading &&
           !overview &&
-          Array.from({ length: 5 }, (_, index) => (
+          Array.from({ length: 4 }, (_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-dd-lg border border-dd-line bg-white/70"
+              className="h-40 animate-pulse rounded-2xl border border-dd-line/80 bg-white/70 shadow-sm"
             />
           ))}
       </section>
 
+      {/* Trend Section */}
       {overview?.sections.trend && (
-        <Panel className="p-5 sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
-            Tren periode
-          </p>
-          <h2 className="mt-1 text-xl font-semibold">
-            {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
-              ? 'Omzet dan profit operasional'
-              : 'Pergerakan booking'}
-          </h2>
+        <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                Tren periode
+              </span>
+              <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+                {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
+                  ? 'Omzet dan profit operasional'
+                  : 'Pergerakan booking'}
+              </h2>
+            </div>
+            <TrendingUp className="size-5 text-dd-forest opacity-80" />
+          </div>
           <TrendChart
             points={overview.trend}
             finance={focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'}
@@ -380,63 +397,70 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Panel>
       )}
 
-      <div className={`grid gap-6 ${overview?.sections.risk ? 'xl:grid-cols-[1.6fr_1fr]' : ''}`}>
+      {/* Action Queue & Risk Watch Grid */}
+      <div className={`grid gap-6 ${overview?.sections.risk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
         {overview?.sections.risk && (
-          <Panel className="p-5 sm:p-6">
-            <div className="flex items-center justify-between">
+          <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+            <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
                   Action queue
-                </p>
-                <h2 className="mt-1 text-xl font-semibold">Perlu perhatian Anda</h2>
+                </span>
+                <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink">
+                  Perlu perhatian Anda
+                </h2>
               </div>
               <Badge tone="warning">
                 {overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0} item
               </Badge>
             </div>
-            <div className="mt-5 divide-y divide-dd-line">
+            <div className="mt-4 divide-y divide-dd-line/60">
               {overview?.queues.length ? (
                 overview.queues.map((item) => (
                   <Link
                     key={item.key}
                     href={item.href}
-                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline"
+                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30 rounded-lg px-2"
                   >
-                    <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass">
+                    <span className="grid size-10 place-items-center rounded-xl bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
                       {item.count}
                     </span>
-                    <span className="font-semibold">{item.label}</span>
+                    <span className="font-semibold text-sm sm:text-base">{item.label}</span>
                     <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
                   </Link>
                 ))
               ) : (
-                <p className="py-10 text-center text-sm text-dd-muted">
+                <div className="py-10 text-center text-sm text-dd-muted">
+                  <CheckCircle2 className="mx-auto size-8 text-dd-success/60 mb-2" />
                   Tidak ada antrean yang membutuhkan tindakan.
-                </p>
+                </div>
               )}
             </div>
           </Panel>
         )}
-        <Panel className="p-5 sm:p-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+
+        <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+          <div className="border-b border-dd-line/60 pb-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               H-24 risk watch
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">Kelas berisiko</h2>
+            </span>
+            <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink">Kelas berisiko</h2>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-3">
             {overview?.risks.length ? (
               overview.risks.map((item) => (
                 <Link
                   key={item.id}
                   href={item.href}
-                  className="flex gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-3 text-dd-ink no-underline"
+                  className="flex gap-3.5 rounded-xl border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
                 >
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
-                  <span className="min-w-0">
-                    <strong className="block truncate text-sm">{item.className}</strong>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-sm font-bold text-dd-ink">
+                      {item.className}
+                    </strong>
                     <span className="mt-1 block text-xs text-dd-muted">
-                      {item.bookedCount}/{item.minimumQuota} minimum ·{' '}
+                      {item.bookedCount}/{item.minimumQuota} kuota minimum ·{' '}
                       {new Date(item.startAt).toLocaleString('id-ID', {
                         dateStyle: 'medium',
                         timeStyle: 'short',
@@ -446,58 +470,68 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                 </Link>
               ))
             ) : (
-              <p className="py-10 text-center text-sm text-dd-muted">
+              <div className="py-10 text-center text-sm text-dd-muted">
+                <CheckCircle2 className="mx-auto size-8 text-dd-success/60 mb-2" />
                 Tidak ada kelas berisiko dalam 24 jam.
-              </p>
+              </div>
             )}
           </div>
         </Panel>
       </div>
 
+      {/* Branch Portfolio Performance Table */}
       {overview?.branches.length ? (
-        <Panel className="overflow-hidden">
-          <div className="border-b border-dd-line p-5 sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+        <Panel className="overflow-hidden rounded-2xl border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
+          <div className="border-b border-dd-line/60 p-6 sm:px-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               Portfolio cabang
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">Performa per cabang</h2>
+            </span>
+            <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+              Performa per cabang
+            </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-[720px]">
-              <thead>
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b border-dd-line bg-dd-surface-muted/50 text-xs font-bold uppercase text-dd-muted">
                 <tr>
-                  <th>Cabang</th>
-                  <th>Omzet</th>
-                  <th>Projection</th>
-                  <th>Instruktur</th>
-                  <th>Pengeluaran</th>
-                  <th>Profit</th>
-                  <th>Booking</th>
-                  <th>Okupansi</th>
+                  <th className="px-6 py-3.5">Cabang</th>
+                  <th className="px-6 py-3.5">Omzet</th>
+                  <th className="px-6 py-3.5">Projection</th>
+                  <th className="px-6 py-3.5">Instruktur</th>
+                  <th className="px-6 py-3.5">Pengeluaran</th>
+                  <th className="px-6 py-3.5">Profit</th>
+                  <th className="px-6 py-3.5">Booking</th>
+                  <th className="px-6 py-3.5">Okupansi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-dd-line/60">
                 {overview.branches.map((branch) => (
-                  <tr key={branch.id}>
-                    <td>
-                      <strong>{branch.name}</strong>
-                      <span className="ml-2 text-xs text-dd-muted">{branch.code}</span>
+                  <tr key={branch.id} className="transition hover:bg-dd-surface-muted/30">
+                    <td className="px-6 py-4">
+                      <strong className="font-bold text-dd-ink">{branch.name}</strong>
+                      <span className="ml-2 rounded bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+                        {branch.code}
+                      </span>
                     </td>
-                    <td>{formatRupiah(branch.revenueRp)}</td>
-                    <td>{formatRupiah(branch.projectionRp)}</td>
-                    <td>{formatRupiah(branch.instructorRealtimeRp)}</td>
-                    <td>{formatRupiah(branch.otherCostRp)}</td>
-                    <td>{formatRupiah(branch.profitRp)}</td>
-                    <td>{number.format(branch.bookings)}</td>
-                    <td>
+                    <td className="px-6 py-4 font-medium">{formatRupiah(branch.revenueRp)}</td>
+                    <td className="px-6 py-4 text-dd-muted">{formatRupiah(branch.projectionRp)}</td>
+                    <td className="px-6 py-4 text-dd-muted">
+                      {formatRupiah(branch.instructorRealtimeRp)}
+                    </td>
+                    <td className="px-6 py-4 text-dd-muted">{formatRupiah(branch.otherCostRp)}</td>
+                    <td className="px-6 py-4 font-bold text-dd-forest">
+                      {formatRupiah(branch.profitRp)}
+                    </td>
+                    <td className="px-6 py-4 font-semibold">{number.format(branch.bookings)}</td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-2 w-28 overflow-hidden rounded-full bg-stone-100">
+                        <div className="h-2 w-24 overflow-hidden rounded-full bg-dd-surface-muted">
                           <span
                             className="block h-full rounded-full bg-dd-forest"
                             style={{ width: `${Math.min(100, branch.occupancyPercent)}%` }}
                           />
                         </div>
-                        <strong>{branch.occupancyPercent}%</strong>
+                        <span className="font-bold text-xs">{branch.occupancyPercent}%</span>
                       </div>
                     </td>
                   </tr>
@@ -508,21 +542,24 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Panel>
       ) : null}
 
+      {/* Operational Job Health */}
       {overview?.sections.jobHealth && (
-        <Panel className="overflow-hidden">
-          <div className="border-b border-dd-line p-5 sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+        <Panel className="overflow-hidden rounded-2xl border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
+          <div className="border-b border-dd-line/60 p-6 sm:px-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               Job health
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">Aktivitas recovery terbaru</h2>
+            </span>
+            <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+              Aktivitas recovery terbaru
+            </h2>
           </div>
           {overview.jobs.length ? (
-            <div className="divide-y divide-dd-line">
+            <div className="divide-y divide-dd-line/60">
               {overview.jobs.map((job) => (
                 <Link
                   key={job.id}
                   href={`/operations?job=${job.id}`}
-                  className="flex items-center gap-4 px-5 py-4 text-dd-ink no-underline hover:bg-dd-surface-muted sm:px-6"
+                  className="flex items-center gap-4 px-6 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30"
                 >
                   <Badge
                     tone={
@@ -545,31 +582,34 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               ))}
             </div>
           ) : (
-            <p className="p-10 text-center text-sm text-dd-muted">Belum ada job pada scope ini.</p>
+            <p className="p-8 text-center text-sm text-dd-muted">Belum ada job pada scope ini.</p>
           )}
         </Panel>
       )}
 
-      <section aria-labelledby="quick-work-title">
-        <div className="mb-4 flex items-end justify-between">
+      {/* Quick Shortcuts Area */}
+      <section aria-labelledby="quick-work-title" className="space-y-4 pt-2">
+        <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">Pintasan</p>
-            <h2 id="quick-work-title" className="mt-1 text-xl font-semibold">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+              Pintasan
+            </span>
+            <h2 id="quick-work-title" className="mt-1 font-sans text-xl font-bold text-dd-ink">
               Area kerja Anda
             </h2>
           </div>
-          <span className="text-sm text-dd-muted">{pages.length} area tersedia</span>
+          <span className="text-xs font-medium text-dd-muted">{pages.length} area tersedia</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {pages.slice(0, 6).map((page) => (
+        <div className="flex flex-wrap gap-2.5">
+          {pages.slice(0, 8).map((page) => (
             <Link
               href={page.href}
               key={page.href}
-              className="group inline-flex min-h-10 items-center gap-2 rounded-dd-md border border-dd-line bg-dd-surface px-3 text-sm font-semibold text-dd-ink no-underline shadow-sm hover:border-dd-brass"
+              className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-dd-line/80 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-dd-ink no-underline shadow-dd-soft transition hover:border-dd-forest hover:bg-dd-surface-muted/40 hover:-translate-y-0.5"
             >
               <CalendarClock className="size-4 text-dd-brass" />
               <span>{page.shortLabel}</span>
-              <ArrowRight className="size-4 text-dd-muted transition group-hover:translate-x-1" />
+              <ArrowRight className="size-3.5 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
               <span className="sr-only">Buka {page.label}</span>
             </Link>
           ))}

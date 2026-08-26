@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ScheduleDetailView } from './schedule-detail-view';
-import { publicMetadataValue } from '../../public-detail-metadata';
-import type { PublicScheduleDetail } from '../../public-detail-client';
+import { publicMetadataValue } from '@/lib/public-detail-metadata';
+import type { PublicScheduleDetail } from '@/api-clients/public-detail-client';
 
 export async function generateMetadata({
   params,

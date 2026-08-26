@@ -6,8 +6,8 @@ import { Menu, UserRound, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { BrandMark } from './brand-mark';
-import { publicNavigation, routes } from '../../routes';
-import { isCustomerOnlySession } from '../../session-audience';
+import { publicNavigation, routes } from '@/lib/routes';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from '../../session-context';
 import { useStudioPreference } from './public-experience';
 import { useOverlayInteraction, useOverlayPresence } from '../app-feedback';

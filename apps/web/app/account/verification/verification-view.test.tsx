@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VerificationView } from './verification-view';
-import { verificationClient } from '../../identity-verification-client';
-import type { VerificationSummary } from '../../identity-verification-client';
+import { verificationClient } from '@/api-clients/identity-verification-client';
+import type { VerificationSummary } from '@/api-clients/identity-verification-client';
 import { AppFeedbackProvider } from '../../components/app-feedback';
 
 const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
@@ -14,8 +14,8 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: navigation.replace }),
 }));
 
-vi.mock('../../identity-verification-client', async (original) => {
-  const actual = await original<typeof import('../../identity-verification-client')>();
+vi.mock('@/api-clients/identity-verification-client', async (original) => {
+  const actual = await original<typeof import('@/api-clients/identity-verification-client')>();
   return {
     ...actual,
     verificationClient: {

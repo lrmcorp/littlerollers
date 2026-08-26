@@ -1,9 +1,0 @@
-{
-  "runId": "mig_20260803045848_ec6874",
-  "project": "ddmig_mig_20260803045848_ec6874",
-  "composeEnvironment": {
-    "MIGRATION_SOURCE_PORT": "52759",
-    "MIGRATION_TARGET_PORT": "52760"
-  },
-  "status": "PASSED"
-}

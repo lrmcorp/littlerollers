@@ -5,7 +5,7 @@ import { CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'luci
 import { useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
-import { orderStatusLabels } from '../order-presenters';
+import { orderStatusLabels } from '@/lib/order-presenters';
 import { useSessionContext } from '../session-context';
 import { Skeleton } from '../ui';
 

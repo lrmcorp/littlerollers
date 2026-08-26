@@ -9,7 +9,7 @@ import { PublicHeader } from './public-header';
 import { PublicStatePanel } from './public-page';
 import { publicContainer, publicPrimaryButton, publicSecondaryButton } from './public-styles';
 import { useSessionContext } from '../../session-context';
-import { isCustomerOnlySession, packageAudienceState } from '../../session-audience';
+import { isCustomerOnlySession, packageAudienceState } from '@/lib/session-audience';
 
 export function PublicDetailFrame({
   children,

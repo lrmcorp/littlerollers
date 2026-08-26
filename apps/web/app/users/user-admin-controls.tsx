@@ -5,7 +5,7 @@ import {
   type ApplicationRole,
   type RoleCatalogItem,
   type UserRoleSummary,
-} from '../identity-client';
+} from '@/api-clients/identity-client';
 import { Button } from '../components/actions';
 import { Drawer, useOptionalAppFeedback } from '../components/app-feedback';
 import { SearchSelect, TextInput } from '../components/forms';

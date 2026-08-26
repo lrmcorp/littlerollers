@@ -1,14 +1,28 @@
 'use client';
 
+import Link from 'next/link';
+import {
+  CalendarDays,
+  CheckCircle2,
+  Lock,
+  Mail,
+  MapPin,
+  PackageCheck,
+  Phone,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { accountClient, type MyProfile } from '../../account-client';
+import { accountClient, type MyProfile } from '@/api-clients/account-client';
 import { useSessionContext } from '../../session-context';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
 import { useStudioPreference } from '../../components/public/public-experience';
+import { PageHeader, Skeleton, StatusBadge } from '../../ui';
 
 export function ProfileView() {
-  const session = useSessionContext();
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
   const feedback = useAppFeedback();
   const studioPreference = useStudioPreference();
   const [profile, setProfile] = useState<MyProfile | null>(null);
@@ -24,31 +38,77 @@ export function ProfileView() {
       setState('error');
     }
   };
-  useEffect(() => void load(), []);
 
-  if (!profile)
+  useEffect(() => {
+    void load();
+  }, []);
+
+  if (!profile || state === 'loading') {
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card">
-        <h1 className="text-2xl font-bold">
-          {state === 'error' ? 'Profil belum dapat dimuat' : 'Memuat profil…'}
-        </h1>
-        {state === 'error' && (
-          <Button className="mt-5" onClick={() => void load()}>
-            Coba lagi
-          </Button>
-        )}
-      </section>
+      <main className="space-y-6" aria-labelledby="profile-loading-title">
+        <PageHeader
+          eyebrow="Pengaturan Akun"
+          title="Profil Saya"
+          description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
+          titleId="profile-loading-title"
+        />
+        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card">
+          <Skeleton label="Memuat profil pengguna" />
+        </section>
+      </main>
     );
+  }
+
+  const initials = profile.displayName
+    ? profile.displayName
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('')
+    : 'U';
+
+  const isVerified = session?.identityVerificationStatus === 'APPROVED';
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 font-sans">
-      <header>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-brass-dark">Akun</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Profil Saya</h1>
-        <p className="mt-2 text-dd-muted">Kelola nama tampilan dan lihat identitas kontak akun.</p>
-      </header>
+    <main className="space-y-6" aria-labelledby="profile-heading">
+      <PageHeader
+        eyebrow="Pengaturan Akun"
+        title="Profil Saya"
+        description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
+        titleId="profile-heading"
+        context={
+          <ButtonLink href="/account/security" variant="secondary">
+            Keamanan Akun
+          </ButtonLink>
+        }
+      />
+
+      {/* Profile Identity Card */}
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-dd-forest text-xl font-bold tracking-wider text-white shadow-sm">
+              {initials}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-bold text-dd-ink">{profile.displayName}</h2>
+                <StatusBadge tone={isVerified ? 'success' : 'neutral'}>
+                  {isVerified ? 'Member Terverifikasi' : 'Member Daily Dose'}
+                </StatusBadge>
+              </div>
+              <p className="mt-1 text-xs text-dd-muted">
+                {profile.emailMasked ?? 'Email akun terdaftar'} · Akun Pribadi
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Profile Form */}
       <form
-        className="grid gap-5 rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card"
+        className="space-y-6 rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card"
         onSubmit={async (event) => {
           event.preventDefault();
           if (state === 'saving') return;
@@ -65,90 +125,189 @@ export function ProfileView() {
             feedback.showToast({
               tone: 'success',
               title: 'Profil diperbarui',
-              message: 'Nama tampilan terbaru sudah tersimpan.',
+              message: 'Nama tampilan terbaru sudah berhasil disimpan.',
             });
-            await session?.refresh();
+            await sessionContext?.refresh();
           } catch (error) {
             const status = (error as { response?: { status?: number } }).response?.status;
             setState(status === 409 ? 'stale' : 'error');
             setMessage(
               status === 409
-                ? 'Profil sudah berubah. Muat ulang sebelum mencoba lagi.'
-                : 'Profil belum dapat disimpan.',
+                ? 'Profil sudah diperbarui di sesi lain. Muat ulang sebelum mencoba kembali.'
+                : 'Profil belum dapat disimpan. Periksa koneksi Anda.',
             );
-            if (status !== 409)
-              feedback.showAlert({ tone: 'danger', ...messageForApiError(error) });
+            if (status !== 409) feedback.showAlert({ tone: 'danger', ...messageForApiError(error) });
           }
         }}
       >
-        <label className="grid gap-2 text-sm font-semibold">
-          Nama tampilan
-          <input
-            name="displayName"
-            defaultValue={profile.displayName}
-            minLength={2}
-            maxLength={160}
-            required
-            className="rounded-dd-md border border-dd-line bg-white px-3"
-          />
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold">
-            Email akun
-            <input
-              value={profile.emailMasked ?? 'Belum tersedia'}
-              readOnly
-              className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-dd-muted"
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold">
-            Nomor WhatsApp
-            <input
-              value={profile.phoneMasked ?? 'Belum tersedia'}
-              readOnly
-              className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-dd-muted"
-            />
-          </label>
+        <div className="border-b border-dd-line/60 pb-4">
+          <h3 className="text-base font-semibold text-dd-ink">Informasi Akun</h3>
+          <p className="mt-0.5 text-xs text-dd-muted">
+            Nama tampilan Anda akan digunakan pada daftar kehadiran instruktur dan jadwal reservasi kelas.
+          </p>
         </div>
-        <p className="text-xs leading-5 text-dd-muted">
-          Perubahan email atau nomor login membutuhkan verifikasi terpisah melalui tim Daily Dose.
-        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="displayName" className="block text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              Nama Tampilan
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                id="displayName"
+                name="displayName"
+                defaultValue={profile.displayName}
+                minLength={2}
+                maxLength={160}
+                required
+                className="w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+                placeholder="Masukkan nama lengkap Anda"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+                <span>Email Akun</span>
+                <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
+                  <Lock className="size-3" /> Terverifikasi
+                </span>
+              </span>
+              <div className="relative mt-1.5 flex items-center">
+                <input
+                  value={profile.emailMasked ?? 'Belum tersedia'}
+                  readOnly
+                  disabled
+                  className="w-full rounded-dd-md border border-dd-line bg-dd-surface-muted px-3.5 py-2.5 text-sm text-dd-muted cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div>
+              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+                <span>Nomor WhatsApp</span>
+                <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
+                  <Lock className="size-3" /> Terverifikasi
+                </span>
+              </span>
+              <div className="relative mt-1.5 flex items-center">
+                <input
+                  value={profile.phoneMasked ?? 'Belum tersedia'}
+                  readOnly
+                  disabled
+                  className="w-full rounded-dd-md border border-dd-line bg-dd-surface-muted px-3.5 py-2.5 text-sm text-dd-muted cursor-not-allowed"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs leading-5 text-dd-muted border border-dd-line/50">
+            💡 Untuk alasan keamanan akun, penggantian alamat email atau nomor telepon WhatsApp resmi memerlukan permohonan verifikasi melalui tim Daily Dose Studio.
+          </div>
+        </div>
+
         {message && (
-          <p
+          <div
             role="status"
-            className={`rounded-dd-md p-3 text-sm ${state === 'ready' ? 'bg-dd-success-soft text-dd-success' : 'bg-dd-danger-soft text-dd-danger'}`}
+            className={`rounded-dd-md p-3.5 text-xs font-medium ${
+              state === 'ready'
+                ? 'bg-dd-success-soft text-dd-success border border-emerald-200'
+                : 'bg-dd-danger-soft text-dd-danger border border-red-200'
+            }`}
           >
             {message}
-          </p>
+          </div>
         )}
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" loading={state === 'saving'} loadingLabel="Menyimpan…">
-            Simpan profil
+
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <Button type="submit" loading={state === 'saving'} loadingLabel="Menyimpan perubahan…">
+            Simpan Perubahan
           </Button>
           <ButtonLink href="/account/security" variant="secondary">
-            Keamanan akun
+            Pengaturan Password & Keamanan
           </ButtonLink>
         </div>
       </form>
+
+      {/* Studio Preference Card */}
       <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-brass-dark">
-          Preferensi latihan
-        </p>
-        <h2 className="mt-2 text-xl font-semibold">Studio utama</h2>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
-          {profile.preferredBranch
-            ? `${profile.preferredBranch.name} menjadi default untuk jadwal, paket baru, checkout baru, dan bantuan WhatsApp.`
-            : 'Pilih studio yang paling sering Anda gunakan.'}
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          className="mt-4"
-          onClick={() => studioPreference?.openStudioPreference()}
-        >
-          Ganti studio
-        </Button>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <MapPin className="size-5 text-dd-forest" />
+              <h3 className="text-base font-semibold text-dd-ink">Studio Latihan Utama</h3>
+            </div>
+            <p className="text-xs leading-5 text-dd-muted max-w-xl">
+              Studio utama Anda digunakan sebagai filter bawaan saat melihat jadwal kelas, paket sesi, dan reservasi harian.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0"
+            onClick={() => studioPreference?.openStudioPreference()}
+          >
+            Ganti Studio
+          </Button>
+        </div>
+
+        <div className="mt-4 rounded-dd-lg border border-dd-line/60 bg-dd-surface-muted p-4">
+          <div className="flex items-center justify-between">
+            <strong className="text-sm font-semibold text-dd-ink">
+              {profile.preferredBranch?.name ?? 'Muara Karang, Jakarta Utara'}
+            </strong>
+            <span className="text-[11px] font-medium text-dd-forest bg-white px-2 py-0.5 rounded border border-dd-line">
+              Aktif
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-dd-muted">
+            {profile.preferredBranch?.publicProfile?.address ??
+              'Pluit Karang Cantik Blok P 3 Timur No. 18, Muara Karang, Jakarta Utara'}
+          </p>
+        </div>
       </section>
-    </div>
+
+      {/* Quick Navigation Hub */}
+      <section className="grid gap-4 sm:grid-cols-3">
+        <Link
+          href="/identity-verification"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+        >
+          <div className="flex items-center justify-between">
+            <ShieldCheck className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
+            <StatusBadge tone={isVerified ? 'success' : 'neutral'}>
+              {isVerified ? 'Disetujui' : 'Cek Status'}
+            </StatusBadge>
+          </div>
+          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Verifikasi KYC</strong>
+          <p className="mt-1 text-xs text-dd-muted">Dokumen identitas resmi & selfie akun.</p>
+        </Link>
+
+        <Link
+          href="/packages"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+        >
+          <div className="flex items-center justify-between">
+            <PackageCheck className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
+            <span className="text-xs font-semibold text-dd-forest">Buka →</span>
+          </div>
+          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Paket & Sesi</strong>
+          <p className="mt-1 text-xs text-dd-muted">Beli paket baru atau cek kuota sesi Anda.</p>
+        </Link>
+
+        <Link
+          href="/bookings"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+        >
+          <div className="flex items-center justify-between">
+            <CalendarDays className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
+            <span className="text-xs font-semibold text-dd-forest">Buka →</span>
+          </div>
+          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Booking Saya</strong>
+          <p className="mt-1 text-xs text-dd-muted">Jadwal reservasi & tiket QR check-in.</p>
+        </Link>
+      </section>
+    </main>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { PackageDetailView } from './package-detail-view';
-import { publicMetadataValue } from '../../public-detail-metadata';
-import type { PublicPackageDetail } from '../../public-detail-client';
+import { publicMetadataValue } from '@/lib/public-detail-metadata';
+import type { PublicPackageDetail } from '@/api-clients/public-detail-client';
 
 export async function generateMetadata({
   params,

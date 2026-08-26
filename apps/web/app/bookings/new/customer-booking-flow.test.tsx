@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { BookingClient, CustomerBookingOptions } from '../../booking-client';
+import type { BookingClient, CustomerBookingOptions } from '@/api-clients/booking-client';
+import { AppFeedbackProvider } from '../../components/app-feedback';
 import { CustomerBookingFlow } from './customer-booking-flow';
 
 const options: CustomerBookingOptions = {
@@ -66,11 +67,15 @@ describe('customer self booking flow', () => {
   it('books the selected slot using the authenticated customer package', async () => {
     window.history.replaceState({}, '', `?slot=${options.slot.id}`);
     const client = bookingClient(options);
-    render(<CustomerBookingFlow client={client} />);
+    render(
+      <AppFeedbackProvider>
+        <CustomerBookingFlow client={client} />
+      </AppFeedbackProvider>,
+    );
 
-    expect(await screen.findByRole('heading', { name: 'Konfirmasi kelas Anda' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Konfirmasi reservasi kelas' })).toBeVisible();
     expect(screen.getByText('Reformer 10')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lanjutkan ke review booking' }));
     expect(screen.getByText('6 → 5 sesi')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
 
@@ -91,22 +96,24 @@ describe('customer self booking flow', () => {
   it('preserves the slot when the customer needs to buy a matching package', async () => {
     window.history.replaceState({}, '', `?slot=${options.slot.id}`);
     render(
-      <CustomerBookingFlow
-        client={bookingClient({
-          ...options,
-          packages: [],
-          eligibility: {
-            ...options.eligibility,
-            canBook: false,
-            reasonCode: 'MATCHING_PACKAGE_REQUIRED',
-            requiredAction: 'BUY_MATCHING_PACKAGE',
-          },
-        })}
-      />,
+      <AppFeedbackProvider>
+        <CustomerBookingFlow
+          client={bookingClient({
+            ...options,
+            packages: [],
+            eligibility: {
+              ...options.eligibility,
+              canBook: false,
+              reasonCode: 'MATCHING_PACKAGE_REQUIRED',
+              requiredAction: 'BUY_MATCHING_PACKAGE',
+            },
+          })}
+        />
+      </AppFeedbackProvider>,
     );
 
     expect(await screen.findByText('Paket yang sesuai diperlukan', { exact: false })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lihat paket yang sesuai' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Beli paket yang sesuai' })).toHaveAttribute(
       'href',
       `/packages?branch=${options.slot.branchId}&classType=${options.slot.classTypeId}&slot=${options.slot.id}`,
     );
@@ -124,10 +131,14 @@ describe('customer self booking flow', () => {
       packages: [...options.packages, secondPackage],
     });
     vi.mocked(client.create).mockRejectedValue(new Error('network unavailable'));
-    render(<CustomerBookingFlow client={client} />);
+    render(
+      <AppFeedbackProvider>
+        <CustomerBookingFlow client={client} />
+      </AppFeedbackProvider>,
+    );
 
     await screen.findByText('Reformer 10');
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lanjutkan ke review booking' }));
     await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(1));
     const firstKey = vi.mocked(client.create).mock.calls[0]![1];
@@ -138,7 +149,7 @@ describe('customer self booking flow', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Kembali ubah paket' }));
     await userEvent.click(screen.getByRole('radio', { name: /Reformer 20/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lanjutkan ke review booking' }));
     await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(3));
     expect(vi.mocked(client.create).mock.calls[2]![1]).not.toBe(firstKey);

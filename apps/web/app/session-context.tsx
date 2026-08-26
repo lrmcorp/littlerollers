@@ -8,9 +8,9 @@ import {
   type SessionClient,
   type SessionStatus,
   type WebSession,
-} from './session-client';
+} from '@/api-clients/session-client';
 import { Feedback, Skeleton } from './ui';
-import { isPublicExperiencePath } from './session-audience';
+import { isPublicExperiencePath } from '@/lib/session-audience';
 import { useOptionalAppFeedback } from './components/app-feedback';
 import { useTrackedRouter } from './components/app-loading';
 import { ActionGroup, Button, ButtonLink } from './components/actions';
@@ -33,6 +33,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/identity-verifications', ['identity-verification:read']],
   ['/audit', ['audit:read']],
   ['/migrations', ['migration:read']],
+  ['/data-import', ['migration:read', 'migration:resolve', 'user:admin', 'master:manage']],
   ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
   ['/customers', ['customer:read']],

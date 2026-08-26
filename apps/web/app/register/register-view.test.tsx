@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { verificationClient } from '../identity-verification-client';
+import { verificationClient } from '@/api-clients/identity-verification-client';
 import { RegisterView } from './register-view';
 
 describe('customer self-registration', () => {

@@ -14,6 +14,8 @@ import { PublicStudioQueryService } from './public-studio-query.service';
 import { IdentityModule } from '../identity/identity.module';
 import { PublicContentManagementController } from './public-content-management.controller';
 import { PublicContentManagementService } from './public-content-management.service';
+import { PublicMediaController } from './public-media.controller';
+import { PublicMediaService } from './public-media.service';
 
 @Module({
   imports: [DatabaseModule, IdentityModule],
@@ -23,6 +25,7 @@ import { PublicContentManagementService } from './public-content-management.serv
     PublicScheduleCatalogController,
     PublicProfileController,
     PublicContentManagementController,
+    PublicMediaController,
   ],
   providers: [
     PublicSiteConfigService,
@@ -31,6 +34,7 @@ import { PublicContentManagementService } from './public-content-management.serv
     PublicClassQueryService,
     PublicStudioQueryService,
     PublicContentManagementService,
+    PublicMediaService,
   ],
 })
 export class PublicContentModule {}

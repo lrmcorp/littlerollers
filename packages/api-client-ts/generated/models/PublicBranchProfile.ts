@@ -139,7 +139,9 @@ export function PublicBranchProfileFromJSONTyped(json: any, ignoreDiscriminator:
         'address': json['address'],
         'latitude': json['latitude'] == null ? undefined : json['latitude'],
         'longitude': json['longitude'] == null ? undefined : json['longitude'],
-        'openingHours': ((json['openingHours'] as Array<any>).map(PublicBranchProfileOpeningHoursInnerFromJSON)),
+        'openingHours': Array.isArray(json['openingHours'])
+            ? ((json['openingHours'] as Array<any>).map(PublicBranchProfileOpeningHoursInnerFromJSON))
+            : [],
         'description': json['description'],
         'arrivalInformation': json['arrivalInformation'] == null ? undefined : json['arrivalInformation'],
         'parkingInformation': json['parkingInformation'] == null ? undefined : json['parkingInformation'],

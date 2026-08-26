@@ -18,7 +18,7 @@ import type {
   DocumentReviewStatus,
   DocumentScanStatus,
   VerificationDocument,
-} from '../identity-verification-client';
+} from '@/api-clients/identity-verification-client';
 import { Button } from '../components/actions';
 import { AlertBanner, Modal } from '../components/app-feedback';
 import { Badge, Panel } from '../components/admin/admin-ui';
@@ -88,12 +88,20 @@ export function SummaryButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded-dd-lg border p-5 text-left shadow-sm transition ${active ? 'border-dd-forest bg-dd-forest text-white' : tone === 'danger' ? 'border-red-200 bg-red-50 text-red-900' : 'border-dd-line bg-white text-dd-ink hover:border-dd-forest/50'}`}
+      className={`rounded-2xl border p-5 sm:p-6 text-left shadow-dd-card transition duration-200 cursor-pointer ${
+        active
+          ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft'
+          : tone === 'danger'
+            ? 'border-red-200 bg-red-50/80 text-red-950 hover:border-red-400'
+            : 'border-dd-line/80 bg-white/95 text-dd-ink hover:border-dd-forest/60 hover:-translate-y-0.5'
+      }`}
     >
-      <span className="block text-xs font-bold uppercase tracking-[0.12em] opacity-70">
+      <span className="block text-[11px] font-bold uppercase tracking-wider opacity-80">
         {label}
       </span>
-      <strong className="mt-3 block text-2xl">{value.toLocaleString('id-ID')}</strong>
+      <strong className="mt-2.5 block text-2xl sm:text-3xl font-bold">
+        {value.toLocaleString('id-ID')}
+      </strong>
     </button>
   );
 }

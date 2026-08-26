@@ -8,11 +8,23 @@ import {
   type FocusEvent,
   type RefObject,
 } from 'react';
+import {
+  Eye,
+  EyeOff,
+  FileText,
+  Image as ImageIcon,
+  Lock,
+  ShieldCheck,
+  UploadCloud,
+  User,
+  UserCheck,
+  X,
+} from 'lucide-react';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Button } from '../components/actions';
 import { FieldError, FormField, TextInput, controlClassName } from '../components/forms';
 import { Feedback } from '../ui';
-import { verificationClient } from '../identity-verification-client';
+import { verificationClient } from '@/api-clients/identity-verification-client';
 import { useSessionContext } from '../session-context';
 import {
   type RegisterErrors,
@@ -65,9 +77,9 @@ function PasswordField({
       required
       error={error ? <span id={errorId(name)}>{error}</span> : undefined}
     >
-      <span className="auth-input-action">
+      <div className="relative flex items-center">
         <input
-          className={controlClassName}
+          className={`${controlClassName} pr-12`}
           id={id}
           name={name}
           type={visible ? 'text' : 'password'}
@@ -85,24 +97,15 @@ function PasswordField({
         />
         <button
           type="button"
-          className="auth-visibility-toggle"
+          className="absolute right-2 flex size-9 items-center justify-center rounded-dd-sm text-dd-muted hover:text-dd-ink transition focus-visible:outline-2 focus-visible:outline-dd-forest"
           aria-label={`${visible ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
           aria-pressed={visible}
           disabled={disabled}
           onClick={() => setVisible((current) => !current)}
         >
-          {visible ? (
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9 5.3 9 5.3a15.7 15.7 0 0 1-2.1 2.6M6.6 6.6C4.4 8 3 10.1 3 10.1S6.5 16 12 16c1 0 2-.2 2.8-.5" />
-            </svg>
-          ) : (
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" />
-              <circle cx="12" cy="12" r="2.5" />
-            </svg>
-          )}
+          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
-      </span>
+      </div>
     </FormField>
   );
 }
@@ -121,13 +124,16 @@ function UploadPreview({ file, kind }: { file: File | null; kind: 'selfie' | 'kt
 
   if (!previewUrl || !file) return null;
   return (
-    <figure className={`auth-upload-preview auth-upload-preview--${kind}`}>
-      {/* Blob URLs are created locally and are never sent before submission. */}
+    <figure className="mt-3 flex items-center gap-3.5 rounded-dd-md border border-dd-line bg-dd-cream/50 p-2.5 shadow-dd-soft">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={previewUrl} alt={`Pratinjau ${kind === 'selfie' ? 'foto selfie' : 'foto KTP'}`} />
-      <figcaption>
-        <strong>{file.name}</strong>
-        <span>
+      <img
+        src={previewUrl}
+        alt={`Pratinjau ${kind === 'selfie' ? 'foto selfie' : 'foto KTP'}`}
+        className="size-16 rounded-dd-sm object-cover border border-dd-line/80 shadow-sm"
+      />
+      <figcaption className="flex flex-1 flex-col text-xs">
+        <strong className="truncate font-semibold text-dd-ink max-w-[220px]">{file.name}</strong>
+        <span className="text-dd-muted mt-0.5">
           {(file.size / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB
         </span>
       </figcaption>
@@ -167,12 +173,12 @@ function UploadField({
       label={label}
       htmlFor={id}
       required
-      className="auth-upload-field"
+      className="space-y-1.5"
       error={error ? <span id={errorId(name)}>{error}</span> : undefined}
     >
       <input
         ref={inputRef}
-        className="auth-upload-input"
+        className="sr-only"
         id={id}
         aria-label={label}
         aria-invalid={Boolean(error) || undefined}
@@ -185,19 +191,42 @@ function UploadField({
         disabled={disabled}
         onChange={(event) => onChange(event.currentTarget.files?.[0] ?? null)}
       />
-      <div className="auth-upload-actions">
-        <label className="auth-upload-picker" htmlFor={id}>
-          {file ? 'Ganti foto' : 'Pilih foto'}
-        </label>
-        {file && (
-          <button type="button" disabled={disabled} onClick={onRemove}>
-            Hapus
-          </button>
-        )}
+
+      {/* Upload Dropzone Container */}
+      <div
+        className={`relative flex flex-col items-center justify-center rounded-dd-md border-2 border-dashed p-4 text-center transition ${
+          file
+            ? 'border-dd-forest bg-dd-success-soft/30'
+            : error
+              ? 'border-dd-danger bg-dd-danger-soft/20'
+              : 'border-dd-line bg-dd-surface-muted/30 hover:border-dd-forest/60 hover:bg-dd-surface-muted/60'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <label
+            className="inline-flex cursor-pointer items-center gap-2 rounded-dd-sm bg-white px-4 py-2 text-xs font-bold text-dd-forest shadow-dd-soft border border-dd-line/80 hover:bg-dd-surface-muted transition"
+            htmlFor={id}
+          >
+            <UploadCloud className="size-4" />
+            {file ? 'Ganti foto' : 'Pilih foto'}
+          </label>
+          {file && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onRemove}
+              className="inline-flex items-center gap-1.5 rounded-dd-sm border border-dd-line/80 bg-white px-3 py-2 text-xs font-bold text-dd-danger hover:bg-dd-danger-soft transition"
+            >
+              <X className="size-3.5" />
+              Hapus
+            </button>
+          )}
+        </div>
+        <p id={hintId} className="mt-2 text-[11px] text-dd-muted m-0">
+          {hint}
+        </p>
       </div>
-      <p id={hintId} className="text-xs leading-5 text-dd-muted">
-        {hint}
-      </p>
+
       <UploadPreview file={file} kind={name} />
     </FormField>
   );
@@ -288,6 +317,7 @@ export function RegisterView() {
         aria-label="Registrasi customer"
         method="post"
         noValidate
+        className="space-y-6"
         onSubmit={async (event) => {
           event.preventDefault();
           clearRequestError();
@@ -321,109 +351,142 @@ export function RegisterView() {
           }
         }}
       >
-        <TextInput
-          id="register-display-name"
-          label="Nama lengkap"
-          name="displayName"
-          autoComplete="name"
-          maxLength={160}
-          placeholder="Contoh: Nadia Putri"
-          required
-          disabled={loading}
-          error={
-            errors.displayName ? (
-              <span id={errorId('displayName')}>{errors.displayName}</span>
-            ) : undefined
-          }
-          aria-describedby={errors.displayName ? errorId('displayName') : undefined}
-          onBlur={handleTextBlur('displayName')}
-          onChange={handleTextChange('displayName')}
-        />
-        <TextInput
-          id="register-phone"
-          label="Nomor WhatsApp"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="0812 3456 7890"
-          required
-          disabled={loading}
-          error={errors.phone ? <span id={errorId('phone')}>{errors.phone}</span> : undefined}
-          aria-describedby={errors.phone ? errorId('phone') : undefined}
-          onBlur={handleTextBlur('phone')}
-          onChange={handleTextChange('phone')}
-        />
-        <TextInput
-          id="register-email"
-          label="Email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          maxLength={254}
-          placeholder="nama@email.com"
-          required
-          disabled={loading}
-          error={errors.email ? <span id={errorId('email')}>{errors.email}</span> : undefined}
-          aria-describedby={errors.email ? errorId('email') : undefined}
-          onBlur={handleTextBlur('email')}
-          onChange={handleTextChange('email')}
-        />
-        <PasswordField
-          id="register-password"
-          label="Password"
-          name="password"
-          placeholder="Minimal 8 karakter"
-          error={errors.password}
-          disabled={loading}
-          onBlur={handleTextBlur('password')}
-          onChange={handleTextChange('password')}
-        />
-        <PasswordField
-          id="register-confirmation"
-          label="Ulangi password"
-          name="confirmation"
-          placeholder="Masukkan ulang password"
-          error={errors.confirmation}
-          disabled={loading}
-          onBlur={handleTextBlur('confirmation')}
-          onChange={handleTextChange('confirmation')}
-        />
-        <UploadField
-          id="register-selfie"
-          name="selfie"
-          label="Foto selfie"
-          hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
-          capture="user"
-          file={selfie}
-          inputRef={selfieInputRef}
-          error={errors.selfie}
-          disabled={loading}
-          onChange={(file) => handleUpload('selfie', file)}
-          onRemove={() => removeUpload('selfie')}
-        />
-        <UploadField
-          id="register-ktp"
-          name="ktp"
-          label="Foto KTP bagian depan"
-          hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
-          capture="environment"
-          file={ktp}
-          inputRef={ktpInputRef}
-          error={errors.ktp}
-          disabled={loading}
-          onChange={(file) => handleUpload('ktp', file)}
-          onRemove={() => removeUpload('ktp')}
-        />
-        <div id="register-privacy-notice" className="auth-privacy-notice" role="note">
-          Selfie dan foto KTP hanya digunakan untuk verifikasi identitas, disimpan secara privat,
-          dan hanya dapat diakses oleh tim yang berwenang.
+        {/* Section 1: Data Diri */}
+        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
+          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
+            <User className="size-3.5" /> 1. Data Diri &amp; Kontak
+          </div>
+          <TextInput
+            id="register-display-name"
+            label="Nama lengkap"
+            name="displayName"
+            autoComplete="name"
+            maxLength={160}
+            placeholder="Contoh: Nadia Putri"
+            required
+            disabled={loading}
+            error={
+              errors.displayName ? (
+                <span id={errorId('displayName')}>{errors.displayName}</span>
+              ) : undefined
+            }
+            aria-describedby={errors.displayName ? errorId('displayName') : undefined}
+            onBlur={handleTextBlur('displayName')}
+            onChange={handleTextChange('displayName')}
+          />
+          <TextInput
+            id="register-phone"
+            label="Nomor WhatsApp"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="0812 3456 7890"
+            required
+            disabled={loading}
+            error={errors.phone ? <span id={errorId('phone')}>{errors.phone}</span> : undefined}
+            aria-describedby={errors.phone ? errorId('phone') : undefined}
+            onBlur={handleTextBlur('phone')}
+            onChange={handleTextChange('phone')}
+          />
+          <TextInput
+            id="register-email"
+            label="Email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            maxLength={254}
+            placeholder="nama@email.com"
+            required
+            disabled={loading}
+            error={errors.email ? <span id={errorId('email')}>{errors.email}</span> : undefined}
+            aria-describedby={errors.email ? errorId('email') : undefined}
+            onBlur={handleTextBlur('email')}
+            onChange={handleTextChange('email')}
+          />
         </div>
-        <div>
-          <label className="auth-consent" htmlFor="register-consent">
+
+        {/* Section 2: Keamanan Akun */}
+        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
+          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
+            <Lock className="size-3.5" /> 2. Keamanan Akun
+          </div>
+          <PasswordField
+            id="register-password"
+            label="Password"
+            name="password"
+            placeholder="Minimal 8 karakter"
+            error={errors.password}
+            disabled={loading}
+            onBlur={handleTextBlur('password')}
+            onChange={handleTextChange('password')}
+          />
+          <PasswordField
+            id="register-confirmation"
+            label="Ulangi password"
+            name="confirmation"
+            placeholder="Masukkan ulang password"
+            error={errors.confirmation}
+            disabled={loading}
+            onBlur={handleTextBlur('confirmation')}
+            onChange={handleTextChange('confirmation')}
+          />
+        </div>
+
+        {/* Section 3: Verifikasi Identitas (KYC) */}
+        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
+          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
+            <UserCheck className="size-3.5" /> 3. Verifikasi Identitas (KYC)
+          </div>
+          <UploadField
+            id="register-selfie"
+            name="selfie"
+            label="Foto selfie"
+            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+            capture="user"
+            file={selfie}
+            inputRef={selfieInputRef}
+            error={errors.selfie}
+            disabled={loading}
+            onChange={(file) => handleUpload('selfie', file)}
+            onRemove={() => removeUpload('selfie')}
+          />
+          <UploadField
+            id="register-ktp"
+            name="ktp"
+            label="Foto KTP bagian depan"
+            hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+            capture="environment"
+            file={ktp}
+            inputRef={ktpInputRef}
+            error={errors.ktp}
+            disabled={loading}
+            onChange={(file) => handleUpload('ktp', file)}
+            onRemove={() => removeUpload('ktp')}
+          />
+        </div>
+
+        {/* Section 4: Privacy Notice & Consent */}
+        <div
+          id="register-privacy-notice"
+          className="flex items-start gap-3 rounded-dd-md border border-dd-line/80 bg-dd-cream/70 p-3.5 text-xs leading-relaxed text-dd-muted shadow-sm"
+          role="note"
+        >
+          <ShieldCheck className="size-5 shrink-0 text-dd-forest mt-0.5" />
+          <span>
+            Selfie dan foto KTP hanya digunakan untuk verifikasi identitas, disimpan secara privat,
+            dan hanya dapat diakses oleh tim yang berwenang.
+          </span>
+        </div>
+
+        <div className="space-y-1.5 pt-1">
+          <label
+            className="flex items-start gap-3 text-xs leading-5 text-dd-ink cursor-pointer select-none"
+            htmlFor="register-consent"
+          >
             <input
-              className="size-5 accent-dd-forest"
+              className="mt-0.5 size-4 shrink-0 rounded border-dd-line text-dd-forest focus:ring-dd-forest accent-dd-forest"
               id="register-consent"
               name="consent"
               type="checkbox"
@@ -443,10 +506,14 @@ export function RegisterView() {
                 if (errors.consent) validateOne('consent');
               }}
             />
-            <span>Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.</span>
+            <span className="font-medium">
+              Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.
+            </span>
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}
         </div>
+
+        {/* Submit Action */}
         <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Membuat akun…">
           Daftar dan masuk
         </Button>

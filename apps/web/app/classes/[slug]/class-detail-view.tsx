@@ -20,7 +20,7 @@ import {
   publicDetailClient,
   publicDetailFailure,
   type PublicClassDetail,
-} from '../../public-detail-client';
+} from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
   DetailFailure,

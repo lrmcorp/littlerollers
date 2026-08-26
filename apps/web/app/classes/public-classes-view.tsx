@@ -8,7 +8,7 @@ import {
   type PublicBranch,
   type PublicClassCatalogClient,
   type PublicClassSlot,
-} from '../public-class-catalog-client';
+} from '@/api-clients/public-class-catalog-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';

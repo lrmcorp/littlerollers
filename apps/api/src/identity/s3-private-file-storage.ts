@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
@@ -22,7 +22,7 @@ export class S3PrivateFileStorage implements PrivateFileStorage, OnModuleInit {
 
   constructor(
     private readonly config: RuntimeConfigService,
-    customClient?: S3Client,
+    @Optional() @Inject('S3_CLIENT') customClient?: S3Client,
   ) {
     const objectStorage = this.config.value.privateUploads.objectStorage;
     this.bucket = objectStorage?.bucket || 'dailydose-private';

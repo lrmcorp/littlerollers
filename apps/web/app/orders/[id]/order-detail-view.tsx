@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react';
 import { CustomerPaymentFlow } from '../../components/customer/customer-payment-flow';
 import { AlertBanner } from '../../components/app-feedback';
 import { ButtonLink } from '../../components/actions';
-import { browserOrderClient, orderError, type CustomerOrder } from '../../order-client';
-import { orderReasonLabels, orderTimelineLabels } from '../../order-presenters';
+import { browserOrderClient, orderError, type CustomerOrder } from '@/api-clients/order-client';
+import { orderReasonLabels, orderTimelineLabels } from '@/lib/order-presenters';
 import { Skeleton, StatusBadge } from '../../ui';
 
 function safeReturnTo(value: string | null) {

@@ -12,7 +12,7 @@ import {
   type AssignmentManagementSummary,
   type AssignmentStatus,
   type AssignmentType,
-} from '../assignment-client';
+} from '@/api-clients/assignment-client';
 import { PageHeader } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Button } from '../components/actions';

@@ -16,7 +16,7 @@ import {
   type MyProfile,
   type PreferredStudio,
   type PublicSiteConfig,
-} from '../../account-client';
+} from '@/api-clients/account-client';
 import { useSessionContext } from '../../session-context';
 import { Button } from '../actions';
 import { Modal, useAppFeedback } from '../app-feedback';

@@ -33,6 +33,15 @@ describe('PublicSiteConfigService', () => {
           },
         ]),
       },
+      entriKontenPublik: {
+        findFirst: jest.fn().mockResolvedValue({
+          payload: {
+            autoplay: true,
+            intervalMs: 6000,
+            slides: [{ id: 'slide-1', title: 'Stronger Body.' }],
+          },
+        }),
+      },
     };
     const service = new PublicSiteConfigService(
       db as never,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { ApplicationRole, RoleCatalogItem, UserSummary } from '../../identity-client';
+import type { ApplicationRole, RoleCatalogItem, UserSummary } from '@/api-clients/identity-client';
 import { Button } from '../../components/actions';
 import { DestructiveDialog, Modal, useOptionalAppFeedback } from '../../components/app-feedback';
 import { FormSection } from '../../components/admin/admin-ui';

@@ -12,7 +12,7 @@ import {
   type CustomerBookingRecord,
   type CustomerPackageBalance,
   type ManagementReschedule,
-} from '../booking-client';
+} from '@/api-clients/booking-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';

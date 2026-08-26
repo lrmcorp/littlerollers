@@ -14,7 +14,7 @@ import {
   SessionProvider,
   useSessionContext,
 } from './session-context';
-import type { SessionClient, WebSession } from './session-client';
+import type { SessionClient, WebSession } from '@/api-clients/session-client';
 
 const navigation = vi.hoisted(() => ({ pathname: '/workspace', replace: vi.fn() }));
 vi.mock('next/navigation', () => ({

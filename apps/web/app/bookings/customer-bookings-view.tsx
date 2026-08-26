@@ -7,7 +7,7 @@ import {
   browserBookingClient,
   type CustomerBookingRecord,
   type BookingClient,
-} from '../booking-client';
+} from '@/api-clients/booking-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { ButtonLink } from '../components/actions';
 import { Pagination } from '../components/admin/admin-ui';
@@ -114,49 +114,91 @@ export function CustomerBookingsView({
         />
       ) : (
         <>
-          <div className="customer-booking-list">
-            {items.map((item) => (
-              <Link
-                href={`/bookings/${encodeURIComponent(item.id)}`}
-                className="rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card"
-                key={item.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <strong className="block text-base">
-                      {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
-                    </strong>
-                    <span className="mt-1 block text-xs text-dd-muted">
-                      {item.branch?.name ?? 'Studio Daily Dose'}
+          <div className="customer-booking-list space-y-4">
+            {items.map((item) => {
+              const availablePlaces =
+                item.classSlot?.capacity !== undefined && item.classSlot?.bookedCount !== undefined
+                  ? Math.max(0, item.classSlot.capacity - item.classSlot.bookedCount)
+                  : undefined;
+              return (
+                <Link
+                  href={`/bookings/${encodeURIComponent(item.id)}`}
+                  className="block rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card hover:border-dd-forest/40 transition-colors"
+                  key={item.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <strong className="block text-lg font-semibold text-dd-ink">
+                        {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+                      </strong>
+                      <span className="mt-1 block text-xs text-dd-muted">
+                        {item.classSlot?.studio?.name
+                          ? `${item.classSlot.studio.name} · ${item.branch?.name}`
+                          : (item.branch?.name ?? 'Studio Daily Dose')}
+                      </span>
+                    </div>
+                    <StatusBadge
+                      tone={statusTones[item.status as keyof typeof statusTones] ?? 'neutral'}
+                    >
+                      {item.status === 'BOOKED' &&
+                      item.classSlot &&
+                      item.classSlot.endAt.getTime() < Date.now()
+                        ? 'Status kehadiran sedang diproses'
+                        : (statusLabels[item.status] ?? 'Status booking')}
+                    </StatusBadge>
+                  </div>
+
+                  <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs text-dd-muted">
+                    <div>
+                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                        Waktu Sesi
+                      </span>
+                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
+                        {item.classSlot
+                          ? item.classSlot.startAt.toLocaleString('id-ID', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: item.classSlot.timezone,
+                            })
+                          : `Dibuat ${item.createdAt.toLocaleString('id-ID')}`}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                        Instruktur
+                      </span>
+                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink truncate">
+                        {item.classSlot?.instructor?.displayName ?? 'Tim Daily Dose'}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                        Ketersediaan Slot
+                      </span>
+                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
+                        {item.classSlot?.capacity
+                          ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
+                          : 'Tersedia'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between text-xs text-dd-muted pt-2 border-t border-dd-line/50">
+                    <span className="truncate max-w-xs sm:max-w-md">
+                      Paket: <strong className="font-medium text-dd-ink">{item.package?.name ?? 'Paket Customer'}</strong>
+                    </span>
+                    <span className="font-semibold text-dd-forest shrink-0">
+                      Lihat detail & QR Pass →
                     </span>
                   </div>
-                  <StatusBadge
-                    tone={statusTones[item.status as keyof typeof statusTones] ?? 'neutral'}
-                  >
-                    {item.status === 'BOOKED' &&
-                    item.classSlot &&
-                    item.classSlot.endAt.getTime() < Date.now()
-                      ? 'Status kehadiran sedang diproses'
-                      : (statusLabels[item.status] ?? 'Status booking')}
-                  </StatusBadge>
-                </div>
-                <time className="mt-5 block text-sm font-semibold text-dd-forest">
-                  {item.classSlot
-                    ? item.classSlot.startAt.toLocaleString('id-ID', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: item.classSlot.timezone,
-                      })
-                    : `Dibuat ${item.createdAt.toLocaleString('id-ID')}`}
-                </time>
-                <span className="mt-4 block text-xs font-semibold text-dd-forest">
-                  Lihat detail →
-                </span>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
           <div className="mt-5">
             <Pagination

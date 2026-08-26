@@ -15,8 +15,8 @@ import {
   type PackagePromotionRecord,
   type PackagePromotionPage,
   type PromotionOrderPage,
-} from '../package-promotion-client';
-import { browserMasterClient } from '../master-client';
+} from '@/api-clients/package-promotion-client';
+import { browserMasterClient } from '@/api-clients/master-client';
 import { formatRupiah } from '../lib/formatters';
 const stateLabels: Record<string, string> = {
   DRAFT: 'Draft',

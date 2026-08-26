@@ -1,14 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('navigation CSS ownership', () => {
-  it('does not reintroduce the legacy nav-scroll selector', () => {
+  it('ensures legacy css files are fully eliminated and navigation uses clean classes', () => {
     const appRoot = resolve(process.cwd(), 'app');
-    const legacyCss = readFileSync(resolve(appRoot, 'legacy-ui.css'), 'utf8');
-    const navigationSource = readFileSync(resolve(appRoot, 'app-navigation.tsx'), 'utf8');
+    expect(existsSync(resolve(appRoot, 'legacy-ui.css'))).toBe(false);
+    expect(existsSync(resolve(appRoot, 'legacy-compatibility.css'))).toBe(false);
 
-    expect(legacyCss).not.toMatch(/\.nav-scroll\b/);
+    const navigationSource = readFileSync(resolve(appRoot, 'app-navigation.tsx'), 'utf8');
     expect(navigationSource).not.toContain('nav-scroll');
     expect(navigationSource).toContain('workspace-navigation-scroll');
   });

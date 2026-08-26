@@ -9,7 +9,7 @@ import {
   type BookingClient,
   type CheckInIssue,
   type CustomerBookingRecord,
-} from '../../../booking-client';
+} from '@/api-clients/booking-client';
 import { AlertBanner } from '../../../components/app-feedback';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/actions';

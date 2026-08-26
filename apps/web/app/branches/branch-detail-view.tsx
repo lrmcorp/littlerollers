@@ -7,7 +7,7 @@ import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback'
 import { Badge, Panel, StatCard } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
-import { browserBranchClient, type BranchManagementDetail } from '../branch-client';
+import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
 import { Skeleton } from '../ui';
 
 const auditLabels: Record<string, string> = {

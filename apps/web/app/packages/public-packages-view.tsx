@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, Check, MapPin, Sparkles } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Clock, Layers, MapPin, Sparkles } from 'lucide-react';
 import {
   browserPublicPackageCatalogClient,
   publicPackageFailure,
   type PublicPackageCatalogClient,
   type PublicPackage,
   type PublicPackageBranch,
-} from '../public-package-catalog-client';
+} from '@/api-clients/public-package-catalog-client';
 import { PackagePrice } from '../components/public/package-price';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
@@ -19,13 +19,13 @@ import {
   publicPrimaryButton,
   publicSecondaryButton,
 } from '../components/public/public-styles';
-import { signInReturnTo } from '../routes';
-import type { WebSession } from '../session-client';
+import { signInReturnTo } from '@/lib/routes';
+import type { WebSession } from '@/api-clients/session-client';
 import {
   isCustomerOnlySession,
   packageAudienceState,
   type PackageAudienceState,
-} from '../session-audience';
+} from '@/lib/session-audience';
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
 
@@ -182,12 +182,20 @@ export function PublicPackagesView({
             : result.branches.find(({ id }) => id === session?.preferredBranch?.id)?.id;
         if (initialBranch) {
           setBranchId(initialBranch);
-          const selected = await client.list(initialBranch);
-          if (!active) return;
-          setBranches(selected.branches);
-          setItems(selected.items);
+          try {
+            const selected = await client.list(initialBranch);
+            if (!active) return;
+            setBranches(selected.branches);
+            setItems(selected.items);
+            setStatus('ready');
+          } catch (innerError) {
+            if (!active) return;
+            setMessage(publicPackageFailure(innerError));
+            setStatus('error');
+          }
+        } else {
+          setStatus('ready');
         }
-        setStatus('ready');
       })
       .catch((error) => {
         if (!active) return;
@@ -246,19 +254,19 @@ export function PublicPackagesView({
           </ul>
         </PublicPageHero>
 
-        <section className="py-0 sm:py-1" aria-labelledby="package-discovery-title">
+        <section className="py-2 sm:py-4" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>
-            <header className="mb-2 max-w-3xl">
-              <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
+            <header className="mb-4 max-w-3xl">
+              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
                 01 — Pilih studio
-              </p>
+              </span>
               <h2
-                className="mt-1 text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight font-semibold"
+                className="mt-1 text-[clamp(1.75rem,3.2vw,2.25rem)] font-bold leading-tight text-dd-ink"
                 id="package-discovery-title"
               >
                 Pilih studio tempat Anda berlatih.
               </h2>
-              <p className="mt-1 max-w-2xl leading-6 text-dd-muted">
+              <p className="mt-1 max-w-2xl text-sm sm:text-base leading-relaxed text-dd-muted">
                 Harga dan ketersediaan paket mengikuti studio pilihan Anda.
               </p>
             </header>
@@ -267,38 +275,38 @@ export function PublicPackagesView({
               <div className="grid grid-cols-2 gap-3" role="status" aria-label="Memuat studio">
                 {[0, 1].map((item) => (
                   <div
-                    className="h-20 animate-pulse rounded-dd-md border border-dd-line bg-white"
+                    className="h-20 animate-pulse rounded-2xl border border-dd-line/80 bg-white shadow-sm"
                     key={item}
                   />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {branches.map((item) => {
                   const selected = item.id === branchId;
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-14 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
+                      className={`flex min-h-16 items-center gap-3.5 rounded-2xl border p-4 text-left shadow-dd-card transition-all duration-200 cursor-pointer ${
                         selected
-                          ? 'border-dd-forest bg-dd-forest text-white'
-                          : 'border-dd-line bg-white text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/50'
+                          ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft ring-2 ring-dd-forest/20'
+                          : 'border-dd-line/80 bg-white/95 text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/60'
                       }`}
                       aria-pressed={selected}
                       key={item.id}
                       onClick={() => void selectBranch(item.id)}
                     >
                       <span
-                        className={`hidden size-10 shrink-0 place-items-center rounded-full sm:grid ${
-                          selected ? 'bg-white/15' : 'bg-dd-success-soft text-dd-forest'
+                        className={`grid size-11 shrink-0 place-items-center rounded-xl transition ${
+                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-dd-forest border border-emerald-200'
                         }`}
                       >
                         <MapPin className="size-5" aria-hidden="true" />
                       </span>
-                      <span>
-                        <strong className="block text-sm sm:text-base">{item.name}</strong>
+                      <span className="min-w-0 flex-1">
+                        <strong className="block truncate text-sm sm:text-base font-bold">{item.name}</strong>
                         <span
-                          className={`block text-xs sm:text-sm ${
+                          className={`block truncate text-xs font-medium ${
                             selected ? 'text-white/80' : 'text-dd-muted'
                           }`}
                         >
@@ -311,7 +319,7 @@ export function PublicPackagesView({
               </div>
             )}
 
-            <div className="mt-3 grid gap-3 rounded-dd-md border border-dd-line bg-white p-3 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="mt-4 grid gap-3 rounded-2xl border border-dd-line/80 bg-white/95 p-4 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div className="min-w-0">
                 <SearchSelect
                   label="Tipe kelas"
@@ -329,7 +337,7 @@ export function PublicPackagesView({
               {classTypeId && (
                 <button
                   type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-line bg-dd-surface-muted px-5 text-sm font-bold text-dd-forest"
+                  className="min-h-11 rounded-xl border border-dd-line bg-dd-surface-muted px-4 text-xs font-bold text-dd-forest transition hover:bg-dd-surface-muted/80"
                   onClick={() => {
                     setClassTypeId('');
                     syncCatalogQuery(branchId, '');
@@ -341,12 +349,12 @@ export function PublicPackagesView({
             </div>
 
             {showCatalogState && (
-              <div className="mt-3" aria-live="polite">
+              <div className="mt-4" aria-live="polite">
                 {status === 'loading' && branchId && (
                   <div className="grid gap-5 md:grid-cols-2" role="status">
                     {[0, 1].map((item) => (
                       <div
-                        className="h-72 animate-pulse rounded-dd-lg border border-dd-line bg-white"
+                        className="h-72 animate-pulse rounded-2xl border border-dd-line/80 bg-white shadow-sm"
                         key={item}
                       />
                     ))}
@@ -357,7 +365,7 @@ export function PublicPackagesView({
                     <p>{message}</p>
                     <button
                       type="button"
-                      className="mt-4 min-h-11 rounded-dd-sm border border-dd-danger/30 bg-white px-5 font-bold"
+                      className="mt-4 min-h-11 rounded-xl border border-dd-danger/30 bg-white px-5 font-bold text-sm shadow-sm transition hover:bg-dd-surface-muted"
                       onClick={() => void retryCatalog()}
                     >
                       Coba lagi
@@ -380,36 +388,36 @@ export function PublicPackagesView({
 
             {status === 'ready' && visible.length > 0 && (
               <>
-                <p className="mt-3 pr-20 text-sm text-dd-muted sm:pr-0">
+                <p className="mt-4 pr-20 text-xs sm:text-sm font-medium text-dd-muted sm:pr-0">
                   {packageJourneyCopy(session ?? null)}
                 </p>
-                <div className="mt-3 grid gap-5 md:grid-cols-2" aria-label="Daftar paket aktif">
+                <div className="mt-4 grid gap-6 md:grid-cols-2" aria-label="Daftar paket aktif">
                   {orderedVisible.map((item) => {
                     const recommended = item.id === recommendedId;
                     const purchase = `/checkout?package=${item.id}&branch=${item.branchId}${classTypeId ? `&classType=${encodeURIComponent(classTypeId)}` : ''}${continuationSlot ? `&slot=${encodeURIComponent(continuationSlot)}` : ''}`;
                     const href = packageCtaHref(audience, purchase);
                     return (
                       <article
-                        className={`flex min-h-[320px] flex-col rounded-dd-lg border bg-white p-5 shadow-dd-card sm:p-6 ${
-                          recommended ? 'border-dd-brass ring-1 ring-dd-brass/30' : 'border-dd-line'
+                        className={`flex min-h-[340px] flex-col rounded-2xl border bg-white/95 p-6 shadow-dd-card transition-all duration-300 hover:shadow-dd-float hover:-translate-y-0.5 sm:p-7 ${
+                          recommended ? 'border-dd-brass ring-2 ring-dd-brass/30' : 'border-dd-line/80'
                         }`}
                         key={item.id}
                       >
                         <div className="flex min-h-7 flex-wrap items-start justify-between gap-2">
-                          <span className="text-xs font-bold tracking-[0.12em] text-dd-forest uppercase">
+                          <span className="inline-flex items-center rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
                             {item.classType.name}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-brass-dark">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-brass-dark shadow-sm">
                               <Sparkles className="size-3.5" aria-hidden="true" />
                               Direkomendasikan
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-2 text-[1.375rem] leading-tight font-semibold sm:text-2xl">
+                        <h3 className="mt-3 text-xl font-bold tracking-tight text-dd-ink sm:text-2xl">
                           {item.name}
                         </h3>
-                        <p className="mt-1 text-sm text-dd-muted">
+                        <p className="mt-1 text-xs sm:text-sm text-dd-muted">
                           {packageDescriptor(item, visible, recommendedId)}
                         </p>
                         <div className="mt-4">
@@ -420,19 +428,19 @@ export function PublicPackagesView({
                             sessionCount={item.sessionCount}
                           />
                         </div>
-                        <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-dd-line py-4">
+                        <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-dd-line/60 py-4">
                           <div>
-                            <dt className="text-xs text-dd-muted">Jumlah sesi</dt>
-                            <dd className="mt-1 font-bold">{item.sessionCount} sesi</dd>
+                            <dt className="text-xs font-semibold text-dd-muted">Jumlah sesi</dt>
+                            <dd className="mt-1 text-base font-bold text-dd-ink">{item.sessionCount} sesi</dd>
                           </div>
                           <div>
-                            <dt className="text-xs text-dd-muted">Masa berlaku</dt>
-                            <dd className="mt-1 font-bold">{item.durationDays} hari</dd>
+                            <dt className="text-xs font-semibold text-dd-muted">Masa berlaku</dt>
+                            <dd className="mt-1 text-base font-bold text-dd-ink">{item.durationDays} hari</dd>
                           </div>
                         </dl>
-                        <div className="mt-auto grid gap-3 pt-4">
-                          <p className="flex items-center gap-2 text-xs text-dd-muted">
-                            <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
+                        <div className="mt-auto grid gap-3 pt-5">
+                          <p className="flex items-center gap-2 text-xs font-medium text-dd-muted">
+                            <CalendarDays className="size-4 shrink-0 text-dd-forest" aria-hidden="true" />
                             {item.effectiveUntil
                               ? `Tersedia sampai ${new Intl.DateTimeFormat('id-ID', {
                                   dateStyle: 'medium',
@@ -440,31 +448,33 @@ export function PublicPackagesView({
                               : 'Tersedia untuk pembelian'}
                           </p>
                           {audience === 'STAFF' && (
-                            <p className="rounded-dd-sm bg-dd-surface-muted px-3 py-2 text-xs leading-5 text-dd-muted">
+                            <p className="rounded-xl bg-dd-surface-muted px-3 py-2 text-xs leading-5 text-dd-muted">
                               Pembelian paket menggunakan akun customer.
                             </p>
                           )}
-                          <Link
-                            className={`${publicSecondaryButton} w-full`}
-                            href={`/packages/${item.id}`}
-                          >
-                            Lihat detail paket
-                          </Link>
-                          <Link className={`${publicPrimaryButton} w-full`} href={href}>
-                            {ctaLabel} <ArrowRight className="size-4" aria-hidden="true" />
-                          </Link>
+                          <div className="grid gap-2.5 sm:grid-cols-2">
+                            <Link
+                              className={`${publicSecondaryButton} w-full text-center justify-center`}
+                              href={`/packages/${item.id}`}
+                            >
+                              Lihat detail
+                            </Link>
+                            <Link className={`${publicPrimaryButton} w-full text-center justify-center`} href={href}>
+                              {ctaLabel} <ArrowRight className="size-4" aria-hidden="true" />
+                            </Link>
+                          </div>
                         </div>
                       </article>
                     );
                   })}
                 </div>
-                <div className="mt-6 grid gap-3 rounded-dd-md border border-dd-line bg-white p-4 text-sm text-dd-muted shadow-dd-card sm:grid-cols-3">
+                <div className="mt-6 grid gap-3.5 rounded-2xl border border-dd-line/80 bg-white/95 p-5 text-xs sm:text-sm font-medium text-dd-muted shadow-dd-card sm:grid-cols-3">
                   {[
                     'Harga final mengikuti studio pilihan.',
                     'Paket aktif setelah pembayaran disetujui.',
                     'Sisa sesi dapat dipantau melalui akun.',
                   ].map((item) => (
-                    <p className="flex items-start gap-2" key={item}>
+                    <p className="flex items-start gap-2 text-dd-ink" key={item}>
                       <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
                       {item}
                     </p>

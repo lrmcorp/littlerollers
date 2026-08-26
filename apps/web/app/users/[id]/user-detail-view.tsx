@@ -11,14 +11,14 @@ import {
   type RoleCatalogItem,
   type UiFailure,
   type UserSummary,
-} from '../../identity-client';
-import type { IdentityVerificationReviewCase } from '../../identity-verification-client';
+} from '@/api-clients/identity-client';
+import type { IdentityVerificationReviewCase } from '@/api-clients/identity-verification-client';
 import {
   browserLedgerClient,
   ledgerFailure,
   type LedgerBalance,
   type LedgerClient,
-} from '../../ledger-client';
+} from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
 import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';

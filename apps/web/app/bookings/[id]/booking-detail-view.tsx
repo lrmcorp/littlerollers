@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MapPin, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   bookingFailure,
@@ -11,12 +11,12 @@ import {
   type BookingProblem,
   type CustomerBookingRecord,
   type CustomerRescheduleOptions,
-} from '../../booking-client';
+} from '@/api-clients/booking-client';
 import { AlertBanner } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
 import { SearchSelect, SelectInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
-import { isCustomerOnlySession } from '../../session-audience';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 import { Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
@@ -164,17 +164,16 @@ export function BookingDetailView({
           {statusLabels[booking.status] ?? 'Status booking'} · Booking •{booking.id.slice(-8)}
         </p>
       </header>
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
           <CalendarDays className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Waktu kelas</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
+          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Waktu Sesi</h2>
+          <p className="mt-1 text-xs leading-5 text-dd-muted">
             {booking.classSlot
               ? booking.classSlot.startAt.toLocaleString('id-ID', {
-                  weekday: 'long',
+                  weekday: 'short',
                   day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
+                  month: 'short',
                   hour: '2-digit',
                   minute: '2-digit',
                   timeZone: booking.classSlot.timezone,
@@ -182,13 +181,32 @@ export function BookingDetailView({
               : 'Jadwal tidak tersedia'}
           </p>
         </article>
+
         <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
           <MapPin className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Studio dan paket</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
-            {booking.branch?.name ?? 'Studio Daily Dose'}
-            <br />
-            {booking.package?.name ?? 'Paket customer'}
+          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Studio & Lokasi</h2>
+          <p className="mt-1 text-xs leading-5 text-dd-muted">
+            {booking.classSlot?.studio?.name
+              ? `${booking.classSlot.studio.name} · ${booking.branch?.name}`
+              : (booking.branch?.name ?? 'Studio Daily Dose')}
+          </p>
+        </article>
+
+        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+          <User className="size-6 text-dd-forest" />
+          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Instruktur</h2>
+          <p className="mt-1 text-xs leading-5 text-dd-muted">
+            {booking.classSlot?.instructor?.displayName ?? 'Tim Daily Dose'}
+          </p>
+        </article>
+
+        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+          <Users className="size-6 text-dd-forest" />
+          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Kapasitas Slot</h2>
+          <p className="mt-1 text-xs leading-5 text-dd-muted">
+            {booking.classSlot?.capacity
+              ? `${booking.classSlot.bookedCount ?? 1}/${booking.classSlot.capacity} terisi (${Math.max(0, booking.classSlot.capacity - (booking.classSlot.bookedCount ?? 1))} sisa tempat)`
+              : 'Tersedia'}
           </p>
         </article>
       </section>

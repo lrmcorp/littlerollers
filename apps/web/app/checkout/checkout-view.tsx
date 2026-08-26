@@ -15,7 +15,7 @@ import {
   orderError,
   type CheckoutOptions,
   type CustomerOrder,
-} from '../order-client';
+} from '@/api-clients/order-client';
 import { Skeleton } from '../ui';
 import { formatRupiah } from '../lib/formatters';
 

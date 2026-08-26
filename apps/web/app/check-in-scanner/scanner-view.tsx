@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
-import { bookingFailure, browserBookingClient, type CheckInResult } from '../booking-client';
+import {
+  bookingFailure,
+  browserBookingClient,
+  type CheckInResult,
+} from '@/api-clients/booking-client';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';
 import { Feedback, PageHeader } from '../ui';

@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  Inbox,
   Minus,
   X,
 } from 'lucide-react';
@@ -15,7 +16,7 @@ import { Button } from '../actions';
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 const tones: Record<Tone, string> = {
-  neutral: 'bg-stone-100 text-stone-700 ring-stone-200',
+  neutral: 'bg-dd-surface-muted text-dd-muted ring-dd-line',
   success: 'bg-dd-success-soft text-dd-success ring-emerald-200',
   warning: 'bg-dd-warning-soft text-dd-warning ring-amber-200',
   danger: 'bg-dd-danger-soft text-dd-danger ring-red-200',
@@ -110,8 +111,8 @@ export function AdminEmptyState({
   return (
     <div className="grid min-h-52 place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted p-8 text-center">
       <div className="max-w-md">
-        <div className="mx-auto mb-4 grid size-10 place-items-center rounded-full bg-dd-brass-soft text-dd-brass">
-          ○
+        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-dd-brass-soft text-dd-brass">
+          <Inbox className="size-6" aria-hidden="true" />
         </div>
         <strong className="text-base text-dd-ink">{title}</strong>
         <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>

@@ -7,10 +7,10 @@ import {
   type MasterClient,
   type MasterKind,
   type MasterSetting,
-} from '../master-client';
+} from '@/api-clients/master-client';
 import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
-import { browserIdentityClient, type LookupOption } from '../identity-client';
+import { browserIdentityClient, type LookupOption } from '@/api-clients/identity-client';
 import { Pagination, Tabs } from '../components/admin/admin-ui';
 import { Button, ButtonLink } from '../components/actions';
 import { PublicProfileEditor } from './public-profile-editor';

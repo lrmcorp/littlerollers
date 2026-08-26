@@ -13,9 +13,9 @@ import {
   browserPackagePromotionClient,
   type InternalPackageRecord,
   type PackageManagementPage,
-} from '../package-promotion-client';
+} from '@/api-clients/package-promotion-client';
 import { useTrackedRouter } from '../components/app-loading';
-import { browserMasterClient } from '../master-client';
+import { browserMasterClient } from '@/api-clients/master-client';
 import { formatRupiah } from '../lib/formatters';
 
 const stateLabels = {

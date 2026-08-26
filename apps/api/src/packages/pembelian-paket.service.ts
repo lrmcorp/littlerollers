@@ -113,7 +113,7 @@ export class CustomerOrderService {
       paymentAccount: {
         id: account.id,
         bankName: account.bankName,
-        accountNumber: decryptAccountNumber(account.accountNumberEncrypted),
+        accountNumber: decryptAccountNumber(account.accountNumberEncrypted, account.accountNumberLast4),
         accountHolderName: account.accountHolderName,
         paymentWindowHours: account.paymentWindowHours,
       },
@@ -230,7 +230,10 @@ export class CustomerOrderService {
             bankName: order.paymentBankNameSnapshot,
             accountNumber:
               revealAccount && order.paymentAccountNumberSnapshotEncrypted
-                ? decryptAccountNumber(order.paymentAccountNumberSnapshotEncrypted)
+                ? decryptAccountNumber(
+                    order.paymentAccountNumberSnapshotEncrypted,
+                    order.paymentAccountLast4Snapshot,
+                  )
                 : `•••• ${order.paymentAccountLast4Snapshot}`,
             accountHolderName: order.paymentAccountHolderSnapshot,
           }

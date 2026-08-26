@@ -1,2 +1,2 @@
-export * from '../master-client';
-export * from '../branch-client';
+export * from './master-client';
+export * from './branch-client';

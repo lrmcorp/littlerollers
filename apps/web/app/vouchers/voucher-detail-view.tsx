@@ -7,7 +7,7 @@ import {
   browserVoucherClient,
   type VoucherRecord,
   type VoucherRedemptionPage,
-} from '../voucher-client';
+} from '@/api-clients/voucher-client';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
@@ -23,8 +23,8 @@ import {
 import {
   browserPackagePromotionClient,
   type InternalPackageRecord,
-} from '../package-promotion-client';
-import { browserMasterClient } from '../master-client';
+} from '@/api-clients/package-promotion-client';
+import { browserMasterClient } from '@/api-clients/master-client';
 
 const statusLabel: Record<string, string> = {
   DRAFT: 'Draft',

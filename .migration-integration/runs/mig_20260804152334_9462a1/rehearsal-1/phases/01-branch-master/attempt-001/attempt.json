@@ -1,7 +1,0 @@
-{
-  "attempt": 1,
-  "startedAt": "2026-08-04T15:23:51.746Z",
-  "completedAt": "2026-08-04T15:23:51.920Z",
-  "status": "BLOCKED",
-  "failureCode": "MIGRATION_COMMAND_FAILED"
-}

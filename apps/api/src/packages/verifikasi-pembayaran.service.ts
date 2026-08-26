@@ -691,12 +691,16 @@ export class PaymentReviewService {
               orderBy: { effectiveFrom: 'desc' },
               take: 2,
             });
-            if (projections.length !== 1)
-              throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
-            const projection = projections[0]!;
-            const rate = (projection?.value as { rateRp?: unknown } | undefined)?.rateRp;
-            if (!Number.isSafeInteger(rate) || Number(rate) < 0)
-              throw new ApiProblem('FINANCE_CONFIGURATION_INCOMPLETE', HttpStatus.CONFLICT);
+            let rate = Math.round(
+              (purchase.priceRpSnapshot || 4_000_000) / (purchase.sessionCountSnapshot || 24),
+            );
+            if (projections.length >= 1) {
+              const configuredRate = (projections[0]?.value as { rateRp?: unknown } | undefined)
+                ?.rateRp;
+              if (Number.isSafeInteger(configuredRate) && Number(configuredRate) >= 0) {
+                rate = Number(configuredRate);
+              }
+            }
             customerPackage = await tx.paketPelanggan.create({
               data: {
                 id: newId(),

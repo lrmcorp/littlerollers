@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ClassDetailView } from './class-detail-view';
-import { publicMetadataValue } from '../../public-detail-metadata';
-import type { PublicClassDetail } from '../../public-detail-client';
+import { publicMetadataValue } from '@/lib/public-detail-metadata';
+import type { PublicClassDetail } from '@/api-clients/public-detail-client';
 
 export async function generateMetadata({
   params,

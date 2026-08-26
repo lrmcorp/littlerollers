@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { accountClient, type PreferredStudio } from '../account-client';
+import { accountClient, type PreferredStudio } from '@/api-clients/account-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { SearchSelect, SelectInput } from '../components/forms';

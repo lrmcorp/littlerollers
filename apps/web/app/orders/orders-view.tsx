@@ -11,8 +11,8 @@ import {
   type CustomerOrderPage,
   type CustomerOrderSummary,
   type OrderStatus,
-} from '../order-client';
-import { orderStatusLabels } from '../order-presenters';
+} from '@/api-clients/order-client';
+import { orderStatusLabels } from '@/lib/order-presenters';
 import { Button, ButtonLink } from '../components/actions';
 import { useTrackedRouter } from '../components/app-loading';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';

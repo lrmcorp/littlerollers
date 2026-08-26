@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import { AppNavigation } from './app-navigation';
 import { useSessionContext } from './session-context';
-import { routes } from './routes';
-import { canReadPage, frontendPages } from './frontend-pages';
+import { routes } from '@/lib/routes';
+import { canReadPage, frontendPages } from '@/lib/frontend-pages';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
 import { SearchSelect } from './components/forms';
@@ -36,7 +36,7 @@ import {
   isCustomerCatalogPath,
   isCustomerOnlySession,
   isPublicExperiencePath,
-} from './session-audience';
+} from '@/lib/session-audience';
 
 const roleLabels: Record<string, string> = {
   SUPER_OWNER: 'Super Admin',
@@ -243,12 +243,12 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     >
                       {item.label}
                       {showOrderBadge && (
-                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                        <span className="rounded-full bg-dd-brass px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
                           {customerBadges.actionableOrdersCount}
                         </span>
                       )}
                       {showBookingBadge && (
-                        <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                        <span className="rounded-full bg-dd-success px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
                           {customerBadges.upcomingBookingsCount}
                         </span>
                       )}

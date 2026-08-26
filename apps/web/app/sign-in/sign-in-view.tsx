@@ -3,13 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import {
   browserIdentityClient,
   failureCode,
   failureReference,
   type IdentityClient,
   type UiFailure,
-} from '../identity-client';
+} from '@/api-clients/identity-client';
 import { Feedback } from '../ui';
 import { useSessionContext } from '../session-context';
 import { BrandMark } from '../components/public/brand-mark';
@@ -132,68 +133,97 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
   return (
     <main
-      className="auth-sign-in grid min-h-svh grid-cols-[minmax(0,1.06fr)_minmax(480px,0.94fr)] bg-dd-cream font-sans text-dd-ink max-[900px]:grid-cols-1"
+      className="grid min-h-svh grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)] bg-dd-cream font-sans text-dd-ink"
       id="main-content"
     >
       <a className="skip-link" href="#auth-form">
         Langsung ke formulir masuk
       </a>
 
+      {/* Left Visual Panel */}
       <section
-        className="relative isolate min-h-svh overflow-hidden max-[900px]:min-h-[330px] max-[540px]:min-h-[280px]"
+        className="relative isolate hidden lg:flex flex-col justify-between overflow-hidden p-12 min-h-svh sticky top-0 self-start"
         aria-label="Daily Dose Pilates"
       >
         <Image
-          className="-z-20 object-cover object-[58%_center]"
+          className="object-cover object-[58%_center] -z-20"
           src="/images/public/landing/hero-pilates.png"
           fill
           priority
-          sizes="(max-width: 900px) 100vw, 52vw"
+          sizes="55vw"
           alt=""
         />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(14,43,31,0.05)_28%,rgba(14,43,31,0.8)_100%),linear-gradient(90deg,rgba(14,43,31,0.09),transparent_50%)]" />
-        <div className="absolute right-[clamp(28px,5vw,72px)] bottom-[clamp(38px,7vw,82px)] left-[clamp(28px,5vw,72px)] max-w-[670px] text-white max-[540px]:right-5 max-[540px]:bottom-6 max-[540px]:left-5">
-          <p className="mb-4 text-xs font-bold tracking-[0.16em] uppercase">
-            Move better, live better
-          </p>
-          <h1 className="m-0 max-w-[620px] font-sans text-[clamp(3.2rem,5.2vw,5.4rem)] leading-[0.92] font-semibold tracking-[-0.035em] max-[900px]:text-[clamp(2.7rem,8vw,4.3rem)] max-[540px]:text-[2.75rem]">
-            Welcome back to your Daily Dose.
-          </h1>
-          <blockquote className="mt-6 border-l border-white/60 pl-[18px] font-sans text-[1.35rem] max-[900px]:hidden">
-            “Stronger body. Calmer mind.”
-          </blockquote>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-dd-forest-dark/95 via-dd-forest-dark/65 to-dd-forest-dark/35" />
+
+        {/* Top Badge */}
+        <div className="flex items-center gap-2 text-white">
+          <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1 text-xs font-bold tracking-wider uppercase backdrop-blur-md">
+            <Sparkles className="size-3.5 text-dd-brass" /> Daily Dose Portal
+          </span>
+        </div>
+
+        {/* Bottom Tagline */}
+        <div className="space-y-6 text-white max-w-lg">
+          <div className="space-y-3">
+            <p className="text-xs font-bold tracking-[0.16em] text-dd-brass uppercase">
+              Move better, live better
+            </p>
+            <h1 className="font-sans text-4xl xl:text-5xl font-bold leading-[1.05] tracking-tight">
+              Welcome back to your Daily Dose.
+            </h1>
+            <blockquote className="border-l-2 border-dd-brass/80 pl-4 font-sans text-lg italic text-white/90">
+              “Stronger body. Calmer mind.”
+            </blockquote>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-medium text-white/75 pt-2">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-4 text-dd-brass" /> Enkripsi SSL 256-Bit
+            </span>
+            <span>•</span>
+            <span>Akses Multi-Cabang</span>
+          </div>
         </div>
       </section>
 
+      {/* Right Form Panel */}
       <section
-        className="grid min-w-0 place-items-center p-[clamp(28px,5vw,72px)] max-[900px]:py-12 max-[540px]:px-5"
+        className="grid min-w-0 place-items-center p-6 sm:p-12 lg:p-16"
         aria-labelledby="sign-in-title"
       >
-        <div className="w-full max-w-[510px]" id="auth-form">
-          <div className="mb-10 flex items-center justify-between gap-6">
-            <BrandMark className="w-[172px] max-[540px]:w-[145px]" priority />
-            <Link className="text-sm font-bold text-dd-forest-dark no-underline" href="/">
-              Kembali ke beranda
+        <div
+          className="w-full max-w-[480px] rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-10 shadow-dd-card backdrop-blur-md"
+          id="auth-form"
+        >
+          {/* Header Top */}
+          <div className="mb-8 flex items-center justify-between gap-4 border-b border-dd-line/60 pb-5">
+            <BrandMark className="w-36 sm:w-40" priority />
+            <Link
+              className="text-xs font-bold text-dd-forest hover:underline transition no-underline"
+              href="/"
+            >
+              ← Ke beranda
             </Link>
           </div>
 
-          <p className="mb-3 text-xs font-bold tracking-[0.13em] text-dd-forest uppercase">
-            Secure member access
-          </p>
-          <h2
-            className="m-0 font-sans text-[clamp(2.7rem,4vw,4rem)] leading-[0.98] font-semibold tracking-[-0.035em]"
-            id="sign-in-title"
-          >
-            Masuk ke Daily Dose
-          </h2>
-          <p className="mt-5 text-base leading-7 text-dd-muted">
-            {googleEnabled
-              ? 'Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.'
-              : 'Gunakan email dan password yang terdaftar.'}
-          </p>
+          <div className="space-y-2">
+            <span className="inline-block rounded-full bg-dd-forest/10 px-3 py-0.5 text-[11px] font-bold tracking-wider text-dd-forest uppercase">
+              Secure member access
+            </span>
+            <h2
+              className="font-sans text-2xl sm:text-3xl font-bold tracking-tight text-dd-ink"
+              id="sign-in-title"
+            >
+              Masuk ke Daily Dose
+            </h2>
+            <p className="text-sm leading-relaxed text-dd-muted">
+              {googleEnabled
+                ? 'Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.'
+                : 'Gunakan email dan password yang terdaftar untuk mengakses akun.'}
+            </p>
+          </div>
 
           <form
-            className="auth-sign-in-form mt-7 grid gap-5"
+            className="mt-6 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
               const form = new FormData(event.currentTarget);
@@ -205,22 +235,25 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 .catch(fail);
             }}
           >
-            <label className="grid gap-2 text-sm font-bold">
-              Email
-              <input
-                className="min-h-[50px] rounded-dd-sm border border-dd-line bg-white px-4 outline-none focus:border-dd-forest"
-                name="email"
-                type="email"
-                autoComplete="username"
-                placeholder="nama@perusahaan.com"
-                required
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-bold">
-              Password
-              <span className="relative">
+            <label className="block space-y-1.5 text-xs font-bold text-dd-ink">
+              <span>Email</span>
+              <div className="relative flex items-center">
                 <input
-                  className="min-h-[50px] w-full rounded-dd-sm border border-dd-line bg-white px-4 pr-24 outline-none focus:border-dd-forest"
+                  className="w-full min-h-[46px] rounded-dd-sm border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-1 focus:ring-dd-forest"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="nama@perusahaan.com"
+                  required
+                />
+              </div>
+            </label>
+
+            <label className="block space-y-1.5 text-xs font-bold text-dd-ink">
+              <span>Password</span>
+              <div className="relative flex items-center">
+                <input
+                  className="w-full min-h-[46px] rounded-dd-sm border border-dd-line bg-white px-3.5 pr-20 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-1 focus:ring-dd-forest"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -231,22 +264,24 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 />
                 <button
                   aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-1 min-h-11 px-3 text-sm font-bold text-dd-forest"
+                  className="absolute right-2 px-2.5 py-1 text-xs font-bold text-dd-forest hover:text-dd-forest-dark transition"
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >
                   {showPassword ? 'Sembunyikan' : 'Lihat'}
                 </button>
-              </span>
+              </div>
             </label>
-            <div className="auth-sign-in-meta flex items-center justify-between gap-4 text-sm">
-              <Link className="font-bold text-dd-forest" href="/forgot-password">
+
+            <div className="flex items-center justify-between gap-4 pt-1 text-xs">
+              <Link className="font-bold text-dd-forest hover:underline" href="/forgot-password">
                 Lupa password?
               </Link>
               <span className="text-dd-muted">Akses sesuai permission</span>
             </div>
+
             <button
-              className="auth-primary-action min-h-[52px] w-full rounded-dd-sm bg-dd-forest px-5 font-bold text-white shadow-dd-soft hover:bg-dd-forest-dark disabled:bg-dd-sage"
+              className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-dd-sm bg-dd-forest px-5 text-sm font-bold text-white shadow-dd-soft transition hover:bg-dd-forest-dark disabled:bg-dd-sage active:scale-[0.99]"
               disabled={state === 'loading'}
               type="submit"
             >
@@ -255,17 +290,25 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           </form>
 
           {state === 'invalid' && (
-            <Feedback kind="error">Email atau password tidak valid.</Feedback>
+            <div className="mt-4">
+              <Feedback kind="error">Email atau password tidak valid.</Feedback>
+            </div>
           )}
           {state in messages && (
-            <Feedback kind="error">
-              {messages[state as UiFailure]}
-              {reference && (state === 'INTERNAL_ERROR' || state === 'SERVICE_UNAVAILABLE')
-                ? ` Kode bantuan: ${reference}.`
-                : ''}
-            </Feedback>
+            <div className="mt-4">
+              <Feedback kind="error">
+                {messages[state as UiFailure]}
+                {reference && (state === 'INTERNAL_ERROR' || state === 'SERVICE_UNAVAILABLE')
+                  ? ` Kode bantuan: ${reference}.`
+                  : ''}
+              </Feedback>
+            </div>
           )}
-          {state === 'success' && <Feedback kind="status">Identitas terverifikasi.</Feedback>}
+          {state === 'success' && (
+            <div className="mt-4">
+              <Feedback kind="status">Identitas terverifikasi.</Feedback>
+            </div>
+          )}
 
           {googleEnabled && (
             <>
@@ -276,13 +319,17 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </>
           )}
 
-          <div className="mt-6 border-y border-dd-line py-4 text-[13px] leading-6 text-dd-muted">
-            <strong className="block text-sm text-dd-ink">Akses terlindungi</strong>
-            Seluruh akses dan tindakan dibatasi berdasarkan permission serta scope cabang.
+          <div className="mt-6 border-t border-dd-line/80 pt-4 text-xs leading-relaxed text-dd-muted">
+            <strong className="block font-semibold text-dd-ink">
+              Akses terlindungi &amp; Terenkripsi
+            </strong>
+            Seluruh data dan tindakan dibatasi berdasarkan hak akses permission serta scope cabang
+            resmi.
           </div>
-          <p className="mt-6 text-center text-sm text-dd-muted">
+
+          <p className="mt-6 text-center text-xs text-dd-muted">
             Belum punya akun?{' '}
-            <Link className="font-bold text-dd-forest" href="/register">
+            <Link className="font-bold text-dd-forest hover:underline" href="/register">
               Daftar sebagai customer
             </Link>
           </p>

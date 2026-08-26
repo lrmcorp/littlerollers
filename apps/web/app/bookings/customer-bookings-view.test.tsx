@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { BookingClient, CustomerBookingRecord } from '../booking-client';
+import type { BookingClient, CustomerBookingRecord } from '@/api-clients/booking-client';
 import { CustomerBookingsView } from './customer-bookings-view';
 
 const record = (overrides: Partial<CustomerBookingRecord> = {}): CustomerBookingRecord =>

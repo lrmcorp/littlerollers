@@ -25,10 +25,10 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { frontendPageGroups, frontendPages } from './frontend-pages';
+import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
-import { browserDashboardClient } from './dashboard-client';
+import { browserDashboardClient } from '@/api-clients/dashboard-client';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
 import { IconButton } from './components/actions';
 

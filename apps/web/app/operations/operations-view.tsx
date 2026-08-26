@@ -7,7 +7,7 @@ import {
   type NotificationOccurrencePage,
   type OperationalJobPage,
   type OperationsClient,
-} from '../operations-client';
+} from '@/api-clients/operations-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';

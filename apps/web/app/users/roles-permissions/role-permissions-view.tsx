@@ -22,7 +22,7 @@ import {
   type CapabilityDefinition,
   type OverrideEffect,
   type UserAccess,
-} from '../../access-client';
+} from '@/api-clients/access-client';
 import { AlertBanner, Drawer, useAppFeedback } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
 import {
@@ -37,8 +37,8 @@ import {
   browserIdentityClient,
   type IdentityClient,
   type LookupOption,
-} from '../../identity-client';
-import { browserMasterClient, type MasterClient } from '../../master-client';
+} from '@/api-clients/identity-client';
+import { browserMasterClient, type MasterClient } from '@/api-clients/master-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 
 const REASONS = [

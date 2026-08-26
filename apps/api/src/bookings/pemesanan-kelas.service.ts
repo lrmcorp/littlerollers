@@ -152,7 +152,22 @@ export class BookingsService {
             endAt: booking.classSlot.endAt,
             timezone: booking.classSlot.timezone,
             status: booking.classSlot.status,
+            capacity: booking.classSlot.capacity,
+            bookedCount: booking.classSlot.bookedCount,
+            available:
+              booking.classSlot.capacity !== undefined && booking.classSlot.bookedCount !== undefined
+                ? Math.max(0, booking.classSlot.capacity - booking.classSlot.bookedCount)
+                : undefined,
             classType: booking.classSlot.classType,
+            instructor: booking.classSlot.instructor
+              ? {
+                  id: booking.classSlot.instructor.id,
+                  displayName: booking.classSlot.instructor.displayName,
+                }
+              : null,
+            studio: booking.classSlot.studio
+              ? { id: booking.classSlot.studio.id, name: booking.classSlot.studio.name }
+              : null,
           }
         : undefined,
       package: booking.customerPackage?.package
@@ -671,7 +686,11 @@ export class BookingsService {
         branch: { select: { id: true, name: true, timezone: true } },
         customer: { select: { id: true, displayName: true, phoneE164: true } },
         classSlot: {
-          include: { classType: { select: { id: true, name: true } } },
+          include: {
+            classType: { select: { id: true, name: true } },
+            instructor: { select: { id: true, displayName: true } },
+            studio: { select: { id: true, name: true } },
+          },
         },
         customerPackage: {
           include: { package: { select: { id: true, name: true } } },
@@ -768,7 +787,11 @@ export class BookingsService {
         customer: { select: { id: true, displayName: true, phoneE164: true } },
         createdBy: { select: { id: true, displayName: true } },
         classSlot: {
-          include: { classType: { select: { id: true, name: true } } },
+          include: {
+            classType: { select: { id: true, name: true } },
+            instructor: { select: { id: true, displayName: true } },
+            studio: { select: { id: true, name: true } },
+          },
         },
         customerPackage: {
           include: { package: { select: { id: true, name: true } } },

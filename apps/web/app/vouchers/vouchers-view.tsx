@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, TicketPercent } from 'lucide-react';
-import { browserVoucherClient, type VoucherRecord } from '../voucher-client';
+import { browserVoucherClient, type VoucherRecord } from '@/api-clients/voucher-client';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import {
@@ -17,8 +17,8 @@ import { DataTable, Badge, Pagination, Panel, StatCard } from '../components/adm
 import { EmptyState, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
 import { useAppFeedback } from '../components/app-feedback';
-import { browserPackagePromotionClient } from '../package-promotion-client';
-import { browserMasterClient } from '../master-client';
+import { browserPackagePromotionClient } from '@/api-clients/package-promotion-client';
+import { browserMasterClient } from '@/api-clients/master-client';
 
 const labels: Record<string, string> = {
   DRAFT: 'Draft',

@@ -19,6 +19,7 @@ import { PublicContentModule } from './public-content/public-content.module';
 import { EmailModule } from './email/email.module';
 import { MigrationModule } from './migration/migration.module';
 import { SupportModule } from './support/support.module';
+import { DataImportModule } from './data-import/data-import.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { SupportModule } from './support/support.module';
     PublicContentModule,
     MigrationModule,
     SupportModule,
+    DataImportModule,
   ],
 })
 export class AppModule {}

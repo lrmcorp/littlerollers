@@ -10,7 +10,7 @@ export class PublicPackageQueryService {
 
   async list(branchId?: string) {
     if (branchId) assertPublicUuid(branchId, 'VALIDATION_ERROR');
-    const branches = await this.db.cabang.findMany({
+    const rawBranches = await this.db.cabang.findMany({
       where: { active: true, publicProfile: { isNot: null } },
       select: {
         id: true,
@@ -22,6 +22,17 @@ export class PublicPackageQueryService {
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+    const branches = rawBranches.map((b) => ({
+      ...b,
+      publicProfile: b.publicProfile
+        ? {
+            ...b.publicProfile,
+            openingHours: Array.isArray(b.publicProfile.openingHours)
+              ? b.publicProfile.openingHours
+              : [],
+          }
+        : null,
+    }));
     if (branchId && !branches.some((branch) => branch.id === branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 

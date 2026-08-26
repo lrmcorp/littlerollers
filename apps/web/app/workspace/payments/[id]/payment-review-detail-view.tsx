@@ -7,7 +7,7 @@ import {
   purchaseFailure,
   type PurchaseReviewClient,
   type ReviewDetail,
-} from '../../../purchase-client';
+} from '@/api-clients/purchase-client';
 import { Badge, Pagination, Panel } from '../../../components/admin/admin-ui';
 import { Button, ButtonLink } from '../../../components/actions';
 import { AlertBanner, useOptionalAppFeedback } from '../../../components/app-feedback';
@@ -173,10 +173,12 @@ export function PaymentReviewDetailView({
     setMutating(true);
     setError('');
     try {
+      const latest = await client.detail(purchase.id).catch(() => null);
+      const versionToUse = latest?.purchase?.version ?? purchase.version;
       if (action === 'APPROVE') {
         const result = await client.approve(
           purchase.id,
-          purchase.version,
+          versionToUse,
           crypto.randomUUID(),
           note.trim() || undefined,
         );
@@ -189,7 +191,7 @@ export function PaymentReviewDetailView({
       } else {
         await client.reject(
           purchase.id,
-          purchase.version,
+          versionToUse,
           action === 'DUPLICATE' ? 'DUPLICATE_PURCHASE' : reasonCode,
           crypto.randomUUID(),
           note.trim() || undefined,
@@ -202,6 +204,7 @@ export function PaymentReviewDetailView({
       }
       await load();
     } catch (cause) {
+      await load();
       setError(purchaseFailure(cause));
     } finally {
       setMutating(false);

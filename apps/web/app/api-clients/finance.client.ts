@@ -1,1 +1,1 @@
-export * from '../ledger-client';
+export * from './ledger-client';

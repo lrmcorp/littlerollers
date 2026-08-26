@@ -9,7 +9,7 @@ import {
   type PurchaseReviewClient,
   type ReviewPurchase,
   type ReviewSummary,
-} from '../purchase-client';
+} from '@/api-clients/purchase-client';
 import { PageHeader, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
@@ -310,10 +310,10 @@ export function PurchaseReviewView({
         })
       : testAuthority;
     if (!confirmed) return;
-    setMutatingId(item.id);
-    setError('');
     try {
-      const result = await client.approve(item.id, item.version, crypto.randomUUID());
+      const latest = await client.detail(item.id).catch(() => null);
+      const versionToUse = latest?.purchase?.version ?? item.version;
+      const result = await client.approve(item.id, versionToUse, crypto.randomUUID());
       feedback?.showToast({
         tone: 'success',
         title: 'Pembayaran disetujui',
@@ -322,6 +322,7 @@ export function PurchaseReviewView({
       });
       await load();
     } catch (cause) {
+      await load();
       setError(purchaseFailure(cause));
     } finally {
       setMutatingId(null);

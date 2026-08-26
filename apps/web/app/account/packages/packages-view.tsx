@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { browserLedgerClient, type LedgerBalance } from '../../ledger-client';
+import { browserLedgerClient, type LedgerBalance } from '@/api-clients/ledger-client';
 import { ButtonLink } from '../../components/actions';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { Pagination } from '../../components/admin/admin-ui';

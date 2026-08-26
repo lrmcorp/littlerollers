@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { browserLedgerClient } from '../../ledger-client';
+import { browserLedgerClient } from '@/api-clients/ledger-client';
 import { CustomerPackagesView } from './packages-view';
 
 describe('customer packages actions', () => {

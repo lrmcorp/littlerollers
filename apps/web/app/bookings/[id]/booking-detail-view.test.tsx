@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BookingClient, CustomerRescheduleOptions } from '../../booking-client';
+import type { BookingClient, CustomerRescheduleOptions } from '@/api-clients/booking-client';
 import { BookingDetailView } from './booking-detail-view';
 
 const sessionState = vi.hoisted(() => ({ context: null as any }));

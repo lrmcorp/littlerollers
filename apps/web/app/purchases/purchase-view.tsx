@@ -7,7 +7,7 @@ import {
   sha256File,
   type PurchaseClient,
   type PurchasePackage,
-} from '../purchase-client';
+} from '@/api-clients/purchase-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import type { PaymentProof, Purchase } from '@dailydose/api-client-ts/generated';

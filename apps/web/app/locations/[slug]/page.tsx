@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { StudioDetailView } from './studio-detail-view';
-import { publicMetadataValue } from '../../public-detail-metadata';
-import type { PublicStudioDetail } from '../../public-detail-client';
+import { publicMetadataValue } from '@/lib/public-detail-metadata';
+import type { PublicStudioDetail } from '@/api-clients/public-detail-client';
 
 export async function generateMetadata({
   params,

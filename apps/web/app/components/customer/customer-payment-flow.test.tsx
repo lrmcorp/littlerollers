@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { browserOrderClient, type CustomerOrder } from '../../order-client';
+import { browserOrderClient, type CustomerOrder } from '@/api-clients/order-client';
 import { AppFeedbackProvider } from '../app-feedback';
 import { CustomerPaymentFlow } from './customer-payment-flow';
 

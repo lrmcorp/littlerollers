@@ -1,6 +1,6 @@
 'use client';
 
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2, ShieldCheck, UserCheck, Search, Filter } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   verificationClient,
@@ -11,7 +11,7 @@ import {
   type IdentityVerificationReviewFilters,
   type IdentityVerificationReviewSummary,
   type VerificationDocument,
-} from '../identity-verification-client';
+} from '@/api-clients/identity-verification-client';
 import { PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
@@ -250,13 +250,6 @@ export function IdentityReviewView({
     reasonCode?: RejectionReason,
     note?: string,
   ) => {
-    const confirmed = await feedback.confirm({
-      tone: kind === 'reject' ? 'warning' : undefined,
-      title: kind === 'approve' ? 'Setujui dokumen?' : 'Minta perbaikan dokumen?',
-      message: `${kindLabel(document.kind)} milik ${selected?.user.displayName ?? 'customer'} akan ${kind === 'approve' ? 'disetujui' : 'dikembalikan untuk diperbaiki'}.`,
-      confirmLabel: kind === 'approve' ? 'Setujui' : 'Minta perbaikan',
-    });
-    if (!confirmed) return;
     setSubmitting(true);
     setStaleDocumentId(undefined);
     try {
@@ -339,8 +332,9 @@ export function IdentityReviewView({
   };
 
   return (
-    <section className="space-y-6" aria-labelledby="identity-review-title">
-      <Panel className="p-6 sm:p-8">
+    <section className="space-y-6 font-sans text-dd-ink" aria-labelledby="identity-review-title">
+      {/* Header Panel */}
+      <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
         <PageHeader
           eyebrow="Administrasi"
           title="Verifikasi customer"
@@ -365,16 +359,29 @@ export function IdentityReviewView({
             </div>
           }
         />
-        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-dd-muted">
-          <span>{summary.totalCustomers.toLocaleString('id-ID')} customer</span>
-          <span>{summary.totalDocuments.toLocaleString('id-ID')} dokumen</span>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-dd-muted border-t border-dd-line/60 pt-4">
+          <span className="font-semibold text-dd-ink">
+            {summary.totalCustomers.toLocaleString('id-ID')} customer
+          </span>
+          <span>•</span>
+          <span className="font-semibold text-dd-ink">
+            {summary.totalDocuments.toLocaleString('id-ID')} dokumen
+          </span>
+          <span>•</span>
           <span>
-            Diperbarui {generatedAt ? new Date(generatedAt).toLocaleString('id-ID') : '—'}
+            Diperbarui{' '}
+            {generatedAt
+              ? new Date(generatedAt).toLocaleString('id-ID', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })
+              : '—'}
           </span>
         </div>
       </Panel>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {/* Summary KPI Filter Buttons */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <SummaryButton
           label="Dalam antrean"
           value={summary.pendingDocuments}
@@ -414,6 +421,7 @@ export function IdentityReviewView({
         />
       </div>
 
+      {/* Filter Bar */}
       <FilterBar>
         <SearchInput
           label="Cari customer atau ID"
@@ -483,6 +491,7 @@ export function IdentityReviewView({
         />
       )}
 
+      {/* Data Table */}
       <DataTable<IdentityVerificationReviewCase>
         items={items}
         loading={loading}
@@ -503,9 +512,9 @@ export function IdentityReviewView({
             id: 'customer',
             header: 'Customer',
             cell: (item) => (
-              <div>
-                <strong>{item.user.displayName}</strong>
-                <p className="mt-1 text-xs text-dd-muted">
+              <div className="py-1">
+                <strong className="font-bold text-sm text-dd-ink">{item.user.displayName}</strong>
+                <p className="mt-0.5 text-xs text-dd-muted">
                   {item.user.phoneMasked ?? 'Kontak tidak tersedia'}
                 </p>
               </div>
@@ -529,13 +538,20 @@ export function IdentityReviewView({
               />
             ),
           },
-          { id: 'age', header: 'Umur antrean', cell: (item) => ageLabel(item.oldestAt) },
+          {
+            id: 'age',
+            header: 'Umur antrean',
+            cell: (item) => (
+              <span className="text-xs font-semibold text-dd-muted">{ageLabel(item.oldestAt)}</span>
+            ),
+          },
           {
             id: 'action',
             header: <span className="sr-only">Tindakan</span>,
             cell: (item) => (
               <Button
                 variant="secondary"
+                size="sm"
                 onClick={(event) => {
                   event.stopPropagation();
                   setSelected(item);
@@ -547,12 +563,15 @@ export function IdentityReviewView({
           },
         ]}
         mobileCard={(item) => (
-          <div className="grid gap-3">
-            <div>
-              <strong>{item.user.displayName}</strong>
-              <p className="text-xs text-dd-muted">
-                {item.user.phoneMasked ?? 'Kontak tidak tersedia'} · {ageLabel(item.oldestAt)}
-              </p>
+          <div className="grid gap-3 p-1">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <strong className="text-sm font-bold text-dd-ink">{item.user.displayName}</strong>
+                <p className="text-xs text-dd-muted">
+                  {item.user.phoneMasked ?? 'Kontak tidak tersedia'}
+                </p>
+              </div>
+              <span className="text-xs text-dd-muted">{ageLabel(item.oldestAt)}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <DocumentBadge
@@ -562,143 +581,163 @@ export function IdentityReviewView({
                 document={item.documents.find((document) => document.kind === 'KTP_FRONT')}
               />
             </div>
-            <Button variant="secondary">Periksa</Button>
+            <Button variant="secondary" size="sm" fullWidth onClick={() => setSelected(item)}>
+              Periksa
+            </Button>
           </div>
         )}
       />
 
       <Pagination
         hasPrevious={cursorHistory.length > 0}
-        hasNext={Boolean(nextCursor) && !loading}
-        totalLabel={`${summary.totalCustomers.toLocaleString('id-ID')} customer sesuai filter`}
+        hasNext={Boolean(nextCursor)}
         onPrevious={() => {
-          const history = [...cursorHistory];
-          setCursor(history.pop());
-          setCursorHistory(history);
+          const previous = [...cursorHistory];
+          const previousCursor = previous.pop();
+          setCursorHistory(previous);
+          setCursor(previousCursor);
         }}
         onNext={() => {
           if (!nextCursor) return;
-          setCursorHistory((history) => [...history, cursor]);
+          setCursorHistory((current) => [...current, cursor]);
           setCursor(nextCursor);
         }}
       />
 
+      {/* Review Drawer */}
       <Drawer
         open={Boolean(selected)}
-        title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
         onClose={closeDrawer}
-        className="w-full max-w-4xl lg:max-w-5xl"
+        title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
+        description="Periksa kejelasan foto, bandingkan wajah dengan foto KTP, lalu tentukan keputusan verifikasi."
+        className="max-w-5xl"
+        footer={
+          <div className="flex w-full items-center justify-between gap-3">
+            <div className="text-xs text-dd-muted">
+              {staleDocumentId && 'Status dokumen berubah. Klik Segarkan Data untuk memuat ulang.'}
+            </div>
+            <div className="flex items-center gap-2">
+              {staleDocumentId && (
+                <Button variant="secondary" onClick={() => void refreshSelected()}>
+                  Segarkan Data
+                </Button>
+              )}
+              <Button variant="secondary" onClick={closeDrawer}>
+                Tutup
+              </Button>
+            </div>
+          </div>
+        }
       >
         {selected && (
           <div className="space-y-6">
-            <div className="rounded-dd-xl border border-dd-line/80 bg-linear-to-r from-dd-surface-muted/80 to-white p-4.5 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="grid size-11 place-items-center rounded-full bg-dd-forest text-sm font-bold text-white shadow-xs">
-                    {selected.user.displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-dd-ink">{selected.user.displayName}</h3>
-                    <p className="mt-0.5 text-xs text-dd-muted">
-                      {selected.user.phoneMasked ?? 'Kontak tidak tersedia'} · Akun:{' '}
-                      <span className="font-semibold text-dd-ink">{selected.user.status}</span>
-                    </p>
-                  </div>
-                </div>
-                <Badge
-                  tone={
-                    selected.verificationStatus === 'APPROVED'
-                      ? 'success'
-                      : selected.verificationStatus === 'ACTION_REQUIRED'
-                        ? 'warning'
-                        : 'neutral'
-                  }
-                >
-                  {selected.verificationStatus === 'APPROVED'
-                    ? 'Verifikasi selesai'
-                    : selected.verificationStatus === 'ACTION_REQUIRED'
-                      ? 'Perlu perbaikan'
-                      : 'Sedang diperiksa'}
-                </Badge>
-              </div>
-            </div>
             {staleDocumentId && (
               <AlertBanner
                 tone="warning"
-                title="Data dokumen telah berubah"
-                message="Muat versi terbaru sebelum mengambil keputusan lain."
-                action={{ label: 'Muat data terbaru', onSelect: () => void refreshSelected() }}
+                title="Dokumen telah diperbarui"
+                message="Dokumen telah diubah oleh reviewer lain atau diperbarui oleh customer."
+                action={{ label: 'Muat ulang', onSelect: () => void refreshSelected() }}
               />
             )}
-            <div className="grid gap-4 lg:grid-cols-2">
-              {(['SELFIE', 'KTP_FRONT'] as const).map((documentKind) => {
-                const document = selected.documents.find((item) => item.kind === documentKind);
-                return (
-                  <DocumentReviewCard
-                    key={documentKind}
-                    document={document}
-                    previewUrl={document ? previews[document.id] : undefined}
-                    previewError={document ? previewErrors[document.id] : undefined}
-                    previewLoading={document ? previewLoading === document.id : false}
-                    onPreview={loadPreview}
-                    onApprove={(item) => setDecision({ document: item, kind: 'approve' })}
-                    onReject={(item) => setDecision({ document: item, kind: 'reject' })}
-                    canDelete={canDelete}
-                    mayDecide={canDecide}
-                    onDelete={setDeleteTarget}
-                  />
-                );
-              })}
+
+            <div className="rounded-xl border border-dd-line/80 bg-dd-surface-muted/30 p-4 text-xs leading-relaxed text-dd-muted">
+              <strong className="block text-sm font-bold text-dd-ink mb-1">
+                Panduan Pemeriksaan:
+              </strong>
+              1. Pastikan foto selfie menampilkan wajah customer dengan jelas tanpa kacamata
+              hitam/topi.
+              <br />
+              2. Pastikan KTP asli, seluruh sudut terlihat, nama &amp; NIK terbaca tajam.
+              <br />
+              3. Bandingkan kesesuaian wajah selfie dengan foto di KTP.
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <DocumentReviewCard
+                document={selected.documents.find((doc) => doc.kind === 'SELFIE')}
+                previewUrl={
+                  previews[selected.documents.find((doc) => doc.kind === 'SELFIE')?.id ?? '']
+                }
+                previewError={
+                  previewErrors[selected.documents.find((doc) => doc.kind === 'SELFIE')?.id ?? '']
+                }
+                previewLoading={
+                  previewLoading === selected.documents.find((doc) => doc.kind === 'SELFIE')?.id
+                }
+                onPreview={(doc) => void loadPreview(doc)}
+                onApprove={(doc) => setDecision({ document: doc, kind: 'approve' })}
+                onReject={(doc) => setDecision({ document: doc, kind: 'reject' })}
+                canDelete={canDelete}
+                mayDecide={canDecide}
+                onDelete={(doc) => setDeleteTarget(doc)}
+              />
+              <DocumentReviewCard
+                document={selected.documents.find((doc) => doc.kind === 'KTP_FRONT')}
+                previewUrl={
+                  previews[selected.documents.find((doc) => doc.kind === 'KTP_FRONT')?.id ?? '']
+                }
+                previewError={
+                  previewErrors[
+                    selected.documents.find((doc) => doc.kind === 'KTP_FRONT')?.id ?? ''
+                  ]
+                }
+                previewLoading={
+                  previewLoading === selected.documents.find((doc) => doc.kind === 'KTP_FRONT')?.id
+                }
+                onPreview={(doc) => void loadPreview(doc)}
+                onApprove={(doc) => setDecision({ document: doc, kind: 'approve' })}
+                onReject={(doc) => setDecision({ document: doc, kind: 'reject' })}
+                canDelete={canDelete}
+                mayDecide={canDecide}
+                onDelete={(doc) => setDeleteTarget(doc)}
+              />
             </div>
           </div>
         )}
       </Drawer>
 
-      <DecisionDialog
-        decision={decision}
-        submitting={submitting}
-        onClose={() => setDecision(undefined)}
-        onSubmit={submitDecision}
-      />
-      <DestructiveDialog
-        open={Boolean(deleteTarget)}
-        title="Hapus file identitas secara permanen"
-        impact="File privat tidak dapat dipulihkan dan customer mungkin perlu mengunggah dokumen baru."
-        scope={selected?.user.displayName}
-        busy={submitting}
-        onClose={() => setDeleteTarget(undefined)}
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={submitting}
-              onClick={() => setDeleteTarget(undefined)}
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              form="identity-document-delete-form"
-              variant="danger"
-              leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
-              loading={submitting}
-            >
-              Hapus permanen
-            </Button>
-          </div>
-        }
-      >
-        <form id="identity-document-delete-form" className="grid gap-4" onSubmit={submitDeletion}>
-          <Textarea
-            label="Alasan penghapusan"
-            name="reason"
-            minLength={3}
-            maxLength={500}
-            required
-          />
-        </form>
-      </DestructiveDialog>
+      {/* Decision Dialog */}
+      {decision && (
+        <DecisionDialog
+          decision={decision}
+          submitting={submitting}
+          onClose={() => setDecision(undefined)}
+          onSubmit={(doc, kind, reasonCode, note) => submitDecision(doc, kind, reasonCode, note)}
+        />
+      )}
+
+      {/* Delete Dialog */}
+      {deleteTarget && (
+        <DestructiveDialog
+          open
+          busy={submitting}
+          title={`Hapus permanen ${kindLabel(deleteTarget.kind)}?`}
+          impact="File fisik akan dihapus permanen dari penyimpanan privat."
+          onClose={() => setDeleteTarget(undefined)}
+        >
+          <form
+            id="delete-document-form"
+            onSubmit={(event) => void submitDeletion(event)}
+            className="space-y-4"
+          >
+            <Textarea
+              label="Alasan penghapusan (wajib audit)"
+              name="reason"
+              required
+              minLength={5}
+              placeholder="Contoh: Permintaan penghapusan data pribadi (GDPR/UU PDP)"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setDeleteTarget(undefined)}>
+                Batal
+              </Button>
+              <Button type="submit" variant="danger" loading={submitting}>
+                Hapus Permanen
+              </Button>
+            </div>
+          </form>
+        </DestructiveDialog>
+      )}
     </section>
   );
 }

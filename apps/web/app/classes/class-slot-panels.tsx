@@ -7,14 +7,14 @@ import {
   type BookingClient,
   type CheckInIssue,
   type CustomerBookingRecord,
-} from '../booking-client';
+} from '@/api-clients/booking-client';
 import type {
   ClassSlot,
   ClassTypeOption,
   InstructorOption,
   StudioOption,
-} from '../class-slot-client';
-import { formatBranchTime, zonedLocalDateTime } from '../class-time';
+} from '@/api-clients/class-slot-client';
+import { formatBranchTime, zonedLocalDateTime } from '@/lib/class-time';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, DateInput, TextInput } from '../components/forms';

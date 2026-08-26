@@ -11,7 +11,7 @@ import {
   type LedgerBalance,
   type LedgerClient,
   type LedgerSummary,
-} from '../ledger-client';
+} from '@/api-clients/ledger-client';
 import { EmptyState, Feedback, PageHeader, Skeleton } from '../ui';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Button, ButtonLink } from '../components/actions';

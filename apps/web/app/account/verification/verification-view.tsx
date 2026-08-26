@@ -18,7 +18,7 @@ import {
   type DocumentKind,
   type VerificationDocument,
   type VerificationSummary,
-} from '../../identity-verification-client';
+} from '@/api-clients/identity-verification-client';
 import { useSessionContext } from '../../session-context';
 import {
   Drawer,
@@ -130,6 +130,35 @@ function usePrivateDocumentPreview(kind: DocumentKind, enabled = true) {
     };
   }, [enabled, kind]);
   return { url, state };
+}
+
+function InlineDocumentPreview({ document }: { document: VerificationDocument }) {
+  const preview = usePrivateDocumentPreview(document.kind);
+
+  if (['DELETED', 'PENDING_DELETION'].includes(document.status)) return null;
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30">
+      {preview.state === 'loading' ? (
+        <div className="flex h-44 items-center justify-center text-xs text-dd-muted animate-pulse">
+          <span>Memuat dokumen Anda…</span>
+        </div>
+      ) : preview.state === 'error' ? (
+        <div className="flex h-36 items-center justify-center p-3 text-center text-xs text-dd-muted">
+          <span>Pratinjau privat tidak dapat dimuat otomatis.</span>
+        </div>
+      ) : (
+        <div className="relative flex max-h-60 items-center justify-center bg-black/5 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview.url}
+            alt={`Pratinjau ${documentLabels[document.kind]}`}
+            className="max-h-56 w-auto max-w-full rounded object-contain shadow-sm"
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DocumentPreviewDialog({
@@ -607,6 +636,7 @@ export function VerificationView() {
                 <p className="mt-2 text-sm leading-6 text-dd-muted">
                   {documentDescription(document)}
                 </p>
+                <InlineDocumentPreview document={document} />
                 {document.rejectionNote && document.status === 'REJECTED' && (
                   <p className="mt-3 rounded-dd-md bg-dd-warning-soft p-3 text-sm leading-6 text-dd-warning">
                     Catatan reviewer: {document.rejectionNote}
