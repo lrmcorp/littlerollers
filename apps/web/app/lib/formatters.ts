@@ -8,7 +8,11 @@ export function formatRupiah(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return 'Rp 0';
   }
-  return rupiahFormatter.format(value);
+  const rounded = Math.round(value);
+  if (rounded === 0 || Object.is(rounded, -0)) {
+    return 'Rp 0';
+  }
+  return rupiahFormatter.format(rounded);
 }
 
 export function formatTanggal(

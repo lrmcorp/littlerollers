@@ -1,11 +1,28 @@
 import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import type { IdentityDocumentKind } from '@prisma/client';
+import { Readable } from 'node:stream';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import { PolicyService } from './policy.service';
 import { ApiProblem, newId } from './security';
+
+function isLegacyRemoteKey(key: string | null | undefined): boolean {
+  if (!key) return false;
+  return key.startsWith('http://') || key.startsWith('https://') || key.startsWith('legacy:');
+}
+
+function resolveLegacyUrl(key: string): string {
+  if (key.startsWith('http://') || key.startsWith('https://')) return key;
+  const rawPath = key.startsWith('legacy:') ? key.slice('legacy:'.length) : key;
+  const baseUrl = (process.env.LEGACY_V1_MEDIA_BASE_URL || 'https://dailydosepilates.com').replace(
+    /\/+$/,
+    '',
+  );
+  const cleanPath = rawPath.replace(/^\/+/, '');
+  return `${baseUrl}/${cleanPath}`;
+}
 
 @Injectable()
 export class IdentityDocumentAccessService {
@@ -27,13 +44,14 @@ export class IdentityDocumentAccessService {
     const document = await this.db.dokumenVerifikasiIdentitas.findUnique({
       where: { id: documentId },
     });
+    const isLegacy = isLegacyRemoteKey(document?.objectKey);
     if (
       !document?.objectKey ||
       ['DELETED', 'PENDING_DELETION'].includes(document.status) ||
       document.uploadStatus !== 'FINALIZED' ||
       document.scanStatus !== 'CLEAN' ||
       document.replacedById !== null ||
-      !(await this.storage.exists(document.objectKey))
+      (!isLegacy && !(await this.storage.exists(document.objectKey)))
     )
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.createAuthorization(
@@ -65,7 +83,8 @@ export class IdentityDocumentAccessService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    if (!document?.objectKey || !(await this.storage.exists(document.objectKey)))
+    const isLegacy = isLegacyRemoteKey(document?.objectKey);
+    if (!document?.objectKey || (!isLegacy && !(await this.storage.exists(document.objectKey))))
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.createAuthorization(
       principal,
@@ -104,7 +123,30 @@ export class IdentityDocumentAccessService {
       data: { consumedAt: new Date() },
     });
     if (claimed.count !== 1) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const stream = await this.storage.read(authorization.document.objectKey);
+
+    let stream: any;
+    let mimeType = authorization.document.mimeType;
+
+    if (isLegacyRemoteKey(authorization.document.objectKey)) {
+      const legacyUrl = resolveLegacyUrl(authorization.document.objectKey);
+      try {
+        const response = await fetch(legacyUrl);
+        if (!response.ok) {
+          throw new Error(`Legacy media fetch failed with status: ${response.status}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        stream = Readable.from(Buffer.from(arrayBuffer));
+        const fetchedMime = response.headers.get('content-type');
+        if (fetchedMime && fetchedMime.startsWith('image/')) {
+          mimeType = fetchedMime;
+        }
+      } catch {
+        throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      }
+    } else {
+      stream = await this.storage.read(authorization.document.objectKey);
+    }
+
     await this.db.auditLog.create({
       data: {
         id: newId(),
@@ -117,7 +159,7 @@ export class IdentityDocumentAccessService {
         correlationId,
       },
     });
-    return { stream, mimeType: authorization.document.mimeType };
+    return { stream, mimeType };
   }
 
   private async createAuthorization(

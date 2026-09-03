@@ -10,9 +10,14 @@ const DAY = 86_400_000;
 const dateShift = (date: string, days: number) =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 
-function percentChange(current: number, previous: number) {
-  if (previous === 0) return current === 0 ? 0 : 100;
-  return Math.round(((current - previous) / previous) * 1000) / 10;
+function percentChange(current: number, previous: number): number | null {
+  if (previous === 0) return current === 0 ? 0 : null;
+  // If baseline is tiny (e.g. negligible rounding difference or < 1000 IDR), baseline is too small for meaningful percentage
+  if (Math.abs(previous) < 1000 && Math.abs(current) > 10000) return null;
+  if (previous < 0 && current > 0) return null;
+  const change = Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
+  if (Math.abs(change) > 500) return null; // Avoid absurd percentages like +1414384.1%
+  return change;
 }
 
 @Injectable()
@@ -472,7 +477,6 @@ export class DashboardService {
         'instructor-realtime',
         'other-cost',
         'profit',
-        'correction',
         'pending-payments',
         'finance-anomalies',
         'bookings',
@@ -489,7 +493,6 @@ export class DashboardService {
         'instructor-realtime',
         'other-cost',
         'profit',
-        'correction',
         'pending-payments',
         'finance-anomalies',
       ],

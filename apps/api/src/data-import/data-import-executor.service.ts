@@ -62,11 +62,43 @@ export class DataImportExecutorService {
       }
 
       try {
-        const { name, email, phoneE164, role, branchId, status, genderCode, birthDate, address, barcode } = item.data;
+        const {
+          name,
+          email,
+          phoneE164,
+          role,
+          branchId,
+          status,
+          genderCode,
+          birthDate,
+          address,
+          barcode,
+          ktpPath,
+          selfiePath,
+          nik,
+          countryCode,
+          fotoPath,
+        } = item.data;
         const emailHash = canonicalEmailHash(email);
         const isCustomer = role === 'CUSTOMER';
         const defaultHash = isCustomer ? defaultCustomerPass : defaultStaffPass;
         const parsedBirthDate = birthDate ? new Date(birthDate) : null;
+        const nikHash = nik ? createHash('sha256').update(nik).digest('hex') : null;
+
+        const mimeFromPath = (p: string) => {
+          const lower = p.toLowerCase();
+          if (lower.endsWith('.png')) return 'image/png';
+          if (lower.endsWith('.webp')) return 'image/webp';
+          return 'image/jpeg';
+        };
+        const nameFromPath = (p: string) => {
+          const parts = p.split(/[\/\\]/);
+          return parts[parts.length - 1] || 'document.jpg';
+        };
+        const resolveObjectKey = (p: string) =>
+          p.startsWith('http://') || p.startsWith('https://')
+            ? p
+            : `legacy:${p.replace(/^\/+/, '')}`;
 
         const existingUser = await this.db.user.findFirst({
           where: { email },
@@ -100,7 +132,14 @@ export class DataImportExecutorService {
           }
 
           // Update profile if profile data is provided
-          if (address || genderCode || parsedBirthDate || barcode) {
+          if (
+            address ||
+            genderCode ||
+            parsedBirthDate ||
+            barcode ||
+            nikHash ||
+            countryCode
+          ) {
             await this.db.profilPengguna.upsert({
               where: { userId: existingUser.id },
               create: {
@@ -109,14 +148,136 @@ export class DataImportExecutorService {
                 genderCode: genderCode || null,
                 birthDate: parsedBirthDate,
                 barcode: barcode || null,
+                nikHash: nikHash || null,
+                countryCode: countryCode || null,
               },
               update: {
                 ...(address ? { address } : {}),
                 ...(genderCode ? { genderCode } : {}),
                 ...(parsedBirthDate ? { birthDate: parsedBirthDate } : {}),
                 ...(barcode ? { barcode } : {}),
+                ...(nikHash ? { nikHash } : {}),
+                ...(countryCode ? { countryCode } : {}),
               },
             });
+          }
+
+          // Upsert KTP document if provided
+          if (ktpPath) {
+            const objectKey = resolveObjectKey(ktpPath);
+            const existingKtp = await this.db.dokumenVerifikasiIdentitas.findFirst({
+              where: { userId: existingUser.id, kind: 'KTP_FRONT', replacedById: null },
+            });
+            if (existingKtp) {
+              await this.db.dokumenVerifikasiIdentitas.update({
+                where: { id: existingKtp.id },
+                data: {
+                  objectKey,
+                  fileName: nameFromPath(ktpPath),
+                  mimeType: mimeFromPath(ktpPath),
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                },
+              });
+            } else {
+              await this.db.dokumenVerifikasiIdentitas.create({
+                data: {
+                  id: randomUUID(),
+                  userId: existingUser.id,
+                  kind: 'KTP_FRONT',
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                  objectKey,
+                  fileName: nameFromPath(ktpPath),
+                  mimeType: mimeFromPath(ktpPath),
+                  checksum: createHash('sha256').update(ktpPath).digest('hex'),
+                  sizeBytes: 0,
+                  issuedAt: new Date(),
+                  uploadedAt: new Date(),
+                  finalizedAt: new Date(),
+                },
+              });
+            }
+          }
+
+          // Upsert Selfie document if provided
+          if (selfiePath) {
+            const objectKey = resolveObjectKey(selfiePath);
+            const existingSelfie = await this.db.dokumenVerifikasiIdentitas.findFirst({
+              where: { userId: existingUser.id, kind: 'SELFIE', replacedById: null },
+            });
+            if (existingSelfie) {
+              await this.db.dokumenVerifikasiIdentitas.update({
+                where: { id: existingSelfie.id },
+                data: {
+                  objectKey,
+                  fileName: nameFromPath(selfiePath),
+                  mimeType: mimeFromPath(selfiePath),
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                },
+              });
+            } else {
+              await this.db.dokumenVerifikasiIdentitas.create({
+                data: {
+                  id: randomUUID(),
+                  userId: existingUser.id,
+                  kind: 'SELFIE',
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                  objectKey,
+                  fileName: nameFromPath(selfiePath),
+                  mimeType: mimeFromPath(selfiePath),
+                  checksum: createHash('sha256').update(selfiePath).digest('hex'),
+                  sizeBytes: 0,
+                  issuedAt: new Date(),
+                  uploadedAt: new Date(),
+                  finalizedAt: new Date(),
+                },
+              });
+            }
+          }
+
+          // Upsert Avatar/Profile Photo if provided
+          if (fotoPath) {
+            const objectKey = resolveObjectKey(fotoPath);
+            const existingPhoto = await this.db.asetMedia.findFirst({
+              where: {
+                entityType: 'User',
+                entityId: existingUser.id,
+                purposeCode: 'PROFILE_PHOTO',
+              },
+            });
+            if (existingPhoto) {
+              await this.db.asetMedia.update({
+                where: { id: existingPhoto.id },
+                data: {
+                  objectKey,
+                  mimeType: mimeFromPath(fotoPath),
+                  scanStatus: 'CLEAN',
+                },
+              });
+            } else {
+              await this.db.asetMedia.create({
+                data: {
+                  id: randomUUID(),
+                  ownerUserId: existingUser.id,
+                  entityType: 'User',
+                  entityId: existingUser.id,
+                  purposeCode: 'PROFILE_PHOTO',
+                  objectKey,
+                  checksum: createHash('sha256').update(fotoPath).digest('hex'),
+                  mimeType: mimeFromPath(fotoPath),
+                  sizeBytes: 0,
+                  scanStatus: 'CLEAN',
+                  visibility: 'PUBLIC',
+                },
+              });
+            }
           }
 
           updated++;
@@ -166,7 +327,14 @@ export class DataImportExecutorService {
               },
             });
 
-            if (address || genderCode || parsedBirthDate || barcode) {
+            if (
+              address ||
+              genderCode ||
+              parsedBirthDate ||
+              barcode ||
+              nikHash ||
+              countryCode
+            ) {
               await tx.profilPengguna.create({
                 data: {
                   userId: newUserId,
@@ -174,6 +342,68 @@ export class DataImportExecutorService {
                   genderCode: genderCode || null,
                   birthDate: parsedBirthDate,
                   barcode: barcode || null,
+                  nikHash: nikHash || null,
+                  countryCode: countryCode || null,
+                },
+              });
+            }
+
+            if (ktpPath) {
+              await tx.dokumenVerifikasiIdentitas.create({
+                data: {
+                  id: randomUUID(),
+                  userId: newUserId,
+                  kind: 'KTP_FRONT',
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                  objectKey: resolveObjectKey(ktpPath),
+                  fileName: nameFromPath(ktpPath),
+                  mimeType: mimeFromPath(ktpPath),
+                  checksum: createHash('sha256').update(ktpPath).digest('hex'),
+                  sizeBytes: 0,
+                  issuedAt: new Date(),
+                  uploadedAt: new Date(),
+                  finalizedAt: new Date(),
+                },
+              });
+            }
+
+            if (selfiePath) {
+              await tx.dokumenVerifikasiIdentitas.create({
+                data: {
+                  id: randomUUID(),
+                  userId: newUserId,
+                  kind: 'SELFIE',
+                  status: 'APPROVED',
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                  objectKey: resolveObjectKey(selfiePath),
+                  fileName: nameFromPath(selfiePath),
+                  mimeType: mimeFromPath(selfiePath),
+                  checksum: createHash('sha256').update(selfiePath).digest('hex'),
+                  sizeBytes: 0,
+                  issuedAt: new Date(),
+                  uploadedAt: new Date(),
+                  finalizedAt: new Date(),
+                },
+              });
+            }
+
+            if (fotoPath) {
+              await tx.asetMedia.create({
+                data: {
+                  id: randomUUID(),
+                  ownerUserId: newUserId,
+                  entityType: 'User',
+                  entityId: newUserId,
+                  purposeCode: 'PROFILE_PHOTO',
+                  objectKey: resolveObjectKey(fotoPath),
+                  checksum: createHash('sha256').update(fotoPath).digest('hex'),
+                  mimeType: mimeFromPath(fotoPath),
+                  sizeBytes: 0,
+                  scanStatus: 'CLEAN',
+                  visibility: 'PUBLIC',
                 },
               });
             }
@@ -207,11 +437,12 @@ export class DataImportExecutorService {
     let errorCount = 0;
     const errors: Array<{ rowNumber: number; message: string }> = [];
 
-    // Get a default classType if available
+    // Get a default classType and all branches
     const defaultClassType = await this.db.jenisKelas.findFirst({
       where: { active: true },
       select: { id: true },
     });
+    const allBranches = await this.db.cabang.findMany({ select: { id: true, code: true } });
 
     for (const item of request.rows) {
       if (item.status === 'ERROR') {
@@ -226,11 +457,39 @@ export class DataImportExecutorService {
       }
 
       try {
-        const { businessKey, name, sessionCount, durationDays, priceRp, branchId } = item.data;
+        const {
+          businessKey,
+          name,
+          sessionCount,
+          durationDays,
+          priceRp,
+          branchId,
+          isGlobal,
+          branchIds,
+          classTypeId,
+          isShowPublic,
+          manyTimesAllowed,
+          promoteCode,
+          discountPercent,
+        } = item.data;
+
+        const targetBranchIds = isGlobal
+          ? allBranches.map((b) => b.id)
+          : branchIds && branchIds.length > 0
+            ? branchIds
+            : branchId
+              ? [branchId]
+              : allBranches.map((b) => b.id);
+
+        const discountRp =
+          discountPercent > 0 ? Math.round((priceRp * discountPercent) / 100) : 0;
+        const effectiveClassTypeId = classTypeId || defaultClassType?.id || null;
 
         const existing = await this.db.paket.findFirst({ where: { businessKey } });
+        let pkgId: string;
 
         if (existing) {
+          pkgId = existing.id;
           await this.db.paket.update({
             where: { id: existing.id },
             data: {
@@ -238,15 +497,17 @@ export class DataImportExecutorService {
               sessionCount,
               durationDays,
               priceRp,
-              branchId: branchId || null,
+              branchId: targetBranchIds[0] || null,
+              classTypeId: effectiveClassTypeId,
               status: 'ACTIVE',
             },
           });
           updated++;
         } else {
+          pkgId = randomUUID();
           await this.db.paket.create({
             data: {
-              id: randomUUID(),
+              id: pkgId,
               businessKey,
               name,
               sessionCount,
@@ -254,11 +515,66 @@ export class DataImportExecutorService {
               priceRp,
               effectiveFrom: new Date(),
               status: 'ACTIVE',
-              branchId: branchId || null,
-              classTypeId: defaultClassType?.id || null,
+              branchId: targetBranchIds[0] || null,
+              classTypeId: effectiveClassTypeId,
             },
           });
           inserted++;
+        }
+
+        // Link branch scopes
+        for (const bId of targetBranchIds) {
+          await this.db.cakupanCabangPaket.upsert({
+            where: { packageId_branchId: { packageId: pkgId, branchId: bId } },
+            create: { id: randomUUID(), packageId: pkgId, branchId: bId, active: true },
+            update: { active: true },
+          });
+        }
+
+        // Link class type scope
+        if (effectiveClassTypeId) {
+          await this.db.cakupanJenisKelasPaket.upsert({
+            where: { packageId_classTypeId: { packageId: pkgId, classTypeId: effectiveClassTypeId } },
+            create: { id: randomUUID(), packageId: pkgId, classTypeId: effectiveClassTypeId, active: true },
+            update: { active: true },
+          });
+        }
+
+        // Record commercial revision
+        const existingRevisions = await this.db.revisiPaket.count({ where: { packageId: pkgId } });
+        await this.db.revisiPaket.create({
+          data: {
+            id: randomUUID(),
+            packageId: pkgId,
+            revisionNumber: existingRevisions + 1,
+            sessionCount,
+            durationDays,
+            priceRp,
+            promoteCode: promoteCode || null,
+            discountRp: discountRp || null,
+            manyTimesAllowed: Boolean(manyTimesAllowed),
+            visible: Boolean(isShowPublic),
+            effectiveFrom: new Date(),
+          },
+        });
+
+        // Set public profile if public
+        if (isShowPublic) {
+          await this.db.profilPublikPaket.upsert({
+            where: { packageId: pkgId },
+            create: {
+              packageId: pkgId,
+              summary: name,
+              description: `Paket ${name} dengan kuota ${sessionCount} sesi berlaku selama ${durationDays} hari.`,
+              highlights: [`${sessionCount} Sesi Pertemuan`, `Masa Berlaku ${durationDays} Hari`],
+              usageGuidance: 'Dapat digunakan untuk pemesanan kelas reguler sesuai cabang dan jenis kelas yang ditentukan.',
+              terms: ['Tidak dapat diuangkan kembali', 'Berlaku sesuai masa aktif tertera'],
+            },
+            update: {
+              summary: name,
+              description: `Paket ${name} dengan kuota ${sessionCount} sesi berlaku selama ${durationDays} hari.`,
+            },
+          });
         }
       } catch (err: any) {
         errorCount++;

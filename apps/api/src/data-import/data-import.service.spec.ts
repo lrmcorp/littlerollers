@@ -46,6 +46,26 @@ describe('Data Import Services', () => {
       expect(csvStr).toContain('Tanggal Lahir');
       expect(csvStr).toContain('Alamat');
       expect(csvStr).toContain('Barcode Member');
+      expect(csvStr).toContain('Path / URL KTP');
+      expect(csvStr).toContain('Path / URL Selfie');
+      expect(csvStr).toContain('NIK');
+      expect(csvStr).toContain('Negara');
+      expect(csvStr).toContain('Foto Profil');
+
+      const pkgResult = service.generateTemplate('PACKAGES', 'csv');
+      expect(pkgResult.filename).toBe('template_import_paket.csv');
+      const pkgCsvStr = pkgResult.buffer.toString('utf-8');
+      expect(pkgCsvStr).toContain('Kode Paket');
+      expect(pkgCsvStr).toContain('Nama Paket');
+      expect(pkgCsvStr).toContain('Kategori Kelas');
+      expect(pkgCsvStr).toContain('Jumlah Sesi');
+      expect(pkgCsvStr).toContain('Masa Berlaku Hari');
+      expect(pkgCsvStr).toContain('Harga IDR');
+      expect(pkgCsvStr).toContain('Kode Cabang');
+      expect(pkgCsvStr).toContain('Tampil di Publik');
+      expect(pkgCsvStr).toContain('Boleh Beli Berulang');
+      expect(pkgCsvStr).toContain('Kode Promo');
+      expect(pkgCsvStr).toContain('Diskon %');
     });
   });
 });

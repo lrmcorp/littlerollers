@@ -37,6 +37,7 @@ const financialMetricKeys = new Set([
   'other-cost',
   'profit',
   'correction',
+  'pending-payments',
   'finance-anomalies',
 ]);
 
@@ -337,42 +338,90 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </p>
       )}
 
-      {/* KPI Metrics Stat Cards Grid */}
-      <section aria-label="Indikator utama" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {(overview?.metrics ?? []).map((metric) => (
-          <StatCard
-            key={metric.key}
-            label={metric.label}
-            value={
-              overview?.financial.completeness === 'INCOMPLETE' &&
-              financialMetricKeys.has(metric.key)
-                ? 'Belum tersedia'
-                : metric.unit === 'IDR'
-                  ? formatRupiah(metric.value)
-                  : metric.unit === 'PERCENT'
-                    ? `${number.format(metric.value)}%`
-                    : number.format(metric.value)
-            }
-            change={metric.changePercent}
-            helper={
-              overview?.financial.completeness === 'INCOMPLETE' &&
-              financialMetricKeys.has(metric.key)
-                ? 'Konfigurasi atau sumber belum lengkap'
-                : metric.changePercent == null
-                  ? 'Periode terpilih'
-                  : 'dibanding periode sebelumnya'
-            }
-          />
-        ))}
-        {loading &&
-          !overview &&
-          Array.from({ length: 4 }, (_, index) => (
+      {/* KPI Metrics Stat Cards */}
+      {overview && (() => {
+        const metrics = overview.metrics ?? [];
+        const financialMetrics = metrics.filter((m) => financialMetricKeys.has(m.key));
+        const operationalMetrics = metrics.filter((m) => !financialMetricKeys.has(m.key));
+
+        const renderCard = (metric: (typeof metrics)[number]) => {
+          const isFinancial = financialMetricKeys.has(metric.key);
+          const isUnavailable =
+            metric.value === null ||
+            metric.value === undefined ||
+            Number.isNaN(metric.value) ||
+            (overview.financial.completeness === 'INCOMPLETE' && isFinancial);
+
+          const formattedValue = isUnavailable
+            ? 'Belum tersedia'
+            : metric.unit === 'IDR'
+              ? formatRupiah(metric.value)
+              : metric.unit === 'PERCENT'
+                ? `${number.format(metric.value)}%`
+                : number.format(metric.value);
+
+          const helperText = isUnavailable
+            ? 'Konfigurasi atau sumber belum lengkap'
+            : metric.changePercent == null
+              ? 'Periode terpilih'
+              : 'dibanding periode sebelumnya';
+
+          return (
+            <StatCard
+              key={metric.key}
+              label={metric.label}
+              value={formattedValue}
+              change={isUnavailable ? undefined : (metric.changePercent ?? undefined)}
+              helper={helperText}
+            />
+          );
+        };
+
+        return (
+          <div className="space-y-8">
+            {financialMetrics.length > 0 && (
+              <section aria-label="Performa finansial" className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    Performa Finansial
+                  </span>
+                  {overview.financial.completeness === 'INCOMPLETE' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 shadow-sm">
+                      <span className="size-1.5 rounded-full bg-amber-500" />
+                      {overview.financial.anomalyCount} anomali data migrasi
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {financialMetrics.map(renderCard)}
+                </div>
+              </section>
+            )}
+
+            {operationalMetrics.length > 0 && (
+              <section aria-label="Kinerja operasional dan member" className="space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                  Kinerja Operasional & Member
+                </span>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {operationalMetrics.map(renderCard)}
+                </div>
+              </section>
+            )}
+          </div>
+        );
+      })()}
+
+      {loading && !overview && (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 8 }, (_, index) => (
             <div
               key={index}
               className="h-40 animate-pulse rounded-2xl border border-dd-line/80 bg-white/70 shadow-sm"
             />
           ))}
-      </section>
+        </div>
+      )}
 
       {/* Trend Section */}
       {overview?.sections.trend && (

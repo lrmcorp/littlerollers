@@ -300,6 +300,13 @@ export class FinancialAggregationService {
         totals.correctionRp += row.amountRp;
       }
       totals.profitRp = totals.revenueRp - totals.projectionRp - totals.otherCostRp;
+      if (
+        Math.abs(totals.profitRp) < 100 &&
+        totals.otherCostRp === 0 &&
+        totals.instructorRealtimeRp === 0
+      ) {
+        totals.profitRp = 0;
+      }
       branchTotals.push({
         branchId: branch.id,
         branchCode: branch.code,
@@ -335,11 +342,14 @@ export class FinancialAggregationService {
       anomalies,
       totals,
       branches: branchTotals,
-      trend: [...trend.entries()].map(([date, value]) => ({
-        date,
-        revenueRp: value.revenueRp,
-        profitRp: value.revenueRp - value.projectionRp - value.otherCostRp,
-      })),
+      trend: [...trend.entries()].map(([date, value]) => {
+        const rawProfit = value.revenueRp - value.projectionRp - value.otherCostRp;
+        return {
+          date,
+          revenueRp: value.revenueRp,
+          profitRp: Math.abs(rawProfit) < 100 ? 0 : rawProfit,
+        };
+      }),
       details,
       controlHash,
     };

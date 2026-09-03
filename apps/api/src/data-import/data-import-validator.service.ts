@@ -136,6 +136,35 @@ export class DataImportValidatorService {
       const rawBarcode = String(
         row['Barcode Member'] || row['barcode'] || row['no_member'] || '',
       ).trim();
+      const rawKtp = String(
+        row['Path / URL KTP'] ||
+          row['ktpPath'] ||
+          row['ktp'] ||
+          row['URL KTP'] ||
+          row['foto_ktp'] ||
+          '',
+      ).trim();
+      const rawSelfie = String(
+        row['Path / URL Selfie'] ||
+          row['selfiePath'] ||
+          row['selfie'] ||
+          row['URL Selfie'] ||
+          row['foto_selfie'] ||
+          '',
+      ).trim();
+      const rawNik = String(row['NIK'] || row['nik'] || row['no_ktp'] || '').trim();
+      const rawCountry = String(
+        row['Negara'] || row['country'] || row['countryCode'] || row['negara'] || '',
+      ).trim();
+      const rawFoto = String(
+        row['Foto Profil'] ||
+          row['foto'] ||
+          row['avatar'] ||
+          row['photo'] ||
+          row['foto_profil'] ||
+          row['fotoPath'] ||
+          '',
+      ).trim();
 
       if (!name || name.length < 2) {
         errors.push('Nama lengkap wajib diisi (minimal 2 karakter).');
@@ -175,6 +204,21 @@ export class DataImportValidatorService {
         }
       }
 
+      let countryCode: string | null = null;
+      if (rawCountry) {
+        if (/^indonesia$/iu.test(rawCountry) || rawCountry.toUpperCase() === 'ID') {
+          countryCode = 'ID';
+        } else if (rawCountry.length === 2) {
+          countryCode = rawCountry.toUpperCase();
+        } else {
+          countryCode = 'ID';
+        }
+      }
+
+      if (rawNik && rawNik.length !== 16) {
+        warnings.push(`Panjang NIK '${rawNik}' disarankan 16 digit.`);
+      }
+
       let branchId: string | null = null;
       if (branchCode && branchCode !== 'GLOBAL') {
         branchId = existingBranches.get(branchCode) ?? null;
@@ -211,6 +255,11 @@ export class DataImportValidatorService {
           birthDate,
           address: rawAddress || null,
           barcode: rawBarcode || null,
+          ktpPath: rawKtp || null,
+          selfiePath: rawSelfie || null,
+          nik: rawNik || null,
+          countryCode: countryCode || null,
+          fotoPath: rawFoto || null,
         },
         errors,
         warnings,
@@ -232,6 +281,10 @@ export class DataImportValidatorService {
     const existingBranches = new Map<string, string>(
       branches.map((b) => [b.code.toUpperCase().trim(), b.id]),
     );
+    const classTypes = await this.db.jenisKelas.findMany({
+      where: { active: true },
+      select: { id: true, code: true, name: true, modality: true },
+    });
 
     const validated: ValidatedRowItem[] = [];
 
@@ -241,13 +294,53 @@ export class DataImportValidatorService {
       const errors: string[] = [];
       const warnings: string[] = [];
 
-      const code = String(row['Kode Paket'] || row['code'] || row['businessKey'] || '').trim().toUpperCase();
+      const code = String(
+        row['Kode Paket'] || row['code'] || row['businessKey'] || '',
+      ).trim().toUpperCase();
       const name = String(row['Nama Paket'] || row['name'] || '').trim();
-      const category = String(row['Kategori Kelas'] || row['category'] || 'GROUP').trim().toUpperCase();
-      const totalCredits = Number(row['Jumlah Sesi'] || row['sessionCount'] || row['totalCredits'] || 0);
-      const validityDays = Number(row['Masa Berlaku Hari'] || row['durationDays'] || row['validityDays'] || 30);
-      const priceIdr = Number(row['Harga IDR'] || row['priceRp'] || row['price'] || 0);
-      const branchCode = String(row['Kode Cabang'] || row['branchCode'] || 'GLOBAL').trim().toUpperCase();
+      const category = String(
+        row['Kategori Kelas'] || row['category'] || row['id_kelas'] || 'GROUP',
+      ).trim().toUpperCase();
+      const totalCredits = Number(
+        row['Jumlah Sesi'] || row['sessionCount'] || row['totalCredits'] || row['jumlah_pertemuan'] || 0,
+      );
+      const validityDays = Number(
+        row['Masa Berlaku Hari'] || row['durationDays'] || row['validityDays'] || row['valid_day'] || 30,
+      );
+      const priceIdr = Number(
+        row['Harga IDR'] || row['priceRp'] || row['price'] || row['harga'] || 0,
+      );
+      const rawBranchCode = String(
+        row['Kode Cabang'] || row['branchCode'] || row['Cabang'] || 'GLOBAL',
+      ).trim();
+
+      const rawShowPublic =
+        row['Tampil di Publik'] !== undefined
+          ? String(row['Tampil di Publik']).trim().toUpperCase()
+          : row['is_show_public'] !== undefined
+            ? String(row['is_show_public']).trim().toUpperCase()
+            : 'YA';
+      const isShowPublic =
+        ['YA', '1', 'TRUE', 'Y', 'YES'].includes(rawShowPublic) || rawShowPublic === '';
+
+      const rawManyTimes =
+        row['Boleh Beli Berulang'] !== undefined
+          ? String(row['Boleh Beli Berulang']).trim().toUpperCase()
+          : row['is_many_times'] !== undefined
+            ? String(row['is_many_times']).trim().toUpperCase()
+            : 'YA';
+      const manyTimesAllowed =
+        ['YA', '1', 'TRUE', 'Y', 'YES'].includes(rawManyTimes) || rawManyTimes === '';
+
+      const promoteCode =
+        String(
+          row['Kode Promo'] || row['promote_code'] || row['promoteCode'] || '',
+        ).trim() || null;
+
+      const rawDiscount = Number(
+        row['Diskon %'] || row['diskon'] || row['discountPercent'] || 0,
+      );
+      const discountPercent = isNaN(rawDiscount) ? 0 : Math.max(0, Math.min(100, rawDiscount));
 
       if (!code) errors.push('Kode Paket wajib diisi.');
       if (!name) errors.push('Nama Paket wajib diisi.');
@@ -255,10 +348,40 @@ export class DataImportValidatorService {
       if (validityDays <= 0) errors.push('Masa berlaku hari harus lebih dari 0.');
       if (priceIdr < 0) errors.push('Harga tidak boleh negatif.');
 
-      let branchId: string | null = null;
-      if (branchCode && branchCode !== 'GLOBAL') {
-        branchId = existingBranches.get(branchCode) ?? null;
-        if (!branchId) errors.push(`Kode cabang '${branchCode}' tidak ditemukan.`);
+      // Match class type
+      const matchedClassType =
+        classTypes.find(
+          (ct) =>
+            ct.code.toUpperCase() === category ||
+            ct.name.toUpperCase() === category ||
+            (category === '4' && ct.name.toUpperCase().includes('PRIVATE GROUP')) ||
+            (category === '3' && ct.name.toUpperCase().includes('SEMI')) ||
+            (category === '2' && ct.modality === 'PRIVATE') ||
+            (category === '1' && ct.modality === 'GROUP') ||
+            (category.includes('PRIVATE') && !category.includes('GROUP') && ct.modality === 'PRIVATE') ||
+            (category.includes('GROUP') && ct.modality === 'GROUP'),
+        ) ||
+        classTypes[0] ||
+        null;
+
+      // Parse multi-branches
+      const branchCodes: string[] = [];
+      const branchIds: string[] = [];
+      let isGlobal = false;
+
+      if (!rawBranchCode || rawBranchCode.toUpperCase() === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        const tokens = rawBranchCode.split(/[,;/]+/).map((t) => t.trim().toUpperCase()).filter(Boolean);
+        for (const token of tokens) {
+          const id = existingBranches.get(token);
+          if (!id) {
+            errors.push(`Kode cabang '${token}' tidak ditemukan.`);
+          } else {
+            branchCodes.push(token);
+            branchIds.push(id);
+          }
+        }
       }
 
       let rowStatus: ValidatedRowItem['status'] = 'VALID';
@@ -279,12 +402,20 @@ export class DataImportValidatorService {
           code,
           businessKey: code,
           name,
-          category: category === 'PRIVATE' ? 'PRIVATE' : 'GROUP',
+          category,
+          classTypeId: matchedClassType?.id || null,
           sessionCount: totalCredits,
           durationDays: validityDays,
           priceRp: priceIdr,
-          branchCode: branchCode === 'GLOBAL' ? null : branchCode,
-          branchId,
+          isGlobal,
+          branchCodes,
+          branchIds,
+          branchId: branchIds[0] || null,
+          branchCode: isGlobal ? 'GLOBAL' : branchCodes.join(', '),
+          isShowPublic,
+          manyTimesAllowed,
+          promoteCode,
+          discountPercent,
         },
         errors,
         warnings,
