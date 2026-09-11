@@ -39,7 +39,7 @@ export function PackagePrice({
         </div>
       )}
       <strong
-        className={compact ? 'text-base text-dd-forest' : 'text-3xl tracking-tight text-dd-forest'}
+        className={compact ? 'font-serif text-base text-dd-forest font-bold' : 'font-serif text-3xl sm:text-4xl tracking-tight text-dd-forest font-normal'}
       >
         {formatRupiah(effectivePriceRp)}
       </strong>

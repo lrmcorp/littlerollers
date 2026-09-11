@@ -187,7 +187,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 }`}
               >
                 <span className="grid size-6 place-items-center rounded-full border border-current text-[11px]">
-                  {isDone ? '✓' : index + 1}
+                  {isDone ? <Check className="size-3.5 stroke-[2.5]" /> : index + 1}
                 </span>
                 {label}
               </li>

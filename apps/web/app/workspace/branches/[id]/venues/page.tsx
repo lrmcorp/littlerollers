@@ -1,4 +1,6 @@
-import { BranchOwnedMasterView } from '../branch-owned-master-view';
+import { redirect } from 'next/navigation';
+
 export default async function BranchVenuesPage({ params }: { params: Promise<{ id: string }> }) {
-  return <BranchOwnedMasterView branchId={(await params).id} tab="venues" />;
+  const { id } = await params;
+  redirect(`/workspace/branches/${id}`);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CheckCheck, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ArrowRight, Bell, CheckCheck, LoaderCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -257,7 +257,8 @@ export function NotificationCenter({
             onClick={() => setOpen(false)}
             className="flex min-h-10 w-full items-center justify-center gap-1.5 border-t border-dd-line bg-dd-surface-muted/60 px-4 text-xs font-semibold text-dd-forest no-underline transition-colors hover:bg-dd-surface-muted"
           >
-            Lihat semua notifikasi →
+            <span>Lihat semua notifikasi</span>
+            <ArrowRight className="size-3.5" />
           </Link>
         </section>
       )}

@@ -355,7 +355,12 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
               {exportJob.status !== 'READY' && exportJob.status !== 'FAILED' && (
                 <Button
                   variant="secondary"
-                  onClick={() => void client.getAuditExport(exportJob.id).then(setExportJob)}
+                  onClick={() =>
+                    void client
+                      .getAuditExport(exportJob.id)
+                      .then(setExportJob)
+                      .catch((error) => setFailure(failureCode(error)))
+                  }
                 >
                   Periksa status
                 </Button>
@@ -366,6 +371,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
                     void client
                       .authorizeAuditExport(exportJob.id)
                       .then(({ url }) => window.open(url, '_blank', 'noopener,noreferrer'))
+                      .catch((error) => setFailure(failureCode(error)))
                   }
                 >
                   Unduh privat

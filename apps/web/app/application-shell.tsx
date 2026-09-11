@@ -58,6 +58,7 @@ const accountPageLabels: Record<string, string> = {
   '/orders': 'Pesanan',
   '/bookings': 'Booking',
   '/workspace/bookings': 'Booking',
+  '/notifications': 'Notifikasi',
 };
 
 function accountPageLabelForPath(pathname: string) {

@@ -32,6 +32,12 @@ describe('public detail routing and audience', () => {
     expect(isCustomerCatalogPath(pathname)).toBe(true);
   });
 
+  it('treats /guide and public information routes as public experience paths', () => {
+    expect(isPublicExperiencePath('/guide')).toBe(true);
+    expect(isPublicExperiencePath('/contact')).toBe(true);
+    expect(isPublicExperiencePath('/')).toBe(true);
+  });
+
   it('keeps staff and multi-role accounts out of customer purchase flow', () => {
     expect(packageAudienceState(session(['SUPER_OWNER'], 'NOT_REQUIRED'))).toBe('STAFF');
     expect(packageAudienceState(session(['CUSTOMER', 'ADMIN'], 'APPROVED'))).toBe('STAFF');

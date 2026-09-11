@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Star } from 'lucide-react';
 import type { HeroCarouselPayload, HeroSlideItem } from '@/api-clients/account-client';
 import {
   publicContainer as container,
@@ -182,8 +182,8 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
               <div key={slide.id || index} className="space-y-6 transition-all duration-300">
                 {/* Badge */}
                 {slide.badge && (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-dd-forest/20 bg-white/85 px-3.5 py-1 text-xs font-bold text-dd-forest uppercase shadow-dd-soft backdrop-blur-sm">
-                    <Sparkles className="size-3.5 text-dd-brass" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-dd-brass/30 bg-white/90 px-4 py-1 text-xs font-semibold text-dd-brass-dark tracking-wider uppercase shadow-2xs backdrop-blur-md">
+                    <span className="size-1.5 rounded-full bg-dd-brass" />
                     <span>{slide.badge}</span>
                   </div>
                 )}
@@ -191,11 +191,13 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
                 {/* Title */}
                 <h1
                   id="marketing-hero-title"
-                  className="m-0 font-sans text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.04] tracking-tight text-dd-ink text-balance"
+                  className="m-0 font-serif text-4xl sm:text-5xl lg:text-6xl font-normal leading-[1.08] tracking-tight text-dd-ink text-balance"
                 >
                   {slide.title}{' '}
                   {slide.highlightTitle && (
-                    <span className="text-dd-forest block sm:inline">{slide.highlightTitle}</span>
+                    <span className="italic font-normal text-dd-forest block sm:inline">
+                      {slide.highlightTitle}
+                    </span>
                   )}
                 </h1>
 
@@ -207,22 +209,23 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   {slide.primaryCta?.href && (
-                    <Link className={primaryButton} href={slide.primaryCta.href}>
-                      {slide.primaryCta.label || 'Lihat Jadwal'}{' '}
-                      <span aria-hidden="true">›</span>
+                    <Link className={`${primaryButton} inline-flex items-center gap-1 justify-center`} href={slide.primaryCta.href}>
+                      <span>{slide.primaryCta.label || 'Lihat Jadwal'}</span>
+                      <ChevronRight className="size-3.5" />
                     </Link>
                   )}
                   {slide.secondaryCta?.href && (
-                    <Link className={secondaryButton} href={slide.secondaryCta.href}>
-                      {slide.secondaryCta.label || 'Lihat Paket'}{' '}
-                      <span aria-hidden="true">›</span>
+                    <Link className={`${secondaryButton} inline-flex items-center gap-1 justify-center`} href={slide.secondaryCta.href}>
+                      <span>{slide.secondaryCta.label || 'Lihat Paket'}</span>
+                      <ChevronRight className="size-3.5" />
                     </Link>
                   )}
                   <Link
-                    className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3 text-xs sm:text-sm font-bold text-dd-forest no-underline transition hover:underline"
+                    className="inline-flex min-h-11 items-center justify-center gap-1 px-3 text-xs sm:text-sm font-bold text-dd-forest no-underline transition hover:underline"
                     href="/locations"
                   >
-                    Jelajahi Studio <span aria-hidden="true">›</span>
+                    <span>Jelajahi Studio</span>
+                    <ChevronRight className="size-3.5" />
                   </Link>
                 </div>
               </div>
@@ -233,9 +236,15 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
           <div className="flex flex-wrap items-center gap-3 pt-4 text-xs font-medium text-dd-muted border-t border-dd-line/60">
             <span>Latihan personal dan kelompok kecil</span>
             <span className="text-dd-line">•</span>
-            <strong className="tracking-wider text-dd-brass font-bold" aria-label="Lima bintang">
-              ★★★★★
-            </strong>
+            <div
+              role="img"
+              aria-label="Rating 5 bintang"
+              className="flex items-center gap-1 text-dd-brass"
+            >
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="size-3.5 fill-dd-brass text-dd-brass" aria-hidden="true" />
+              ))}
+            </div>
             <span className="text-dd-line">•</span>
             <span>Move with intention</span>
           </div>

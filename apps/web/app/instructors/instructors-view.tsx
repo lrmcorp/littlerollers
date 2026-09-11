@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Pagination } from '../components/admin/admin-ui';
-import { SearchSelect } from '../components/forms';
+import { DataTable, type DataTableColumn, Pagination } from '../components/admin/admin-ui';
+import { SearchInput, SearchSelect } from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { instructorClient, type InstructorSummary } from './instructor-client';
@@ -20,6 +20,7 @@ export function InstructorsView() {
   const [error, setError] = useState('');
   const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const result = await instructorClient.list({
         q: q || undefined,
@@ -29,7 +30,6 @@ export function InstructorsView() {
       setItems(result.items);
       setTotal(result.summary.total);
       setNext(result.page.nextCursor);
-      setError('');
     } catch {
       setError('Data instructor belum dapat dimuat.');
     } finally {
@@ -41,21 +41,70 @@ export function InstructorsView() {
     setCursor(undefined);
     setHistory([]);
   };
-  const field = 'min-h-11 rounded-dd-md border border-dd-line bg-white px-3 text-sm';
+  const columns: DataTableColumn<InstructorSummary>[] = [
+    {
+      id: 'instructor',
+      header: 'Instructor',
+      cell: (item) => (
+        <div>
+          <strong className="font-semibold text-dd-ink">{item.displayName}</strong>
+          <div className="text-xs text-dd-muted">{item.email || item.phoneE164 || '—'}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'branches',
+      header: 'Studio/Cabang',
+      cell: (item) => (
+        <span className="text-dd-ink">
+          {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada assignment'}
+        </span>
+      ),
+    },
+    {
+      id: 'classes',
+      header: 'Kelas & check-in',
+      cell: (item) => (
+        <span className="text-dd-muted">
+          {item._count.instructedClassSlots} kelas · {item._count.instructorAttendances} check-in
+        </span>
+      ),
+    },
+    {
+      id: 'compensation',
+      header: 'Kompensasi',
+      cell: (item) => (
+        <span className="font-semibold text-dd-ink">
+          Rp{item.compensationRp.toLocaleString('id-ID')}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      cell: (item) => (
+        <Link
+          className="font-semibold text-dd-forest hover:underline"
+          href={`/instructors/${item.id}`}
+        >
+          Buka profil
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <section className="space-y-6">
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
-        <PageHeader
-          eyebrow="Operasional tim"
-          title="Instructor Management"
-          description="Assignment, availability, jadwal, check-in, fee, dan kompensasi dalam satu profil."
-        />
-      </div>
+      <PageHeader
+        eyebrow="Operasional tim"
+        title="Instructor Management"
+        description="Assignment, availability, jadwal, check-in, fee, dan kompensasi dalam satu profil."
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-4 sm:grid-cols-2">
-        <input
-          aria-label="Cari instructor"
-          className={field}
+        <SearchInput
+          label="Cari Instructor"
+          compact
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -79,57 +128,41 @@ export function InstructorsView() {
           }}
         />
       </div>
-      {loading && !items.length ? (
-        <Skeleton label="Memuat instructor" />
-      ) : (
-        <div className="overflow-x-auto rounded-dd-lg border border-dd-line bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-dd-surface-muted">
-              <tr>
-                <th className="p-4">Instructor</th>
-                <th className="p-4">Studio/Cabang</th>
-                <th className="p-4">Kelas & check-in</th>
-                <th className="p-4">Kompensasi</th>
-                <th className="p-4">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-dd-line">
-                  <td className="p-4">
-                    <strong>{item.displayName}</strong>
-                    <div className="text-dd-muted">{item.email || item.phoneE164 || '—'}</div>
-                  </td>
-                  <td className="p-4">
-                    {item.assignments.map((a) => a.branch.name).join(', ') ||
-                      'Belum ada assignment'}
-                  </td>
-                  <td className="p-4">
-                    {item._count.instructedClassSlots} kelas · {item._count.instructorAttendances}{' '}
-                    check-in
-                  </td>
-                  <td className="p-4">Rp{item.compensationRp.toLocaleString('id-ID')}</td>
-                  <td className="p-4">
-                    <Link
-                      className="font-semibold text-dd-forest hover:underline"
-                      href={`/instructors/${item.id}`}
-                    >
-                      Buka profil
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-dd-muted">
-                    Belum ada instructor.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        items={items}
+        columns={columns}
+        rowKey={(item) => item.id}
+        loading={loading && !items.length}
+        emptyTitle="Belum ada instructor"
+        emptyDescription="Tidak ada data instructor yang cocok dengan filter pencarian."
+        mobileCard={(item) => (
+          <div className="space-y-2 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <strong className="font-semibold text-dd-ink">{item.displayName}</strong>
+                <p className="text-xs text-dd-muted">{item.email || item.phoneE164 || '—'}</p>
+              </div>
+              <Link
+                className="text-xs font-semibold text-dd-forest hover:underline"
+                href={`/instructors/${item.id}`}
+              >
+                Buka profil
+              </Link>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-dd-muted">
+              <span>
+                {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada assignment'}
+              </span>
+              <span>·</span>
+              <span>{item._count.instructedClassSlots} kelas</span>
+              <span>·</span>
+              <span className="font-semibold text-dd-ink">
+                Rp{item.compensationRp.toLocaleString('id-ID')}
+              </span>
+            </div>
+          </div>
+        )}
+      />
       <Pagination
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(next) && !loading}

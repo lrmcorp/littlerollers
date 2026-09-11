@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
+  ArrowLeft,
   BookOpen,
   CalendarCheck,
   CheckCircle2,
@@ -517,9 +518,10 @@ export function GuideView() {
             </span>
             <Link
               href="/"
-              className="text-xs font-bold text-dd-forest no-underline hover:underline"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-dd-forest no-underline hover:underline"
             >
-              ← Kembali ke Beranda
+              <ArrowLeft className="size-3.5" />
+              <span>Kembali ke Beranda</span>
             </Link>
           </div>
 
@@ -718,8 +720,9 @@ export function GuideView() {
                           </div>
                         ))}
                       </dl>
-                      <div className="mt-5 rounded-dd-sm border border-dashed border-dd-line bg-white p-3 text-center text-[11px] text-dd-muted">
-                        ✔ Terhubung secara otomatis ke database pusat Daily Dose
+                      <div className="mt-5 flex items-center justify-center gap-1.5 rounded-dd-sm border border-dashed border-dd-line bg-white p-3 text-center text-[11px] text-dd-muted">
+                        <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                        <span>Terhubung secara otomatis ke database pusat Daily Dose</span>
                       </div>
                     </div>
                   </div>

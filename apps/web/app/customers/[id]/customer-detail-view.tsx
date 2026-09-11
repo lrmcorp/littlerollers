@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ActionGroup, Button } from '../../components/actions';
-import { SearchSelect } from '../../components/forms';
+import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { customerClient, type CustomerDetail } from '../customer-client';
-
-const fieldClass = 'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 text-sm';
 
 export function CustomerDetailView({ id }: { id: string }) {
   const session = useSessionContext()?.session;
@@ -103,8 +102,9 @@ export function CustomerDetailView({ id }: { id: string }) {
   ];
   return (
     <section className="space-y-6">
-      <Link className="font-semibold text-dd-forest hover:underline" href="/customers">
-        ← Kembali ke Customer Management
+      <Link className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline" href="/customers">
+        <ArrowLeft className="size-4" />
+        <span>Kembali ke Customer Management</span>
       </Link>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <PageHeader
@@ -145,35 +145,26 @@ export function CustomerDetailView({ id }: { id: string }) {
           onSubmit={updateProfile}
           className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6"
         >
-          <h2 className="font-semibold">Profil dan kontak</h2>
-          <label className="block text-sm">
-            Nama
-            <input
-              required
-              name="displayName"
-              defaultValue={customer.displayName}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block text-sm">
-            Email
-            <input
-              required
-              type="email"
-              name="email"
-              defaultValue={customer.email ?? ''}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block text-sm">
-            Telepon
-            <input
-              required
-              name="phoneE164"
-              defaultValue={customer.phoneE164 ?? ''}
-              className={fieldClass}
-            />
-          </label>
+          <h2 className="font-semibold text-dd-ink">Profil dan kontak</h2>
+          <TextInput
+            required
+            label="Nama"
+            name="displayName"
+            defaultValue={customer.displayName}
+          />
+          <TextInput
+            required
+            type="email"
+            label="Email"
+            name="email"
+            defaultValue={customer.email ?? ''}
+          />
+          <TextInput
+            required
+            label="Telepon"
+            name="phoneE164"
+            defaultValue={customer.phoneE164 ?? ''}
+          />
           <SearchSelect
             label="Studio/Cabang pilihan"
             name="preferredBranchId"
@@ -184,35 +175,31 @@ export function CustomerDetailView({ id }: { id: string }) {
               label: branch.name,
             }))}
           />
-          <label className="block text-sm">
-            Alasan perubahan
-            <input required minLength={3} name="reason" className={fieldClass} />
-          </label>
-          <label className="block text-sm">
-            Kode verifikasi tindakan
-            <input
-              required
-              type="password"
-              autoComplete="off"
-              name="stepUpToken"
-              className={fieldClass}
-            />
-          </label>
+          <TextInput required minLength={3} label="Alasan perubahan" name="reason" />
+          <TextInput
+            required
+            type="password"
+            autoComplete="off"
+            label="Kode verifikasi tindakan"
+            name="stepUpToken"
+          />
           <Button type="submit" loading={busy}>
             Simpan profil
           </Button>
         </form>
         <div className="space-y-5">
           <div className="rounded-dd-lg border border-dd-line bg-white p-6">
-            <h2 className="font-semibold">Keamanan akun</h2>
+            <h2 className="font-semibold text-dd-ink">Keamanan akun</h2>
             <dl className="mt-4 grid gap-3 text-sm">
               <div>
                 <dt className="text-dd-muted">Email terverifikasi</dt>
-                <dd>{customer.passwordCredential?.verifiedAt ? 'Ya' : 'Belum'}</dd>
+                <dd className="font-medium text-dd-ink">
+                  {customer.passwordCredential?.verifiedAt ? 'Ya' : 'Belum'}
+                </dd>
               </div>
               <div>
                 <dt className="text-dd-muted">Barcode</dt>
-                <dd>{customer.profile?.barcode ?? '—'}</dd>
+                <dd className="font-medium text-dd-ink">{customer.profile?.barcode ?? '—'}</dd>
               </div>
             </dl>
           </div>
@@ -220,24 +207,24 @@ export function CustomerDetailView({ id }: { id: string }) {
             onSubmit={changeStatus}
             className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6"
           >
-            <h2 className="font-semibold">Status akun</h2>
+            <h2 className="font-semibold text-dd-ink">Status akun</h2>
             <p className="text-sm text-dd-muted">
               Menonaktifkan akun mencabut seluruh sesi aktif. Tindakan ini tidak mengubah saldo atau
               transaksi.
             </p>
-            <input
+            <TextInput
               required
               minLength={3}
+              label="Alasan Perubahan Status"
               name="reason"
-              className={fieldClass}
               placeholder="Alasan perubahan status"
             />
-            <input
+            <TextInput
               required
               type="password"
               autoComplete="off"
+              label="Kode Verifikasi Tindakan"
               name="stepUpToken"
-              className={fieldClass}
               placeholder="Kode verifikasi tindakan"
             />
             <ActionGroup>

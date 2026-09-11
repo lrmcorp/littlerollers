@@ -1,8 +1,8 @@
 'use client';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
+import { SelectInput, Textarea, TextInput } from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
-const input = 'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 text-sm';
 async function api(path: string, init?: RequestInit) {
   const response = await fetch(`/api/v1${path}`, {
     credentials: 'include',
@@ -75,13 +75,11 @@ export function NotificationManagementView() {
     );
   return (
     <section className="space-y-6">
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
-        <PageHeader
-          eyebrow="Komunikasi"
-          title="Notification Management"
-          description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. WhatsApp belum menjadi channel aktif."
-        />
-      </div>
+      <PageHeader
+        eyebrow="Komunikasi"
+        title="Notification Management"
+        description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. WhatsApp belum menjadi channel aktif."
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       <Feedback kind="info">
         WhatsApp/Meta ditunda berdasarkan keputusan produk dan tidak dikirim kepada customer.
@@ -90,22 +88,46 @@ export function NotificationManagementView() {
         onSubmit={create}
         className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
       >
-        <input required name="templateKey" className={input} placeholder="Template key" />
-        <select name="channel" className={input}>
+        <TextInput
+          label="Template Key"
+          required
+          name="templateKey"
+          placeholder="Contoh: BOOKING_CONFIRMED"
+        />
+        <SelectInput label="Channel" name="channel">
           <option value="IN_APP">In-app</option>
           <option value="EMAIL">Email</option>
-        </select>
-        <input required name="eventType" className={input} placeholder="Event mapping" />
-        <input name="audience" className={input} placeholder="Audience role, dipisahkan koma" />
-        <input name="subject" className={input} placeholder="Subject email (opsional)" />
-        <input required name="title" className={input} placeholder="Judul" />
-        <textarea
+        </SelectInput>
+        <TextInput
+          label="Event Mapping"
+          required
+          name="eventType"
+          placeholder="Contoh: booking.created"
+        />
+        <TextInput
+          label="Audience Role"
+          name="audience"
+          placeholder="Audience role, dipisahkan koma"
+        />
+        <TextInput
+          label="Subject Email"
+          name="subject"
+          placeholder="Subject email (opsional jika email)"
+        />
+        <TextInput
+          label="Judul Notifikasi"
+          required
+          name="title"
+          placeholder="Judul notifikasi"
+        />
+        <Textarea
+          label="Isi Template"
           required
           name="body"
-          className={`${input} min-h-28 sm:col-span-2`}
+          wrapperClassName="sm:col-span-2"
           placeholder="Isi template aman"
         />
-        <div>
+        <div className="sm:col-span-2">
           <Button type="submit" loading={busy}>
             Simpan draft versi baru
           </Button>

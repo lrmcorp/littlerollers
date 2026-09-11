@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ChevronRight, Heart, Mail, MapPin, MessageCircle } from 'lucide-react';
 
 const footerLinks = [
   {
@@ -29,10 +30,10 @@ export function PublicFooter() {
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <span
-              className="grid size-12 shrink-0 place-items-center rounded-full border border-white/50 text-xl"
+              className="grid size-12 shrink-0 place-items-center rounded-full border border-white/50 text-white"
               aria-hidden="true"
             >
-              ✉
+              <Mail className="size-5" />
             </span>
             <p className="m-0 text-sm leading-6">
               Dapatkan kabar terbaru tentang kelas,
@@ -45,8 +46,8 @@ export function PublicFooter() {
             href="/contact"
           >
             Hubungi kami untuk update
-            <span className="rounded-full bg-dd-forest px-4 py-2.5 text-xs font-bold text-white">
-              Hubungi ›
+            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-4 py-2.5 text-xs font-bold text-white">
+              Hubungi <ChevronRight className="size-3.5" />
             </span>
           </Link>
         </div>
@@ -62,15 +63,19 @@ export function PublicFooter() {
               Studio Pilates modern di Jakarta &amp; BSD. Bergerak lebih baik, hidup lebih seimbang.
             </p>
             <div className="mt-5 space-y-2 text-sm text-white/65">
-              <p>📍 Jakarta &amp; BSD</p>
+              <p className="flex items-center gap-1.5">
+                <MapPin className="size-3.5 text-white/70 shrink-0" />
+                <span>Jakarta &amp; BSD</span>
+              </p>
               <a
                 href="https://wa.me/6281211111111"
-                className="block text-white/65 no-underline transition hover:text-white"
+                className="flex items-center gap-1.5 text-white/65 no-underline transition hover:text-white"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Hubungi via WhatsApp"
               >
-                💬 WhatsApp Admin
+                <MessageCircle className="size-3.5 text-white/70 shrink-0" />
+                <span>WhatsApp Admin</span>
               </a>
             </div>
             {/* Social Media */}
@@ -139,7 +144,9 @@ export function PublicFooter() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/40 sm:flex-row sm:px-6 lg:px-8">
           <p className="m-0">© {year} Daily Dose Pilates. All rights reserved.</p>
-          <p className="m-0">Dibuat dengan ❤ untuk komunitas Pilates Indonesia</p>
+          <p className="m-0 flex items-center gap-1">
+            Dibuat dengan <Heart className="size-3.5 fill-dd-brass text-dd-brass inline" /> untuk komunitas Pilates Indonesia
+          </p>
         </div>
       </div>
     </footer>

@@ -22,6 +22,8 @@ export type BranchManagementItem = {
     city: string;
     address: string;
     slug: string;
+    operationalEmail?: string | null;
+    mapUrl?: string | null;
   } | null;
 };
 

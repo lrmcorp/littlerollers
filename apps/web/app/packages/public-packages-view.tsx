@@ -254,17 +254,17 @@ export function PublicPackagesView({
           </ul>
         </PublicPageHero>
 
-        <section className="py-2 sm:py-4" aria-labelledby="package-discovery-title">
+        <section className="py-2 sm:py-6" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>
-            <header className="mb-4 max-w-3xl">
+            <header className="mb-6 max-w-3xl">
               <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
                 01 — Pilih studio
               </span>
               <h2
-                className="mt-1 text-[clamp(1.75rem,3.2vw,2.25rem)] font-bold leading-tight text-dd-ink"
+                className="mt-1 font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-tight text-dd-ink"
                 id="package-discovery-title"
               >
-                Pilih studio tempat Anda berlatih.
+                Pilih studio tempat Anda <span className="italic text-dd-forest">berlatih</span>.
               </h2>
               <p className="mt-1 max-w-2xl text-sm sm:text-base leading-relaxed text-dd-muted">
                 Harga dan ketersediaan paket mengikuti studio pilihan Anda.
@@ -399,7 +399,9 @@ export function PublicPackagesView({
                     return (
                       <article
                         className={`flex min-h-[340px] flex-col rounded-2xl border bg-white/95 p-6 shadow-dd-card transition-all duration-300 hover:shadow-dd-float hover:-translate-y-0.5 sm:p-7 ${
-                          recommended ? 'border-dd-brass ring-2 ring-dd-brass/30' : 'border-dd-line/80'
+                          recommended
+                            ? 'border-dd-brass ring-1 ring-dd-brass/30'
+                            : 'border-dd-line/80'
                         }`}
                         key={item.id}
                       >
@@ -408,13 +410,13 @@ export function PublicPackagesView({
                             {item.classType.name}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-brass-dark shadow-sm">
-                              <Sparkles className="size-3.5" aria-hidden="true" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-brass/40 bg-dd-brass-soft/80 px-3 py-0.5 text-[11px] font-semibold tracking-wider text-dd-brass-dark uppercase shadow-2xs">
+                              <span className="size-1.5 rounded-full bg-dd-brass" />
                               Direkomendasikan
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-3 text-xl font-bold tracking-tight text-dd-ink sm:text-2xl">
+                        <h3 className="mt-3 font-serif text-2xl sm:text-3xl font-normal tracking-tight text-dd-ink">
                           {item.name}
                         </h3>
                         <p className="mt-1 text-xs sm:text-sm text-dd-muted">
@@ -431,11 +433,11 @@ export function PublicPackagesView({
                         <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-dd-line/60 py-4">
                           <div>
                             <dt className="text-xs font-semibold text-dd-muted">Jumlah sesi</dt>
-                            <dd className="mt-1 text-base font-bold text-dd-ink">{item.sessionCount} sesi</dd>
+                            <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-dd-ink">{item.sessionCount} sesi</dd>
                           </div>
                           <div>
                             <dt className="text-xs font-semibold text-dd-muted">Masa berlaku</dt>
-                            <dd className="mt-1 text-base font-bold text-dd-ink">{item.durationDays} hari</dd>
+                            <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-dd-ink">{item.durationDays} hari</dd>
                           </div>
                         </dl>
                         <div className="mt-auto grid gap-3 pt-5">

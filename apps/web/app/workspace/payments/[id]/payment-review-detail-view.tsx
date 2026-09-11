@@ -694,7 +694,6 @@ export function PaymentReviewDetailView({
                   label="Alasan perbaikan"
                   value={reasonCode}
                   onChange={(event) => setReasonCode(event.target.value as RejectReason)}
-                  className="mt-1 min-h-10 w-full rounded-dd-md border border-dd-line bg-white px-3"
                 >
                   {Object.entries(reasonLabels).map(([value, label]) => (
                     <option key={value} value={value}>

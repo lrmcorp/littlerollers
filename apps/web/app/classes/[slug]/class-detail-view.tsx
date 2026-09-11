@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+  ArrowRight,
   CalendarDays,
   Check,
   Clock3,
@@ -238,8 +239,9 @@ export function ClassDetailView({
                       Paket Terkait Kelas Ini
                     </h2>
                   </div>
-                  <Link className={publicSecondaryButton} href="/packages">
-                    Lihat semua paket →
+                  <Link className={`${publicSecondaryButton} inline-flex items-center gap-1.5`} href="/packages">
+                    <span>Lihat semua paket</span>
+                    <ArrowRight className="size-3.5" />
                   </Link>
                 </div>
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -292,8 +294,9 @@ export function ClassDetailView({
                     Sesi {classNameFormatted} Mendatang
                   </h2>
                 </div>
-                <Link className={publicSecondaryButton} href="/classes#schedule">
-                  Buka kalender jadwal →
+                <Link className={`${publicSecondaryButton} inline-flex items-center gap-1.5`} href="/classes#schedule">
+                  <span>Buka kalender jadwal</span>
+                  <ArrowRight className="size-3.5" />
                 </Link>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -359,8 +362,9 @@ export function ClassDetailView({
                         )}
                       </div>
                       <div className="mt-4 border-t border-dd-line pt-3 text-right">
-                        <span className="text-xs font-bold text-dd-forest group-hover:underline">
-                          Detail & Booking →
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-dd-forest group-hover:underline">
+                          <span>Detail & Booking</span>
+                          <ArrowRight className="size-3.5" />
                         </span>
                       </div>
                     </Link>

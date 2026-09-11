@@ -5,6 +5,18 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { accountClient, type PreferredStudio } from '@/api-clients/account-client';
+import {
+  Award,
+  Building2,
+  Calendar,
+  ChevronRight,
+  Clock,
+  Layers,
+  MapPin,
+  Search,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { SearchSelect, SelectInput } from '../components/forms';
@@ -15,10 +27,26 @@ import {
 } from '../components/public/public-styles';
 
 const studioBenefits = [
-  ['▱', 'Peralatan premium', 'Peralatan Pilates berkualitas untuk latihan yang terarah.'],
-  ['◉', 'Kelas berukuran kecil', 'Suasana latihan yang nyaman dan lebih personal.'],
-  ['◎', 'Instruktur berpengalaman', 'Pendampingan instruktur dalam setiap sesi.'],
-  ['▦', 'Dua pilihan studio', 'Pilihan studio aktif di Jakarta dan BSD.'],
+  {
+    icon: <Sparkles className="size-5 text-dd-forest" />,
+    title: 'Peralatan premium',
+    description: 'Peralatan Pilates berkualitas untuk latihan yang terarah.',
+  },
+  {
+    icon: <Users className="size-5 text-dd-forest" />,
+    title: 'Kelas berukuran kecil',
+    description: 'Suasana latihan yang nyaman dan lebih personal.',
+  },
+  {
+    icon: <Award className="size-5 text-dd-forest" />,
+    title: 'Instruktur berpengalaman',
+    description: 'Pendampingan instruktur dalam setiap sesi.',
+  },
+  {
+    icon: <Building2 className="size-5 text-dd-forest" />,
+    title: 'Dua pilihan studio',
+    description: 'Pilihan studio aktif di Jakarta dan BSD.',
+  },
 ] as const;
 
 export function LocationsView() {
@@ -128,22 +156,23 @@ export function LocationsView() {
               onChange={(value) => setRegion(value || 'Semua lokasi')}
             />
             <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
-              <span aria-hidden="true">⌕</span>
+              <Search className="size-4 text-dd-muted shrink-0" aria-hidden="true" />
               <span className="sr-only">Cari studio</span>
               <input
-                className="min-h-11 w-full border-0 bg-transparent"
+                className="min-h-11 w-full border-0 bg-transparent text-sm focus:outline-none"
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Cari nama atau area"
               />
             </label>
-            <div className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted">
-              <span aria-hidden="true">▱</span>
+            <div className="flex min-h-[50px] items-center gap-2.5 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted">
+              <Layers className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
               <span>Private · Semi Private · Group</span>
             </div>
-            <Link className={primary} href="/classes#schedule">
-              Lihat Jadwal <span aria-hidden="true">▦</span>
+            <Link className={`${primary} inline-flex items-center gap-1.5 justify-center`} href="/classes#schedule">
+              <span>Lihat Jadwal</span>
+              <Calendar className="size-4" />
             </Link>
           </div>
         </section>
@@ -198,12 +227,16 @@ export function LocationsView() {
                           Daily Dose Pilates
                         </p>
                         <h2 className="mt-1 font-sans text-2xl font-semibold">{name}</h2>
-                        <p className="mt-3 text-sm text-dd-muted">⌖ {publicProfile.area}</p>
+                        <p className="mt-3 flex items-center gap-1.5 text-sm text-dd-muted">
+                          <MapPin className="size-3.5 text-dd-forest shrink-0" />
+                          <span>{publicProfile.area}</span>
+                        </p>
                         <p className="mt-2 text-sm leading-6 text-dd-muted">
                           {publicProfile.description}
                         </p>
-                        <p className="mt-2 text-sm text-dd-muted">
-                          ◷ Jadwal tersedia pada halaman kelas
+                        <p className="mt-2 flex items-center gap-1.5 text-sm text-dd-muted">
+                          <Clock className="size-3.5 text-dd-muted shrink-0" />
+                          <span>Jadwal tersedia pada halaman kelas</span>
                         </p>
                         <ul
                           className="mt-4 flex list-none flex-wrap gap-2 p-0 text-xs text-dd-muted"
@@ -217,17 +250,20 @@ export function LocationsView() {
                         </ul>
                       </div>
                       <div className="grid content-center gap-3 border-l border-dd-line p-4 max-[768px]:grid-cols-2 max-[768px]:border-t max-[768px]:border-l-0">
-                        <Link className={secondary} href={`/locations/${publicProfile.slug}`}>
-                          Lihat detail ›
+                        <Link className={`${secondary} inline-flex items-center gap-1 justify-center`} href={`/locations/${publicProfile.slug}`}>
+                          <span>Lihat detail</span>
+                          <ChevronRight className="size-3.5" />
                         </Link>
-                        <Link className={secondary} href="/contact">
-                          Hubungi studio ›
+                        <Link className={`${secondary} inline-flex items-center gap-1 justify-center`} href="/contact">
+                          <span>Hubungi studio</span>
+                          <ChevronRight className="size-3.5" />
                         </Link>
                         <Link
-                          className={primary}
+                          className={`${primary} inline-flex items-center gap-1.5 justify-center`}
                           href={`/classes?branch=${encodeURIComponent(id)}#schedule`}
                         >
-                          Lihat Jadwal ▦
+                          <span>Lihat Jadwal</span>
+                          <Calendar className="size-4" />
                         </Link>
                       </div>
                     </article>
@@ -263,12 +299,11 @@ export function LocationsView() {
               <span className="absolute top-1/2 left-0 h-2 w-full -rotate-12 bg-white" />
               <span className="absolute top-0 left-1/2 h-full w-2 rotate-12 bg-white" />
               {['top-12 left-16', 'top-24 right-16', 'bottom-10 left-1/2'].map((position) => (
-                <i
-                  className={`absolute ${position} grid size-7 place-items-center rounded-full bg-dd-forest text-sm text-white not-italic`}
+                <span
+                  className={`absolute ${position} size-3.5 rounded-full bg-dd-forest ring-4 ring-white shadow-sm`}
                   key={position}
-                >
-                  ●
-                </i>
+                  aria-hidden="true"
+                />
               ))}
               <strong className="absolute inset-x-4 bottom-4 text-sm">Jakarta · BSD</strong>
             </div>
@@ -276,13 +311,13 @@ export function LocationsView() {
             <div className="rounded-dd-lg bg-white p-5 shadow-dd-card">
               <h2 className="font-sans text-2xl font-semibold">Mengapa Daily Dose?</h2>
               <div className="mt-5 grid gap-5">
-                {studioBenefits.map(([icon, title, description]) => (
-                  <article className="grid grid-cols-[34px_1fr] gap-3" key={title}>
-                    <span className="text-2xl text-dd-forest" aria-hidden="true">
+                {studioBenefits.map(({ icon, title, description }) => (
+                  <article className="grid grid-cols-[36px_1fr] items-start gap-3" key={title}>
+                    <span className="grid size-9 place-items-center rounded-lg bg-dd-surface-muted text-dd-forest shrink-0 mt-0.5" aria-hidden="true">
                       {icon}
                     </span>
                     <div>
-                      <h3 className="text-sm font-bold">{title}</h3>
+                      <h3 className="text-sm font-bold text-dd-ink">{title}</h3>
                       <p className="mt-1 text-[13px] leading-5 text-dd-muted">{description}</p>
                     </div>
                   </article>
@@ -296,10 +331,11 @@ export function LocationsView() {
                 Sampaikan area Anda dan tim kami akan membantu menemukan pilihan terdekat.
               </p>
               <Link
-                className="mt-5 inline-flex min-h-11 items-center rounded-dd-sm border border-white/50 px-5 text-sm font-bold text-white"
+                className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-dd-sm border border-white/50 px-5 text-sm font-bold text-white transition hover:bg-white/10"
                 href="/contact"
               >
-                Hubungi kami ›
+                <span>Hubungi kami</span>
+                <ChevronRight className="size-3.5" />
               </Link>
             </div>
           </aside>

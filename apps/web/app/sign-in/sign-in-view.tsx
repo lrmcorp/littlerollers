@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import {
   browserIdentityClient,
   failureCode,
@@ -145,15 +145,17 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
         className="relative isolate hidden lg:flex flex-col justify-between overflow-hidden p-12 min-h-svh sticky top-0 self-start"
         aria-label="Daily Dose Pilates"
       >
-        <Image
-          className="object-cover object-[58%_center] -z-20"
-          src="/images/public/landing/hero-pilates.png"
-          fill
-          priority
-          sizes="55vw"
-          alt=""
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-dd-forest-dark/95 via-dd-forest-dark/65 to-dd-forest-dark/35" />
+        <div className="absolute inset-0 -z-20 overflow-hidden">
+          <Image
+            className="object-cover object-[58%_center]"
+            src="/images/public/landing/hero-pilates.png"
+            fill
+            priority
+            sizes="55vw"
+            alt=""
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-dd-forest-dark/95 via-dd-forest-dark/65 to-dd-forest-dark/35" />
+        </div>
 
         {/* Top Badge */}
         <div className="flex items-center gap-2 text-white">
@@ -191,17 +193,18 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
         aria-labelledby="sign-in-title"
       >
         <div
-          className="w-full max-w-[480px] rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-10 shadow-dd-card backdrop-blur-md"
+          className="w-full max-w-[480px] rounded-dd-xl border border-dd-line/80 bg-white/95 p-6 sm:p-10 shadow-dd-card backdrop-blur-md"
           id="auth-form"
         >
           {/* Header Top */}
           <div className="mb-8 flex items-center justify-between gap-4 border-b border-dd-line/60 pb-5">
             <BrandMark className="w-36 sm:w-40" priority />
             <Link
-              className="text-xs font-bold text-dd-forest hover:underline transition no-underline"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-dd-forest hover:underline transition no-underline"
               href="/"
             >
-              ← Ke beranda
+              <ArrowLeft className="size-3.5" />
+              <span>Ke beranda</span>
             </Link>
           </div>
 
@@ -239,7 +242,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <span>Email</span>
               <div className="relative flex items-center">
                 <input
-                  className="w-full min-h-[46px] rounded-dd-sm border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-1 focus:ring-dd-forest"
+                  className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                   name="email"
                   type="email"
                   autoComplete="username"
@@ -253,7 +256,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <span>Password</span>
               <div className="relative flex items-center">
                 <input
-                  className="w-full min-h-[46px] rounded-dd-sm border border-dd-line bg-white px-3.5 pr-20 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-1 focus:ring-dd-forest"
+                  className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 pr-20 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -281,7 +284,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </div>
 
             <button
-              className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-dd-sm bg-dd-forest px-5 text-sm font-bold text-white shadow-dd-soft transition hover:bg-dd-forest-dark disabled:bg-dd-sage active:scale-[0.99]"
+              className="mt-2 flex min-h-11 w-full items-center justify-center rounded-dd-md bg-dd-forest px-5 text-sm font-bold text-white shadow-dd-soft transition hover:bg-dd-forest-dark disabled:bg-dd-sage active:scale-[0.99]"
               disabled={state === 'loading'}
               type="submit"
             >

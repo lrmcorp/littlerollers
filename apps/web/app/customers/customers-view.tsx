@@ -3,14 +3,11 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
-import { SearchSelect } from '../components/forms';
+import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
 import { Pagination } from '../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { customerClient, type CustomerSummary } from './customer-client';
-
-const inputClass =
-  'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 text-sm text-dd-ink';
 
 export function CustomersView() {
   const session = useSessionContext()?.session;
@@ -114,18 +111,9 @@ export function CustomersView() {
           onSubmit={create}
           className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-6 sm:grid-cols-2"
         >
-          <label className="space-y-1 text-sm font-semibold">
-            Nama
-            <input required name="displayName" className={inputClass} autoComplete="off" />
-          </label>
-          <label className="space-y-1 text-sm font-semibold">
-            Email
-            <input required type="email" name="email" className={inputClass} autoComplete="off" />
-          </label>
-          <label className="space-y-1 text-sm font-semibold">
-            Telepon
-            <input required name="phoneE164" className={inputClass} placeholder="+62812…" />
-          </label>
+          <TextInput required label="Nama" name="displayName" autoComplete="off" />
+          <TextInput required type="email" label="Email" name="email" autoComplete="off" />
+          <TextInput required label="Telepon" name="phoneE164" placeholder="+62812…" />
           <SearchSelect
             label="Studio/Cabang pilihan"
             name="preferredBranchId"
@@ -135,44 +123,32 @@ export function CustomersView() {
               label: branch.name,
             }))}
           />
-          <label className="space-y-1 text-sm font-semibold">
-            Password awal
-            <input
-              required
-              type="password"
-              name="password"
-              minLength={8}
-              maxLength={128}
-              className={inputClass}
-              autoComplete="new-password"
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold">
-            Ulangi password
-            <input
-              required
-              type="password"
-              name="passwordConfirmation"
-              minLength={8}
-              maxLength={128}
-              className={inputClass}
-              autoComplete="new-password"
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold">
-            Alasan
-            <input required name="reason" minLength={3} maxLength={500} className={inputClass} />
-          </label>
-          <label className="space-y-1 text-sm font-semibold">
-            Step-up token
-            <input
-              required
-              type="password"
-              name="stepUpToken"
-              className={inputClass}
-              autoComplete="one-time-code"
-            />
-          </label>
+          <TextInput
+            required
+            type="password"
+            label="Password awal"
+            name="password"
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+          />
+          <TextInput
+            required
+            type="password"
+            label="Ulangi password"
+            name="passwordConfirmation"
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+          />
+          <TextInput required label="Alasan" name="reason" minLength={3} maxLength={500} />
+          <TextInput
+            required
+            type="password"
+            label="Step-up token"
+            name="stepUpToken"
+            autoComplete="one-time-code"
+          />
           <div className="sm:col-span-2">
             <Feedback kind="warning">
               Customer langsung aktif, tetapi hanya dapat membuka keamanan akun sampai password awal
@@ -187,44 +163,44 @@ export function CustomersView() {
         </form>
       )}
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-4 sm:grid-cols-3">
-        <input
-          aria-label="Cari customer"
+        <SearchInput
+          label="Cari customer"
+          compact
           value={q}
           onChange={(event) => {
             setQ(event.target.value);
             reset();
           }}
-          className={inputClass}
           placeholder="Nama, email, telepon, barcode, ID"
         />
-        <select
-          aria-label="Status akun"
+        <SelectInput
+          label="Status akun"
+          compact
           value={status}
           onChange={(event) => {
             setStatus(event.target.value);
             reset();
           }}
-          className={inputClass}
         >
           <option value="">Semua status akun</option>
           <option value="ACTIVE">Aktif</option>
           <option value="INACTIVE">Nonaktif</option>
           <option value="PENDING_ACTIVATION">Menunggu</option>
-        </select>
-        <select
-          aria-label="Status verifikasi"
+        </SelectInput>
+        <SelectInput
+          label="Status verifikasi"
+          compact
           value={verificationStatus}
           onChange={(event) => {
             setVerificationStatus(event.target.value);
             reset();
           }}
-          className={inputClass}
         >
           <option value="">Semua verifikasi</option>
           <option value="APPROVED">Disetujui</option>
           <option value="ACTION_REQUIRED">Perlu perbaikan</option>
           <option value="PENDING">Menunggu</option>
-        </select>
+        </SelectInput>
       </div>
       {loading && !items.length ? (
         <Skeleton label="Memuat customer" />

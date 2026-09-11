@@ -39,6 +39,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/customers', ['customer:read']],
   ['/instructors', ['assignment:read']],
   ['/notification-management', ['notification:manage']],
+  ['/notifications', []],
   ['/public-content-management', ['public-content:read']],
   ['/support-cases', ['support:read']],
   ['/assignments', ['assignment:read']],

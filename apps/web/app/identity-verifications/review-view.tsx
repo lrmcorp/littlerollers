@@ -218,7 +218,6 @@ export function IdentityReviewView({
     } catch (cause) {
       const mapped = messageForApiError(cause);
       setPreviewErrors((current) => ({ ...current, [document.id]: mapped }));
-      feedback.showAlert({ tone: 'danger', ...mapped });
     } finally {
       setPreviewLoading(undefined);
     }
@@ -334,7 +333,7 @@ export function IdentityReviewView({
   return (
     <section className="space-y-6 font-sans text-dd-ink" aria-labelledby="identity-review-title">
       {/* Header Panel */}
-      <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+      <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
         <PageHeader
           eyebrow="Administrasi"
           title="Verifikasi customer"
@@ -640,7 +639,7 @@ export function IdentityReviewView({
               />
             )}
 
-            <div className="rounded-xl border border-dd-line/80 bg-dd-surface-muted/30 p-4 text-xs leading-relaxed text-dd-muted">
+            <div className="rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-4 text-xs leading-relaxed text-dd-muted">
               <strong className="block text-sm font-bold text-dd-ink mb-1">
                 Panduan Pemeriksaan:
               </strong>

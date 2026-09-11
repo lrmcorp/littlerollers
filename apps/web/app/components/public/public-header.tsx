@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, UserRound, X } from 'lucide-react';
+import { ChevronRight, Menu, UserRound, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { BrandMark } from './brand-mark';
@@ -211,8 +211,8 @@ export function PublicHeader() {
                   aria-current={isCurrent(pathname, hash, item.href) ? 'page' : undefined}
                   onClick={close}
                 >
-                  {item.label}
-                  <span aria-hidden="true">›</span>
+                  <span>{item.label}</span>
+                  <ChevronRight className="size-4 text-dd-muted" aria-hidden="true" />
                 </Link>
               ))}
             </nav>

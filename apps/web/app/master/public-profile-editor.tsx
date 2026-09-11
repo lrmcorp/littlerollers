@@ -265,7 +265,7 @@ export function PublicProfileEditor({
 }
 
 const fieldClass =
-  'mt-2 min-h-11 w-full rounded-dd-sm border border-dd-line bg-white px-3 py-2 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15';
+  'mt-2 min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15';
 
 function text(value: unknown) {
   return typeof value === 'string' ? value : '';
@@ -289,6 +289,8 @@ function profilePayload(kind: 'branch' | 'class' | 'package', form: FormData) {
       area: String(form.get('area')),
       city: String(form.get('city')),
       address: String(form.get('address')),
+      operationalEmail: String(form.get('operationalEmail') ?? '').trim() || null,
+      mapUrl: String(form.get('mapUrl') ?? '').trim() || null,
       description: String(form.get('description')),
       arrivalInformation: String(form.get('arrivalInformation')),
       parkingInformation: String(form.get('parkingInformation')),
@@ -322,11 +324,13 @@ function Field({
   name,
   value,
   multiline = false,
+  required = true,
 }: {
   label: string;
   name: string;
   value: unknown;
   multiline?: boolean;
+  required?: boolean;
 }) {
   return (
     <label className="text-sm font-semibold text-dd-ink">
@@ -336,10 +340,10 @@ function Field({
           className={`${fieldClass} min-h-24 resize-y`}
           name={name}
           defaultValue={text(value)}
-          required
+          required={required}
         />
       ) : (
-        <input className={fieldClass} name={name} defaultValue={text(value)} required />
+        <input className={fieldClass} name={name} defaultValue={text(value)} required={required} />
       )}
     </label>
   );
@@ -412,6 +416,18 @@ function ProfileFields({
           <Field label="Area" name="area" value={value.area} />
           <Field label="Kota" name="city" value={value.city} />
           <Field label="Alamat" name="address" value={value.address} />
+          <Field
+            label="Email operasional"
+            name="operationalEmail"
+            value={value.operationalEmail}
+            required={false}
+          />
+          <Field
+            label="Tautan Google Maps"
+            name="mapUrl"
+            value={value.mapUrl}
+            required={false}
+          />
         </div>
         <Field label="Deskripsi studio" name="description" value={value.description} multiline />
         <Field

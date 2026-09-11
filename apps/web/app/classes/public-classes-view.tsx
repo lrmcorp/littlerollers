@@ -127,6 +127,38 @@ export function PublicClassesView({
     }
   };
 
+  const retryCatalog = async () => {
+    if (branchId) {
+      await load(branchId);
+      return;
+    }
+    setStatus('loading');
+    setMessage('');
+    try {
+      const result = await client.list({});
+      setBranches(result.branches);
+      const query = new URLSearchParams(window.location.search);
+      const requestedBranchId = query.get('branch');
+      const requestedStudio = query.get('studio');
+      const requestedBranch = result.branches.find(
+        ({ id, name }) =>
+          id === requestedBranchId ||
+          name.toLocaleLowerCase('id-ID') === requestedStudio?.toLocaleLowerCase('id-ID'),
+      );
+      const preferredBranch =
+        requestedBranch ?? result.branches.find(({ id }) => id === session?.preferredBranch?.id);
+      if (preferredBranch) {
+        setBranchId(preferredBranch.id);
+        await load(preferredBranch.id);
+      } else {
+        setStatus('ready');
+      }
+    } catch (error) {
+      setMessage(publicCatalogFailure(error));
+      setStatus('error');
+    }
+  };
+
   const branch = branches.find((item) => item.id === branchId);
   const classTypes = useMemo(
     () => [...new Map(slots.map((slot) => [slot.classType.id, slot.classType])).values()],
@@ -305,14 +337,7 @@ export function PublicClassesView({
                 <button
                   className={`${publicSecondaryButton} mt-5`}
                   type="button"
-                  onClick={() =>
-                    void (branchId
-                      ? load()
-                      : client.list({}).then((result) => {
-                          setBranches(result.branches);
-                          setStatus('ready');
-                        }))
-                  }
+                  onClick={() => void retryCatalog()}
                 >
                   Coba lagi
                 </button>

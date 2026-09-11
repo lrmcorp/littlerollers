@@ -13,6 +13,7 @@ import { RateLimitService } from './rate-limit.service';
 import { QueuedPasswordEmailProvider } from './email-provider';
 import { LocalPrivateFileStorage, PRIVATE_FILE_STORAGE } from './private-file-storage';
 import { S3PrivateFileStorage } from './s3-private-file-storage';
+import { DevFallbackPrivateFileStorage } from './dev-fallback-private-file-storage';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { CustomerProfileService } from './customer-profile.service';
 import { IdentityReviewQueryService } from './identity-review-query.service';
@@ -61,10 +62,14 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
         local: LocalPrivateFileStorage,
         s3: S3PrivateFileStorage,
       ) => {
-        return config.value.privateUploads.driver === 's3' ||
-          config.value.privateUploads.driver === 'minio'
-          ? s3
-          : local;
+        const isS3 =
+          config.value.privateUploads.driver === 's3' ||
+          config.value.privateUploads.driver === 'minio';
+        if (!isS3) return local;
+        if (config.value.environment !== 'production') {
+          return new DevFallbackPrivateFileStorage(s3, local);
+        }
+        return s3;
       },
       inject: [RuntimeConfigService, LocalPrivateFileStorage, S3PrivateFileStorage],
     },

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   bookingFailure,
@@ -192,8 +193,9 @@ export function CustomerBookingsView({
                     <span className="truncate max-w-xs sm:max-w-md">
                       Paket: <strong className="font-medium text-dd-ink">{item.package?.name ?? 'Paket Customer'}</strong>
                     </span>
-                    <span className="font-semibold text-dd-forest shrink-0">
-                      Lihat detail & QR Pass →
+                    <span className="inline-flex items-center gap-1 font-semibold text-dd-forest shrink-0">
+                      <span>Lihat detail & QR Pass</span>
+                      <ArrowRight className="size-3.5" />
                     </span>
                   </div>
                 </Link>

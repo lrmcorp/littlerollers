@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
@@ -38,8 +39,9 @@ export default function ContactPage() {
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
                   Lihat jadwal publik yang tersedia menurut studio dan zona waktunya.
                 </p>
-                <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/classes">
-                  Jelajahi jadwal →
+                <Link className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline" href="/classes">
+                  <span>Jelajahi jadwal</span>
+                  <ArrowRight className="size-4" />
                 </Link>
               </article>
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
@@ -48,8 +50,9 @@ export default function ContactPage() {
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
                   Bandingkan paket aktif, jumlah sesi, harga, dan masa berlaku.
                 </p>
-                <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/packages">
-                  Jelajahi paket →
+                <Link className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline" href="/packages">
+                  <span>Jelajahi paket</span>
+                  <ArrowRight className="size-4" />
                 </Link>
               </article>
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
@@ -59,12 +62,13 @@ export default function ContactPage() {
                   Gunakan kanal kontak resmi Daily Dose Pilates untuk bantuan personal.
                 </p>
                 <a
-                  className="mt-5 inline-flex font-bold text-dd-forest"
+                  className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline"
                   href="https://dailydosepilates.com/contact-us"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Buka kontak resmi ↗
+                  <span>Buka kontak resmi</span>
+                  <ExternalLink className="size-3.5" />
                 </a>
               </article>
             </div>

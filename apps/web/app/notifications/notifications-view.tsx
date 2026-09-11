@@ -210,7 +210,7 @@ export function NotificationsView() {
       {/* ── Header ── */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-dd-ink">Notifikasi</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl">Notifikasi</h1>
           <p className="mt-0.5 text-sm text-dd-muted">
             {unread > 0 ? `${unread} belum dibaca` : 'Semua sudah dibaca'}
           </p>

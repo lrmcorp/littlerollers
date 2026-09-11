@@ -4,6 +4,7 @@ import { Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppFeedback } from '../../components/app-feedback';
 import { Button, IconButton } from '../../components/actions';
+import { controlClassName } from '../../components/forms';
 import { browserIdentityClient, type IdentityClient } from '@/api-clients/identity-client';
 import { Skeleton } from '../../ui';
 import { useSessionContext } from '../../session-context';
@@ -223,7 +224,7 @@ function PasswordField({
           required
           value={value}
           onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-          className="w-full rounded-dd-md border border-dd-line bg-white px-3 pr-12"
+          className={`${controlClassName} pr-12`}
         />
         <IconButton
           label={`${shown ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}

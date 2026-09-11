@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -268,13 +269,19 @@ export function ClassSlotView({
       <div className="calendar-toolbar" aria-label="Kontrol timetable">
         <div className="calendar-navigation">
           <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, -1))}>
-            ← Minggu sebelumnya
+            <span className="inline-flex items-center gap-1">
+              <ChevronLeft className="size-4" />
+              <span>Minggu sebelumnya</span>
+            </span>
           </Button>
           <Button variant="secondary" onClick={() => setReference(new Date())}>
             Hari ini
           </Button>
           <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, 1))}>
-            Minggu berikutnya →
+            <span className="inline-flex items-center gap-1">
+              <span>Minggu berikutnya</span>
+              <ChevronRight className="size-4" />
+            </span>
           </Button>
         </div>
         <strong aria-live="polite">{week?.label}</strong>

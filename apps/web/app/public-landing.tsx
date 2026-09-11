@@ -100,32 +100,70 @@ export function PublicLanding() {
         {/* Hero Carousel Section */}
         <HeroCarousel config={siteConfig?.heroCarousel} />
 
-        {/* Benefits Grid */}
+        {/* 4 Pillars of Studio Excellence (Replaces generic 5 icon boxes) */}
         <section
-          className="grid grid-cols-2 md:grid-cols-5 border-y border-dd-line bg-white/80 backdrop-blur-sm"
+          className="border-y border-dd-line/70 bg-white/90 backdrop-blur-md py-12 sm:py-16"
           id="instructors"
           aria-label="Keunggulan studio"
         >
-          {benefits.map(({ icon: Icon, title, description }, index) => (
-            <article
-              className={`flex flex-col items-center justify-center p-6 text-center border-dd-line/60 transition hover:bg-dd-surface-muted/40 ${
-                index < 4 ? 'border-r' : ''
-              } ${index === 4 ? 'col-span-2 md:col-span-1 border-t md:border-t-0' : ''}`}
-              key={title}
-            >
-              <div className="grid size-11 place-items-center rounded-full bg-dd-forest/10 text-dd-forest mb-3">
-                <Icon className="size-5" />
-              </div>
-              <strong className="text-xs sm:text-sm font-bold text-dd-ink">{title}</strong>
-              <p className="mt-1 text-xs leading-relaxed text-dd-muted max-w-[180px]">
-                {description}
-              </p>
-            </article>
-          ))}
+          <div className={container}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                {
+                  number: '01',
+                  title: 'Intimate Class Size',
+                  subtitle: 'Kelas berukuran kecil',
+                  description:
+                    'Maksimal 6–8 peserta per kelas untuk perhatian personal dalam suasana yang nyaman dan terarah.',
+                },
+                {
+                  number: '02',
+                  title: 'Certified Mastery',
+                  subtitle: 'Instruktur berpengalaman',
+                  description:
+                    'Pendampingan yang terarah di setiap sesi oleh instruktur berdedikasi dan bersertifikasi.',
+                },
+                {
+                  number: '03',
+                  title: 'State-of-the-Art',
+                  subtitle: 'Peralatan premium',
+                  description:
+                    'Peralatan Pilates berkualitas untuk latihan yang aman, halus, dan presisi.',
+                },
+                {
+                  number: '04',
+                  title: 'Sanctuary Atmosphere',
+                  subtitle: 'Dua pilihan studio',
+                  description:
+                    'Berlatih di Jakarta atau BSD dengan jadwal fleksibel yang sesuai dengan ritme Anda.',
+                },
+              ].map(({ number, title, subtitle, description }) => (
+                <article
+                  key={number}
+                  className="space-y-2.5 border-l-2 border-dd-brass/30 pl-5 transition hover:border-dd-forest"
+                >
+                  <span className="font-serif text-2xl sm:text-3xl font-normal text-dd-brass">
+                    {number}
+                  </span>
+                  <div>
+                    <strong className="block font-sans text-sm font-bold tracking-tight text-dd-ink">
+                      {title}
+                    </strong>
+                    <p className="text-[11px] font-semibold text-dd-forest uppercase tracking-wider">
+                      {subtitle}
+                    </p>
+                  </div>
+                  <p className="text-xs sm:text-sm leading-relaxed text-dd-muted">
+                    {description}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Studio Showcase Section */}
-        <section className={`${container} my-14`} id="about">
+        <section className={`${container} my-14 sm:my-20`} id="about">
           <div
             className="grid overflow-hidden rounded-2xl bg-dd-forest text-white shadow-dd-card lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
             data-testid="studio-showcase"
@@ -144,8 +182,8 @@ export function PublicLanding() {
                 <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wider text-dd-brass uppercase backdrop-blur-md">
                   Studio kami
                 </span>
-                <h2 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight text-white">
-                  Ruang tenang yang dirancang untuk bergerak
+                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-tight text-white">
+                  Ruang tenang yang dirancang untuk <span className="italic">bergerak</span>
                 </h2>
                 <p className="text-sm sm:text-base leading-relaxed text-white/80 max-w-xl">
                   Studio yang bersih, tenang, dan tertata untuk mendukung perjalanan Pilates Anda
@@ -153,10 +191,11 @@ export function PublicLanding() {
                 </p>
                 <div className="pt-2">
                   <Link
-                    className="inline-flex min-h-11 items-center gap-2 rounded-dd-sm border border-white/40 bg-white/10 px-5 text-xs sm:text-sm font-bold text-white transition hover:bg-white hover:text-dd-forest backdrop-blur-md"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-dd-sm border border-white/40 bg-white/10 px-5 text-xs sm:text-sm font-bold text-white transition hover:bg-white hover:text-dd-forest backdrop-blur-md"
                     href={routes.locations}
                   >
-                    Jelajahi Studio <span aria-hidden="true">›</span>
+                    <span>Jelajahi Studio</span>
+                    <ChevronRight className="size-3.5" />
                   </Link>
                 </div>
               </div>
@@ -178,7 +217,9 @@ export function PublicLanding() {
                     <dt className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
                       {term}
                     </dt>
-                    <dd className="mt-1 text-base sm:text-lg font-bold text-white">{value}</dd>
+                    <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-white">
+                      {value}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -187,24 +228,25 @@ export function PublicLanding() {
         </section>
 
         {/* Popular Classes Section */}
-        <section className={`${container} py-10`} aria-labelledby="popular-title">
+        <section className={`${container} py-10 sm:py-14`} aria-labelledby="popular-title">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <span className="inline-block rounded-full bg-dd-forest/10 px-3 py-0.5 text-xs font-bold tracking-wider text-dd-forest uppercase">
                 Kelas populer
               </span>
               <h2
-                className="mt-2 font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink"
+                className="mt-2 font-serif text-2xl sm:text-3xl lg:text-4xl font-normal tracking-tight text-dd-ink"
                 id="popular-title"
               >
-                Temukan kelas sesuai tujuan Anda
+                Temukan kelas sesuai <span className="italic text-dd-forest">tujuan Anda</span>
               </h2>
             </div>
             <Link
               className="inline-flex items-center gap-1 text-sm font-bold text-dd-forest hover:underline"
               href={routes.classes}
             >
-              Lihat semua kelas ›
+              <span>Lihat semua kelas</span>
+              <ChevronRight className="size-3.5" />
             </Link>
           </div>
 
@@ -219,7 +261,7 @@ export function PublicLanding() {
                   className="group overflow-hidden rounded-2xl border border-dd-line bg-white shadow-dd-card transition hover:-translate-y-1 hover:shadow-dd-float"
                   key={code}
                 >
-                  <div className="relative h-[220px] overflow-hidden">
+                  <div className="relative h-[230px] sm:h-[250px] overflow-hidden">
                     <Image
                       src={`/images/public/${heroImageKey}`}
                       fill
@@ -227,12 +269,12 @@ export function PublicLanding() {
                       alt={`${name} di Daily Dose Pilates`}
                       className="object-cover transition duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-dd-forest shadow-sm backdrop-blur-md">
+                    <div className="absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-dd-forest shadow-2xs backdrop-blur-md">
                       {level}
                     </div>
                   </div>
                   <div className="p-6 space-y-3">
-                    <h3 className="font-sans text-xl font-bold text-dd-ink group-hover:text-dd-forest transition">
+                    <h3 className="font-serif text-xl sm:text-2xl font-normal text-dd-ink group-hover:text-dd-forest transition">
                       {name}
                     </h3>
                     <p className="text-xs sm:text-sm leading-relaxed text-dd-muted min-h-[40px]">
@@ -243,7 +285,8 @@ export function PublicLanding() {
                         className="inline-flex items-center gap-1 text-xs font-bold text-dd-forest group-hover:underline"
                         href={`/classes/${slug}`}
                       >
-                        Lihat detail ›
+                        <span>Lihat detail</span>
+                        <ChevronRight className="size-3" />
                       </Link>
                     </div>
                   </div>
@@ -279,59 +322,75 @@ export function PublicLanding() {
           )}
         </section>
 
-        {/* Testimonials / Principles Section */}
+        {/* Voices of Practice (Replaces cheap text stars) */}
         <section
-          className={`${container} py-12`}
+          className={`${container} py-14 sm:py-18`}
           id="testimonials"
           aria-labelledby="testimonials-title"
         >
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-2 mb-10">
             <span
-              className="inline-block rounded-full bg-dd-forest/10 px-3 py-0.5 text-xs font-bold tracking-wider text-dd-forest uppercase"
+              className="inline-block rounded-full border border-dd-forest/20 bg-dd-forest/5 px-4 py-1 text-xs font-semibold tracking-wider text-dd-forest uppercase"
               id="testimonials-title"
             >
               Prinsip gerak kami
             </span>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal text-dd-ink">
+              Refined Movement. <span className="italic text-dd-forest">Real Transformation.</span>
+            </h2>
           </div>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <blockquote className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card font-sans text-xl sm:text-2xl font-semibold leading-snug text-dd-ink">
-              <span className="text-3xl text-dd-forest font-serif leading-none">“</span>
-              <p className="my-3 leading-relaxed">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <blockquote className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card font-serif text-xl sm:text-2xl font-normal leading-relaxed text-dd-ink">
+              <span className="text-4xl text-dd-brass font-serif leading-none">“</span>
+              <p className="my-4 leading-relaxed italic">
                 Consistency is not perfection. It is choosing to return to yourself.
               </p>
-              <footer className="text-xs font-bold text-dd-forest tracking-wider uppercase">
+              <footer className="font-sans text-xs font-bold text-dd-forest tracking-wider uppercase border-t border-dd-line/60 pt-4">
                 Daily Dose Philosophy
               </footer>
             </blockquote>
 
-            {[
-              ['Move with confidence', 'Temukan progres melalui gerak yang terarah dan konsisten.'],
-              [
-                'Train at your pace',
-                'Pilih format latihan yang sesuai dengan kebutuhan tubuh Anda.',
-              ],
-            ].map(([title, copy]) => (
-              <article
-                className="flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card"
-                key={title}
-              >
-                <div className="space-y-2">
-                  <strong className="text-base font-bold text-dd-ink">{title}</strong>
-                  <p className="text-xs sm:text-sm leading-relaxed text-dd-muted">{copy}</p>
-                </div>
-                <div
-                  className="pt-4 flex items-center gap-1 text-dd-brass"
-                  aria-label="Lima bintang"
-                >
-                  <span className="font-bold text-sm tracking-widest">★★★★★</span>
-                </div>
-              </article>
-            ))}
+            <article className="flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card">
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
+                  Member Experience
+                </span>
+                <strong className="block font-serif text-lg font-normal text-dd-ink leading-snug">
+                  Move with confidence
+                </strong>
+                <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
+                  “Temukan progres melalui gerak yang terarah dan konsisten. Postur dan kekuatan core meningkat secara nyata.”
+                </p>
+              </div>
+              <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
+                <span className="font-semibold text-dd-ink">Member Komunitas</span>
+                <span className="text-dd-brass font-semibold">Studio PIK</span>
+              </div>
+            </article>
+
+            <article className="flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card">
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
+                  Personal Guidance
+                </span>
+                <strong className="block font-serif text-lg font-normal text-dd-ink leading-snug">
+                  Train at your pace
+                </strong>
+                <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
+                  “Pilih format latihan yang sesuai dengan kebutuhan tubuh Anda. Instruktur sangat teliti mendampingi setiap gerakan.”
+                </p>
+              </div>
+              <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
+                <span className="font-semibold text-dd-ink">Member Rutin</span>
+                <span className="text-dd-brass font-semibold">Studio Untar</span>
+              </div>
+            </article>
           </div>
         </section>
 
         {/* Package CTA & Journey Steps */}
-        <section className={`${container} my-10`} aria-labelledby="package-cta-title">
+        <section className={`${container} my-10 sm:my-16`} aria-labelledby="package-cta-title">
           <div
             className="grid overflow-hidden rounded-2xl border border-dd-line bg-white shadow-dd-card lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]"
             data-testid="package-journey"
@@ -341,18 +400,19 @@ export function PublicLanding() {
                 Paket Daily Dose
               </span>
               <h2
-                className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink leading-tight"
+                className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal tracking-tight text-dd-ink leading-tight"
                 id="package-cta-title"
               >
-                Bangun rutinitas yang konsisten.
+                Bangun rutinitas yang <span className="italic text-dd-forest">konsisten</span>.
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-dd-muted max-w-lg">
                 Bandingkan paket berdasarkan studio, tipe kelas, jumlah sesi, dan masa berlaku.
                 Seluruh harga ditampilkan langsung dari katalog aktif.
               </p>
               <div className="pt-3">
-                <Link className={primaryButton} href={routes.packages}>
-                  Pilih Paket <span aria-hidden="true">›</span>
+                <Link className={`${primaryButton} inline-flex items-center gap-1.5`} href={routes.packages}>
+                  <span>Pilih Paket</span>
+                  <ChevronRight className="size-3.5" />
                 </Link>
               </div>
             </div>
@@ -367,7 +427,7 @@ export function PublicLanding() {
                   className="flex items-start gap-4 p-6 transition hover:bg-white/60"
                   key={number}
                 >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full border border-dd-brass/40 bg-dd-brass-soft text-xs font-bold text-dd-brass-dark">
+                  <span className="font-serif grid size-9 shrink-0 place-items-center rounded-full border border-dd-brass/40 bg-dd-brass-soft text-sm font-normal text-dd-brass-dark">
                     {number}
                   </span>
                   <div className="space-y-0.5">
@@ -382,26 +442,24 @@ export function PublicLanding() {
 
         {/* Bottom Banner */}
         <section
-          className={`${container} my-12 rounded-2xl bg-dd-forest p-8 sm:p-12 text-white shadow-dd-float`}
+          className={`${container} my-12 sm:my-16 rounded-2xl bg-dd-forest p-8 sm:p-14 text-white shadow-dd-float`}
         >
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-xl">
-              <h2 className="font-sans text-2xl sm:text-3xl font-bold leading-snug">
-                Temukan kelas Pilates yang sesuai untuk Anda
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-3 max-w-xl">
+              <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-snug">
+                Temukan kelas Pilates yang <span className="italic">sesuai untuk Anda</span>
               </h2>
-              <p className="text-sm text-white/80 leading-relaxed">
+              <p className="text-sm sm:text-base text-white/80 leading-relaxed">
                 Lihat jadwal, pilih studio, dan temukan kelas yang sesuai dengan tujuan Anda.
               </p>
             </div>
             <div className="flex flex-col items-start lg:items-end gap-2">
               <Link
-                className="inline-flex min-h-12 w-full sm:w-auto items-center justify-center rounded-dd-sm bg-white px-7 text-sm font-bold text-dd-forest shadow-dd-soft hover:bg-white/95 transition"
+                className="inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-1.5 rounded-dd-sm bg-white px-8 text-sm font-bold text-dd-forest shadow-dd-soft hover:bg-white/95 transition"
                 href={`${routes.classes}#schedule`}
               >
-                Lihat Jadwal{' '}
-                <span aria-hidden="true" className="ml-1">
-                  ›
-                </span>
+                <span>Lihat Jadwal</span>
+                <ChevronRight className="size-3.5" />
               </Link>
               <small className="text-xs text-white/60">
                 Pilih kelas berdasarkan studio dan waktu yang tersedia.

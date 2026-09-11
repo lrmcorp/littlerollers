@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Inbox } from 'lucide-react';
 
 export function PageHeader({
   eyebrow,
@@ -33,12 +34,14 @@ export function PageHeader({
 export function StatusBadge({
   children,
   tone = 'neutral',
+  withDot = false,
 }: {
   children: ReactNode;
   tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+  withDot?: boolean;
 }) {
   const classes = {
-    neutral: 'bg-stone-100 text-stone-700 ring-stone-200',
+    neutral: 'bg-dd-surface-muted text-dd-muted ring-dd-line',
     info: 'bg-dd-info-soft text-dd-info ring-sky-200',
     success: 'bg-dd-success-soft text-dd-success ring-emerald-200',
     warning: 'bg-dd-warning-soft text-dd-warning ring-amber-200',
@@ -46,8 +49,9 @@ export function StatusBadge({
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${classes[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${classes[tone]}`}
     >
+      {withDot && <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />}
       {children}
     </span>
   );
@@ -87,7 +91,7 @@ export function EmptyState({ title, description }: { title: string; description:
           className="mx-auto mb-4 grid size-10 place-items-center rounded-full bg-dd-brass-soft text-dd-brass"
           aria-hidden="true"
         >
-          ○
+          <Inbox className="size-5" />
         </span>
         <strong className="text-base text-dd-ink">{title}</strong>
         <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>

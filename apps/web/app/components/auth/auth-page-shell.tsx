@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
 import { BrandMark } from '../public/brand-mark';
 
 export function AuthPageShell({
@@ -86,10 +86,11 @@ export function AuthPageShell({
           <div className="mb-8 flex items-center justify-between gap-4 border-b border-dd-line/60 pb-5">
             <BrandMark className="w-32 sm:w-36" priority />
             <Link
-              className="inline-flex min-h-10 items-center rounded-dd-sm px-3 text-xs font-bold text-dd-forest hover:bg-dd-surface-muted transition no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-dd-sm px-3 text-xs font-bold text-dd-forest hover:bg-dd-surface-muted transition no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
               href="/sign-in"
             >
-              {loginLabel} →
+              <span>{loginLabel}</span>
+              <ArrowRight className="size-3.5" />
             </Link>
           </div>
 

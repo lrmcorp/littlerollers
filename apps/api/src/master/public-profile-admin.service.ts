@@ -106,6 +106,14 @@ export class PublicProfileAdminService {
         area: String(input.area ?? '').trim(),
         city: String(input.city ?? '').trim(),
         address: String(input.address ?? '').trim(),
+        operationalEmail:
+          typeof input.operationalEmail === 'string' && input.operationalEmail.trim()
+            ? input.operationalEmail.trim()
+            : null,
+        mapUrl:
+          typeof input.mapUrl === 'string' && input.mapUrl.trim()
+            ? input.mapUrl.trim()
+            : null,
         description: String(input.description ?? '').trim(),
         arrivalInformation: String(input.arrivalInformation ?? '').trim() || null,
         parkingInformation: String(input.parkingInformation ?? '').trim() || null,

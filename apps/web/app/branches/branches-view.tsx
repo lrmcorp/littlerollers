@@ -14,7 +14,7 @@ import {
   type BranchManagementItem,
   type BranchManagementPage,
 } from '@/api-clients/branch-client';
-import { Skeleton } from '../ui';
+import { PageHeader, Skeleton } from '../ui';
 
 const emptyPage: BranchManagementPage = {
   items: [],
@@ -115,27 +115,22 @@ export function BranchesView() {
 
   return (
     <section className="grid gap-5" aria-labelledby="branches-title">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-dd-line pb-5">
-        <div>
-          <p className="text-xs font-bold tracking-[0.16em] text-dd-forest uppercase">
-            Master operasional
-          </p>
-          <h1 id="branches-title" className="mt-1 text-3xl font-semibold">
-            Branch Management
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-dd-muted">
-            Kelola identitas studio, status operasional, dan dependency setiap cabang.
-          </p>
-        </div>
-        {canManage && (
-          <Button
-            leadingIcon={<Plus className="size-4" aria-hidden="true" />}
-            onClick={() => setCreateOpen(true)}
-          >
-            Buat cabang
-          </Button>
-        )}
-      </header>
+      <PageHeader
+        eyebrow="Master operasional"
+        title="Branch Management"
+        titleId="branches-title"
+        description="Kelola identitas studio, status operasional, dan dependency setiap cabang."
+        context={
+          canManage ? (
+            <Button
+              leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+              onClick={() => setCreateOpen(true)}
+            >
+              Buat cabang
+            </Button>
+          ) : undefined
+        }
+      />
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Total cabang" value={String(page.summary.total)} />
         <StatCard label="Aktif" value={String(page.summary.active)} tone="success" />

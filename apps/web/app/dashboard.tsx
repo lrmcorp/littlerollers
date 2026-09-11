@@ -5,10 +5,14 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpenCheck,
   Building2,
   CalendarClock,
+  CalendarDays,
   CheckCircle2,
+  ClipboardCheck,
   Clock,
+  CreditCard,
   Layers,
   RefreshCw,
   Sparkles,
@@ -216,7 +220,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   return (
     <div className="space-y-8 font-sans text-dd-ink">
       {/* Header & Filter Card */}
-      <header className="flex flex-col gap-6 rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md xl:flex-row xl:items-end xl:justify-between">
+      <header className="flex flex-col gap-6 rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-dd-forest/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
             <Sparkles className="size-3.5 text-dd-brass" />
@@ -231,7 +235,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
 
         {/* Global Filter Bar */}
-        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-dd-line/80 bg-dd-surface-muted/40 p-3.5 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3 rounded-dd-lg border border-dd-line/80 bg-dd-surface-muted/40 p-3.5 shadow-sm">
           <SearchSelect
             label="Studio/Cabang"
             value={dashboardBranchId}
@@ -293,7 +297,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Feedback>
       )}
       {activeBranch && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-dd-success-soft px-4 py-3 text-xs sm:text-sm font-medium text-dd-success shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-dd-lg border border-emerald-200 bg-dd-success-soft px-4 py-3 text-xs sm:text-sm font-medium text-dd-success shadow-sm">
           <Building2 className="size-4 shrink-0" />
           <strong>Cabang operasional: {activeBranch.name}</strong>
           <span className="text-dd-success/75">
@@ -337,6 +341,97 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           })}
         </p>
       )}
+
+      {/* Quick Action Hub: Pintasan Cepat Operasional */}
+      <section aria-label="Aksi Cepat Hari Ini" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+            Aksi Cepat Operasional
+          </span>
+          <span className="text-xs text-dd-muted">Pintasan 1-klik pekerjaan harian</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Link
+            href="/workspace/classes"
+            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
+                <CalendarDays className="size-5" />
+              </span>
+              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
+            </div>
+            <div className="mt-3">
+              <strong className="block text-sm font-bold text-dd-ink">Jadwal Kelas</strong>
+              <span className="text-xs text-dd-muted">Timetable &amp; slot reformer</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/workspace/bookings"
+            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
+                <BookOpenCheck className="size-5" />
+              </span>
+              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
+            </div>
+            <div className="mt-3">
+              <strong className="block text-sm font-bold text-dd-ink">Booking Member</strong>
+              <span className="text-xs text-dd-muted">Reservasi &amp; reschedule</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/check-in-scanner"
+            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="grid size-9 place-items-center rounded-dd-md bg-sky-50 text-sky-700">
+                <ClipboardCheck className="size-5" />
+              </span>
+              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
+            </div>
+            <div className="mt-3">
+              <strong className="block text-sm font-bold text-dd-ink">Scan Presensi</strong>
+              <span className="text-xs text-dd-muted">Check-in QR kehadiran</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/workspace/payments"
+            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="grid size-9 place-items-center rounded-dd-md bg-amber-50 text-amber-700">
+                <CreditCard className="size-5" />
+              </span>
+              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
+            </div>
+            <div className="mt-3">
+              <strong className="block text-sm font-bold text-dd-ink">Bukti Bayar</strong>
+              <span className="text-xs text-dd-muted">Verifikasi transfer paket</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/workspace/branches"
+            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5 col-span-2 sm:col-span-1"
+          >
+            <div className="flex items-center justify-between">
+              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-brass-soft text-dd-brass-dark">
+                <Building2 className="size-5" />
+              </span>
+              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
+            </div>
+            <div className="mt-3">
+              <strong className="block text-sm font-bold text-dd-ink">Studio &amp; Cabang</strong>
+              <span className="text-xs text-dd-muted">Profil, maps &amp; rekening</span>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {/* KPI Metrics Stat Cards */}
       {overview && (() => {
@@ -417,7 +512,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           {Array.from({ length: 8 }, (_, index) => (
             <div
               key={index}
-              className="h-40 animate-pulse rounded-2xl border border-dd-line/80 bg-white/70 shadow-sm"
+              className="h-40 animate-pulse rounded-dd-lg border border-dd-line/80 bg-white/70 shadow-sm"
             />
           ))}
         </div>
@@ -425,7 +520,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
 
       {/* Trend Section */}
       {overview?.sections.trend && (
-        <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+        <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
@@ -449,7 +544,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {/* Action Queue & Risk Watch Grid */}
       <div className={`grid gap-6 ${overview?.sections.risk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
         {overview?.sections.risk && (
-          <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+          <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
             <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
@@ -469,9 +564,9 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                   <Link
                     key={item.key}
                     href={item.href}
-                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30 rounded-lg px-2"
+                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30 rounded-dd-md px-2"
                   >
-                    <span className="grid size-10 place-items-center rounded-xl bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
+                    <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
                       {item.count}
                     </span>
                     <span className="font-semibold text-sm sm:text-base">{item.label}</span>
@@ -488,7 +583,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </Panel>
         )}
 
-        <Panel className="rounded-2xl border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+        <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
           <div className="border-b border-dd-line/60 pb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               H-24 risk watch
@@ -501,7 +596,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                 <Link
                   key={item.id}
                   href={item.href}
-                  className="flex gap-3.5 rounded-xl border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
+                  className="flex gap-3.5 rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
                 >
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
                   <span className="min-w-0 flex-1">
@@ -530,7 +625,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
 
       {/* Branch Portfolio Performance Table */}
       {overview?.branches.length ? (
-        <Panel className="overflow-hidden rounded-2xl border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
+        <Panel className="overflow-hidden rounded-dd-lg border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
           <div className="border-b border-dd-line/60 p-6 sm:px-8">
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               Portfolio cabang
@@ -558,7 +653,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                   <tr key={branch.id} className="transition hover:bg-dd-surface-muted/30">
                     <td className="px-6 py-4">
                       <strong className="font-bold text-dd-ink">{branch.name}</strong>
-                      <span className="ml-2 rounded bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+                      <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
                         {branch.code}
                       </span>
                     </td>
@@ -593,7 +688,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
 
       {/* Operational Job Health */}
       {overview?.sections.jobHealth && (
-        <Panel className="overflow-hidden rounded-2xl border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
+        <Panel className="overflow-hidden rounded-dd-lg border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
           <div className="border-b border-dd-line/60 p-6 sm:px-8">
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
               Job health
@@ -654,7 +749,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             <Link
               href={page.href}
               key={page.href}
-              className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-dd-line/80 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-dd-ink no-underline shadow-dd-soft transition hover:border-dd-forest hover:bg-dd-surface-muted/40 hover:-translate-y-0.5"
+              className="group inline-flex min-h-11 items-center gap-2 rounded-dd-md border border-dd-line/80 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-dd-ink no-underline shadow-dd-soft transition hover:border-dd-forest hover:bg-dd-surface-muted/40 hover:-translate-y-0.5"
             >
               <CalendarClock className="size-4 text-dd-brass" />
               <span>{page.shortLabel}</span>

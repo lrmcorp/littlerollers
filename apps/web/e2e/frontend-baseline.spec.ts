@@ -425,7 +425,7 @@ test('public information routes expose approved content and official support onl
   await expect(page.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
   await page.goto('/contact');
   await expect(page.getByRole('heading', { name: 'Ada yang ingin Anda tanyakan?' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Buka kontak resmi ↗' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Buka kontak resmi/ })).toHaveAttribute(
     'href',
     'https://dailydosepilates.com/contact-us',
   );

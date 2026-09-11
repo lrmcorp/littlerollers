@@ -3,16 +3,23 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Building2,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
   Download,
+  FastForward,
   FileSpreadsheet,
   FileUp,
   Loader2,
+  Package,
   RefreshCw,
   ShieldAlert,
   SkipForward,
+  Tag,
+  Ticket,
   Upload,
+  Users,
   XCircle,
 } from 'lucide-react';
 import { Button } from '../components/actions';
@@ -44,23 +51,18 @@ const TABLE_META: TableMeta[] = [
     description: 'Impor data pelanggan baru beserta kredensial login awal.',
     requiredCapability: 'user:admin',
     columns: [
-      'name',
       'email',
-      'phoneE164',
-      'role',
-      'branchCode',
-      'genderCode',
+      'password',
+      'fullName',
+      'phoneNumber',
+      'gender',
       'birthDate',
+      'emergencyContact',
       'address',
-      'barcode',
-      'ktpPath',
-      'selfiePath',
-      'nik',
-      'countryCode',
       'fotoPath',
       'status',
     ],
-    icon: <span className="text-lg">👤</span>,
+    icon: <Users className="size-5 text-dd-forest" />,
   },
   {
     key: 'PACKAGES',
@@ -80,7 +82,7 @@ const TABLE_META: TableMeta[] = [
       'promoteCode',
       'discountPercent',
     ],
-    icon: <span className="text-lg">📦</span>,
+    icon: <Package className="size-5 text-dd-forest" />,
   },
   {
     key: 'CUSTOMER_PACKAGES',
@@ -88,7 +90,7 @@ const TABLE_META: TableMeta[] = [
     description: 'Impor kepemilikan paket dan saldo sesi pelanggan.',
     requiredCapability: 'migration:resolve',
     columns: ['customerEmail', 'packageCode', 'creditsRemaining', 'expiresAt'],
-    icon: <span className="text-lg">🎟️</span>,
+    icon: <Ticket className="size-5 text-dd-forest" />,
   },
   {
     key: 'VOUCHERS',
@@ -96,7 +98,7 @@ const TABLE_META: TableMeta[] = [
     description: 'Impor kode voucher diskon beserta aturan penggunaannya.',
     requiredCapability: 'master:manage',
     columns: ['code', 'name', 'discountType', 'discountValue', 'maxUsage', 'validUntil'],
-    icon: <span className="text-lg">🏷️</span>,
+    icon: <Tag className="size-5 text-dd-forest" />,
   },
   {
     key: 'BRANCHES',
@@ -104,7 +106,7 @@ const TABLE_META: TableMeta[] = [
     description: 'Impor data studio dan cabang baru ke dalam sistem.',
     requiredCapability: 'master:manage',
     columns: ['code', 'name', 'timezone', 'address', 'phone', 'studioName', 'capacity'],
-    icon: <span className="text-lg">🏢</span>,
+    icon: <Building2 className="size-5 text-dd-forest" />,
   },
 ];
 
@@ -150,8 +152,8 @@ function SummaryCard({
     neutral: 'border-stone-200 bg-stone-50 text-stone-700',
   };
   return (
-    <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${colors[tone]}`}>
-      <span className="text-xl">{icon}</span>
+    <div className={`flex items-center gap-3 rounded-dd-lg border px-4 py-3 ${colors[tone]}`}>
+      <span className="grid size-9 place-items-center rounded-md bg-white/60 shrink-0">{icon}</span>
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</p>
         <p className="text-2xl font-bold leading-none">{value.toLocaleString('id-ID')}</p>
@@ -315,7 +317,7 @@ export function DataImportView() {
                 setSelectedTable(t.key);
                 handleReset();
               }}
-              className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all ${
+              className={`flex flex-col gap-2 rounded-dd-lg border p-4 text-left transition-all ${
                 selectedTable === t.key
                   ? 'border-dd-forest bg-dd-forest/5 ring-2 ring-dd-forest ring-offset-1'
                   : 'border-dd-line bg-white hover:border-dd-forest/40 hover:bg-stone-50'
@@ -397,7 +399,7 @@ export function DataImportView() {
               }}
               onDragLeave={() => setIsDragOver(false)}
               onDrop={handleDrop}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed py-12 transition-all ${
+              className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-dd-lg border-2 border-dashed py-12 transition-all ${
                 isDragOver
                   ? 'border-dd-forest bg-dd-forest/5 scale-[1.01]'
                   : 'border-dd-line bg-dd-surface-muted hover:border-dd-forest/50 hover:bg-stone-50'
@@ -427,7 +429,7 @@ export function DataImportView() {
               />
             </div>
           ) : (
-            <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-center gap-4 rounded-dd-lg border border-emerald-200 bg-dd-success-soft p-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                 <FileSpreadsheet className="size-6" />
               </div>
@@ -439,7 +441,7 @@ export function DataImportView() {
                 id="btn-reset-file"
                 type="button"
                 onClick={handleReset}
-                className="shrink-0 rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-100"
+                className="shrink-0 rounded-dd-md p-2 text-emerald-600 transition-colors hover:bg-emerald-100"
                 aria-label="Hapus file dan mulai ulang"
               >
                 <RefreshCw className="size-4" />
@@ -489,25 +491,25 @@ export function DataImportView() {
                 label="Total Baris"
                 value={validationResult.totalRows}
                 tone="neutral"
-                icon="📋"
+                icon={<ClipboardList className="size-5 text-stone-600" />}
               />
               <SummaryCard
                 label="Siap Diimpor"
                 value={validationResult.validCount}
                 tone="success"
-                icon="✅"
+                icon={<CheckCircle2 className="size-5 text-emerald-600" />}
               />
               <SummaryCard
                 label="Duplikat"
                 value={validationResult.duplicateCount}
                 tone="warning"
-                icon="⚠️"
+                icon={<AlertTriangle className="size-5 text-amber-600" />}
               />
               <SummaryCard
                 label="Error"
                 value={validationResult.errorCount}
                 tone="danger"
-                icon="❌"
+                icon={<XCircle className="size-5 text-rose-600" />}
               />
             </div>
 
@@ -625,7 +627,7 @@ export function DataImportView() {
                       <label
                         key={value}
                         htmlFor={`duplicate-action-${value}`}
-                        className={`flex flex-1 cursor-pointer gap-3 rounded-xl border p-4 transition-all ${
+                        className={`flex flex-1 cursor-pointer gap-3 rounded-dd-md border p-4 transition-all ${
                           duplicateAction === value
                             ? 'border-dd-forest bg-dd-forest/5 ring-2 ring-dd-forest ring-offset-1'
                             : 'border-dd-line bg-white hover:border-dd-forest/40'
@@ -652,7 +654,7 @@ export function DataImportView() {
                 </fieldset>
 
                 {/* Warning */}
-                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <div className="flex items-start gap-3 rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-amber-900">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                   <div>
                     <strong>Perhatian:</strong> Eksekusi import tidak dapat dibatalkan. Pastikan Anda
@@ -703,30 +705,30 @@ export function DataImportView() {
                 label="Ditambahkan"
                 value={executionResult.insertedCount}
                 tone="success"
-                icon="✅"
+                icon={<CheckCircle2 className="size-5 text-emerald-600" />}
               />
               <SummaryCard
                 label="Diperbarui"
                 value={executionResult.updatedCount}
                 tone="neutral"
-                icon="🔄"
+                icon={<RefreshCw className="size-5 text-dd-forest" />}
               />
               <SummaryCard
                 label="Dilewati"
                 value={executionResult.skippedCount}
                 tone="warning"
-                icon="⏭️"
+                icon={<FastForward className="size-5 text-amber-600" />}
               />
               <SummaryCard
                 label="Gagal"
                 value={executionResult.errorCount}
                 tone="danger"
-                icon="❌"
+                icon={<XCircle className="size-5 text-rose-600" />}
               />
             </div>
 
             {executionResult.errors.length > 0 && (
-              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+              <div className="mt-6 rounded-dd-md border border-red-200 bg-dd-danger-soft p-4">
                 <p className="mb-2 text-xs font-bold uppercase text-red-700">
                   Detail Error Eksekusi
                 </p>

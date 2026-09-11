@@ -1,8 +1,10 @@
-import { BranchOwnedMasterView } from '../branch-owned-master-view';
+import { redirect } from 'next/navigation';
+
 export default async function BranchPaymentAccountsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  return <BranchOwnedMasterView branchId={(await params).id} tab="accounts" />;
+  const { id } = await params;
+  redirect(`/workspace/branches/${id}`);
 }

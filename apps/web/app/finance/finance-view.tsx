@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Download, RefreshCw, Scale } from 'lucide-react';
 import { useSessionContext } from '../session-context';
-import { Feedback } from '../ui';
+import { Feedback, PageHeader } from '../ui';
 import {
   AdminEmptyState,
   Badge,
@@ -132,41 +132,37 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-dd-line pb-7 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-            Finance operations
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Rekonsiliasi transaksi</h1>
-          <p className="mt-2 max-w-2xl text-dd-muted">
-            Bandingkan pembayaran, approval, dan pengakuan ledger dari data aktual lintas cabang.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            leadingIcon={<Download className="size-4" aria-hidden="true" />}
-            onClick={() => void exportCsv()}
-            disabled={
-              exporting ||
-              !data ||
-              !client.exportReport ||
-              !context?.hasCapability('finance:export')
-            }
-          >
-            Export CSV
-          </Button>
-          <Button
-            onClick={() => void load()}
-            disabled={loading}
-            leadingIcon={
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-            }
-          >
-            Refresh
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Finance operations"
+        title="Rekonsiliasi transaksi"
+        description="Bandingkan pembayaran, approval, dan pengakuan ledger dari data aktual lintas cabang."
+        context={
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              leadingIcon={<Download className="size-4" aria-hidden="true" />}
+              onClick={() => void exportCsv()}
+              disabled={
+                exporting ||
+                !data ||
+                !client.exportReport ||
+                !context?.hasCapability('finance:export')
+              }
+            >
+              Export CSV
+            </Button>
+            <Button
+              onClick={() => void load()}
+              disabled={loading}
+              leadingIcon={
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              }
+            >
+              Refresh
+            </Button>
+          </div>
+        }
+      />
       <FilterBar>
         <label className="grid gap-1 text-xs font-bold text-dd-muted">
           Dari

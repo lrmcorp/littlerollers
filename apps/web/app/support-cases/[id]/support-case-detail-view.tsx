@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../../components/actions';
+import { SelectInput, Textarea, TextInput } from '../../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
-
-const field = 'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 text-sm';
 type CaseDetail = {
   id: string;
   subject: string;
@@ -103,8 +103,9 @@ export function SupportCaseDetailView({ id }: { id: string }) {
     );
   return (
     <section className="space-y-6">
-      <Link href="/support-cases" className="font-semibold text-dd-forest hover:underline">
-        ← Kembali ke Customer Support
+      <Link href="/support-cases" className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline">
+        <ArrowLeft className="size-4" />
+        <span>Kembali ke Customer Support</span>
       </Link>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <PageHeader
@@ -130,23 +131,32 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           onSubmit={update}
           className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-5"
         >
-          <h2 className="font-semibold">Status dan assignment</h2>
-          <select name="status" defaultValue={item.status} className={field}>
+          <h2 className="font-semibold text-dd-ink">Status dan assignment</h2>
+          <SelectInput label="Status Case" name="status" defaultValue={item.status}>
             {['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'RESOLVED', 'CLOSED'].map((x) => (
-              <option key={x}>{x}</option>
+              <option key={x} value={x}>
+                {x}
+              </option>
             ))}
-          </select>
-          <select name="priority" defaultValue={item.priority} className={field}>
+          </SelectInput>
+          <SelectInput label="Prioritas" name="priority" defaultValue={item.priority}>
             {['LOW', 'NORMAL', 'HIGH', 'URGENT'].map((x) => (
-              <option key={x}>{x}</option>
+              <option key={x} value={x}>
+                {x}
+              </option>
             ))}
-          </select>
-          <input name="assignedUserId" className={field} placeholder="Staff ID (opsional)" />
-          <input
+          </SelectInput>
+          <TextInput
+            label="Staff Ditugaskan"
+            name="assignedUserId"
+            placeholder="Staff ID (opsional)"
+            defaultValue={item.assignedUser?.displayName ?? ''}
+          />
+          <TextInput
+            label="Tags"
             name="tags"
             defaultValue={item.tags.join(', ')}
-            className={field}
-            placeholder="Tag, dipisahkan koma"
+            placeholder="Tag dipisahkan koma, misal: voucher, follow-up"
           />
           <Button type="submit" loading={busy}>
             Simpan perubahan
@@ -159,13 +169,13 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           onSubmit={note}
           className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-5"
         >
-          <h2 className="font-semibold">Catatan internal</h2>
-          <textarea
+          <h2 className="font-semibold text-dd-ink">Catatan internal</h2>
+          <Textarea
+            label="Isi Catatan"
             required
             minLength={2}
             maxLength={5000}
             name="body"
-            className={`${field} min-h-32`}
             placeholder="Hanya terlihat oleh staf berwenang"
           />
           <Button type="submit" loading={busy}>

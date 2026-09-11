@@ -86,7 +86,7 @@ describe('public landing page', () => {
     expect(screen.getAllByRole('link', { name: 'Lihat Paket' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Pilih Paket' })).toHaveAttribute('href', '/packages');
     expect(screen.getByText('2 lokasi')).toBeInTheDocument();
-    expect(screen.getByText('Jakarta & BSD')).toBeInTheDocument();
+    expect(screen.getAllByText('Jakarta & BSD').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('50 menit')).toBeInTheDocument();
     expect(
       screen.getByText('Harga dan paket mengikuti lokasi tempat Anda berlatih.'),

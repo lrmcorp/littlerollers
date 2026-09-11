@@ -67,7 +67,7 @@ describe('public information pages', () => {
   it('routes support through the official contact channel without collecting PII', async () => {
     const view = render(<ContactPage />);
     expect(screen.getByRole('heading', { name: 'Ada yang ingin Anda tanyakan?' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Buka kontak resmi ↗' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Buka kontak resmi/ })).toHaveAttribute(
       'href',
       'https://dailydosepilates.com/contact-us',
     );

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
+  Info,
   Lock,
   Mail,
   MapPin,
@@ -69,6 +71,14 @@ export function ProfileView() {
     : 'U';
 
   const isVerified = session?.identityVerificationStatus === 'APPROVED';
+  const isReviewer = Boolean(session?.capabilities.includes('identity-verification:read'));
+  const kycHref = isReviewer ? '/identity-verifications' : '/account/verification';
+  const isInternal = Boolean(
+    session?.roles.some((role) =>
+      ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'INSTRUCTOR'].includes(role),
+    ),
+  );
+  const bookingsHref = isInternal ? '/workspace/bookings' : '/bookings';
 
   return (
     <main className="space-y-6" aria-labelledby="profile-heading">
@@ -202,8 +212,11 @@ export function ProfileView() {
             </div>
           </div>
 
-          <div className="rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs leading-5 text-dd-muted border border-dd-line/50">
-            💡 Untuk alasan keamanan akun, penggantian alamat email atau nomor telepon WhatsApp resmi memerlukan permohonan verifikasi melalui tim Daily Dose Studio.
+          <div className="flex items-start gap-2.5 rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs leading-5 text-dd-muted border border-dd-line/50">
+            <Info className="size-4 text-dd-forest shrink-0 mt-0.5" />
+            <span>
+              Untuk alasan keamanan akun, penggantian alamat email atau nomor telepon WhatsApp resmi memerlukan permohonan verifikasi melalui tim Daily Dose Studio.
+            </span>
           </div>
         </div>
 
@@ -271,7 +284,7 @@ export function ProfileView() {
       {/* Quick Navigation Hub */}
       <section className="grid gap-4 sm:grid-cols-3">
         <Link
-          href="/identity-verification"
+          href={kycHref}
           className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
@@ -290,19 +303,23 @@ export function ProfileView() {
         >
           <div className="flex items-center justify-between">
             <PackageCheck className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
-            <span className="text-xs font-semibold text-dd-forest">Buka →</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest">
+              Buka <ChevronRight className="size-3.5" />
+            </span>
           </div>
           <strong className="mt-3 block text-sm font-semibold text-dd-ink">Paket & Sesi</strong>
           <p className="mt-1 text-xs text-dd-muted">Beli paket baru atau cek kuota sesi Anda.</p>
         </Link>
 
         <Link
-          href="/bookings"
+          href={bookingsHref}
           className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
             <CalendarDays className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
-            <span className="text-xs font-semibold text-dd-forest">Buka →</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest">
+              Buka <ChevronRight className="size-3.5" />
+            </span>
           </div>
           <strong className="mt-3 block text-sm font-semibold text-dd-ink">Booking Saya</strong>
           <p className="mt-1 text-xs text-dd-muted">Jadwal reservasi & tiket QR check-in.</p>

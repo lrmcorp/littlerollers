@@ -2,10 +2,9 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
-import { SearchSelect } from '../components/forms';
+import { SearchSelect, SelectInput, TextInput } from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
-const field = 'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 text-sm';
 async function api(path: string, init?: RequestInit) {
   const r = await fetch(`/api/v1${path}`, {
     credentials: 'include',
@@ -63,20 +62,28 @@ export function SupportCasesView() {
     );
   return (
     <section className="space-y-6">
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
-        <PageHeader
-          eyebrow="Layanan customer"
-          title="Customer Support"
-          description="Case, catatan internal, tag, prioritas, status, assignment, dan tautan ke timeline customer. Transaksi tidak dapat diubah dari sini."
-        />
-      </div>
+      <PageHeader
+        eyebrow="Layanan customer"
+        title="Customer Support"
+        description="Case, catatan internal, tag, prioritas, status, assignment, dan tautan ke timeline customer. Transaksi tidak dapat diubah dari sini."
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       <form
         onSubmit={create}
         className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
       >
-        <input required name="customerUserId" className={field} placeholder="Customer ID" />
-        <input required name="subject" className={field} placeholder="Subjek case" />
+        <TextInput
+          label="Customer ID"
+          required
+          name="customerUserId"
+          placeholder="ID pengguna customer"
+        />
+        <TextInput
+          label="Subjek Case"
+          required
+          name="subject"
+          placeholder="Contoh: Permintaan reschedule sesi"
+        />
         <SearchSelect
           label="Studio/Cabang"
           name="branchId"
@@ -86,14 +93,18 @@ export function SupportCasesView() {
             label: branch.name,
           }))}
         />
-        <select name="priority" className={field}>
-          <option>NORMAL</option>
-          <option>LOW</option>
-          <option>HIGH</option>
-          <option>URGENT</option>
-        </select>
-        <input name="tags" className={field} placeholder="Tag, dipisahkan koma" />
-        <div>
+        <SelectInput label="Prioritas" name="priority">
+          <option value="NORMAL">NORMAL</option>
+          <option value="LOW">LOW</option>
+          <option value="HIGH">HIGH</option>
+          <option value="URGENT">URGENT</option>
+        </SelectInput>
+        <TextInput
+          label="Tags"
+          name="tags"
+          placeholder="Tag dipisahkan koma, misal: reschedule, vip"
+        />
+        <div className="flex items-end">
           <Button type="submit" loading={busy}>
             Buat support case
           </Button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, Pencil, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Plus, Power, PowerOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ButtonLink } from '../components/actions';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
@@ -8,7 +8,10 @@ import { Badge, Panel, StatCard } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
-import { Skeleton } from '../ui';
+import { PageHeader, Skeleton } from '../ui';
+import { BranchPaymentAccountsPanel } from './branch-payment-accounts-panel';
+import { BranchVenuesPanel } from './branch-venues-panel';
+import { BranchPublicProfileDrawer } from './branch-public-profile-drawer';
 
 const auditLabels: Record<string, string> = {
   'master.branch_created': 'Cabang dibuat',
@@ -24,6 +27,7 @@ export function BranchDetailView({ id }: { id: string }) {
   const [branch, setBranch] = useState<BranchManagementDetail | null>(null);
   const [failure, setFailure] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
+  const [publicProfileOpen, setPublicProfileOpen] = useState(false);
   const [editDirty, setEditDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const canRead =
@@ -121,49 +125,44 @@ export function BranchDetailView({ id }: { id: string }) {
       >
         Kembali ke cabang
       </ButtonLink>
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-dd-line pb-5">
-        <div>
+      <PageHeader
+        eyebrow="Branch Management"
+        title={branch.name}
+        titleId="branch-title"
+        description={`${branch.code} · ${branch.timezone}`}
+        context={
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold tracking-[0.16em] text-dd-forest uppercase">
-              Branch Management
-            </p>
             <Badge tone={branch.active ? 'success' : 'neutral'}>
               {branch.active ? 'Aktif' : 'Tidak aktif'}
             </Badge>
+            {canManage && (
+              <>
+                <Button
+                  variant="secondary"
+                  leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
+                  onClick={() => setEditorOpen(true)}
+                >
+                  Edit cabang
+                </Button>
+                <Button
+                  variant={branch.active ? 'danger' : 'primary'}
+                  leadingIcon={
+                    branch.active ? (
+                      <PowerOff className="size-4" aria-hidden="true" />
+                    ) : (
+                      <Power className="size-4" aria-hidden="true" />
+                    )
+                  }
+                  loading={busy}
+                  onClick={transition}
+                >
+                  {branch.active ? 'Nonaktifkan' : 'Aktifkan kembali'}
+                </Button>
+              </>
+            )}
           </div>
-          <h1 id="branch-title" className="mt-2 text-3xl font-semibold">
-            {branch.name}
-          </h1>
-          <p className="mt-2 text-sm text-dd-muted">
-            {branch.code} · {branch.timezone}
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
-              onClick={() => setEditorOpen(true)}
-            >
-              Edit cabang
-            </Button>
-            <Button
-              variant={branch.active ? 'danger' : 'primary'}
-              leadingIcon={
-                branch.active ? (
-                  <PowerOff className="size-4" aria-hidden="true" />
-                ) : (
-                  <Power className="size-4" aria-hidden="true" />
-                )
-              }
-              loading={busy}
-              onClick={transition}
-            >
-              {branch.active ? 'Nonaktifkan' : 'Aktifkan kembali'}
-            </Button>
-          </div>
-        )}
-      </header>
+        }
+      />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Staf aktif" value={String(branch.dependencies.staff)} />
         <StatCard label="Kelas mendatang" value={String(branch.dependencies.futureClasses)} />
@@ -197,51 +196,83 @@ export function BranchDetailView({ id }: { id: string }) {
                 </strong>
               </p>
               <p className="text-sm leading-6 text-dd-muted">{branch.publicProfile.address}</p>
-              <ButtonLink
-                href={`/workspace/branches/${branch.id}/public-profile`}
-                variant="secondary"
-                size="sm"
-                leadingIcon={<ExternalLink className="size-4" aria-hidden="true" />}
-                className="w-fit"
-              >
-                Kelola profil publik
-              </ButtonLink>
+              <div className="grid gap-1.5 text-xs text-dd-muted">
+                {branch.publicProfile.operationalEmail && (
+                  <p>
+                    <span className="font-semibold text-dd-ink">Email: </span>
+                    <a
+                      href={`mailto:${branch.publicProfile.operationalEmail}`}
+                      className="text-dd-forest hover:underline"
+                    >
+                      {branch.publicProfile.operationalEmail}
+                    </a>
+                  </p>
+                )}
+                {branch.publicProfile.mapUrl && (
+                  <p>
+                    <span className="font-semibold text-dd-ink">Peta: </span>
+                    <a
+                      href={branch.publicProfile.mapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-dd-forest hover:underline"
+                    >
+                      Buka di Google Maps
+                      <ExternalLink className="size-3" aria-hidden="true" />
+                    </a>
+                  </p>
+                )}
+              </div>
+              {canManage && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
+                  className="w-fit mt-1"
+                  onClick={() => setPublicProfileOpen(true)}
+                >
+                  Edit profil publik
+                </Button>
+              )}
             </div>
           ) : (
             <div className="mt-4">
               <p className="text-sm text-dd-muted">Profil publik cabang belum dilengkapi.</p>
-              <ButtonLink
-                href={`/workspace/branches/${branch.id}/public-profile`}
-                variant="secondary"
-                size="sm"
-                className="mt-3 w-fit"
-              >
-                Lengkapi profil publik
-              </ButtonLink>
+              {canManage && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+                  className="mt-3 w-fit"
+                  onClick={() => setPublicProfileOpen(true)}
+                >
+                  Lengkapi profil publik
+                </Button>
+              )}
             </div>
           )}
         </Panel>
       </div>
-      <Panel className="p-5">
-        <h2 className="text-lg font-semibold">Konfigurasi Studio/Cabang</h2>
-        <p className="mt-2 text-sm text-dd-muted">
-          Kelola venue dan rekening dari halaman Studio/Cabang ini, bukan dari Master Data.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <ButtonLink href={`/workspace/branches/${branch.id}/venues`} variant="secondary">
-            Area Studio &amp; Ruangan
-          </ButtonLink>
-          <ButtonLink
-            href={`/workspace/branches/${branch.id}/payment-accounts`}
-            variant="secondary"
-          >
-            Rekening pembayaran
-          </ButtonLink>
-          <ButtonLink href={`/workspace/branches/${branch.id}/public-profile`} variant="secondary">
-            Profil publik
-          </ButtonLink>
-        </div>
-      </Panel>
+
+      <BranchPaymentAccountsPanel
+        branchId={branch.id}
+        canManage={Boolean(canManage)}
+        onAccountsChange={(count) =>
+          setBranch((current) =>
+            current
+              ? {
+                  ...current,
+                  dependencies: { ...current.dependencies, paymentAccounts: count },
+                }
+              : null,
+          )
+        }
+      />
+
+      <BranchVenuesPanel
+        branchId={branch.id}
+        canManage={Boolean(canManage)}
+      />
       <Panel className="p-5">
         <h2 className="text-lg font-semibold">Dependency operasional</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -349,6 +380,14 @@ export function BranchDetailView({ id }: { id: string }) {
           <TextInput name="reason" label="Alasan perubahan" minLength={3} required />
         </form>
       </Drawer>
+
+      <BranchPublicProfileDrawer
+        branchId={branch.id}
+        branchName={branch.name}
+        open={publicProfileOpen}
+        onClose={() => setPublicProfileOpen(false)}
+        onSaved={() => void load()}
+      />
     </section>
   );
 }

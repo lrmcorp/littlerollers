@@ -15,6 +15,7 @@ export function isPublicExperiencePath(pathname: string) {
       '/forgot-password',
       '/reset-password',
       '/check-in-pass',
+      '/guide',
     ].includes(pathname) ||
     publicRoutePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   );

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { instructorClient } from '../instructor-client';
@@ -20,8 +21,9 @@ export function InstructorDetailView({ id }: { id: string }) {
   };
   return (
     <section className="space-y-6">
-      <Link href="/instructors" className="font-semibold text-dd-forest">
-        ← Kembali ke Instructor Management
+      <Link href="/instructors" className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline">
+        <ArrowLeft className="size-4" />
+        <span>Kembali ke Instructor Management</span>
       </Link>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <PageHeader

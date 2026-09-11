@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowUp,
   CheckCircle2,
+  ExternalLink,
   Eye,
   FileImage,
   ImageIcon,
@@ -334,8 +335,9 @@ export function PublicContentManagementView() {
           description="Kelola banner carousel beranda, upload gambar promosi, FAQ, dan informasi publik Daily Dose Pilates."
           titleId="content-mgmt-title"
           context={
-            <ButtonLink href="/" target="_blank" variant="secondary">
-              Lihat Halaman Utama ↗
+            <ButtonLink href="/" target="_blank" variant="secondary" className="inline-flex items-center gap-1.5">
+              <span>Lihat Halaman Utama</span>
+              <ExternalLink className="size-3.5" />
             </ButtonLink>
           }
         />

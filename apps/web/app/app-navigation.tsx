@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   Activity,
+  Bell,
   BookOpenCheck,
   Building2,
   CalendarDays,
@@ -13,14 +14,18 @@ import {
   ClipboardCheck,
   CreditCard,
   Database,
+  FileSpreadsheet,
+  Globe,
   HeartPulse,
   LayoutDashboard,
   Landmark,
+  LifeBuoy,
   ListChecks,
   PackageIcon,
   ScrollText,
   ShieldCheck,
   TicketPercent,
+  UserCheck,
   Users,
   X,
   type LucideIcon,
@@ -34,23 +39,29 @@ import { IconButton } from './components/actions';
 
 const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
+  '/workspace/classes': CalendarDays,
   '/workspace/bookings': BookOpenCheck,
   '/check-in-scanner': ClipboardCheck,
-  '/workspace/classes': CalendarDays,
-  '/workspace/payments': CreditCard,
-  '/finance': Landmark,
+  '/support-cases': LifeBuoy,
+  '/customers': Users,
   '/ledger': CircleDollarSign,
-  '/ledger/adjustments': ListChecks,
-  '/users': Users,
-  '/users/roles-permissions': ShieldCheck,
   '/identity-verifications': ShieldCheck,
-  '/audit': ScrollText,
-  '/migrations': Database,
-  '/assignments': ClipboardCheck,
-  '/master': Database,
-  '/workspace/branches': Building2,
+  '/ledger/adjustments': ListChecks,
+  '/workspace/payments': CreditCard,
   '/workspace/packages': PackageIcon,
   '/workspace/vouchers': TicketPercent,
+  '/finance': Landmark,
+  '/workspace/branches': Building2,
+  '/instructors': UserCheck,
+  '/users': Users,
+  '/users/roles-permissions': ShieldCheck,
+  '/assignments': ClipboardCheck,
+  '/master': Database,
+  '/data-import': FileSpreadsheet,
+  '/migrations': Database,
+  '/audit': ScrollText,
+  '/notification-management': Bell,
+  '/public-content-management': Globe,
   '/operations': Activity,
   '/health': HeartPulse,
 };
@@ -219,24 +230,29 @@ export function AppNavigation({
               })}
             </section>
           ) : (
-            frontendPageGroups.map((group) => (
-              <section className="space-y-1" aria-labelledby={`nav-${group}`} key={group}>
-                {!collapsed && (
-                  <h2
-                    id={`nav-${group}`}
-                    className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/44"
-                  >
-                    {group}
-                  </h2>
-                )}
-                {frontendPages
-                  .filter((item) => item.group === group)
-                  .filter(
-                    (item) =>
-                      item.capabilities.length === 0 ||
-                      context?.hasCapability(...item.capabilities),
-                  )
-                  .map((item) => {
+            frontendPageGroups.map((group) => {
+              const pagesInGroup = frontendPages
+                .filter((item) => item.group === group)
+                .filter(
+                  (item) =>
+                    item.capabilities.length === 0 ||
+                    context?.hasCapability(...item.capabilities),
+                )
+                .sort((a, b) => a.priority - b.priority);
+
+              if (pagesInGroup.length === 0) return null;
+
+              return (
+                <section className="space-y-1 pt-2 first:pt-0" aria-labelledby={`nav-${group}`} key={group}>
+                  {!collapsed && (
+                    <h2
+                      id={`nav-${group}`}
+                      className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44"
+                    >
+                      {group}
+                    </h2>
+                  )}
+                  {pagesInGroup.map((item) => {
                     const active = item.href === activeHref;
                     const Icon = pageIcons[item.href] ?? ListChecks;
                     return (
@@ -274,8 +290,9 @@ export function AppNavigation({
                       </Link>
                     );
                   })}
-              </section>
-            ))
+                </section>
+              );
+            })
           )}
         </div>
         {!customerOnly && (
