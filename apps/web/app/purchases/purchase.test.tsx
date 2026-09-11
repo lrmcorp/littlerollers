@@ -199,7 +199,7 @@ describe('purchase submission workspace', () => {
       screen.getByLabelText('Bukti pembayaran'),
       new File(['proof'], 'proof.png', { type: 'image/png' }),
     );
-    const upload = screen.getByRole('button', { name: 'Upload dan periksa' });
+    const upload = screen.getByRole('button', { name: 'Unggah dan periksa' });
     expect(upload).toHaveClass('min-h-11', 'bg-dd-forest', 'text-white');
     await user.click(upload);
     expect(await screen.findByText('Bersih')).toBeVisible();
@@ -211,7 +211,7 @@ describe('purchase submission workspace', () => {
       'class-1',
       expect.any(String),
     );
-    expect(await screen.findByText(/Purchase PENDING/)).toBeVisible();
+    expect(await screen.findByText(/Status pembelian: Menunggu verifikasi/)).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
@@ -234,7 +234,7 @@ describe('purchase submission workspace', () => {
       screen.getByLabelText('Bukti pembayaran'),
       new File(['proof'], 'proof.png', { type: 'image/png' }),
     );
-    await user.click(screen.getByRole('button', { name: 'Upload dan periksa' }));
+    await user.click(screen.getByRole('button', { name: 'Unggah dan periksa' }));
     expect(screen.queryByRole('button', { name: 'Kirim pengajuan' })).not.toBeInTheDocument();
     const scanStatus = await screen.findByRole('button', { name: 'Periksa status scan' });
     expect(scanStatus).toHaveClass('min-h-10', 'border-dd-forest/25', 'bg-white');

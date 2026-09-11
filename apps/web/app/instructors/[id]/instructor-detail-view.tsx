@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { formatRupiah } from '../../lib/formatters';
 import { instructorClient } from '../instructor-client';
 export function InstructorDetailView({ id }: { id: string }) {
   const [data, setData] = useState<Record<string, any>>();
@@ -13,8 +14,8 @@ export function InstructorDetailView({ id }: { id: string }) {
       .then(setData)
       .catch(() => setError(true));
   }, [id]);
-  if (error) return <Feedback kind="error">Profil instructor tidak tersedia.</Feedback>;
-  if (!data) return <Skeleton label="Memuat profil instructor" />;
+  if (error) return <Feedback kind="error">Profil instruktur tidak tersedia.</Feedback>;
+  if (!data) return <Skeleton label="Memuat profil instruktur" />;
   const blockers = data.blockers as {
     completedWithoutCheckIn: number;
     completedWithoutFee: number;
@@ -23,16 +24,16 @@ export function InstructorDetailView({ id }: { id: string }) {
     <section className="space-y-6">
       <Link href="/instructors" className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline">
         <ArrowLeft className="size-4" />
-        <span>Kembali ke Instructor Management</span>
+        <span>Kembali ke Manajemen Instruktur</span>
       </Link>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <PageHeader
-          eyebrow="Instructor / Profil terpadu"
+          eyebrow="Instruktur / Profil terpadu"
           title={String(data.displayName)}
           description={`${data.email ?? 'Email belum tersedia'} · ${data.phoneE164 ?? 'Telepon belum tersedia'}`}
           context={
             <StatusBadge tone={data.status === 'ACTIVE' ? 'success' : 'warning'}>
-              {String(data.status)}
+              {data.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif'}
             </StatusBadge>
           }
         />
@@ -47,11 +48,11 @@ export function InstructorDetailView({ id }: { id: string }) {
         <Feedback kind="status">Check-in dan kompensasi kelas selesai lengkap.</Feedback>
       )}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Metric label="Assignment" value={(data.assignments as unknown[]).length} />
-        <Metric label="Availability" value={(data.instructorAvailabilities as unknown[]).length} />
+        <Metric label="Penugasan cabang" value={(data.assignments as unknown[]).length} />
+        <Metric label="Ketersediaan (jadwal)" value={(data.instructorAvailabilities as unknown[]).length} />
         <Metric
           label="Kompensasi matched class"
-          value={`Rp${Number(data.compensationRp).toLocaleString('id-ID')}`}
+          value={formatRupiah(Number(data.compensationRp))}
         />
       </div>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">

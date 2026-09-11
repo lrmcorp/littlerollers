@@ -57,7 +57,7 @@ export function CreatePanel({
   }): Promise<void>;
 }) {
   const [summary, setSummary] = useState(
-    'Pilih tanggal dan waktu. Quota/capacity akan diambil dari konfigurasi efektif backend.',
+    'Pilih tanggal dan waktu. Kuota dan kapasitas kelas akan disesuaikan otomatis berdasarkan tipe kelas yang dipilih.',
   );
   const [studioId, setStudioId] = useState('');
   const rooms = studios.find((studio) => studio.id === studioId)?.rooms ?? [];

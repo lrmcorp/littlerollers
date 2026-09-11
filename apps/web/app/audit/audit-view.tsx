@@ -34,6 +34,13 @@ const failureCopy: Record<UiFailure, string> = {
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
 };
 
+const exportStatusLabels: Record<string, string> = {
+  READY: 'Siap diunduh',
+  FAILED: 'Gagal diproses',
+  QUEUED: 'Dalam antrean',
+  PROCESSING: 'Sedang diproses',
+};
+
 const actionLabels: Record<string, string> = {
   'payment-proof.viewed': 'Bukti pembayaran dilihat',
   'security.identity_document_viewed': 'Dokumen identitas dilihat',
@@ -344,7 +351,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
                       : 'warning'
                 }
               >
-                {exportJob.status}
+                {exportStatusLabels[exportJob.status] ?? exportJob.status}
               </Badge>
               <p className="mt-2 text-sm text-dd-muted">
                 {exportJob.rowCount.toLocaleString('id-ID')} baris · kedaluwarsa{' '}
@@ -374,7 +381,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
                       .catch((error) => setFailure(failureCode(error)))
                   }
                 >
-                  Unduh privat
+                  Unduh file ekspor
                 </Button>
               )}
             </div>

@@ -119,7 +119,7 @@ describe('Finance anomaly pagination', () => {
       </AppFeedbackProvider>,
     );
     await screen.findByRole('heading', { name: 'Rekonsiliasi transaksi' });
-    await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ekspor CSV' }));
 
     expect(exportReport).toHaveBeenCalledWith(expect.objectContaining({ branchId: 'branch-1' }));
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));

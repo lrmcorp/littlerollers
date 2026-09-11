@@ -133,7 +133,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Finance operations"
+        eyebrow="Operasional Keuangan"
         title="Rekonsiliasi transaksi"
         description="Bandingkan pembayaran, approval, dan pengakuan ledger dari data aktual lintas cabang."
         context={
@@ -149,7 +149,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 !context?.hasCapability('finance:export')
               }
             >
-              Export CSV
+              Ekspor CSV
             </Button>
             <Button
               onClick={() => void load()}
@@ -158,7 +158,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
               }
             >
-              Refresh
+              Segarkan
             </Button>
           </div>
         }

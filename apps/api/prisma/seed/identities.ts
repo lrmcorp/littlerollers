@@ -19,6 +19,7 @@ export const demoUsers = [
     email: 'ralamzah@gmail.com',
     role: 'SUPER_OWNER',
     password: 'ridho123',
+    phoneE164: '+6281111223344',
   },
   { key: 'super-owner', name: 'Super Owner Daily Dose', email: 'owner@dailydose.local', role: 'SUPER_OWNER' as ApplicationRole },
   { key: 'owner-jkt', name: 'Owner Cabang Jakarta', email: 'branch.owner@dailydose.local', role: 'OWNER' as ApplicationRole, branch: 'DD-JKT' },
@@ -78,6 +79,22 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
         email: user.email,
         phoneE164: user.phoneE164,
         status: 'ACTIVE',
+      },
+    });
+    await ctx.db.profilPengguna.upsert({
+      where: { userId },
+      update: {
+        address: user.key.includes('super-owner') ? 'Jakarta Selatan, DKI Jakarta' : 'DKI Jakarta, Indonesia',
+        genderCode: 'MALE',
+        countryCode: 'ID',
+        birthDate: new Date('1995-01-01'),
+      },
+      create: {
+        userId,
+        address: user.key.includes('super-owner') ? 'Jakarta Selatan, DKI Jakarta' : 'DKI Jakarta, Indonesia',
+        genderCode: 'MALE',
+        countryCode: 'ID',
+        birthDate: new Date('1995-01-01'),
       },
     });
     const emailHash = canonicalEmailHash(user.email);

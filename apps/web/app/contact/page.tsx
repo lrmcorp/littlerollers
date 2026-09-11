@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowRight, ExternalLink, MessageCircle } from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
@@ -57,19 +57,30 @@ export default function ContactPage() {
               </article>
               <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
                 <span className="text-xs font-bold text-dd-brass">03</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Bantuan lainnya</h3>
+                <h3 className="mt-3 font-sans text-2xl font-semibold">Bantuan & Kontak</h3>
                 <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Gunakan kanal kontak resmi Daily Dose Pilates untuk bantuan personal.
+                  Hubungi kami langsung melalui WhatsApp studio atau kanal kontak resmi Daily Dose Pilates.
                 </p>
-                <a
-                  className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline"
-                  href="https://dailydosepilates.com/contact-us"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span>Buka kontak resmi</span>
-                  <ExternalLink className="size-3.5" />
-                </a>
+                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                  <a
+                    className="inline-flex items-center justify-center gap-2 rounded-dd-md bg-[#1f8f5f] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#18754e] shadow-sm"
+                    href="https://wa.me/628111000000?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="size-4" />
+                    <span>Chat WhatsApp CS</span>
+                  </a>
+                  <a
+                    className="inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline text-sm"
+                    href="https://dailydosepilates.com/contact-us"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span>Buka kontak resmi</span>
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </div>
               </article>
             </div>
             <div className="mt-8 rounded-dd-lg border border-dd-line bg-dd-paper p-6">

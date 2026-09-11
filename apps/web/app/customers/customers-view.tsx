@@ -9,6 +9,18 @@ import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
 import { customerClient, type CustomerSummary } from './customer-client';
 
+export const customerStatusLabels: Record<string, string> = {
+  ACTIVE: 'Aktif',
+  INACTIVE: 'Nonaktif',
+  PENDING_ACTIVATION: 'Menunggu aktivasi',
+};
+
+export const verificationStatusLabels: Record<string, string> = {
+  APPROVED: 'Disetujui',
+  ACTION_REQUIRED: 'Perlu perbaikan',
+  PENDING: 'Menunggu',
+};
+
 export function CustomersView() {
   const session = useSessionContext()?.session;
   const canCreate =
@@ -92,7 +104,7 @@ export function CustomersView() {
       <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card sm:p-8">
         <PageHeader
           eyebrow="Administrasi customer"
-          title="Customer Management"
+          title="Manajemen Customer"
           titleId="customers-title"
           description="Cari customer dan lihat profil terpadu tanpa mengubah saldo atau transaksi di luar workflow resmi."
           context={<StatusBadge tone="info">Super Admin</StatusBadge>}
@@ -225,9 +237,11 @@ export function CustomersView() {
                   </td>
                   <td className="p-4">
                     <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
-                      {item.status}
+                      {customerStatusLabels[item.status] ?? item.status}
                     </StatusBadge>
-                    <div className="mt-1 text-xs text-dd-muted">{item.verificationStatus}</div>
+                    <div className="mt-1 text-xs text-dd-muted">
+                      {verificationStatusLabels[item.verificationStatus] ?? item.verificationStatus}
+                    </div>
                   </td>
                   <td className="p-4">
                     {item.activePackageCount} aktif · {item.purchasedSessions} sesi pembelian

@@ -9,6 +9,7 @@ import {
   BookOpenCheck,
   Building2,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   CircleDollarSign,
   ClipboardCheck,
@@ -24,6 +25,7 @@ import {
   PackageIcon,
   ScrollText,
   ShieldCheck,
+  Sliders,
   TicketPercent,
   UserCheck,
   Users,
@@ -93,6 +95,19 @@ export function AppNavigation({
     )?.href;
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedPages = frontendPages
+    .filter((item) => item.isAdvanced && !item.isDormant)
+    .filter(
+      (item) =>
+        item.capabilities.length === 0 ||
+        context?.hasCapability(...item.capabilities),
+    )
+    .sort((a, b) => a.priority - b.priority);
+
+  const isCurrentInAdvanced = advancedPages.some((item) => item.href === activeHref);
+  const showAdvanced = advancedOpen || isCurrentInAdvanced;
+
   const customerOnly =
     session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
   const customerLinks = [
@@ -123,7 +138,7 @@ export function AppNavigation({
   });
 
   useEffect(() => {
-    if (typeof window.matchMedia !== 'function') {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       setMobileViewport(false);
       return;
     }
@@ -230,69 +245,138 @@ export function AppNavigation({
               })}
             </section>
           ) : (
-            frontendPageGroups.map((group) => {
-              const pagesInGroup = frontendPages
-                .filter((item) => item.group === group)
-                .filter(
-                  (item) =>
-                    item.capabilities.length === 0 ||
-                    context?.hasCapability(...item.capabilities),
-                )
-                .sort((a, b) => a.priority - b.priority);
+            <>
+              {frontendPageGroups.map((group) => {
+                const pagesInGroup = frontendPages
+                  .filter((item) => item.group === group)
+                  .filter((item) => !item.isDormant && !item.isAdvanced)
+                  .filter(
+                    (item) =>
+                      item.capabilities.length === 0 ||
+                      context?.hasCapability(...item.capabilities),
+                  )
+                  .sort((a, b) => a.priority - b.priority);
 
-              if (pagesInGroup.length === 0) return null;
+                if (pagesInGroup.length === 0) return null;
 
-              return (
-                <section className="space-y-1 pt-2 first:pt-0" aria-labelledby={`nav-${group}`} key={group}>
-                  {!collapsed && (
-                    <h2
-                      id={`nav-${group}`}
-                      className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44"
-                    >
-                      {group}
-                    </h2>
-                  )}
-                  {pagesInGroup.map((item) => {
-                    const active = item.href === activeHref;
-                    const Icon = pageIcons[item.href] ?? ListChecks;
-                    return (
-                      <Link
-                        href={item.href}
-                        aria-current={active ? 'page' : undefined}
-                        key={item.href}
-                        title={
-                          collapsed
-                            ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
-                            : undefined
-                        }
-                        onClick={onClose}
-                        className={linkClass(active)}
+                return (
+                  <section className="space-y-1 pt-2 first:pt-0" aria-labelledby={`nav-${group}`} key={group}>
+                    {!collapsed && (
+                      <h2
+                        id={`nav-${group}`}
+                        className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44"
                       >
-                        <div className="relative shrink-0">
-                          <Icon className="size-[18px]" aria-hidden="true" />
-                          {collapsed &&
+                        {group}
+                      </h2>
+                    )}
+                    {pagesInGroup.map((item) => {
+                      const active = item.href === activeHref;
+                      const Icon = pageIcons[item.href] ?? ListChecks;
+                      return (
+                        <Link
+                          href={item.href}
+                          aria-current={active ? 'page' : undefined}
+                          key={item.href}
+                          title={
+                            collapsed
+                              ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
+                              : undefined
+                          }
+                          onClick={onClose}
+                          className={linkClass(active)}
+                        >
+                          <div className="relative shrink-0">
+                            <Icon className="size-[18px]" aria-hidden="true" />
+                            {collapsed &&
+                              item.queueBadgeSource &&
+                              (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
+                                <span
+                                  aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
+                                  className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                                />
+                              )}
+                          </div>
+                          {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                          {!collapsed &&
                             item.queueBadgeSource &&
                             (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                              <span
-                                aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
-                                className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
-                              />
+                              <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
+                                {queueCounts[item.queueBadgeSource]}
+                              </span>
                             )}
-                        </div>
-                        {!collapsed && <span className="truncate">{item.shortLabel}</span>}
-                        {!collapsed &&
-                          item.queueBadgeSource &&
-                          (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                            <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
-                              {queueCounts[item.queueBadgeSource]}
-                            </span>
-                          )}
-                      </Link>
-                    );
-                  })}
+                        </Link>
+                      );
+                    })}
+                  </section>
+                );
+              })}
+
+              {advancedPages.length > 0 && (
+                <section className="pt-3 border-t border-white/10 space-y-1" aria-label="Alat dan sistem lanjutan">
+                  {!collapsed ? (
+                    <button
+                      type="button"
+                      onClick={() => setAdvancedOpen((prev) => !prev)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44 hover:text-white/80 transition"
+                      aria-expanded={showAdvanced}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Sliders className="size-3.5" />
+                        <span>Alat & Sistem Lanjutan</span>
+                      </span>
+                      <ChevronDown
+                        className={`size-3.5 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  ) : (
+                    <div className="my-1 border-t border-white/10" />
+                  )}
+
+                  {(collapsed || showAdvanced) && (
+                    <div className="space-y-1">
+                      {advancedPages.map((item) => {
+                        const active = item.href === activeHref;
+                        const Icon = pageIcons[item.href] ?? ListChecks;
+                        return (
+                          <Link
+                            href={item.href}
+                            aria-current={active ? 'page' : undefined}
+                            key={item.href}
+                            title={
+                              collapsed
+                                ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
+                                : undefined
+                            }
+                            onClick={onClose}
+                            className={linkClass(active)}
+                          >
+                            <div className="relative shrink-0">
+                              <Icon className="size-[18px]" aria-hidden="true" />
+                              {collapsed &&
+                                item.queueBadgeSource &&
+                                (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
+                                  <span
+                                    aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
+                                    className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                                  />
+                                )}
+                            </div>
+                            {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                            {!collapsed &&
+                              item.queueBadgeSource &&
+                              (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
+                                <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
+                                  {queueCounts[item.queueBadgeSource]}
+                                </span>
+                              )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </section>
-              );
-            })
+              )}
+            </>
           )}
         </div>
         {!customerOnly && (

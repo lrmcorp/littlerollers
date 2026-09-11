@@ -180,7 +180,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
     () =>
       session
         ? frontendPages
-            .filter((page) => page.href !== '/workspace' && canReadPage(session.capabilities, page))
+            .filter((page) => page.href !== '/workspace' && !page.isDormant && canReadPage(session.capabilities, page))
             .sort((left, right) => left.priority - right.priority)
         : [],
     [session],

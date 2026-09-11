@@ -277,7 +277,7 @@ describe('BookingView', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Setujui reschedule' }));
     expect(
-      await screen.findByText('Reschedule disetujui dan reservation dipindahkan secara atomik.'),
+      await screen.findByText('Reschedule disetujui dan jadwal booking berhasil dipindahkan.'),
     ).toBeInTheDocument();
     expect(decideReschedule).toHaveBeenCalledWith(
       reschedule.id,

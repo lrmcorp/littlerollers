@@ -71,13 +71,13 @@ export function NotificationManagementView() {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
     ) : (
-      <Skeleton label="Memuat Notification Management" />
+      <Skeleton label="Memuat Manajemen Notifikasi" />
     );
   return (
     <section className="space-y-6">
       <PageHeader
         eyebrow="Komunikasi"
-        title="Notification Management"
+        title="Manajemen Notifikasi"
         description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. WhatsApp belum menjadi channel aktif."
       />
       {error && <Feedback kind="error">{error}</Feedback>}

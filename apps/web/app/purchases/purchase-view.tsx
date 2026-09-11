@@ -22,6 +22,15 @@ const scanLabels: Record<string, string> = {
   INFECTED: 'Tidak aman',
   ERROR: 'Pemeriksaan gagal',
 };
+
+const purchaseStatusLabels: Record<string, string> = {
+  AWAITING_PAYMENT: 'Menunggu pembayaran',
+  PENDING: 'Menunggu verifikasi',
+  ACTION_REQUIRED: 'Perlu perbaikan',
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+  EXPIRED: 'Kedaluwarsa',
+};
 type PurchaseAction = 'packages' | 'proof' | 'scan' | 'submit';
 
 export function PurchaseView({
@@ -163,7 +172,7 @@ export function PurchaseView({
         description="Pilih paket, periksa bukti pembayaran secara privat, lalu kirim pengajuan."
         context={
           <>
-            <StatusBadge tone="warning">Mode simulasi</StatusBadge>
+            <StatusBadge tone="info">Verifikasi Manual</StatusBadge>
             <StatusBadge tone="info">Bukti privat</StatusBadge>
           </>
         }
@@ -318,7 +327,7 @@ export function PurchaseView({
             />
           </label>
           <p className="form-hint">
-            PNG, JPEG, atau PDF. Checksum dihitung lokal dan tidak ditampilkan.
+            Format PNG, JPEG, atau PDF (maks. 5MB). Verifikasi keamanan file dilakukan sebelum pengunggahan.
           </p>
           <Button
             type="submit"
@@ -326,7 +335,7 @@ export function PurchaseView({
             loadingLabel={purchase ? 'Memeriksa bukti pengganti…' : 'Mengunggah bukti…'}
             disabled={loading}
           >
-            {purchase ? 'Periksa bukti pengganti' : 'Upload dan periksa'}
+            {purchase ? 'Periksa bukti pengganti' : 'Unggah dan periksa'}
           </Button>
         </form>
       )}
@@ -363,15 +372,15 @@ export function PurchaseView({
       {selected && proof?.scanStatus === 'CLEAN' && !purchase && (
         <Panel
           className="grid gap-3 border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
-          aria-label="Konfirmasi pengajuan purchase"
+          aria-label="Konfirmasi pengajuan pembelian"
         >
-          <strong>Konfirmasi pengajuan purchase</strong>
+          <strong>Konfirmasi pengajuan pembelian</strong>
           <p>
             {selected.name} · {selected.sessionCount} sesi selama {selected.durationDays} hari.
           </p>
           <p>
-            Total pembayaran {formatRupiah(selected.priceRp)}. Purchase akan berstatus menunggu
-            review.
+            Total pembayaran {formatRupiah(selected.priceRp)}. Pengajuan akan diproses dan menunggu
+            verifikasi admin.
           </p>
           <Button
             disabled={loading || !canSubmit || !selectedClassTypeId}
@@ -391,8 +400,8 @@ export function PurchaseView({
                 setPurchase(result);
                 setMessage(
                   result.status === 'PENDING'
-                    ? 'Pengajuan purchase menunggu review.'
-                    : `Purchase ${result.status}.`,
+                    ? 'Pengajuan pembelian paket berhasil dikirim dan menunggu verifikasi admin.'
+                    : `Status pembelian: ${purchaseStatusLabels[result.status] ?? result.status}.`,
                 );
               })
             }
@@ -403,7 +412,7 @@ export function PurchaseView({
       )}
       {purchase && (
         <Feedback kind="status">
-          Purchase {purchase.status}. Referensi •{purchase.id.slice(-6)}.{' '}
+          Status pembelian: {purchaseStatusLabels[purchase.status] ?? purchase.status}. Referensi •{purchase.id.slice(-6)}.{' '}
           {continuationSlot && (
             <span>
               Setelah paket disetujui,{' '}
@@ -415,7 +424,7 @@ export function PurchaseView({
           )}
         </Feedback>
       )}
-      {loading && <Skeleton label="Memproses purchase" />}
+      {loading && <Skeleton label="Memproses pembelian paket" />}
       {message && !loading && <Feedback kind="status">{message}</Feedback>}
       {error && <Feedback kind="error">{error}</Feedback>}
     </section>

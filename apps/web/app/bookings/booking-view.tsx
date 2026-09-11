@@ -338,10 +338,10 @@ export function BookingView({
       setReviewId('');
       setMessage(
         result.idempotentReplay
-          ? 'Keputusan authoritative ditemukan kembali; tidak ada pemindahan ganda.'
+          ? 'Permintaan reschedule ini sudah pernah diproses sebelumnya.'
           : decision === 'approve'
-            ? 'Reschedule disetujui dan reservation dipindahkan secara atomik.'
-            : 'Reschedule ditolak; reservation tetap pada kelas sumber.',
+            ? 'Reschedule disetujui dan jadwal booking berhasil dipindahkan.'
+            : 'Reschedule ditolak; booking tetap berada pada kelas semula.',
       );
       decisionKey.current = newIntentKey();
     } catch (error) {
@@ -391,7 +391,7 @@ export function BookingView({
       await loadWorkspace();
       setMessage(
         booking.idempotentReplay
-          ? 'Booking sebelumnya ditemukan kembali; tidak ada reservasi ganda.'
+          ? 'Booking sudah pernah dibuat sebelumnya (tidak ada reservasi ganda).'
           : 'Booking dibuat; satu sesi telah direservasi.',
       );
       intentKey.current = newIntentKey();
@@ -507,7 +507,7 @@ export function BookingView({
         eyebrow="Operasional booking"
         title="Manajemen Booking"
         titleId="bookings-title"
-        description="Pilih pelanggan, paket, dan kelas yang tersedia. Backend tetap memvalidasi cutoff, saldo, kapasitas, dan scope saat konfirmasi."
+        description="Pilih pelanggan, paket, dan kelas yang tersedia. Sistem otomatis memvalidasi batas waktu, saldo sesi, kapasitas kelas, dan izin akses saat konfirmasi."
         context={
           <>
             <StatusBadge tone="info">
@@ -515,7 +515,7 @@ export function BookingView({
                 ? (sessionContext?.activeBranch?.name ?? 'Cabang aktif')
                 : 'Semua cabang yang diizinkan'}
             </StatusBadge>
-            <StatusBadge tone="warning">Kebijakan H-2</StatusBadge>
+            <StatusBadge tone="warning">Batas Reschedule H-2</StatusBadge>
             <Button
               type="button"
               variant="secondary"
@@ -867,8 +867,8 @@ export function BookingView({
               aria-label="Keputusan reschedule"
             >
               <strong>Keputusan reschedule</strong>
-              Approval memindahkan reservation dari kelas sumber ke target secara atomik. Rejection
-              mempertahankan reservation sumber dan tidak mengubah ledger.
+              Persetujuan akan memindahkan jadwal booking ke kelas tujuan secara otomatis. Penolakan
+              akan mempertahankan booking di kelas semula tanpa mengubah kuota sesi paket.
               <SelectInput
                 label="Alasan penolakan"
                 value={rejectionCode}

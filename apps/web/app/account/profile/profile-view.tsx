@@ -78,6 +78,19 @@ export function ProfileView() {
       ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'INSTRUCTOR'].includes(role),
     ),
   );
+  const roleBadge = (() => {
+    if (session?.roles.includes('SUPER_OWNER')) return { tone: 'success' as const, label: 'Super Owner', detail: 'Akses Penuh Sistem' };
+    if (session?.roles.includes('OWNER')) return { tone: 'success' as const, label: 'Owner Cabang', detail: 'Manajemen Cabang' };
+    if (session?.roles.includes('HEAD_INSTRUCTOR') || session?.roles.includes('INSTRUCTOR')) return { tone: 'info' as const, label: 'Instruktur', detail: 'Jadwal & Presensi' };
+    if (session?.roles.includes('FINANCE')) return { tone: 'info' as const, label: 'Finance', detail: 'Kasir & Pembayaran' };
+    if (session?.roles.includes('ADMIN') || session?.roles.includes('MANAGER') || session?.roles.includes('OPS')) return { tone: 'info' as const, label: 'Operasional', detail: 'Staf Studio' };
+    return {
+      tone: isVerified ? ('success' as const) : ('neutral' as const),
+      label: isVerified ? 'Member Terverifikasi' : 'Member Daily Dose',
+      detail: 'Akun Member Pribadi',
+    };
+  })();
+
   const bookingsHref = isInternal ? '/workspace/bookings' : '/bookings';
 
   return (
@@ -88,9 +101,16 @@ export function ProfileView() {
         description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
         titleId="profile-heading"
         context={
-          <ButtonLink href="/account/security" variant="secondary">
-            Keamanan Akun
-          </ButtonLink>
+          <div className="flex items-center gap-2">
+            {isInternal && (
+              <ButtonLink href="/workspace" variant="primary">
+                Buka Workspace
+              </ButtonLink>
+            )}
+            <ButtonLink href="/account/security" variant="secondary">
+              Keamanan Akun
+            </ButtonLink>
+          </div>
         }
       />
 
@@ -104,12 +124,12 @@ export function ProfileView() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-bold text-dd-ink">{profile.displayName}</h2>
-                <StatusBadge tone={isVerified ? 'success' : 'neutral'}>
-                  {isVerified ? 'Member Terverifikasi' : 'Member Daily Dose'}
+                <StatusBadge tone={roleBadge.tone} withDot>
+                  {roleBadge.label}
                 </StatusBadge>
               </div>
               <p className="mt-1 text-xs text-dd-muted">
-                {profile.emailMasked ?? 'Email akun terdaftar'} · Akun Pribadi
+                {profile.emailMasked ?? 'Email akun terdaftar'} · {roleBadge.detail}
               </p>
             </div>
           </div>

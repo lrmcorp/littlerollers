@@ -109,7 +109,7 @@ export function BranchesView() {
       <AlertBanner
         tone="danger"
         title="Akses cabang tidak tersedia"
-        message="Akun Anda tidak memiliki capability untuk membaca Branch Management."
+        message="Akun Anda tidak memiliki izin untuk melihat Manajemen Cabang."
       />
     );
 
@@ -117,7 +117,7 @@ export function BranchesView() {
     <section className="grid gap-5" aria-labelledby="branches-title">
       <PageHeader
         eyebrow="Master operasional"
-        title="Branch Management"
+        title="Manajemen Cabang"
         titleId="branches-title"
         description="Kelola identitas studio, status operasional, dan dependency setiap cabang."
         context={

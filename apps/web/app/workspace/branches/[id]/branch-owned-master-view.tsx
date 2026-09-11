@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { MasterView, type MasterTab } from '../../../master/master-view';
-import { PaymentAccountsView } from '../../../master/payment-accounts-view';
 import { useSessionContext } from '../../../session-context';
 
 export function BranchOwnedMasterView({
@@ -22,7 +21,6 @@ export function BranchOwnedMasterView({
         <span>Kembali ke Studio/Cabang</span>
       </Link>
       <MasterView activeTab={tab} visibleTabs={[tab]} />
-      {tab === 'accounts' && <PaymentAccountsView />}
     </section>
   );
 }

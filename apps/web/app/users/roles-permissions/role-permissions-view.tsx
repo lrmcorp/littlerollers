@@ -592,7 +592,7 @@ export function RolePermissionsView({
       <Panel className="p-5 sm:p-6">
         <PageHeader
           eyebrow="Administrasi akses"
-          title="Roles & Permissions"
+          title="Role & Hak Akses"
           titleId="roles-permissions-title"
           description="Kelola katalog role, scope cabang, dan akses efektif pengguna. Setiap perubahan diaudit dan mencabut session terdampak."
           context={

@@ -437,7 +437,7 @@ describe('identity UI', () => {
         />
       </AppFeedbackProvider>,
     );
-    expect(await screen.findByRole('heading', { name: 'Roles & Permissions' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Role & Hak Akses' })).toBeVisible();
     expect(await screen.findByText('Manager cabang.')).toBeVisible();
     expect(screen.getByRole('link', { name: /Daftar pengguna/ })).toHaveAttribute('href', '/users');
     expect(screen.getByRole('tab', { name: /Role & Capability/ })).toHaveAttribute(

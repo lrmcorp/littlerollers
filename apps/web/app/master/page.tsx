@@ -7,7 +7,17 @@ import type { MasterTab } from './master-view';
 import { useTrackedRouter } from '../components/app-loading';
 import { useSessionContext } from '../session-context';
 
-const MASTER_TABS: MasterTab[] = ['classTypes', 'projection', 'capacity', 'fees'];
+const MASTER_TABS: MasterTab[] = [
+  'classTypes',
+  'venues',
+  'projection',
+  'capacity',
+  'fees',
+  'accounts',
+  'publicProfiles',
+  'branches',
+  'packages',
+];
 
 export default function MasterPage() {
   const params = useSearchParams();

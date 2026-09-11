@@ -107,10 +107,10 @@ export function OperationsView({
     <section className="space-y-6" aria-labelledby="operations-title">
       <Panel className="p-6 sm:p-8">
         <PageHeader
-          eyebrow="Operational recovery"
-          title="H-24 quota evaluation"
+          eyebrow="Pemulihan operasional"
+          title="Evaluasi kuota H-24"
           titleId="operations-title"
-          description="Job berjalan sebagai SYSTEM. Recovery manual wajib capability operations dan dicatat di audit."
+          description="Antrean evaluasi otomatis berjalan oleh sistem. Pemulihan manual memerlukan izin operasional dan dicatat dalam log audit."
           context={
             <>
               <StatusBadge tone="info">OPS / SUPER OWNER</StatusBadge>
@@ -266,10 +266,10 @@ export function OperationsView({
                               }
                             : current,
                         );
-                      }, 'Retry job dijadwalkan.')
+                      }, 'Penjadwalan ulang job berhasil.')
                     }
                   >
-                    Retry
+                    Coba lagi
                   </Button>
                   <Button
                     variant="danger"
@@ -296,10 +296,10 @@ export function OperationsView({
                               }
                             : current,
                         );
-                      }, 'Job dipindahkan ke dead-letter.')
+                      }, 'Job ditandai gagal permanen (dead-letter).')
                     }
                   >
-                    Dead-letter
+                    Tandai gagal
                   </Button>
                 </div>
               ),
@@ -399,7 +399,7 @@ export function OperationsView({
             value={String(emailPage?.metrics.terminalFailureCount ?? 0)}
             tone="warning"
           />
-          <StatCard label="Retry" value={String(emailPage?.metrics.retryCount ?? 0)} />
+          <StatCard label="Percobaan ulang" value={String(emailPage?.metrics.retryCount ?? 0)} />
           <StatCard
             label="Queue age"
             value={`${emailPage?.metrics.queueAgeSeconds ?? 0}s`}
@@ -514,7 +514,7 @@ export function OperationsView({
                             }
                           : current,
                       );
-                    }, 'Retry email dijadwalkan.')
+                    }, 'Pengiriman ulang email dijadwalkan.')
                   }
                 >
                   Coba kirim kembali

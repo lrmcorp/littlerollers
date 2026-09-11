@@ -280,6 +280,32 @@ export async function seedBranchCatalog(ctx: SeedContext): Promise<SeedCatalogRe
       },
     });
     studios[template.code] = studio.id;
+    const roomDefs = [
+      {
+        code: `${template.code}-REF-A`,
+        name: `Room Reformer Utama (${template.name})`,
+        capacity: 10 + template.capacityOffset,
+      },
+      {
+        code: `${template.code}-PVT-MAT`,
+        name: `Room Private & Mat (${template.name})`,
+        capacity: 4 + template.capacityOffset,
+      },
+    ];
+    for (const r of roomDefs) {
+      await ctx.db.ruangan.upsert({
+        where: { studioId_code: { studioId: studio.id, code: r.code } },
+        update: { name: r.name, capacity: r.capacity, active: true },
+        create: {
+          id: ctx.id('ruangan', r.code),
+          studioId: studio.id,
+          code: r.code,
+          name: r.name,
+          capacity: r.capacity,
+          active: true,
+        },
+      });
+    }
   }
   for (const item of masterCatalog) {
     const classType = await ctx.db.jenisKelas.upsert({

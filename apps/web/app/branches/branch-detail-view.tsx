@@ -126,7 +126,7 @@ export function BranchDetailView({ id }: { id: string }) {
         Kembali ke cabang
       </ButtonLink>
       <PageHeader
-        eyebrow="Branch Management"
+        eyebrow="Manajemen Cabang"
         title={branch.name}
         titleId="branch-title"
         description={`${branch.code} · ${branch.timezone}`}

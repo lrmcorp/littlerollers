@@ -12,7 +12,7 @@ export const statusLabels: Record<string, string> = {
 
 export const cancellationLabels: Record<CancellationReason, string> = {
   STUDIO_UNAVAILABLE: 'Studio tidak tersedia',
-  INSTRUCTOR_UNAVAILABLE: 'Instructor tidak tersedia',
+  INSTRUCTOR_UNAVAILABLE: 'Instruktur tidak tersedia',
   SAFETY_ISSUE: 'Masalah keselamatan',
   OTHER_REVIEW_REQUIRED: 'Perlu tinjauan lain',
 };

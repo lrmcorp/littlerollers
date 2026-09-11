@@ -322,7 +322,7 @@ export function PublicContentManagementView() {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
     ) : (
-      <Skeleton label="Memuat Public Content Management" />
+      <Skeleton label="Memuat Manajemen Konten Publik" />
     );
   }
 
@@ -331,8 +331,8 @@ export function PublicContentManagementView() {
       <div className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
         <PageHeader
           eyebrow="Administrasi Situs"
-          title="Public Content Management"
-          description="Kelola banner carousel beranda, upload gambar promosi, FAQ, dan informasi publik Daily Dose Pilates."
+          title="Manajemen Konten Publik"
+          description="Kelola banner carousel beranda, unggah gambar promosi, FAQ, dan informasi publik Daily Dose Pilates."
           titleId="content-mgmt-title"
           context={
             <ButtonLink href="/" target="_blank" variant="secondary" className="inline-flex items-center gap-1.5">

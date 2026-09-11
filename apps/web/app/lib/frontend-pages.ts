@@ -18,6 +18,8 @@ export interface FrontendPageDefinition {
   roleRelevance?: string[];
   queueBadgeSource?: string;
   dashboardDeepLink?: string;
+  isAdvanced?: boolean;
+  isDormant?: boolean;
 }
 
 export const frontendPages: FrontendPageDefinition[] = [
@@ -142,6 +144,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'warning',
     queueBadgeSource: 'adjustments',
     dashboardDeepLink: '/ledger/adjustments?status=PENDING',
+    isAdvanced: true,
   },
 
   // ==========================================
@@ -202,6 +205,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['FINANCE', 'SUPER_OWNER'],
     queueBadgeSource: 'payments',
     dashboardDeepLink: '/finance',
+    isAdvanced: true,
   },
 
   // ==========================================
@@ -253,6 +257,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'info',
     icon: 'shield-check',
     roleRelevance: ['SUPER_OWNER'],
+    isAdvanced: true,
   },
   {
     href: '/assignments',
@@ -264,6 +269,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     mutationCapabilities: ['assignment:manage'],
     priority: 34,
     accent: 'neutral',
+    isAdvanced: true,
   },
   {
     href: '/master',
@@ -275,6 +281,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     mutationCapabilities: ['master:manage'],
     priority: 35,
     accent: 'neutral',
+    isAdvanced: true,
   },
   {
     href: '/data-import',
@@ -288,6 +295,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'info',
     icon: 'file-spreadsheet',
     roleRelevance: ['SUPER_OWNER'],
+    isDormant: true,
   },
   {
     href: '/migrations',
@@ -301,6 +309,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'warning',
     icon: 'database',
     roleRelevance: ['SUPER_OWNER'],
+    isDormant: true,
   },
   {
     href: '/audit',
@@ -311,6 +320,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     capabilities: ['audit:read'],
     priority: 38,
     accent: 'info',
+    isAdvanced: true,
   },
   {
     href: '/notification-management',
@@ -322,6 +332,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 39,
     accent: 'info',
     roleRelevance: ['SUPER_OWNER'],
+    isAdvanced: true,
   },
   {
     href: '/public-content-management',
@@ -334,6 +345,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 40,
     accent: 'brand',
     roleRelevance: ['SUPER_OWNER'],
+    isAdvanced: true,
   },
   {
     href: '/operations',
@@ -347,6 +359,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'warning',
     queueBadgeSource: 'jobs',
     dashboardDeepLink: '/operations?status=FAILED',
+    isAdvanced: true,
   },
   {
     href: '/health',
@@ -357,6 +370,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     capabilities: ['operations:read'],
     priority: 42,
     accent: 'info',
+    isAdvanced: true,
   },
 
   // ==========================================

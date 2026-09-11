@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DataTable, type DataTableColumn, Pagination } from '../components/admin/admin-ui';
 import { SearchInput, SearchSelect } from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { formatRupiah } from '../lib/formatters';
 import { useSessionContext } from '../session-context';
 import { instructorClient, type InstructorSummary } from './instructor-client';
 
@@ -57,7 +58,7 @@ export function InstructorsView() {
       header: 'Studio/Cabang',
       cell: (item) => (
         <span className="text-dd-ink">
-          {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada assignment'}
+          {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada penugasan'}
         </span>
       ),
     },
@@ -75,7 +76,7 @@ export function InstructorsView() {
       header: 'Kompensasi',
       cell: (item) => (
         <span className="font-semibold text-dd-ink">
-          Rp{item.compensationRp.toLocaleString('id-ID')}
+          {formatRupiah(item.compensationRp)}
         </span>
       ),
     },
@@ -97,13 +98,13 @@ export function InstructorsView() {
     <section className="space-y-6">
       <PageHeader
         eyebrow="Operasional tim"
-        title="Instructor Management"
-        description="Assignment, availability, jadwal, check-in, fee, dan kompensasi dalam satu profil."
+        title="Manajemen Instruktur"
+        description="Penugasan cabang, ketersediaan, jadwal kelas, check-in, dan kompensasi dalam satu profil."
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-4 sm:grid-cols-2">
         <SearchInput
-          label="Cari Instructor"
+          label="Cari instruktur"
           compact
           value={q}
           onChange={(e) => {

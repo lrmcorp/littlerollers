@@ -7,6 +7,7 @@ import { ActionGroup, Button } from '../../components/actions';
 import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { customerStatusLabels, verificationStatusLabels } from '../customers-view';
 import { customerClient, type CustomerDetail } from '../customer-client';
 
 export function CustomerDetailView({ id }: { id: string }) {
@@ -104,7 +105,7 @@ export function CustomerDetailView({ id }: { id: string }) {
     <section className="space-y-6">
       <Link className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline" href="/customers">
         <ArrowLeft className="size-4" />
-        <span>Kembali ke Customer Management</span>
+        <span>Kembali ke Manajemen Customer</span>
       </Link>
       <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <PageHeader
@@ -114,12 +115,12 @@ export function CustomerDetailView({ id }: { id: string }) {
           context={
             <>
               <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
-                {customer.status}
+                {customerStatusLabels[customer.status] ?? customer.status}
               </StatusBadge>
               <StatusBadge
                 tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}
               >
-                {customer.verificationStatus}
+                {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
               </StatusBadge>
             </>
           }

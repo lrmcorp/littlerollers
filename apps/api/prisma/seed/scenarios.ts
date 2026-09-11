@@ -74,7 +74,7 @@ export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMas
   const slots: Record<string, string> = {};
   for (const item of statuses) {
     const id = ctx.id('class-slot', item.key); slots[item.key] = id;
-    await ctx.db.slotKelas.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked }, create: { id, branchId, studioId, classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
+    await ctx.db.slotKelas.upsert({ where: { id }, update: { status: item.status, bookedCount: item.booked, roomId: ctx.id('ruangan', 'DD-JKT-REF-A') }, create: { id, branchId, studioId, roomId: ctx.id('ruangan', 'DD-JKT-REF-A'), classTypeId, instructorUserId: instructorId, startAt: ctx.at(item.day, 7), endAt: ctx.at(item.day, 8), timezone: 'Asia/Jakarta', minimumQuota: 3, capacity: 10, bookedCount: item.booked, status: item.status, cancellationReasonCode: item.cancellation } });
   }
   const purchaseStatuses: PurchaseStatus[] = ['AWAITING_PAYMENT', 'PENDING', 'ACTION_REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED'];
   const purchases: Record<string, string> = {};
@@ -320,6 +320,7 @@ async function seedBsdOperationalScenarios(
         id,
         branchId,
         studioId,
+        roomId: ctx.id('ruangan', 'DD-BSD-REF-A'),
         classTypeId,
         instructorUserId: instructorId,
         startAt: ctx.at(slot.day, 10),
