@@ -1,2 +1,0 @@
-ALTER TABLE `CustomerAttendance`
-  MODIFY `source` ENUM('QR', 'MIGRATION', 'MANUAL_BACKFILL') NOT NULL DEFAULT 'QR';
