@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
-import type { ApplicationRole } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
+import type { ApplicationRole } from './role-capabilities';
 import { ROLE_CAPABILITIES } from './role-capabilities';
 import { ApiProblem } from './security';
 
@@ -37,15 +36,13 @@ type PrincipalAccess = {
 
 @Injectable()
 export class PolicyService {
-  constructor(@Optional() private readonly db?: PrismaService) {}
-
   capabilities(roles: readonly EffectiveRole[]): string[] {
-    return [...new Set(roles.flatMap(({ role }) => ROLE_CAPABILITIES[role]))].sort();
+    return [...new Set(roles.flatMap(({ role }) => ROLE_CAPABILITIES[role] || []))].sort();
   }
 
   private staticAccess(roles: readonly EffectiveRole[]): EffectiveAccess {
     const grants = roles.flatMap(({ role, branchId }) =>
-      ROLE_CAPABILITIES[role].map((capability) => ({
+      (ROLE_CAPABILITIES[role] || []).map((capability) => ({
         capability,
         branchId,
         source: 'SYSTEM_ROLE' as const,
@@ -61,154 +58,16 @@ export class PolicyService {
     };
   }
 
-  async resolveAccess(
-    userId: string,
+  resolveAccess(
+    _userId: string,
     roles: readonly EffectiveRole[],
-    at = new Date(),
-  ): Promise<EffectiveAccess> {
-    const fallback = this.staticAccess(roles);
-    const source = process.env.RBAC_POLICY_SOURCE?.trim() || 'static';
-    if (source === 'static' || !this.db) return fallback;
-    try {
-      const [definitions, customAssignments, overrides] = await Promise.all([
-        this.db.roleDefinition.findMany({
-          where: {
-            active: true,
-            systemRole: { in: [...new Set(roles.map(({ role }) => role))] },
-          },
-          include: {
-            capabilities: {
-              where: { capability: { active: true } },
-              select: { capabilityKey: true, capability: { select: { globalOnly: true } } },
-            },
-          },
-        }),
-        this.db.accessRoleAssignment.findMany({
-          where: {
-            userId,
-            activeFrom: { lte: at },
-            OR: [{ activeUntil: null }, { activeUntil: { gt: at } }],
-            role: { active: true, system: false },
-          },
-          include: {
-            role: {
-              include: {
-                capabilities: {
-                  where: { capability: { active: true } },
-                  select: { capabilityKey: true, capability: { select: { globalOnly: true } } },
-                },
-              },
-            },
-          },
-        }),
-        this.db.userCapabilityOverride.findMany({
-          where: {
-            userId,
-            revokedAt: null,
-            capability: { active: true },
-          },
-          select: {
-            id: true,
-            capabilityKey: true,
-            branchId: true,
-            effect: true,
-            capability: { select: { globalOnly: true } },
-          },
-        }),
-      ]);
-      const bySystemRole = new Map(
-        definitions.flatMap((definition) =>
-          definition.systemRole ? [[definition.systemRole, definition] as const] : [],
-        ),
-      );
-      const grants: CapabilityGrant[] = roles.flatMap(({ role, branchId }) => {
-        const definition = bySystemRole.get(role);
-        if (!definition) return [];
-        return definition.capabilities.flatMap(({ capabilityKey, capability }) =>
-          capability.globalOnly && branchId
-            ? []
-            : [
-                {
-                  capability: capabilityKey,
-                  branchId,
-                  source: 'SYSTEM_ROLE' as const,
-                  sourceId: definition.id,
-                },
-              ],
-        );
-      });
-      for (const assignment of customAssignments)
-        for (const { capabilityKey, capability } of assignment.role.capabilities) {
-          if (capability.globalOnly && assignment.branchId) continue;
-          grants.push({
-            capability: capabilityKey,
-            branchId: assignment.branchId,
-            source: 'CUSTOM_ROLE',
-            sourceId: assignment.roleId,
-          });
-        }
-      const denials = overrides
-        .filter(({ capability, branchId }) => !capability.globalOnly || branchId === null)
-        .filter(({ effect }) => effect === 'DENY')
-        .map(({ id, capabilityKey, branchId }) => ({
-          capability: capabilityKey,
-          branchId,
-          sourceId: id,
-        }));
-      for (const override of overrides)
-        if (
-          override.effect === 'GRANT' &&
-          (!override.capability.globalOnly || override.branchId === null)
-        )
-          grants.push({
-            capability: override.capabilityKey,
-            branchId: override.branchId,
-            source: 'USER_OVERRIDE',
-            sourceId: override.id,
-          });
-      const globallyDenied = new Set(
-        denials.filter(({ branchId }) => !branchId).map(({ capability }) => capability),
-      );
-      const access: EffectiveAccess = {
-        capabilities: [
-          ...new Set(
-            grants
-              .map(({ capability }) => capability)
-              .filter((capability) => !globallyDenied.has(capability)),
-          ),
-        ].sort(),
-        branchIds: [
-          ...new Set([
-            ...roles.flatMap(({ branchId }) => (branchId ? [branchId] : [])),
-            ...customAssignments.flatMap(({ branchId }) => (branchId ? [branchId] : [])),
-            ...overrides.flatMap(({ branchId }) => (branchId ? [branchId] : [])),
-          ]),
-        ].sort(),
-        roleCodes: [
-          ...new Set([
-            ...roles.map(({ role }) => role),
-            ...customAssignments.map(({ role }) => role.code),
-          ]),
-        ].sort(),
-        grants,
-        denials,
-      };
-      if (source === 'shadow') {
-        if (
-          JSON.stringify(access.capabilities) !== JSON.stringify(fallback.capabilities) ||
-          JSON.stringify(access.branchIds) !== JSON.stringify(fallback.branchIds)
-        )
-          console.warn('rbac_shadow_mismatch', { userId });
-        return fallback;
-      }
-      return access;
-    } catch (error) {
-      if (source === 'shadow') {
-        console.warn('rbac_shadow_unavailable', { userId });
-        return fallback;
-      }
-      throw error;
-    }
+    _at = new Date(),
+  ): EffectiveAccess {
+    return this.staticAccess(roles);
+  }
+
+  staticAccessForRoles(roles: readonly ApplicationRole[]): EffectiveAccess {
+    return this.staticAccess(roles.map((role) => ({ role, branchId: null })));
   }
 
   roleCatalog() {
@@ -226,29 +85,7 @@ export class PolicyService {
   }
 
   async databaseRoleCatalog() {
-    if (!this.db || (process.env.RBAC_POLICY_SOURCE?.trim() || 'static') === 'static')
-      return this.roleCatalog();
-    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS']);
-    const roles = await this.db.roleDefinition.findMany({
-      where: { active: true, systemRole: { not: null } },
-      include: { capabilities: { orderBy: { capabilityKey: 'asc' } } },
-      orderBy: { code: 'asc' },
-    });
-    return roles.flatMap((role) =>
-      role.systemRole
-        ? [
-            {
-              role: role.systemRole,
-              capabilities: role.capabilities.map(({ capabilityKey }) => capabilityKey),
-              assignable: assignable.has(role.systemRole),
-              readOnly: !role.capabilities.some(({ capabilityKey }) =>
-                /:(manage|create|request|decide|review|revoke|recover|export)$/.test(capabilityKey),
-              ),
-              scope: role.scope,
-            },
-          ]
-        : [],
-    );
+    return this.roleCatalog();
   }
 
   branches(roles: readonly EffectiveRole[]): string[] {

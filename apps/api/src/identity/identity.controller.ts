@@ -17,8 +17,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
-import type { SessionChannel } from '@prisma/client';
 import type { Response } from 'express';
+import type { ApplicationRole } from './role-capabilities';
+import type { AssignmentType } from './assignment.service';
+
+export type SessionChannel = 'WEB' | 'MOBILE' | string;
+export type IdentityDocumentKind = 'SELFIE' | 'KTP_FRONT';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { IdentityService } from './identity.service';
 import { ApiProblem } from './security';
@@ -180,7 +184,7 @@ export class IdentityController {
   @Post('identity-verification/me/documents/:kind/view-authorizations')
   authorizeMyIdentityDocument(
     @Req() request: AuthenticatedRequest,
-    @Param('kind') kind: import('@prisma/client').IdentityDocumentKind,
+    @Param('kind') kind: IdentityDocumentKind,
   ) {
     return this.identityDocuments.authorizeSelf(
       request.principal,
@@ -194,7 +198,7 @@ export class IdentityController {
   @UseInterceptors(FileInterceptor('replacement', { limits: { fileSize: 8_000_000, files: 1 } }))
   replaceIdentityDocument(
     @Req() request: AuthenticatedRequest,
-    @Param('kind') kind: import('@prisma/client').IdentityDocumentKind,
+    @Param('kind') kind: IdentityDocumentKind,
     @Body() body: { expectedVersion: string | number },
     @UploadedFile() replacement?: MemoryUpload,
   ) {
@@ -500,7 +504,7 @@ export class IdentityController {
     @Query('cursor') cursor?: string,
     @Query('search') search?: string,
     @Query('status') status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE',
-    @Query('role') role?: import('@prisma/client').ApplicationRole,
+    @Query('role') role?: ApplicationRole,
     @Query('audience') audience?: 'STAFF' | 'CUSTOMER',
     @Query('verificationStatus') verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED',
     @Query('includeHistorical') includeHistorical?: string,
@@ -617,10 +621,10 @@ export class IdentityController {
     body: {
       email: string;
       displayName?: string;
-      roles?: import('@prisma/client').ApplicationRole[];
+      roles?: ApplicationRole[];
       branchIds?: string[];
       roleAssignments?: {
-        role: import('@prisma/client').ApplicationRole;
+        role: ApplicationRole;
         branchId?: string | null;
       }[];
     },
@@ -652,7 +656,7 @@ export class IdentityController {
     @Headers('idempotency-key') idempotencyKey: string,
     @Body()
     body: {
-      roles: { role: import('@prisma/client').ApplicationRole; branchId?: string | null }[];
+      roles: { role: ApplicationRole; branchId?: string | null }[];
       expectedVersion: number;
       reason: string;
     },
@@ -742,7 +746,7 @@ export class IdentityController {
     @Req() request: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
     @Query('q') q?: string,
-    @Query('type') type?: import('@prisma/client').AssignmentType,
+    @Query('type') type?: AssignmentType,
     @Query('status') status?: 'ACTIVE' | 'ENDED',
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
@@ -765,7 +769,7 @@ export class IdentityController {
     body: {
       userId: string;
       branchId: string;
-      assignmentType: import('@prisma/client').AssignmentType;
+      assignmentType: AssignmentType;
       activeFrom: string;
       activeUntil?: string | null;
       reason: string;

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import type { ManagedContentStatus } from '@prisma/client';
+export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { PublicContentManagementService } from './public-content-management.service';
 @Controller('public-content-management')

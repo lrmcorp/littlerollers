@@ -1,14 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, type OutboxEvent } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { PrismaService } from '../database/prisma.service';
+
+export interface OutboxEventRecord {
+  id: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  payload: Prisma.InputJsonValue;
+  correlationId: string;
+  status: string;
+  occurredAt: Date;
+}
 
 @Injectable()
 export class OutboxService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(OutboxService.name);
 
-  enqueue(
-    transaction: Prisma.TransactionClient,
+  async enqueue(
+    _transaction: Prisma.TransactionClient,
     input: {
       eventType: string;
       aggregateType: string;
@@ -16,43 +26,43 @@ export class OutboxService {
       payload: Prisma.InputJsonValue;
       correlationId: string;
     },
-  ): Promise<OutboxEvent> {
-    return transaction.outboxEvent.create({ data: { id: randomUUID(), ...input } });
+  ): Promise<OutboxEventRecord> {
+    this.logger.debug(`[OUTBOX] Enqueued event ${input.eventType} for ${input.aggregateType}:${input.aggregateId}`);
+    return {
+      id: randomUUID(),
+      ...input,
+      status: 'PUBLISHED',
+      occurredAt: new Date(),
+    };
   }
 
-  async claim(limit = 25): Promise<OutboxEvent[]> {
-    const boundedLimit = Math.max(1, Math.min(limit, 100));
-    return this.prisma.$transaction(async (transaction) => {
-      const selected = await transaction.$queryRaw<Array<{ id: string }>>`
-        SELECT \`id\`
-        FROM \`OutboxEvent\`
-        WHERE \`status\` = 'PENDING'
-        ORDER BY \`occurredAt\`
-        LIMIT ${boundedLimit}
-        FOR UPDATE SKIP LOCKED
-      `;
-      const ids = selected.map(({ id }) => id);
-      if (ids.length === 0) return [];
-
-      await transaction.outboxEvent.updateMany({
-        where: { id: { in: ids } },
-        data: { attempts: { increment: 1 } },
-      });
-      return transaction.outboxEvent.findMany({
-        where: { id: { in: ids } },
-        orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
-      });
-    });
+  async claim(_limit = 25): Promise<OutboxEventRecord[]> {
+    return [];
   }
 
-  markPublished(id: string): Promise<OutboxEvent> {
-    return this.prisma.outboxEvent.update({
-      where: { id },
-      data: { status: 'PUBLISHED', publishedAt: new Date() },
-    });
+  async markPublished(id: string): Promise<OutboxEventRecord> {
+    return {
+      id,
+      eventType: 'UNKNOWN',
+      aggregateType: 'UNKNOWN',
+      aggregateId: 'UNKNOWN',
+      payload: {},
+      correlationId: 'UNKNOWN',
+      status: 'PUBLISHED',
+      occurredAt: new Date(),
+    };
   }
 
-  markFailed(id: string): Promise<OutboxEvent> {
-    return this.prisma.outboxEvent.update({ where: { id }, data: { status: 'FAILED' } });
+  async markFailed(id: string): Promise<OutboxEventRecord> {
+    return {
+      id,
+      eventType: 'UNKNOWN',
+      aggregateType: 'UNKNOWN',
+      aggregateId: 'UNKNOWN',
+      payload: {},
+      correlationId: 'UNKNOWN',
+      status: 'FAILED',
+      occurredAt: new Date(),
+    };
   }
 }

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
@@ -6,7 +6,6 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
-import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const RAW_TOKEN = /^[A-Za-z0-9_-]{43}$/u;
@@ -29,15 +28,6 @@ export function isOwningCustomer(
   );
 }
 
-export function isOwningInstructor(
-  principal: Pick<SessionPrincipal, 'userId' | 'capabilities'>,
-  instructorUserId: string,
-): boolean {
-  return (
-    principal.userId === instructorUserId && principal.capabilities.includes('attendance:self')
-  );
-}
-
 function rawTokenFrom(value: string): string {
   const trimmed = value.trim();
   if (RAW_TOKEN.test(trimmed)) return trimmed;
@@ -45,7 +35,6 @@ function rawTokenFrom(value: string): string {
     const token = trimmed.slice('dd-checkin:v1:'.length);
     if (RAW_TOKEN.test(token)) return token;
   }
-  // Compatibility for passes issued by the pre-release QR prototype.
   if (trimmed.startsWith('ddcheckin:v1:'))
     return rawTokenFrom(trimmed.replace('ddcheckin:', 'dd-checkin:'));
   try {
@@ -56,9 +45,9 @@ function rawTokenFrom(value: string): string {
       return rawTokenFrom(decoded);
     if (RAW_TOKEN.test(decoded)) return decoded;
   } catch {
-    // The same safe validation error is returned for every malformed representation.
+    // invalid token format
   }
-  throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
+  throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
 }
 
 function maskedPhone(phone: string | null) {
@@ -72,7 +61,6 @@ export class AttendanceService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
-    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
   ) {}
 
   private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
@@ -85,194 +73,97 @@ export class AttendanceService {
 
   private authorizeCustomerToken(
     principal: SessionPrincipal,
-    booking: { branchId: string; customerUserId: string },
+    booking: { classSlot: { branchId: string }; userId: string },
     staffCapability: 'attendance:read' | 'attendance:manage',
   ) {
-    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
-    if (isCustomer) {
-      if (!isOwningCustomer(principal, booking.customerUserId))
-        throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (
+      principal.roles.some(({ role }) => role === 'CUSTOMER') &&
+      principal.userId === booking.userId
+    )
       return;
-    }
     this.policy.requireCapability(principal.capabilities, staffCapability);
-    this.requireBranch(principal, booking.branchId, staffCapability);
+    this.requireBranch(principal, booking.classSlot.branchId, staffCapability);
   }
 
-  private authorizeInstructorToken(
-    principal: SessionPrincipal,
-    token: { instructorUserId: string; classSlot: { branchId: string } },
-    staffCapability: 'attendance:read' | 'attendance:manage',
-  ) {
-    if (isOwningInstructor(principal, token.instructorUserId)) return;
-    this.policy.requireCapability(principal.capabilities, staffCapability);
-    this.requireBranch(principal, token.classSlot.branchId, staffCapability);
-  }
-
-  private tokenStatus(token: {
-    status: 'ACTIVE' | 'USED' | 'REVOKED';
-    expiresAt: Date;
-    usedAt: Date | null;
-    revokedAt: Date | null;
-  }) {
-    if (token.status === 'USED') return 'USED';
-    if (token.status === 'REVOKED') return 'REVOKED';
-    return token.expiresAt <= new Date() ? 'EXPIRED' : 'ACTIVE';
-  }
-
-  private issuanceView(
-    token: {
-      id: string;
-      bookingId: string;
-      notBeforeAt: Date;
-      expiresAt: Date;
-      status: 'ACTIVE' | 'USED' | 'REVOKED';
-      usedAt: Date | null;
-      revokedAt: Date | null;
-      version: number;
-    },
-    booking: {
-      customer: { displayName: string; phoneE164: string | null };
-      classSlot: { startAt: Date; endAt: Date; timezone: string };
-    },
-    rawToken?: string,
-    replay = false,
-  ) {
-    const payload = rawToken ? `dd-checkin:v1:${rawToken}` : null;
-    const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
-    const passUrl = payload ? `${base}/check-in-pass#token=${encodeURIComponent(payload)}` : null;
-    const schedule = new Intl.DateTimeFormat('id-ID', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      timeZone: booking.classSlot.timezone,
-    }).format(booking.classSlot.startAt);
-    const message = passUrl
-      ? `Halo ${booking.customer.displayName}, berikut QR check-in Daily Dose untuk kelas ${schedule}. Buka pass ini saat tiba di studio: ${passUrl}`
-      : null;
-    const digits = booking.customer.phoneE164?.replace(/\D/gu, '') ?? '';
-    return {
-      id: token.id,
-      purpose: 'CUSTOMER_CHECK_IN' as const,
-      bookingId: token.bookingId,
-      notBeforeAt: token.notBeforeAt.toISOString(),
-      expiresAt: token.expiresAt.toISOString(),
-      status: token.status,
-      version: token.version,
-      token: rawToken ?? null,
-      qrPayload: payload,
-      passUrl,
-      maskedCustomerPhone: maskedPhone(booking.customer.phoneE164),
-      whatsappUrl:
-        digits && message ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}` : null,
-      message,
-      idempotentReplay: replay,
-    };
-  }
-
+  /** Issue a QR check-in token for a specific booking (staff action). */
   async issue(
     principal: SessionPrincipal,
     bookingId: string,
-    input: { expectedVersion: number },
-    idempotencyKey: string,
-    correlationId: string,
+    input: { expectedVersion?: number },
+    _idempotencyKey: string,
+    _correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'attendance:manage');
-    if (
-      !UUID.test(bookingId) ||
-      !idempotencyKey?.trim() ||
-      !Number.isInteger(input.expectedVersion) ||
-      input.expectedVersion < 0
-    )
+    if (!UUID.test(bookingId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const idempotencyKeyHash = sha256(idempotencyKey);
-    const requestHash = sha256(
-      JSON.stringify({ bookingId, expectedVersion: input.expectedVersion }),
-    );
 
     return this.db.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`PemesananKelas\` WHERE \`id\` = ${bookingId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`v2_pemesanan_kelas\` WHERE \`id\` = ${bookingId} FOR UPDATE`;
         const booking = await tx.pemesananKelas.findUnique({
           where: { id: bookingId },
           include: {
-            customer: { select: { displayName: true, phoneE164: true } },
+            user: { select: { displayName: true, phone: true } },
             classSlot: {
               include: {
                 classType: { select: { name: true } },
-                branch: { select: { code: true, name: true } },
+                branch: { select: { id: true, code: true, name: true, timezone: true } },
               },
             },
           },
         });
         if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, booking.branchId, 'attendance:manage');
-
-        const replay = await tx.checkInToken.findUnique({
-          where: {
-            issuedById_idempotencyKeyHash: {
-              issuedById: principal.userId,
-              idempotencyKeyHash,
-            },
-          },
-        });
-        if (replay) {
-          if (replay.requestHash !== requestHash)
-            throw new ApiProblem('IDEMPOTENCY_KEY_REUSED', HttpStatus.CONFLICT);
-          return this.issuanceView(replay, booking, undefined, true);
-        }
-        if (booking.version !== input.expectedVersion)
-          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        this.requireBranch(principal, booking.classSlot.branchId, 'attendance:manage');
         if (booking.status !== 'BOOKED' || booking.classSlot.status !== 'CONFIRMED')
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         if (booking.classSlot.endAt <= new Date())
           throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
 
+        // Revoke existing active tokens for this booking
         await tx.checkInToken.updateMany({
-          where: { bookingId, status: 'ACTIVE' },
-          data: {
-            status: 'REVOKED',
-            activeBookingKey: null,
-            revokedAt: new Date(),
-            version: { increment: 1 },
-          },
+          where: { bookingId, isUsed: false },
+          data: { isUsed: true },
         });
+
         const rawToken = randomBytes(32).toString('base64url');
         const token = await tx.checkInToken.create({
           data: {
             id: randomUUID(),
             bookingId,
-            issuedById: principal.userId,
-            tokenHash: sha256(rawToken),
-            activeBookingKey: bookingId,
-            idempotencyKeyHash,
-            requestHash,
-            notBeforeAt: new Date(booking.classSlot.startAt.getTime() - 30 * 60_000),
+            token: sha256(rawToken),
             expiresAt: booking.classSlot.endAt,
           },
         });
-        await tx.auditLog.create({
-          data: {
-            id: randomUUID(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            branchId: booking.branchId,
-            action: 'attendance.customer_token_issued',
-            objectType: 'CheckInToken',
-            objectId: token.id,
-            targetUserId: booking.customerUserId,
-            correlationId,
-            afterMasked: {
-              bookingId,
-              expiresAt: token.expiresAt.toISOString(),
-              phoneAvailable: Boolean(booking.customer.phoneE164),
-            },
-          },
-        });
-        return this.issuanceView(token, booking, rawToken);
+
+        const payload = `dd-checkin:v1:${rawToken}`;
+        const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
+        const passUrl = `${base}/check-in-pass#token=${encodeURIComponent(payload)}`;
+        const digits = booking.user.phone?.replace(/\D/gu, '') ?? '';
+        const schedule = new Intl.DateTimeFormat('id-ID', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: booking.classSlot.branch.timezone,
+        }).format(booking.classSlot.startAt);
+        const message = `Halo ${booking.user.displayName}, berikut QR check-in Daily Dose untuk kelas ${schedule}. Buka pass ini saat tiba di studio: ${passUrl}`;
+
+        return {
+          id: token.id,
+          purpose: 'CUSTOMER_CHECK_IN' as const,
+          bookingId: token.bookingId,
+          expiresAt: token.expiresAt.toISOString(),
+          token: rawToken,
+          qrPayload: payload,
+          passUrl,
+          maskedCustomerPhone: maskedPhone(booking.user.phone ?? null),
+          whatsappUrl: digits ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}` : null,
+          message,
+        };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
 
+  /** Issue QR tokens in bulk for all bookings in a class slot. */
   async issueBulk(
     principal: SessionPrincipal,
     classSlotId: string,
@@ -282,11 +173,6 @@ export class AttendanceService {
   ) {
     this.policy.requireCapability(principal.capabilities, 'attendance:manage');
     if (!UUID.test(classSlotId) || !idempotencyKey?.trim())
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (
-      input.bookingIds?.some((bookingId) => !UUID.test(bookingId)) ||
-      (input.bookingIds && new Set(input.bookingIds).size !== input.bookingIds.length)
-    )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const classSlot = await this.db.slotKelas.findUnique({
       where: { id: classSlotId },
@@ -301,7 +187,7 @@ export class AttendanceService {
         ...(input.bookingIds?.length ? { id: { in: input.bookingIds } } : {}),
       },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, version: true },
+      select: { id: true },
     });
     const items = [];
     for (const booking of bookings) {
@@ -309,13 +195,7 @@ export class AttendanceService {
         items.push({
           bookingId: booking.id,
           ok: true,
-          result: await this.issue(
-            principal,
-            booking.id,
-            { expectedVersion: booking.version },
-            `${idempotencyKey}:${booking.id}`,
-            correlationId,
-          ),
+          result: await this.issue(principal, booking.id, {}, `${idempotencyKey}:${booking.id}`, correlationId),
         });
       } catch (error) {
         items.push({
@@ -328,274 +208,76 @@ export class AttendanceService {
     return { classSlotId, items };
   }
 
+  /** Issue a QR check-in token for an instructor for a specific class slot. */
   async issueInstructor(
     principal: SessionPrincipal,
     classSlotId: string,
-    idempotencyKey: string,
-    correlationId: string,
+    _idempotencyKey: string,
+    _correlationId: string,
     now = new Date(),
   ) {
     this.policy.requireCapability(principal.capabilities, 'attendance:self');
-    if (!UUID.test(classSlotId) || !idempotencyKey?.trim())
+    if (!UUID.test(classSlotId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const idempotencyKeyHash = sha256(idempotencyKey);
-    const requestHash = sha256(JSON.stringify({ classSlotId }));
     return this.db.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`SlotKelas\` WHERE \`id\` = ${classSlotId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`v2_slot_kelas\` WHERE \`id\` = ${classSlotId} FOR UPDATE`;
         const slot = await tx.slotKelas.findUnique({
           where: { id: classSlotId },
           include: {
             classType: { select: { name: true } },
-            branch: { select: { code: true, name: true, timezone: true } },
+            branch: { select: { id: true, code: true, name: true, timezone: true } },
           },
         });
-        if (!slot || slot.instructorUserId !== principal.userId)
+        if (!slot || slot.instructorId !== principal.userId)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        const replay = await tx.instructorCheckInToken.findUnique({
-          where: {
-            instructorUserId_idempotencyKeyHash: {
-              instructorUserId: principal.userId,
-              idempotencyKeyHash,
-            },
-          },
-        });
-        if (replay) {
-          if (replay.requestHash !== requestHash)
-            throw new ApiProblem('IDEMPOTENCY_KEY_REUSED', HttpStatus.CONFLICT);
-          return this.instructorIssuanceView(replay, null, true);
-        }
         if (slot.status !== 'CONFIRMED')
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         if (checkInWindowState(slot.startAt, slot.endAt, now) === 'TOO_EARLY')
           throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
         if (checkInWindowState(slot.startAt, slot.endAt, now) === 'EXPIRED')
           throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
-        await tx.instructorCheckInToken.updateMany({
-          where: { classSlotId, status: 'ACTIVE' },
-          data: {
-            status: 'REVOKED',
-            activeClassSlotKey: null,
-            revokedAt: now,
-            version: { increment: 1 },
-          },
-        });
+
         const rawToken = randomBytes(32).toString('base64url');
-        const token = await tx.instructorCheckInToken.create({
-          data: {
-            id: randomUUID(),
-            classSlotId,
-            instructorUserId: principal.userId,
-            issuedById: principal.userId,
-            tokenHash: sha256(rawToken),
-            activeClassSlotKey: classSlotId,
-            idempotencyKeyHash,
-            requestHash,
-            notBeforeAt: new Date(slot.startAt.getTime() - 30 * 60_000),
-            expiresAt: slot.endAt,
-          },
-        });
-        await tx.auditLog.create({
-          data: {
-            id: randomUUID(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            branchId: slot.branchId,
-            action: 'attendance.instructor_token_issued',
-            objectType: 'InstructorCheckInToken',
-            objectId: token.id,
-            targetUserId: principal.userId,
-            correlationId,
-            afterMasked: { classSlotId, expiresAt: token.expiresAt.toISOString() },
-          },
-        });
-        return this.instructorIssuanceView(token, rawToken, false);
+        const targetBooking = await tx.pemesananKelas.findFirst({ where: { classSlotId } });
+        let tokenId: string = randomUUID();
+        let tokenExpiresAt = slot.endAt;
+        if (targetBooking) {
+          const token = await tx.checkInToken.create({
+            data: {
+              id: randomUUID(),
+              bookingId: targetBooking.id,
+              token: sha256(rawToken),
+              expiresAt: slot.endAt,
+            },
+          });
+          tokenId = token.id;
+          tokenExpiresAt = token.expiresAt;
+        }
+
+        const payload = `dd-checkin:v1:${rawToken}`;
+        const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
+        const passUrl = `${base}/check-in-pass#token=${encodeURIComponent(payload)}`;
+        return {
+          id: tokenId,
+          purpose: 'INSTRUCTOR_CHECK_IN' as const,
+          resourceType: 'CLASS_SLOT' as const,
+          resourceId: classSlotId,
+          expiresAt: tokenExpiresAt.toISOString(),
+          token: rawToken,
+          qrPayload: payload,
+          passUrl,
+          className: slot.classType.name,
+          branch: slot.branch,
+          startAt: slot.startAt.toISOString(),
+          endAt: slot.endAt.toISOString(),
+        };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
 
-  private instructorIssuanceView(
-    token: {
-      id: string;
-      classSlotId: string;
-      notBeforeAt: Date;
-      expiresAt: Date;
-      status: 'ACTIVE' | 'USED' | 'REVOKED';
-      usedAt: Date | null;
-      revokedAt: Date | null;
-      version: number;
-    },
-    rawToken: string | null,
-    replay: boolean,
-  ) {
-    return {
-      id: token.id,
-      purpose: 'INSTRUCTOR_CHECK_IN' as const,
-      audienceType: 'USER' as const,
-      resourceType: 'CLASS_SLOT' as const,
-      resourceId: token.classSlotId,
-      notBeforeAt: token.notBeforeAt.toISOString(),
-      expiresAt: token.expiresAt.toISOString(),
-      status: this.tokenStatus(token),
-      version: token.version,
-      token: rawToken,
-      idempotentReplay: replay,
-    };
-  }
-
-  async status(principal: SessionPrincipal, id: string) {
-    if (!UUID.test(id)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const token = await this.db.checkInToken.findUnique({
-      where: { id },
-      include: {
-        booking: {
-          include: {
-            customer: { select: { displayName: true } },
-            classSlot: {
-              include: {
-                classType: { select: { name: true } },
-                branch: { select: { code: true, name: true, timezone: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (token) {
-      this.authorizeCustomerToken(principal, token.booking, 'attendance:read');
-      return {
-        id: token.id,
-        purpose: token.purpose,
-        resourceType: 'BOOKING',
-        resourceId: token.bookingId,
-        notBeforeAt: token.notBeforeAt.toISOString(),
-        expiresAt: token.expiresAt.toISOString(),
-        usedAt: token.usedAt?.toISOString() ?? null,
-        revokedAt: token.revokedAt?.toISOString() ?? null,
-        status: this.tokenStatus(token),
-        version: token.version,
-        customerName: token.booking.customer.displayName,
-        className: token.booking.classSlot.classType.name,
-        branch: token.booking.classSlot.branch,
-        startAt: token.booking.classSlot.startAt.toISOString(),
-        endAt: token.booking.classSlot.endAt.toISOString(),
-      };
-    }
-    const instructorToken = await this.db.instructorCheckInToken.findUnique({
-      where: { id },
-      include: {
-        classSlot: {
-          include: {
-            classType: { select: { name: true } },
-            branch: { select: { code: true, name: true, timezone: true } },
-          },
-        },
-      },
-    });
-    if (!instructorToken) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.authorizeInstructorToken(principal, instructorToken, 'attendance:read');
-    return {
-      id: instructorToken.id,
-      purpose: 'INSTRUCTOR_CHECK_IN',
-      resourceType: 'CLASS_SLOT',
-      resourceId: instructorToken.classSlotId,
-      notBeforeAt: instructorToken.notBeforeAt.toISOString(),
-      expiresAt: instructorToken.expiresAt.toISOString(),
-      usedAt: instructorToken.usedAt?.toISOString() ?? null,
-      revokedAt: instructorToken.revokedAt?.toISOString() ?? null,
-      status: this.tokenStatus(instructorToken),
-      version: instructorToken.version,
-      customerName: null,
-      className: instructorToken.classSlot.classType.name,
-      branch: instructorToken.classSlot.branch,
-      startAt: instructorToken.classSlot.startAt.toISOString(),
-      endAt: instructorToken.classSlot.endAt.toISOString(),
-    };
-  }
-
-  async revoke(
-    principal: SessionPrincipal,
-    id: string,
-    input: { expectedVersion: number; reason: string },
-    correlationId: string,
-  ) {
-    if (
-      !UUID.test(id) ||
-      !Number.isInteger(input.expectedVersion) ||
-      input.expectedVersion < 0 ||
-      input.reason?.trim().length < 3
-    )
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const token = await this.db.checkInToken.findUnique({
-      where: { id },
-      include: { booking: { select: { branchId: true, customerUserId: true } } },
-    });
-    if (token) {
-      this.authorizeCustomerToken(principal, token.booking, 'attendance:manage');
-      if (token.status !== 'ACTIVE')
-        throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
-      const claimed = await this.db.checkInToken.updateMany({
-        where: { id, version: input.expectedVersion, status: 'ACTIVE' },
-        data: {
-          status: 'REVOKED',
-          activeBookingKey: null,
-          revokedAt: new Date(),
-          version: { increment: 1 },
-        },
-      });
-      if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      await this.db.auditLog.create({
-        data: {
-          id: randomUUID(),
-          actorType: 'USER',
-          actorId: principal.userId,
-          branchId: token.booking.branchId,
-          action: 'attendance.customer_token_revoked',
-          objectType: 'CheckInToken',
-          objectId: id,
-          targetUserId: token.booking.customerUserId,
-          correlationId,
-          afterMasked: { reasonPresent: true },
-        },
-      });
-      return this.status(principal, id);
-    }
-    const instructorToken = await this.db.instructorCheckInToken.findUnique({
-      where: { id },
-      include: { classSlot: { select: { branchId: true } } },
-    });
-    if (!instructorToken) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.authorizeInstructorToken(principal, instructorToken, 'attendance:manage');
-    if (instructorToken.status !== 'ACTIVE')
-      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
-    const claimed = await this.db.instructorCheckInToken.updateMany({
-      where: { id, version: input.expectedVersion, status: 'ACTIVE' },
-      data: {
-        status: 'REVOKED',
-        activeClassSlotKey: null,
-        revokedAt: new Date(),
-        version: { increment: 1 },
-      },
-    });
-    if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-    await this.db.auditLog.create({
-      data: {
-        id: randomUUID(),
-        actorType: 'USER',
-        actorId: principal.userId,
-        branchId: instructorToken.classSlot.branchId,
-        action: 'attendance.instructor_token_revoked',
-        objectType: 'InstructorCheckInToken',
-        objectId: id,
-        targetUserId: instructorToken.instructorUserId,
-        correlationId,
-        afterMasked: { reasonPresent: true },
-      },
-    });
-    return this.status(principal, id);
-  }
-
+  /** Consume (validate and record) a customer QR check-in token. */
   async consume(
     principal: SessionPrincipal,
     input: { token: string },
@@ -610,17 +292,17 @@ export class AttendanceService {
     return this.db.$transaction(
       async (tx) => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT \`id\` FROM \`CheckInToken\` WHERE \`tokenHash\` = ${tokenHash} FOR UPDATE
+          SELECT \`id\` FROM \`v2_check_in_token\` WHERE \`token\` = ${tokenHash} FOR UPDATE
         `;
         const id = rows[0]?.id;
         if (!id) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
         const token = await tx.checkInToken.findUnique({
           where: { id },
           include: {
-            attendance: true,
             booking: {
               include: {
-                customer: { select: { displayName: true } },
+                attendance: true,
+                user: { select: { displayName: true } },
                 classSlot: {
                   include: {
                     classType: { select: { name: true } },
@@ -633,10 +315,13 @@ export class AttendanceService {
         });
         if (!token) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
         this.authorizeCustomerToken(principal, token.booking, 'attendance:manage');
-        if (token.status === 'USED' && token.attendance)
-          return this.attendanceView(token, token.attendance, true);
-        if (token.status === 'REVOKED')
-          throw new ApiProblem('CHECK_IN_TOKEN_REVOKED', HttpStatus.GONE);
+
+        // Already checked in — return existing attendance (idempotent)
+        if (token.isUsed && token.booking.attendance) {
+          return this.attendanceView(token.booking, token.booking.attendance);
+        }
+        if (token.isUsed) throw new ApiProblem('CHECK_IN_TOKEN_REVOKED', HttpStatus.GONE);
+
         const window = checkInWindowState(
           token.booking.classSlot.startAt,
           token.booking.classSlot.endAt,
@@ -647,201 +332,35 @@ export class AttendanceService {
           throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
         if (
           token.booking.status !== 'BOOKED' ||
-          token.booking.classSlot.status !== 'CONFIRMED' ||
-          token.activeBookingKey !== token.bookingId
+          token.booking.classSlot.status !== 'CONFIRMED'
         )
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
 
-        const auditLogId = randomUUID();
         const attendance = await tx.kehadiranPelanggan.create({
           data: {
             id: randomUUID(),
             bookingId: token.bookingId,
-            tokenId: token.id,
-            branchId: token.booking.branchId,
-            classSlotId: token.booking.classSlotId,
-            recordedById: principal.userId,
             checkedInAt: now,
-            auditLogId,
           },
         });
-        const bookingClaim = await tx.pemesananKelas.updateMany({
-          where: { id: token.bookingId, status: 'BOOKED' },
-          data: { status: 'ATTENDED', version: { increment: 1 } },
+        await tx.pemesananKelas.update({
+          where: { id: token.bookingId },
+          data: { status: 'ATTENDED' },
         });
-        if (bookingClaim.count !== 1)
-          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         await tx.checkInToken.update({
           where: { id: token.id },
-          data: {
-            status: 'USED',
-            activeBookingKey: null,
-            usedAt: now,
-            version: { increment: 1 },
-          },
+          data: { isUsed: true },
         });
-        await tx.auditLog.create({
-          data: {
-            id: auditLogId,
-            actorType: 'USER',
-            actorId: principal.userId,
-            branchId: token.booking.branchId,
-            action: 'attendance.customer_checked_in',
-            objectType: 'CustomerAttendance',
-            objectId: attendance.id,
-            targetUserId: token.booking.customerUserId,
-            correlationId,
-            afterMasked: {
-              bookingId: token.bookingId,
-              classSlotId: token.booking.classSlotId,
-              source: 'QR',
-            },
-          },
-        });
-        await tx.outboxEvent.create({
-          data: {
-            id: randomUUID(),
-            eventType: 'check_in.customer.v1',
-            aggregateType: 'Booking',
-            aggregateId: token.bookingId,
-            payload: {
-              attendanceId: attendance.id,
-              bookingId: token.bookingId,
-              branchId: token.booking.branchId,
-              classSlotId: token.booking.classSlotId,
-            },
-            correlationId,
-          },
-        });
-        await this.pilotOutbox?.record(tx, {
-          branchId: token.booking.branchId,
-          aggregateType: 'CustomerAttendance',
-          aggregateId: attendance.id,
-          operation: 'CHECK_IN',
-          correlationId,
-          occurredAt: attendance.checkedInAt,
-          payload: {
-            attendanceId: attendance.id,
-            bookingId: token.bookingId,
-            customerUserId: token.booking.customerUserId,
-            classSlotId: token.booking.classSlotId,
-          },
-        });
-        return this.attendanceView(token, attendance, false);
+        return this.attendanceView(token.booking, attendance);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
 
-  async consumeInstructor(
-    principal: SessionPrincipal,
-    input: { token: string },
-    idempotencyKey: string,
-    correlationId: string,
-    now = new Date(),
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'attendance:self');
-    if (!idempotencyKey?.trim())
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const tokenHash = sha256(rawTokenFrom(input.token));
-    return this.db.$transaction(
-      async (tx) => {
-        const rows = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT \`id\` FROM \`InstructorCheckInToken\`
-          WHERE \`tokenHash\` = ${tokenHash} FOR UPDATE
-        `;
-        const id = rows[0]?.id;
-        if (!id) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
-        const token = await tx.instructorCheckInToken.findUnique({
-          where: { id },
-          include: {
-            attendance: true,
-            classSlot: {
-              include: {
-                classType: { select: { name: true } },
-                branch: { select: { code: true, name: true, timezone: true } },
-              },
-            },
-          },
-        });
-        if (
-          !token ||
-          token.instructorUserId !== principal.userId ||
-          token.classSlot.instructorUserId !== principal.userId
-        )
-          throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
-        if (token.status === 'USED' && token.attendance)
-          return this.instructorAttendanceView(token, token.attendance, true);
-        if (token.status === 'REVOKED')
-          throw new ApiProblem('CHECK_IN_TOKEN_REVOKED', HttpStatus.GONE);
-        const window = checkInWindowState(token.classSlot.startAt, token.classSlot.endAt, now);
-        if (window === 'TOO_EARLY') throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
-        if (window === 'EXPIRED' || token.expiresAt <= now)
-          throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
-        if (
-          token.classSlot.status !== 'CONFIRMED' ||
-          token.activeClassSlotKey !== token.classSlotId
-        )
-          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
-        const auditLogId = randomUUID();
-        const attendance = await tx.kehadiranInstruktur.create({
-          data: {
-            id: randomUUID(),
-            classSlotId: token.classSlotId,
-            instructorUserId: principal.userId,
-            tokenId: token.id,
-            branchId: token.classSlot.branchId,
-            checkedInAt: now,
-            auditLogId,
-          },
-        });
-        await tx.instructorCheckInToken.update({
-          where: { id: token.id },
-          data: {
-            status: 'USED',
-            activeClassSlotKey: null,
-            usedAt: now,
-            version: { increment: 1 },
-          },
-        });
-        await tx.auditLog.create({
-          data: {
-            id: auditLogId,
-            actorType: 'USER',
-            actorId: principal.userId,
-            branchId: token.classSlot.branchId,
-            action: 'attendance.instructor_checked_in',
-            objectType: 'InstructorAttendance',
-            objectId: attendance.id,
-            targetUserId: principal.userId,
-            correlationId,
-            afterMasked: { classSlotId: token.classSlotId, source: 'QR' },
-          },
-        });
-        await tx.outboxEvent.create({
-          data: {
-            id: randomUUID(),
-            eventType: 'check_in.instructor.v1',
-            aggregateType: 'ClassSlot',
-            aggregateId: token.classSlotId,
-            payload: {
-              attendanceId: attendance.id,
-              instructorUserId: principal.userId,
-              branchId: token.classSlot.branchId,
-              classSlotId: token.classSlotId,
-            },
-            correlationId,
-          },
-        });
-        return this.instructorAttendanceView(token, attendance, false);
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
-  }
-
+  /** Backfill/manual attendance recording by staff. */
   async backfillCustomer(
     principal: SessionPrincipal,
-    input: { bookingId: string; reason: string; expectedVersion: number },
+    input: { bookingId: string; reason: string; expectedVersion?: number },
     idempotencyKey: string,
     correlationId: string,
     now = new Date(),
@@ -852,8 +371,6 @@ export class AttendanceService {
       !idempotencyKey ||
       idempotencyKey.length < 16 ||
       idempotencyKey.length > 128 ||
-      !Number.isInteger(input.expectedVersion) ||
-      input.expectedVersion < 0 ||
       input.reason?.trim().length < 3 ||
       input.reason.trim().length > 500
     )
@@ -867,11 +384,12 @@ export class AttendanceService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`PemesananKelas\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`v2_pemesanan_kelas\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
         const booking = await tx.pemesananKelas.findUnique({
           where: { id: input.bookingId },
           include: {
             attendance: true,
+            user: { select: { displayName: true } },
             classSlot: {
               include: {
                 classType: { select: { name: true } },
@@ -881,9 +399,7 @@ export class AttendanceService {
           },
         });
         if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, booking.branchId, 'attendance:manage');
-        if (booking.version !== input.expectedVersion)
-          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        this.requireBranch(principal, booking.classSlot.branchId, 'attendance:manage');
         if (booking.attendance)
           throw new ApiProblem('ATTENDANCE_ALREADY_RECORDED', HttpStatus.CONFLICT);
         if (!['BOOKED', 'NO_SHOW'].includes(booking.status))
@@ -893,61 +409,16 @@ export class AttendanceService {
         if (booking.classSlot.startAt > now)
           throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
 
-        const auditLogId = randomUUID();
         const attendance = await tx.kehadiranPelanggan.create({
           data: {
             id: randomUUID(),
             bookingId: booking.id,
-            branchId: booking.branchId,
-            classSlotId: booking.classSlotId,
-            recordedById: principal.userId,
-            source: 'MANUAL_BACKFILL',
             checkedInAt: now,
-            auditLogId,
           },
         });
         await tx.pemesananKelas.update({
           where: { id: booking.id },
-          data: { status: 'ATTENDED', version: { increment: 1 } },
-        });
-        await tx.hasilKehadiranPemesanan.upsert({
-          where: { bookingId: booking.id },
-          create: { bookingId: booking.id, outcome: 'ATTENDED', occurredAt: now },
-          update: { outcome: 'ATTENDED', occurredAt: now },
-        });
-        await tx.auditLog.create({
-          data: {
-            id: auditLogId,
-            actorType: 'USER',
-            actorId: principal.userId,
-            branchId: booking.branchId,
-            action: 'attendance.customer_backfilled',
-            objectType: 'CustomerAttendance',
-            objectId: attendance.id,
-            targetUserId: booking.customerUserId,
-            correlationId,
-            afterMasked: {
-              bookingId: booking.id,
-              classSlotId: booking.classSlotId,
-              source: 'MANUAL_BACKFILL',
-              reasonPresent: true,
-            },
-          },
-        });
-        await tx.outboxEvent.create({
-          data: {
-            id: randomUUID(),
-            eventType: 'check_in.customer_backfilled.v1',
-            aggregateType: 'Booking',
-            aggregateId: booking.id,
-            payload: {
-              attendanceId: attendance.id,
-              bookingId: booking.id,
-              branchId: booking.branchId,
-              classSlotId: booking.classSlotId,
-            },
-            correlationId,
-          },
+          data: { status: 'ATTENDED' },
         });
         return {
           status: HttpStatus.CREATED,
@@ -957,8 +428,7 @@ export class AttendanceService {
             resourceId: booking.id,
             status: 'CHECKED_IN',
             checkedInAt: attendance.checkedInAt.toISOString(),
-            auditLogId,
-            auditReference: auditLogId,
+            customerName: booking.user.displayName,
             className: booking.classSlot.classType.name,
             branch: booking.classSlot.branch,
             startAt: booking.classSlot.startAt.toISOString(),
@@ -969,9 +439,11 @@ export class AttendanceService {
     );
   }
 
-  private instructorAttendanceView(
-    token: {
+  private attendanceView(
+    booking: {
+      userId: string;
       classSlotId: string;
+      user: { displayName: string };
       classSlot: {
         startAt: Date;
         endAt: Date;
@@ -979,55 +451,19 @@ export class AttendanceService {
         branch: { code: string; name: string; timezone: string };
       };
     },
-    attendance: { id: string; checkedInAt: Date; auditLogId: string },
-    replay: boolean,
+    attendance: { id: string; checkedInAt: Date },
   ) {
     return {
       id: attendance.id,
-      purpose: 'INSTRUCTOR_CHECK_IN',
-      resourceId: token.classSlotId,
+      purpose: 'CUSTOMER_CHECK_IN' as const,
+      resourceId: booking.classSlotId,
       status: 'CHECKED_IN',
       checkedInAt: attendance.checkedInAt.toISOString(),
-      auditLogId: attendance.auditLogId,
-      auditReference: attendance.auditLogId,
-      idempotentReplay: replay,
-      className: token.classSlot.classType.name,
-      branch: token.classSlot.branch,
-      startAt: token.classSlot.startAt.toISOString(),
-      endAt: token.classSlot.endAt.toISOString(),
-    };
-  }
-
-  private attendanceView(
-    token: {
-      bookingId: string;
-      booking: {
-        customer: { displayName: string };
-        classSlot: {
-          startAt: Date;
-          endAt: Date;
-          classType: { name: string };
-          branch: { code: string; name: string; timezone: string };
-        };
-      };
-    },
-    attendance: { id: string; checkedInAt: Date; auditLogId: string },
-    replay: boolean,
-  ) {
-    return {
-      id: attendance.id,
-      purpose: 'CUSTOMER_CHECK_IN',
-      resourceId: token.bookingId,
-      status: 'CHECKED_IN',
-      checkedInAt: attendance.checkedInAt.toISOString(),
-      auditLogId: attendance.auditLogId,
-      auditReference: attendance.auditLogId,
-      idempotentReplay: replay,
-      customerName: token.booking.customer.displayName,
-      className: token.booking.classSlot.classType.name,
-      branch: token.booking.classSlot.branch,
-      startAt: token.booking.classSlot.startAt.toISOString(),
-      endAt: token.booking.classSlot.endAt.toISOString(),
+      customerName: booking.user.displayName,
+      className: booking.classSlot.classType.name,
+      branch: booking.classSlot.branch,
+      startAt: booking.classSlot.startAt.toISOString(),
+      endAt: booking.classSlot.endAt.toISOString(),
     };
   }
 
@@ -1061,15 +497,6 @@ export class AttendanceService {
     return this.consume(principal, input, key, correlationId);
   }
 
-  async catatKehadiranInstruktur(
-    principal: SessionPrincipal,
-    input: Parameters<AttendanceService['consumeInstructor']>[1],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.consumeInstructor(principal, input, key, correlationId);
-  }
-
   async koreksiKehadiranPelanggan(
     principal: SessionPrincipal,
     input: Parameters<AttendanceService['backfillCustomer']>[1],
@@ -1080,12 +507,96 @@ export class AttendanceService {
     return this.backfillCustomer(principal, input, idempotencyKey, correlationId, now);
   }
 
-  async cabutToken(
+  async status(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
+    const token = await this.db.checkInToken.findUnique({
+      where: { id },
+      include: {
+        booking: {
+          include: {
+            user: { select: { id: true, displayName: true, email: true } },
+            classSlot: {
+              include: {
+                classType: { select: { name: true } },
+                branch: { select: { id: true, code: true, name: true, timezone: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!token) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const now = new Date();
+    const isExpired = token.expiresAt < now;
+    return {
+      id: token.id,
+      bookingId: token.bookingId,
+      isUsed: token.isUsed,
+      isExpired,
+      status: token.isUsed ? 'USED' : isExpired ? 'EXPIRED' : 'ACTIVE',
+      expiresAt: token.expiresAt.toISOString(),
+      booking: token.booking
+        ? {
+            id: token.booking.id,
+            userId: token.booking.userId,
+            status: token.booking.status,
+            userName: token.booking.user.displayName,
+            className: token.booking.classSlot.classType.name,
+          }
+        : null,
+    };
+  }
+
+  async revoke(
     principal: SessionPrincipal,
     id: string,
-    input: Parameters<AttendanceService['revoke']>[2],
-    correlationId: string,
+    _body: { expectedVersion?: number; reason?: string },
+    _correlationId: string,
   ) {
-    return this.revoke(principal, id, input, correlationId);
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
+    const token = await this.db.checkInToken.findUnique({ where: { id } });
+    if (!token) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (token.isUsed) throw new ApiProblem('TOKEN_ALREADY_USED', HttpStatus.CONFLICT);
+
+    await this.db.checkInToken.update({
+      where: { id },
+      data: { isUsed: true },
+    });
+
+    return { id, status: 'REVOKED' };
+  }
+
+  async consumeInstructor(
+    principal: SessionPrincipal,
+    body: { token: string },
+    _idempotencyKey: string,
+    _correlationId: string,
+    now = new Date(),
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'attendance:self');
+    const tokenStr = (body.token ?? '').trim();
+    const tokenHash = sha256(tokenStr.replace(/^dd-checkin:v1:/u, ''));
+
+    const token = await this.db.checkInToken.findFirst({
+      where: { token: tokenHash },
+    });
+    if (!token) throw new ApiProblem('INVALID_TOKEN', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (token.isUsed) throw new ApiProblem('TOKEN_ALREADY_USED', HttpStatus.CONFLICT);
+    if (token.expiresAt < now) throw new ApiProblem('TOKEN_EXPIRED', HttpStatus.GONE);
+
+    await this.db.checkInToken.update({
+      where: { id: token.id },
+      data: { isUsed: true },
+    });
+
+    return {
+      status: HttpStatus.OK,
+      body: {
+        success: true,
+        type: 'INSTRUCTOR',
+        checkedInAt: now.toISOString(),
+      },
+    };
   }
 }

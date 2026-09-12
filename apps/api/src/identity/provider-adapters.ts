@@ -6,6 +6,7 @@ export interface VerifiedIdentity {
   provider: 'GOOGLE' | 'WHATSAPP_PHONE';
   subjectHash: string;
   emailHash?: string;
+  email?: string;
 }
 
 export interface GoogleIdentityProvider {
@@ -34,6 +35,7 @@ export class ConfigGatedGoogleProvider implements GoogleIdentityProvider {
         provider: 'GOOGLE',
         subjectHash: digest(`google:${email}`),
         emailHash: digest(`email:${email}`),
+        email,
       };
     }
     const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -56,6 +58,7 @@ export class ConfigGatedGoogleProvider implements GoogleIdentityProvider {
       provider: 'GOOGLE',
       subjectHash: digest(`google:${subject}`),
       emailHash: digest(`email:${email}`),
+      email,
     };
   }
 }

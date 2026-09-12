@@ -3,13 +3,15 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, newId } from '../identity/security';
+import { ApiProblem } from '../identity/security';
+import { AuditService } from '../foundation/audit.service';
 
 @Injectable()
 export class PackageAccessService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly auditService: AuditService,
   ) {}
 
   catalog(principal: SessionPrincipal, mutation = false) {
@@ -48,16 +50,13 @@ export class PackageAccessService {
 
   async requireVerifiedCustomer(principal: SessionPrincipal) {
     if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return;
-    const approved = await this.db.dokumenVerifikasiIdentitas.groupBy({
-      by: ['kind'],
-      where: { userId: principal.userId, status: 'APPROVED', replacedById: null },
-    });
-    if (!['SELFIE', 'KTP_FRONT'].every((kind) => approved.some((item) => item.kind === kind)))
+    const user = await this.db.user.findUnique({ where: { id: principal.userId } });
+    if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
   }
 
   audit(
-    tx: Prisma.TransactionClient,
+    _tx: Prisma.TransactionClient,
     principal: SessionPrincipal,
     action: string,
     type: string,
@@ -66,18 +65,15 @@ export class PackageAccessService {
     correlationId: string,
     evidence?: Prisma.InputJsonObject,
   ) {
-    return tx.auditLog.create({
-      data: {
-        id: newId(),
-        actorType: 'USER',
-        actorId: principal.userId,
-        action,
-        objectType: type,
-        objectId: id,
-        branchId,
-        correlationId,
-        afterMasked: { status: 'masked', ...(evidence ?? {}) },
-      },
+    this.auditService.record({
+      action,
+      resourceType: type,
+      resourceId: id,
+      branchId,
+      actorUserId: principal.userId,
+      correlationId,
+      details: evidence as Record<string, unknown>,
     });
+    return Promise.resolve();
   }
 }

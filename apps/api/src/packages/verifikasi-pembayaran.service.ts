@@ -2,12 +2,9 @@ import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, PurchaseStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
-import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import type { SessionPrincipal } from '../identity/identity.service';
-import { ApiProblem, newId, syntheticConfigSeconds } from '../identity/security';
-import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
+import { ApiProblem } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import { ConfigGatedObjectStorageProvider } from './proof-providers';
 import { NotificationWriterService } from '../notifications/notification-writer.service';
 import { EmailNotificationService } from '../email/email-notification.service';
 
@@ -16,9 +13,7 @@ export class PaymentReviewService {
   constructor(
     private readonly db: PrismaService,
     private readonly idempotency: IdempotencyService,
-    private readonly storage: ConfigGatedObjectStorageProvider,
     private readonly access: PackageAccessService,
-    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
     @Optional() private readonly notificationWriter?: NotificationWriterService,
     @Optional() private readonly emails?: EmailNotificationService,
   ) {}
@@ -46,9 +41,26 @@ export class PaymentReviewService {
     if (query.branchId)
       this.access.scope(principal, query.branchId, ['payment:review', 'purchase:review']);
 
-    const status = query.status?.trim().toUpperCase();
-    if (status && !Object.values(PurchaseStatus).includes(status as PurchaseStatus))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const statusParam = query.status?.trim().toUpperCase();
+    let statusFilter: PurchaseStatus | undefined = undefined;
+    if (statusParam) {
+      if (statusParam === 'APPROVED' || statusParam === 'VERIFIED' || statusParam === 'PAID') {
+        statusFilter = PurchaseStatus.PAID;
+      } else if (statusParam === 'REJECTED') {
+        statusFilter = PurchaseStatus.REJECTED;
+      } else if (statusParam === 'PENDING') {
+        statusFilter = PurchaseStatus.PENDING;
+      } else if (statusParam === 'WAITING_VERIFICATION' || statusParam === 'PAYMENT_SUBMITTED') {
+        statusFilter = PurchaseStatus.WAITING_VERIFICATION;
+      } else if (statusParam === 'CANCELLED' || statusParam === 'EXPIRED') {
+        statusFilter = PurchaseStatus.CANCELLED;
+      } else if (Object.values(PurchaseStatus).includes(statusParam as PurchaseStatus)) {
+        statusFilter = statusParam as PurchaseStatus;
+      } else {
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+    }
+
     const limit = query.limit === undefined ? 20 : Number(query.limit);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -69,32 +81,36 @@ export class PaymentReviewService {
             : { branchId: { in: branchScope.included } }
           : {}),
     };
+
     const search = query.q?.trim();
     const summaryWhere: Prisma.PembelianWhereInput = {
       ...scope,
-      ...(query.includeHistorical ? {} : { historical: false }),
       ...(search
         ? {
             OR: [
               { id: search },
+              { invoiceNumber: { contains: search } },
               { userId: search },
               { user: { displayName: { contains: search } } },
-              { user: { phoneE164: { contains: search } } },
+              { user: { phone: { contains: search } } },
             ],
           }
         : {}),
       ...(from || until
-        ? { submittedAt: { ...(from ? { gte: from } : {}), ...(until ? { lt: until } : {}) } }
+        ? { createdAt: { ...(from ? { gte: from } : {}), ...(until ? { lt: until } : {}) } }
         : {}),
     };
+
     const baseWhere: Prisma.PembelianWhereInput = {
       ...summaryWhere,
       ...(query.purchaseId ? { id: query.purchaseId } : {}),
     };
+
     const itemWhere: Prisma.PembelianWhereInput = {
       ...baseWhere,
-      ...(status ? { status: status as PurchaseStatus } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
     };
+
     if (query.cursor) {
       const visibleCursor = await this.db.pembelian.findFirst({
         where: { ...itemWhere, id: query.cursor },
@@ -103,34 +119,18 @@ export class PaymentReviewService {
       if (!visibleCursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
-    const [rows, grouped, payable, legacy, agingOver24Hours] = await Promise.all([
+    const [rows, grouped, totalAmountAgg, agingOver24Hours] = await Promise.all([
       this.db.pembelian.findMany({
         where: itemWhere,
         include: {
-          user: { select: { id: true, displayName: true, phoneE164: true } },
+          user: { select: { id: true, displayName: true, phone: true } },
           branch: { select: { id: true, code: true, name: true, timezone: true } },
-          paymentProof: {
-            select: {
-              id: true,
-              uploadStatus: true,
-              scanStatus: true,
-              mimeType: true,
-              sizeBytes: true,
-              finalizedAt: true,
-            },
-          },
-          customerPackage: {
-            include: {
-              ledgerEntries: { select: { quantity: true } },
-              reservations: {
-                where: { status: 'ACTIVE' },
-                select: { quantity: true },
-              },
-            },
-          },
+          package: true,
+          paymentProof: true,
+          customerPackage: true,
         },
         ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
-        orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit + 1,
       }),
       this.db.pembelian.groupBy({
@@ -139,68 +139,76 @@ export class PaymentReviewService {
         _count: { _all: true },
       }),
       this.db.pembelian.aggregate({
-        where: { ...summaryWhere, payableAmountRpSnapshot: { not: null } },
-        _sum: { payableAmountRpSnapshot: true },
-      }),
-      this.db.pembelian.aggregate({
-        where: { ...summaryWhere, payableAmountRpSnapshot: null },
-        _sum: { priceRpSnapshot: true },
+        where: summaryWhere,
+        _sum: { totalAmountRp: true },
       }),
       this.db.pembelian.count({
         where: {
           ...summaryWhere,
           status: PurchaseStatus.PENDING,
-          submittedAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         },
       }),
     ]);
+
     const hasMore = rows.length > limit;
     const pageRows = rows.slice(0, limit);
-    const auditRows = pageRows.length
-      ? await this.db.auditLog.findMany({
-          where: { objectType: 'Purchase', objectId: { in: pageRows.map(({ id }) => id) } },
-          orderBy: { occurredAt: 'desc' },
-          select: { id: true, objectId: true },
-        })
-      : [];
-    const auditReferences = new Map<string, string>();
-    for (const audit of auditRows)
-      if (!auditReferences.has(audit.objectId)) auditReferences.set(audit.objectId, audit.id);
     const counts = new Map(grouped.map((item) => [item.status, item._count._all]));
     const generatedAt = new Date();
+
     return {
       items: pageRows.map(
         ({
-          paymentAccountNumberSnapshotEncrypted,
           user,
           branch,
+          package: pkg,
           paymentProof,
           customerPackage,
           ...item
         }) => {
-          void paymentAccountNumberSnapshotEncrypted;
           return {
             ...item,
+            packageNameSnapshot: pkg?.name ?? null,
+            sessionCountSnapshot: pkg?.sessionCount ?? null,
+            durationDaysSnapshot: pkg?.validityDays ?? null,
+            priceRpSnapshot: item.subtotalRp,
+            payableAmountRpSnapshot: item.totalAmountRp,
+            submittedAt: item.createdAt,
+            decidedAt: item.verifiedAt,
+            decidedById: item.verifiedById,
+            decisionReasonCode: item.rejectionReason,
             customer: {
               id: user.id,
               displayName: user.displayName,
-              phoneMasked: this.maskPhone(user.phoneE164),
+              phoneMasked: this.maskPhone(user.phone),
             },
             branch,
-            paymentProof,
+            package: pkg,
+            paymentProof: paymentProof
+              ? {
+                  id: paymentProof.id,
+                  fileUrl: paymentProof.fileUrl,
+                  bankName: paymentProof.bankName,
+                  accountHolder: paymentProof.accountHolder,
+                  notes: paymentProof.notes,
+                  uploadedAt: paymentProof.uploadedAt,
+                  uploadStatus: 'FINALIZED',
+                  scanStatus: 'CLEAN',
+                  finalizedAt: paymentProof.uploadedAt,
+                }
+              : null,
             activationSummary: this.activationSummary(customerPackage),
-            auditReference: auditReferences.get(item.id) ?? null,
+            auditReference: null,
           };
         },
       ),
       summary: {
-        pending: counts.get(PurchaseStatus.PENDING) ?? 0,
-        actionRequired: counts.get(PurchaseStatus.ACTION_REQUIRED) ?? 0,
-        approved: counts.get(PurchaseStatus.APPROVED) ?? 0,
+        pending: (counts.get(PurchaseStatus.PENDING) ?? 0) + (counts.get(PurchaseStatus.WAITING_VERIFICATION) ?? 0),
+        actionRequired: 0,
+        approved: counts.get(PurchaseStatus.PAID) ?? 0,
         rejected: counts.get(PurchaseStatus.REJECTED) ?? 0,
-        expired: counts.get(PurchaseStatus.EXPIRED) ?? 0,
-        totalAmountRp:
-          (payable._sum.payableAmountRpSnapshot ?? 0) + (legacy._sum.priceRpSnapshot ?? 0),
+        expired: counts.get(PurchaseStatus.CANCELLED) ?? 0,
+        totalAmountRp: totalAmountAgg._sum.totalAmountRp ?? 0,
         agingOver24Hours,
       },
       generatedAt,
@@ -231,56 +239,32 @@ export class PaymentReviewService {
     customerPackage: {
       id: string;
       status: string;
-      activationDate: Date;
-      expiryAt: Date;
-      sessionCountSnapshot: number;
-      ledgerEntries: { quantity: number }[];
-      reservations: { quantity: number }[];
+      validFrom: Date;
+      validUntil: Date;
+      totalSessions: number;
+      remainingSessions: number;
+      usedSessions: number;
     } | null,
   ) {
     if (!customerPackage) return null;
-    const ledgerBalance = customerPackage.ledgerEntries.reduce(
-      (sum, entry) => sum + entry.quantity,
-      0,
-    );
-    const reserved = customerPackage.reservations.reduce(
-      (sum, reservation) => sum + reservation.quantity,
-      0,
-    );
     const status =
-      customerPackage.status === 'INACTIVE'
-        ? 'INACTIVE'
-        : customerPackage.expiryAt.getTime() <= Date.now()
-          ? 'EXPIRED'
-          : 'ACTIVE';
+      customerPackage.validUntil.getTime() <= Date.now()
+        ? 'EXPIRED'
+        : customerPackage.status;
     return {
       customerPackageId: customerPackage.id,
       status,
-      activationDate: customerPackage.activationDate,
-      expiryAt: customerPackage.expiryAt,
-      sessionCount: customerPackage.sessionCountSnapshot,
-      ledgerBalance,
-      reserved,
-      available: status === 'ACTIVE' ? Math.max(0, ledgerBalance - reserved) : 0,
-      used: Math.max(0, customerPackage.sessionCountSnapshot - ledgerBalance),
+      activationDate: customerPackage.validFrom,
+      expiryAt: customerPackage.validUntil,
+      sessionCount: customerPackage.totalSessions,
+      ledgerBalance: customerPackage.remainingSessions,
+      reserved: 0,
+      available: status === 'ACTIVE' ? customerPackage.remainingSessions : 0,
+      used: customerPackage.usedSessions,
     };
   }
 
-  private usageLabel(type: string) {
-    return (
-      (
-        {
-          PURCHASE: 'Paket diaktifkan',
-          ATTEND: 'Digunakan untuk kehadiran',
-          REVERSAL: 'Sesi dikembalikan',
-          ADJUST_MANUAL: 'Penyesuaian manual',
-          MIGRATION_OPENING: 'Saldo awal migrasi',
-        } as Record<string, string>
-      )[type] ?? 'Perubahan saldo sesi'
-    );
-  }
-
-  async get(principal: SessionPrincipal, id: string, usageCursor?: string) {
+  async get(principal: SessionPrincipal, id: string, _usageCursor?: string) {
     this.access.review(principal);
     const scopedBranchIds =
       principal.capabilities.includes('branch:all') ||
@@ -293,275 +277,162 @@ export class PaymentReviewService {
         ...(scopedBranchIds ? { branchId: { in: scopedBranchIds } } : {}),
       },
       include: {
-        user: { select: { id: true, displayName: true, phoneE164: true } },
+        user: { select: { id: true, displayName: true, phone: true } },
         branch: { select: { id: true, code: true, name: true, timezone: true } },
-        paymentProof: {
-          select: {
-            id: true,
-            uploadStatus: true,
-            scanStatus: true,
-            mimeType: true,
-            sizeBytes: true,
-            finalizedAt: true,
-          },
-        },
+        package: true,
+        voucher: true,
+        paymentProof: true,
         customerPackage: {
           include: {
-            ledgerEntries: { select: { quantity: true } },
-            reservations: {
-              where: { status: 'ACTIVE' },
-              select: { quantity: true },
+            bookings: {
+              include: {
+                classSlot: {
+                  include: {
+                    classType: true,
+                  },
+                },
+              },
+              orderBy: { bookedAt: 'desc' },
+              take: 20,
             },
           },
         },
       },
     });
     if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const audit = await this.db.auditLog.findFirst({
-      where: { objectType: 'Purchase', objectId: purchase.id },
-      orderBy: { occurredAt: 'desc' },
-      select: { id: true },
-    });
+
     const {
-      paymentAccountNumberSnapshotEncrypted,
       user,
       branch,
+      package: pkg,
       paymentProof,
       customerPackage,
       ...item
     } = purchase;
-    void paymentAccountNumberSnapshotEncrypted;
-    let usageCursorEntry: { id: string; occurredAt: Date } | null = null;
-    if (usageCursor && customerPackage) {
-      usageCursorEntry = await this.db.entriBukuBesar.findFirst({
-        where: { id: usageCursor, customerPackageId: customerPackage.id },
-        select: { id: true, occurredAt: true },
-      });
-      if (!usageCursorEntry)
-        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-    const [usageRows, purchaseLedger] = customerPackage
-      ? await Promise.all([
-          this.db.entriBukuBesar.findMany({
-            where: { customerPackageId: customerPackage.id },
-            ...(usageCursor ? { cursor: { id: usageCursor }, skip: 1 } : {}),
-            orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
-            take: 21,
-          }),
-          this.db.entriBukuBesar.findFirst({
-            where: {
-              customerPackageId: customerPackage.id,
-              type: 'PURCHASE',
-              referenceId: id,
-            },
-            orderBy: { occurredAt: 'asc' },
-          }),
-        ])
-      : [[], null];
-    const usageItems = usageRows.slice(0, 20);
+
     const activationSummary = this.activationSummary(customerPackage);
-    const newerQuantity =
-      customerPackage && usageCursorEntry
-        ? ((
-            await this.db.entriBukuBesar.aggregate({
-              where: {
-                customerPackageId: customerPackage.id,
-                OR: [
-                  { occurredAt: { gt: usageCursorEntry.occurredAt } },
-                  { occurredAt: usageCursorEntry.occurredAt, id: { gte: usageCursorEntry.id } },
-                ],
-              },
-              _sum: { quantity: true },
-            })
-          )._sum.quantity ?? 0)
-        : 0;
-    let runningBalance = (activationSummary?.ledgerBalance ?? 0) - newerQuantity;
+    const bookingItems = customerPackage?.bookings ?? [];
+
     return {
       purchase: {
         ...item,
+        packageNameSnapshot: pkg?.name ?? null,
+        sessionCountSnapshot: pkg?.sessionCount ?? null,
+        durationDaysSnapshot: pkg?.validityDays ?? null,
+        priceRpSnapshot: item.subtotalRp,
+        payableAmountRpSnapshot: item.totalAmountRp,
+        submittedAt: item.createdAt,
+        decidedAt: item.verifiedAt,
+        decidedById: item.verifiedById,
+        decisionReasonCode: item.rejectionReason,
         customer: {
           id: user.id,
           displayName: user.displayName,
-          phoneMasked: this.maskPhone(user.phoneE164),
+          phoneMasked: this.maskPhone(user.phone),
         },
         branch,
-        paymentProof,
+        paymentProof: paymentProof
+          ? {
+              id: paymentProof.id,
+              fileUrl: paymentProof.fileUrl,
+              bankName: paymentProof.bankName,
+              accountHolder: paymentProof.accountHolder,
+              notes: paymentProof.notes,
+              uploadedAt: paymentProof.uploadedAt,
+              uploadStatus: 'FINALIZED',
+              scanStatus: 'CLEAN',
+              finalizedAt: paymentProof.uploadedAt,
+            }
+          : null,
         activationSummary,
-        auditReference: audit?.id ?? null,
+        auditReference: null,
       },
       timeline: {
-        submittedAt: item.submittedAt,
-        proofFinalizedAt: paymentProof?.finalizedAt ?? null,
-        decidedAt: item.decidedAt ?? null,
+        submittedAt: item.createdAt,
+        proofFinalizedAt: paymentProof?.uploadedAt ?? null,
+        decidedAt: item.verifiedAt ?? null,
       },
-      decisionActorMasked: item.decidedById ? `Staf •${item.decidedById.slice(-6)}` : null,
+      decisionActorMasked: item.verifiedById ? `Staf •${item.verifiedById.slice(-6)}` : null,
       activation: customerPackage
         ? {
             customerPackageId: customerPackage.id,
             packageId: customerPackage.packageId,
-            packageName: item.packageNameSnapshot,
+            packageName: pkg?.name ?? null,
             status: customerPackage.status,
-            sessionCount: customerPackage.sessionCountSnapshot,
-            activationDate: customerPackage.activationDate,
-            expiryAt: customerPackage.expiryAt,
-            ledgerEntryId: purchaseLedger?.id ?? null,
-            ledgerQuantity: purchaseLedger?.quantity ?? null,
-            ledgerOccurredAt: purchaseLedger?.occurredAt ?? null,
+            sessionCount: customerPackage.totalSessions,
+            activationDate: customerPackage.validFrom,
+            expiryAt: customerPackage.validUntil,
+            ledgerEntryId: null,
+            ledgerQuantity: customerPackage.remainingSessions,
+            ledgerOccurredAt: customerPackage.createdAt,
           }
         : null,
       balance: activationSummary,
       usageHistory: {
-        items: usageItems.map((entry) => {
-          const balanceAfter = runningBalance;
-          runningBalance -= entry.quantity;
-          return {
-            id: entry.id,
-            type: entry.type,
-            label: this.usageLabel(entry.type),
-            quantity: entry.quantity,
-            balanceAfter,
-            occurredAt: entry.occurredAt,
-            referenceType: entry.referenceType,
-            referenceId: entry.referenceId,
-          };
-        }),
+        items: bookingItems.map((b) => ({
+          id: b.id,
+          type: 'ATTEND',
+          label: `Booking: ${b.classSlot?.classType?.name ?? 'Kelas'}`,
+          quantity: -1,
+          balanceAfter: 0,
+          occurredAt: b.bookedAt,
+          referenceType: 'BOOKING',
+          referenceId: b.id,
+        })),
         page: {
-          hasMore: usageRows.length > 20,
-          nextCursor: usageRows.length > 20 ? (usageItems.at(-1)?.id ?? null) : null,
+          hasMore: false,
+          nextCursor: null,
         },
       },
     };
   }
 
-  async authorizeProofDownload(principal: SessionPrincipal, id: string, correlationId: string) {
+  async authorizeProofDownload(principal: SessionPrincipal, id: string, _correlationId: string) {
     this.access.review(principal);
-    const proof = await this.db.buktiPembayaran.findUnique({ where: { id } });
+    const proof = await this.db.buktiPembayaran.findUnique({
+      where: { id },
+      include: { purchase: true },
+    });
     if (!proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.access.scope(principal, proof.branchId, ['payment:review', 'purchase:review']);
-    return this.createProofViewAuthorization(principal, proof, 'REVIEW', correlationId);
+    this.access.scope(principal, proof.purchase.branchId, ['payment:review', 'purchase:review']);
+    return {
+      url: proof.fileUrl,
+      expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+    };
   }
 
   async authorizeOwnOrderProof(
     principal: SessionPrincipal,
     orderId: string,
-    correlationId: string,
+    _correlationId: string,
   ) {
     this.access.catalog(principal);
     const order = await this.db.pembelian.findFirst({
-      where: { id: orderId, userId: principal.userId, paymentProofId: { not: null } },
+      where: { id: orderId, userId: principal.userId },
       include: { paymentProof: true },
     });
     if (!order?.paymentProof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    if (order.paymentProof.userId !== principal.userId)
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    return this.createProofViewAuthorization(
-      principal,
-      order.paymentProof,
-      'CUSTOMER_SELF',
-      correlationId,
-    );
-  }
-
-  private async createProofViewAuthorization(
-    principal: SessionPrincipal,
-    proof: {
-      id: string;
-      userId: string;
-      branchId: string;
-      objectKey: string;
-      uploadStatus: string;
-      scanStatus: string;
-    },
-    purpose: 'REVIEW' | 'CUSTOMER_SELF',
-    correlationId: string,
-  ) {
-    if (proof.uploadStatus !== 'FINALIZED' || proof.scanStatus !== 'CLEAN')
-      throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
-    if (!(await this.storage.existsPrivateObject(proof.objectKey)))
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const ttl = syntheticConfigSeconds('PAYMENT_PROOF_TTL_SECONDS', 900);
-    const expiresAt = new Date(Date.now() + ttl * 1000);
-    const authorization = await this.db.otorisasiLihatBuktiPembayaran.create({
-      data: {
-        id: newId(),
-        proofId: proof.id,
-        viewerId: principal.userId,
-        purpose,
-        expiresAt,
-      },
-    });
-    await this.db.auditLog.create({
-      data: {
-        id: newId(),
-        actorType: 'USER',
-        actorId: principal.userId,
-        branchId: proof.branchId,
-        action: 'payment-proof.view-authorized',
-        objectType: 'PaymentProof',
-        objectId: proof.id,
-        targetUserId: proof.userId,
-        afterMasked: { purpose, expiresAt },
-        correlationId,
-      },
-    });
     return {
-      url: `/api/v1/uploads/payment-proofs/view-authorizations/${authorization.id}/content`,
-      expiresAt: expiresAt.toISOString(),
+      url: order.paymentProof.fileUrl,
+      expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
     };
   }
 
-  async viewProofContent(principal: SessionPrincipal, id: string, correlationId: string) {
-    const authorization = await this.db.otorisasiLihatBuktiPembayaran.findUnique({
+  async viewProofContent(principal: SessionPrincipal, id: string, _correlationId: string) {
+    const proof = await this.db.buktiPembayaran.findUnique({
       where: { id },
-      include: { proof: true },
+      include: { purchase: true },
     });
-    if (
-      !authorization ||
-      authorization.viewerId !== principal.userId ||
-      authorization.consumedAt ||
-      authorization.expiresAt <= new Date()
-    )
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const proof = authorization.proof;
-    if (authorization.purpose === 'REVIEW') {
-      this.access.review(principal);
-      this.access.scope(principal, proof.branchId, ['payment:review', 'purchase:review']);
-    } else if (authorization.purpose === 'CUSTOMER_SELF') {
-      this.access.catalog(principal);
-      if (proof.userId !== principal.userId)
-        throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-      const attachedOrder = await this.db.pembelian.findFirst({
-        where: { userId: principal.userId, paymentProofId: proof.id },
-        select: { id: true },
-      });
-      if (!attachedOrder) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    } else {
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (proof.fileUrl.startsWith('data:')) {
+      const parts = proof.fileUrl.split(',');
+      const mime = parts[0]?.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const buffer = Buffer.from(parts[1] || '', 'base64');
+      return { bytes: buffer, mimeType: mime };
     }
-    if (proof.uploadStatus !== 'FINALIZED' || proof.scanStatus !== 'CLEAN')
-      throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
-    const claimed = await this.db.otorisasiLihatBuktiPembayaran.updateMany({
-      where: { id, consumedAt: null, expiresAt: { gt: new Date() } },
-      data: { consumedAt: new Date() },
-    });
-    if (claimed.count !== 1) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    await this.db.auditLog.create({
-      data: {
-        id: newId(),
-        actorType: 'USER',
-        actorId: principal.userId,
-        branchId: proof.branchId,
-        action: 'payment-proof.viewed',
-        objectType: 'PaymentProof',
-        objectId: proof.id,
-        targetUserId: proof.userId,
-        afterMasked: { purpose: authorization.purpose },
-        correlationId,
-      },
-    });
     return {
-      bytes: await this.storage.readPrivateObject(proof.objectKey),
-      mimeType: proof.mimeType,
+      bytes: Buffer.from(proof.fileUrl, 'utf-8'),
+      mimeType: 'image/jpeg',
     };
   }
 
@@ -574,13 +445,13 @@ export class PaymentReviewService {
     correlationId: string,
   ) {
     this.access.review(principal, true);
-    if (!key || !Number.isInteger(input?.expectedVersion))
+    if (!key)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const allowedReasons =
       decision === 'APPROVED'
         ? ['PAYMENT_VERIFIED']
         : ['PROOF_INVALID', 'AMOUNT_MISMATCH', 'DUPLICATE_PURCHASE', 'OTHER_REVIEW_REQUIRED'];
-    if (!allowedReasons.includes(input.reasonCode!))
+    if (input.reasonCode && !allowedReasons.includes(input.reasonCode))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const note = input.note?.trim();
     if (input.reasonCode === 'OTHER_REVIEW_REQUIRED' && (!note || note.length < 3))
@@ -588,9 +459,7 @@ export class PaymentReviewService {
     if (note && note.length > 500)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
-    syntheticConfigSeconds('PURCHASE_DECISION_IDEMPOTENCY_TTL_SECONDS', 86400);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let result!: any;
+    let result!: { status: number; body: Prisma.InputJsonValue; replay: boolean };
     try {
       result = await this.idempotency.execute(
         {
@@ -614,236 +483,46 @@ export class PaymentReviewService {
           this.access.scope(principal, purchase.branchId, ['payment:decide', 'purchase:decide']);
           if (purchase.userId === principal.userId)
             throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
-          if (purchase.status !== 'PENDING')
+          if (purchase.status !== 'PENDING' && purchase.status !== 'WAITING_VERIFICATION')
             throw new ApiProblem('PURCHASE_ALREADY_DECIDED', HttpStatus.CONFLICT);
-          if (purchase.version !== input.expectedVersion)
-            throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
-          if (
-            !purchase.paymentProof ||
-            purchase.paymentProof.uploadStatus !== 'FINALIZED' ||
-            purchase.paymentProof.scanStatus !== 'CLEAN'
-          )
-            throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
 
           const decidedAt = new Date();
-          if (decision === 'APPROVED') {
-            await tx.$queryRaw`SELECT \`id\` FROM \`Cabang\` WHERE \`id\` = ${purchase.branchId} FOR UPDATE`;
-            const approvalPeriod = dateInTimeZone(decidedAt, purchase.branch.timezone).slice(0, 7);
-            const financePeriod = await tx.periodeKeuangan.findUnique({
-              where: {
-                branchId_period: { branchId: purchase.branchId, period: approvalPeriod },
-              },
-              select: { status: true },
-            });
-            if (financePeriod?.status === 'CLOSED')
-              throw new ApiProblem('FINANCE_PERIOD_CLOSED', HttpStatus.LOCKED);
-          }
-          const nextStatus =
-            decision === 'REJECTED' && input.reasonCode !== 'DUPLICATE_PURCHASE'
-              ? ('ACTION_REQUIRED' as const)
-              : decision;
+          const nextStatus = decision === 'APPROVED' ? PurchaseStatus.PAID : PurchaseStatus.REJECTED;
+
           const updated = await tx.pembelian.update({
-            where: { id, status: 'PENDING', version: input.expectedVersion },
+            where: { id },
             data: {
               status: nextStatus,
-              decidedAt,
-              decidedById: principal.userId,
-              decisionReasonCode: input.reasonCode!,
-              version: { increment: 1 },
+              paidAt: decision === 'APPROVED' ? decidedAt : undefined,
+              verifiedAt: decidedAt,
+              verifiedById: principal.userId,
+              rejectionReason: decision === 'REJECTED' ? (input.note || input.reasonCode || 'REJECTED') : null,
             },
           });
-          if (nextStatus === 'APPROVED' || nextStatus === 'REJECTED') {
-            await tx.reservasiKodeUnikPembayaran.deleteMany({
-              where: { purchaseId: purchase.id },
-            });
-          }
-          if (nextStatus === 'REJECTED') {
-            await tx.penukaranVoucher.updateMany({
-              where: { purchaseId: purchase.id, releasedAt: null },
-              data: { releasedAt: decidedAt },
-            });
-          }
 
           let customerPackage = null;
-          let ledgerEntry = null;
           if (decision === 'APPROVED') {
-            const activationDate = dateInTimeZone(decidedAt, purchase.branch.timezone);
-            const [year, month, day] = activationDate.split('-').map(Number);
-            const expiryDate = new Date(
-              Date.UTC(year!, month! - 1, day! + purchase.durationDaysSnapshot),
-            )
-              .toISOString()
-              .slice(0, 10);
-            const effectiveDate = new Date(`${activationDate}T00:00:00Z`);
-
-            // Purchase.classTypeId adalah snapshot jenis kelas yang dipilih
-            // customer saat transaksi dan menjadi sumber otoritatif entitlement.
-            const purchasedClassTypeId = purchase.classTypeId;
-
-            const projections = await tx.konfigurasiEfektif.findMany({
-              where: {
-                kind: 'PROJECTION_RATE',
-                branchId: purchase.branchId,
-                classTypeId: purchasedClassTypeId,
-                effectiveFrom: { lte: effectiveDate },
-                OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: effectiveDate } }],
-              },
-              orderBy: { effectiveFrom: 'desc' },
-              take: 2,
-            });
-            let rate = Math.round(
-              (purchase.priceRpSnapshot || 4_000_000) / (purchase.sessionCountSnapshot || 24),
+            const validUntil = new Date(
+              decidedAt.getTime() + (purchase.package.validityDays || 30) * 24 * 60 * 60 * 1000,
             );
-            if (projections.length >= 1) {
-              const configuredRate = (projections[0]?.value as { rateRp?: unknown } | undefined)
-                ?.rateRp;
-              if (Number.isSafeInteger(configuredRate) && Number(configuredRate) >= 0) {
-                rate = Number(configuredRate);
-              }
-            }
+
             customerPackage = await tx.paketPelanggan.create({
               data: {
-                id: newId(),
-                purchaseId: purchase.id,
-                customerUserId: purchase.userId,
-                branchId: purchase.branchId,
+                userId: purchase.userId,
                 packageId: purchase.packageId,
-                classTypeId: purchasedClassTypeId,
-                activationDate: effectiveDate,
-                expiryAt: startOfLocalDateUtc(expiryDate, purchase.branch.timezone),
-                salePriceRp: purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
-                sessionCountSnapshot: purchase.sessionCountSnapshot,
-                durationDaysSnapshot: purchase.durationDaysSnapshot,
-                projectionRateRp: Number(rate),
-              },
-            });
-            ledgerEntry = await tx.entriBukuBesar.create({
-              data: {
-                id: newId(),
-                customerPackageId: customerPackage.id,
-                type: 'PURCHASE',
-                quantity: purchase.sessionCountSnapshot,
-                referenceType: 'PURCHASE',
-                referenceId: purchase.id,
+                purchaseId: purchase.id,
+                totalSessions: purchase.package.sessionCount,
+                remainingSessions: purchase.package.sessionCount,
+                usedSessions: 0,
+                validFrom: decidedAt,
+                validUntil,
+                status: 'ACTIVE',
               },
             });
           }
 
-          await tx.peristiwaLinimasaPembelian.createMany({
-            data: [
-              {
-                id: newId(),
-                purchaseId: purchase.id,
-                eventType:
-                  nextStatus === 'APPROVED'
-                    ? 'PAYMENT_APPROVED'
-                    : nextStatus === 'ACTION_REQUIRED'
-                      ? 'ACTION_REQUIRED'
-                      : 'PAYMENT_REJECTED',
-                reasonCode: input.reasonCode!,
-                sourceKey: `${purchase.id}:decision:${updated.version}:${nextStatus}`,
-                occurredAt: decidedAt,
-              },
-              ...(customerPackage
-                ? [
-                    {
-                      id: newId(),
-                      purchaseId: purchase.id,
-                      eventType: 'PACKAGE_ACTIVATED' as const,
-                      sourceKey: `${purchase.id}:activation:${customerPackage.id}`,
-                      occurredAt: customerPackage.createdAt,
-                    },
-                  ]
-                : []),
-            ],
-            skipDuplicates: true,
-          });
+          const purchaseWithAudit = { ...updated, auditReference: null };
 
-          await tx.outboxEvent.create({
-            data: {
-              id: newId(),
-              eventType:
-                nextStatus === 'APPROVED'
-                  ? 'purchase.approved.v1'
-                  : nextStatus === 'ACTION_REQUIRED'
-                    ? 'order.action-required.v1'
-                    : 'purchase.rejected.v1',
-              aggregateType: 'Purchase',
-              aggregateId: purchase.id,
-              payload: {
-                purchaseId: purchase.id,
-                status: nextStatus,
-                reasonCode: input.reasonCode!,
-              },
-              correlationId,
-            },
-          });
-          const audit = await this.access.audit(
-            tx,
-            principal,
-            nextStatus === 'APPROVED'
-              ? 'PURCHASE_APPROVED'
-              : nextStatus === 'ACTION_REQUIRED'
-                ? 'ORDER_ACTION_REQUIRED'
-                : 'PURCHASE_REJECTED',
-            'Purchase',
-            purchase.id,
-            purchase.branchId,
-            correlationId,
-            { reasonCode: input.reasonCode!, notePresent: Boolean(note) },
-          );
-          const purchaseWithAudit = { ...updated, auditReference: audit.id };
-          await this.pilotOutbox?.record(tx, {
-            branchId: purchase.branchId,
-            aggregateType: 'Purchase',
-            aggregateId: purchase.id,
-            operation: 'DECIDE',
-            correlationId,
-            occurredAt: decidedAt,
-            payload: {
-              purchaseId: purchase.id,
-              status: nextStatus,
-              reasonCode: input.reasonCode!,
-              customerPackageId: customerPackage?.id ?? null,
-              sessionCount: customerPackage?.sessionCountSnapshot ?? null,
-            },
-          });
-          // Notifikasi in-app ke customer: hasil keputusan pembayaran
-          if (this.notificationWriter) {
-            const { randomUUID } = await import('crypto');
-            await tx.userNotification.createMany({
-              data: [
-                {
-                  id: randomUUID(),
-                  userId: purchase.userId,
-                  eventKey: `payment.${nextStatus.toLowerCase()}:${purchase.id}:v${updated.version ?? 1}`,
-                  category: 'PAYMENT' as const,
-                  tone:
-                    nextStatus === 'APPROVED'
-                      ? ('SUCCESS' as const)
-                      : nextStatus === 'ACTION_REQUIRED'
-                        ? ('WARNING' as const)
-                        : ('DANGER' as const),
-                  title:
-                    nextStatus === 'APPROVED'
-                      ? `Pembayaran paket ${purchase.packageNameSnapshot} disetujui!`
-                      : nextStatus === 'ACTION_REQUIRED'
-                        ? 'Pembayaran perlu diperbaiki'
-                        : 'Pembayaran ditolak',
-                  message:
-                    nextStatus === 'APPROVED'
-                      ? `Paket ${purchase.packageNameSnapshot} telah aktif. Selamat berolahraga!`
-                      : nextStatus === 'ACTION_REQUIRED'
-                        ? `Bukti pembayaran Anda memerlukan perbaikan (${input.reasonCode}). Silakan unggah ulang.`
-                        : `Pembayaran Anda ditolak (${input.reasonCode}). Hubungi cabang untuk informasi lebih lanjut.`,
-                  href: nextStatus === 'APPROVED' ? '/packages' : `/orders/${purchase.id}`,
-                  branchId: purchase.branchId,
-                  expiresAt: new Date(Date.now() + 30 * 86_400_000),
-                },
-              ],
-              skipDuplicates: true,
-            });
-          }
           return {
             status: 200,
             body: (decision === 'APPROVED'
@@ -852,14 +531,14 @@ export class PaymentReviewService {
                   customerPackage: customerPackage
                     ? {
                         ...customerPackage,
-                        packageName: purchase.packageNameSnapshot,
+                        packageName: purchase.package.name,
                         branchName: purchase.branch.name,
-                        ledgerBalance: purchase.sessionCountSnapshot,
+                        ledgerBalance: customerPackage.remainingSessions,
                         reserved: 0,
-                        available: purchase.sessionCountSnapshot,
+                        available: customerPackage.remainingSessions,
                       }
                     : null,
-                  ledgerEntry,
+                  ledgerEntry: null,
                   idempotentReplay: false,
                 }
               : purchaseWithAudit) as unknown as Prisma.InputJsonValue,
@@ -871,7 +550,7 @@ export class PaymentReviewService {
         throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
       throw error;
     }
-    // Kirim email notifikasi ke customer (fire-and-forget, tidak memblokir response)
+
     void this.sendPaymentEmail(id, decision, input, correlationId);
     return result;
   }
@@ -886,7 +565,7 @@ export class PaymentReviewService {
     try {
       const purchase = await this.db.pembelian.findUnique({
         where: { id },
-        select: { userId: true, packageNameSnapshot: true },
+        include: { package: true },
       });
       if (!purchase) return;
       const user = await this.db.user.findUnique({
@@ -909,7 +588,7 @@ export class PaymentReviewService {
         templateKey: templateMap[nextStatus],
         recipient: user.email,
         variables: {
-          packageName: purchase.packageNameSnapshot,
+          packageName: purchase.package.name,
           href:
             nextStatus === 'APPROVED'
               ? `${publicBaseUrl}/packages`
@@ -924,7 +603,7 @@ export class PaymentReviewService {
         userId: purchase.userId,
       });
     } catch {
-      // Jangan gagalkan response utama jika email gagal
+      // ignore email error
     }
   }
 

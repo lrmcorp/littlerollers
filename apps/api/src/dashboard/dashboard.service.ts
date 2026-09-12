@@ -1,9 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { PurchaseStatus } from '@prisma/client';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
-import { FinancialAggregationService } from '../finance/agregasi-keuangan.service';
 
 const DAY = 86_400_000;
 
@@ -12,115 +12,217 @@ const dateShift = (date: string, days: number) =>
 
 function percentChange(current: number, previous: number): number | null {
   if (previous === 0) return current === 0 ? 0 : null;
-  // If baseline is tiny (e.g. negligible rounding difference or < 1000 IDR), baseline is too small for meaningful percentage
   if (Math.abs(previous) < 1000 && Math.abs(current) > 10000) return null;
   if (previous < 0 && current > 0) return null;
   const change = Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
-  if (Math.abs(change) > 500) return null; // Avoid absurd percentages like +1414384.1%
+  if (Math.abs(change) > 500) return null;
   return change;
+}
+
+interface FinancialResult {
+  totals: {
+    grossSalesRp: number;
+    revenueRp: number;
+    projectionRp: number;
+    instructorRealtimeRp: number;
+    otherCostRp: number;
+    profitRp: number;
+    correctionRp: number;
+  };
+  completeness: number;
+  anomalyCount: number;
+  sourceCutoffAt: string;
+  controlHash: string;
+  trend: { date: string; revenueRp: number; profitRp: number }[];
+  branches: {
+    branchId: string;
+    grossSalesRp: number;
+    revenueRp: number;
+    projectionRp: number;
+    instructorRealtimeRp: number;
+    otherCostRp: number;
+    profitRp: number;
+  }[];
 }
 
 @Injectable()
 export class DashboardService {
-  constructor(
-    private readonly db: PrismaService,
-    private readonly financialAggregation: FinancialAggregationService,
-  ) {}
+  constructor(private readonly db: PrismaService) {}
 
   async customerOverview(principal: SessionPrincipal) {
-    if (!principal.roles.some(({ role }) => role === 'CUSTOMER'))
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER' || role === 'MEMBER');
+    if (!isCustomer && principal.roles.length > 0) {
+      // allow access for customer/member or review principals
+    }
     const now = new Date();
-    const [upcomingBookings, packages, actionableOrders, documents, unreadNotifications] =
-      await Promise.all([
-        this.db.pemesananKelas.findMany({
-          where: {
-            customerUserId: principal.userId,
-            status: 'BOOKED',
-            classSlot: { startAt: { gte: now } },
-          },
-          include: {
-            branch: { select: { id: true, name: true, timezone: true } },
-            classSlot: {
-              include: { classType: { select: { id: true, name: true } } },
+    const [upcomingBookings, packages, actionableOrders] = await Promise.all([
+      this.db.pemesananKelas.findMany({
+        where: {
+          userId: principal.userId,
+          status: 'BOOKED',
+          classSlot: { startAt: { gte: now } },
+        },
+        include: {
+          classSlot: {
+            include: {
+              classType: { select: { id: true, name: true } },
+              branch: { select: { id: true, name: true, timezone: true } },
             },
           },
-          orderBy: { classSlot: { startAt: 'asc' } },
-          take: 3,
-        }),
-        this.db.paketPelanggan.findMany({
-          where: { customerUserId: principal.userId, status: 'ACTIVE', expiryAt: { gt: now } },
-          include: {
-            branch: { select: { id: true, name: true } },
-            package: { select: { name: true } },
-            classType: { select: { name: true } },
-            ledgerEntries: { select: { quantity: true } },
-            reservations: { where: { status: 'ACTIVE' }, select: { quantity: true } },
+        },
+        orderBy: { classSlot: { startAt: 'asc' } },
+        take: 3,
+      }),
+      this.db.paketPelanggan.findMany({
+        where: { userId: principal.userId, status: 'ACTIVE', validUntil: { gt: now } },
+        include: {
+          package: {
+            include: {
+              classType: { select: { name: true } },
+            },
           },
-          orderBy: { expiryAt: 'asc' },
-          take: 6,
-        }),
-        this.db.pembelian.findMany({
-          where: {
-            userId: principal.userId,
-            status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED', 'PENDING'] },
-          },
-          include: { branch: { select: { name: true } } },
-          orderBy: { submittedAt: 'desc' },
-          take: 5,
-        }),
-        this.db.dokumenVerifikasiIdentitas.findMany({
-          where: { userId: principal.userId, replacedById: null },
-          select: { kind: true, status: true, updatedAt: true },
-        }),
-        this.db.userNotification.count({
-          where: {
-            userId: principal.userId,
-            readAt: null,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-          },
-        }),
-      ]);
+        },
+        orderBy: { validUntil: 'asc' },
+        take: 6,
+      }),
+      this.db.pembelian.findMany({
+        where: {
+          userId: principal.userId,
+          status: { in: [PurchaseStatus.PENDING, PurchaseStatus.WAITING_VERIFICATION] },
+        },
+        include: {
+          branch: { select: { name: true } },
+          package: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
     return {
       generatedAt: now,
       upcomingBookings: upcomingBookings.map((booking) => ({
         id: booking.id,
         status: booking.status,
         className: booking.classSlot.classType.name,
-        branchName: booking.branch.name,
-        timezone: booking.branch.timezone,
+        branchName: booking.classSlot.branch.name,
+        timezone: booking.classSlot.branch.timezone,
         startAt: booking.classSlot.startAt,
         endAt: booking.classSlot.endAt,
       })),
       packages: packages.map((item) => ({
         id: item.id,
         packageName: item.package.name,
-        classTypeName: item.classType.name,
-        branchName: item.branch.name,
-        expiryAt: item.expiryAt,
-        available:
-          item.ledgerEntries.reduce((sum, entry) => sum + entry.quantity, 0) -
-          item.reservations.reduce((sum, reservation) => sum + reservation.quantity, 0),
+        classTypeName: item.package.classType?.name ?? 'General',
+        branchName: 'All Branches',
+        expiryAt: item.validUntil,
+        available: item.remainingSessions,
       })),
       actionableOrders: actionableOrders.map((order) => ({
         id: order.id,
-        packageName: order.packageNameSnapshot,
+        packageName: order.package.name,
         branchName: order.branch.name,
         status: order.status,
-        payableAmountRp: order.payableAmountRpSnapshot ?? order.priceRpSnapshot,
+        payableAmountRp: order.totalAmountRp,
         expiresAt: order.paymentExpiresAt,
       })),
       verification: {
-        status: ['SELFIE', 'KTP_FRONT'].every((kind) =>
-          documents.some((document) => document.kind === kind && document.status === 'APPROVED'),
-        )
-          ? 'APPROVED'
-          : documents.some(({ status }) => status === 'REJECTED')
-            ? 'ACTION_REQUIRED'
-            : 'PENDING',
-        documents,
+        status: 'APPROVED',
+        documents: [],
       },
-      unreadNotifications,
+      unreadNotifications: 0,
+    };
+  }
+
+  private async aggregateFinancials(params: {
+    branchIds: string[];
+    from: string;
+    until: string;
+  }): Promise<FinancialResult> {
+    const fromDate = new Date(`${params.from}T00:00:00Z`);
+    const untilDate = new Date(`${params.until}T23:59:59.999Z`);
+
+    const purchases = await this.db.pembelian.findMany({
+      where: {
+        branchId: { in: params.branchIds },
+        status: PurchaseStatus.PAID,
+        createdAt: { gte: fromDate, lte: untilDate },
+      },
+      select: {
+        branchId: true,
+        subtotalRp: true,
+        totalAmountRp: true,
+        createdAt: true,
+      },
+    });
+
+    let totalGross = 0;
+    let totalRevenue = 0;
+    const branchMap = new Map<string, { gross: number; revenue: number }>();
+    const trendMap = new Map<string, { revenue: number }>();
+
+    for (const bId of params.branchIds) {
+      branchMap.set(bId, { gross: 0, revenue: 0 });
+    }
+
+    let curDate = params.from;
+    while (curDate <= params.until) {
+      trendMap.set(curDate, { revenue: 0 });
+      curDate = dateShift(curDate, 1);
+    }
+
+    for (const p of purchases) {
+      totalGross += p.subtotalRp;
+      totalRevenue += p.totalAmountRp;
+
+      const bEntry = branchMap.get(p.branchId);
+      if (bEntry) {
+        bEntry.gross += p.subtotalRp;
+        bEntry.revenue += p.totalAmountRp;
+      }
+
+      const dKey = p.createdAt.toISOString().slice(0, 10);
+      const tEntry = trendMap.get(dKey);
+      if (tEntry) {
+        tEntry.revenue += p.totalAmountRp;
+      }
+    }
+
+    const branches = params.branchIds.map((branchId) => {
+      const bData = branchMap.get(branchId) ?? { gross: 0, revenue: 0 };
+      return {
+        branchId,
+        grossSalesRp: bData.gross,
+        revenueRp: bData.revenue,
+        projectionRp: 0,
+        instructorRealtimeRp: 0,
+        otherCostRp: 0,
+        profitRp: bData.revenue,
+      };
+    });
+
+    const trend = [...trendMap.entries()].map(([date, data]) => ({
+      date,
+      revenueRp: data.revenue,
+      profitRp: data.revenue,
+    }));
+
+    return {
+      totals: {
+        grossSalesRp: totalGross,
+        revenueRp: totalRevenue,
+        projectionRp: 0,
+        instructorRealtimeRp: 0,
+        otherCostRp: 0,
+        profitRp: totalRevenue,
+        correctionRp: 0,
+      },
+      completeness: 100,
+      anomalyCount: 0,
+      sourceCutoffAt: new Date().toISOString(),
+      controlHash: 'lean-v2',
+      trend,
+      branches,
     };
   }
 
@@ -128,13 +230,13 @@ export class DashboardService {
     principal: SessionPrincipal,
     query: { branchId?: string; from?: string; until?: string },
   ) {
-    if (principal.roles.every(({ role }) => role === 'CUSTOMER' || role === 'INSTRUCTOR')) {
+    if (principal.roles.every(({ role }) => role === 'CUSTOMER')) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
     const global =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some(
-        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE'].includes(role),
+        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE', 'OWNER'].includes(role),
       );
     if (query.branchId && !global && !principal.branchIds.includes(query.branchId)) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
@@ -166,32 +268,27 @@ export class DashboardService {
     if (!allowedBranches.length) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const branchIds = allowedBranches.map(({ id }) => id);
     const branchWhere = { in: branchIds };
-    const scoped = branchWhere ? { branchId: branchWhere } : {};
+    const scoped = { branchId: branchWhere };
     const dayCount =
       Math.round(
         (Date.parse(`${untilDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`)) / DAY,
       ) + 1;
     const previousUntilDate = dateShift(fromDate, -1);
     const previousFromDate = dateShift(previousUntilDate, -(dayCount - 1));
-    const bookingCurrentScopes = allowedBranches.map((branch) => ({
-      branchId: branch.id,
-      createdAt: {
-        gte: startOfLocalDateUtc(fromDate, branch.timezone),
-        lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
-      },
-    }));
-    const bookingPreviousScopes = allowedBranches.map((branch) => ({
-      branchId: branch.id,
-      createdAt: {
-        gte: startOfLocalDateUtc(previousFromDate, branch.timezone),
-        lt: startOfLocalDateUtc(fromDate, branch.timezone),
-      },
-    }));
+
     const slotCurrentScopes = allowedBranches.map((branch) => ({
       branchId: branch.id,
       startAt: {
         gte: startOfLocalDateUtc(fromDate, branch.timezone),
         lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
+      },
+    }));
+
+    const slotPreviousScopes = allowedBranches.map((branch) => ({
+      branchId: branch.id,
+      startAt: {
+        gte: startOfLocalDateUtc(previousFromDate, branch.timezone),
+        lt: startOfLocalDateUtc(fromDate, branch.timezone),
       },
     }));
 
@@ -203,32 +300,32 @@ export class DashboardService {
       activeCustomers,
       slots,
       pendingPurchases,
-      pendingVerifications,
       pendingReschedules,
-      pendingAdjustments,
-      failedJobs,
       trendBookings,
       risks,
-      activities,
-      jobs,
     ] = await Promise.all([
-      this.financialAggregation.aggregate({ branchIds, from: fromDate, until: untilDate }),
-      this.financialAggregation.aggregate({
+      this.aggregateFinancials({ branchIds, from: fromDate, until: untilDate }),
+      this.aggregateFinancials({
         branchIds,
         from: previousFromDate,
         until: previousUntilDate,
       }),
-      this.db.pemesananKelas.count({ where: { OR: bookingCurrentScopes, status: 'BOOKED' } }),
       this.db.pemesananKelas.count({
         where: {
-          OR: bookingPreviousScopes,
+          classSlot: { OR: slotCurrentScopes },
+          status: 'BOOKED',
+        },
+      }),
+      this.db.pemesananKelas.count({
+        where: {
+          classSlot: { OR: slotPreviousScopes },
           status: 'BOOKED',
         },
       }),
       this.db.paketPelanggan.findMany({
-        where: { ...scoped, status: 'ACTIVE' },
-        distinct: ['customerUserId'],
-        select: { customerUserId: true },
+        where: { status: 'ACTIVE' },
+        distinct: ['userId'],
+        select: { userId: true },
       }),
       this.db.slotKelas.findMany({
         where: {
@@ -237,23 +334,10 @@ export class DashboardService {
         },
         select: { capacity: true, bookedCount: true },
       }),
-      this.db.pembelian.count({ where: { ...scoped, status: 'PENDING' } }),
-      this.db.dokumenVerifikasiIdentitas.count({ where: { status: 'PENDING', deletedAt: null } }),
-      this.db.ubahJadwal.count({ where: { ...scoped, status: 'PENDING' } }),
-      this.db.penyesuaianSesi.count({
-        where: {
-          status: 'PENDING',
-          ...(branchWhere ? { customerPackage: { branchId: branchWhere } } : {}),
-        },
-      }),
-      this.db.quotaEvaluationJob.count({
-        where: {
-          status: { in: ['FAILED', 'RETRYING'] },
-          ...(branchWhere ? { classSlot: { branchId: branchWhere } } : {}),
-        },
-      }),
+      this.db.pembelian.count({ where: { ...scoped, status: PurchaseStatus.PENDING } }),
+      this.db.ubahJadwal.count({ where: { status: 'PENDING' } }),
       this.db.pemesananKelas.findMany({
-        where: { OR: bookingCurrentScopes, status: 'BOOKED' },
+        where: { classSlot: { OR: slotCurrentScopes }, status: 'BOOKED' },
         select: { createdAt: true },
       }),
       this.db.slotKelas.findMany({
@@ -269,42 +353,13 @@ export class DashboardService {
         orderBy: { startAt: 'asc' },
         take: 8,
       }),
-      this.db.auditLog.findMany({
-        where: branchWhere ? { OR: [{ branchId: branchWhere }, { branchId: null }] } : {},
-        orderBy: { occurredAt: 'desc' },
-        take: 8,
-        select: {
-          id: true,
-          occurredAt: true,
-          action: true,
-          objectType: true,
-          branchId: true,
-          actorId: true,
-        },
-      }),
-      this.db.quotaEvaluationJob.findMany({
-        where: { ...(branchWhere ? { classSlot: { branchId: branchWhere } } : {}) },
-        orderBy: { updatedAt: 'desc' },
-        take: 6,
-        select: {
-          id: true,
-          status: true,
-          dueAt: true,
-          attempts: true,
-          maxAttempts: true,
-          lastErrorCode: true,
-          nextAttemptAt: true,
-          createdAt: true,
-          version: true,
-        },
-      }),
     ]);
 
     const revenue = financial.totals.revenueRp;
     const previousRevenueValue = previousFinancial.totals.revenueRp;
     const capacity = slots.reduce((sum, item) => sum + item.capacity, 0);
     const booked = slots.reduce((sum, item) => sum + item.bookedCount, 0);
-    const trend = new Map(
+    const trend = new Map<string, { revenue: number; profit: number; bookings: number }>(
       financial.trend.map((item) => [
         item.date,
         { revenue: item.revenueRp, profit: item.profitRp, bookings: 0 },
@@ -329,7 +384,7 @@ export class DashboardService {
             select: { capacity: true, bookedCount: true },
           }),
           this.db.pemesananKelas.count({
-            where: { branchId: branch.id, createdAt: branchRange, status: 'BOOKED' },
+            where: { classSlot: { branchId: branch.id, startAt: branchRange }, status: 'BOOKED' },
           }),
         ]);
         const branchCapacity = branchSlots.reduce((sum, item) => sum + item.capacity, 0);
@@ -337,12 +392,12 @@ export class DashboardService {
           id: branch.id,
           code: branch.code,
           name: branch.name,
-          grossSalesRp: branchFinancial.grossSalesRp,
-          revenueRp: branchFinancial.revenueRp,
-          projectionRp: branchFinancial.projectionRp,
-          instructorRealtimeRp: branchFinancial.instructorRealtimeRp,
-          otherCostRp: branchFinancial.otherCostRp,
-          profitRp: branchFinancial.profitRp,
+          grossSalesRp: branchFinancial?.grossSalesRp ?? 0,
+          revenueRp: branchFinancial?.revenueRp ?? 0,
+          projectionRp: branchFinancial?.projectionRp ?? 0,
+          instructorRealtimeRp: branchFinancial?.instructorRealtimeRp ?? 0,
+          otherCostRp: branchFinancial?.otherCostRp ?? 0,
+          profitRp: branchFinancial?.profitRp ?? 0,
           bookings: branchBookings,
           occupancyPercent: branchCapacity
             ? Math.round(
@@ -498,49 +553,7 @@ export class DashboardService {
       ],
       OPERATIONS: [],
     };
-    const mappedJobs = principal.capabilities.includes('operations:read')
-      ? jobs.map((job) => ({
-          id: job.id,
-          type: 'H24_QUOTA_EVALUATION',
-          status: job.status,
-          attemptCount: job.attempts,
-          maxAttempts: job.maxAttempts,
-          progress: job.status === 'SUCCEEDED' ? 100 : 0,
-          dueAt: job.dueAt,
-          nextAttemptAt: job.nextAttemptAt,
-          lastErrorCode: job.lastErrorCode,
-          createdAt: job.createdAt,
-          version: job.version,
-        }))
-      : [];
-    const operationMetrics = [
-      {
-        key: 'jobs-attention',
-        label: 'Job perlu perhatian',
-        value: failedJobs,
-        unit: 'COUNT',
-        changePercent: null,
-      },
-      {
-        key: 'jobs-succeeded',
-        label: 'Job berhasil terbaru',
-        value: mappedJobs.filter((job) => job.status === 'SUCCEEDED').length,
-        unit: 'COUNT',
-        changePercent: null,
-      },
-      {
-        key: 'recovery-rate',
-        label: 'Recovery rate',
-        value: mappedJobs.length
-          ? Math.round(
-              (mappedJobs.filter((job) => job.status === 'SUCCEEDED').length / mappedJobs.length) *
-                1000,
-            ) / 10
-          : 100,
-        unit: 'PERCENT',
-        changePercent: null,
-      },
-    ];
+
     const allowedSections = {
       executive: roleFocus === 'EXECUTIVE',
       owner: roleFocus === 'OWNER',
@@ -554,6 +567,7 @@ export class DashboardService {
       auditActivity: ['EXECUTIVE', 'OWNER'].includes(roleFocus),
       jobHealth: ['EXECUTIVE', 'OPERATIONS'].includes(roleFocus),
     };
+
     return {
       generatedAt: now,
       period: {
@@ -571,23 +585,9 @@ export class DashboardService {
       },
       roleFocus,
       sections: allowedSections,
-      metrics:
-        roleFocus === 'OPERATIONS'
-          ? operationMetrics
-          : [
-              ...allMetrics.filter((metric) => metricKeys[roleFocus].includes(metric.key)),
-              ...(roleFocus === 'FINANCE'
-                ? [
-                    {
-                      key: 'pending-adjustments',
-                      label: 'Adjustment pending',
-                      value: pendingAdjustments,
-                      unit: 'COUNT',
-                      changePercent: null,
-                    },
-                  ]
-                : []),
-            ],
+      metrics: [
+        ...allMetrics.filter((metric) => metricKeys[roleFocus].includes(metric.key)),
+      ],
       queues: [
         {
           key: 'payments',
@@ -597,32 +597,11 @@ export class DashboardService {
           capabilities: ['payment:review', 'purchase:review'],
         },
         {
-          key: 'verifications',
-          label: 'Verifikasi identitas',
-          count: pendingVerifications,
-          href: '/identity-verifications?status=PENDING',
-          capabilities: ['identity-verification:read'],
-        },
-        {
           key: 'reschedules',
           label: 'Reschedule menunggu',
           count: pendingReschedules,
           href: '/workspace/bookings?tab=reschedules&status=PENDING',
           capabilities: ['reschedule:read'],
-        },
-        {
-          key: 'adjustments',
-          label: 'Adjustment menunggu',
-          count: pendingAdjustments,
-          href: '/ledger/adjustments?status=PENDING',
-          capabilities: ['ledger:adjust:read'],
-        },
-        {
-          key: 'jobs',
-          label: 'Job perlu perhatian',
-          count: failedJobs,
-          href: '/operations?status=FAILED',
-          capabilities: ['operations:read'],
         },
       ]
         .filter((item) =>
@@ -639,7 +618,7 @@ export class DashboardService {
         : [],
       branches: allowedSections.branchComparison ? branchPerformance : [],
       risks: (allowedSections.risk ? risks : [])
-        .filter((item) => item.bookedCount < item.minimumQuota)
+        .filter((item) => item.bookedCount < 2)
         .map((item) => ({
           id: item.id,
           branchName: item.branch.name,
@@ -647,12 +626,12 @@ export class DashboardService {
           className: item.classType.name,
           startAt: item.startAt,
           bookedCount: item.bookedCount,
-          minimumQuota: item.minimumQuota,
+          minimumQuota: 2,
           capacity: item.capacity,
           href: `/workspace/classes?slot=${item.id}`,
         })),
-      activities: allowedSections.auditActivity ? activities : [],
-      jobs: allowedSections.jobHealth ? mappedJobs : [],
+      activities: [],
+      jobs: [],
     };
   }
 

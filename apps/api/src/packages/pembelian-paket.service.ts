@@ -1,974 +1,432 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { Prisma, PurchaseStatus } from '@prisma/client';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
-import { ApiProblem, digest, newId, syntheticConfigSeconds } from '../identity/security';
-import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
+import { ApiProblem } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import { decryptAccountNumber } from './payment-account-security';
 import { PackagePricingService } from './kalkulasi-harga-paket.service';
+import { VoucherService, calculateVoucherDiscount, normalizeVoucherCode } from './voucher.service';
 
-const orderStatuses = [
-  'AWAITING_PAYMENT',
-  'PENDING',
-  'ACTION_REQUIRED',
-  'APPROVED',
-  'REJECTED',
-  'EXPIRED',
-] as const;
+const PAGE_SIZE = 20;
 
 @Injectable()
 export class CustomerOrderService {
   constructor(
     private readonly db: PrismaService,
-    private readonly idem: IdempotencyService,
     private readonly access: PackageAccessService,
     private readonly pricing: PackagePricingService,
-    @Optional() private readonly pilotOutbox?: PilotRollbackOutboxService,
+    private readonly vouchers: VoucherService,
+    private readonly idempotency: IdempotencyService,
+    private readonly config: RuntimeConfigService,
+    private readonly auditService: AuditService,
   ) {}
-  async checkoutOptions(p: SessionPrincipal, packageId: string, branchId?: string) {
-    this.access.catalog(p);
-    await this.access.requireVerifiedCustomer(p);
-    const now = new Date();
-    const pkg = await this.db.paket.findFirst({
-      where: {
-        id: packageId,
-        status: 'ACTIVE',
-        effectiveFrom: { lte: now },
-        OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
-      },
-      include: {
-        branchScopes: { where: { active: true }, include: { branch: true } },
-        classTypeScopes: { where: { active: true }, select: { classTypeId: true } },
-        promotions: {
-          where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
-          orderBy: [{ activeFrom: 'desc' }],
-          take: 1,
-        },
-      },
+
+  private orderView(order: any, _revealAccount = false) {
+    const pkg = order.package;
+    const branch = order.branch;
+    const voucher = order.voucher;
+    const proof = order.paymentProof;
+    const customerPkg = order.customerPackage;
+
+    const legacyStatus =
+      order.status === 'PENDING'
+        ? proof
+          ? 'PAYMENT_SUBMITTED'
+          : 'AWAITING_PAYMENT'
+        : order.status === 'WAITING_VERIFICATION'
+          ? 'PAYMENT_SUBMITTED'
+          : order.status === 'PAID'
+            ? 'APPROVED'
+            : order.status === 'CANCELLED'
+              ? 'CANCELLED'
+              : 'REJECTED';
+
+    return {
+      id: order.id,
+      invoiceNumber: order.invoiceNumber,
+      orderNumber: order.invoiceNumber,
+      branchId: order.branchId,
+      branchName: branch?.name ?? null,
+      branchTimezone: branch?.timezone ?? 'Asia/Jakarta',
+      packageId: order.packageId,
+      packageName: pkg?.name ?? null,
+      priceRp: order.subtotalRp,
+      baseAmountRp: order.subtotalRp,
+      subtotalRp: order.subtotalRp,
+      voucher: voucher
+        ? {
+            id: voucher.id,
+            code: voucher.code,
+            discountType: voucher.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+            discountValue: voucher.discountValue,
+            discountRp: order.discountRp,
+          }
+        : null,
+      promotion: null,
+      promotionalPriceRp: order.subtotalRp,
+      priceAfterDiscountRp: order.totalAmountRp,
+      paymentUniqueCode: 0,
+      payableAmountRp: order.totalAmountRp,
+      totalAmountRp: order.totalAmountRp,
+      sessionCount: pkg?.sessionCount ?? 1,
+      durationDays: pkg?.validityDays ?? 30,
+      validityDays: pkg?.validityDays ?? 30,
+      status: legacyStatus,
+      rawStatus: order.status,
+      submittedAt: order.createdAt,
+      decidedAt: order.verifiedAt ?? null,
+      expiresAt: order.paymentExpiresAt,
+      continuationSlotId: null,
+      paymentProofId: proof?.id ?? null,
+      paymentProofStatus: proof
+        ? {
+            uploadStatus: 'FINALIZED',
+            scanStatus: 'CLEAN',
+          }
+        : null,
+      paymentProof: proof
+        ? {
+            id: proof.id,
+            fileUrl: proof.fileUrl,
+            bankName: proof.bankName,
+            accountHolder: proof.accountHolder,
+            uploadedAt: proof.uploadedAt,
+          }
+        : null,
+      decisionReasonCode: order.rejectionReason ?? null,
+      timelineComplete: true,
+      version: 1,
+      activation: customerPkg
+        ? {
+            customerPackageId: customerPkg.id,
+            status: customerPkg.status,
+            activationDate: customerPkg.validFrom,
+            expiryAt: customerPkg.validUntil,
+            sessionCount: customerPkg.totalSessions,
+          }
+        : null,
+      paymentAccount: null,
+    };
+  }
+
+  async checkoutOptions(
+    principal: SessionPrincipal,
+    packageId: string,
+    branchId?: string,
+  ) {
+    await this.access.requireVerifiedCustomer(principal);
+    const pkg = await this.db.paket.findUnique({
+      where: { id: packageId },
+      include: { classType: true },
     });
-    const selectedScope = branchId
-      ? pkg?.branchScopes.find((scope) => scope.branchId === branchId)
-      : pkg?.branchScopes[0];
-    if (!pkg || !selectedScope?.branch.active)
+    if (!pkg || pkg.status !== 'ACTIVE')
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const effectiveBranchId = selectedScope.branchId;
 
-    // Paket dapat tersedia untuk beberapa jenis kelas. Ambil hanya jenis kelas
-    // yang aktif untuk paket dan tersedia pada cabang checkout yang dipilih.
-    const packageClassTypeIds = pkg.classTypeScopes.map((scope) => scope.classTypeId);
-    const availableClassTypeScopes = packageClassTypeIds.length
-      ? await this.db.cakupanCabangJenisKelas.findMany({
-          where: {
-            branchId: effectiveBranchId,
-            classTypeId: { in: packageClassTypeIds },
-            active: true,
-          },
-          select: { classTypeId: true },
-        })
-      : [];
-
-    const availableClassTypeIds = [
-      ...new Set(availableClassTypeScopes.map((scope) => scope.classTypeId)),
-    ];
-
-    const classTypes = availableClassTypeIds.length
-      ? await this.db.jenisKelas.findMany({
-          where: {
-            id: { in: availableClassTypeIds },
-            active: true,
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-          orderBy: { name: 'asc' },
-        })
-      : [];
-
-    if (classTypes.length === 0) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const account = await this.db.rekeningPembayaran.findFirst({
-      where: { branchId: effectiveBranchId, active: true },
-      orderBy: { createdAt: 'desc' },
+    const branches = await this.db.cabang.findMany({
+      where: { active: true },
+      include: {
+        paymentAccounts: { where: { active: true } },
+      },
     });
-    if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
-    const packagePricing = this.pricing.calculate(pkg.priceRp, pkg.promotions[0], now);
+
+    const targetBranch = branchId
+      ? branches.find((b) => b.id === branchId)
+      : branches[0];
+
+    const paymentAccounts = (targetBranch?.paymentAccounts ?? []).map((acc) => ({
+      id: acc.id,
+      bankName: acc.bankName,
+      accountNumber: acc.accountNumber,
+      accountHolderName: acc.accountHolder,
+    }));
+
     return {
       package: {
         id: pkg.id,
         name: pkg.name,
+        code: pkg.code,
         priceRp: pkg.priceRp,
-        effectivePriceRp: packagePricing.effectivePriceRp,
-        promotion: packagePricing.promotion,
-        version: pkg.version,
         sessionCount: pkg.sessionCount,
-        durationDays: pkg.durationDays,
-        branchId: effectiveBranchId,
-        branchName: selectedScope.branch.name,
-
-        // Sumber authoritative jenis kelas untuk checkout modern.
-        classTypes,
+        validityDays: pkg.validityDays,
+        classType: pkg.classType,
       },
-      paymentAccount: {
-        id: account.id,
-        bankName: account.bankName,
-        accountNumber: decryptAccountNumber(account.accountNumberEncrypted, account.accountNumberLast4),
-        accountHolderName: account.accountHolderName,
-        paymentWindowHours: account.paymentWindowHours,
-      },
+      branches: branches.map((b) => ({
+        id: b.id,
+        code: b.code,
+        name: b.name,
+      })),
+      selectedBranchId: targetBranch?.id ?? null,
+      paymentAccounts,
     };
   }
 
-  private async expireOwnOrders(userId: string) {
-    const expired = await this.db.pembelian.findMany({
-      where: {
-        userId,
-        status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED'] },
-        paymentExpiresAt: { lte: new Date() },
-      },
-      select: { id: true, paymentExpiresAt: true },
-    });
-    if (!expired.length) return;
-    const ids = expired.map(({ id }) => id);
-    await this.db.$transaction(async (tx) => {
-      await tx.pembelian.updateMany({
-        where: { id: { in: ids } },
-        data: { status: 'EXPIRED', version: { increment: 1 } },
-      });
-      await tx.reservasiKodeUnikPembayaran.deleteMany({ where: { purchaseId: { in: ids } } });
-      await tx.penukaranVoucher.updateMany({
-        where: { purchaseId: { in: ids }, releasedAt: null },
-        data: { releasedAt: new Date() },
-      });
-      await tx.peristiwaLinimasaPembelian.createMany({
-        data: expired.map((item) => ({
-          id: newId(),
-          purchaseId: item.id,
-          eventType: 'ORDER_EXPIRED',
-          sourceKey: `${item.id}:expired:${item.paymentExpiresAt?.toISOString() ?? 'unknown'}`,
-          occurredAt: item.paymentExpiresAt ?? new Date(),
-        })),
-        skipDuplicates: true,
-      });
-    });
-  }
-
-  private orderView(order: any, revealAccount = false) {
-    const payableAmountRp = order.payableAmountRpSnapshot ?? order.priceRpSnapshot;
-    return {
-      id: order.id,
-      branchId: order.branchId,
-      branchName: order.branch?.name,
-      branchTimezone: order.branch?.timezone,
-      packageId: order.packageId,
-      packageName: order.packageNameSnapshot,
-      priceRp: order.priceRpSnapshot,
-      baseAmountRp: order.priceRpSnapshot,
-      voucher: order.voucherId
-        ? {
-            id: order.voucherId,
-            code: order.voucherCodeSnapshot,
-            discountType: order.voucherDiscountTypeSnapshot,
-            discountValue: order.voucherDiscountValueSnapshot,
-            discountRp: order.voucherDiscountRpSnapshot,
-          }
-        : null,
-      promotion: order.packagePromotionId
-        ? {
-            id: order.packagePromotionId,
-            name: order.packagePromotionNameSnapshot,
-            discountType: order.packagePromotionDiscountTypeSnapshot,
-            discountValue: order.packagePromotionDiscountValueSnapshot,
-            discountRp: order.packagePromotionDiscountRpSnapshot,
-          }
-        : null,
-      promotionalPriceRp: order.promotionalPriceRpSnapshot ?? order.priceRpSnapshot,
-      priceAfterDiscountRp: order.priceAfterDiscountRpSnapshot ?? order.priceRpSnapshot,
-      paymentUniqueCode: order.paymentUniqueCode,
-      payableAmountRp,
-      sessionCount: order.sessionCountSnapshot,
-      durationDays: order.durationDaysSnapshot,
-      status: order.status,
-      submittedAt: order.submittedAt,
-      decidedAt: order.decidedAt ?? null,
-      expiresAt: order.paymentExpiresAt,
-      continuationSlotId: order.continuationClassSlotId,
-      paymentProofId: order.paymentProofId,
-      paymentProofStatus: order.paymentProof
-        ? {
-            uploadStatus: order.paymentProof.uploadStatus,
-            scanStatus: order.paymentProof.scanStatus,
-          }
-        : null,
-      decisionReasonCode: order.decisionReasonCode,
-      timelineComplete: Boolean(order.timelineComplete),
-      version: order.version,
-      activation: order.customerPackage
-        ? {
-            customerPackageId: order.customerPackage.id,
-            status: order.customerPackage.status,
-            activationDate: order.customerPackage.activationDate,
-            expiryAt: order.customerPackage.expiryAt,
-            sessionCount: order.customerPackage.sessionCountSnapshot,
-          }
-        : null,
-      timeline: order.timelineEvents
-        ? {
-            items: order.timelineEvents.map((event: any) => ({
-              id: event.id,
-              type: event.eventType,
-              reasonCode: event.reasonCode ?? null,
-              occurredAt: event.occurredAt,
-              derived: event.derived,
-            })),
-            page: { hasMore: false, nextCursor: null },
-          }
-        : undefined,
-      paymentAccount: order.paymentBankNameSnapshot
-        ? {
-            bankName: order.paymentBankNameSnapshot,
-            accountNumber:
-              revealAccount && order.paymentAccountNumberSnapshotEncrypted
-                ? decryptAccountNumber(
-                    order.paymentAccountNumberSnapshotEncrypted,
-                    order.paymentAccountLast4Snapshot,
-                  )
-                : `•••• ${order.paymentAccountLast4Snapshot}`,
-            accountHolderName: order.paymentAccountHolderSnapshot,
-          }
-        : null,
-    };
-  }
-
-  private async reserveUniqueCode(
-    tx: Prisma.TransactionClient,
+  async createOrder(
+    principal: SessionPrincipal,
     input: {
-      purchaseId: string;
-      paymentAccountId: string;
-      priceRp: number;
-      expiresAt: Date;
+      packageId: string;
+      branchId: string;
+      voucherCode?: string;
+      paymentProofId?: string;
     },
+    key: string,
+    correlationId: string,
   ) {
-    await tx.$queryRaw(
-      Prisma.sql`SELECT id FROM \`RekeningPembayaran\` WHERE id = ${input.paymentAccountId} FOR UPDATE`,
-    );
-    const used = new Set(
-      (
-        await tx.reservasiKodeUnikPembayaran.findMany({
-          where: { paymentAccountId: input.paymentAccountId },
-          select: { code: true },
-        })
-      ).map(({ code }) => code),
-    );
-    const start = (Number.parseInt(digest(input.purchaseId).slice(0, 8), 16) % 999) + 1;
-    let code: number | undefined;
-    for (let offset = 0; offset < 999; offset += 1) {
-      const candidate = ((start - 1 + offset) % 999) + 1;
-      if (!used.has(candidate)) {
-        code = candidate;
-        break;
-      }
-    }
-    if (!code) throw new ApiProblem('PAYMENT_UNIQUE_CODE_UNAVAILABLE', HttpStatus.CONFLICT);
-    const payableAmountRp = input.priceRp + code;
-    if (!Number.isSafeInteger(payableAmountRp))
-      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
-    await tx.reservasiKodeUnikPembayaran.create({
-      data: {
-        id: newId(),
-        paymentAccountId: input.paymentAccountId,
-        purchaseId: input.purchaseId,
-        code,
-        expiresAt: input.expiresAt,
-      },
-    });
-    return { code, payableAmountRp };
-  }
+    await this.access.requireVerifiedCustomer(principal);
+    if (!input.packageId || !input.branchId)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-  async createOrder(p: SessionPrincipal, input: any, key: string, correlationId: string) {
-    this.access.catalog(p);
-    await this.access.requireVerifiedCustomer(p);
-    if (!key || !input?.packageId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    return this.idem.execute(
-      { scope: `order:${p.userId}`, key, payload: input, ttlMs: 86400000, leaseMs: 30000 },
+    return this.idempotency.execute(
+      {
+        scope: `order-create:${principal.userId}:${input.packageId}`,
+        key,
+        payload: input,
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
       async (tx) => {
-        const now = new Date();
-        const pkg = await tx.paket.findFirst({
-          where: {
-            id: input.packageId,
-            status: 'ACTIVE',
-            effectiveFrom: { lte: now },
-            OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
+        const pkg = await tx.paket.findUnique({ where: { id: input.packageId } });
+        if (!pkg || pkg.status !== 'ACTIVE')
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const branch = await tx.cabang.findUnique({ where: { id: input.branchId } });
+        if (!branch || !branch.active)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        let voucher = null;
+        let discountRp = 0;
+        if (input.voucherCode?.trim()) {
+          const code = normalizeVoucherCode(input.voucherCode);
+          const v = await tx.voucher.findFirst({
+            where: {
+              code,
+              active: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+            },
+          });
+          if (v && pkg.priceRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
+            voucher = v;
+            discountRp = calculateVoucherDiscount({
+              priceRp: pkg.priceRp,
+              discountType: v.discountType,
+              discountValue: v.discountValue,
+              maxDiscountRp: v.maxDiscountRp,
+            });
+          }
+        }
+
+        const subtotalRp = pkg.priceRp;
+        const totalAmountRp = Math.max(0, subtotalRp - discountRp);
+        const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
+        const paymentExpiresAt = new Date(Date.now() + 24 * 3_600_000);
+
+        const order = await tx.pembelian.create({
+          data: {
+            id: randomUUID(),
+            invoiceNumber,
+            userId: principal.userId,
+            branchId: input.branchId,
+            packageId: pkg.id,
+            voucherId: voucher?.id ?? null,
+            subtotalRp,
+            discountRp,
+            totalAmountRp,
+            status: 'PENDING',
+            paymentExpiresAt,
           },
           include: {
-            branchScopes: { where: { active: true }, select: { branchId: true } },
-            classTypeScopes: { where: { active: true }, select: { classTypeId: true } },
+            package: true,
+            branch: true,
+            voucher: true,
+            paymentProof: true,
+            customerPackage: true,
           },
         });
-        if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        const effectiveBranchId = input.branchId ?? pkg.branchScopes[0]?.branchId;
-        if (
-          !effectiveBranchId ||
-          !pkg.branchScopes.some((scope) => scope.branchId === effectiveBranchId)
-        )
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-        // Flow modern wajib membawa jenis kelas yang dipilih customer.
-        // Package.classTypeId tidak lagi menjadi fallback transaksi.
-        const effectiveClassTypeId =
-          typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
-
-        if (!effectiveClassTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-        if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
-        const classTypeAvailableAtBranch = await tx.cakupanCabangJenisKelas.findFirst({
-          where: {
-            branchId: effectiveBranchId,
-            classTypeId: effectiveClassTypeId,
-            active: true,
-          },
-          select: { id: true },
-        });
-
-        if (!classTypeAvailableAtBranch)
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        const account = await tx.rekeningPembayaran.findFirst({
-          where: { branchId: effectiveBranchId, active: true },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (!account) throw new ApiProblem('PAYMENT_ACCOUNT_UNAVAILABLE', HttpStatus.CONFLICT);
-        if (input.slotId) {
-          const slot = await tx.slotKelas.findUnique({ where: { id: input.slotId } });
-          if (
-            !slot ||
-            slot.branchId !== effectiveBranchId ||
-            slot.classTypeId !== effectiveClassTypeId
-          )
-            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        }
-        const activePromotion = await this.pricing.activePromotion(tx, pkg.id, now);
-        const packagePricing = this.pricing.calculate(pkg.priceRp, activePromotion, now);
-        if (
-          (input.expectedPackageVersion !== undefined &&
-            input.expectedPackageVersion !== pkg.version) ||
-          (Object.prototype.hasOwnProperty.call(input, 'expectedPromotionId') &&
-            (input.expectedPromotionId ?? null) !== (activePromotion?.id ?? null)) ||
-          (input.expectedPromotionVersion !== undefined &&
-            input.expectedPromotionVersion !== activePromotion?.version)
-        )
-          throw new ApiProblem('PRICE_CHANGED', HttpStatus.CONFLICT);
-        let voucher:
-          | {
-              id: string;
-              code: string;
-              discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-              discountValue: number;
-              discountRp: number;
-              priceAfterDiscountRp: number;
-            }
-          | undefined;
-        const voucherCode = String(input.voucherCode ?? '')
-          .trim()
-          .toUpperCase();
-        if (voucherCode) {
-          await tx.$queryRaw(
-            Prisma.sql`SELECT id FROM Voucher WHERE kode = ${voucherCode} FOR UPDATE`,
-          );
-          const candidate = await tx.voucher.findFirst({
-            where: {
-              code: voucherCode,
-              status: 'ACTIVE',
-              activeFrom: { lte: now },
-              OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
-              AND: [
-                { OR: [{ branchId: null }, { branchId: effectiveBranchId }] },
-                { OR: [{ classTypeId: null }, { classTypeId: effectiveClassTypeId }] },
-                { OR: [{ packages: { none: {} } }, { packages: { some: { packageId: pkg.id } } }] },
-              ],
-            },
-            include: { _count: { select: { redemptions: true } } },
+        if (voucher) {
+          await tx.voucher.update({
+            where: { id: voucher.id },
+            data: { usedCount: { increment: 1 } },
           });
-          if (!candidate) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
-          if (packagePricing.effectivePriceRp < candidate.minimumPurchaseRp)
-            throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
-          const [totalUsage, customerUsage] = await Promise.all([
-            tx.penukaranVoucher.count({
-              where: { voucherId: candidate.id, releasedAt: null },
-            }),
-            tx.penukaranVoucher.count({
-              where: { voucherId: candidate.id, customerUserId: p.userId, releasedAt: null },
-            }),
-          ]);
-          if (candidate.totalUsageLimit !== null && totalUsage >= candidate.totalUsageLimit)
-            throw new ApiProblem('VOUCHER_EXHAUSTED', HttpStatus.UNPROCESSABLE_ENTITY);
-          if (
-            candidate.perCustomerUsageLimit !== null &&
-            customerUsage >= candidate.perCustomerUsageLimit
-          )
-            throw new ApiProblem('VOUCHER_CUSTOMER_LIMIT', HttpStatus.UNPROCESSABLE_ENTITY);
-          const rawDiscount =
-            candidate.discountType === 'PERCENTAGE'
-              ? Math.floor((packagePricing.effectivePriceRp * candidate.discountValue) / 100)
-              : candidate.discountValue;
-          const discountRp = Math.min(
-            rawDiscount,
-            candidate.maxDiscountRp ?? rawDiscount,
-            packagePricing.effectivePriceRp,
-          );
-          voucher = {
-            id: candidate.id,
-            code: candidate.code,
-            discountType: candidate.discountType,
-            discountValue: candidate.discountValue,
-            discountRp,
-            priceAfterDiscountRp: packagePricing.effectivePriceRp - discountRp,
-          };
         }
-        const purchaseId = newId();
-        const expiresAt = new Date(now.getTime() + account.paymentWindowHours * 3600000);
-        await tx.pembelian.create({
-          data: {
-            id: purchaseId,
-            userId: p.userId,
-            branchId: effectiveBranchId,
-            packageId: pkg.id,
-            classTypeId: effectiveClassTypeId,
-            paymentAccountId: account.id,
-            paymentBankNameSnapshot: account.bankName,
-            paymentAccountNumberSnapshotEncrypted: account.accountNumberEncrypted,
-            paymentAccountLast4Snapshot: account.accountNumberLast4,
-            paymentAccountHolderSnapshot: account.accountHolderName,
-            paymentExpiresAt: expiresAt,
-            continuationClassSlotId: input.slotId || null,
-            packageNameSnapshot: pkg.name,
-            priceRpSnapshot: pkg.priceRp,
-            packagePromotionId: packagePricing.promotion?.id,
-            packagePromotionNameSnapshot: packagePricing.promotion?.name,
-            packagePromotionDiscountTypeSnapshot: packagePricing.promotion?.discountType,
-            packagePromotionDiscountValueSnapshot: packagePricing.promotion?.discountValue,
-            packagePromotionDiscountRpSnapshot: packagePricing.promotion?.discountRp,
-            promotionalPriceRpSnapshot: packagePricing.effectivePriceRp,
-            voucherId: voucher?.id,
-            voucherCodeSnapshot: voucher?.code,
-            voucherDiscountTypeSnapshot: voucher?.discountType,
-            voucherDiscountValueSnapshot: voucher?.discountValue,
-            voucherDiscountRpSnapshot: voucher?.discountRp,
-            priceAfterDiscountRpSnapshot:
-              voucher?.priceAfterDiscountRp ?? packagePricing.effectivePriceRp,
-            sessionCountSnapshot: pkg.sessionCount,
-            durationDaysSnapshot: pkg.durationDays,
-            status: 'AWAITING_PAYMENT',
-            timelineComplete: true,
-            idempotencyKeyHash: digest(key),
-          },
-        });
-        const uniquePayment = await this.reserveUniqueCode(tx, {
-          purchaseId,
-          paymentAccountId: account.id,
-          priceRp: voucher?.priceAfterDiscountRp ?? packagePricing.effectivePriceRp,
-          expiresAt,
-        });
-        const purchase = await tx.pembelian.update({
-          where: { id: purchaseId },
-          data: {
-            paymentUniqueCode: uniquePayment.code,
-            payableAmountRpSnapshot: uniquePayment.payableAmountRp,
-          },
-          include: { branch: true, paymentProof: true },
-        });
-        const voucherRedemption = voucher
-          ? await tx.penukaranVoucher.create({
-              data: {
-                id: newId(),
-                voucherId: voucher.id,
-                purchaseId: purchase.id,
-                customerUserId: p.userId,
-                discountRp: voucher.discountRp,
-              },
-            })
-          : null;
-        await tx.peristiwaLinimasaPembelian.createMany({
-          data: [
-            {
-              id: newId(),
-              purchaseId: purchase.id,
-              eventType: 'ORDER_CREATED',
-              sourceKey: `${purchase.id}:created`,
-              occurredAt: purchase.submittedAt,
+
+        if (input.paymentProofId) {
+          await tx.buktiPembayaran.upsert({
+            where: { purchaseId: order.id },
+            create: {
+              id: input.paymentProofId,
+              purchaseId: order.id,
+              fileUrl: `/uploads/payment-proofs/${input.paymentProofId}`,
             },
-            {
-              id: newId(),
-              purchaseId: purchase.id,
-              eventType: 'PAYMENT_DEADLINE_SET',
-              sourceKey: `${purchase.id}:deadline`,
-              occurredAt: purchase.submittedAt,
-            },
-          ],
-        });
-        await tx.outboxEvent.create({
-          data: {
-            id: newId(),
-            eventType: 'order.created.v1',
-            aggregateType: 'Purchase',
-            aggregateId: purchase.id,
-            payload: { orderId: purchase.id, status: 'AWAITING_PAYMENT' },
-            correlationId,
-          },
-        });
-        await this.access.audit(
-          tx,
-          p,
-          'ORDER_CREATED',
-          'Purchase',
-          purchase.id,
-          effectiveBranchId,
-          correlationId,
-        );
-        await this.pilotOutbox?.record(tx, {
-          branchId: effectiveBranchId,
-          aggregateType: 'Purchase',
-          aggregateId: purchase.id,
-          operation: 'CREATE',
-          correlationId,
-          occurredAt: purchase.submittedAt,
-          payload: {
-            purchaseId: purchase.id,
-            customerUserId: p.userId,
-            packageId: pkg.id,
-            status: purchase.status,
-            payableAmountRp: purchase.payableAmountRpSnapshot,
-            voucherId: voucher?.id ?? null,
-          },
-        });
-        if (voucher && voucherRedemption) {
-          await this.pilotOutbox?.record(tx, {
-            branchId: effectiveBranchId,
-            aggregateType: 'VoucherRedemption',
-            aggregateId: voucherRedemption.id,
-            operation: 'REDEEM',
-            correlationId,
-            occurredAt: purchase.submittedAt,
-            payload: {
-              purchaseId: purchase.id,
-              voucherId: voucher.id,
-              customerUserId: p.userId,
-              discountRp: voucher.discountRp,
+            update: {
+              fileUrl: `/uploads/payment-proofs/${input.paymentProofId}`,
             },
           });
         }
-        return { status: 201, body: this.orderView(purchase, true) as Prisma.InputJsonValue };
+
+        this.auditService.record({
+          action: 'ORDER_CREATED',
+          resourceType: 'Purchase',
+          resourceId: order.id,
+          branchId: order.branchId,
+          actorUserId: principal.userId,
+          correlationId,
+        });
+
+        return {
+          status: HttpStatus.CREATED,
+          body: this.orderView(order) as unknown as Prisma.InputJsonValue,
+        };
       },
     );
   }
 
   async listOrders(
-    p: SessionPrincipal,
-    filters: {
+    principal: SessionPrincipal,
+    query: {
       status?: string;
-      q?: string;
-      from?: string;
-      until?: string;
       cursor?: string;
       limit?: string;
+      from?: string;
+      until?: string;
+      q?: string;
       includeHistorical?: boolean;
     } = {},
   ) {
-    this.access.catalog(p);
-    if (filters.includeHistorical && !p.capabilities.includes('migration:read'))
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    await this.expireOwnOrders(p.userId);
-    if (filters.status && !orderStatuses.includes(filters.status as (typeof orderStatuses)[number]))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const q = filters.q?.trim();
-    if (q && q.length > 120) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const from = filters.from ? new Date(filters.from) : undefined;
-    const until = filters.until ? new Date(filters.until) : undefined;
-    if (until && /^\d{4}-\d{2}-\d{2}$/.test(filters.until ?? '')) {
-      until.setUTCDate(until.getUTCDate() + 1);
-    }
-    if (
-      (from && Number.isNaN(from.getTime())) ||
-      (until && Number.isNaN(until.getTime())) ||
-      (from && until && from >= until)
-    )
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const limit = filters.limit ? Number(filters.limit) : 20;
-    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const cursor = filters.cursor
-      ? await this.db.pembelian.findFirst({
-          where: { id: filters.cursor, userId: p.userId },
-          select: { id: true, submittedAt: true },
-        })
-      : null;
-    if (filters.cursor && !cursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const baseWhere: Prisma.PembelianWhereInput = {
-      userId: p.userId,
-      ...(filters.includeHistorical ? {} : { historical: false }),
-      ...(q
+    const limit = query.limit ? Math.min(Number(query.limit), 100) : PAGE_SIZE;
+
+    const where: Prisma.PembelianWhereInput = {
+      userId: principal.userId,
+      ...(query.status
+        ? query.status === 'APPROVED' || query.status === 'VERIFIED' || query.status === 'PAID'
+          ? { status: PurchaseStatus.PAID }
+          : query.status === 'REJECTED'
+            ? { status: PurchaseStatus.REJECTED }
+            : query.status === 'PAYMENT_SUBMITTED' || query.status === 'WAITING_VERIFICATION'
+              ? { status: PurchaseStatus.WAITING_VERIFICATION }
+              : query.status === 'CANCELLED'
+                ? { status: PurchaseStatus.CANCELLED }
+                : { status: PurchaseStatus.PENDING }
+        : {}),
+      ...(query.from || query.until
         ? {
-            OR: [{ packageNameSnapshot: { contains: q } }, { branch: { name: { contains: q } } }],
+            createdAt: {
+              ...(query.from ? { gte: new Date(query.from) } : {}),
+              ...(query.until ? { lte: new Date(query.until) } : {}),
+            },
           }
         : {}),
-      ...(from || until
-        ? { submittedAt: { ...(from ? { gte: from } : {}), ...(until ? { lt: until } : {}) } }
-        : {}),
     };
-    const cursorWhere: Prisma.PembelianWhereInput | undefined = cursor
-      ? {
-          OR: [
-            { submittedAt: { lt: cursor.submittedAt } },
-            { submittedAt: cursor.submittedAt, id: { lt: cursor.id } },
-          ],
-        }
-      : undefined;
-    const where: Prisma.PembelianWhereInput = {
-      AND: [
-        baseWhere,
-        ...(filters.status ? [{ status: filters.status as any }] : []),
-        ...(cursorWhere ? [cursorWhere] : []),
-      ],
-    };
-    const [records, grouped, total] = await Promise.all([
-      this.db.pembelian.findMany({
-        where,
-        include: { branch: true, paymentProof: true },
-        orderBy: [{ submittedAt: 'desc' }, { id: 'desc' }],
-        take: limit + 1,
-      }),
-      this.db.pembelian.groupBy({
-        by: ['status'],
-        where: baseWhere,
-        _count: { _all: true },
-      }),
-      this.db.pembelian.count({ where: baseWhere }),
-    ]);
-    const hasMore = records.length > limit;
-    const items = records.slice(0, limit);
-    const counts = Object.fromEntries(grouped.map((item) => [item.status, item._count._all]));
-    return {
-      items: items.map((item) => this.orderView(item, false)),
-      summary: {
-        total,
-        awaitingPayment: counts.AWAITING_PAYMENT ?? 0,
-        pending: counts.PENDING ?? 0,
-        actionRequired: counts.ACTION_REQUIRED ?? 0,
-        approved: counts.APPROVED ?? 0,
-        rejected: counts.REJECTED ?? 0,
-        expired: counts.EXPIRED ?? 0,
+
+    const items = await this.db.pembelian.findMany({
+      where,
+      include: {
+        package: true,
+        branch: true,
+        voucher: true,
+        paymentProof: true,
+        customerPackage: true,
       },
+      take: limit + 1,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const hasNext = items.length > limit;
+    const pageItems = hasNext ? items.slice(0, limit) : items;
+
+    return {
+      items: pageItems.map((o) => this.orderView(o)),
+      nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
       page: {
-        hasMore,
-        nextCursor: hasMore ? (items[items.length - 1]?.id ?? null) : null,
+        hasMore: hasNext,
+        nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
       },
     };
   }
 
-  async orderDetail(p: SessionPrincipal, id: string) {
-    this.access.catalog(p);
-    await this.expireOwnOrders(p.userId);
-    const order = await this.db.pembelian.findFirst({
-      where: { id, userId: p.userId },
+  async orderDetail(principal: SessionPrincipal, id: string) {
+    const order = await this.db.pembelian.findUnique({
+      where: { id },
       include: {
+        package: true,
         branch: true,
+        voucher: true,
         paymentProof: true,
         customerPackage: true,
-        timelineEvents: { orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }] },
       },
     });
     if (!order) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (order.userId !== principal.userId)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
     return this.orderView(order, true);
   }
-  async attachOrderProof(p: SessionPrincipal, orderId: string, input: any, correlationId: string) {
-    this.access.catalog(p);
-    if (!input?.paymentProofId || !Number.isInteger(input.expectedVersion))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const [order, proof] = await Promise.all([
-      this.db.pembelian.findFirst({
-        where: { id: orderId, userId: p.userId },
-        include: { branch: true, paymentProof: true },
-      }),
-      this.db.buktiPembayaran.findFirst({ where: { id: input.paymentProofId, userId: p.userId } }),
-    ]);
-    if (!order || !proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    if (order.status === 'PENDING' && order.paymentProofId === proof.id)
-      return this.orderView(order, true);
-    if (
-      !['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) ||
-      order.version !== input.expectedVersion
-    )
-      throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
-    if (!order.paymentExpiresAt || order.paymentExpiresAt <= new Date()) {
-      await this.db.$transaction(async (tx) => {
-        const changed = await tx.pembelian.updateMany({
-          where: { id: order.id, version: order.version },
-          data: { status: 'EXPIRED', version: { increment: 1 } },
-        });
-        if (changed.count)
-          await tx.peristiwaLinimasaPembelian.create({
-            data: {
-              id: newId(),
-              purchaseId: order.id,
-              eventType: 'ORDER_EXPIRED',
-              sourceKey: `${order.id}:expired:${order.paymentExpiresAt!.toISOString()}`,
-              occurredAt: order.paymentExpiresAt!,
-            },
-          });
-        if (changed.count)
-          await tx.penukaranVoucher.updateMany({
-            where: { purchaseId: order.id, releasedAt: null },
-            data: { releasedAt: new Date() },
-          });
-      });
-      throw new ApiProblem('ORDER_EXPIRED', HttpStatus.CONFLICT);
-    }
-    if (
-      proof.branchId !== order.branchId ||
-      proof.packageId !== order.packageId ||
-      proof.uploadStatus !== 'FINALIZED' ||
-      proof.scanStatus !== 'CLEAN' ||
-      !proof.providerReferenceHash
-    )
-      throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
-    return this.db.$transaction(async (tx) => {
-      const updated = await tx.pembelian.update({
-        where: { id: order.id, version: order.version },
-        data: {
-          paymentProofId: proof.id,
-          status: 'PENDING',
-          decisionReasonCode: null,
-          decidedAt: null,
-          decidedById: null,
-          version: { increment: 1 },
-        },
-        include: { branch: true, paymentProof: true },
-      });
-      if (order.paymentProofId)
-        await tx.buktiPembayaran.update({
-          where: { id: order.paymentProofId },
-          data: { replacedById: proof.id },
-        });
-      await tx.peristiwaLinimasaPembelian.createMany({
-        data: [
-          {
-            id: newId(),
-            purchaseId: order.id,
-            eventType: 'PROOF_SUBMITTED',
-            sourceKey: `${order.id}:proof:${proof.id}:submitted`,
-            occurredAt: proof.uploadedAt ?? proof.finalizedAt ?? new Date(),
-          },
-          {
-            id: newId(),
-            purchaseId: order.id,
-            eventType: 'PROOF_SCAN_COMPLETED',
-            sourceKey: `${order.id}:proof:${proof.id}:scan`,
-            occurredAt: proof.finalizedAt ?? new Date(),
-          },
-        ],
-        skipDuplicates: true,
-      });
-      await tx.outboxEvent.create({
-        data: {
-          id: newId(),
-          eventType: 'order.payment-proof.submitted.v1',
-          aggregateType: 'Purchase',
-          aggregateId: order.id,
-          payload: { orderId: order.id, status: 'PENDING' },
-          correlationId,
-        },
-      });
-      await this.access.audit(
-        tx,
-        p,
-        'ORDER_PAYMENT_SUBMITTED',
-        'Purchase',
-        order.id,
-        order.branchId,
-        correlationId,
-      );
-      await this.pilotOutbox?.record(tx, {
-        branchId: order.branchId,
-        aggregateType: 'PaymentProof',
-        aggregateId: proof.id,
-        operation: 'ATTACH_TO_PURCHASE',
-        correlationId,
-        occurredAt: proof.finalizedAt ?? new Date(),
-        payload: {
-          paymentProofId: proof.id,
-          purchaseId: order.id,
-          checksumReference: proof.checksum,
-          mimeType: proof.mimeType,
-          sizeBytes: proof.sizeBytes,
-          kind: 'PAYMENT_PROOF',
-          version: updated.version,
-        },
-      });
-      return this.orderView(updated, true);
+
+  async attachOrderProof(
+    principal: SessionPrincipal,
+    orderId: string,
+    input: { paymentProofId?: string; fileUrl?: string; bankName?: string; accountHolder?: string },
+    correlationId: string,
+  ) {
+    const order = await this.db.pembelian.findUnique({
+      where: { id: orderId },
     });
-  }
-  async submit(p: SessionPrincipal, input: any, key: string, correlationId: string) {
-    this.access.catalog(p);
-    await this.access.requireVerifiedCustomer(p);
-    if (!key) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (!order || order.userId !== principal.userId)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const branchId = typeof input.branchId === 'string' ? input.branchId.trim() : '';
-    const classTypeId = typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+    const proofId = input.paymentProofId ?? randomUUID();
+    const fileUrl = input.fileUrl ?? `/uploads/payment-proofs/${proofId}`;
 
-    if (!branchId || !classTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-    syntheticConfigSeconds('PURCHASE_IDEMPOTENCY_TTL_SECONDS', 86400);
-    return this.idem.execute(
-      { scope: `purchase:${p.userId}`, key, payload: input, ttlMs: 86400000, leaseMs: 30000 },
-      async (tx) => {
-        const proofId = input.paymentProofId ?? input.paymentProofUploadId;
-        const pkg = await tx.paket.findUnique({
-          where: { id: input.packageId },
-          include: {
-            branchScopes: {
-              where: { active: true },
-              select: { branchId: true },
-            },
-            classTypeScopes: {
-              where: { active: true },
-              select: { classTypeId: true },
-            },
-          },
-        });
-        const proof = await tx.buktiPembayaran.findUnique({ where: { id: proofId } });
-        const now = new Date();
-        if (
-          !pkg ||
-          pkg.status !== 'ACTIVE' ||
-          pkg.effectiveFrom > now ||
-          (pkg.effectiveUntil && pkg.effectiveUntil <= now)
-        )
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        if (
-          !pkg.branchScopes.some((scope) => scope.branchId === branchId) ||
-          !pkg.classTypeScopes.some((scope) => scope.classTypeId === classTypeId)
-        )
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
-        const classTypeAvailableAtBranch = await tx.cakupanCabangJenisKelas.findFirst({
-          where: {
-            branchId,
-            classTypeId,
-            active: true,
-          },
-          select: { id: true },
-        });
-
-        if (!classTypeAvailableAtBranch)
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
-        if (
-          !proof ||
-          proof.userId !== p.userId ||
-          proof.branchId !== branchId ||
-          proof.packageId !== pkg.id ||
-          proof.scanStatus !== 'CLEAN' ||
-          proof.uploadStatus !== 'FINALIZED'
-        )
-          throw new ApiProblem('PAYMENT_PROOF_NOT_CLEAN', HttpStatus.CONFLICT);
-        const purchase = await tx.pembelian.create({
-          data: {
-            id: newId(),
-            userId: p.userId,
-            branchId,
-            packageId: pkg.id,
-            classTypeId,
-            paymentProofId: proof.id,
-            packageNameSnapshot: pkg.name,
-            priceRpSnapshot: pkg.priceRp,
-            sessionCountSnapshot: pkg.sessionCount,
-            durationDaysSnapshot: pkg.durationDays,
-            timelineComplete: true,
-            idempotencyKeyHash: digest(key),
-          },
-        });
-        await tx.peristiwaLinimasaPembelian.createMany({
-          data: [
-            {
-              id: newId(),
-              purchaseId: purchase.id,
-              eventType: 'ORDER_CREATED',
-              sourceKey: `${purchase.id}:created`,
-              occurredAt: purchase.submittedAt,
-            },
-            {
-              id: newId(),
-              purchaseId: purchase.id,
-              eventType: 'PROOF_SUBMITTED',
-              sourceKey: `${purchase.id}:proof:${proof.id}:submitted`,
-              occurredAt: proof.uploadedAt ?? proof.finalizedAt ?? purchase.submittedAt,
-            },
-            {
-              id: newId(),
-              purchaseId: purchase.id,
-              eventType: 'PROOF_SCAN_COMPLETED',
-              sourceKey: `${purchase.id}:proof:${proof.id}:scan`,
-              occurredAt: proof.finalizedAt ?? purchase.submittedAt,
-            },
-          ],
-        });
-        await tx.outboxEvent.create({
-          data: {
-            id: newId(),
-            eventType: 'purchase.submitted.v1',
-            aggregateType: 'Purchase',
-            aggregateId: purchase.id,
-            payload: { purchaseId: purchase.id, status: 'PENDING' },
-            correlationId,
-          },
-        });
-        await this.access.audit(
-          tx,
-          p,
-          'PURCHASE_SUBMITTED',
-          'Purchase',
-          purchase.id,
-          branchId,
-          correlationId,
-        );
-        await this.pilotOutbox?.record(tx, {
-          branchId,
-          aggregateType: 'Purchase',
-          aggregateId: purchase.id,
-          operation: 'CREATE',
-          correlationId,
-          occurredAt: purchase.submittedAt,
-          payload: {
-            purchaseId: purchase.id,
-            customerUserId: p.userId,
-            packageId: pkg.id,
-            status: purchase.status,
-            payableAmountRp: purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot,
-            voucherId: null,
-          },
-        });
-        await this.pilotOutbox?.record(tx, {
-          branchId,
-          aggregateType: 'PaymentProof',
-          aggregateId: proof.id,
-          operation: 'ATTACH_TO_PURCHASE',
-          correlationId,
-          occurredAt: proof.finalizedAt ?? purchase.submittedAt,
-          payload: {
-            paymentProofId: proof.id,
-            purchaseId: purchase.id,
-            checksumReference: proof.checksum,
-            mimeType: proof.mimeType,
-            sizeBytes: proof.sizeBytes,
-            kind: 'PAYMENT_PROOF',
-            version: purchase.version,
-          },
-        });
-        return { status: 201, body: purchase as unknown as Prisma.InputJsonValue };
+    const proof = await this.db.buktiPembayaran.upsert({
+      where: { purchaseId: order.id },
+      create: {
+        id: proofId,
+        purchaseId: order.id,
+        fileUrl,
+        bankName: input.bankName ?? null,
+        accountHolder: input.accountHolder ?? null,
       },
-    );
+      update: {
+        fileUrl,
+        bankName: input.bankName ?? undefined,
+        accountHolder: input.accountHolder ?? undefined,
+        uploadedAt: new Date(),
+      },
+    });
+
+    this.auditService.record({
+      action: 'PAYMENT_PROOF_ATTACHED',
+      resourceType: 'Purchase',
+      resourceId: order.id,
+      branchId: order.branchId,
+      actorUserId: principal.userId,
+      correlationId,
+    });
+
+    const updated = await this.db.pembelian.findUnique({
+      where: { id: orderId },
+      include: {
+        package: true,
+        branch: true,
+        voucher: true,
+        paymentProof: true,
+        customerPackage: true,
+      },
+    });
+
+    return this.orderView(updated);
+  }
+
+  async submit(
+    principal: SessionPrincipal,
+    input: any,
+    key: string,
+    correlationId: string,
+  ) {
+    return this.createOrder(principal, input, key, correlationId);
   }
 
   // --- Indonesian Domain Aliases ---
@@ -980,10 +438,7 @@ export class CustomerOrderService {
     return this.createOrder(p, input, key, correlationId);
   }
 
-  async daftarPesanan(
-    p: SessionPrincipal,
-    query: Parameters<CustomerOrderService['listOrders']>[1],
-  ) {
+  async daftarPesanan(p: SessionPrincipal, query: Parameters<CustomerOrderService['listOrders']>[1]) {
     return this.listOrders(p, query);
   }
 

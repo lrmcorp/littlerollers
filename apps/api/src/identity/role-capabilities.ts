@@ -1,4 +1,15 @@
-import type { ApplicationRole } from '@prisma/client';
+export type ApplicationRole =
+  | 'CUSTOMER'
+  | 'INSTRUCTOR'
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'OWNER'
+  | 'SUPER_OWNER'
+  | 'FINANCE'
+  | 'OPS'
+  | 'SUPERADMIN'
+  | 'COACH'
+  | 'MEMBER';
 
 export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   CUSTOMER: [
@@ -13,7 +24,26 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'reschedule:self:read',
     'reschedule:self:request',
   ],
+  MEMBER: [
+    'customer:self',
+    'package:read',
+    'voucher:redeem',
+    'ledger:read',
+    'class-slot:read',
+    'booking:self:read',
+    'booking:self:create',
+    'booking:self:cancel',
+    'reschedule:self:read',
+    'reschedule:self:request',
+  ],
   INSTRUCTOR: [
+    'class:assigned:read',
+    'attendance:self',
+    'availability:self:read',
+    'availability:self:create',
+    'class-slot:read',
+  ],
+  COACH: [
     'class:assigned:read',
     'attendance:self',
     'availability:self:read',
@@ -111,6 +141,58 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'ledger:read',
     'ledger:adjust:read',
     'ledger:adjust:decide',
+    'class-slot:read',
+    'class-slot:manage',
+    'operations:read',
+    'operations:recover',
+    'booking:read',
+    'booking:create:assisted',
+    'attendance:read',
+    'attendance:manage',
+    'reschedule:read',
+    'reschedule:decide',
+    'identity-verification:read',
+    'identity-verification:decide',
+    'identity-verification:delete',
+  ],
+  SUPERADMIN: [
+    'notification:manage',
+    'public-content:read',
+    'public-content:manage',
+    'support:read',
+    'support:manage',
+    'customer:read',
+    'customer:manage',
+    'customer:credential:initialize',
+    'customer:security:manage',
+    'role-permission:manage',
+    'audit:read',
+    'user:read',
+    'user:admin',
+    'branch:all',
+    'branch:own',
+    'branch:manage',
+    'branch:operate',
+    'session:revoke',
+    'assignment:read',
+    'assignment:manage',
+    'master:read',
+    'master:manage',
+    'voucher:read',
+    'voucher:manage',
+    'package-promotion:read',
+    'package-promotion:manage',
+    'payment-account:read',
+    'payment-account:manage',
+    'package:read',
+    'payment:review',
+    'payment:decide',
+    'finance:read',
+    'finance:manage',
+    'finance:reconcile',
+    'finance:export',
+    'purchase:review',
+    'purchase:decide',
     'class-slot:read',
     'class-slot:manage',
     'operations:read',

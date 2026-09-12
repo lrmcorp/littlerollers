@@ -10,38 +10,44 @@ export class PublicScheduleQueryService {
   async list(input: { branchId?: string; from?: string; until?: string }) {
     if (input.branchId) assertPublicUuid(input.branchId, 'VALIDATION_ERROR');
     const { from, until } = publicScheduleRange(input.from, input.until);
+
     const rawBranches = await this.db.cabang.findMany({
-      where: { active: true, publicProfile: { isNot: null } },
+      where: { active: true },
       select: {
         id: true,
         code: true,
         name: true,
         timezone: true,
+        address: true,
         supportWhatsappE164: true,
-        publicProfile: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+
     const branches = rawBranches.map((b) => ({
-      ...b,
-      publicProfile: b.publicProfile
-        ? {
-            ...b.publicProfile,
-            openingHours: Array.isArray(b.publicProfile.openingHours)
-              ? b.publicProfile.openingHours
-              : [],
-          }
-        : null,
+      id: b.id,
+      code: b.code,
+      name: b.name,
+      timezone: b.timezone,
+      supportWhatsappE164: b.supportWhatsappE164,
+      publicProfile: {
+        slug: b.code.toLowerCase(),
+        area: b.name,
+        city: 'Jakarta',
+        address: b.address ?? '',
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      },
     }));
+
     if (input.branchId && !branches.some(({ id }) => id === input.branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const branch = branches.find(({ id }) => id === input.branchId);
 
     const slots = input.branchId
       ? await this.db.slotKelas.findMany({
           where: {
             branchId: input.branchId,
-            branch: { active: true, publicProfile: { isNot: null } },
-            classType: { active: true },
             status: { in: ['PUBLISHED', 'CONFIRMED'] },
             startAt: { gte: from, lt: until },
           },
@@ -50,7 +56,6 @@ export class PublicScheduleQueryService {
             branchId: true,
             startAt: true,
             endAt: true,
-            timezone: true,
             status: true,
             capacity: true,
             bookedCount: true,
@@ -61,12 +66,12 @@ export class PublicScheduleQueryService {
           take: 100,
         })
       : [];
-    const branch = branches.find(({ id }) => id === input.branchId);
 
     return {
       branches,
       items: slots.map(({ bookedCount, ...slot }) => ({
         ...slot,
+        timezone: branch?.timezone ?? 'Asia/Jakarta',
         branch,
         available: Math.max(0, slot.capacity - bookedCount),
       })),
@@ -80,44 +85,48 @@ export class PublicScheduleQueryService {
       where: {
         id,
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
-        branch: { active: true, publicProfile: { isNot: null } },
-        classType: { active: true },
       },
-      select: {
-        id: true,
-        branchId: true,
-        startAt: true,
-        endAt: true,
-        timezone: true,
-        status: true,
-        capacity: true,
-        bookedCount: true,
-        classType: { select: { id: true, code: true, name: true, defaultDurationMinutes: true } },
+      include: {
+        classType: true,
         instructor: { select: { displayName: true } },
         studio: { select: { id: true, name: true } },
         room: { select: { id: true, name: true } },
-        branch: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-            timezone: true,
-            supportWhatsappE164: true,
-            publicProfile: true,
-          },
-        },
+        branch: true,
       },
     });
-    if (!slot?.branch.publicProfile)
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const classProfile = await this.db.profilPublikKelas.findFirst({
-      where: { code: slot.classType.code, active: true },
-    });
-    if (!classProfile) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const publicProfile = {
+      slug: slot.branch.code.toLowerCase(),
+      area: slot.branch.name,
+      city: 'Jakarta',
+      address: slot.branch.address ?? '',
+    };
+
+    const classProfile = {
+      code: slot.classType.code,
+      name: slot.classType.name,
+      slug: slot.classType.code.toLowerCase(),
+      summary: slot.classType.description ?? `${slot.classType.name} Pilates`,
+      description: slot.classType.description ?? `${slot.classType.name} Pilates`,
+      level: 'ALL_LEVELS',
+      durationMinutes: slot.classType.durationMinutes,
+      equipment: ['Reformer'],
+      benefits: ['Core Strength', 'Flexibility'],
+      heroImageKey: null,
+    };
+
     const { bookedCount, ...safeSlot } = slot;
+
     return {
       ...safeSlot,
+      timezone: slot.branch.timezone,
       available: Math.max(0, slot.capacity - bookedCount),
+      branch: {
+        ...slot.branch,
+        publicProfile,
+      },
       classProfile,
     };
   }

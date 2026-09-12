@@ -1,12 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
+import { inMemoryNotifications, type NotificationItem } from './notification-writer.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly db: PrismaService) {}
-
   private safeHref(value: string | null) {
     if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
     try {
@@ -18,19 +16,7 @@ export class NotificationsService {
     }
   }
 
-  private view(item: {
-    id: string;
-    category: string;
-    tone: string;
-    title: string;
-    message: string;
-    href: string | null;
-    branchId: string | null;
-    metadataMasked: unknown;
-    readAt: Date | null;
-    expiresAt: Date | null;
-    createdAt: Date;
-  }) {
+  private view(item: NotificationItem) {
     return {
       ...item,
       href: this.safeHref(item.href),
@@ -48,83 +34,62 @@ export class NotificationsService {
     const limit = input.limit ?? 20;
     if (!Number.isInteger(limit) || limit < 1 || limit > 50)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const cursor = input.cursor
-      ? await this.db.userNotification.findFirst({
-          where: { id: input.cursor, userId: principal.userId },
-          select: { id: true, createdAt: true },
-        })
-      : null;
-    if (input.cursor && !cursor) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
     const now = new Date();
-    const items = await this.db.userNotification.findMany({
-      where: {
-        userId: principal.userId,
-        ...(input.unreadOnly ? { readAt: null } : {}),
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        ...(cursor
-          ? {
-              AND: [
-                {
-                  OR: [
-                    { createdAt: { lt: cursor.createdAt } },
-                    { createdAt: cursor.createdAt, id: { lt: cursor.id } },
-                  ],
-                },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
+    const userNotifications = inMemoryNotifications.filter((n) => {
+      if (n.userId !== principal.userId) return false;
+      if (input.unreadOnly && n.readAt !== null) return false;
+      if (n.expiresAt && n.expiresAt <= now) return false;
+      return true;
     });
-    const hasMore = items.length > limit;
-    const page = items.slice(0, limit);
+
+    let startIndex = 0;
+    if (input.cursor) {
+      const cursorIndex = userNotifications.findIndex((n) => n.id === input.cursor);
+      if (cursorIndex === -1) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      startIndex = cursorIndex + 1;
+    }
+
+    const items = userNotifications.slice(startIndex, startIndex + limit);
+    const hasMore = startIndex + limit < userNotifications.length;
+
     return {
-      items: page.map((item) => this.view(item)),
-      page: { hasMore, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null },
+      items: items.map((item) => this.view(item)),
+      page: { hasMore, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null },
     };
   }
 
   async unreadCount(principal: SessionPrincipal) {
     const now = new Date();
-    return {
-      count: await this.db.userNotification.count({
-        where: {
-          userId: principal.userId,
-          readAt: null,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-      }),
-    };
+    const count = inMemoryNotifications.filter(
+      (n) =>
+        n.userId === principal.userId &&
+        n.readAt === null &&
+        (!n.expiresAt || n.expiresAt > now),
+    ).length;
+
+    return { count };
   }
 
   async markRead(principal: SessionPrincipal, id: string) {
-    const changed = await this.db.userNotification.updateMany({
-      where: { id, userId: principal.userId, readAt: null },
-      data: { readAt: new Date() },
-    });
-    if (changed.count === 0) {
-      const existing = await this.db.userNotification.findFirst({
-        where: { id, userId: principal.userId },
-      });
-      if (!existing) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    }
-    const notification = await this.db.userNotification.findFirst({
-      where: { id, userId: principal.userId },
-    });
-    return this.view(notification!);
+    const item = inMemoryNotifications.find((n) => n.id === id && n.userId === principal.userId);
+    if (!item) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    item.readAt = new Date();
+    return this.view(item);
   }
 
   async markAllRead(principal: SessionPrincipal) {
     const readAt = new Date();
-    const result = await this.db.userNotification.updateMany({
-      where: {
-        userId: principal.userId,
-        readAt: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: readAt } }],
-      },
-      data: { readAt },
-    });
-    return { updatedCount: result.count, readAt: readAt.toISOString() };
+    let updatedCount = 0;
+
+    for (const item of inMemoryNotifications) {
+      if (item.userId === principal.userId && item.readAt === null) {
+        item.readAt = readAt;
+        updatedCount++;
+      }
+    }
+
+    return { updatedCount, readAt: readAt.toISOString() };
   }
 }

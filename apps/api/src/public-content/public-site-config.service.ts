@@ -10,77 +10,69 @@ export class PublicSiteConfigService {
   ) {}
 
   async get() {
-    const branches = await this.db.cabang.findMany({
-      where: { active: true, publicProfile: { isNot: null } },
+    const rawBranches = await this.db.cabang.findMany({
+      where: { active: true },
       select: {
         id: true,
         code: true,
         name: true,
         timezone: true,
+        address: true,
         supportWhatsappE164: true,
-        publicProfile: {
-          select: {
-            slug: true,
-            area: true,
-            city: true,
-            address: true,
-            description: true,
-            arrivalInformation: true,
-            parkingInformation: true,
-            openingHours: true,
-            amenities: true,
-            heroImageKey: true,
-            galleryImageKeys: true,
-          },
-        },
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
 
-    const activeClassTypes = await this.db.jenisKelas.findMany({
-      where: { active: true, branch: { active: true, publicProfile: { isNot: null } } },
-      select: { code: true, name: true },
-      distinct: ['code'],
-      orderBy: [{ code: 'asc' }],
-    });
-    const classProfiles = await this.db.profilPublikKelas.findMany({
-      where: {
-        active: true,
-        code: { in: activeClassTypes.map(({ code }) => code) },
+    const branches = rawBranches.map((b) => ({
+      id: b.id,
+      code: b.code,
+      name: b.name,
+      timezone: b.timezone,
+      supportWhatsappE164: b.supportWhatsappE164,
+      publicProfile: {
+        slug: b.code.toLowerCase(),
+        area: b.name,
+        city: 'Jakarta',
+        address: b.address ?? '',
+        description: `${b.name} Studio Pilates`,
+        arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+        parkingInformation: 'Tersedia tempat parkir kendaraan.',
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+        amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+        heroImageKey: null,
+        galleryImageKeys: [],
       },
-      select: {
-        code: true,
-        slug: true,
-        summary: true,
-        description: true,
-        level: true,
-        durationMinutes: true,
-        equipment: true,
-        benefits: true,
-        heroImageKey: true,
-      },
-      orderBy: [{ code: 'asc' }],
-    });
-    const namesByCode = new Map(activeClassTypes.map(({ code, name }) => [code, name]));
-    const classes = classProfiles.map((profile) => ({
-      ...profile,
-      name: namesByCode.get(profile.code) ?? profile.code,
     }));
 
-    const heroCarouselEntry = await this.db.entriKontenPublik.findFirst({
-      where: {
-        contentKey: 'HOME_HERO_CAROUSEL',
-        status: 'PUBLISHED',
-        scopeKey: 'GLOBAL',
+    const activeClassTypes = await this.db.jenisKelas.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        description: true,
+        durationMinutes: true,
       },
-      orderBy: { version: 'desc' },
-      select: { payload: true },
+      orderBy: [{ code: 'asc' }],
     });
+
+    const classes = activeClassTypes.map((ct) => ({
+      code: ct.code,
+      name: ct.name,
+      slug: ct.code.toLowerCase(),
+      summary: ct.description ?? `${ct.name} Pilates Session`,
+      description: ct.description ?? `${ct.name} Pilates Session`,
+      level: 'ALL_LEVELS',
+      durationMinutes: ct.durationMinutes,
+      equipment: ['Reformer', 'Mat'],
+      benefits: ['Core Strength', 'Flexibility', 'Posture Correction'],
+      heroImageKey: null,
+    }));
 
     return {
       branches,
       classes,
-      heroCarousel: (heroCarouselEntry?.payload as any) ?? null,
+      heroCarousel: null,
       fallbackWhatsappE164: this.runtimeConfig.value.publicSupportWhatsappE164 ?? null,
       mobileFeatures: {
         accountRecovery: this.runtimeConfig.value.mobileFeatures.accountRecovery,

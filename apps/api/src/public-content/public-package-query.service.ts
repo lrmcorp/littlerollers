@@ -2,7 +2,6 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid } from './public-query.validation';
-import { calculatePackagePromotion } from '../packages/kalkulasi-harga-paket.service';
 
 @Injectable()
 export class PublicPackageQueryService {
@@ -10,126 +9,71 @@ export class PublicPackageQueryService {
 
   async list(branchId?: string) {
     if (branchId) assertPublicUuid(branchId, 'VALIDATION_ERROR');
+
     const rawBranches = await this.db.cabang.findMany({
-      where: { active: true, publicProfile: { isNot: null } },
+      where: { active: true },
       select: {
         id: true,
         code: true,
         name: true,
         timezone: true,
+        address: true,
         supportWhatsappE164: true,
-        publicProfile: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+
     const branches = rawBranches.map((b) => ({
-      ...b,
-      publicProfile: b.publicProfile
-        ? {
-            ...b.publicProfile,
-            openingHours: Array.isArray(b.publicProfile.openingHours)
-              ? b.publicProfile.openingHours
-              : [],
-          }
-        : null,
+      id: b.id,
+      code: b.code,
+      name: b.name,
+      timezone: b.timezone,
+      supportWhatsappE164: b.supportWhatsappE164,
+      publicProfile: {
+        slug: b.code.toLowerCase(),
+        area: b.name,
+        city: 'Jakarta',
+        address: b.address ?? '',
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      },
     }));
+
     if (branchId && !branches.some((branch) => branch.id === branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const now = new Date();
-    const packages = branchId
-      ? await this.db.paket.findMany({
-          where: {
-            branchScopes: {
-              some: {
-                branchId,
-                active: true,
-                branch: { active: true, publicProfile: { isNot: null } },
-              },
-            },
-            classTypeScopes: {
-              some: {
-                active: true,
-                classType: {
-                  active: true,
-                  branchScopes: { some: { branchId, active: true } },
-                },
-              },
-            },
-            status: 'ACTIVE',
-            effectiveFrom: { lte: now },
-            OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
-          },
-          select: {
-            id: true,
-            businessKey: true,
-            name: true,
-            sessionCount: true,
-            durationDays: true,
-            priceRp: true,
-            effectiveUntil: true,
-            updatedAt: true,
-            promotions: {
-              where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
-              orderBy: [{ activeFrom: 'desc' as const }],
-              take: 1,
-            },
-            classTypeScopes: {
-              where: {
-                active: true,
-                classType: {
-                  active: true,
-                  branchScopes: { some: { branchId, active: true } },
-                },
-              },
-              select: {
-                classType: { select: { id: true, code: true, name: true } },
-              },
-            },
-          },
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-          take: 100,
-        })
-      : [];
-
-    const seen = new Set<string>();
-    const branch = branches.find(({ id }) => id === branchId);
-    const items = packages
-      .filter((item) => {
-        const key = `${branchId}:${item.businessKey}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map(
-        ({
-          businessKey: _businessKey,
-          updatedAt: _updatedAt,
-          promotions,
-          classTypeScopes,
-          ...item
-        }) => {
-          const classTypes = classTypeScopes.map(({ classType }) => classType);
-          return {
-            ...item,
-            branchId: branchId!,
-            classType: classTypes[0] ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
-            classTypes,
-            ...calculatePackagePromotion({
-              priceRp: item.priceRp,
-              promotion: promotions?.[0],
-              now,
-            }),
-            branch,
-          };
+    const packages = await this.db.paket.findMany({
+      where: {
+        status: 'ACTIVE',
+      },
+      include: {
+        classType: {
+          select: { id: true, code: true, name: true },
         },
-      )
-      .sort(
-        (left, right) =>
-          left.priceRp - right.priceRp ||
-          left.name.localeCompare(right.name, 'id-ID') ||
-          left.id.localeCompare(right.id),
-      );
+      },
+      orderBy: [{ priceRp: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+
+    const branch = branches.find(({ id }) => id === branchId) ?? branches[0] ?? null;
+
+    const items = packages.map((pkg) => {
+      const classTypes = pkg.classType ? [pkg.classType] : [];
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        sessionCount: pkg.sessionCount,
+        durationDays: pkg.validityDays,
+        priceRp: pkg.priceRp,
+        branchId: branch?.id ?? branchId ?? '',
+        classType: pkg.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
+        classTypes,
+        isDiscounted: false,
+        discountedPriceRp: pkg.priceRp,
+        discountPercent: 0,
+        effectivePriceRp: pkg.priceRp,
+        branch,
+      };
+    });
 
     return { branches, items };
   }
@@ -138,106 +82,49 @@ export class PublicPackageQueryService {
     assertPublicUuid(id);
     assertPublicUuid(branchId);
     const now = new Date();
+
+    const branchData = await this.db.cabang.findFirst({
+      where: { id: branchId, active: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        timezone: true,
+        address: true,
+        supportWhatsappE164: true,
+      },
+    });
+    if (!branchData) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const branch = {
+      ...branchData,
+      publicProfile: {
+        slug: branchData.code.toLowerCase(),
+        area: branchData.name,
+        city: 'Jakarta',
+        address: branchData.address ?? '',
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      },
+    };
+
     const item = await this.db.paket.findFirst({
       where: {
         id,
-        branchScopes: {
-          some: {
-            branchId,
-            active: true,
-            branch: { active: true, publicProfile: { isNot: null } },
-          },
-        },
-        classTypeScopes: {
-          some: {
-            active: true,
-            classType: {
-              active: true,
-              branchScopes: { some: { branchId, active: true } },
-            },
-          },
-        },
-        publicProfile: { isNot: null },
         status: 'ACTIVE',
-        effectiveFrom: { lte: now },
-        OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
       },
-      select: {
-        id: true,
-        name: true,
-        sessionCount: true,
-        durationDays: true,
-        priceRp: true,
-        effectiveFrom: true,
-        effectiveUntil: true,
-        promotions: {
-          where: { status: 'ACTIVE', activeFrom: { lte: now }, activeUntil: { gt: now } },
-          orderBy: [{ activeFrom: 'desc' as const }],
-          take: 1,
-        },
-        publicProfile: {
-          select: {
-            summary: true,
-            description: true,
-            highlights: true,
-            usageGuidance: true,
-            terms: true,
-          },
-        },
-        classTypeScopes: {
-          where: {
-            active: true,
-            classType: {
-              active: true,
-              branchScopes: { some: { branchId, active: true } },
-            },
-          },
-          select: {
-            classType: { select: { id: true, code: true, name: true } },
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-            timezone: true,
-            supportWhatsappE164: true,
-            publicProfile: true,
-          },
-        },
-        branchScopes: {
-          where: {
-            branchId,
-            active: true,
-            branch: { active: true, publicProfile: { isNot: null } },
-          },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          take: 1,
-          include: {
-            branch: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-                timezone: true,
-                supportWhatsappE164: true,
-                publicProfile: true,
-              },
-            },
-          },
+      include: {
+        classType: {
+          select: { id: true, code: true, name: true },
         },
       },
     });
-    const branch = item?.branchScopes[0]?.branch;
-    if (!item?.publicProfile || !branch?.publicProfile)
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
     const schedules = await this.db.slotKelas.findMany({
       where: {
         branchId: branch.id,
-        classTypeId: {
-          in: item.classTypeScopes.map(({ classType }) => classType.id),
-        },
+        ...(item.classTypeId ? { classTypeId: item.classTypeId } : {}),
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
         startAt: { gt: now },
       },
@@ -245,7 +132,6 @@ export class PublicPackageQueryService {
         id: true,
         startAt: true,
         endAt: true,
-        timezone: true,
         status: true,
         capacity: true,
         bookedCount: true,
@@ -253,26 +139,34 @@ export class PublicPackageQueryService {
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       take: 4,
     });
-    const pricing = calculatePackagePromotion({
-      priceRp: item.priceRp,
-      promotion: item.promotions?.[0],
-      now,
-    });
-    const {
-      promotions: _promotions,
-      classTypeScopes,
-      branchScopes: _branchScopes,
-      branch: _legacyBranch,
-      ...publicItem
-    } = item;
+
+    const classTypes = item.classType ? [item.classType] : [];
+
     return {
-      ...publicItem,
+      id: item.id,
+      name: item.name,
+      sessionCount: item.sessionCount,
+      durationDays: item.validityDays,
+      priceRp: item.priceRp,
+      effectiveFrom: item.createdAt,
+      effectiveUntil: null,
+      publicProfile: {
+        summary: `${item.sessionCount} Sesi Pilates - Berlaku ${item.validityDays} Hari`,
+        description: `Paket latihan pilates ${item.name} dengan total ${item.sessionCount} sesi kelas.`,
+        highlights: ['Akses instruktur bersertifikat', 'Fasilitas studio lengkap', 'Jadwal fleksibel'],
+        usageGuidance: 'Pemesanan kelas dapat dilakukan melalui aplikasi kapan saja.',
+        terms: 'Paket tidak dapat diuangkan kembali.',
+      },
       branch,
-      classTypes: classTypeScopes.map(({ classType }) => classType),
-      ...pricing,
-      pricePerSessionRp: Math.round(pricing.effectivePriceRp / item.sessionCount),
+      classTypes,
+      isDiscounted: false,
+      discountedPriceRp: item.priceRp,
+      discountPercent: 0,
+      effectivePriceRp: item.priceRp,
+      pricePerSessionRp: Math.round(item.priceRp / item.sessionCount),
       schedules: schedules.map(({ bookedCount, ...schedule }) => ({
         ...schedule,
+        timezone: branch.timezone,
         available: Math.max(0, schedule.capacity - bookedCount),
       })),
     };

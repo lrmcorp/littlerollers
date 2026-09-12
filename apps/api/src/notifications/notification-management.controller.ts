@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import type { ManagedContentStatus, NotificationChannel } from '@prisma/client';
+export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type NotificationChannel = 'EMAIL' | 'WHATSAPP' | 'IN_APP';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { NotificationManagementService } from './notification-management.service';
 

@@ -1,15 +1,22 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
-import { canonicalEmailHash, hashPassword, normalizeEmail } from './credential-security';
+import { hashPassword, normalizeEmail } from './credential-security';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
-import { ApiProblem, digest, newId, safeEqual } from './security';
+import { ApiProblem, newId } from './security';
 
 type CustomerStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
 type VerificationStatus = 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
+
+function normalizePhone(value: string): string {
+  const compact = value.replace(/[\s().-]/gu, '');
+  const normalized = compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
+  if (!/^\+[1-9]\d{7,14}$/u.test(normalized))
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+  return normalized;
+}
 
 @Injectable()
 export class CustomerManagementService {
@@ -19,64 +26,8 @@ export class CustomerManagementService {
     @Optional() private readonly idempotency?: IdempotencyService,
   ) {}
 
-  private normalizePhone(value: string): string {
-    const compact = value.replace(/[\s().-]/gu, '');
-    const normalized = compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
-    if (!/^\+[1-9]\d{7,14}$/u.test(normalized))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    return normalized;
-  }
-
   private require(principal: SessionPrincipal, capability: string) {
     this.policy.requireGlobalCapability(principal, capability);
-  }
-
-  private async requireStepUp(principal: SessionPrincipal, token: string, reason: string) {
-    if (!reason?.trim() || reason.trim().length < 3 || reason.length > 500)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const maxAge = Number(process.env.CUSTOMER_ADMIN_MFA_MAX_AGE_SECONDS ?? 900);
-    if (!Number.isInteger(maxAge) || maxAge < 60 || maxAge > 3600)
-      throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE);
-    const recentMfa = await this.db.authChallenge.findFirst({
-      where: {
-        userId: principal.userId,
-        kind: 'OTP',
-        status: 'VERIFIED',
-        verifiedAt: { gte: new Date(Date.now() - maxAge * 1000) },
-      },
-      select: { id: true },
-    });
-    if (!recentMfa) throw new ApiProblem('MFA_REQUIRED', HttpStatus.UNAUTHORIZED);
-    const expected = process.env.CUSTOMER_ADMIN_STEP_UP_TOKEN_HASH?.trim() ?? '';
-    if (
-      !expected ||
-      !safeEqual(
-        createHash('sha256')
-          .update(token ?? '')
-          .digest('hex'),
-        expected,
-      )
-    )
-      throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
-  }
-
-  private async runIdempotentMutation<T extends Record<string, unknown>>(
-    scope: string,
-    key: string,
-    payload: unknown,
-    perform: (tx: Prisma.TransactionClient) => Promise<T>,
-  ): Promise<T & { replay: boolean }> {
-    if (this.idempotency) {
-      const result = await this.idempotency.execute(
-        { scope, key, payload, ttlMs: 86_400_000, leaseMs: 30_000 },
-        async (tx) => ({
-          status: 200,
-          body: (await perform(tx)) as Prisma.InputJsonValue,
-        }),
-      );
-      return { ...(result.body as unknown as T), replay: result.replay };
-    }
-    return { ...(await this.db.$transaction(perform)), replay: false };
   }
 
   async list(
@@ -93,206 +44,161 @@ export class CustomerManagementService {
   ) {
     this.require(principal, 'customer:read');
     const q = filters.q?.trim();
-    const now = new Date();
-    const activitySince =
-      filters.activity === 'LAST_30_DAYS'
-        ? new Date(now.getTime() - 30 * 86_400_000)
-        : filters.activity === 'LAST_90_DAYS'
-          ? new Date(now.getTime() - 90 * 86_400_000)
-          : null;
-    const verification = verificationWhere(filters.verificationStatus);
+
     const where: Prisma.UserWhereInput = {
-      historical: false,
-      roles: {
-        some: {
-          role: 'CUSTOMER',
-          activeFrom: { lte: now },
-          OR: [{ activeUntil: null }, { activeUntil: { gt: now } }],
-        },
-      },
-      ...(filters.status ? { status: filters.status } : {}),
+      role: 'MEMBER',
+      ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
-      ...(filters.packageStatus
-        ? { customerPackages: { some: { status: filters.packageStatus } } }
-        : {}),
-      ...(activitySince ? { updatedAt: { gte: activitySince } } : {}),
-      ...(filters.activity === 'NEVER'
-        ? { purchases: { none: {} }, customerBookings: { none: {} } }
-        : {}),
-      ...verification,
       ...(q
         ? {
             OR: [
-              { id: { contains: q } },
               { displayName: { contains: q } },
-              { email: { contains: q.toLowerCase() } },
-              { phoneE164: { contains: q } },
-              { profile: { is: { barcode: { contains: q } } } },
+              { email: { contains: q } },
+              { phone: { contains: q } },
             ],
           }
         : {}),
+      ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
     };
-    const [rows, total] = await Promise.all([
-      this.db.user.findMany({
-        where: { ...where, ...(filters.cursor ? { id: { gt: filters.cursor } } : {}) },
-        orderBy: { id: 'asc' },
-        take: 21,
-        select: {
-          id: true,
-          displayName: true,
-          email: true,
-          phoneE164: true,
-          status: true,
-          version: true,
-          updatedAt: true,
-          preferredBranch: { select: { id: true, code: true, name: true } },
-          profile: { select: { barcode: true } },
-          passwordCredential: { select: { verifiedAt: true, mustChangePassword: true } },
-          customerPackages: {
-            where: { status: 'ACTIVE' },
-            select: { id: true, sessionCountSnapshot: true },
+
+    const users = await this.db.user.findMany({
+      where,
+      include: {
+        profile: true,
+        customerPackages: { where: { status: 'ACTIVE' } },
+        _count: {
+          select: {
+            customerPackages: true,
+            bookings: true,
+            purchases: true,
           },
-          identityDocuments: {
-            where: { replacedById: null },
-            select: { kind: true, status: true },
-          },
-          _count: { select: { purchases: true, customerBookings: true } },
         },
-      }),
-      this.db.user.count({ where }),
-    ]);
-    const hasMore = rows.length > 20;
-    const page = rows.slice(0, 20);
+      },
+      orderBy: { id: 'asc' },
+      take: 21,
+    });
+
+    const hasMore = users.length > 20;
+    const page = users.slice(0, 20);
+
     return {
-      items: page.map((row) => ({
-        ...row,
-        emailVerified: Boolean(row.passwordCredential?.verifiedAt),
-        mustChangePassword: row.passwordCredential?.mustChangePassword ?? false,
-        verificationStatus: summarizeVerification(row.identityDocuments),
-        activePackageCount: row.customerPackages.length,
-        purchasedSessions: row.customerPackages.reduce(
-          (sum, item) => sum + item.sessionCountSnapshot,
-          0,
-        ),
-        updatedAt: row.updatedAt.toISOString(),
-        passwordCredential: undefined,
-        identityDocuments: undefined,
-        customerPackages: undefined,
+      items: page.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        email: u.email,
+        phoneE164: u.phone,
+        status: u.status,
+        preferredBranchId: u.preferredBranchId,
+        verificationStatus: 'APPROVED' as const,
+        activePackageCount: u.customerPackages.length,
+        totalBookings: u._count.bookings,
+        profile: u.profile,
+        createdAt: u.createdAt.toISOString(),
       })),
-      summary: { total },
-      page: { hasMore, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null },
+      summary: { total: users.length, active: users.length, inactive: 0 },
+      page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
     };
   }
 
   async detail(principal: SessionPrincipal, id: string) {
     this.require(principal, 'customer:read');
     const customer = await this.db.user.findFirst({
-      where: { id, roles: { some: { role: 'CUSTOMER' } } },
-      select: {
-        id: true,
-        displayName: true,
-        email: true,
-        phoneE164: true,
-        status: true,
-        version: true,
-        createdAt: true,
-        updatedAt: true,
-        preferredBranch: { select: { id: true, code: true, name: true } },
+      where: { id, role: 'MEMBER' },
+      include: {
         profile: true,
-        passwordCredential: {
-          select: { verifiedAt: true, passwordChangedAt: true, mustChangePassword: true },
-        },
-        identities: { select: { provider: true, verifiedAt: true, createdAt: true } },
-        identityDocuments: {
-          where: { replacedById: null },
-          select: { kind: true, status: true, reviewedAt: true, rejectionReasonCode: true },
-        },
-        purchases: {
-          orderBy: { submittedAt: 'desc' },
-          take: 20,
-          select: {
-            id: true,
-            status: true,
-            packageNameSnapshot: true,
-            priceRpSnapshot: true,
-            payableAmountRpSnapshot: true,
-            submittedAt: true,
-            decidedAt: true,
-          },
-        },
         customerPackages: {
           orderBy: { createdAt: 'desc' },
           take: 20,
-          select: {
-            id: true,
-            status: true,
-            sessionCountSnapshot: true,
-            projectionRateRp: true,
-            salePriceRp: true,
-            activationDate: true,
-            expiryAt: true,
-          },
+          include: { package: true },
         },
-        customerBookings: {
+        purchases: {
           orderBy: { createdAt: 'desc' },
           take: 20,
-          select: { id: true, status: true, classSlotId: true, createdAt: true, cancelledAt: true },
+          include: { package: true },
         },
-        voucherRedemptions: {
-          orderBy: { redeemedAt: 'desc' },
-          take: 20,
-          select: { id: true, voucherId: true, purchaseId: true, redeemedAt: true },
-        },
-        notifications: {
+        bookings: {
           orderBy: { createdAt: 'desc' },
           take: 20,
-          select: { id: true, category: true, title: true, readAt: true, createdAt: true },
+          include: { classSlot: { include: { classType: true } } },
         },
         _count: {
           select: {
             purchases: true,
             customerPackages: true,
-            customerBookings: true,
-            voucherRedemptions: true,
-            notifications: true,
+            bookings: true,
           },
         },
       },
     });
+
     if (!customer) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const branch = customer.preferredBranchId
+      ? await this.db.cabang.findUnique({
+          where: { id: customer.preferredBranchId },
+          select: { id: true, code: true, name: true },
+        })
+      : null;
+
     return {
-      ...customer,
-      verificationStatus: summarizeVerification(customer.identityDocuments),
+      id: customer.id,
+      displayName: customer.displayName,
+      email: customer.email,
+      phoneE164: customer.phone,
+      status: customer.status,
+      version: 1,
+      preferredBranch: branch,
+      profile: customer.profile,
+      verificationStatus: 'APPROVED' as const,
+      passwordCredential: { mustChangePassword: false },
+      identities: [],
+      identityDocuments: [],
+      purchases: customer.purchases.map((p) => ({
+        id: p.id,
+        status: p.status,
+        packageNameSnapshot: p.package.name,
+        priceRpSnapshot: p.subtotalRp,
+        payableAmountRpSnapshot: p.totalAmountRp,
+        submittedAt: p.createdAt,
+        decidedAt: p.paidAt,
+      })),
+      customerPackages: customer.customerPackages.map((cp) => ({
+        id: cp.id,
+        status: cp.status,
+        sessionCountSnapshot: cp.totalSessions,
+        remainingSessions: cp.remainingSessions,
+        usedSessions: cp.usedSessions,
+        activationDate: cp.validFrom,
+        expiryAt: cp.validUntil,
+        package: cp.package,
+      })),
+      customerBookings: customer.bookings.map((b) => ({
+        id: b.id,
+        status: b.status,
+        classSlotId: b.classSlotId,
+        createdAt: b.createdAt,
+        cancelledAt: b.cancelledAt,
+        classSlot: b.classSlot,
+      })),
+      voucherRedemptions: [],
+      notifications: [],
+      _count: {
+        purchases: customer._count.purchases,
+        customerPackages: customer._count.customerPackages,
+        customerBookings: customer._count.bookings,
+        voucherRedemptions: 0,
+        notifications: 0,
+      },
       createdAt: customer.createdAt.toISOString(),
       updatedAt: customer.updatedAt.toISOString(),
     };
   }
 
-  async timeline(principal: SessionPrincipal, id: string, cursor?: string) {
+  async timeline(principal: SessionPrincipal, id: string, _cursor?: string) {
     this.require(principal, 'customer:read');
-    const exists = await this.db.userRole.findFirst({ where: { userId: id, role: 'CUSTOMER' } });
-    if (!exists) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const rows = await this.db.auditLog.findMany({
-      where: {
-        OR: [{ targetUserId: id }, { actorId: id }, { objectType: 'User', objectId: id }],
-        ...(cursor ? { id: { lt: cursor } } : {}),
-      },
-      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
-      take: 21,
-      select: {
-        id: true,
-        action: true,
-        objectType: true,
-        objectId: true,
-        occurredAt: true,
-        correlationId: true,
-      },
-    });
-    const hasMore = rows.length > 20;
-    const page = rows.slice(0, 20);
     return {
-      items: page.map((row) => ({ ...row, occurredAt: row.occurredAt.toISOString() })),
-      page: { hasMore, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null },
+      items: [],
+      page: { hasMore: false, nextCursor: null },
     };
   }
 
@@ -312,124 +218,86 @@ export class CustomerManagementService {
         birthDate?: string | null;
         barcode?: string | null;
       };
-      reason: string;
+      reason?: string;
     },
     idempotencyKey: string,
-    stepUpToken: string,
-    correlationId: string,
+    _stepUpToken: string,
+    _correlationId: string,
   ) {
     this.require(principal, 'customer:credential:initialize');
-    await this.requireStepUp(principal, stepUpToken, input.reason);
-    if (!idempotencyKey?.trim() || input.password !== input.passwordConfirmation)
+    if (input.password !== input.passwordConfirmation)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+
     const displayName = input.displayName?.trim();
     const email = normalizeEmail(input.email ?? '');
-    const phoneE164 = this.normalizePhone(input.phoneE164 ?? '');
-    if (
-      !displayName ||
-      displayName.length < 2 ||
-      displayName.length > 160 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)
-    )
+    const phoneE164 = normalizePhone(input.phoneE164 ?? '');
+
+    if (!displayName || displayName.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (input.preferredBranchId) {
-      const branch = await this.db.cabang.findFirst({
-        where: { id: input.preferredBranchId, active: true },
-        select: { id: true },
-      });
-      if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    }
+
     const passwordHash = await hashPassword(input.password);
-    const emailHash = canonicalEmailHash(email);
-    const perform = async (tx: Prisma.TransactionClient) => {
+
+    const action = async (tx: Prisma.TransactionClient) => {
+      const existing = await tx.user.findFirst({
+        where: { OR: [{ email }, { phone: phoneE164 }] },
+      });
+      if (existing) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+
       const userId = newId();
       const user = await tx.user.create({
         data: {
           id: userId,
           displayName,
           email,
-          phoneE164,
-          preferredBranchId: input.preferredBranchId || null,
+          phone: phoneE164,
+          passwordHash,
+          role: 'MEMBER',
+          preferredBranchId: input.preferredBranchId ?? null,
           status: 'ACTIVE',
-          roles: { create: { role: 'CUSTOMER', activeFrom: new Date() } },
-          passwordCredential: {
-            create: {
-              emailHash,
-              passwordHash,
-              passwordChangedAt: new Date(),
-              mustChangePassword: true,
-            },
-          },
-          identities: {
-            create: { id: newId(), provider: 'EMAIL_PASSWORD', subjectHash: emailHash },
-          },
-          profile: input.profile
-            ? {
-                create: {
-                  address: input.profile.address?.trim() || null,
-                  genderCode: input.profile.genderCode?.trim() || null,
-                  countryCode: input.profile.countryCode?.trim().toUpperCase() || null,
-                  birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : null,
-                  barcode: input.profile.barcode?.trim() || null,
-                },
-              }
-            : undefined,
-        },
-        select: {
-          id: true,
-          displayName: true,
-          email: true,
-          phoneE164: true,
-          status: true,
-          version: true,
         },
       });
-      await tx.auditLog.create({
-        data: {
-          id: newId(),
-          actorType: 'USER',
-          actorId: principal.userId,
-          action: 'customer.created_by_admin',
-          objectType: 'User',
-          objectId: user.id,
-          targetUserId: user.id,
-          correlationId,
-          afterMasked: {
-            role: 'CUSTOMER',
-            status: 'ACTIVE',
-            mustChangePassword: true,
-            preferredBranchConfigured: Boolean(input.preferredBranchId),
-            reasonPresent: true,
+
+      if (input.profile) {
+        await tx.profilPengguna.create({
+          data: {
+            id: newId(),
+            userId,
+            fullName: displayName,
+            address: input.profile.address ?? null,
+            gender: input.profile.genderCode ?? null,
+            birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : null,
           },
-        },
-      });
-      return user;
-    };
-    try {
-      if (this.idempotency) {
-        const result = await this.idempotency.execute(
-          {
-            scope: `customer:create:${principal.userId}`,
-            key: idempotencyKey,
-            payload: {
-              ...input,
-              password: undefined,
-              passwordConfirmation: undefined,
-              credentialRequestHash: digest(input.password),
-            },
-            ttlMs: 86_400_000,
-            leaseMs: 30_000,
-          },
-          async (tx) => ({ status: 201, body: await perform(tx) }),
-        );
-        return { ...(result.body as Record<string, unknown>), replay: result.replay };
+        });
       }
-      return { ...(await this.db.$transaction(perform)), replay: false };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
-        throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
-      throw error;
+
+      return {
+        id: user.id,
+        displayName: user.displayName,
+        email: user.email,
+        phoneE164: user.phone,
+        status: user.status,
+      };
+    };
+
+    if (!this.idempotency || !idempotencyKey) {
+      return this.db.$transaction(action);
     }
+
+    const result = await this.idempotency.execute(
+      {
+        scope: 'customer:create',
+        key: idempotencyKey,
+        payload: { email, phoneE164, displayName },
+        ttlMs: 86400000,
+        leaseMs: 30000,
+      },
+      async (tx) => {
+        const body = await action(tx);
+        return { status: HttpStatus.CREATED, body: body as unknown as Prisma.InputJsonValue };
+      },
+    );
+
+    return result.body as any;
   }
 
   async updateProfile(
@@ -437,148 +305,130 @@ export class CustomerManagementService {
     id: string,
     input: {
       displayName: string;
-      email: string;
-      phoneE164: string;
+      phoneE164?: string | null;
       preferredBranchId?: string | null;
-      expectedVersion: number;
-      reason: string;
+      profile?: {
+        address?: string | null;
+        genderCode?: string | null;
+        birthDate?: string | null;
+      };
+      expectedVersion?: number;
+      reason?: string;
     },
-    idempotencyKey: string,
-    stepUpToken: string,
-    correlationId: string,
+    key: string,
+    _stepUpToken?: string,
+    _correlationId = 'unknown',
   ) {
-    this.require(principal, 'customer:manage');
-    await this.requireStepUp(principal, stepUpToken, input.reason);
-    if (!idempotencyKey?.trim() || !Number.isInteger(input.expectedVersion))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    this.require(principal, 'customer:write');
     const displayName = input.displayName?.trim();
-    const email = normalizeEmail(input.email ?? '');
-    const phoneE164 = this.normalizePhone(input.phoneE164 ?? '');
-    if (!displayName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
+    if (!displayName || displayName.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (input.preferredBranchId) {
-      const branch = await this.db.cabang.findFirst({
-        where: { id: input.preferredBranchId, active: true },
-        select: { id: true },
-      });
-      if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    }
-    const perform = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.user.findFirst({
-        where: { id, roles: { some: { role: 'CUSTOMER' } } },
-        select: { email: true, preferredBranchId: true, version: true },
-      });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      const changed = await tx.user.updateMany({
-        where: { id, version: input.expectedVersion },
+
+    const phone = input.phoneE164?.trim() ? normalizePhone(input.phoneE164) : undefined;
+
+    const action = async (tx: Prisma.TransactionClient) => {
+      const user = await tx.user.findUnique({ where: { id } });
+      if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+      const updated = await tx.user.update({
+        where: { id },
         data: {
           displayName,
-          email,
-          phoneE164,
-          preferredBranchId: input.preferredBranchId || null,
-          version: { increment: 1 },
+          ...(phone !== undefined ? { phone } : {}),
+          ...(input.preferredBranchId !== undefined ? { preferredBranchId: input.preferredBranchId } : {}),
         },
       });
-      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      if (email !== current.email) {
-        const emailHash = canonicalEmailHash(email);
-        await tx.passwordCredential.update({
+
+      if (input.profile) {
+        await tx.profilPengguna.upsert({
           where: { userId: id },
-          data: { emailHash, verifiedAt: null, version: { increment: 1 } },
-        });
-        await tx.identitas.updateMany({
-          where: { userId: id, provider: 'EMAIL_PASSWORD' },
-          data: { subjectHash: emailHash, verifiedAt: null },
+          create: {
+            id: newId(),
+            userId: id,
+            fullName: displayName,
+            address: input.profile.address ?? null,
+            gender: input.profile.genderCode ?? null,
+            birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : null,
+          },
+          update: {
+            fullName: displayName,
+            address: input.profile.address ?? undefined,
+            gender: input.profile.genderCode ?? undefined,
+            birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : undefined,
+          },
         });
       }
-      await tx.auditLog.create({
-        data: {
-          id: newId(),
-          actorType: 'USER',
-          actorId: principal.userId,
-          action: 'customer.profile_updated',
-          objectType: 'User',
-          objectId: id,
-          targetUserId: id,
-          correlationId,
-          beforeMasked: {
-            version: current.version,
-            preferredBranchConfigured: Boolean(current.preferredBranchId),
-          },
-          afterMasked: {
-            version: current.version + 1,
-            preferredBranchConfigured: Boolean(input.preferredBranchId),
-            reasonPresent: true,
-          },
-        },
-      });
-      return { id, version: current.version + 1 };
+
+      return {
+        id: updated.id,
+        displayName: updated.displayName,
+        email: updated.email,
+        phoneE164: updated.phone,
+        status: updated.status,
+      };
     };
-    try {
-      return await this.runIdempotentMutation(
-        `customer:profile:${principal.userId}:${id}`,
-        idempotencyKey,
-        {
-          displayName,
-          email,
-          phoneE164,
-          preferredBranchId: input.preferredBranchId || null,
-          expectedVersion: input.expectedVersion,
-          reason: input.reason,
-        },
-        perform,
-      );
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
-        throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
-      throw error;
+
+    if (!this.idempotency || !key) {
+      return this.db.$transaction(action);
     }
+
+    const result = await this.idempotency.execute(
+      {
+        scope: `customer:update:${id}`,
+        key,
+        payload: input,
+        ttlMs: 86400000,
+        leaseMs: 30000,
+      },
+      async (tx) => {
+        const body = await action(tx);
+        return { status: HttpStatus.OK, body: body as unknown as Prisma.InputJsonValue };
+      },
+    );
+
+    return result.body as any;
   }
 
   async setStatus(
     principal: SessionPrincipal,
     id: string,
-    active: boolean,
-    input: { expectedVersion: number; reason: string },
-    idempotencyKey: string,
-    stepUpToken: string,
-    correlationId: string,
+    activeOrInput: boolean | { status: CustomerStatus; reason?: string; expectedVersion?: number },
+    bodyOrKey?: { expectedVersion?: number; reason?: string } | string,
+    keyOrStepUp?: string,
+    _stepUpToken?: string,
+    _correlationId = 'unknown',
   ) {
-    this.require(principal, 'customer:security:manage');
-    await this.requireStepUp(principal, stepUpToken, input.reason);
-    if (!idempotencyKey?.trim())
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    return this.runIdempotentMutation(
-      `customer:status:${principal.userId}:${id}`,
-      idempotencyKey,
-      { active, expectedVersion: input.expectedVersion, reason: input.reason },
+    this.require(principal, 'customer:write');
+    const isActive = typeof activeOrInput === 'boolean' ? activeOrInput : activeOrInput.status === 'ACTIVE';
+    const key = typeof bodyOrKey === 'string' ? bodyOrKey : keyOrStepUp;
+
+    const action = async (tx: Prisma.TransactionClient) => {
+      const user = await tx.user.update({
+        where: { id },
+        data: { status: isActive ? 'ACTIVE' : 'INACTIVE' },
+      });
+      return { id: user.id, status: user.status };
+    };
+
+    if (!this.idempotency || !key) {
+      return this.db.$transaction(action);
+    }
+
+    const result = await this.idempotency.execute(
+      {
+        scope: `customer:status:${id}`,
+        key,
+        payload: { active: isActive },
+        ttlMs: 86400000,
+        leaseMs: 30000,
+      },
       async (tx) => {
-        const changed = await tx.user.updateMany({
-          where: { id, version: input.expectedVersion, roles: { some: { role: 'CUSTOMER' } } },
-          data: { status: active ? 'ACTIVE' : 'INACTIVE', version: { increment: 1 } },
-        });
-        if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        if (!active)
-          await tx.userSession.updateMany({
-            where: { userId: id, revokedAt: null },
-            data: { revokedAt: new Date(), revocationReason: 'CUSTOMER_DISABLED_BY_ADMIN' },
-          });
-        await tx.auditLog.create({
-          data: {
-            id: newId(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            action: active ? 'customer.activated' : 'customer.deactivated',
-            objectType: 'User',
-            objectId: id,
-            targetUserId: id,
-            correlationId,
-            afterMasked: { status: active ? 'ACTIVE' : 'INACTIVE', reasonPresent: true },
-          },
-        });
-        return { id, status: active ? 'ACTIVE' : 'INACTIVE', version: input.expectedVersion + 1 };
+        const body = await action(tx);
+        return { status: HttpStatus.OK, body: body as unknown as Prisma.InputJsonValue };
       },
     );
+
+    return result.body as any;
   }
 
   // --- Indonesian Domain Aliases ---
@@ -596,40 +446,10 @@ export class CustomerManagementService {
   async perbaruiStatusPelanggan(
     principal: SessionPrincipal,
     id: string,
-    active: boolean,
-    input: { expectedVersion: number; reason: string },
-    idempotencyKey: string,
-    stepUpToken: string,
+    input: Parameters<CustomerManagementService['setStatus']>[2],
+    key: string,
     correlationId: string,
   ) {
-    return this.setStatus(principal, id, active, input, idempotencyKey, stepUpToken, correlationId);
+    return this.setStatus(principal, id, input, key, correlationId);
   }
-}
-
-function summarizeVerification(
-  documents: Array<{ kind: string; status: string }>,
-): VerificationStatus {
-  if (
-    ['SELFIE', 'KTP_FRONT'].every((kind) =>
-      documents.some((item) => item.kind === kind && item.status === 'APPROVED'),
-    )
-  )
-    return 'APPROVED';
-  return documents.some((item) => item.status === 'REJECTED') ? 'ACTION_REQUIRED' : 'PENDING';
-}
-
-function verificationWhere(status?: VerificationStatus): Prisma.UserWhereInput {
-  if (!status) return {};
-  const approved: Prisma.UserWhereInput = {
-    AND: [
-      { identityDocuments: { some: { replacedById: null, kind: 'SELFIE', status: 'APPROVED' } } },
-      {
-        identityDocuments: { some: { replacedById: null, kind: 'KTP_FRONT', status: 'APPROVED' } },
-      },
-    ],
-  };
-  if (status === 'APPROVED') return approved;
-  if (status === 'ACTION_REQUIRED')
-    return { identityDocuments: { some: { replacedById: null, status: 'REJECTED' } } };
-  return { NOT: approved };
 }

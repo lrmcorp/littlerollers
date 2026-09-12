@@ -1,0 +1,507 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  COACH
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ClassModality {
+  GROUP
+  PRIVATE
+  DUET
+  SEMI_PRIVATE
+}
+
+enum PackageStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum PurchaseStatus {
+  PENDING
+  WAITING_VERIFICATION
+  PAID
+  CANCELLED
+  REJECTED
+}
+
+enum CustomerPackageStatus {
+  ACTIVE
+  DEPLETED
+  EXPIRED
+  FROZEN
+}
+
+enum ClassSlotStatus {
+  DRAFT
+  PUBLISHED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  BOOKED
+  ATTENDED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  QRIS
+  CASH
+  CARD
+  MANUAL_STAFF
+}
+
+enum RescheduleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CheckInMethod {
+  QR_SCAN
+  MANUAL_FRONTDESK
+}
+
+// ============================================================================
+// PILAR 1: FASILITAS & MULTI-CABANG
+// ============================================================================
+
+model Cabang {
+  id                  String   @id @default(uuid()) @db.Char(36)
+  code                String   @unique @db.VarChar(32)
+  name                String   @db.VarChar(128)
+  address             String?  @db.Text
+  supportWhatsappE164 String?  @map("phone") @db.VarChar(32)
+  timezone            String   @default("Asia/Jakarta") @db.VarChar(64)
+  active              Boolean  @default(true) @map("isActive")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  studios               Studio[]
+  classSlots            SlotKelas[]
+  instructorAssignments PenugasanInstruktur[]
+  purchases             Pembelian[]
+  paymentAccounts       RekeningPembayaran[]
+
+  @@map("v2_cabang")
+}
+
+model Studio {
+  id                  String   @id @default(uuid()) @db.Char(36)
+  branchId            String   @db.Char(36)
+  code                String   @db.VarChar(32)
+  name                String   @db.VarChar(128)
+  description         String?  @db.Text
+  supportWhatsappE164 String?  @map("phone") @db.VarChar(32)
+  active              Boolean  @default(true) @map("isActive")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  branch     Cabang      @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  rooms      Ruangan[]
+  classSlots SlotKelas[]
+
+  @@unique([branchId, code])
+  @@index([branchId, active])
+  @@map("v2_studio")
+}
+
+model Ruangan {
+  id          String   @id @default(uuid()) @db.Char(36)
+  studioId    String   @db.Char(36)
+  code        String   @db.VarChar(32)
+  name        String   @db.VarChar(128)
+  capacityBed Int      @default(1)
+  active      Boolean  @default(true) @map("isActive")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studio     Studio      @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  classSlots SlotKelas[]
+
+  @@unique([studioId, code])
+  @@index([studioId, active])
+  @@map("v2_ruangan")
+}
+
+model JenisKelas {
+  id              String        @id @default(uuid()) @db.Char(36)
+  code            String        @unique @db.VarChar(32)
+  name            String        @db.VarChar(128)
+  modality        ClassModality @default(GROUP)
+  description     String?       @db.Text
+  durationMinutes Int           @default(50)
+  defaultCapacity Int           @default(8)
+  active          Boolean       @default(true) @map("isActive")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  packages   Paket[]
+  classSlots SlotKelas[]
+
+  @@map("v2_jenis_kelas")
+}
+
+// ============================================================================
+// PILAR 2: PENGGUNA & PERAN
+// ============================================================================
+
+model User {
+  id                String     @id @default(uuid()) @db.Char(36)
+  email             String?    @unique @db.VarChar(191)
+  phone             String?    @unique @db.VarChar(32)
+  displayName       String     @map("name") @db.VarChar(128)
+  passwordHash      String?    @db.VarChar(255)
+  role              Role       @default(MEMBER)
+  status            UserStatus @default(ACTIVE)
+  preferredBranchId String?    @db.Char(36)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  profile               ProfilPengguna?
+  sessions              UserSession[]
+  instructorAssignments PenugasanInstruktur[]
+  instructedClassSlots  SlotKelas[]           @relation("InstructorSlot")
+  purchases             Pembelian[]
+  customerPackages      PaketPelanggan[]
+  bookings              PemesananKelas[]
+  verifiedPurchases     Pembelian[]           @relation("PurchaseVerifier")
+  recordedAttendances   KehadiranPelanggan[]  @relation("AttendanceRecorder")
+
+  @@index([role, status])
+  @@map("v2_user")
+}
+
+model UserSession {
+  id               String    @id @default(uuid()) @db.Char(36)
+  userId           String    @db.Char(36)
+  channel          String    @default("WEB") @db.VarChar(16)
+  tokenFamilyHash  String    @db.VarChar(64)
+  accessTokenHash  String    @unique @db.VarChar(64)
+  refreshTokenHash String    @unique @db.VarChar(64)
+  expiresAt        DateTime
+  refreshExpiresAt DateTime
+  revokedAt        DateTime?
+  revocationReason String?   @db.VarChar(64)
+  rotatedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("v2_user_session")
+}
+
+model ProfilPengguna {
+  id                    String    @id @default(uuid()) @db.Char(36)
+  userId                String    @unique @db.Char(36)
+  fullName              String?   @db.VarChar(128)
+  gender                String?   @db.VarChar(16)
+  birthDate             DateTime? @db.Date
+  avatarUrl             String?   @db.Text
+  address               String?   @db.Text
+  emergencyContactName  String?   @db.VarChar(128)
+  emergencyContactPhone String?   @db.VarChar(32)
+  notes                 String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("v2_profil_pengguna")
+}
+
+model PenugasanInstruktur {
+  id        String   @id @default(uuid()) @db.Char(36)
+  coachId   String   @db.Char(36)
+  branchId  String   @db.Char(36)
+  active    Boolean  @default(true) @map("isActive")
+  createdAt DateTime @default(now())
+
+  coach  User   @relation(fields: [coachId], references: [id], onDelete: Restrict)
+  branch Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([coachId, branchId])
+  @@index([branchId, active])
+  @@map("v2_penugasan_instruktur")
+}
+
+// ============================================================================
+// PILAR 3: PAKET SESI & PENJUALAN (BILLING)
+// ============================================================================
+
+model Paket {
+  id           String        @id @default(uuid()) @db.Char(36)
+  classTypeId  String?       @db.Char(36)
+  code         String        @unique @db.VarChar(32)
+  name         String        @db.VarChar(128)
+  sessionCount Int
+  validityDays Int
+  priceRp      Int
+  description  String?       @db.Text
+  status       PackageStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  classType        JenisKelas?      @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  purchases        Pembelian[]
+  customerPackages PaketPelanggan[]
+
+  @@index([status, classTypeId])
+  @@map("v2_paket")
+}
+
+model Pembelian {
+  id               String         @id @default(uuid()) @db.Char(36)
+  invoiceNumber    String         @unique @db.VarChar(64)
+  userId           String         @db.Char(36)
+  branchId         String         @db.Char(36)
+  packageId        String         @db.Char(36)
+  voucherId        String?        @db.Char(36)
+  subtotalRp       Int
+  discountRp       Int            @default(0)
+  totalAmountRp    Int
+  status           PurchaseStatus @default(PENDING)
+  paymentMethod    PaymentMethod  @default(BANK_TRANSFER)
+  paymentExpiresAt DateTime?
+  paidAt           DateTime?
+  verifiedById     String?        @db.Char(36)
+  verifiedAt       DateTime?
+  rejectionReason  String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  branch          Cabang           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package         Paket            @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  voucher         Voucher?         @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+  verifiedBy      User?            @relation("PurchaseVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  paymentProof    BuktiPembayaran?
+  customerPackage PaketPelanggan?
+
+  @@index([userId, status])
+  @@index([branchId, status, createdAt])
+  @@map("v2_pembelian")
+}
+
+model BuktiPembayaran {
+  id            String   @id @default(uuid()) @db.Char(36)
+  purchaseId    String   @unique @db.Char(36)
+  fileUrl       String   @db.Text
+  bankName      String?  @db.VarChar(64)
+  accountHolder String?  @db.VarChar(128)
+  notes         String?  @db.Text
+  uploadedAt    DateTime @default(now())
+
+  purchase Pembelian @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@map("v2_bukti_pembayaran")
+}
+
+model PaketPelanggan {
+  id                String                @id @default(uuid()) @db.Char(36)
+  purchaseId        String?               @unique @db.Char(36)
+  userId            String                @db.Char(36)
+  packageId         String                @db.Char(36)
+  totalSessions     Int
+  remainingSessions Int
+  usedSessions      Int                   @default(0)
+  validFrom         DateTime              @default(now())
+  validUntil        DateTime
+  status            CustomerPackageStatus @default(ACTIVE)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  purchase Pembelian?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  package  Paket            @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  bookings PemesananKelas[]
+
+  @@index([userId, status, validUntil])
+  @@map("v2_paket_pelanggan")
+}
+
+model RekeningPembayaran {
+  id            String   @id @default(uuid()) @db.Char(36)
+  branchId      String?  @db.Char(36)
+  bankName      String   @db.VarChar(64)
+  accountNumber String   @db.VarChar(64)
+  accountHolder String   @db.VarChar(128)
+  active        Boolean  @default(true) @map("isActive")
+  createdAt     DateTime @default(now())
+
+  branch Cabang? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("v2_rekening_pembayaran")
+}
+
+model Voucher {
+  id            String    @id @default(uuid()) @db.Char(36)
+  code          String    @unique @db.VarChar(32)
+  name          String    @db.VarChar(128)
+  discountType  String    @default("NOMINAL")
+  discountValue Int
+  minSpendRp    Int       @default(0)
+  maxDiscountRp Int?
+  quota         Int       @default(100)
+  usedCount     Int       @default(0)
+  validUntil    DateTime?
+  active        Boolean   @default(true) @map("isActive")
+  createdAt     DateTime  @default(now())
+
+  purchases Pembelian[]
+
+  @@map("v2_voucher")
+}
+
+// ============================================================================
+// PILAR 4: JADWAL & PEMESANAN KELAS (BOOKINGS)
+// ============================================================================
+
+model SlotKelas {
+  id                 String          @id @default(uuid()) @db.Char(36)
+  branchId           String          @db.Char(36)
+  studioId           String          @db.Char(36)
+  roomId             String?         @db.Char(36)
+  classTypeId        String          @db.Char(36)
+  instructorId       String?         @db.Char(36)
+  startAt            DateTime
+  endAt              DateTime
+  capacity           Int
+  bookedCount        Int             @default(0)
+  status             ClassSlotStatus @default(PUBLISHED)
+  notes              String?         @db.Text
+  cancellationReason String?         @db.Text
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  branch                Cabang           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  studio                Studio           @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  room                  Ruangan?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  classType             JenisKelas       @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  instructor            User?            @relation("InstructorSlot", fields: [instructorId], references: [id], onDelete: SetNull)
+  bookings              PemesananKelas[]
+  rescheduleSourceSlots UbahJadwal[]     @relation("SourceSlot")
+  rescheduleTargetSlots UbahJadwal[]     @relation("TargetSlot")
+
+  @@index([branchId, startAt, status])
+  @@index([instructorId, startAt])
+  @@map("v2_slot_kelas")
+}
+
+model PemesananKelas {
+  id                 String        @id @default(uuid()) @db.Char(36)
+  bookingNumber      String        @unique @db.VarChar(64)
+  classSlotId        String        @db.Char(36)
+  userId             String        @db.Char(36)
+  customerPackageId  String        @db.Char(36)
+  status             BookingStatus @default(BOOKED)
+  bookedAt           DateTime      @default(now())
+  cancelledAt        DateTime?
+  cancellationReason String?       @db.Text
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  classSlot       SlotKelas           @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  customerPackage PaketPelanggan      @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  attendance      KehadiranPelanggan?
+  checkInTokens   CheckInToken[]
+  reschedules     UbahJadwal[]
+
+  @@index([userId, status])
+  @@index([classSlotId, status])
+  @@map("v2_pemesanan_kelas")
+}
+
+model UbahJadwal {
+  id            String           @id @default(uuid()) @db.Char(36)
+  bookingId     String           @db.Char(36)
+  sourceSlotId  String           @db.Char(36)
+  targetSlotId  String           @db.Char(36)
+  requestedById String           @db.Char(36)
+  status        RescheduleStatus @default(APPROVED)
+  reason        String?          @db.Text
+  requestedAt   DateTime         @default(now())
+
+  booking    PemesananKelas @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sourceSlot SlotKelas      @relation("SourceSlot", fields: [sourceSlotId], references: [id], onDelete: Restrict)
+  targetSlot SlotKelas      @relation("TargetSlot", fields: [targetSlotId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId])
+  @@map("v2_ubah_jadwal")
+}
+
+// ============================================================================
+// PILAR 5: PRESENSI & OPERASIONAL HARIAN
+// ============================================================================
+
+model KehadiranPelanggan {
+  id           String        @id @default(uuid()) @db.Char(36)
+  bookingId    String        @unique @db.Char(36)
+  method       CheckInMethod @default(QR_SCAN)
+  checkedInAt  DateTime      @default(now())
+  recordedById String?       @db.Char(36)
+  notes        String?       @db.Text
+
+  booking    PemesananKelas @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  recordedBy User?          @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([checkedInAt])
+  @@map("v2_kehadiran_pelanggan")
+}
+
+model CheckInToken {
+  id        String   @id @default(uuid()) @db.Char(36)
+  bookingId String   @db.Char(36)
+  token     String   @unique @db.VarChar(128)
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  booking PemesananKelas @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, expiresAt, isUsed])
+  @@map("v2_check_in_token")
+}
+
+model PasswordActionToken {
+  id           String    @id @default(uuid()) @db.Char(36)
+  kind         String    @db.VarChar(32)
+  tokenHash    String    @unique @db.VarChar(191)
+  emailHash    String    @db.VarChar(191)
+  userId       String?   @db.Char(36)
+  invitationId String?   @db.Char(36)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([emailHash])
+  @@index([userId])
+  @@map("PasswordActionToken")
+}

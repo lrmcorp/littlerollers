@@ -2,11 +2,11 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
 import {
-  encryptAccountNumber,
   maskedAccountNumber,
   normalizeAccountNumber,
 } from './payment-account-security';
@@ -17,6 +17,7 @@ export class PaymentAccountService {
     private readonly db: PrismaService,
     private readonly access: PackageAccessService,
     private readonly idempotency: IdempotencyService,
+    private readonly auditService: AuditService,
   ) {}
 
   async list(principal: SessionPrincipal, branchId?: string) {
@@ -40,57 +41,45 @@ export class PaymentAccountService {
     this.access.paymentAccount(principal, true);
     if (
       !input.branchId ||
-      !input.bankCode?.trim() ||
       !input.bankName?.trim() ||
       !input.accountHolderName?.trim() ||
-      !Number.isInteger(input.paymentWindowHours) ||
-      input.paymentWindowHours < 1 ||
-      input.paymentWindowHours > 168 ||
-      !input.reason?.trim()
+      !input.accountNumber?.trim()
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
     this.access.scope(principal, input.branchId, ['payment-account:manage']);
     const accountNumber = normalizeAccountNumber(input.accountNumber);
+
     return this.db.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`Cabang\` WHERE \`id\` = ${input.branchId} FOR UPDATE`;
         const branch = await tx.cabang.findUnique({ where: { id: input.branchId } });
         if (!branch?.active) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        const active = await tx.rekeningPembayaran.findFirst({
-          where: { branchId: input.branchId, active: true },
-        });
-        if (active) throw new ApiProblem('ACTIVE_PAYMENT_ACCOUNT_EXISTS', HttpStatus.CONFLICT);
+
         const account = await tx.rekeningPembayaran.create({
           data: {
             id: newId(),
             branchId: input.branchId,
-            activeBranchKey: input.branchId,
-            bankCode: input.bankCode.trim().toUpperCase(),
             bankName: input.bankName.trim(),
-            accountNumberEncrypted: encryptAccountNumber(accountNumber),
-            accountNumberLast4: accountNumber.slice(-4),
-            accountHolderName: input.accountHolderName.trim(),
-            paymentWindowHours: input.paymentWindowHours,
+            accountNumber,
+            accountHolder: input.accountHolderName.trim(),
+            active: true,
           },
         });
-        await tx.auditLog.create({
-          data: {
-            id: newId(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            action: 'PAYMENT_ACCOUNT_CREATED',
-            objectType: 'PaymentAccount',
-            objectId: account.id,
-            branchId: account.branchId,
-            correlationId,
-            afterMasked: {
-              bankName: account.bankName,
-              accountNumber: maskedAccountNumber(accountNumber.slice(-4)),
-              holder: account.accountHolderName,
-              reason: input.reason.trim(),
-            },
+
+        this.auditService.record({
+          action: 'PAYMENT_ACCOUNT_CREATED',
+          resourceType: 'PaymentAccount',
+          resourceId: account.id,
+          branchId: account.branchId,
+          actorUserId: principal.userId,
+          correlationId,
+          details: {
+            bankName: account.bankName,
+            accountNumber: maskedAccountNumber(accountNumber.slice(-4)),
+            holder: account.accountHolder,
           },
         });
+
         return paymentAccountView(account);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -103,56 +92,39 @@ export class PaymentAccountService {
       where: { id },
       include: {
         branch: { select: { id: true, code: true, name: true, active: true } },
-        _count: { select: { purchases: true } },
       },
     });
     if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.access.scope(principal, account.branchId, ['payment-account:read']);
+    if (account.branchId) this.access.scope(principal, account.branchId, ['payment-account:read']);
     return {
       ...paymentAccountView(account),
       branch: account.branch,
-      purchaseCount: account._count.purchases,
+      purchaseCount: 0,
     };
   }
 
   async deactivate(principal: SessionPrincipal, id: string, input: any, correlationId: string) {
     this.access.paymentAccount(principal, true);
-    if (!Number.isInteger(input?.expectedVersion) || !input?.reason?.trim())
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     return this.db.$transaction(
       async (tx) => {
         const account = await tx.rekeningPembayaran.findUnique({ where: { id } });
         if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.scope(principal, account.branchId, ['payment-account:manage']);
-        if (!account.active || account.version !== input.expectedVersion)
-          throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
-        const openOrder = await tx.pembelian.findFirst({
-          where: {
-            paymentAccountId: id,
-            status: 'AWAITING_PAYMENT',
-            paymentExpiresAt: { gt: new Date() },
-          },
-          select: { id: true },
-        });
-        if (openOrder) throw new ApiProblem('PAYMENT_ACCOUNT_HAS_OPEN_ORDERS', HttpStatus.CONFLICT);
+        if (account.branchId) this.access.scope(principal, account.branchId, ['payment-account:manage']);
+
         const updated = await tx.rekeningPembayaran.update({
-          where: { id, version: input.expectedVersion },
-          data: { active: false, activeBranchKey: null, version: { increment: 1 } },
+          where: { id },
+          data: { active: false },
         });
-        await tx.auditLog.create({
-          data: {
-            id: newId(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            action: 'PAYMENT_ACCOUNT_DEACTIVATED',
-            objectType: 'PaymentAccount',
-            objectId: id,
-            branchId: account.branchId,
-            correlationId,
-            beforeMasked: { active: true },
-            afterMasked: { active: false, reason: input.reason.trim() },
-          },
+
+        this.auditService.record({
+          action: 'PAYMENT_ACCOUNT_DEACTIVATED',
+          resourceType: 'PaymentAccount',
+          resourceId: id,
+          branchId: account.branchId,
+          actorUserId: principal.userId,
+          correlationId,
         });
+
         return paymentAccountView(updated);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -162,14 +134,12 @@ export class PaymentAccountService {
   async deactivateIdempotent(
     principal: SessionPrincipal,
     id: string,
-    input: { expectedVersion: number; reason: string },
-    key: string,
+    input: any,
+    key: string | undefined,
     correlationId: string,
   ) {
-    this.access.paymentAccount(principal, true);
-    if (!key || !Number.isInteger(input?.expectedVersion) || input?.reason?.trim().length < 3)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const result = await this.idempotency.execute(
+    if (!key) return this.deactivate(principal, id, input, correlationId);
+    return this.idempotency.execute(
       {
         scope: `payment-account-deactivate:${id}`,
         key,
@@ -177,61 +147,56 @@ export class PaymentAccountService {
         ttlMs: 86_400_000,
         leaseMs: 30_000,
       },
-      async (tx) => {
-        const account = await tx.rekeningPembayaran.findUnique({ where: { id } });
-        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.scope(principal, account.branchId, ['payment-account:manage']);
-        if (!account.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-        if (account.version !== input.expectedVersion)
-          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const openOrder = await tx.pembelian.findFirst({
-          where: {
-            paymentAccountId: id,
-            status: 'AWAITING_PAYMENT',
-            paymentExpiresAt: { gt: new Date() },
-          },
-          select: { id: true },
-        });
-        if (openOrder) throw new ApiProblem('PAYMENT_ACCOUNT_HAS_OPEN_ORDERS', HttpStatus.CONFLICT);
-        const updated = await tx.rekeningPembayaran.update({
-          where: { id, version: input.expectedVersion },
-          data: { active: false, activeBranchKey: null, version: { increment: 1 } },
-        });
-        await tx.auditLog.create({
-          data: {
-            id: newId(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            action: 'PAYMENT_ACCOUNT_DEACTIVATED',
-            objectType: 'PaymentAccount',
-            objectId: id,
-            branchId: account.branchId,
-            correlationId,
-            beforeMasked: { active: true, version: account.version },
-            afterMasked: {
-              active: false,
-              version: updated.version,
-              reasonPresent: true,
-            },
-          },
-        });
-        return { status: 200, body: paymentAccountView(updated) as Prisma.InputJsonValue };
+      async () => {
+        const result = await this.deactivate(principal, id, input, correlationId);
+        return {
+          status: HttpStatus.OK,
+          body: result as unknown as Prisma.InputJsonValue,
+        };
       },
     );
-    return result.body;
   }
 
   async reactivate(
     principal: SessionPrincipal,
     id: string,
-    input: { expectedVersion: number; reason: string },
+    input: any,
     key: string | undefined,
     correlationId: string,
   ) {
     this.access.paymentAccount(principal, true);
-    if (!key || !Number.isInteger(input?.expectedVersion) || input?.reason?.trim().length < 3)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const result = await this.idempotency.execute(
+    const execute = async (tx: Prisma.TransactionClient) => {
+      const account = await tx.rekeningPembayaran.findUnique({
+        where: { id },
+        include: { branch: true },
+      });
+      if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      if (account.branchId) this.access.scope(principal, account.branchId, ['payment-account:manage']);
+
+      const updated = await tx.rekeningPembayaran.update({
+        where: { id },
+        data: { active: true },
+      });
+
+      this.auditService.record({
+        action: 'PAYMENT_ACCOUNT_REACTIVATED',
+        resourceType: 'PaymentAccount',
+        resourceId: id,
+        branchId: account.branchId,
+        actorUserId: principal.userId,
+        correlationId,
+      });
+
+      return paymentAccountView(updated);
+    };
+
+    if (!key) {
+      return this.db.$transaction(execute, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    }
+
+    return this.idempotency.execute(
       {
         scope: `payment-account-reactivate:${id}`,
         key,
@@ -240,53 +205,13 @@ export class PaymentAccountService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`RekeningPembayaran\` WHERE \`id\` = ${id} FOR UPDATE`;
-        const account = await tx.rekeningPembayaran.findUnique({
-          where: { id },
-          include: { branch: { select: { active: true } } },
-        });
-        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.access.scope(principal, account.branchId, ['payment-account:manage']);
-        if (!account.branch.active)
-          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        if (account.active) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-        if (account.version !== input.expectedVersion)
-          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-        const active = await tx.rekeningPembayaran.findFirst({
-          where: { branchId: account.branchId, active: true, id: { not: id } },
-          select: { id: true },
-        });
-        if (active) throw new ApiProblem('ACTIVE_PAYMENT_ACCOUNT_EXISTS', HttpStatus.CONFLICT);
-        const updated = await tx.rekeningPembayaran.update({
-          where: { id, version: input.expectedVersion },
-          data: {
-            active: true,
-            activeBranchKey: account.branchId,
-            version: { increment: 1 },
-          },
-        });
-        await tx.auditLog.create({
-          data: {
-            id: newId(),
-            actorType: 'USER',
-            actorId: principal.userId,
-            action: 'PAYMENT_ACCOUNT_REACTIVATED',
-            objectType: 'PaymentAccount',
-            objectId: id,
-            branchId: account.branchId,
-            correlationId,
-            beforeMasked: { active: false, version: account.version },
-            afterMasked: {
-              active: true,
-              version: updated.version,
-              reasonPresent: true,
-            },
-          },
-        });
-        return { status: 200, body: paymentAccountView(updated) as Prisma.InputJsonValue };
+        const result = await execute(tx);
+        return {
+          status: HttpStatus.OK,
+          body: result as unknown as Prisma.InputJsonValue,
+        };
       },
     );
-    return result.body;
   }
 
   // --- Indonesian Domain Aliases ---
@@ -310,9 +235,10 @@ export class PaymentAccountService {
     principal: SessionPrincipal,
     id: string,
     input: Parameters<PaymentAccountService['deactivate']>[2],
+    key: string | undefined,
     correlationId: string,
   ) {
-    return this.deactivate(principal, id, input, correlationId);
+    return this.deactivateIdempotent(principal, id, input, key, correlationId);
   }
 
   async aktifkanKembaliRekening(
@@ -328,28 +254,26 @@ export class PaymentAccountService {
 
 function paymentAccountView(account: {
   id: string;
-  branchId: string;
-  bankCode: string;
+  branchId: string | null;
   bankName: string;
-  accountNumberLast4: string;
-  accountHolderName: string;
-  paymentWindowHours: number;
+  accountNumber: string;
+  accountHolder: string;
   active: boolean;
-  version: number;
   createdAt: Date;
-  updatedAt: Date;
 }) {
+  const last4 = account.accountNumber.slice(-4);
   return {
     id: account.id,
     branchId: account.branchId,
-    bankCode: account.bankCode,
+    bankCode: account.bankName.toUpperCase().replace(/\s+/g, '_'),
     bankName: account.bankName,
-    maskedAccountNumber: `•••• ${account.accountNumberLast4}`,
-    accountHolderName: account.accountHolderName,
-    paymentWindowHours: account.paymentWindowHours,
+    accountNumber: account.accountNumber,
+    maskedAccountNumber: `•••• ${last4}`,
+    accountHolderName: account.accountHolder,
+    paymentWindowHours: 24,
     active: account.active,
-    version: account.version,
+    version: 1,
     createdAt: account.createdAt,
-    updatedAt: account.updatedAt,
+    updatedAt: account.createdAt,
   };
 }

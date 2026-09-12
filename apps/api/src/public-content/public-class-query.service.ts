@@ -1,7 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
-import { calculatePackagePromotion } from '../packages/kalkulasi-harga-paket.service';
 
 @Injectable()
 export class PublicClassQueryService {
@@ -11,190 +10,104 @@ export class PublicClassQueryService {
     const raw = slugOrCode?.trim();
     if (!raw) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    // 1. Find profile by slug or code
-    let profile = await this.db.profilPublikKelas.findFirst({
-      where: {
-        OR: [{ slug: raw.toLowerCase() }, { code: raw.toUpperCase() }, { slug: raw }],
-        active: true,
-      },
-    });
-
-    // If not found directly, check if it's a UUID or code matching a JenisKelas
-    if (!profile) {
-      const classTypeMatch = await this.db.jenisKelas.findFirst({
-        where: {
-          OR: [{ id: raw }, { code: raw.toUpperCase() }],
-          active: true,
-        },
-        select: { code: true },
-      });
-      if (classTypeMatch) {
-        profile = await this.db.profilPublikKelas.findFirst({
-          where: { code: classTypeMatch.code, active: true },
-        });
-      }
-    }
-
-    if (!profile) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
     const now = new Date();
 
-    // Find classTypes with this code
-    const classTypes = await this.db.jenisKelas.findMany({
+    const classType = await this.db.jenisKelas.findFirst({
       where: {
-        code: profile.code,
         active: true,
-      },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        branchId: true,
+        OR: [
+          { code: raw.toUpperCase() },
+          { id: raw },
+        ],
       },
     });
 
-    // Find branches offering this class code
-    const scopedBranches = await this.db.cabang.findMany({
-      where: {
-        active: true,
-        publicProfile: { isNot: null },
-        OR: [
-          { classTypes: { some: { code: profile.code, active: true } } },
-          {
-            classTypeScopes: {
-              some: {
-                classType: { code: profile.code, active: true },
-                active: true,
-              },
-            },
-          },
-        ],
-      },
+    if (!classType) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const profile = {
+      code: classType.code,
+      name: classType.name,
+      slug: classType.code.toLowerCase(),
+      summary: classType.description ?? `${classType.name} Pilates`,
+      description: classType.description ?? `${classType.name} Pilates`,
+      level: 'ALL_LEVELS',
+      durationMinutes: classType.durationMinutes,
+      equipment: ['Reformer', 'Mat'],
+      benefits: ['Core Strength', 'Flexibility', 'Posture Correction'],
+      heroImageKey: null,
+    };
+
+    const rawBranches = await this.db.cabang.findMany({
+      where: { active: true },
       select: {
         id: true,
         code: true,
         name: true,
         timezone: true,
+        address: true,
         supportWhatsappE164: true,
-        publicProfile: true,
       },
       orderBy: [{ name: 'asc' }],
     });
 
-    const studios =
-      scopedBranches.length > 0
-        ? scopedBranches
-        : await this.db.cabang.findMany({
-            where: { active: true, publicProfile: { isNot: null } },
-            select: {
-              id: true,
-              code: true,
-              name: true,
-              timezone: true,
-              supportWhatsappE164: true,
-              publicProfile: true,
-            },
-            orderBy: [{ name: 'asc' }],
-          });
+    const studios = rawBranches.map((b) => ({
+      id: b.id,
+      code: b.code,
+      name: b.name,
+      timezone: b.timezone,
+      supportWhatsappE164: b.supportWhatsappE164,
+      publicProfile: {
+        slug: b.code.toLowerCase(),
+        area: b.name,
+        city: 'Jakarta',
+        address: b.address ?? '',
+        description: `${b.name} Studio Pilates`,
+        arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+        parkingInformation: 'Tersedia tempat parkir kendaraan.',
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+        amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+        heroImageKey: null,
+        galleryImageKeys: [],
+      },
+    }));
 
-    const studioIds = studios.map((s) => s.id);
-
-    // Find packages applicable to this class type
     const packagesRaw = await this.db.paket.findMany({
       where: {
         status: 'ACTIVE',
-        effectiveFrom: { lte: now },
-        publicProfile: { isNot: null },
-        AND: [
-          { OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }] },
-          {
-            OR: [
-              {
-                classTypeScopes: {
-                  some: { classType: { code: profile.code, active: true }, active: true },
-                },
-              },
-              { classTypeScopes: { none: {} } },
-            ],
-          },
+        OR: [
+          { classTypeId: classType.id },
+          { classTypeId: null },
         ],
-      },
-      select: {
-        id: true,
-        name: true,
-        sessionCount: true,
-        durationDays: true,
-        priceRp: true,
-        promotions: {
-          where: {
-            status: 'ACTIVE',
-            activeFrom: { lte: now },
-            activeUntil: { gt: now },
-          },
-          orderBy: [{ activeFrom: 'desc' as const }],
-          take: 1,
-        },
-        publicProfile: { select: { summary: true } },
-        branchScopes: {
-          where: { active: true, branchId: { in: studioIds } },
-          select: {
-            branch: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-                timezone: true,
-                supportWhatsappE164: true,
-                publicProfile: true,
-              },
-            },
-          },
-        },
       },
       orderBy: [{ priceRp: 'asc' }],
       take: 6,
     });
 
     const packages = packagesRaw.flatMap((pkg) => {
-      const targetBranches =
-        pkg.branchScopes.length > 0
-          ? pkg.branchScopes.map((b) => b.branch).filter(Boolean)
-          : studios.slice(0, 1);
+      const targetBranches = studios.slice(0, 1);
       return targetBranches.map((branch) => ({
         id: pkg.id,
         name: pkg.name,
         sessionCount: pkg.sessionCount,
-        durationDays: pkg.durationDays,
-        publicProfile: pkg.publicProfile,
+        durationDays: pkg.validityDays,
+        publicProfile: { summary: `${pkg.sessionCount} Sesi - Masa Aktif ${pkg.validityDays} Hari` },
         branchId: branch.id,
         branch,
-        classTypes: classTypes.map((ct) => ({ id: ct.id, code: ct.code, name: ct.name })),
-        ...calculatePackagePromotion({
-          priceRp: pkg.priceRp,
-          promotion: pkg.promotions?.[0],
-          now,
-        }),
+        classTypes: [{ id: classType.id, code: classType.code, name: classType.name }],
+        priceRp: pkg.priceRp,
+        isDiscounted: false,
+        discountedPriceRp: pkg.priceRp,
+        discountPercent: 0,
       }));
     });
 
-    // Upcoming schedules
     const classSlots = await this.db.slotKelas.findMany({
       where: {
-        classType: { code: profile.code, active: true },
-        branch: { active: true, publicProfile: { isNot: null } },
+        classTypeId: classType.id,
         status: { in: ['PUBLISHED', 'CONFIRMED'] },
         startAt: { gt: now },
       },
-      select: {
-        id: true,
-        branchId: true,
-        startAt: true,
-        endAt: true,
-        timezone: true,
-        status: true,
-        capacity: true,
-        bookedCount: true,
-        classType: { select: { id: true, code: true, name: true } },
+      include: {
         instructor: { select: { displayName: true } },
         branch: {
           select: {
@@ -202,8 +115,8 @@ export class PublicClassQueryService {
             code: true,
             name: true,
             timezone: true,
+            address: true,
             supportWhatsappE164: true,
-            publicProfile: true,
           },
         },
       },
@@ -212,8 +125,30 @@ export class PublicClassQueryService {
     });
 
     const schedules = classSlots.map(({ bookedCount, ...slot }) => ({
-      ...slot,
+      id: slot.id,
+      branchId: slot.branchId,
+      startAt: slot.startAt,
+      endAt: slot.endAt,
+      timezone: slot.branch.timezone,
+      status: slot.status,
+      capacity: slot.capacity,
+      bookedCount,
       available: Math.max(0, slot.capacity - bookedCount),
+      classType: { id: classType.id, code: classType.code, name: classType.name },
+      instructor: slot.instructor?.displayName ? { displayName: slot.instructor.displayName } : null,
+      branch: {
+        id: slot.branch.id,
+        code: slot.branch.code,
+        name: slot.branch.name,
+        timezone: slot.branch.timezone,
+        supportWhatsappE164: slot.branch.supportWhatsappE164,
+        publicProfile: {
+          slug: slot.branch.code.toLowerCase(),
+          area: slot.branch.name,
+          city: 'Jakarta',
+          address: slot.branch.address ?? '',
+        },
+      },
     }));
 
     return {

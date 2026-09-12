@@ -1,139 +1,120 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
-import { calculatePackagePromotion } from '../packages/kalkulasi-harga-paket.service';
 
 @Injectable()
 export class PublicStudioQueryService {
   constructor(private readonly db: PrismaService) {}
 
   async detail(slug: string) {
+    const raw = slug?.trim();
+    if (!raw) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
     const now = new Date();
     const branch = await this.db.cabang.findFirst({
-      where: { active: true, publicProfile: { is: { slug } } },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        timezone: true,
-        supportWhatsappE164: true,
-        publicProfile: true,
-        classTypes: {
+      where: {
+        active: true,
+        OR: [
+          { code: raw.toUpperCase() },
+          { id: raw },
+        ],
+      },
+      include: {
+        studios: {
           where: { active: true },
-          select: {
-            id: true,
-            code: true,
-            name: true,
-            packageScopes: {
-              where: {
-                active: true,
-                package: {
-                  status: 'ACTIVE',
-                  effectiveFrom: { lte: now },
-                  OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }],
-                  publicProfile: { isNot: null },
-                },
-              },
-              select: {
-                package: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sessionCount: true,
-                    durationDays: true,
-                    priceRp: true,
-                    promotions: {
-                      where: {
-                        status: 'ACTIVE',
-                        activeFrom: { lte: now },
-                        activeUntil: { gt: now },
-                      },
-                      orderBy: [{ activeFrom: 'desc' as const }],
-                      take: 1,
-                    },
-                    publicProfile: { select: { summary: true } },
-                    branchScopes: {
-                      where: { active: true },
-                      select: { branchId: true },
-                    },
-                  },
-                },
-              },
-              orderBy: [{ package: { priceRp: 'asc' } }],
-            },
-            classSlots: {
-              where: { status: { in: ['PUBLISHED', 'CONFIRMED'] }, startAt: { gt: now } },
-              select: {
-                id: true,
-                startAt: true,
-                endAt: true,
-                timezone: true,
-                status: true,
-                capacity: true,
-                bookedCount: true,
-              },
-              orderBy: [{ startAt: 'asc' }],
-              take: 3,
-            },
+          include: {
+            rooms: { where: { active: true } },
           },
-          orderBy: [{ name: 'asc' }],
         },
       },
     });
-    if (!branch?.publicProfile) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    const classProfiles = await this.db.profilPublikKelas.findMany({
-      where: { code: { in: branch.classTypes.map(({ code }) => code) }, active: true },
-    });
-    const profilesByCode = new Map(classProfiles.map((profile) => [profile.code, profile]));
 
-    const contextualPackages = branch.classTypes.flatMap(
-      ({ id: classTypeId, code, name, packageScopes }) =>
-        packageScopes
-          .filter(({ package: item }) =>
-            item.branchScopes.some(({ branchId }) => branchId === branch.id),
-          )
-          .map(({ package: { promotions, branchScopes: _branchScopes, ...item } }) => ({
-            ...item,
+    if (!branch) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const classTypes = await this.db.jenisKelas.findMany({
+      where: { active: true },
+      include: {
+        classSlots: {
+          where: {
             branchId: branch.id,
-            classTypes: [{ id: classTypeId, code, name }],
-            ...calculatePackagePromotion({
-              priceRp: item.priceRp,
-              promotion: promotions?.[0],
-              now,
-            }),
-          })),
-    );
+            status: { in: ['PUBLISHED', 'CONFIRMED'] },
+            startAt: { gt: now },
+          },
+          include: {
+            instructor: { select: { displayName: true } },
+          },
+          orderBy: { startAt: 'asc' },
+          take: 10,
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
 
-    const packages = contextualPackages.reduce<typeof contextualPackages>((items, item) => {
-      const existing = items.find(({ id }) => id === item.id);
-      if (!existing) {
-        items.push(item);
-        return items;
-      }
+    const packages = await this.db.paket.findMany({
+      where: { status: 'ACTIVE' },
+      include: { classType: true },
+      take: 20,
+    });
 
-      for (const classType of item.classTypes) {
-        if (!existing.classTypes.some(({ id }) => id === classType.id)) {
-          existing.classTypes.push(classType);
-        }
-      }
-      return items;
-    }, []);
+    const publicProfile = {
+      slug: branch.code.toLowerCase(),
+      area: branch.name,
+      city: 'Jakarta',
+      address: branch.address ?? '',
+      description: `${branch.name} Studio Pilates`,
+      arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+      parkingInformation: 'Tersedia tempat parkir kendaraan.',
+      openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+      heroImageKey: null,
+      galleryImageKeys: [],
+    };
 
     return {
       ...branch,
-      classes: branch.classTypes
-        .map(({ id: _id, packageScopes: _packageScopes, classSlots: _slots, ...type }) => ({
-          ...type,
-          profile: profilesByCode.get(type.code),
-        }))
-        .filter(({ profile }) => profile),
-      packages,
-      schedules: branch.classTypes
-        .flatMap(({ code, name, classSlots }) =>
-          classSlots.map(({ bookedCount, ...slot }) => ({
-            ...slot,
-            classType: { code, name },
-            available: Math.max(0, slot.capacity - bookedCount),
+      publicProfile,
+      classes: classTypes.map((ct) => ({
+        id: ct.id,
+        code: ct.code,
+        name: ct.name,
+        profile: {
+          code: ct.code,
+          name: ct.name,
+          slug: ct.code.toLowerCase(),
+          summary: ct.description ?? `${ct.name} Pilates`,
+          description: ct.description ?? `${ct.name} Pilates`,
+          durationMinutes: ct.durationMinutes,
+          level: 'ALL_LEVELS',
+          equipment: ['Reformer'],
+          benefits: ['Core Strength', 'Flexibility'],
+          heroImageKey: null,
+        },
+      })),
+      packages: packages.map((p) => ({
+        id: p.id,
+        name: p.name,
+        sessionCount: p.sessionCount,
+        durationDays: p.validityDays,
+        priceRp: p.priceRp,
+        branchId: branch.id,
+        classTypes: p.classType ? [{ id: p.classType.id, code: p.classType.code, name: p.classType.name }] : [],
+        isDiscounted: false,
+        discountedPriceRp: p.priceRp,
+        discountPercent: 0,
+      })),
+      schedules: classTypes
+        .flatMap((ct) =>
+          ct.classSlots.map((slot) => ({
+            id: slot.id,
+            startAt: slot.startAt,
+            endAt: slot.endAt,
+            timezone: branch.timezone,
+            status: slot.status,
+            capacity: slot.capacity,
+            bookedCount: slot.bookedCount,
+            available: Math.max(0, slot.capacity - slot.bookedCount),
+            classType: { code: ct.code, name: ct.name },
+            instructor: slot.instructor?.displayName ? { displayName: slot.instructor.displayName } : null,
           })),
         )
         .sort((left, right) => left.startAt.getTime() - right.startAt.getTime())

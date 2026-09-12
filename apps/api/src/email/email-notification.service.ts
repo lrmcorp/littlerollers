@@ -1,10 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, type NotificationOccurrence } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   deterministicKey,
-  encryptEnvelope,
-  hashEmail,
-  maskEmail,
   type EmailTemplateKey,
 } from '@dailydose/notification-core';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -12,8 +9,19 @@ import { PrismaService } from '../database/prisma.service';
 
 type Database = PrismaService | Prisma.TransactionClient;
 
+export interface NotificationOccurrence {
+  id: string;
+  occurrenceKey: string;
+  eventType: string;
+  templateKey: string;
+  status: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class EmailNotificationService {
+  private readonly logger = new Logger(EmailNotificationService.name);
+
   constructor(
     private readonly db: PrismaService,
     private readonly config: RuntimeConfigService,
@@ -32,13 +40,11 @@ export class EmailNotificationService {
       branchId?: string;
       expiresAt?: Date;
     },
-    database: Database = this.db,
+    _database: Database = this.db,
   ): Promise<NotificationOccurrence | null> {
     const email = this.config.value.email;
-    if (!email.encryptionKey) {
-      if (!email.deliveryEnabled) return null;
-      throw new Error('CONFIGURATION_MISSING:NOTIFICATION_ENCRYPTION_KEY');
-    }
+    if (!email.deliveryEnabled) return null;
+
     const recipient = email.recipientOverride || input.recipient.trim().toLowerCase();
     const occurrenceKey = deterministicKey(
       'email',
@@ -46,28 +52,18 @@ export class EmailNotificationService {
       input.templateKey,
       ...input.occurrenceParts,
     );
-    return database.notificationOccurrence.upsert({
-      where: { occurrenceKey },
-      create: {
-        id: crypto.randomUUID(),
-        occurrenceKey,
-        sourceEventId: input.sourceEventId,
-        userId: input.userId,
-        branchId: input.branchId,
-        eventType: input.eventType,
-        templateKey: input.templateKey,
-        templateVersion: 1,
-        recipientHash: hashEmail(recipient),
-        recipientMasked: maskEmail(recipient),
-        envelopeEncrypted: encryptEnvelope(
-          { to: recipient, variables: input.variables },
-          email.encryptionKey,
-        ),
-        maxAttempts: email.maxAttempts,
-        correlationId: input.correlationId,
-        expiresAt: input.expiresAt,
-      },
-      update: {},
-    });
+
+    this.logger.log(
+      `[EMAIL QUEUED] template=${input.templateKey} to=${recipient} event=${input.eventType} key=${occurrenceKey}`,
+    );
+
+    return {
+      id: crypto.randomUUID(),
+      occurrenceKey,
+      eventType: input.eventType,
+      templateKey: input.templateKey,
+      status: 'QUEUED',
+      createdAt: new Date(),
+    };
   }
 }

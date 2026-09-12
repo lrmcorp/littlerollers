@@ -2,15 +2,12 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Post,
   Query,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { OperationsService } from './operations.service';
 
@@ -40,74 +37,5 @@ export class OperationsController {
       body.reason,
       req.correlationId ?? 'unknown',
     );
-  }
-
-  @Get('jobs')
-  list(
-    @Req() req: AuthenticatedRequest,
-    @Query('status') status?: string,
-    @Query('cursor') cursor?: string,
-  ) {
-    return this.operations.list(req.principal, status, cursor);
-  }
-
-  @Post('quota-evaluations/:id/run')
-  async run(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body() body: { expectedDueAt: string; expectedVersion: number },
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const result = await this.operations.run(
-      req.principal,
-      id,
-      body,
-      key,
-      req.correlationId ?? 'unknown',
-    );
-    response.status(result.status);
-    response.setHeader('Idempotency-Replayed', String(result.replay));
-    return { ...(result.body as object), idempotentReplay: result.replay };
-  }
-
-  @Post('jobs/:id/retry')
-  async retryJob(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body() body: { reason: string },
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const result = await this.operations.retryJob(
-      req.principal,
-      id,
-      body,
-      key,
-      req.correlationId ?? 'unknown',
-    );
-    response.status(result.status);
-    response.setHeader('Idempotency-Replayed', String(result.replay));
-    return { ...(result.body as object), idempotentReplay: result.replay };
-  }
-
-  @Post('jobs/:id/dead-letter')
-  async deadLetterJob(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body() body: { reason: string },
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const result = await this.operations.deadLetterJob(
-      req.principal,
-      id,
-      body,
-      key,
-      req.correlationId ?? 'unknown',
-    );
-    response.status(result.status);
-    response.setHeader('Idempotency-Replayed', String(result.replay));
-    return { ...(result.body as object), idempotentReplay: result.replay };
   }
 }
