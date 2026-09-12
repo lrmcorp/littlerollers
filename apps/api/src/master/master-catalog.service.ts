@@ -154,7 +154,6 @@ export class MasterCatalogService {
           code,
           name,
           description: input.equipmentText?.trim() || null,
-          supportWhatsappE164: input.contactPhoneE164?.trim() || null,
           active: true,
         },
       });
@@ -194,7 +193,6 @@ export class MasterCatalogService {
         data: {
           name: input.name?.trim(),
           description: input.equipmentText?.trim() || null,
-          supportWhatsappE164: input.contactPhoneE164?.trim() || null,
           active: input.active,
         },
       });

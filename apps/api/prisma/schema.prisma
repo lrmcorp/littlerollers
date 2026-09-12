@@ -117,7 +117,6 @@ model Studio {
   code                String   @db.VarChar(32)
   name                String   @db.VarChar(128)
   description         String?  @db.Text
-  supportWhatsappE164 String?  @map("phone") @db.VarChar(32)
   active              Boolean  @default(true) @map("isActive")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
