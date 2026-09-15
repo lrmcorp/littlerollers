@@ -91,7 +91,7 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={readCapabilities}
       />,
     );
-    expect(screen.getByText('Read only')).toBeVisible();
+    expect(screen.getByText('Hanya lihat')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
   });
 
@@ -113,7 +113,7 @@ describe('ClassSlotView', () => {
       />,
     );
     expect(await screen.findByText('Semua cabang · ringkasan global')).toBeVisible();
-    expect(screen.getByText('Scope global')).toBeVisible();
+    expect(screen.getByText('Semua Cabang')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
     expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });

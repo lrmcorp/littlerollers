@@ -17,9 +17,14 @@ import { VoucherService } from './voucher.service';
 import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import { PackagePromotionService } from './package-promotion.service';
 
+import { LedgerController } from './ledger.controller';
+import { LedgerService } from './ledger.service';
+import { FinanceController } from './finance.controller';
+import { FinanceService } from './finance.service';
+
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
-  controllers: [PackagesController],
+  controllers: [PackagesController, LedgerController, FinanceController],
   providers: [
     CustomerOrderService,
     PackageAccessService,
@@ -32,6 +37,9 @@ import { PackagePromotionService } from './package-promotion.service';
     VoucherService,
     PackagePricingService,
     PackagePromotionService,
+    LedgerService,
+    FinanceService,
   ],
+  exports: [LedgerService, FinanceService],
 })
 export class PackagesModule {}

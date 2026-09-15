@@ -1,4 +1,4 @@
-import { calculatePackagePromotion, promotionEffectiveState } from './package-pricing.service';
+import { calculatePackagePromotion, promotionEffectiveState } from './kalkulasi-harga-paket.service';
 
 const promotion = {
   id: 'promo-1',

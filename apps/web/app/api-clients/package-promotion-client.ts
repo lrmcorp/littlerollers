@@ -118,8 +118,9 @@ export const browserPackagePromotionClient = {
     for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
     return request<PackageManagementPage>(`/packages${query.size ? `?${query.toString()}` : ''}`);
   },
-  detail(id: string) {
-    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}`);
+  async detail(id: string) {
+    const res = await request<any>(`/packages/${encodeURIComponent(id)}`);
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
   promotions(packageId: string, cursor?: string) {
     const query = new URLSearchParams();
@@ -161,44 +162,49 @@ export const browserPackagePromotionClient = {
       `/package-promotions/${encodeURIComponent(id)}/orders${query.size ? `?${query}` : ''}`,
     );
   },
-  createPackage(input: Record<string, unknown>) {
-    return request<InternalPackageRecord>('/packages', {
+  async createPackage(input: Record<string, unknown>) {
+    const res = await request<any>('/packages', {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify(input),
     });
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
-  updatePackage(id: string, input: Record<string, unknown>) {
-    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}`, {
+  async updatePackage(id: string, input: Record<string, unknown>) {
+    const res = await request<any>(`/packages/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: headers(),
       body: JSON.stringify(input),
     });
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
-  revisePackage(id: string, input: Record<string, unknown>) {
-    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/revisions`, {
+  async revisePackage(id: string, input: Record<string, unknown>) {
+    const res = await request<any>(`/packages/${encodeURIComponent(id)}/revisions`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify(input),
     });
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
-  replacePackageScopes(id: string, input: Record<string, unknown>) {
-    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/scopes`, {
+  async replacePackageScopes(id: string, input: Record<string, unknown>) {
+    const res = await request<any>(`/packages/${encodeURIComponent(id)}/scopes`, {
       method: 'PUT',
       headers: headers(),
       body: JSON.stringify(input),
     });
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
-  transitionPackage(
+  async transitionPackage(
     id: string,
     action: 'deactivate' | 'reactivate',
     expectedVersion: number,
     reason: string,
   ) {
-    return request<InternalPackageRecord>(`/packages/${encodeURIComponent(id)}/${action}`, {
+    const res = await request<any>(`/packages/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ expectedVersion, reason }),
     });
+    return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
 };

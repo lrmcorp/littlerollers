@@ -28,6 +28,16 @@ export function isOwningCustomer(
   );
 }
 
+export function isOwningInstructor(
+  principal: { userId: string; capabilities?: readonly string[] },
+  instructorUserId: string,
+): boolean {
+  return (
+    principal.userId === instructorUserId &&
+    Boolean(principal.capabilities?.includes('attendance:self'))
+  );
+}
+
 function rawTokenFrom(value: string): string {
   const trimmed = value.trim();
   if (RAW_TOKEN.test(trimmed)) return trimmed;

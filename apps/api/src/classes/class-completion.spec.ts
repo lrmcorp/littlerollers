@@ -1,4 +1,4 @@
-import { classCompletionControlHash } from './class-slot.service';
+import { classCompletionControlHash } from './slot-kelas.service';
 
 const attended = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -32,7 +32,7 @@ test('class completion control hash changes when attendance or reservation state
   expect(
     classCompletionControlHash([
       attended,
-      { ...waiting, reservation: { ...waiting.reservation, status: 'RELEASED' } },
+      { ...waiting, status: 'CANCELLED' },
     ]),
   ).not.toBe(baseline);
 });

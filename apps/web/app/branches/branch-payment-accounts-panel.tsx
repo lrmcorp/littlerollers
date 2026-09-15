@@ -502,7 +502,7 @@ export function BranchPaymentAccountsPanel({
           <TextInput
             label="Nama pemilik rekening (a.n.)"
             name="accountHolderName"
-            placeholder="Contoh: CV SUKMEN SAMAYA PRATAMA"
+            placeholder="Contoh: PT Daily Dose Indonesia"
             required
           />
 
@@ -519,7 +519,7 @@ export function BranchPaymentAccountsPanel({
           <TextInput
             label="Alasan pembuatan rekening"
             name="reason"
-            placeholder="Contoh: Rekening operasional resmi cabang Untar"
+            placeholder="Contoh: Rekening operasional cabang Jakarta"
             minLength={3}
             required
           />

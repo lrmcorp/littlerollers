@@ -33,10 +33,10 @@ export function BranchesView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
   const q = params.get('q') ?? '';
   const status = params.get('status') ?? '';
   const cursor = params.get('cursor') ?? '';
-  const cursorTrail = params.getAll('trail');
   const canRead =
     session?.status === 'authenticated' && session.hasCapability('master:read', 'master:manage');
   const canManage = session?.status === 'authenticated' && session.hasCapability('master:manage');
@@ -60,7 +60,7 @@ export function BranchesView() {
     else next.delete(key);
     if (key !== 'cursor') {
       next.delete('cursor');
-      next.delete('trail');
+      setCursorHistory([]);
     }
     router.replace(`/workspace/branches${next.size ? `?${next}` : ''}`);
   };
@@ -68,14 +68,12 @@ export function BranchesView() {
     const next = new URLSearchParams(params.toString());
     if (direction === 'next') {
       if (!page.page.nextCursor) return;
-      next.append('trail', cursor || '__FIRST__');
+      setCursorHistory((prev) => [...prev, cursor]);
       next.set('cursor', page.page.nextCursor);
     } else {
-      const trail = next.getAll('trail');
-      const previous = trail.pop();
-      next.delete('trail');
-      trail.forEach((value) => next.append('trail', value));
-      if (!previous || previous === '__FIRST__') next.delete('cursor');
+      const previous = cursorHistory.at(-1) ?? '';
+      setCursorHistory((prev) => prev.slice(0, -1));
+      if (!previous) next.delete('cursor');
       else next.set('cursor', previous);
     }
     router.replace(`/workspace/branches${next.size ? `?${next}` : ''}`);
@@ -87,7 +85,7 @@ export function BranchesView() {
     return browserBranchClient
       .list({ q, status, cursor, limit: 20 })
       .then((result) => {
-        if (result.items.length === 0 && cursorTrail.length > 0) {
+        if (result.items.length === 0 && cursorHistory.length > 0) {
           movePage('previous');
           return;
         }
@@ -211,9 +209,9 @@ export function BranchesView() {
         ]}
       />
       <Pagination
-        hasPrevious={cursorTrail.length > 0}
+        hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman cabang ${cursorTrail.length + 1}`}
+        totalLabel={`Halaman cabang ${cursorHistory.length + 1}`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />

@@ -48,7 +48,7 @@ export function calculateVoucherDiscount(input: {
     input.maxDiscountRp && input.maxDiscountRp > 0
       ? Math.min(raw, input.maxDiscountRp)
       : raw;
-  return Math.min(capped, Math.max(0, input.priceRp - 1));
+  return Math.min(capped, Math.max(0, input.priceRp));
 }
 
 @Injectable()
@@ -80,26 +80,27 @@ export class VoucherService {
     return {
       id: voucher.id,
       code: voucher.code,
-      name: voucher.name,
-      description: '',
+      name: voucher.name ?? '',
+      description: voucher.description ?? '',
       status,
       discountType: isPercent ? 'PERCENTAGE' : 'FIXED_AMOUNT',
-      discountValue: voucher.discountValue,
+      discountValue: voucher.discountValue ?? 0,
       maxDiscountRp: voucher.maxDiscountRp ?? null,
-      minimumPurchaseRp: voucher.minSpendRp,
-      minSpendRp: voucher.minSpendRp,
+      minimumPurchaseRp: voucher.minSpendRp ?? 0,
+      minSpendRp: voucher.minSpendRp ?? 0,
       activeFrom: voucher.createdAt,
       activeUntil: voucher.validUntil ?? null,
       validUntil: voucher.validUntil ?? null,
-      totalUsageLimit: voucher.quota,
-      quota: voucher.quota,
-      perCustomerUsageLimit: 1,
-      redeemedCount: voucher.usedCount,
-      usedCount: voucher.usedCount,
+      totalUsageLimit: voucher.quota ?? null,
+      quota: voucher.quota ?? null,
+      perCustomerUsageLimit: null,
+      redeemedCount: voucher.usedCount ?? 0,
+      usedCount: voucher.usedCount ?? 0,
       branch: null,
       classType: null,
       packageIds: [],
       packages: [],
+      auditActivity: [],
       version: 1,
       createdAt: voucher.createdAt,
       updatedAt: voucher.createdAt,
@@ -372,6 +373,7 @@ export class VoucherService {
           include: {
             user: { select: { id: true, displayName: true, email: true } },
             package: { select: { id: true, name: true } },
+            branch: { select: { id: true, name: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: PAGE_SIZE,
@@ -380,18 +382,27 @@ export class VoucherService {
     });
     if (!voucher) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    return {
-      items: (voucher.purchases ?? []).map((p: any) => ({
+    const items = (voucher.purchases ?? []).map((p: any) => ({
+      id: p.id,
+      customer: {
+        id: p.user?.id ?? '',
+        displayName: p.user?.displayName ?? p.user?.email ?? 'Unknown',
+      },
+      purchase: {
         id: p.id,
-        orderId: p.id,
-        orderNumber: p.invoiceNumber,
-        customer: p.user,
-        package: p.package,
-        discountRp: p.discountRp,
-        finalPriceRp: p.totalAmountRp,
-        redeemedAt: p.createdAt,
-      })),
-      nextCursor: null,
+        status: p.status,
+        branch: { id: p.branch?.id ?? '', name: p.branch?.name ?? 'Unknown' },
+        package: { name: p.package?.name ?? 'Unknown' },
+      },
+      discountRp: p.discountRp ?? 0,
+      redeemedAt: p.createdAt,
+      releasedAt: null,
+    }));
+
+    return {
+      voucher: { id: voucher.id, code: voucher.code },
+      items,
+      page: { hasMore: false, nextCursor: null },
     };
   }
 

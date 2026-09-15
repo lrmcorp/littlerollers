@@ -104,6 +104,12 @@ export class PackageCatalogService {
 
     return {
       items: pageItems.map(packageView),
+      summary: {
+        ACTIVE: pageItems.filter((i) => i.status === 'ACTIVE').length,
+        SCHEDULED: 0,
+        EXPIRED: 0,
+        INACTIVE: pageItems.filter((i) => i.status !== 'ACTIVE').length,
+      },
       nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
       page: {
         hasMore: hasNext,
@@ -146,7 +152,7 @@ export class PackageCatalogService {
             code,
             name,
             description: input.description?.trim() ?? null,
-            classTypeId: input.classTypeId ?? null,
+            classTypeId: input.classTypeId ?? input.classTypeIds?.[0] ?? null,
             priceRp,
             sessionCount,
             validityDays,

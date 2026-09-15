@@ -1,4 +1,4 @@
-import { isRescheduleEntitled } from './reschedules.service';
+import { isRescheduleEntitled } from './ubah-jadwal.service';
 
 describe('synthetic reschedule boundary', () => {
   const startAt = new Date('2026-08-02T10:00:00Z');

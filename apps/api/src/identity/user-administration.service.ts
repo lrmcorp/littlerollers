@@ -105,7 +105,7 @@ export class UserAdministrationService {
 
     return {
       items: page.map((u) => this.userView(u)),
-      summary: { total: users.length, active: users.length, inactive: 0 },
+      summary: { total: users.length, active: users.length, pendingActivation: 0, inactive: 0 },
       page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
     };
   }

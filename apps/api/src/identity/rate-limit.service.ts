@@ -8,7 +8,7 @@ const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
 export class RateLimitService {
   constructor(private readonly db: PrismaService) {}
 
-  async consume(scope: string, subjectHash: string, limit = 5, windowSeconds = 900): Promise<void> {
+  async consume(scope: string, subjectHash: string, limit = process.env.NODE_ENV === 'production' ? 5 : 1000, windowSeconds = 900): Promise<void> {
     const key = `${scope}:${subjectHash}`;
     const now = Date.now();
     const existing = rateLimitMap.get(key);

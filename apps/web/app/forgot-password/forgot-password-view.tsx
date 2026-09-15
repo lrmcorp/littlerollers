@@ -19,7 +19,7 @@ export function ForgotPasswordView({
     <AuthPageShell
       eyebrow="Pemulihan akun"
       title="Lupa password"
-      description="Masukkan email undangan Anda. Jika akun cocok, kami akan mengirim tautan reset yang aman."
+      description="Masukkan email terdaftar Anda. Jika akun terdaftar, kami akan mengirimkan tautan pemulihan password yang aman."
     >
       <form
         className="grid gap-4"
@@ -42,6 +42,7 @@ export function ForgotPasswordView({
             name="email"
             type="email"
             autoComplete="email"
+            placeholder="nama@email.com"
             required
           />
         </label>

@@ -525,11 +525,27 @@ export class MasterCatalogService {
     this.access.authorize(principal);
     if (branchId) this.access.ensureBranchScope(principal, branchId);
 
+    const branches = await this.db.cabang.findMany({
+      where: { active: true },
+      select: { id: true, code: true, name: true, active: true },
+    });
+
     const items = await this.db.jenisKelas.findMany({
       where: { active: true },
       orderBy: { code: 'asc' },
     });
-    return { items, page: { nextCursor: null, hasMore: false } };
+
+    const mapped = items.map((item) => ({
+      ...item,
+      version: 1,
+      branchScopes: branches.map((b) => ({
+        branchId: b.id,
+        active: true,
+        branch: b,
+      })),
+    }));
+
+    return { items: mapped, page: { nextCursor: null, hasMore: false } };
   }
 
   async createClassType(

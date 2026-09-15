@@ -59,29 +59,29 @@ const jobTypeLabel: Record<string, string> = {
 
 const roleCopy = {
   EXECUTIVE: {
-    eyebrow: 'Executive overview',
+    eyebrow: 'Ikhtisar Eksekutif',
     title: 'Kinerja lintas cabang dalam satu pandangan',
     description:
       'Pantau pertumbuhan, ranking cabang, risiko, anomali, dan keputusan penting tingkat perusahaan.',
   },
   OWNER: {
-    eyebrow: 'Owner oversight',
+    eyebrow: 'Pengawasan Owner',
     title: 'Kinerja cabang dalam satu pandangan',
     description:
       'Pantau performa cabang, pendapatan, okupansi, dan pekerjaan yang membutuhkan keputusan Anda.',
   },
   BRANCH_OPERATIONS: {
-    eyebrow: 'Branch command center',
+    eyebrow: 'Pusat Operasional Cabang',
     title: 'Operasional cabang hari ini',
     description: 'Prioritaskan kelas, booking, customer, dan antrean keputusan untuk cabang aktif.',
   },
   FINANCE: {
-    eyebrow: 'Finance overview',
+    eyebrow: 'Ikhtisar Keuangan',
     title: 'Arus transaksi dan pekerjaan keuangan',
     description: 'Pantau pembayaran, ledger, dan antrean finansial dari satu ruang kerja.',
   },
   OPERATIONS: {
-    eyebrow: 'Operations control',
+    eyebrow: 'Kontrol Operasional',
     title: 'Kesehatan operasional dan recovery',
     description:
       'Identifikasi job bermasalah, retry, dan kondisi sistem yang membutuhkan perhatian.',
@@ -241,7 +241,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             value={dashboardBranchId}
             compact
             wrapperClassName="min-w-52"
-            placeholder="Semua Studio/Cabang yang diizinkan"
+            placeholder="Semua Studio / Cabang"
             searchPlaceholder="Cari Studio/Cabang…"
             clearable
             options={session.branches.map((branch) => ({

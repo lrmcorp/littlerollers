@@ -247,7 +247,7 @@ export function CustomersView() {
                     {item.activePackageCount} aktif · {item.purchasedSessions} sesi pembelian
                   </td>
                   <td className="p-4">
-                    {item._count.purchases} order · {item._count.customerBookings} booking
+                    {item._count?.purchases ?? 0} order · {item._count?.customerBookings ?? 0} booking
                   </td>
                   <td className="p-4">
                     <Link

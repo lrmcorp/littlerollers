@@ -364,4 +364,49 @@ describe('purchase internal review workspace', () => {
       await screen.findByText('Bukti pembayaran sementara belum dapat diproses.'),
     ).toBeVisible();
   });
+
+  it('navigates pagination cleanly with cursorHistory and without trail parameters', async () => {
+    const pagedClient = reviewFake({
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({
+          items: [reviewPurchase],
+          summary: {
+            pending: 1,
+            actionRequired: 0,
+            approved: 0,
+            rejected: 0,
+            expired: 0,
+            totalAmountRp: 100000,
+            agingOver24Hours: 0,
+          },
+          page: { hasMore: true, nextCursor: 'cursor-page-2' },
+          generatedAt: new Date(),
+        })
+        .mockResolvedValueOnce({
+          items: [{ ...reviewPurchase, id: 'purchase-2' }],
+          summary: {
+            pending: 1,
+            actionRequired: 0,
+            approved: 0,
+            rejected: 0,
+            expired: 0,
+            totalAmountRp: 100000,
+            agingOver24Hours: 0,
+          },
+          page: { hasMore: false, nextCursor: null },
+          generatedAt: new Date(),
+        }),
+    });
+    render(<PurchaseReviewView client={pagedClient} branchOverride={branch} />);
+    const user = userEvent.setup();
+    const nextButton = await screen.findByRole('button', { name: 'Berikutnya' });
+    expect(nextButton).toBeEnabled();
+    await user.click(nextButton);
+    expect(pagedClient.list).toHaveBeenCalledTimes(2);
+    expect(pagedClient.list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cursor: 'cursor-page-2' }),
+    );
+    expect(window.location.search).not.toContain('trail');
+  });
 });

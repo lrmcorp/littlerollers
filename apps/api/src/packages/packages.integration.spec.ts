@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
-import { CustomerOrderService } from './customer-order.service';
+import { CustomerOrderService } from './pembelian-paket.service';
 import { PackageAccessService } from './package-access.service';
-import { PackageCatalogService } from './package-catalog.service';
-import { PaymentProofService } from './payment-proof.service';
-import { PaymentReviewService } from './payment-review.service';
+import { PackageCatalogService } from './katalog-paket.service';
+import { PaymentProofService } from './bukti-pembayaran.service';
+import { PaymentReviewService } from './verifikasi-pembayaran.service';
 import {
   ConfigGatedMalwareScanProvider,
   ConfigGatedObjectStorageProvider,
@@ -17,7 +17,7 @@ import {
 import { encryptAccountNumber } from './payment-account-security';
 import { LocalPrivateFileStorage } from '../identity/private-file-storage';
 import { FinanceService } from '../finance/finance.service';
-import { PackagePricingService } from './package-pricing.service';
+import { PackagePricingService } from './kalkulasi-harga-paket.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('synthetic package purchase MySQL integration', () => {

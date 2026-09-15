@@ -63,14 +63,42 @@ export class PackagePromotionService {
 
   async packageDetail(principal: SessionPrincipal, packageId: string) {
     const pkg = await this.packageOrThrow(principal, packageId);
+    const detail = {
+      id: pkg.id,
+      code: pkg.code,
+      businessKey: pkg.code,
+      name: pkg.name,
+      description: pkg.description ?? '',
+      priceRp: pkg.priceRp,
+      sessionCount: pkg.sessionCount,
+      durationDays: pkg.validityDays,
+      validityDays: pkg.validityDays,
+      status: pkg.status,
+      effectiveState: pkg.status === 'ACTIVE' ? 'LIVE' : pkg.status,
+      effectiveFrom: pkg.createdAt.toISOString(),
+      effectiveUntil: null,
+      branchScopes: [],
+      classTypeScopes: pkg.classType ? [{ classType: pkg.classType }] : [],
+      classType: pkg.classType ?? null,
+      classTypeId: pkg.classTypeId ?? null,
+      version: 1,
+      revisions: [
+        {
+          id: `${pkg.id}-r1`,
+          revisionNumber: 1,
+          name: pkg.name,
+          priceRp: pkg.priceRp,
+          sessionCount: pkg.sessionCount,
+          durationDays: pkg.validityDays,
+          validityDays: pkg.validityDays,
+          effectiveFrom: pkg.createdAt.toISOString(),
+        },
+      ],
+      publicProfile: null,
+    };
     return {
-      package: {
-        ...pkg,
-        branchScopes: [],
-        classTypeScopes: pkg.classType ? [{ classType: pkg.classType }] : [],
-        revisions: [],
-        publicProfile: null,
-      },
+      ...detail,
+      package: detail,
       promotions: [],
       auditActivity: [],
     };
@@ -86,6 +114,10 @@ export class PackagePromotionService {
     return {
       items: [],
       nextCursor: null,
+      page: {
+        hasMore: false,
+        nextCursor: null,
+      },
     };
   }
 

@@ -364,7 +364,7 @@ describe('capability-aware session shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Selamat datang, Admin Jakarta' }),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: /Booking & reschedule/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Jadwal & Presensi/ })).toBeVisible();
     expect(screen.getByRole('link', { name: /Sesi Customer/ })).toBeVisible();
     expect(screen.queryByRole('link', { name: /Operations H-24/ })).not.toBeInTheDocument();
     expect(screen.getByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();

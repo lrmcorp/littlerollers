@@ -203,8 +203,8 @@ export function VouchersView() {
               header: 'Diskon',
               cell: (item) =>
                 item.discountType === 'PERCENTAGE'
-                  ? `${item.discountValue}%`
-                  : `Rp ${item.discountValue.toLocaleString('id-ID')}`,
+                  ? `${item.discountValue ?? 0}%`
+                  : `Rp ${(item.discountValue ?? 0).toLocaleString('id-ID')}`,
             },
             { id: 'scope', header: 'Scope', cell: (item) => item.branch?.name ?? 'Semua cabang' },
             {

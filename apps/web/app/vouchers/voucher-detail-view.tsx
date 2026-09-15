@@ -162,8 +162,8 @@ export function VoucherDetailView({ id }: { id: string }) {
           <span className="text-xs text-dd-muted">Diskon</span>
           <strong className="mt-1 block">
             {voucher.discountType === 'PERCENTAGE'
-              ? `${voucher.discountValue}%`
-              : `Rp ${voucher.discountValue.toLocaleString('id-ID')}`}
+              ? `${voucher.discountValue ?? 0}%`
+              : `Rp ${(voucher.discountValue ?? 0).toLocaleString('id-ID')}`}
           </strong>
         </div>
         <div>
@@ -178,14 +178,14 @@ export function VoucherDetailView({ id }: { id: string }) {
         <div>
           <span className="text-xs text-dd-muted">Minimum pembelian</span>
           <strong className="mt-1 block">
-            Rp {voucher.minimumPurchaseRp.toLocaleString('id-ID')}
+            Rp {(voucher.minimumPurchaseRp ?? 0).toLocaleString('id-ID')}
           </strong>
         </div>
         <div>
           <span className="text-xs text-dd-muted">Penggunaan</span>
           <strong className="mt-1 block">
-            {voucher.redeemedCount}
-            {voucher.totalUsageLimit ? ` / ${voucher.totalUsageLimit}` : ''}
+            {voucher.redeemedCount ?? 0}
+            {(voucher.totalUsageLimit ?? 0) > 0 ? ` / ${voucher.totalUsageLimit}` : ''}
           </strong>
         </div>
         <div className="sm:col-span-2">
@@ -203,9 +203,9 @@ export function VoucherDetailView({ id }: { id: string }) {
         <div>
           <span className="text-xs text-dd-muted">Sisa kuota</span>
           <strong className="mt-1 block">
-            {voucher.totalUsageLimit === null
+            {voucher.totalUsageLimit == null || voucher.totalUsageLimit === 0
               ? 'Tanpa batas'
-              : Math.max(0, voucher.totalUsageLimit - voucher.redeemedCount)}
+              : Math.max(0, (voucher.totalUsageLimit ?? 0) - (voucher.redeemedCount ?? 0))}
           </strong>
         </div>
         {voucher.description && (
@@ -266,7 +266,7 @@ export function VoucherDetailView({ id }: { id: string }) {
                   </span>
                 </div>
                 <strong className="text-dd-forest">
-                  − Rp {item.discountRp.toLocaleString('id-ID')}
+                  − Rp {(item.discountRp ?? 0).toLocaleString('id-ID')}
                 </strong>
               </div>
             ))}
@@ -345,6 +345,7 @@ export function VoucherDetailView({ id }: { id: string }) {
           onChange={() => setEditDirty(true)}
           onSubmit={async (event) => {
             event.preventDefault();
+            // Capture FormData BEFORE any await to prevent loss of event.currentTarget
             const data = new FormData(event.currentTarget);
             const accepted = await feedback.confirm({
               tone: 'warning',
@@ -356,6 +357,12 @@ export function VoucherDetailView({ id }: { id: string }) {
             if (!accepted) return;
             setBusy(true);
             setEditFailure('');
+            // Safe date parser: returns ISO string or null for invalid/empty values
+            const safeISOString = (value: string | null | undefined): string | null => {
+              if (!value) return null;
+              const d = new Date(value);
+              return isNaN(d.getTime()) ? null : d.toISOString();
+            };
             try {
               const updated = await browserVoucherClient.update(voucher.id, {
                 code: String(data.get('code')),
@@ -365,9 +372,12 @@ export function VoucherDetailView({ id }: { id: string }) {
                 discountValue: Number(data.get('discountValue')),
                 maxDiscountRp: data.get('maxDiscountRp') ? Number(data.get('maxDiscountRp')) : null,
                 minimumPurchaseRp: Number(data.get('minimumPurchaseRp') || 0),
-                activeFrom: new Date(String(data.get('activeFrom'))).toISOString(),
+                activeFrom:
+                  safeISOString(String(data.get('activeFrom'))) ??
+                  safeISOString(voucher.activeFrom) ??
+                  new Date().toISOString(),
                 activeUntil: data.get('activeUntil')
-                  ? new Date(String(data.get('activeUntil'))).toISOString()
+                  ? safeISOString(String(data.get('activeUntil')))
                   : null,
                 totalUsageLimit: data.get('totalUsageLimit')
                   ? Number(data.get('totalUsageLimit'))
@@ -433,14 +443,22 @@ export function VoucherDetailView({ id }: { id: string }) {
             label="Mulai aktif"
             type="datetime-local"
             required
-            defaultValue={new Date(voucher.activeFrom).toISOString().slice(0, 16)}
+            defaultValue={(() => {
+              const d = new Date(voucher.activeFrom);
+              return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 16);
+            })()}
           />
           <TextInput
             name="activeUntil"
             label="Berakhir"
             type="datetime-local"
             defaultValue={
-              voucher.activeUntil ? new Date(voucher.activeUntil).toISOString().slice(0, 16) : ''
+              voucher.activeUntil
+                ? (() => {
+                    const d = new Date(voucher.activeUntil);
+                    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 16);
+                  })()
+                : ''
             }
           />
           <TextInput

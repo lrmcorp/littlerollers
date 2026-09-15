@@ -43,6 +43,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
               minLength={8}
               maxLength={128}
               autoComplete="new-password"
+              placeholder="Minimal 8 karakter"
               required
             />
             <button
@@ -63,6 +64,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
             minLength={8}
             maxLength={128}
             autoComplete="new-password"
+            placeholder="Ulangi password baru"
             required
           />
         </label>
@@ -75,7 +77,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
       </form>
       {status === 'done' && (
         <Feedback kind="status">
-          Password berhasil diperbarui. <Link href="/sign-in">Masuk kembali</Link>.
+          Password berhasil diperbarui. <Link href="/sign-in">Silakan masuk ke akun</Link>.
         </Feedback>
       )}
       {status === 'error' && (

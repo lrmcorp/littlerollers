@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
-import { AvailabilityService } from './availability.service';
+import { AvailabilityService } from './ketersediaan-instruktur.service';
 
 const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 

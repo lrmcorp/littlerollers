@@ -64,7 +64,7 @@ export default function ContactPage() {
                 <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                   <a
                     className="inline-flex items-center justify-center gap-2 rounded-dd-md bg-[#1f8f5f] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#18754e] shadow-sm"
-                    href="https://wa.me/628111000000?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio"
+                    href="https://wa.me/6281234567890?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -86,8 +86,9 @@ export default function ContactPage() {
             <div className="mt-8 rounded-dd-lg border border-dd-line bg-dd-paper p-6">
               <strong className="text-dd-forest">Privasi Anda tetap penting.</strong>
               <p className="mt-2 leading-7 text-dd-muted">
-                Halaman ini tidak meminta atau menyimpan data pribadi. Formulir kontak baru akan
-                ditambahkan setelah kebijakan privasi, retensi, dan anti-spam disetujui.
+                Halaman ini tidak meminta atau menyimpan data pribadi secara publik. Setiap pesan
+                dan pertanyaan Anda kami jaga kerahasiaannya untuk membantu kebutuhan latihan Anda di
+                Daily Dose.
               </p>
             </div>
           </div>

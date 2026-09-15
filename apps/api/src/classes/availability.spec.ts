@@ -1,4 +1,4 @@
-import { AvailabilityService } from './availability.service';
+import { AvailabilityService } from './ketersediaan-instruktur.service';
 import { PolicyService } from '../identity/policy.service';
 
 const principal = {
@@ -10,7 +10,7 @@ const principal = {
 };
 
 describe('AvailabilityService boundary', () => {
-  const db = { ketersediaanInstruktur: { findMany: jest.fn().mockResolvedValue([]) } };
+  const db = { slotKelas: { findMany: jest.fn().mockResolvedValue([]) } };
   const service = new AvailabilityService(db as never, new PolicyService(), {} as never);
 
   it('rejects offset-less and non-positive intervals before persistence', async () => {

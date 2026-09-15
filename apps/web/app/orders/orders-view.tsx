@@ -53,7 +53,7 @@ function tone(status: OrderStatus) {
 function urgency(order: CustomerOrder) {
   if (order.status === 'AWAITING_PAYMENT') return 'Lanjutkan pembayaran';
   if (order.status === 'ACTION_REQUIRED') return 'Ganti bukti pembayaran';
-  if (order.status === 'PENDING') return 'Menunggu pemeriksaan Finance';
+  if (order.status === 'PENDING') return 'Menunggu verifikasi tim keuangan';
   if (order.status === 'APPROVED') return 'Paket sudah diaktifkan';
   if (order.status === 'REJECTED') return 'Lihat hasil pemeriksaan';
   return 'Pesanan sudah berakhir';
@@ -104,7 +104,7 @@ export function OrdersView() {
   return (
     <main className="space-y-6">
       <PageHeader
-        eyebrow="Member area"
+        eyebrow="Portal Member"
         title="Pesanan Saya"
         description="Pantau pembayaran, pemeriksaan bukti, aktivasi paket, dan riwayat setiap pesanan."
         context={

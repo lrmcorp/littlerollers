@@ -60,15 +60,15 @@ export function PublicFooter() {
           <div className="col-span-2 sm:col-span-1">
             <p className="text-base font-bold tracking-wide">Daily Dose Pilates</p>
             <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/65">
-              Studio Pilates modern di Jakarta &amp; BSD. Bergerak lebih baik, hidup lebih seimbang.
+              Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup lebih seimbang.
             </p>
             <div className="mt-5 space-y-2 text-sm text-white/65">
               <p className="flex items-center gap-1.5">
                 <MapPin className="size-3.5 text-white/70 shrink-0" />
-                <span>Jakarta &amp; BSD</span>
+                <span>Jakarta, Tangerang &amp; Surabaya</span>
               </p>
               <a
-                href="https://wa.me/6281211111111"
+                href="https://wa.me/6281234567890"
                 className="flex items-center gap-1.5 text-white/65 no-underline transition hover:text-white"
                 target="_blank"
                 rel="noreferrer"

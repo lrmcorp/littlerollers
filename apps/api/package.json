@@ -14,7 +14,10 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate deploy",
+    "prisma:fresh": "node --import ./node_modules/tsx/dist/loader.mjs prisma/fresh.ts",
+    "prisma:fresh:seed": "node --import ./node_modules/tsx/dist/loader.mjs prisma/fresh.ts --seed",
     "prisma:seed": "node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts",
+    "prisma:seed:users": "SEED_PROFILE=users node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts",
     "prisma:seed:minimal": "SEED_PROFILE=minimal node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts",
     "prisma:seed:demo": "SEED_PROFILE=demo node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts",
     "prisma:seed:volume": "SEED_PROFILE=volume node --import ./node_modules/tsx/dist/loader.mjs prisma/seed.ts"

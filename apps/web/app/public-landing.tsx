@@ -57,7 +57,7 @@ const benefits = [
     title: 'Peralatan premium',
     description: 'Peralatan Pilates berkualitas untuk latihan yang aman',
   },
-  { icon: MapPin, title: 'Dua pilihan studio', description: 'Berlatih di Jakarta atau BSD' },
+  { icon: MapPin, title: '5 pilihan studio', description: 'Berlatih di Jakarta, Tangerang, atau Surabaya' },
   {
     icon: Calendar,
     title: 'Jadwal fleksibel',
@@ -133,9 +133,9 @@ export function PublicLanding() {
                 {
                   number: '04',
                   title: 'Sanctuary Atmosphere',
-                  subtitle: 'Dua pilihan studio',
+                  subtitle: '5 pilihan studio',
                   description:
-                    'Berlatih di Jakarta atau BSD dengan jadwal fleksibel yang sesuai dengan ritme Anda.',
+                    'Berlatih di 5 studio kami di Jakarta, Tangerang, dan Surabaya dengan jadwal fleksibel yang sesuai ritme Anda.',
                 },
               ].map(({ number, title, subtitle, description }) => (
                 <article
@@ -365,7 +365,7 @@ export function PublicLanding() {
               </div>
               <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
                 <span className="font-semibold text-dd-ink">Member Komunitas</span>
-                <span className="text-dd-brass font-semibold">Studio PIK</span>
+                <span className="text-dd-brass font-semibold">Studio Jakarta</span>
               </div>
             </article>
 
@@ -383,7 +383,7 @@ export function PublicLanding() {
               </div>
               <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
                 <span className="font-semibold text-dd-ink">Member Rutin</span>
-                <span className="text-dd-brass font-semibold">Studio Untar</span>
+                <span className="text-dd-brass font-semibold">Studio Muara Karang</span>
               </div>
             </article>
           </div>

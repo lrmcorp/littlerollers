@@ -34,21 +34,44 @@ type PrincipalAccess = {
   capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
 };
 
+const STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
+  'SUPERADMIN',
+  'SUPER_OWNER',
+  'ADMIN',
+  'COACH',
+  'INSTRUCTOR',
+  'MANAGER',
+  'OWNER',
+  'FINANCE',
+  'OPS',
+]);
+
 @Injectable()
 export class PolicyService {
   capabilities(roles: readonly EffectiveRole[]): string[] {
-    return [...new Set(roles.flatMap(({ role }) => ROLE_CAPABILITIES[role] || []))].sort();
+    const caps = roles.flatMap(({ role, branchId }) => {
+      const roleCaps = [...(ROLE_CAPABILITIES[role] || [])];
+      if (branchId === null && STAFF_ROLES.has(role)) {
+        roleCaps.push('branch:all');
+      }
+      return roleCaps;
+    });
+    return [...new Set(caps)].sort();
   }
 
   private staticAccess(roles: readonly EffectiveRole[]): EffectiveAccess {
-    const grants = roles.flatMap(({ role, branchId }) =>
-      (ROLE_CAPABILITIES[role] || []).map((capability) => ({
+    const grants = roles.flatMap(({ role, branchId }) => {
+      const caps = [...(ROLE_CAPABILITIES[role] || [])];
+      if (branchId === null && STAFF_ROLES.has(role)) {
+        caps.push('branch:all');
+      }
+      return caps.map((capability) => ({
         capability,
         branchId,
         source: 'SYSTEM_ROLE' as const,
         sourceId: role,
-      })),
-    );
+      }));
+    });
     return {
       capabilities: [...new Set(grants.map(({ capability }) => capability))].sort(),
       branchIds: this.branches(roles),

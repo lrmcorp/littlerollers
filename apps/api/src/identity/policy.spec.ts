@@ -148,4 +148,40 @@ describe('PolicyService role catalog', () => {
       ),
     ).toBe(true);
   });
+
+  it('grants branch:all to staff roles when branchId is null, and restricts when branchId is specified', () => {
+    const policy = new PolicyService();
+
+    // Admin without specific branch -> gets branch:all
+    const globalAdminAccess = policy.resolveAccess('user-admin-1', [
+      { role: 'ADMIN', branchId: null },
+    ]);
+    expect(globalAdminAccess.capabilities).toContain('branch:all');
+    expect(policy.hasCapability(globalAdminAccess, 'branch:all')).toBe(true);
+    expect(policy.hasCapability(globalAdminAccess, 'class-slot:manage', 'any-branch-id')).toBe(true);
+
+    // Admin with specific branch -> does NOT get branch:all, strictly scoped
+    const scopedAdminAccess = policy.resolveAccess('user-admin-2', [
+      { role: 'ADMIN', branchId: 'branch-jkt' },
+    ]);
+    expect(scopedAdminAccess.capabilities).not.toContain('branch:all');
+    expect(scopedAdminAccess.branchIds).toEqual(['branch-jkt']);
+    expect(policy.hasCapability(scopedAdminAccess, 'class-slot:manage', 'branch-jkt')).toBe(true);
+    expect(policy.hasCapability(scopedAdminAccess, 'class-slot:manage', 'branch-bsd')).toBe(false);
+
+    // Coach without specific branch -> gets branch:all
+    const globalCoachAccess = policy.resolveAccess('user-coach-1', [
+      { role: 'COACH', branchId: null },
+      { role: 'INSTRUCTOR', branchId: null },
+    ]);
+    expect(globalCoachAccess.capabilities).toContain('branch:all');
+
+    // Customer/Member without branch -> does NOT get branch:all
+    const customerAccess = policy.resolveAccess('user-customer-1', [
+      { role: 'CUSTOMER', branchId: null },
+      { role: 'MEMBER', branchId: null },
+    ]);
+    expect(customerAccess.capabilities).not.toContain('branch:all');
+  });
 });
+

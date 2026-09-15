@@ -419,7 +419,7 @@ export const browserBookingClient: BookingClient = {
           : undefined,
       })),
       summary: result.summary,
-      nextCursor: result.page.nextCursor,
+      nextCursor: result.page?.nextCursor ?? (result as any).nextCursor ?? null,
     };
   },
   async detail(id) {

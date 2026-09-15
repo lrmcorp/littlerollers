@@ -190,30 +190,33 @@ export class PackagesController {
   ) {
     return this.promotions.orders(r.principal, id, cursor, limit);
   }
-  @Post('packages') create(
+  @Post('packages') async create(
     @Req() r: AuthenticatedRequest,
     @Headers('idempotency-key') key: string,
     @Body() b: any,
   ) {
-    return this.catalog.create(r.principal, b, key, r.correlationId ?? 'unknown');
+    const result = await this.catalog.create(r.principal, b, key, r.correlationId ?? 'unknown');
+    return (result as any).body ?? result;
   }
-  @Patch('packages/:id') updatePackage(
+  @Patch('packages/:id') async updatePackage(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
     @Body() body: any,
   ) {
-    return this.catalog.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    const result = await this.catalog.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    return (result as any).body ?? result;
   }
-  @Post('packages/:id/revisions') createPackageRevision(
+  @Post('packages/:id/revisions') async createPackageRevision(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
     @Body() body: any,
   ) {
-    return this.catalog.revise(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    const result = await this.catalog.revise(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    return (result as any).body ?? result;
   }
-  @Put('packages/:id/scopes') replacePackageScopes(
+  @Put('packages/:id/scopes') async replacePackageScopes(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
@@ -225,9 +228,10 @@ export class PackagesController {
       reason: string;
     },
   ) {
-    return this.catalog.replaceScopes(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    const result = await this.catalog.replaceScopes(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    return (result as any).body ?? result;
   }
-  @Post('packages/:id/:action') transitionPackage(
+  @Post('packages/:id/:action') async transitionPackage(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('action') action: 'deactivate' | 'reactivate',
@@ -237,7 +241,7 @@ export class PackagesController {
     const statuses = { deactivate: 'INACTIVE', reactivate: 'ACTIVE' } as const;
     const status = statuses[action];
     if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    return this.catalog.transition(
+    const result = await this.catalog.transition(
       r.principal,
       id,
       status,
@@ -245,6 +249,7 @@ export class PackagesController {
       key,
       r.correlationId ?? 'unknown',
     );
+    return (result as any).body ?? result;
   }
   @Get('payment-accounts') paymentAccounts(
     @Req() r: AuthenticatedRequest,

@@ -179,7 +179,7 @@ export function StaffBookingDetailView({
         />
         <StatCard
           label="Sesi direservasi"
-          value={(booking.sessionBalance?.reserved ?? booking.reservedQuantity).toLocaleString(
+          value={(booking.sessionBalance?.reserved ?? booking.reservedQuantity ?? 1).toLocaleString(
             'id-ID',
           )}
           tone="warning"

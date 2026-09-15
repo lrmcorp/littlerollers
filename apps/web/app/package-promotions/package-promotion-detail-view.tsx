@@ -272,7 +272,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         )}
         <DataTable
           items={pkg.revisions ?? []}
-          rowKey={(item) => item.id}
+          rowKey={(item) => item.id ?? `rev-${item.revisionNumber}`}
           emptyTitle="Belum ada revisi"
           columns={[
             {
@@ -459,7 +459,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         <div className="border-t border-dd-line p-4">
           <Pagination
             hasPrevious={promotionHistory.length > 0}
-            hasNext={Boolean(promotionPage?.page.hasMore && promotionPage.page.nextCursor)}
+            hasNext={Boolean(promotionPage?.page?.hasMore && promotionPage.page.nextCursor)}
             totalLabel={`Halaman promo ${promotionHistory.length + 1}`}
             onPrevious={() => {
               const previous = promotionHistory.at(-1);
@@ -527,8 +527,8 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             <Pagination
               hasPrevious={(orderHistory[selectedOrderPromotionId]?.length ?? 0) > 0}
               hasNext={Boolean(
-                orders[selectedOrderPromotionId]!.page.hasMore &&
-                orders[selectedOrderPromotionId]!.page.nextCursor,
+                orders[selectedOrderPromotionId]?.page?.hasMore &&
+                orders[selectedOrderPromotionId]?.page?.nextCursor,
               )}
               totalLabel={`Halaman pesanan ${(orderHistory[selectedOrderPromotionId]?.length ?? 0) + 1}`}
               onPrevious={() => {

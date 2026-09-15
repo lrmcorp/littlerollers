@@ -407,11 +407,7 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn().mockResolvedValue({}) },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
-    const service = new IdentityDocumentAccessService(
-      db as never,
-      new PolicyService(),
-      storage as never,
-    );
+    const service = new IdentityDocumentAccessService(new PolicyService());
     const principal = {
       sessionId: 'session-1',
       userId: 'customer-1',
@@ -451,11 +447,7 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn() },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
-    const service = new IdentityDocumentAccessService(
-      db as never,
-      new PolicyService(),
-      storage as never,
-    );
+    const service = new IdentityDocumentAccessService(new PolicyService());
     const principal = {
       sessionId: 'review-session',
       userId: 'reviewer-1',
@@ -512,11 +504,7 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn() },
     };
     const storage = { read: jest.fn() };
-    const service = new IdentityDocumentAccessService(
-      db as never,
-      new PolicyService(),
-      storage as never,
-    );
+    const service = new IdentityDocumentAccessService(new PolicyService());
     await expect(
       service.read(
         {
@@ -633,7 +621,7 @@ describe('identity security foundation', () => {
         }),
       },
     };
-    const service = new IdentityDocumentWorkflowService(db as never, new PolicyService());
+    const service = new IdentityDocumentWorkflowService();
     await expect(
       service.decideIdentityDocument(
         {
@@ -658,5 +646,44 @@ describe('identity security foundation', () => {
       code: 'RATE_LIMITED',
     });
     expect(JSON.stringify(upsert.mock.calls)).not.toContain('+62800000000');
+  });
+
+  it('sessionMe retrieves all active branches when admin/coach has preferredBranchId: null', async () => {
+    const branches = [
+      { id: 'branch-jkt', code: 'DD-JKT', name: 'Daily Dose Jakarta', timezone: 'Asia/Jakarta' },
+      { id: 'branch-bsd', code: 'DD-BSD', name: 'Daily Dose BSD', timezone: 'Asia/Jakarta' },
+    ];
+    const db = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'admin-1',
+          displayName: 'Global Admin',
+          role: 'ADMIN',
+          status: 'ACTIVE',
+          preferredBranchId: null,
+        }),
+      },
+      cabang: {
+        findMany: jest.fn().mockResolvedValue(branches),
+      },
+    };
+    const identityService = new IdentityService(
+      db as never,
+      new PolicyService(),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await (identityService as any).sessionMe('admin-1', new Date(Date.now() + 3600000));
+    expect(result.capabilities).toContain('branch:all');
+    expect(result.branches).toHaveLength(2);
+    expect(db.cabang.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { active: true },
+      }),
+    );
   });
 });

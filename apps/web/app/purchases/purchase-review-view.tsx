@@ -108,7 +108,7 @@ const sessionSummary = (item: ReviewPurchase) => {
         {activation.available === 0 && activation.status === 'ACTIVE' ? ' · sesi telah habis' : ''}
       </strong>
       <span className="text-dd-muted">
-        {activation.reserved} reserved · {activation.used} terpakai
+        {activation.reserved} dipesan · {activation.used} terpakai
       </span>
       <span className="block text-dd-muted">
         {activation.status === 'EXPIRED'
@@ -172,46 +172,45 @@ export function PurchaseReviewView({
   const [previewType, setPreviewType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const requestRef = useRef(0);
-  const cursorTrail =
-    typeof window === 'undefined'
-      ? []
-      : new URLSearchParams(window.location.search).getAll('trail');
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
 
-  const changeFilters = useCallback((patch: Partial<Filters>, replace = false) => {
-    setFilters((current) => {
-      const next = { ...current, ...patch };
+  const changeFilters = useCallback(
+    (patch: Partial<Filters>, replace = false) => {
+      if (patch.cursor === undefined) {
+        setCursorHistory([]);
+      }
+      setFilters((current) => {
+        const next = { ...current, ...patch, purchaseId: undefined };
+        return next;
+      });
+
       if (typeof window !== 'undefined') {
         const query = new URLSearchParams();
+        const current = readFilters();
+        const next = { ...current, ...patch, purchaseId: undefined };
         if (next.branchId) query.set('branch', next.branchId);
         if (next.status && next.status !== 'ALL') query.set('status', next.status);
         if (next.q) query.set('q', next.q);
         if (next.from) query.set('from', dateInput(next.from));
         if (next.until) query.set('until', dateInput(next.until));
         if (next.cursor) query.set('cursor', next.cursor);
-        if (patch.cursor && patch.cursor !== current.cursor) {
-          const currentTrail = new URLSearchParams(window.location.search).getAll('trail');
-          [...currentTrail, current.cursor ?? '__FIRST__'].forEach((value) =>
-            query.append('trail', value),
-          );
-        }
-        const url = `/workspace/payments${query.size ? `?${query}` : ''}`;
-        window.history[replace ? 'replaceState' : 'pushState']({}, '', url);
+        const url = `/workspace/payments${query.size ? `?${query.toString()}` : ''}`;
+        router.replace(url, { scroll: false });
       }
-      return { ...next, purchaseId: undefined };
-    });
-  }, []);
+    },
+    [router],
+  );
 
-  const previousPage = () => {
-    if (typeof window === 'undefined') return;
-    const query = new URLSearchParams(window.location.search);
-    const trail = query.getAll('trail');
-    const previous = trail.pop();
-    query.delete('trail');
-    trail.forEach((value) => query.append('trail', value));
-    if (!previous || previous === '__FIRST__') query.delete('cursor');
-    else query.set('cursor', previous);
-    window.history.pushState({}, '', `/workspace/payments${query.size ? `?${query}` : ''}`);
-    setFilters(readFilters());
+  const onNext = () => {
+    if (!nextCursor) return;
+    setCursorHistory((current) => [...current, filters.cursor ?? '']);
+    changeFilters({ cursor: nextCursor }, true);
+  };
+
+  const onPrevious = () => {
+    const previous = cursorHistory.at(-1) ?? '';
+    setCursorHistory((current) => current.slice(0, -1));
+    changeFilters({ cursor: previous || undefined }, true);
   };
 
   useEffect(() => {
@@ -696,11 +695,15 @@ export function PurchaseReviewView({
       />
 
       <Pagination
-        hasPrevious={cursorTrail.length > 0}
+        hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
-        totalLabel={`${items.length} transaksi pada halaman ini`}
-        onPrevious={previousPage}
-        onNext={() => changeFilters({ cursor: nextCursor ?? undefined })}
+        totalLabel={
+          cursorHistory.length > 0
+            ? `Halaman ${cursorHistory.length + 1} · ${items.length} transaksi pada halaman ini`
+            : `${items.length} transaksi pada halaman ini`
+        }
+        onPrevious={onPrevious}
+        onNext={onNext}
       />
 
       <PreviewModal

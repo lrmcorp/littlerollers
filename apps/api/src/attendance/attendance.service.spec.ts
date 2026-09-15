@@ -1,4 +1,4 @@
-import { checkInWindowState, isOwningCustomer, isOwningInstructor } from './attendance.service';
+import { checkInWindowState, isOwningCustomer, isOwningInstructor } from './kehadiran.service';
 
 describe('customer QR check-in window', () => {
   const start = new Date('2026-07-27T02:00:00.000Z');

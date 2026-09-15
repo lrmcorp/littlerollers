@@ -100,10 +100,10 @@ function documentDescription(document: VerificationDocument) {
     return 'Penghapusan dokumen mengalami kendala. File tetap privat dan tim kami perlu menindaklanjuti.';
   if (document.status === 'DELETED') return 'Dokumen telah dihapus dan tidak dapat ditampilkan.';
   if (document.scanStatus === 'PENDING')
-    return 'Pemeriksaan keamanan file sedang berlangsung. Upload ulang tersedia jika reviewer meminta perbaikan.';
+    return 'Pemeriksaan keamanan file sedang berlangsung. Unggah ulang tersedia jika tim peninjau meminta perbaikan.';
   if (['ERROR', 'REJECTED', 'INFECTED'].includes(document.scanStatus))
-    return 'Pemeriksaan keamanan file memerlukan tindak lanjut reviewer. File tetap privat selama proses berlangsung.';
-  return 'Dokumen sedang diperiksa. Upload ulang tersedia jika reviewer meminta perbaikan.';
+    return 'Pemeriksaan keamanan file memerlukan tindak lanjut tim peninjau. File tetap privat selama proses berlangsung.';
+  return 'Dokumen sedang diperiksa. Unggah ulang tersedia jika tim peninjau meminta perbaikan.';
 }
 
 function usePrivateDocumentPreview(kind: DocumentKind, enabled = true) {
@@ -639,7 +639,7 @@ export function VerificationView() {
                 <InlineDocumentPreview document={document} />
                 {document.rejectionNote && document.status === 'REJECTED' && (
                   <p className="mt-3 rounded-dd-md bg-dd-warning-soft p-3 text-sm leading-6 text-dd-warning">
-                    Catatan reviewer: {document.rejectionNote}
+                    Catatan tim peninjau: {document.rejectionNote}
                   </p>
                 )}
                 {document.status === 'REJECTED' && (
@@ -684,7 +684,7 @@ export function VerificationView() {
           <h2 className="text-sm font-bold">Privasi dokumen Anda</h2>
           <p className="mt-1 text-xs leading-5 text-dd-muted">
             File disimpan di penyimpanan privat, tidak menjadi aset publik, dan setiap akses
-            reviewer tercatat dalam audit.
+            tim peninjau tercatat dalam audit.
           </p>
         </div>
         <Link

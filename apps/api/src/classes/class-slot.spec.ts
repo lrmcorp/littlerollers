@@ -1,4 +1,4 @@
-import { ClassSlotService, CANCELLATION_REASONS } from './class-slot.service';
+import { ClassSlotService, CANCELLATION_REASONS } from './slot-kelas.service';
 import { PolicyService } from '../identity/policy.service';
 
 const branchId = '00000000-0000-4000-8000-000000000002';

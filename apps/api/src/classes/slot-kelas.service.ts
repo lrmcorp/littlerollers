@@ -98,6 +98,7 @@ export class ClassSlotService {
       timezone: slot.branch?.timezone ?? 'Asia/Jakarta',
       capacity: slot.capacity,
       bookedCount: slot.bookedCount,
+      minimumQuota: slot.classType?.minimumQuota ?? 1,
       status: slot.status,
       cancellationReasonCode: slot.cancellationReason ?? null,
       cancellationReason: slot.cancellationReason ?? null,
@@ -123,6 +124,9 @@ export class ClassSlotService {
     },
   ) {
     this.policy.requireCapability(principal.capabilities, 'class-slot:read');
+    if (input.branchId) {
+      this.scope(principal, input.branchId, 'class-slot:read');
+    }
 
     const from = input.from ? instant(input.from) : undefined;
     const until = input.until ? instant(input.until) : undefined;
@@ -133,7 +137,11 @@ export class ClassSlotService {
 
     const where: Prisma.SlotKelasWhereInput = {
       ...(input.branchId ? { branchId: input.branchId } : {}),
-      ...(input.status ? { status: input.status as ClassSlotStatus } : {}),
+      ...(input.status
+        ? { status: input.status as ClassSlotStatus }
+        : !principal.capabilities.includes('class-slot:manage')
+          ? { status: ClassSlotStatus.PUBLISHED }
+          : {}),
       ...(from ? { endAt: { gt: from } } : {}),
       ...(until ? { startAt: { lt: until } } : {}),
       ...(cursor
@@ -231,7 +239,7 @@ export class ClassSlotService {
             endAt,
             capacity: classType.defaultCapacity ?? 8,
             bookedCount: 0,
-            status: ClassSlotStatus.PUBLISHED,
+            status: ClassSlotStatus.DRAFT,
           },
           include: {
             branch: true,

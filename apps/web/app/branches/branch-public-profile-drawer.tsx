@@ -193,7 +193,7 @@ export function BranchPublicProfileDrawer({
               name="operationalEmail"
               type="email"
               defaultValue={text(profile.operationalEmail)}
-              placeholder="studio.senopati@dailydose.id"
+              placeholder="studio.jakarta@dailydose.id"
               description="Email kontak untuk pertanyaan member cabang ini."
             />
             <TextInput

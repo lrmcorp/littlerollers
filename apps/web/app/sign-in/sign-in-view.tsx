@@ -210,7 +210,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
           <div className="space-y-2">
             <span className="inline-block rounded-full bg-dd-forest/10 px-3 py-0.5 text-[11px] font-bold tracking-wider text-dd-forest uppercase">
-              Secure member access
+              Akses Member Resmi
             </span>
             <h2
               className="font-sans text-2xl sm:text-3xl font-bold tracking-tight text-dd-ink"
@@ -246,7 +246,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                   name="email"
                   type="email"
                   autoComplete="username"
-                  placeholder="nama@perusahaan.com"
+                  placeholder="nama@email.com"
                   required
                 />
               </div>
@@ -280,7 +280,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <Link className="font-bold text-dd-forest hover:underline" href="/forgot-password">
                 Lupa password?
               </Link>
-              <span className="text-dd-muted">Akses sesuai permission</span>
+              <span className="text-dd-muted">Akses sesuai hak akun</span>
             </div>
 
             <button
@@ -326,14 +326,14 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             <strong className="block font-semibold text-dd-ink">
               Akses terlindungi &amp; Terenkripsi
             </strong>
-            Seluruh data dan tindakan dibatasi berdasarkan hak akses permission serta scope cabang
-            resmi.
+            Seluruh data dan tindakan dibatasi berdasarkan hak akses peran serta cabang resmi
+            terdaftar.
           </div>
 
           <p className="mt-6 text-center text-xs text-dd-muted">
             Belum punya akun?{' '}
             <Link className="font-bold text-dd-forest hover:underline" href="/register">
-              Daftar sebagai customer
+              Daftar akun member
             </Link>
           </p>
         </div>

@@ -240,14 +240,20 @@ async function request(path: string, init: RequestInit = {}) {
   return response.json();
 }
 
+function toIsoString(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  if (typeof date === 'string') return date;
+  return date.toISOString();
+}
+
 function mapUser(user: GeneratedUserSummary): UserSummary {
   const mapped = user as GeneratedUserSummary & Partial<UserSummary>;
   const roles = user.roles as UserRoleSummary[];
   return {
     ...user,
     phoneE164: mapped.phoneE164 ?? null,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
+    createdAt: toIsoString(user.createdAt),
+    updatedAt: toIsoString(user.updatedAt),
     roles,
     directRoles: mapped.directRoles ?? roles.filter(({ source }) => source === 'DIRECT'),
     assignmentRoles:
@@ -260,9 +266,9 @@ function mapUser(user: GeneratedUserSummary): UserSummary {
           status: user.identityVerification.status,
           documents: user.identityVerification.documents.map((document) => ({
             ...document,
-            uploadedAt: document.uploadedAt?.toISOString() ?? null,
-            reviewedAt: document.reviewedAt?.toISOString() ?? null,
-            updatedAt: document.updatedAt.toISOString(),
+            uploadedAt: document.uploadedAt ? toIsoString(document.uploadedAt) : null,
+            reviewedAt: document.reviewedAt ? toIsoString(document.reviewedAt) : null,
+            updatedAt: toIsoString(document.updatedAt),
           })),
         }
       : undefined,

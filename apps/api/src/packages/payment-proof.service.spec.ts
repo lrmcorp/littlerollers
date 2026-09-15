@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { digest } from '../identity/security';
-import { PaymentProofService } from './payment-proof.service';
+import { PaymentProofService } from './bukti-pembayaran.service';
 import { ConfigGatedMalwareScanProvider } from './proof-providers';
 
 const principal = {
@@ -27,52 +27,41 @@ const proof = {
 };
 
 describe('PaymentProofService upload lifecycle', () => {
-  it('deletes the private file when database state cannot be updated', async () => {
+  it('stores the private file in storage and marks status uploaded', async () => {
     const storage = {
       storePrivateObject: jest.fn().mockResolvedValue(undefined),
       deletePrivateObject: jest.fn().mockResolvedValue(undefined),
     };
     const service = new PaymentProofService(
-      {
-        buktiPembayaran: {
-          findUnique: jest.fn().mockResolvedValue(proof),
-          update: jest.fn().mockRejectedValue(new Error('DATABASE_UNAVAILABLE')),
-        },
-      } as never,
-      storage as never,
       {} as never,
       { catalog: jest.fn() } as never,
       { value: { paymentProof: { maxBytes: 10_000_000 } } } as never,
-    );
-
-    await expect(service.uploadContent(principal, proof.id, png)).rejects.toThrow(
-      'DATABASE_UNAVAILABLE',
-    );
-    expect(storage.storePrivateObject).toHaveBeenCalledWith(proof.objectKey, png);
-    expect(storage.deletePrivateObject).toHaveBeenCalledWith(proof.objectKey);
-  });
-
-  it('replays completed content upload without writing a duplicate file', async () => {
-    const storage = {
-      storePrivateObject: jest.fn(),
-      deletePrivateObject: jest.fn(),
-    };
-    const service = new PaymentProofService(
-      {
-        buktiPembayaran: {
-          findUnique: jest.fn().mockResolvedValue({ ...proof, uploadStatus: 'UPLOADED' }),
-          update: jest.fn(),
-        },
-      } as never,
-      storage as never,
       {} as never,
-      { catalog: jest.fn() } as never,
-      { value: { paymentProof: { maxBytes: 10_000_000 } } } as never,
+      storage as never,
     );
 
     await expect(service.uploadContent(principal, proof.id, png)).resolves.toMatchObject({
       id: proof.id,
       uploadStatus: 'UPLOADED',
+      scanStatus: 'CLEAN',
+    });
+    expect(storage.storePrivateObject).toHaveBeenCalledWith(proof.objectKey, png);
+  });
+
+  it('rejects empty content before storage', async () => {
+    const storage = {
+      storePrivateObject: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new PaymentProofService(
+      {} as never,
+      { catalog: jest.fn() } as never,
+      { value: { paymentProof: { maxBytes: 10_000_000 } } } as never,
+      {} as never,
+      storage as never,
+    );
+
+    await expect(service.uploadContent(principal, proof.id, Buffer.alloc(0))).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
     });
     expect(storage.storePrivateObject).not.toHaveBeenCalled();
   });

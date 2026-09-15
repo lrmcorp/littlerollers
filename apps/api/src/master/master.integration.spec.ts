@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PolicyService } from '../identity/policy.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
-import { EffectiveSettingsService } from './effective-settings.service';
+import { EffectiveSettingsService } from './konfigurasi-efektif.service';
 import { MasterAccessService } from './master-access.service';
 import { MasterCatalogService } from './master-catalog.service';
 

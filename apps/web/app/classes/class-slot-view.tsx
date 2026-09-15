@@ -213,31 +213,52 @@ export function ClassSlotView({
     );
   }
 
-  const slotCard = (slot: ClassSlot) => (
-    <button
-      className={`calendar-slot calendar-slot-${slot.status.toLowerCase()}`}
-      key={slot.id}
-      onClick={() => openPanel({ kind: 'detail', slot })}
-    >
-      <span>
-        {formatBranchTime(slot.startAt, slot.timezone)}–
-        {formatBranchTime(slot.endAt, slot.timezone)}
-      </span>
-      <StatusBadge tone="info">
-        <span>Tipe kelas ·</span> <span>{classTypeName(slot.classTypeId)}</span>
-      </StatusBadge>
-      <small>{instructorName(slot.instructorUserId)}</small>
-      {globalMode && <small>{branchName(slot.branchId)}</small>}
-      <small>
-        {slot.bookedCount} peserta · {Math.max(0, slot.capacity - slot.bookedCount)} tempat tersedia
-        {' · '}min. {slot.minimumQuota}
-      </small>
-      <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
-    </button>
-  );
+  const slotCard = (slot: ClassSlot) => {
+    const isCancelled = slot.status === 'CANCELLED' || slot.status === 'AUTO_CANCELLED';
+    const isDraft = slot.status === 'DRAFT';
+    return (
+      <button
+        type="button"
+        className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:ring-2 focus-visible:ring-dd-forest cursor-pointer hover:shadow-md ${
+          isCancelled
+            ? 'border-red-200 bg-red-50/40 text-red-950 opacity-80'
+            : isDraft
+              ? 'border-amber-200 bg-amber-50/30 hover:border-amber-400'
+              : 'border-dd-line/80 bg-white hover:border-dd-forest/60'
+        }`}
+        key={slot.id}
+        onClick={() => openPanel({ kind: 'detail', slot })}
+      >
+        <div className="flex items-center justify-between gap-1 text-xs font-bold text-dd-ink">
+          <span>
+            {formatBranchTime(slot.startAt, slot.timezone)}–
+            {formatBranchTime(slot.endAt, slot.timezone)}
+          </span>
+          <StatusBadge tone={classStatusTone(slot.status)}>
+            {statusLabels[slot.status]}
+          </StatusBadge>
+        </div>
+        <div className="font-semibold text-sm text-dd-forest leading-snug">
+          {classTypeName(slot.classTypeId)}
+        </div>
+        <div className="text-xs text-dd-ink font-medium">
+          {instructorName(slot.instructorUserId)}
+        </div>
+        {globalMode && (
+          <div className="text-[11px] text-dd-muted">
+            {branchName(slot.branchId)}
+          </div>
+        )}
+        <div className="mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] text-dd-muted flex items-center justify-between">
+          <span>{slot.bookedCount}/{slot.capacity} terisi</span>
+          <span>min. {slot.minimumQuota}</span>
+        </div>
+      </button>
+    );
+  };
 
   return (
-    <section className="class-workspace" aria-labelledby="classes-title">
+    <section className="space-y-6" aria-labelledby="classes-title">
       <PageHeader
         eyebrow={
           globalMode ? 'Semua cabang · ringkasan global' : `${branch?.name} · ${branch?.timezone}`
@@ -252,9 +273,9 @@ export function ClassSlotView({
         context={
           <>
             <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
-              {canOperate ? 'Dapat mengelola' : 'Read only'}
+              {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
             </StatusBadge>
-            <span>{globalMode ? 'Scope global' : `Scope ${branch?.name}`}</span>
+            <span>{globalMode ? 'Semua Cabang' : `Cabang ${branch?.name}`}</span>
           </>
         }
       />
@@ -266,68 +287,71 @@ export function ClassSlotView({
         </Feedback>
       )}
 
-      <div className="calendar-toolbar" aria-label="Kontrol timetable">
-        <div className="calendar-navigation">
-          <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, -1))}>
-            <span className="inline-flex items-center gap-1">
-              <ChevronLeft className="size-4" />
-              <span>Minggu sebelumnya</span>
-            </span>
-          </Button>
-          <Button variant="secondary" onClick={() => setReference(new Date())}>
-            Hari ini
-          </Button>
-          <Button variant="secondary" onClick={() => setReference(shiftWeek(reference, 1))}>
-            <span className="inline-flex items-center gap-1">
-              <span>Minggu berikutnya</span>
-              <ChevronRight className="size-4" />
-            </span>
+      {/* Toolbar & Filter Panel */}
+      <div className="rounded-2xl border border-dd-line/80 bg-white p-5 shadow-dd-card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-dd-line/60" aria-label="Kontrol timetable">
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setReference(shiftWeek(reference, -1))}>
+              <span className="inline-flex items-center gap-1">
+                <ChevronLeft className="size-4" />
+                <span className="hidden sm:inline">Minggu sebelumnya</span>
+              </span>
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setReference(new Date())}>
+              Hari ini
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setReference(shiftWeek(reference, 1))}>
+              <span className="inline-flex items-center gap-1">
+                <span className="hidden sm:inline">Minggu berikutnya</span>
+                <ChevronRight className="size-4" />
+              </span>
+            </Button>
+          </div>
+          <strong className="text-base font-bold text-dd-ink" aria-live="polite">{week?.label}</strong>
+          <Button
+            disabled={!canOperate}
+            title={globalMode ? 'Pilih cabang aktif untuk membuat kelas' : undefined}
+            onClick={() => openPanel({ kind: 'create' })}
+          >
+            Buat kelas
           </Button>
         </div>
-        <strong aria-live="polite">{week?.label}</strong>
-        <Button
-          disabled={!canOperate}
-          title={globalMode ? 'Pilih cabang aktif untuk membuat kelas' : undefined}
-          onClick={() => openPanel({ kind: 'create' })}
-        >
-          Buat kelas
-        </Button>
-      </div>
 
-      <div className="calendar-filters" aria-label="Filter timetable">
-        <SelectInput
-          label="Status"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
-        >
-          {statuses.map((status) => (
-            <option value={status} key={status}>
-              {status === 'ALL' ? 'Semua status' : statusLabels[status]}
-            </option>
-          ))}
-        </SelectInput>
-        <SearchSelect
-          label="Tipe kelas"
-          value={classTypeFilter}
-          placeholder="Semua tipe kelas"
-          options={classTypes.map((item) => ({
-            id: item.id,
-            label: item.name,
-            description: `${globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}${item.code}`,
-          }))}
-          onChange={setClassTypeFilter}
-        />
-        <SearchSelect
-          label="Instruktur"
-          value={instructorFilter}
-          placeholder="Semua instruktur"
-          options={instructors.map((item) => ({
-            id: item.id,
-            label: item.displayName,
-            description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
-          }))}
-          onChange={setInstructorFilter}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" aria-label="Filter timetable">
+          <SelectInput
+            label="Status"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            {statuses.map((status) => (
+              <option value={status} key={status}>
+                {status === 'ALL' ? 'Semua status' : statusLabels[status]}
+              </option>
+            ))}
+          </SelectInput>
+          <SearchSelect
+            label="Tipe kelas"
+            value={classTypeFilter}
+            placeholder="Semua tipe kelas"
+            options={classTypes.map((item) => ({
+              id: item.id,
+              label: item.name,
+              description: `${globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}${item.code}`,
+            }))}
+            onChange={setClassTypeFilter}
+          />
+          <SearchSelect
+            label="Instruktur"
+            value={instructorFilter}
+            placeholder="Semua instruktur"
+            options={instructors.map((item) => ({
+              id: item.id,
+              label: item.displayName,
+              description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
+            }))}
+            onChange={setInstructorFilter}
+          />
+        </div>
       </div>
 
       {busy && <Skeleton label="Memuat timetable kelas" />}
@@ -345,25 +369,56 @@ export function ClassSlotView({
         />
       ) : (
         <>
-          <div className="weekly-calendar" role="region" aria-label="Kalender kelas tujuh hari">
-            {week?.days.map((day) => (
-              <section className="calendar-day" aria-labelledby={`day-${day}`} key={day}>
-                <h2 id={`day-${day}`}>{formatBranchDay(day, displayTimezone)}</h2>
-                <div>{grouped.get(day)?.map(slotCard)}</div>
-              </section>
-            ))}
+          {/* Desktop 7-Column Grid */}
+          <div className="hidden md:grid md:grid-cols-7 gap-3 items-start" role="region" aria-label="Kalender kelas tujuh hari">
+            {week?.days.map((day) => {
+              const daySlots = grouped.get(day) ?? [];
+              return (
+                <section
+                  className="flex flex-col gap-2 rounded-2xl border border-dd-line/80 bg-white/95 p-3 shadow-xs min-h-[380px]"
+                  aria-labelledby={`day-${day}`}
+                  key={day}
+                >
+                  <h2
+                    id={`day-${day}`}
+                    className="text-xs font-bold uppercase tracking-wider text-dd-forest pb-2.5 border-b border-dd-line text-center"
+                  >
+                    {formatBranchDay(day, displayTimezone)}
+                  </h2>
+                  <div className="flex flex-col gap-2.5 flex-1 pt-1">
+                    {daySlots.length ? (
+                      daySlots.map(slotCard)
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center text-center p-3 text-xs text-dd-muted italic">
+                        Tidak ada kelas
+                      </div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
           </div>
-          <div className="mobile-agenda" aria-label="Agenda kelas mingguan">
-            {week?.days.map((day) => (
-              <section key={day}>
-                <h2>{formatBranchDay(day, displayTimezone)}</h2>
-                {grouped.get(day)?.length ? (
-                  grouped.get(day)?.map(slotCard)
-                ) : (
-                  <p className="muted">Tidak ada kelas</p>
-                )}
-              </section>
-            ))}
+
+          {/* Mobile Agenda View */}
+          <div className="md:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">
+            {week?.days.map((day) => {
+              const daySlots = grouped.get(day) ?? [];
+              return (
+                <section key={day} className="rounded-2xl border border-dd-line bg-white p-4 shadow-xs flex flex-col gap-3">
+                  <h2 className="text-sm font-bold text-dd-ink pb-2 border-b border-dd-line flex items-center justify-between">
+                    <span>{formatBranchDay(day, displayTimezone)}</span>
+                    <span className="text-xs font-normal text-dd-muted">{daySlots.length} sesi</span>
+                  </h2>
+                  <div className="flex flex-col gap-2.5">
+                    {daySlots.length ? (
+                      daySlots.map(slotCard)
+                    ) : (
+                      <p className="text-xs text-dd-muted italic py-2">Tidak ada kelas pada hari ini.</p>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </>
       )}

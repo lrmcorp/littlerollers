@@ -56,17 +56,46 @@ export class PublicStudioQueryService {
       take: 20,
     });
 
+    const branchMetadata: Record<string, { city: string; area: string; heroImageKey: string }> = {
+      'DD-GG': {
+        city: 'Jakarta Barat',
+        area: 'Kedoya Utara, Kebon Jeruk',
+        heroImageKey: 'branches/green-garden.png',
+      },
+      'DD-MK': {
+        city: 'Jakarta Utara',
+        area: 'Pluit, Penjaringan',
+        heroImageKey: 'branches/muara-karang.png',
+      },
+      'DD-SBY': {
+        city: 'Surabaya',
+        area: 'Dukuhpakis, Surabaya Barat',
+        heroImageKey: 'branches/graha-family-surabaya.png',
+      },
+      'DD-UNTAR': {
+        city: 'Jakarta Barat',
+        area: 'Tanjung Duren, Grogol Petamburan',
+        heroImageKey: 'branches/untar-kampus-2.png',
+      },
+      'DD-PIK2': {
+        city: 'Tangerang',
+        area: 'PIK 2, Kosambi',
+        heroImageKey: 'branches/orange-groves-pik2.png',
+      },
+    };
+
+    const meta = branchMetadata[branch.code];
     const publicProfile = {
       slug: branch.code.toLowerCase(),
-      area: branch.name,
-      city: 'Jakarta',
+      area: meta?.area ?? branch.name,
+      city: meta?.city ?? 'Jakarta',
       address: branch.address ?? '',
       description: `${branch.name} Studio Pilates`,
       arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
       parkingInformation: 'Tersedia tempat parkir kendaraan.',
       openingHours: ['Senin - Minggu: 06:00 - 21:00'],
       amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
-      heroImageKey: null,
+      heroImageKey: meta?.heroImageKey ?? null,
       galleryImageKeys: [],
     };
 

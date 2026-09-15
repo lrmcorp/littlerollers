@@ -100,7 +100,7 @@ export function SummaryButton({
         {label}
       </span>
       <strong className="mt-2.5 block text-2xl sm:text-3xl font-bold">
-        {value.toLocaleString('id-ID')}
+        {(value ?? 0).toLocaleString('id-ID')}
       </strong>
     </button>
   );

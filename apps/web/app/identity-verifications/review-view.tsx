@@ -150,7 +150,7 @@ export function IdentityReviewView({
     try {
       const result = await client.reviewQueue(filters);
       setItems(result.items);
-      setSummary(result.summary);
+      setSummary({ ...emptySummary, ...(result.summary || {}) });
       setNextCursor(result.page.nextCursor);
       setGeneratedAt(result.generatedAt);
     } catch (cause) {
@@ -360,11 +360,11 @@ export function IdentityReviewView({
         />
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-dd-muted border-t border-dd-line/60 pt-4">
           <span className="font-semibold text-dd-ink">
-            {summary.totalCustomers.toLocaleString('id-ID')} customer
+            {(summary.totalCustomers ?? 0).toLocaleString('id-ID')} customer
           </span>
           <span>•</span>
           <span className="font-semibold text-dd-ink">
-            {summary.totalDocuments.toLocaleString('id-ID')} dokumen
+            {(summary.totalDocuments ?? 0).toLocaleString('id-ID')} dokumen
           </span>
           <span>•</span>
           <span>

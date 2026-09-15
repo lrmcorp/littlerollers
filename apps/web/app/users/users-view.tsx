@@ -106,7 +106,12 @@ export function UsersView({
       ]);
       setItems(users.items);
       setNextCursor(users.page.nextCursor);
-      setSummary(users.summary);
+      setSummary({
+        total: users.summary.total ?? 0,
+        active: users.summary.active ?? 0,
+        pendingActivation: users.summary.pendingActivation ?? 0,
+        inactive: users.summary.inactive ?? 0,
+      });
       setCatalog(roles);
     } catch (error) {
       setFailure(failureCode(error));
@@ -469,7 +474,7 @@ export function UsersView({
       <Pagination
         hasPrevious={cursorHistory.length > 0 && !loading}
         hasNext={Boolean(nextCursor) && !loading}
-        totalLabel={`${items.length.toLocaleString('id-ID')} ditampilkan dari ${summary.total.toLocaleString('id-ID')} pengguna`}
+        totalLabel={`${items.length.toLocaleString('id-ID')} ditampilkan dari ${(summary?.total ?? 0).toLocaleString('id-ID')} pengguna`}
         onPrevious={() => {
           const history = [...cursorHistory];
           setCursor(history.pop());
@@ -514,14 +519,14 @@ export function UsersView({
 
 function SummaryFilterCard({
   label,
-  value,
+  value = 0,
   helper,
   active,
   tone = 'neutral',
   onClick,
 }: {
   label: string;
-  value: number;
+  value?: number;
   helper: string;
   active: boolean;
   tone?: 'neutral' | 'success' | 'warning';
@@ -541,7 +546,7 @@ function SummaryFilterCard({
         {label}
       </span>
       <strong className="mt-3 block text-2xl font-semibold tracking-tight text-dd-ink">
-        {value.toLocaleString('id-ID')}
+        {(value ?? 0).toLocaleString('id-ID')}
       </strong>
       <span className="mt-2 block text-sm text-dd-muted">{helper}</span>
     </button>

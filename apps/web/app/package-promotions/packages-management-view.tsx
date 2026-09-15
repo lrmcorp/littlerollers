@@ -69,14 +69,14 @@ export function PackagesManagementView() {
     branchId: searchParams.get('branch') ?? session?.activeBranchId ?? '',
     cursor: searchParams.get('cursor') ?? '',
   };
-  const cursorTrail = searchParams.getAll('trail');
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
   const replaceFilter = (key: 'q' | 'state' | 'branch' | 'cursor', value: string) => {
     const next = new URLSearchParams(searchParams.toString());
     if (value) next.set(key, value);
     else next.delete(key);
     if (key !== 'cursor') {
       next.delete('cursor');
-      next.delete('trail');
+      setCursorHistory([]);
     }
     router.replace(`/workspace/packages${next.size ? `?${next}` : ''}`);
   };
@@ -84,14 +84,12 @@ export function PackagesManagementView() {
     const next = new URLSearchParams(searchParams.toString());
     if (direction === 'next') {
       if (!page.page.nextCursor) return;
-      next.append('trail', filters.cursor || '__FIRST__');
+      setCursorHistory((prev) => [...prev, filters.cursor]);
       next.set('cursor', page.page.nextCursor);
     } else {
-      const trail = next.getAll('trail');
-      const previous = trail.pop();
-      next.delete('trail');
-      trail.forEach((value) => next.append('trail', value));
-      if (!previous || previous === '__FIRST__') next.delete('cursor');
+      const previous = cursorHistory.at(-1) ?? '';
+      setCursorHistory((prev) => prev.slice(0, -1));
+      if (!previous) next.delete('cursor');
       else next.set('cursor', previous);
     }
     router.replace(`/workspace/packages${next.size ? `?${next}` : ''}`);
@@ -107,11 +105,15 @@ export function PackagesManagementView() {
         branchId: filters.branchId || undefined,
         cursor: filters.cursor || undefined,
       });
-      if (result.items.length === 0 && cursorTrail.length > 0) {
+      if (result.items.length === 0 && cursorHistory.length > 0) {
         movePage('previous');
         return;
       }
-      setPage(result);
+      setPage({
+        items: result.items ?? [],
+        summary: result.summary ?? {},
+        page: result.page ?? { hasMore: false, nextCursor: null },
+      });
     } catch {
       setError('Daftar paket belum dapat dimuat. Periksa scope atau coba lagi.');
     } finally {
@@ -169,7 +171,7 @@ export function PackagesManagementView() {
           >
             <StatCard
               label={stateLabels[state]}
-              value={String(page.summary[state] ?? 0)}
+              value={String((page.summary ?? {})[state] ?? 0)}
               tone={state === 'ACTIVE' ? 'success' : 'neutral'}
             />
           </button>
@@ -301,9 +303,9 @@ export function PackagesManagementView() {
         />
       </Panel>
       <Pagination
-        hasPrevious={cursorTrail.length > 0}
+        hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman paket ${cursorTrail.length + 1}`}
+        totalLabel={`Halaman paket ${cursorHistory.length + 1}`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />
@@ -394,7 +396,7 @@ function PackageCreateForm({
         selected.filter((classTypeId) =>
           classTypes
             .find((item) => item.id === classTypeId)
-            ?.branchScopes.some(
+            ?.branchScopes?.some(
               (scope) => scope.branchId === branchId && scope.active && next.includes(branchId),
             ),
         ),
@@ -403,7 +405,7 @@ function PackageCreateForm({
     });
   const availableClassTypes = classTypes.filter((classType) =>
     selectedBranches.every((branchId) =>
-      classType.branchScopes.some((scope) => scope.branchId === branchId && scope.active),
+      classType.branchScopes?.some((scope) => scope.branchId === branchId && scope.active),
     ),
   );
   return (
@@ -460,13 +462,14 @@ function PackageCreateForm({
                 value={item.id}
                 checked={selectedClassTypes.includes(item.id)}
                 required={selectedClassTypes.length === 0}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
                   setSelectedClassTypes((current) =>
-                    event.currentTarget.checked
+                    checked
                       ? [...new Set([...current, item.id])]
                       : current.filter((id) => id !== item.id),
-                  )
-                }
+                  );
+                }}
               />
               {item.name}
             </label>

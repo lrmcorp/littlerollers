@@ -325,7 +325,7 @@ export function PublicClassesView({
                 className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card"
                 role="status"
               >
-                Memuat jadwal authoritative…
+                Memuat jadwal kelas…
               </div>
             ) : status === 'error' ? (
               <div
@@ -346,8 +346,7 @@ export function PublicClassesView({
               <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
                 <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
                 <p className="mt-2 text-dd-muted">
-                  Kami tidak memilih lokasi pertama secara otomatis agar jadwal selalu sesuai
-                  pilihan Anda.
+                  Silakan pilih studio terlebih dahulu untuk menampilkan jadwal kelas yang tersedia.
                 </p>
               </div>
             ) : visible.length === 0 ? (

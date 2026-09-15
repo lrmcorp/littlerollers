@@ -92,6 +92,10 @@ export class CustomerManagementService {
         verificationStatus: 'APPROVED' as const,
         activePackageCount: u.customerPackages.length,
         totalBookings: u._count.bookings,
+        _count: {
+          purchases: u._count.purchases,
+          customerBookings: u._count.bookings,
+        },
         profile: u.profile,
         createdAt: u.createdAt.toISOString(),
       })),

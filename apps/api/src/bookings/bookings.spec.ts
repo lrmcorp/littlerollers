@@ -1,4 +1,4 @@
-import { isCancellationEntitled, isInstructorRosterPrincipal } from './bookings.service';
+import { isCancellationEntitled, isInstructorRosterPrincipal } from './pemesanan-kelas.service';
 
 describe('customer booking cancellation boundary', () => {
   const startAt = new Date('2026-08-10T02:00:00.000Z');

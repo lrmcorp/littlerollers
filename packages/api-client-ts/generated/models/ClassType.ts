@@ -119,8 +119,8 @@ export function ClassTypeFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'description': json['description'] == null ? undefined : json['description'],
         'modality': json['modality'] == null ? undefined : json['modality'],
         'active': json['active'],
-        'version': json['version'],
-        'branchScopes': ((json['branchScopes'] as Array<any>).map(ClassTypeBranchScopesInnerFromJSON)),
+        'version': json['version'] == null ? 1 : json['version'],
+        'branchScopes': json['branchScopes'] == null ? [] : ((json['branchScopes'] as Array<any>).map(ClassTypeBranchScopesInnerFromJSON)),
     };
 }
 
@@ -141,8 +141,8 @@ export function ClassTypeToJSONTyped(value?: ClassType | null, ignoreDiscriminat
         'description': value['description'],
         'modality': value['modality'],
         'active': value['active'],
-        'version': value['version'],
-        'branchScopes': ((value['branchScopes'] as Array<any>).map(ClassTypeBranchScopesInnerToJSON)),
+        'version': value['version'] ?? 1,
+        'branchScopes': value['branchScopes'] == null ? [] : ((value['branchScopes'] as Array<any>).map(ClassTypeBranchScopesInnerToJSON)),
     };
 }
 

@@ -104,7 +104,7 @@ describe('customer verification view', () => {
     expect(screen.getByText('Privasi dokumen Anda')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lihat jadwal' })).toHaveAttribute('href', '/classes');
     expect(
-      screen.getAllByText(/Upload ulang tersedia jika reviewer meminta perbaikan/),
+      screen.getAllByText(/Unggah ulang tersedia jika tim peninjau meminta perbaikan/),
     ).toHaveLength(2);
     expect(screen.queryByRole('button', { name: 'Unggah ulang dokumen' })).not.toBeInTheDocument();
     const violations = (await axe(view.container)).violations;

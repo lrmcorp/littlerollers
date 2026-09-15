@@ -23,26 +23,57 @@ export class PublicSiteConfigService {
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
 
-    const branches = rawBranches.map((b) => ({
-      id: b.id,
-      code: b.code,
-      name: b.name,
-      timezone: b.timezone,
-      supportWhatsappE164: b.supportWhatsappE164,
-      publicProfile: {
-        slug: b.code.toLowerCase(),
-        area: b.name,
-        city: 'Jakarta',
-        address: b.address ?? '',
-        description: `${b.name} Studio Pilates`,
-        arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
-        parkingInformation: 'Tersedia tempat parkir kendaraan.',
-        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
-        amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
-        heroImageKey: null,
-        galleryImageKeys: [],
+    const branchMetadata: Record<string, { city: string; area: string; heroImageKey: string }> = {
+      'DD-GG': {
+        city: 'Jakarta Barat',
+        area: 'Kedoya Utara, Kebon Jeruk',
+        heroImageKey: 'branches/green-garden.png',
       },
-    }));
+      'DD-MK': {
+        city: 'Jakarta Utara',
+        area: 'Pluit, Penjaringan',
+        heroImageKey: 'branches/muara-karang.png',
+      },
+      'DD-SBY': {
+        city: 'Surabaya',
+        area: 'Dukuhpakis, Surabaya Barat',
+        heroImageKey: 'branches/graha-family-surabaya.png',
+      },
+      'DD-UNTAR': {
+        city: 'Jakarta Barat',
+        area: 'Tanjung Duren, Grogol Petamburan',
+        heroImageKey: 'branches/untar-kampus-2.png',
+      },
+      'DD-PIK2': {
+        city: 'Tangerang',
+        area: 'PIK 2, Kosambi',
+        heroImageKey: 'branches/orange-groves-pik2.png',
+      },
+    };
+
+    const branches = rawBranches.map((b) => {
+      const meta = branchMetadata[b.code];
+      return {
+        id: b.id,
+        code: b.code,
+        name: b.name,
+        timezone: b.timezone,
+        supportWhatsappE164: b.supportWhatsappE164,
+        publicProfile: {
+          slug: b.code.toLowerCase(),
+          area: meta?.area ?? b.name,
+          city: meta?.city ?? 'Jakarta',
+          address: b.address ?? '',
+          description: `${b.name} Studio Pilates`,
+          arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+          parkingInformation: 'Tersedia tempat parkir kendaraan.',
+          openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+          amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+          heroImageKey: meta?.heroImageKey ?? null,
+          galleryImageKeys: [],
+        },
+      };
+    });
 
     const activeClassTypes = await this.db.jenisKelas.findMany({
       where: { active: true },

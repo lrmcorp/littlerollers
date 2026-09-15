@@ -38,6 +38,13 @@ export function isCancellationEntitled(
   return evaluatedAt.getTime() < classStartAt.getTime() - cutoffHours * 3_600_000;
 }
 
+export function isInstructorRosterPrincipal(principal: {
+  capabilities?: readonly string[];
+}): boolean {
+  const caps = principal.capabilities ?? [];
+  return caps.includes('class:assigned:read') && !caps.includes('booking:read');
+}
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -85,6 +92,12 @@ export class BookingsService {
   bookingView(booking: any) {
     const slot = booking.classSlot;
     const pkg = booking.customerPackage?.package;
+    const phone = booking.user?.phone;
+    const phoneMasked = phone
+      ? phone.length > 6
+        ? `${phone.slice(0, 4)}****${phone.slice(-2)}`
+        : phone
+      : null;
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -96,6 +109,8 @@ export class BookingsService {
       cancellationReasonCode: booking.cancellationReason ?? null,
       cancelledAt: booking.cancelledAt ?? null,
       createdAt: booking.createdAt,
+      reservedQuantity: 1,
+      source: booking.source ?? 'SELF',
       version: 1,
       idempotentReplay: false,
       branch: slot?.branch ?? null,
@@ -105,6 +120,7 @@ export class BookingsService {
             displayName: booking.user.displayName,
             email: booking.user.email,
             phone: booking.user.phone,
+            phoneMasked,
           }
         : undefined,
       classSlot: slot

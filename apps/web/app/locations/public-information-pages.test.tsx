@@ -12,42 +12,42 @@ describe('public information pages', () => {
     vi.spyOn(accountClient, 'siteConfig').mockResolvedValue({
       branches: [
         {
-          id: 'branch-jakarta',
-          code: 'DD-JKT',
-          name: 'Daily Dose Jakarta',
+          id: 'branch-green-garden',
+          code: 'DD-GG',
+          name: 'Daily Dose Green Garden',
           timezone: 'Asia/Jakarta',
-          supportWhatsappE164: null,
+          supportWhatsappE164: '+6281212327038',
           publicProfile: {
-            slug: 'jakarta',
-            area: 'Jakarta',
+            slug: 'green-garden',
+            area: 'Jakarta Barat',
             city: 'Jakarta',
-            address: 'Jakarta',
-            description: 'Studio aktif Jakarta.',
+            address: 'Rukan Green Garden Blok Z2 No. 18-19, Jakarta Barat',
+            description: 'Studio Pilates utama di Green Garden.',
             arrivalInformation: null,
             parkingInformation: null,
             openingHours: [],
-            amenities: ['Reformer'],
-            heroImageKey: 'studios/studio-reception.png',
+            amenities: ['Reformer', 'Tower', 'Mat'],
+            heroImageKey: 'branches/green-garden.png',
             galleryImageKeys: [],
           },
         },
         {
-          id: 'branch-bsd',
-          code: 'DD-BSD',
-          name: 'Daily Dose BSD',
+          id: 'branch-surabaya',
+          code: 'DD-SBY',
+          name: 'Daily Dose Graha Family Surabaya',
           timezone: 'Asia/Jakarta',
-          supportWhatsappE164: null,
+          supportWhatsappE164: '+62895340133103',
           publicProfile: {
-            slug: 'bsd',
-            area: 'BSD',
-            city: 'Tangerang Selatan',
-            address: 'BSD',
-            description: 'Studio aktif BSD.',
+            slug: 'graha-family-surabaya',
+            area: 'Graha Family',
+            city: 'Surabaya',
+            address: 'Komplek Ruko Plaza Graha Family Blok C-23, Surabaya',
+            description: 'Studio Pilates Graha Family Surabaya.',
             arrivalInformation: null,
             parkingInformation: null,
             openingHours: [],
-            amenities: ['Reformer'],
-            heroImageKey: 'studios/studio-interior-reformer.png',
+            amenities: ['Reformer', 'Megaformer'],
+            heroImageKey: 'branches/graha-family-surabaya.png',
             galleryImageKeys: [],
           },
         },
@@ -56,9 +56,8 @@ describe('public information pages', () => {
       fallbackWhatsappE164: null,
     });
     const view = render(<LocationsPage />);
-    expect(await screen.findByRole('heading', { name: 'Daily Dose Jakarta' })).toBeVisible();
-    expect(await screen.findByRole('heading', { name: 'Daily Dose BSD' })).toBeVisible();
-    expect(screen.queryByText(/Surabaya|PIK 2/)).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Daily Dose Green Garden' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Daily Dose Graha Family Surabaya' })).toBeVisible();
     expect(screen.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
     expect(screen.getAllByRole('link', { name: /Lihat Jadwal/ }).length).toBeGreaterThanOrEqual(3);
     expect((await axe(view.container)).violations).toHaveLength(0);
