@@ -94,6 +94,44 @@ export function VouchersView() {
   };
   useEffect(() => void load(cursor), [canRead, cursor, q, status]);
 
+  const handleTransition = async (
+    voucher: VoucherRecord,
+    action: 'activate' | 'pause' | 'archive',
+  ) => {
+    if (!canManage || busy) return;
+    const actionText =
+      action === 'activate' ? 'Aktifkan' : action === 'pause' ? 'Jeda' : 'Arsipkan';
+    const accepted = await feedback.confirm({
+      tone: action === 'archive' ? 'danger' : 'warning',
+      title: `${actionText} voucher ${voucher.code}?`,
+      message:
+        action === 'activate'
+          ? `Voucher "${voucher.name}" akan dapat digunakan oleh pelanggan sesuai kuota dan periode.`
+          : action === 'pause'
+            ? `Voucher "${voucher.name}" akan dijeda sementara dan tidak dapat digunakan hingga diaktifkan kembali.`
+            : `Voucher "${voucher.name}" akan diarsipkan permanen.`,
+      confirmLabel: actionText,
+    });
+    if (!accepted) return;
+    setBusy(true);
+    try {
+      await browserVoucherClient.transition(voucher.id, action, voucher.version);
+      feedback.showToast({
+        tone: 'success',
+        title: `Voucher berhasil ${action === 'activate' ? 'diaktifkan' : action === 'pause' ? 'dijeda' : 'diarsipkan'}`,
+      });
+      await load(cursor);
+    } catch {
+      feedback.showToast({
+        tone: 'danger',
+        title: 'Gagal mengubah status voucher',
+        message: 'Silakan muat ulang atau coba beberapa saat lagi.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!session || session.status === 'loading') return <Skeleton label="Memuat voucher" />;
   if (!canRead)
     return (
@@ -236,6 +274,69 @@ export function VouchersView() {
               cell: (item) =>
                 `${item.redeemedCount}${item.totalUsageLimit ? ` / ${item.totalUsageLimit}` : ''}`,
             },
+            {
+              id: 'actions',
+              header: 'Tindakan',
+              cell: (item) => (
+                <div
+                  className="flex items-center gap-1.5"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      router.push(`/workspace/vouchers/${item.id}`);
+                    }}
+                  >
+                    Lihat / Edit
+                  </Button>
+                  {canManage && item.status === 'ACTIVE' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      className="text-amber-700 hover:bg-amber-50"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleTransition(item, 'pause');
+                      }}
+                    >
+                      Jeda
+                    </Button>
+                  )}
+                  {canManage && (item.status === 'PAUSED' || item.status === 'DRAFT') && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      className="text-dd-forest hover:bg-emerald-50"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleTransition(item, 'activate');
+                      }}
+                    >
+                      Aktifkan
+                    </Button>
+                  )}
+                  {canManage && item.status !== 'ARCHIVED' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      className="text-dd-muted hover:text-dd-danger hover:bg-red-50"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleTransition(item, 'archive');
+                      }}
+                    >
+                      Arsip
+                    </Button>
+                  )}
+                </div>
+              ),
+            },
           ]}
           mobileCard={(item) => (
             <div className="grid gap-2">
@@ -252,6 +353,63 @@ export function VouchersView() {
                   : `Rp ${item.discountValue.toLocaleString('id-ID')}`}{' '}
                 · {item.branch?.name ?? 'Semua cabang'}
               </span>
+              <div
+                className="mt-2 flex flex-wrap gap-2 border-t border-dd-line/50 pt-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    router.push(`/workspace/vouchers/${item.id}`);
+                  }}
+                >
+                  Lihat / Edit
+                </Button>
+                {canManage && item.status === 'ACTIVE' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    className="text-amber-700"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleTransition(item, 'pause');
+                    }}
+                  >
+                    Jeda
+                  </Button>
+                )}
+                {canManage && (item.status === 'PAUSED' || item.status === 'DRAFT') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    className="text-dd-forest"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleTransition(item, 'activate');
+                    }}
+                  >
+                    Aktifkan
+                  </Button>
+                )}
+                {canManage && item.status !== 'ARCHIVED' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    className="text-dd-muted"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleTransition(item, 'archive');
+                    }}
+                  >
+                    Arsip
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           onRowClick={(item) => router.push(`/workspace/vouchers/${item.id}`)}

@@ -109,7 +109,7 @@ export class AttendanceService {
 
     return this.db.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`v2_pemesanan_kelas\` WHERE \`id\` = ${bookingId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`pemesanan_kelas\` WHERE \`id\` = ${bookingId} FOR UPDATE`;
         const booking = await tx.pemesananKelas.findUnique({
           where: { id: bookingId },
           include: {
@@ -231,7 +231,7 @@ export class AttendanceService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`v2_slot_kelas\` WHERE \`id\` = ${classSlotId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`slot_kelas\` WHERE \`id\` = ${classSlotId} FOR UPDATE`;
         const slot = await tx.slotKelas.findUnique({
           where: { id: classSlotId },
           include: {
@@ -302,7 +302,7 @@ export class AttendanceService {
     return this.db.$transaction(
       async (tx) => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT \`id\` FROM \`v2_check_in_token\` WHERE \`token\` = ${tokenHash} FOR UPDATE
+          SELECT \`id\` FROM \`check_in_token\` WHERE \`token\` = ${tokenHash} FOR UPDATE
         `;
         const id = rows[0]?.id;
         if (!id) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
@@ -394,7 +394,7 @@ export class AttendanceService {
         leaseMs: 30_000,
       },
       async (tx) => {
-        await tx.$queryRaw`SELECT \`id\` FROM \`v2_pemesanan_kelas\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT \`id\` FROM \`pemesanan_kelas\` WHERE \`id\` = ${input.bookingId} FOR UPDATE`;
         const booking = await tx.pemesananKelas.findUnique({
           where: { id: input.bookingId },
           include: {

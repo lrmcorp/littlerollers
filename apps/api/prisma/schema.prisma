@@ -108,7 +108,7 @@ model Cabang {
   purchases             Pembelian[]
   paymentAccounts       RekeningPembayaran[]
 
-  @@map("v2_cabang")
+  @@map("cabang")
 }
 
 model Studio {
@@ -127,7 +127,7 @@ model Studio {
 
   @@unique([branchId, code])
   @@index([branchId, active])
-  @@map("v2_studio")
+  @@map("studio")
 }
 
 model Ruangan {
@@ -145,7 +145,7 @@ model Ruangan {
 
   @@unique([studioId, code])
   @@index([studioId, active])
-  @@map("v2_ruangan")
+  @@map("ruangan")
 }
 
 model JenisKelas {
@@ -163,7 +163,7 @@ model JenisKelas {
   packages   Paket[]
   classSlots SlotKelas[]
 
-  @@map("v2_jenis_kelas")
+  @@map("jenis_kelas")
 }
 
 // ============================================================================
@@ -193,7 +193,7 @@ model User {
   recordedAttendances   KehadiranPelanggan[]  @relation("AttendanceRecorder")
 
   @@index([role, status])
-  @@map("v2_user")
+  @@map("user")
 }
 
 model UserSession {
@@ -213,7 +213,7 @@ model UserSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("v2_user_session")
+  @@map("user_session")
 }
 
 model ProfilPengguna {
@@ -232,7 +232,7 @@ model ProfilPengguna {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("v2_profil_pengguna")
+  @@map("profil_pengguna")
 }
 
 model PenugasanInstruktur {
@@ -247,7 +247,7 @@ model PenugasanInstruktur {
 
   @@unique([coachId, branchId])
   @@index([branchId, active])
-  @@map("v2_penugasan_instruktur")
+  @@map("penugasan_instruktur")
 }
 
 // ============================================================================
@@ -272,7 +272,7 @@ model Paket {
   customerPackages PaketPelanggan[]
 
   @@index([status, classTypeId])
-  @@map("v2_paket")
+  @@map("paket")
 }
 
 model Pembelian {
@@ -305,7 +305,7 @@ model Pembelian {
 
   @@index([userId, status])
   @@index([branchId, status, createdAt])
-  @@map("v2_pembelian")
+  @@map("pembelian")
 }
 
 model BuktiPembayaran {
@@ -319,7 +319,7 @@ model BuktiPembayaran {
 
   purchase Pembelian @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
-  @@map("v2_bukti_pembayaran")
+  @@map("bukti_pembayaran")
 }
 
 model PaketPelanggan {
@@ -342,7 +342,7 @@ model PaketPelanggan {
   bookings PemesananKelas[]
 
   @@index([userId, status, validUntil])
-  @@map("v2_paket_pelanggan")
+  @@map("paket_pelanggan")
 }
 
 model RekeningPembayaran {
@@ -356,7 +356,7 @@ model RekeningPembayaran {
 
   branch Cabang? @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
-  @@map("v2_rekening_pembayaran")
+  @@map("rekening_pembayaran")
 }
 
 model Voucher {
@@ -375,7 +375,7 @@ model Voucher {
 
   purchases Pembelian[]
 
-  @@map("v2_voucher")
+  @@map("voucher")
 }
 
 // ============================================================================
@@ -410,7 +410,7 @@ model SlotKelas {
 
   @@index([branchId, startAt, status])
   @@index([instructorId, startAt])
-  @@map("v2_slot_kelas")
+  @@map("slot_kelas")
 }
 
 model PemesananKelas {
@@ -435,7 +435,7 @@ model PemesananKelas {
 
   @@index([userId, status])
   @@index([classSlotId, status])
-  @@map("v2_pemesanan_kelas")
+  @@map("pemesanan_kelas")
 }
 
 model UbahJadwal {
@@ -453,7 +453,7 @@ model UbahJadwal {
   targetSlot SlotKelas      @relation("TargetSlot", fields: [targetSlotId], references: [id], onDelete: Restrict)
 
   @@index([bookingId])
-  @@map("v2_ubah_jadwal")
+  @@map("ubah_jadwal")
 }
 
 // ============================================================================
@@ -472,7 +472,7 @@ model KehadiranPelanggan {
   recordedBy User?          @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
 
   @@index([checkedInAt])
-  @@map("v2_kehadiran_pelanggan")
+  @@map("kehadiran_pelanggan")
 }
 
 model CheckInToken {
@@ -486,7 +486,7 @@ model CheckInToken {
   booking PemesananKelas @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId, expiresAt, isUsed])
-  @@map("v2_check_in_token")
+  @@map("check_in_token")
 }
 
 model PasswordActionToken {
@@ -502,5 +502,5 @@ model PasswordActionToken {
 
   @@index([emailHash])
   @@index([userId])
-  @@map("PasswordActionToken")
+  @@map("password_action_token")
 }
