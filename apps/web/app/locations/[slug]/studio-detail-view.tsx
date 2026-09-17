@@ -83,20 +83,22 @@ export function StudioDetailView({
             <div>
               <h2 className="text-3xl font-semibold">Galeri studio</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {(item.publicProfile.galleryImageKeys ?? []).map((key, index) => (
-                  <div
-                    className={`relative min-h-56 overflow-hidden rounded-dd-lg border border-dd-line ${index === 0 ? 'sm:col-span-2 sm:min-h-80' : ''}`}
-                    key={key}
-                  >
-                    <Image
-                      src={`/images/public/${key}`}
-                      alt={`${item.name}, galeri ${index + 1}`}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
+                {(item.publicProfile.galleryImageKeys ?? [])
+                  .filter((k): k is string => Boolean(k) && k !== 'null')
+                  .map((key, index) => (
+                    <div
+                      className={`relative min-h-56 overflow-hidden rounded-dd-lg border border-dd-line ${index === 0 ? 'sm:col-span-2 sm:min-h-80' : ''}`}
+                      key={key}
+                    >
+                      <Image
+                        src={`/images/public/${key}`}
+                        alt={`${item.name}, galeri ${index + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
               </div>
             </div>
             <aside className="grid content-start gap-5">

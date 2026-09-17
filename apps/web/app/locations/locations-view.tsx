@@ -216,7 +216,11 @@ export function LocationsView() {
                       <div className="relative min-h-[190px]">
                         <Image
                           className="object-cover"
-                          src={`/images/public/${publicProfile.heroImageKey}`}
+                          src={
+                            publicProfile.heroImageKey && publicProfile.heroImageKey !== 'null'
+                              ? `/images/public/${publicProfile.heroImageKey}`
+                              : '/images/public/studios/studio-reception.png'
+                          }
                           fill
                           sizes="(max-width: 768px) 100vw, 220px"
                           alt={`Studio Daily Dose Pilates ${name}`}

@@ -19,6 +19,8 @@ export class PublicSiteConfigService {
         timezone: true,
         address: true,
         supportWhatsappE164: true,
+        heroImageKey: true,
+        galleryImageKeys: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
@@ -69,8 +71,8 @@ export class PublicSiteConfigService {
           parkingInformation: 'Tersedia tempat parkir kendaraan.',
           openingHours: ['Senin - Minggu: 06:00 - 21:00'],
           amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
-          heroImageKey: meta?.heroImageKey ?? null,
-          galleryImageKeys: [],
+          heroImageKey: b.heroImageKey ?? meta?.heroImageKey ?? null,
+          galleryImageKeys: (b.galleryImageKeys as string[]) ?? [],
         },
       };
     });
@@ -83,6 +85,8 @@ export class PublicSiteConfigService {
         name: true,
         description: true,
         durationMinutes: true,
+        heroImageKey: true,
+        galleryImageKeys: true,
       },
       orderBy: [{ code: 'asc' }],
     });
@@ -97,7 +101,9 @@ export class PublicSiteConfigService {
       durationMinutes: ct.durationMinutes,
       equipment: ['Reformer', 'Mat'],
       benefits: ['Core Strength', 'Flexibility', 'Posture Correction'],
-      heroImageKey: null,
+      heroImageKey:
+        ct.heroImageKey ??
+        (ct.code.includes('MAT') ? 'classes/mat-pilates.png' : 'classes/reformer-pilates.png'),
     }));
 
     return {

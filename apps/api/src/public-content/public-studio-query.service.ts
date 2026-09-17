@@ -95,8 +95,8 @@ export class PublicStudioQueryService {
       parkingInformation: 'Tersedia tempat parkir kendaraan.',
       openingHours: ['Senin - Minggu: 06:00 - 21:00'],
       amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
-      heroImageKey: meta?.heroImageKey ?? null,
-      galleryImageKeys: [],
+      heroImageKey: branch.heroImageKey ?? meta?.heroImageKey ?? null,
+      galleryImageKeys: (branch.galleryImageKeys as string[]) ?? [],
     };
 
     return {
@@ -116,7 +116,9 @@ export class PublicStudioQueryService {
           level: 'ALL_LEVELS',
           equipment: ['Reformer'],
           benefits: ['Core Strength', 'Flexibility'],
-          heroImageKey: null,
+          heroImageKey:
+            ct.heroImageKey ??
+            (ct.code.includes('MAT') ? 'classes/mat-pilates.png' : 'classes/reformer-pilates.png'),
         },
       })),
       packages: packages.map((p) => ({

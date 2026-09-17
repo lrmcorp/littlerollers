@@ -131,7 +131,11 @@ export function DetailHero({
         </div>
         <div className="relative min-h-[300px] overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface-muted shadow-dd-card sm:min-h-[400px]">
           <Image
-            src={`/images/public/${imageKey}`}
+            src={
+              imageKey && imageKey !== 'null'
+                ? `/images/public/${imageKey}`
+                : '/images/public/studios/studio-reception.png'
+            }
             alt={`Visual ${title}`}
             fill
             priority

@@ -227,7 +227,7 @@ async function main() {
     const paidAt = op.status === 1 ? (op.tanggal_pembayaran ? new Date(op.tanggal_pembayaran) : createdAt) : null;
     const priceRp = Number(op.harga);
 
-    let status = PurchaseStatus.PENDING;
+    let status: PurchaseStatus = PurchaseStatus.PENDING;
     if (op.status === 1) status = PurchaseStatus.PAID;
     else if (op.status === 2) status = PurchaseStatus.WAITING_VERIFICATION;
     else if (op.status === 0) status = PurchaseStatus.CANCELLED;
@@ -285,7 +285,7 @@ async function main() {
       const validFrom = paidAt || createdAt;
       const validUntil = op.expired_date ? new Date(op.expired_date) : new Date('2026-12-31T23:59:59+07:00');
 
-      let cpStatus = CustomerPackageStatus.ACTIVE;
+      let cpStatus: CustomerPackageStatus = CustomerPackageStatus.ACTIVE;
       if (remainingSessions === 0) {
         cpStatus = CustomerPackageStatus.DEPLETED;
       } else if (validUntil < new Date()) {
@@ -339,7 +339,7 @@ async function main() {
     const sUuid = slotUuid(actId);
     const studioNum = Number(ka.id_location_studio);
     const studioUuid = `b1000000-0000-4000-8000-${String(studioNum === 0 ? 1 : studioNum).padStart(12, '0')}`;
-    const studioId = studioBranchMap.has(studioUuid) ? studioUuid : defaultStudioId;
+    const studioId = (studioBranchMap.has(studioUuid) ? studioUuid : defaultStudioId) || 'b1000000-0000-4000-8000-000000000001';
     const branchId = studioBranchMap.get(studioId) || DEFAULT_BRANCH_ID;
 
     const classTypeId = CLASS_TYPE_MAP[Number(ka.id_kelas)] || DEFAULT_CLASS_TYPE_ID;
@@ -360,7 +360,7 @@ async function main() {
     }
     const endAt = new Date(startAt.getTime() + 50 * 60 * 1000);
 
-    let status = ClassSlotStatus.COMPLETED;
+    let status: ClassSlotStatus = ClassSlotStatus.COMPLETED;
     if (ka.deleted_at || ka.status === 4) {
       status = ClassSlotStatus.CANCELLED;
     } else if (startAt > new Date()) {
@@ -457,7 +457,7 @@ async function main() {
     const isAttended = bk.status_kehadiran === 1;
     const isCancelled = Boolean(bk.deleted_at);
 
-    let status = BookingStatus.BOOKED;
+    let status: BookingStatus = BookingStatus.BOOKED;
     if (isAttended) status = BookingStatus.ATTENDED;
     else if (isCancelled) status = BookingStatus.CANCELLED;
 

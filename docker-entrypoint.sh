@@ -22,7 +22,23 @@ p.cabang.count().then(async c => {
       console.warn('==> [DailyDose] Warning: Seeder execution notice:', e.message);
     }
   } else {
-    console.log('==> [DailyDose] Master data exists (' + c + ' branches), skipping seed.');
+    console.log('==> [DailyDose] Master data exists (' + c + ' branches), ensuring default heroImageKeys...');
+    try {
+      const defaults = [
+        { code: 'DD-GG', key: 'branches/green-garden.png' },
+        { code: 'DD-MK', key: 'branches/muara-karang.png' },
+        { code: 'DD-SBY', key: 'branches/graha-family-surabaya.png' },
+        { code: 'DD-UNTAR', key: 'branches/untar-kampus-2.png' },
+        { code: 'DD-PIK2', key: 'branches/orange-groves-pik2.png' },
+      ];
+      for (const d of defaults) {
+        await p.cabang.updateMany({ where: { code: d.code, heroImageKey: null }, data: { heroImageKey: d.key } });
+      }
+      await p.jenisKelas.updateMany({ where: { code: 'REFORMER', heroImageKey: null }, data: { heroImageKey: 'classes/reformer-pilates.png' } });
+      await p.jenisKelas.updateMany({ where: { code: 'MAT', heroImageKey: null }, data: { heroImageKey: 'classes/mat-pilates.png' } });
+    } catch (e) {
+      console.warn('==> [DailyDose] Backfill notice:', e.message);
+    }
   }
   await p.\$disconnect();
 }).catch(err => {

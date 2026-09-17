@@ -98,6 +98,8 @@ model Cabang {
   address             String?  @db.Text
   supportWhatsappE164 String?  @map("phone") @db.VarChar(32)
   timezone            String   @default("Asia/Jakarta") @db.VarChar(64)
+  heroImageKey        String?  @map("hero_image_key") @db.VarChar(255)
+  galleryImageKeys    Json?    @map("gallery_image_keys")
   active              Boolean  @default(true) @map("isActive")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -117,6 +119,7 @@ model Studio {
   code                String   @db.VarChar(32)
   name                String   @db.VarChar(128)
   description         String?  @db.Text
+  imageKey            String?  @map("image_key") @db.VarChar(255)
   active              Boolean  @default(true) @map("isActive")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -156,6 +159,8 @@ model JenisKelas {
   description     String?       @db.Text
   durationMinutes Int           @default(50)
   defaultCapacity Int           @default(8)
+  heroImageKey    String?       @map("hero_image_key") @db.VarChar(255)
+  galleryImageKeys Json?        @map("gallery_image_keys")
   active          Boolean       @default(true) @map("isActive")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -223,6 +228,9 @@ model ProfilPengguna {
   gender                String?   @db.VarChar(16)
   birthDate             DateTime? @db.Date
   avatarUrl             String?   @db.Text
+  ktpUrl                String?   @map("ktp_url") @db.Text
+  selfieUrl             String?   @map("selfie_url") @db.Text
+  nik                   String?   @db.VarChar(32)
   address               String?   @db.Text
   emergencyContactName  String?   @db.VarChar(128)
   emergencyContactPhone String?   @db.VarChar(32)
@@ -365,6 +373,8 @@ model Voucher {
   name          String    @db.VarChar(128)
   discountType  String    @default("NOMINAL")
   discountValue Int
+  imageKey      String?   @map("image_key") @db.VarChar(255)
+  description   String?   @db.Text
   minSpendRp    Int       @default(0)
   maxDiscountRp Int?
   quota         Int       @default(100)

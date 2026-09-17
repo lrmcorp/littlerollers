@@ -262,13 +262,30 @@ export function PublicLanding() {
                   key={code}
                 >
                   <div className="relative h-[230px] sm:h-[250px] overflow-hidden">
-                    <Image
-                      src={`/images/public/${heroImageKey}`}
-                      fill
-                      sizes="340px"
-                      alt={`${name} di Daily Dose Pilates`}
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
+                    {(() => {
+                      const defaultClassImages: Record<string, string> = {
+                        REFORMER: '/images/public/classes/reformer-pilates.png',
+                        MAT: '/images/public/classes/mat-pilates.png',
+                        CADILLAC: '/images/public/classes/cadillac-pilates.png',
+                        CHAIR: '/images/public/classes/chair-pilates.png',
+                        GROUP_CLASS: '/images/public/classes/reformer-pilates.png',
+                        PRIVATE_CLASS: '/images/public/classes/cadillac-pilates.png',
+                        SEMI_PRIVATE: '/images/public/classes/reformer-pilates.png',
+                      };
+                      const classImageSrc =
+                        heroImageKey && heroImageKey !== 'null'
+                          ? `/images/public/${heroImageKey}`
+                          : (defaultClassImages[code] ?? '/images/public/classes/reformer-pilates.png');
+                      return (
+                        <Image
+                          src={classImageSrc}
+                          fill
+                          sizes="340px"
+                          alt={`${name} di Daily Dose Pilates`}
+                          className="object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      );
+                    })()}
                     <div className="absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-dd-forest shadow-2xs backdrop-blur-md">
                       {level}
                     </div>

@@ -40,6 +40,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Komp. Ruko Green Garden Blk. A, Jl. Panjang No.30, Kedoya Utara, Kec. Kb. Jeruk, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11520',
       supportWhatsappE164: '+6281212327038',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/green-garden.png',
       active: true,
     },
     create: {
@@ -50,6 +51,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Komp. Ruko Green Garden Blk. A, Jl. Panjang No.30, Kedoya Utara, Kec. Kb. Jeruk, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11520',
       supportWhatsappE164: '+6281212327038',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/green-garden.png',
       active: true,
     },
   });
@@ -63,6 +65,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Jalan Pluit Karang Timur No. 30 (Muara Karang Blok E 5 Timur No. 30), Pluit, Penjaringan, Jakarta Utara 14450',
       supportWhatsappE164: '+6287862151824',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/muara-karang.png',
       active: true,
     },
     create: {
@@ -73,6 +76,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Jalan Pluit Karang Timur No. 30 (Muara Karang Blok E 5 Timur No. 30), Pluit, Penjaringan, Jakarta Utara 14450',
       supportWhatsappE164: '+6287862151824',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/muara-karang.png',
       active: true,
     },
   });
@@ -86,6 +90,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Jl. Taman Perkantoran TP 19-20, Jl. Raya Graha Famili Utara, Pradahkalikendal, Dukuhpakis, Surabaya, Jawa Timur 60277',
       supportWhatsappE164: '+62895340133103',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/graha-family-surabaya.png',
       active: true,
     },
     create: {
@@ -96,6 +101,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Jl. Taman Perkantoran TP 19-20, Jl. Raya Graha Famili Utara, Pradahkalikendal, Dukuhpakis, Surabaya, Jawa Timur 60277',
       supportWhatsappE164: '+62895340133103',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/graha-family-surabaya.png',
       active: true,
     },
   });
@@ -109,6 +115,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Parking lot, Jl. Universitas Tarumanagara Kampus II No.11, RT.11/RW.1, North Tanjung Duren, Grogol petamburan, Jakarta Barat 11470',
       supportWhatsappE164: '+6289506909801',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/untar-kampus-2.png',
       active: true,
     },
     create: {
@@ -119,6 +126,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
         'Parking lot, Jl. Universitas Tarumanagara Kampus II No.11, RT.11/RW.1, North Tanjung Duren, Grogol petamburan, Jakarta Barat 11470',
       supportWhatsappE164: '+6289506909801',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/untar-kampus-2.png',
       active: true,
     },
   });
@@ -131,6 +139,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
       address: 'Orange Groves, PIK 2, Kabupaten Tangerang, Banten',
       supportWhatsappE164: '+62895329736127',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/orange-groves-pik2.png',
       active: true,
     },
     create: {
@@ -140,6 +149,7 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
       address: 'Orange Groves, PIK 2, Kabupaten Tangerang, Banten',
       supportWhatsappE164: '+62895329736127',
       timezone: 'Asia/Jakarta',
+      heroImageKey: 'branches/orange-groves-pik2.png',
       active: true,
     },
   });
@@ -430,7 +440,7 @@ export async function seedMasterData(
 
   const classTypeReformer = await db.jenisKelas.upsert({
     where: { id: 'd2349bc5-dde6-4fd8-ad58-d426ab33f936' },
-    update: { active: true },
+    update: { active: true, heroImageKey: 'classes/reformer-pilates.png' },
     create: {
       id: 'd2349bc5-dde6-4fd8-ad58-d426ab33f936',
       code: 'REFORMER',
@@ -438,6 +448,7 @@ export async function seedMasterData(
       modality: ClassModality.GROUP,
       durationMinutes: 50,
       defaultCapacity: 10,
+      heroImageKey: 'classes/reformer-pilates.png',
       description: 'Full-body workout using state-of-the-art reformer machines',
       active: true,
     },
@@ -445,7 +456,7 @@ export async function seedMasterData(
 
   const classTypeMat = await db.jenisKelas.upsert({
     where: { id: '68c4c9a7-fb05-448f-8346-812e3df11c90' },
-    update: { active: true },
+    update: { active: true, heroImageKey: 'classes/mat-pilates.png' },
     create: {
       id: '68c4c9a7-fb05-448f-8346-812e3df11c90',
       code: 'MAT',
@@ -453,6 +464,7 @@ export async function seedMasterData(
       modality: ClassModality.GROUP,
       durationMinutes: 50,
       defaultCapacity: 14,
+      heroImageKey: 'classes/mat-pilates.png',
       description: 'Core-focused traditional Pilates on the mat with props',
       active: true,
     },
