@@ -17,7 +17,9 @@ export class PublicMediaService {
   private readonly storageDir: string;
 
   constructor() {
-    this.storageDir = resolve(process.cwd(), '.local-data', 'public-uploads');
+    this.storageDir =
+      process.env.PUBLIC_UPLOAD_ROOT?.trim() ||
+      resolve(process.cwd(), '.local-data', 'public-uploads');
     if (!existsSync(this.storageDir)) {
       mkdirSync(this.storageDir, { recursive: true });
     }

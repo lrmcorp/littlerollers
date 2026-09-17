@@ -57,6 +57,9 @@ RUN apt-get update \
 
 COPY --from=builder --chown=dailydose:dailydose /app /app
 
+RUN mkdir -p /app/.local-data/public-uploads /app/data/private /app/data/public-uploads \
+    && chown -R dailydose:dailydose /app
+
 USER dailydose
 
 EXPOSE 32120

@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-echo "==> [DailyDose] Ensuring private upload storage exists..."
-mkdir -p /app/data/private
+echo "==> [DailyDose] Ensuring upload storage directories exist..."
+mkdir -p /app/data/private /app/data/public-uploads /app/.local-data/public-uploads 2>/dev/null || true
 
 echo "==> [DailyDose] Running Prisma migrations..."
 node apps/api/node_modules/prisma/build/index.js migrate deploy --schema apps/api/prisma/schema.prisma || {

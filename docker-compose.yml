@@ -62,8 +62,10 @@ services:
       API_BASE_URL: http://127.0.0.1:32121
       PAYMENT_PROOF_SCAN_DRIVER: synthetic
       REDIS_URL: ''
+      PUBLIC_UPLOAD_ROOT: /app/data/public-uploads
     volumes:
       - private-uploads:/app/data/private
+      - public-uploads:/app/data/public-uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -91,6 +93,7 @@ services:
 volumes:
   mysql-data:
   private-uploads:
+  public-uploads:
 
 networks:
   dailydose:
