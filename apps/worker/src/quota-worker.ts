@@ -16,4 +16,3 @@ export class QuotaWorker {
     return false;
   }
 }
-

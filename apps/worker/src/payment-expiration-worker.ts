@@ -8,42 +8,25 @@ export class PaymentExpirationWorker {
     private readonly intervalMs = 60_000,
   ) {}
 
-  start() {
+  start(): void {
     void this.runOnce();
     this.timer = setInterval(() => void this.runOnce(), this.intervalMs);
   }
 
-  stop() {
+  stop(): void {
     if (this.timer) clearInterval(this.timer);
   }
 
-  async runOnce(now = new Date()) {
-    const reservations = await this.db.reservasiKodeUnikPembayaran.findMany({
-      where: { expiresAt: { lte: now } },
-      select: { purchaseId: true },
-      take: 250,
+  async runOnce(now = new Date()): Promise<number> {
+    const expired = await this.db.pembelian.updateMany({
+      where: {
+        status: 'PENDING',
+        paymentExpiresAt: { lte: now },
+      },
+      data: {
+        status: 'CANCELLED',
+      },
     });
-    if (!reservations.length) return 0;
-    const purchaseIds = reservations.map(({ purchaseId }) => purchaseId);
-    await this.db.$transaction([
-      this.db.pembelian.updateMany({
-        where: {
-          id: { in: purchaseIds },
-          status: { in: ['AWAITING_PAYMENT', 'ACTION_REQUIRED'] },
-          paymentExpiresAt: { lte: now },
-        },
-        data: { status: 'EXPIRED', version: { increment: 1 } },
-      }),
-      this.db.reservasiKodeUnikPembayaran.deleteMany({
-        where: {
-          purchaseId: { in: purchaseIds },
-          OR: [
-            { expiresAt: { lte: now } },
-            { purchase: { status: { in: ['APPROVED', 'REJECTED', 'EXPIRED'] } } },
-          ],
-        },
-      }),
-    ]);
-    return purchaseIds.length;
+    return expired.count;
   }
 }
