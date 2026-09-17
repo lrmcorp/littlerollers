@@ -78,8 +78,9 @@ describe('VouchersView CRUD Actions', () => {
       summary: { ACTIVE: 1, PAUSED: 1 },
       page: { hasMore: false, nextCursor: null },
     });
+    const baseVoucher = mockVouchers[0]!;
     vi.spyOn(browserVoucherClient, 'transition').mockResolvedValue({
-      ...mockVouchers[0],
+      ...baseVoucher,
       status: 'PAUSED',
       version: 2,
     });
@@ -104,7 +105,7 @@ describe('VouchersView CRUD Actions', () => {
     expect(editButtons.length).toBeGreaterThanOrEqual(2);
 
     // Click "Lihat / Edit" navigates to detail
-    await userEvent.click(editButtons[0]);
+    await userEvent.click(editButtons[0]!);
     expect(mockPush).toHaveBeenCalledWith('/workspace/vouchers/v-1');
   });
 
@@ -139,7 +140,7 @@ describe('VouchersView CRUD Actions', () => {
 
     await screen.findAllByText('PROMO-AKTIF');
 
-    const jedaButton = screen.getAllByRole('button', { name: 'Jeda' })[0];
+    const jedaButton = screen.getAllByRole('button', { name: 'Jeda' })[0]!;
     await userEvent.click(jedaButton);
 
     // Confirmation dialog appears
@@ -147,7 +148,7 @@ describe('VouchersView CRUD Actions', () => {
 
     // Confirm the action in the dialog
     const confirmButtons = screen.getAllByRole('button', { name: 'Jeda' });
-    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1]!;
     await userEvent.click(modalConfirmBtn);
 
     await waitFor(() => {

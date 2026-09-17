@@ -147,7 +147,7 @@ describe('InstructorsView CRUD Actions', () => {
     // Confirmation dialog appears
     expect(await screen.findByText('Daftarkan instruktur baru?')).toBeVisible();
     const confirmButtons = screen.getAllByRole('button', { name: 'Daftarkan Instruktur' });
-    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1]!;
     await userEvent.click(modalConfirmBtn);
 
     await waitFor(() => {

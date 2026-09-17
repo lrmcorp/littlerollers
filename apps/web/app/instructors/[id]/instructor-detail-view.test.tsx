@@ -103,7 +103,7 @@ describe('InstructorDetailView CRUD Actions', () => {
     // Confirm dialog
     expect(await screen.findByText('Simpan perubahan profil instruktur?')).toBeVisible();
     const confirmButtons = screen.getAllByRole('button', { name: 'Simpan Perubahan' });
-    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1]!;
     await userEvent.click(modalConfirmBtn);
 
     await waitFor(() => {
@@ -128,7 +128,7 @@ describe('InstructorDetailView CRUD Actions', () => {
     // Confirmation dialog appears
     expect(await screen.findByText('Nonaktifkan instruktur?')).toBeVisible();
     const confirmButtons = screen.getAllByRole('button', { name: 'Nonaktifkan' });
-    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1];
+    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1]!;
     await userEvent.click(modalConfirmBtn);
 
     await waitFor(() => {
