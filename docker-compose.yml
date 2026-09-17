@@ -11,10 +11,8 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     env_file: ${APP_ENV_FILE:-.env.production}
-    # Port is not published to 0.0.0.0 to prevent collisions and internet exposure.
-    # If host access is strictly required for maintenance or SSH tunneling, bind to localhost only:
-    # ports:
-    #   - '127.0.0.1:3315:3306'
+    ports:
+      - '3315:3306'
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-dailydose}
       MYSQL_USER: ${MYSQL_USER:-dailydose}
@@ -56,6 +54,8 @@ services:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
+    ports:
+      - '32120:32120'
     environment:
       PORT: 32120
       HOSTNAME: 0.0.0.0
