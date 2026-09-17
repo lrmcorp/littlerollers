@@ -1,46 +1,32 @@
 import { PublicSiteConfigService } from './public-site-config.service';
 
 describe('PublicSiteConfigService', () => {
-  it('projects only active public studios and class profiles from the database', async () => {
+  it('projects active branches and classes with heroImageKey from the database', async () => {
     const db = {
       cabang: {
         findMany: jest.fn().mockResolvedValue([
           {
-            id: 'branch-jakarta',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            id: 'branch-gg',
+            code: 'DD-GG',
+            name: 'Daily Dose Green Garden',
             timezone: 'Asia/Jakarta',
-            supportWhatsappE164: null,
-            publicProfile: { slug: 'jakarta', area: 'Jakarta', city: 'Jakarta' },
+            supportWhatsappE164: '+6281212327038',
+            heroImageKey: 'branches/green-garden.png',
+            galleryImageKeys: ['branches/green-garden.png'],
           },
         ]),
       },
       jenisKelas: {
-        findMany: jest.fn().mockResolvedValue([{ code: 'REFORMER', name: 'Reformer Pilates' }]),
-      },
-      profilPublikKelas: {
         findMany: jest.fn().mockResolvedValue([
           {
+            id: 'class-reformer',
             code: 'REFORMER',
-            slug: 'reformer-pilates',
-            summary: 'Latihan reformer.',
-            description: 'Latihan seluruh tubuh.',
-            level: 'Semua level',
+            name: 'Reformer Pilates',
+            description: 'Full body reformer',
             durationMinutes: 50,
-            equipment: ['Reformer'],
-            benefits: ['Kekuatan'],
             heroImageKey: 'classes/reformer-pilates.png',
           },
         ]),
-      },
-      entriKontenPublik: {
-        findFirst: jest.fn().mockResolvedValue({
-          payload: {
-            autoplay: true,
-            intervalMs: 6000,
-            slides: [{ id: 'slide-1', title: 'Stronger Body.' }],
-          },
-        }),
       },
     };
     const service = new PublicSiteConfigService(
@@ -60,28 +46,36 @@ describe('PublicSiteConfigService', () => {
       } as never,
     );
 
-    await expect(service.get()).resolves.toMatchObject({
-      branches: [{ code: 'DD-JKT', publicProfile: { slug: 'jakarta' } }],
-      classes: [{ code: 'REFORMER', name: 'Reformer Pilates' }],
+    const result = await service.get();
+    expect(result).toMatchObject({
+      branches: [
+        {
+          code: 'DD-GG',
+          publicProfile: {
+            slug: 'dd-gg',
+            heroImageKey: 'branches/green-garden.png',
+          },
+        },
+      ],
+      classes: [
+        {
+          code: 'REFORMER',
+          name: 'Reformer Pilates',
+          heroImageKey: 'classes/reformer-pilates.png',
+        },
+      ],
       fallbackWhatsappE164: '+622100000000',
-      mobileFeatures: {
-        accountRecovery: false,
-        revokeAllSessions: false,
-        bookingCancellation: false,
-        reschedule: true,
-        customerCheckIn: true,
-        instructorCheckIn: false,
-      },
     });
     expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { active: true, publicProfile: { isNot: null } },
+        where: { active: true },
       }),
     );
-    expect(db.profilPublikKelas.findMany).toHaveBeenCalledWith(
+    expect(db.jenisKelas.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { active: true, code: { in: ['REFORMER'] } },
+        where: { active: true },
       }),
     );
   });
 });
+
