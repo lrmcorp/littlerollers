@@ -25,6 +25,7 @@ import {
   publicPrimaryButton as primary,
   publicSecondaryButton as secondary,
 } from '../components/public/public-styles';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 const studioBenefits = [
   {
@@ -216,11 +217,7 @@ export function LocationsView() {
                       <div className="relative min-h-[190px]">
                         <Image
                           className="object-cover"
-                          src={
-                            publicProfile.heroImageKey && publicProfile.heroImageKey !== 'null'
-                              ? `/images/public/${publicProfile.heroImageKey}`
-                              : '/images/public/studios/studio-reception.png'
-                          }
+                          src={resolvePublicImageUrl(publicProfile.heroImageKey)}
                           fill
                           sizes="(max-width: 768px) 100vw, 220px"
                           alt={`Studio Daily Dose Pilates ${name}`}

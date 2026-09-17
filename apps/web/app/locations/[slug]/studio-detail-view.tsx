@@ -20,6 +20,7 @@ import {
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
+import { resolvePublicImageUrl } from '../../lib/public-image-url';
 
 export function StudioDetailView({
   slug,
@@ -91,7 +92,7 @@ export function StudioDetailView({
                       key={key}
                     >
                       <Image
-                        src={`/images/public/${key}`}
+                        src={resolvePublicImageUrl(key)}
                         alt={`${item.name}, galeri ${index + 1}`}
                         fill
                         sizes="(max-width: 640px) 100vw, 50vw"

@@ -10,6 +10,7 @@ import { PublicStatePanel } from './public-page';
 import { publicContainer, publicPrimaryButton, publicSecondaryButton } from './public-styles';
 import { useSessionContext } from '../../session-context';
 import { isCustomerOnlySession, packageAudienceState } from '@/lib/session-audience';
+import { resolvePublicImageUrl } from '../../lib/public-image-url';
 
 export function PublicDetailFrame({
   children,
@@ -131,11 +132,7 @@ export function DetailHero({
         </div>
         <div className="relative min-h-[300px] overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface-muted shadow-dd-card sm:min-h-[400px]">
           <Image
-            src={
-              imageKey && imageKey !== 'null'
-                ? `/images/public/${imageKey}`
-                : '/images/public/studios/studio-reception.png'
-            }
+            src={resolvePublicImageUrl(imageKey)}
             alt={`Visual ${title}`}
             fill
             priority

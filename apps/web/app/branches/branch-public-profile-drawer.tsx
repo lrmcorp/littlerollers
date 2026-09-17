@@ -6,6 +6,7 @@ import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { Feedback } from '../ui';
 import { controlClassName, SearchSelect, TextInput } from '../components/forms';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 type Editable = Record<string, unknown> & { version: number };
 type ProfileData = {
@@ -174,7 +175,7 @@ export function BranchPublicProfileDrawer({
           {Boolean(profile.heroImageKey) && (
             <div className="relative h-44 w-full overflow-hidden rounded-dd-lg border border-dd-line/80 bg-dd-surface-muted">
               <Image
-                src={`/images/public/${String(profile.heroImageKey)}`}
+                src={resolvePublicImageUrl(String(profile.heroImageKey))}
                 alt={`Preview Hero ${branchName}`}
                 fill
                 sizes="520px"

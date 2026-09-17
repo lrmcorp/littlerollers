@@ -6,6 +6,7 @@ import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { EmptyState, Feedback, StatusBadge } from '../ui';
 import { controlClassName, SearchSelect, TextInput } from '../components/forms';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 type Editable = Record<string, unknown> & { version: number };
 type ProfileData = {
@@ -237,7 +238,7 @@ export function PublicProfileEditor({
             {typeof selected.value.heroImageKey === 'string' && (
               <div className="relative min-h-48 overflow-hidden rounded-dd-lg border border-dd-line">
                 <Image
-                  src={`/images/public/${selected.value.heroImageKey}`}
+                  src={resolvePublicImageUrl(selected.value.heroImageKey)}
                   alt={`Preview ${selected.title}`}
                   fill
                   sizes="520px"

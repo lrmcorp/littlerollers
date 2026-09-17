@@ -15,6 +15,7 @@ import {
 } from './components/public/public-styles';
 import { HeroCarousel } from './components/public/hero-carousel';
 import { routes } from '@/lib/routes';
+import { resolvePublicImageUrl } from './lib/public-image-url';
 
 export function studioAreaSummary(branches: PublicSiteConfig['branches']) {
   const areas = branches
@@ -272,10 +273,8 @@ export function PublicLanding() {
                         PRIVATE_CLASS: '/images/public/classes/cadillac-pilates.png',
                         SEMI_PRIVATE: '/images/public/classes/reformer-pilates.png',
                       };
-                      const classImageSrc =
-                        heroImageKey && heroImageKey !== 'null'
-                          ? `/images/public/${heroImageKey}`
-                          : (defaultClassImages[code] ?? '/images/public/classes/reformer-pilates.png');
+                      const fallback = defaultClassImages[code] ?? '/images/public/classes/reformer-pilates.png';
+                      const classImageSrc = resolvePublicImageUrl(heroImageKey, fallback);
                       return (
                         <Image
                           src={classImageSrc}

@@ -8,6 +8,30 @@ const config: NextConfig = {
     process.env.DD_PLAYWRIGHT_MOCK === 'true' || process.env.DD_CUSTOMER_FULLSTACK === 'true'
       ? undefined
       : 'standalone',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'storage.dailydosepilates.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'v2.dailydosepilates.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dailydosepilates.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+      },
+    ],
+  },
   devIndicators: false,
   transpilePackages: ['@dailydose/api-client-ts'],
   async rewrites() {
