@@ -13,7 +13,12 @@ coverage
 apps/web/test-results
 apps/web/playwright-report
 .dart_tool
-apps/mobile/build
+apps/mobile
+packages/api-client-dart
+docs
+tools
+scratch
+infra
 .local-data
 apps/api/.local-data
 artifacts

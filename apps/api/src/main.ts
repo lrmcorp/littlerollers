@@ -52,6 +52,7 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api/v1');
   app.useGlobalInterceptors(new CorrelationInterceptor());
   app.useGlobalFilters(new ProblemDetailsFilter());
+  app.enableShutdownHooks();
   await app.listen(Number(process.env.PORT ?? 3001));
 }
 void bootstrap();

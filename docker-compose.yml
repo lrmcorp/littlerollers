@@ -1,5 +1,11 @@
 name: dailydose-v2
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '20m'
+    max-file: '5'
+
 x-app: &app
   image: dailydose-v2-app:${APP_VERSION:-dev}
   build:
@@ -10,19 +16,21 @@ x-app: &app
   env_file: ${APP_ENV_FILE:-.env.production}
   restart: unless-stopped
   networks: [dailydose]
-  logging:
-    driver: json-file
-    options:
-      max-size: '20m'
-      max-file: '5'
+  logging: *default-logging
 
 services:
   mysql:
     image: mysql:8.4
-    env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
-    ports:
-      - '3315:3306'
+    # Port is not published to 0.0.0.0 to prevent collisions and internet exposure.
+    # If host access is strictly required for maintenance or SSH tunneling, bind to localhost only:
+    # ports:
+    #   - '127.0.0.1:3315:3306'
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-dailydose}
+      MYSQL_USER: ${MYSQL_USER:-dailydose}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     command:
       - mysqld
       - --character-set-server=utf8mb4
@@ -31,21 +39,29 @@ services:
       - --log-bin=mysql-bin
       - --binlog-format=ROW
       - --binlog-row-image=FULL
+      - --binlog-expire-logs-seconds=259200
+      - --max-binlog-size=100M
       - --gtid-mode=ON
       - --enforce-gtid-consistency=ON
+      - --innodb-buffer-pool-size=256M
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}']
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} 2>&1 | grep -v "Warning" || exit 0']
       interval: 10s
       timeout: 5s
       retries: 20
     networks: [dailydose]
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
 
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    command: ['redis-server', '--appendonly', 'yes']
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'noeviction']
     volumes:
       - redis-data:/data
     healthcheck:
@@ -54,6 +70,11 @@ services:
       timeout: 3s
       retries: 20
     networks: [dailydose]
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   clamav:
     image: clamav/clamav:1.4
@@ -67,6 +88,13 @@ services:
       retries: 20
       start_period: 120s
     networks: [dailydose]
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+        reservations:
+          memory: 1200M
 
   migrate:
     <<: *app
@@ -83,6 +111,10 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   private-storage-init:
     <<: *app
@@ -91,12 +123,15 @@ services:
     command: ['sh', '-c', 'install -d -o 1001 -g 1001 -m 0700 /app/data/private']
     volumes:
       - private-uploads:/app/data/private
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   api:
     <<: *app
     networks:
       - dailydose
-      - dailydose-proxy
     command: ['node', 'apps/api/dist/main.js']
     volumes:
       - private-uploads:/app/data/private
@@ -121,6 +156,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
 
   worker:
     <<: *app
@@ -136,6 +175,10 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
 
   web:
     <<: *app
@@ -160,6 +203,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
 
 volumes:
   mysql-data:
@@ -173,3 +220,4 @@ networks:
   dailydose-proxy:
     name: dailydose-v2-proxy
     external: true
+
