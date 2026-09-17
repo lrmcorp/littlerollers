@@ -108,7 +108,7 @@ export class ConfigGatedMalwareScanProvider implements MalwareScanProvider, OnMo
       process.env.PAYMENT_PROOF_SCAN_DRIVER ??
       (process.env.NODE_ENV === 'production' ? 'clamav' : 'synthetic');
     if (driver === 'clamav') return this.scanWithClamAv(objectKey);
-    if (process.env.NODE_ENV === 'production')
+    if (process.env.NODE_ENV === 'production' && driver !== 'synthetic')
       throw new ApiProblem('CONFIGURATION_REQUIRED', HttpStatus.SERVICE_UNAVAILABLE, true);
     const result =
       this.config?.value.paymentProof.syntheticResult ??

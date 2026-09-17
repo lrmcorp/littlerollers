@@ -41,7 +41,8 @@ RUN pnpm build \
     && install -d apps/web/.next/standalone/apps/web/public \
     && cp -a apps/web/.next/static/. apps/web/.next/standalone/apps/web/.next/static/ \
     && cp -a apps/web/public/. apps/web/.next/standalone/apps/web/public/ \
-    && rm -rf .turbo apps/web/.next/cache
+    && rm -rf .turbo apps/web/.next/cache \
+    && chmod +x docker-entrypoint.sh
 
 FROM node:24-bookworm-slim AS runner
 
@@ -58,4 +59,7 @@ COPY --from=builder --chown=dailydose:dailydose /app /app
 
 USER dailydose
 
-CMD ["node", "apps/api/dist/main.js"]
+EXPOSE 32120
+
+CMD ["/app/docker-entrypoint.sh"]
+

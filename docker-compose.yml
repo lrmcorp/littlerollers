@@ -6,18 +6,6 @@ x-logging: &default-logging
     max-size: '20m'
     max-file: '5'
 
-x-app: &app
-  image: dailydose-v2-app:${APP_VERSION:-dev}
-  build:
-    context: .
-    args:
-      API_BASE_URL: ${API_BASE_URL:-http://api:32121}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-  env_file: ${APP_ENV_FILE:-.env.production}
-  restart: unless-stopped
-  networks: [dailydose]
-  logging: *default-logging
-
 services:
   mysql:
     image: mysql:8.4
@@ -58,160 +46,48 @@ services:
         limits:
           memory: 1024M
 
-  redis:
-    image: redis:8-alpine
+  app:
+    image: dailydose-v2-app:${APP_VERSION:-dev}
+    build:
+      context: .
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://127.0.0.1:32121}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    env_file: ${APP_ENV_FILE:-.env.production}
     restart: unless-stopped
-    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'noeviction']
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 20
-    networks: [dailydose]
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          memory: 384M
-
-  clamav:
-    image: clamav/clamav:1.4
-    restart: unless-stopped
-    volumes:
-      - clamav-data:/var/lib/clamav
-    healthcheck:
-      test: ['CMD', '/usr/local/bin/clamdcheck.sh']
-      interval: 30s
-      timeout: 10s
-      retries: 20
-      start_period: 120s
-    networks: [dailydose]
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          memory: 2048M
-        reservations:
-          memory: 1200M
-
-  migrate:
-    <<: *app
-    restart: 'no'
-    command:
-      [
-        'node',
-        'apps/api/node_modules/prisma/build/index.js',
-        'migrate',
-        'deploy',
-        '--schema',
-        'apps/api/prisma/schema.prisma',
-      ]
-    depends_on:
-      mysql:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
-  private-storage-init:
-    <<: *app
-    user: '0:0'
-    restart: 'no'
-    command: ['sh', '-c', 'install -d -o 1001 -g 1001 -m 0700 /app/data/private']
-    volumes:
-      - private-uploads:/app/data/private
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
-  api:
-    <<: *app
-    networks:
-      - dailydose
-    command: ['node', 'apps/api/dist/main.js']
-    volumes:
-      - private-uploads:/app/data/private
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      private-storage-init:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-      clamav:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "const socket=require('node:net').connect(32121,'127.0.0.1');socket.setTimeout(3000);socket.once('connect',()=>{socket.end();process.exit(0)});socket.once('timeout',()=>{socket.destroy();process.exit(1)});socket.once('error',()=>process.exit(1))",
-        ]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-
-  worker:
-    <<: *app
-    command: ['node', 'apps/worker/dist/main.js']
-    volumes:
-      - private-uploads:/app/data/private
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      private-storage-init:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-      clamav:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-
-  web:
-    <<: *app
-    working_dir: /app/apps/web
-    command: ['node', '.next/standalone/apps/web/server.js']
     environment:
       PORT: 32120
       HOSTNAME: 0.0.0.0
-    networks: [dailydose, dailydose-proxy]
+      API_BASE_URL: http://127.0.0.1:32121
+      PAYMENT_PROOF_SCAN_DRIVER: synthetic
+    volumes:
+      - private-uploads:/app/data/private
     depends_on:
-      api:
+      mysql:
         condition: service_healthy
+    networks:
+      - dailydose
+      - dailydose-proxy
     healthcheck:
       test:
         [
           'CMD',
           'node',
           '-e',
-          "const fs=require('node:fs');const root='/app/apps/web/.next/standalone/apps/web';if(!fs.existsSync(root+'/.next/static')||!fs.existsSync(root+'/public'))process.exit(1);fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 20s
+      start_period: 30s
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 1536M
 
 volumes:
   mysql-data:
-  redis-data:
-  clamav-data:
   private-uploads:
 
 networks:
@@ -220,4 +96,5 @@ networks:
   dailydose-proxy:
     name: dailydose-v2-proxy
     external: true
+
 

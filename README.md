@@ -134,10 +134,9 @@ If neither the JAR nor a working Docker daemon is available, the command exits w
 
 ## Deployment VPS dengan Docker Compose
 
-Docker Compose production menjalankan Web, API, worker, MySQL, Redis, ClamAV,
-dan migrasi Prisma. Web terhubung ke Nginx Proxy Manager melalui network Docker
-eksternal `dailydose-v2-proxy`; database, Redis, dan API tetap berada di network
-internal Docker.
+Docker Compose production menjalankan arsitektur ramping 2 container: **`mysql`** (database)
+dan **`app`** (aplikasi gabungan Web Next.js + NestJS API + auto-migrate). Container `app`
+terhubung ke Nginx Proxy Manager melalui network Docker eksternal `dailydose-v2-proxy`.
 
 1. Salin `.env.production.example` menjadi `.env.production`.
 2. Ganti seluruh nilai `CHANGE_ME`, domain `PUBLIC_WEB_BASE_URL`, alamat email,
@@ -152,25 +151,24 @@ internal Docker.
    docker network connect dailydose-v2-proxy nginx-proxy-manager 2>/dev/null || true
    ```
 
-4. Validasi dan jalankan service secara bertahap menggunakan project name eksplisit:
+4. Validasi dan jalankan service:
 
    ```bash
    docker compose -p dailydose-v2 --env-file .env.production config --quiet
-   docker compose -p dailydose-v2 --env-file .env.production up -d mysql redis clamav
-   docker compose -p dailydose-v2 --env-file .env.production up -d --build migrate
-   docker compose -p dailydose-v2 --env-file .env.production up -d api worker web
+   docker compose -p dailydose-v2 --env-file .env.production up -d --build
    docker compose -p dailydose-v2 --env-file .env.production ps
    ```
 
 5. Buat Proxy Host pada Nginx Proxy Manager menuju service:
 
    ```text
-   web:32120
+   app:32120
    ```
 
-   Pastikan Proxy Host dan service web berada pada network `dailydose-v2-proxy`.
+   Pastikan Proxy Host dan service `app` berada pada network `dailydose-v2-proxy`.
    Port `32120` tidak dipublikasikan ke host. Jangan menjalankan seed demo di
    production.
+
 
 Backup minimal mencakup volume `dailydose-v2_mysql-data` dan
 `dailydose-v2_private-uploads`. Saat memperbarui aplikasi, set `APP_VERSION` ke
