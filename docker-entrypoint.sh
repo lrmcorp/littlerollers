@@ -4,10 +4,31 @@ set -e
 echo "==> [DailyDose] Ensuring upload storage directories exist..."
 mkdir -p /app/data/private /app/data/public-uploads /app/.local-data/public-uploads 2>/dev/null || true
 
-echo "==> [DailyDose] Running Prisma migrations..."
-node apps/api/node_modules/prisma/build/index.js migrate deploy --schema apps/api/prisma/schema.prisma || {
-  echo "==> [DailyDose] Warning: Migration encountered an issue, proceeding..."
+echo "==> [DailyDose] Synchronizing database schema (Prisma db push)..."
+node apps/api/node_modules/prisma/build/index.js db push --schema apps/api/prisma/schema.prisma --skip-generate --accept-data-loss || {
+  echo "==> [DailyDose] Warning: Database schema sync encountered an issue, proceeding..."
 }
+
+echo "==> [DailyDose] Checking master data..."
+node -e "
+const { PrismaClient } = require('./apps/api/node_modules/@prisma/client');
+const p = new PrismaClient();
+p.cabang.count().then(async c => {
+  if (c === 0) {
+    console.log('==> [DailyDose] Database is fresh (0 branches found), seeding initial master data...');
+    try {
+      require('child_process').execSync('node --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed.ts', { stdio: 'inherit' });
+    } catch (e) {
+      console.warn('==> [DailyDose] Warning: Seeder execution notice:', e.message);
+    }
+  } else {
+    console.log('==> [DailyDose] Master data exists (' + c + ' branches), skipping seed.');
+  }
+  await p.\$disconnect();
+}).catch(err => {
+  console.warn('==> [DailyDose] Master data check skipped:', err.message);
+});
+" || true
 
 echo "==> [DailyDose] Starting NestJS API on 127.0.0.1:32121..."
 PORT=32121 node apps/api/dist/main.js &
