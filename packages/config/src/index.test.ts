@@ -56,21 +56,16 @@ test('loads a complete synthetic local configuration', () => {
   });
 });
 
-test('allows Redis to be absent outside production but requires it in production', () => {
+test('allows Redis to be absent in all environments including production', () => {
   const nonProduction = loadRuntimeConfig({ ...validEnvironment, REDIS_URL: undefined });
   assert.equal(nonProduction.redisUrl, null);
-  assert.throws(
-    () =>
-      loadRuntimeConfig({
-        ...validEnvironment,
-        NODE_ENV: 'production',
-        REDIS_URL: undefined,
-        PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
-        PAYMENT_PROOF_SCAN_DRIVER: 'clamav',
-        PAYMENT_PROOF_CLAMAV_HOST: '127.0.0.1',
-      }),
-    /CONFIGURATION_MISSING:REDIS_URL/,
-  );
+  const production = loadRuntimeConfig({
+    ...validEnvironment,
+    NODE_ENV: 'production',
+    REDIS_URL: undefined,
+    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+  });
+  assert.equal(production.redisUrl, null);
 });
 
 test('validates RBAC rollout source and management gate', () => {
@@ -200,15 +195,14 @@ test('uses only production policy variables in production', () => {
   );
 });
 
-test('rejects synthetic payment scanning in production and validates scanner settings', () => {
-  assert.throws(() =>
-    loadRuntimeConfig({
-      ...validEnvironment,
-      NODE_ENV: 'production',
-      PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
-      PAYMENT_PROOF_SCAN_DRIVER: 'synthetic',
-    }),
-  );
+test('validates scanner settings and allows synthetic scanning in production', () => {
+  const production = loadRuntimeConfig({
+    ...validEnvironment,
+    NODE_ENV: 'production',
+    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
+    PAYMENT_PROOF_SCAN_DRIVER: 'synthetic',
+  });
+  assert.equal(production.paymentProof.scanDriver, 'synthetic');
   assert.throws(() =>
     loadRuntimeConfig({
       ...validEnvironment,

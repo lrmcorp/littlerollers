@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 echo "==> [DailyDose] Ensuring private upload storage exists..."
@@ -29,4 +29,8 @@ cleanup() {
 
 trap cleanup TERM INT QUIT
 
-wait "$API_PID" "$WEB_PID"
+# Wait for either process to terminate; if one crashes, trigger cleanup
+wait -n "$API_PID" "$WEB_PID"
+EXIT_CODE=$?
+echo "==> [DailyDose] A child process exited with code $EXIT_CODE, shutting down container..."
+cleanup

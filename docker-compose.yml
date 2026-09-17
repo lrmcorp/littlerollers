@@ -10,6 +10,7 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    env_file: ${APP_ENV_FILE:-.env.production}
     # Port is not published to 0.0.0.0 to prevent collisions and internet exposure.
     # If host access is strictly required for maintenance or SSH tunneling, bind to localhost only:
     # ports:
@@ -60,6 +61,7 @@ services:
       HOSTNAME: 0.0.0.0
       API_BASE_URL: http://127.0.0.1:32121
       PAYMENT_PROOF_SCAN_DRIVER: synthetic
+      REDIS_URL: ''
     volumes:
       - private-uploads:/app/data/private
     depends_on:
@@ -74,7 +76,7 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "Promise.all([fetch('http://127.0.0.1:32120/'), fetch('http://127.0.0.1:32121/api/v1/public/site-config')]).then(([w,a])=>{if(!w.ok||!a.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 15s
       timeout: 5s

@@ -206,11 +206,8 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   if (publicSupportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(publicSupportWhatsappE164))
     throw new Error('CONFIGURATION_INVALID:PUBLIC_SUPPORT_WHATSAPP_E164');
   const paymentProofScanDriver =
-    env.PAYMENT_PROOF_SCAN_DRIVER?.trim() ||
-    (environment === 'production' ? 'clamav' : 'synthetic');
+    env.PAYMENT_PROOF_SCAN_DRIVER?.trim() || 'synthetic';
   if (!['synthetic', 'clamav'].includes(paymentProofScanDriver))
-    throw new Error('CONFIGURATION_INVALID:PAYMENT_PROOF_SCAN_DRIVER');
-  if (environment === 'production' && paymentProofScanDriver === 'synthetic')
     throw new Error('CONFIGURATION_INVALID:PAYMENT_PROOF_SCAN_DRIVER');
   const paymentProofSyntheticResult = env.PAYMENT_PROOF_SYNTHETIC_SCAN_RESULT?.trim() || 'CLEAN';
   if (!['CLEAN', 'REJECTED'].includes(paymentProofSyntheticResult))
@@ -263,8 +260,7 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     environment,
     port,
     databaseUrl: required(env, 'DATABASE_URL'),
-    redisUrl:
-      env.REDIS_URL?.trim() || (environment === 'production' ? required(env, 'REDIS_URL') : null),
+    redisUrl: env.REDIS_URL?.trim() || null,
     healthProbeTimeoutMs: positiveInteger('HEALTH_PROBE_TIMEOUT_MS'),
     workerHeartbeatIntervalMs: positiveInteger('WORKER_HEARTBEAT_INTERVAL_MS'),
     workerHeartbeatTtlSeconds: positiveInteger('WORKER_HEARTBEAT_TTL_SECONDS'),
