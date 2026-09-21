@@ -9,6 +9,7 @@ import {
   CustomerPackageStatus,
   ClassSlotStatus,
   BookingStatus,
+  SessionMutationType,
   Cabang,
   User,
   JenisKelas,
@@ -177,17 +178,17 @@ export async function seedUsersAndRoles(
   const gg = branches.gg ?? branches.jkt;
   const mk = branches.mk ?? branches.bsd;
 
-  // Superadmin (Global access across all branches)
+  // Superadmin / Super Owner (Global access across all branches)
   const superadmin = await db.user.upsert({
     where: { email: 'ralamzah@gmail.com' },
-    update: { role: Role.SUPERADMIN, status: UserStatus.ACTIVE },
+    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE },
     create: {
       id: '00000000-0000-4000-8000-000000000100',
       email: 'ralamzah@gmail.com',
       displayName: 'Ridho Alamzah',
       phone: '081234567890',
       passwordHash: defaultPasswordHash,
-      role: Role.SUPERADMIN,
+      role: Role.SUPER_OWNER,
       status: UserStatus.ACTIVE,
       preferredBranchId: null, // Global multi-branch
       profile: {
@@ -195,6 +196,108 @@ export async function seedUsersAndRoles(
           fullName: 'Ridho Alamzah',
           gender: 'MALE',
           address: 'Senopati, Jakarta Selatan',
+        },
+      },
+    },
+  });
+
+  // Dedicated Super Owner
+  await db.user.upsert({
+    where: { email: 'superowner@dailydose.test' },
+    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000101',
+      email: 'superowner@dailydose.test',
+      displayName: 'Super Owner',
+      phone: '+628111111101',
+      passwordHash: defaultPasswordHash,
+      role: Role.SUPER_OWNER,
+      status: UserStatus.ACTIVE,
+      profile: {
+        create: {
+          fullName: 'Super Owner Executive',
+          gender: 'MALE',
+        },
+      },
+    },
+  });
+
+  // Owner (Cabang Green Garden)
+  const ownerGG = await db.user.upsert({
+    where: { email: 'owner.gg@dailydose.test' },
+    update: { role: Role.OWNER, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000102',
+      email: 'owner.gg@dailydose.test',
+      displayName: 'Owner Green Garden',
+      phone: '+628111111102',
+      passwordHash: defaultPasswordHash,
+      role: Role.OWNER,
+      status: UserStatus.ACTIVE,
+      preferredBranchId: gg.id,
+      profile: {
+        create: {
+          fullName: 'Owner Cabang Green Garden',
+          gender: 'FEMALE',
+        },
+      },
+    },
+  });
+
+  // Penugasan Owner ke Cabang Green Garden (OwnerBranch)
+  await db.ownerCabang.upsert({
+    where: {
+      ownerId_branchId: {
+        ownerId: ownerGG.id,
+        branchId: gg.id,
+      },
+    },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000103',
+      ownerId: ownerGG.id,
+      branchId: gg.id,
+    },
+  });
+
+  // Manager (Cabang Green Garden)
+  await db.user.upsert({
+    where: { email: 'manager.gg@dailydose.test' },
+    update: { role: Role.MANAGER, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000104',
+      email: 'manager.gg@dailydose.test',
+      displayName: 'Manager Green Garden',
+      phone: '+628111111104',
+      passwordHash: defaultPasswordHash,
+      role: Role.MANAGER,
+      status: UserStatus.ACTIVE,
+      preferredBranchId: gg.id,
+      profile: {
+        create: {
+          fullName: 'Studio Manager Green Garden',
+          gender: 'FEMALE',
+        },
+      },
+    },
+  });
+
+  // Finance (Global / Multi-Cabang)
+  await db.user.upsert({
+    where: { email: 'finance@dailydose.test' },
+    update: { role: Role.FINANCE, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000105',
+      email: 'finance@dailydose.test',
+      displayName: 'Finance Corporate',
+      phone: '+628111111105',
+      passwordHash: defaultPasswordHash,
+      role: Role.FINANCE,
+      status: UserStatus.ACTIVE,
+      profile: {
+        create: {
+          fullName: 'Corporate Finance Lead',
+          gender: 'MALE',
         },
       },
     },
@@ -284,6 +387,50 @@ export async function seedUsersAndRoles(
     },
   });
 
+  // Dedicated Instructor (Role.INSTRUCTOR)
+  await db.user.upsert({
+    where: { email: 'coach.sarah@dailydose.test' },
+    update: { role: Role.INSTRUCTOR, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000106',
+      email: 'coach.sarah@dailydose.test',
+      displayName: 'Sarah Jenkins',
+      phone: '+628111111106',
+      passwordHash: defaultPasswordHash,
+      role: Role.INSTRUCTOR,
+      status: UserStatus.ACTIVE,
+      preferredBranchId: gg.id,
+      profile: {
+        create: {
+          fullName: 'Sarah Jenkins',
+          gender: 'FEMALE',
+        },
+      },
+    },
+  });
+
+  // Dedicated Customer (Role.CUSTOMER)
+  await db.user.upsert({
+    where: { email: 'customer.maya@dailydose.test' },
+    update: { role: Role.CUSTOMER, status: UserStatus.ACTIVE },
+    create: {
+      id: '00000000-0000-4000-8000-000000000107',
+      email: 'customer.maya@dailydose.test',
+      displayName: 'Maya Putri',
+      phone: '+628111111107',
+      passwordHash: defaultPasswordHash,
+      role: Role.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      preferredBranchId: gg.id,
+      profile: {
+        create: {
+          fullName: 'Maya Putri',
+          gender: 'FEMALE',
+        },
+      },
+    },
+  });
+
   // Customer Members (Authentic V1 Customers)
   const customerAnisa = await db.user.upsert({
     where: { email: 'cindyedelene@gmail.com' },
@@ -352,10 +499,10 @@ export async function seedMasterData(
   roomJkt1A: Ruangan;
   roomJkt2A: Ruangan;
   roomBsd1A: Ruangan;
-  classTypeReformer: JenisKelas;
-  classTypeMat: JenisKelas;
-  classTypeBarre: JenisKelas;
-  classTypePriv: JenisKelas;
+  classTypeGroup: JenisKelas;
+  classTypePrivate: JenisKelas;
+  classTypeSemiPrivate: JenisKelas;
+  classTypePrivateGroup: JenisKelas;
 }> {
   console.info('🏢 [3/6] Seeding Studio, Ruangan, and Jenis Kelas master data...');
   const { jkt, bsd } = branches;
@@ -438,68 +585,6 @@ export async function seedMasterData(
     },
   });
 
-  const classTypeReformer = await db.jenisKelas.upsert({
-    where: { id: 'd2349bc5-dde6-4fd8-ad58-d426ab33f936' },
-    update: { active: true, heroImageKey: 'classes/reformer-pilates.png' },
-    create: {
-      id: 'd2349bc5-dde6-4fd8-ad58-d426ab33f936',
-      code: 'REFORMER',
-      name: 'Reformer Pilates',
-      modality: ClassModality.GROUP,
-      durationMinutes: 50,
-      defaultCapacity: 10,
-      heroImageKey: 'classes/reformer-pilates.png',
-      description: 'Full-body workout using state-of-the-art reformer machines',
-      active: true,
-    },
-  });
-
-  const classTypeMat = await db.jenisKelas.upsert({
-    where: { id: '68c4c9a7-fb05-448f-8346-812e3df11c90' },
-    update: { active: true, heroImageKey: 'classes/mat-pilates.png' },
-    create: {
-      id: '68c4c9a7-fb05-448f-8346-812e3df11c90',
-      code: 'MAT',
-      name: 'Mat Pilates',
-      modality: ClassModality.GROUP,
-      durationMinutes: 50,
-      defaultCapacity: 14,
-      heroImageKey: 'classes/mat-pilates.png',
-      description: 'Core-focused traditional Pilates on the mat with props',
-      active: true,
-    },
-  });
-
-  const classTypeBarre = await db.jenisKelas.upsert({
-    where: { id: '6ea95b90-71f4-4916-8d76-37f07c92e08c' },
-    update: { active: true },
-    create: {
-      id: '6ea95b90-71f4-4916-8d76-37f07c92e08c',
-      code: 'BARRE',
-      name: 'Barre Class',
-      modality: ClassModality.GROUP,
-      durationMinutes: 50,
-      defaultCapacity: 14,
-      description: 'Dynamic ballet and pilates fusion for toning and posture',
-      active: true,
-    },
-  });
-
-  const classTypePriv = await db.jenisKelas.upsert({
-    where: { id: '00000000-0000-4000-8000-000000000030' },
-    update: { active: true },
-    create: {
-      id: '00000000-0000-4000-8000-000000000030',
-      code: 'REFORMER_PRIV',
-      name: 'Private Reformer 1-on-1',
-      modality: ClassModality.PRIVATE,
-      durationMinutes: 50,
-      defaultCapacity: 1,
-      description: 'Personalized 1-on-1 Pilates session with an expert instructor',
-      active: true,
-    },
-  });
-
   // Authentic V1 Class Types
   const v1Classes = [
     {
@@ -542,20 +627,11 @@ export async function seedMasterData(
       description: 'Private group reformer pilates session for closed circle/group.',
       active: true,
     },
-    {
-      id: 'c1000000-0000-4000-8000-000000000005',
-      code: 'MEGAFORMER',
-      name: 'Megaformer Class',
-      modality: ClassModality.GROUP,
-      durationMinutes: 55,
-      defaultCapacity: 5,
-      description: 'Megaformer workout session (historical/archived).',
-      active: false,
-    },
   ];
 
+  const classTypeMap: Record<string, JenisKelas> = {};
   for (const cls of v1Classes) {
-    await db.jenisKelas.upsert({
+    classTypeMap[cls.code] = await db.jenisKelas.upsert({
       where: { id: cls.id },
       update: {
         code: cls.code,
@@ -570,6 +646,11 @@ export async function seedMasterData(
     });
   }
 
+  const classTypeGroup = classTypeMap['GROUP_CLASS']!;
+  const classTypePrivate = classTypeMap['PRIVATE_CLASS']!;
+  const classTypeSemiPrivate = classTypeMap['SEMI_PRIVATE']!;
+  const classTypePrivateGroup = classTypeMap['PRIVATE_GROUP']!;
+
   return {
     studioJktReformer,
     studioJktMat,
@@ -577,10 +658,10 @@ export async function seedMasterData(
     roomJkt1A,
     roomJkt2A,
     roomBsd1A,
-    classTypeReformer,
-    classTypeMat,
-    classTypeBarre,
-    classTypePriv,
+    classTypeGroup,
+    classTypePrivate,
+    classTypeSemiPrivate,
+    classTypePrivateGroup,
   };
 }
 
@@ -591,19 +672,20 @@ export async function seedPackagesAndPromotions(
   db: PrismaClient,
   branches: { jkt: Cabang; bsd: Cabang },
   classTypes: {
-    classTypeReformer: JenisKelas;
-    classTypeMat: JenisKelas;
-    classTypeBarre: JenisKelas;
+    classTypeGroup: JenisKelas;
+    classTypePrivate: JenisKelas;
+    classTypeSemiPrivate: JenisKelas;
+    classTypePrivateGroup: JenisKelas;
   },
 ): Promise<{
-  pkgReformer10: Paket;
-  pkgReformer5: Paket;
-  pkgMat8: Paket;
-  pkgBarre8: Paket;
+  pkgGroup10: Paket;
+  pkgPrivate8: Paket;
+  pkgGroup20: Paket;
+  pkgPrivateGroup1: Paket;
 }> {
   console.info('💳 [4/6] Seeding Payment Accounts, Packages, and Vouchers...');
   const { jkt, bsd } = branches;
-  const { classTypeReformer, classTypeMat, classTypeBarre } = classTypes;
+  const { classTypeGroup, classTypePrivate, classTypeSemiPrivate, classTypePrivateGroup } = classTypes;
 
   // Rekening Pembayaran (5 Authentic BCA Accounts from v1)
   const bankAccounts = [
@@ -639,12 +721,12 @@ export async function seedPackagesAndPromotions(
   }
 
   // Authentic Master Paket (V1 Authentic)
-  const pkgReformer10 = await db.paket.upsert({
+  const pkgGroup10 = await db.paket.upsert({
     where: { id: '20000000-0000-4000-8000-000000000001' },
     update: { status: PackageStatus.ACTIVE },
     create: {
       id: '20000000-0000-4000-8000-000000000001',
-      classTypeId: 'c1000000-0000-4000-8000-000000000001',
+      classTypeId: classTypeGroup.id,
       code: 'PK-V1-1',
       name: 'Paket 8 Sesi Group Class',
       sessionCount: 8,
@@ -655,12 +737,12 @@ export async function seedPackagesAndPromotions(
     },
   });
 
-  const pkgReformer5 = await db.paket.upsert({
+  const pkgPrivate8 = await db.paket.upsert({
     where: { id: '20000000-0000-4000-8000-000000000002' },
     update: { status: PackageStatus.ACTIVE },
     create: {
       id: '20000000-0000-4000-8000-000000000002',
-      classTypeId: 'c1000000-0000-4000-8000-000000000002',
+      classTypeId: classTypePrivate.id,
       code: 'PK-V1-2',
       name: 'Paket 8 Sesi Private Class',
       sessionCount: 8,
@@ -671,12 +753,12 @@ export async function seedPackagesAndPromotions(
     },
   });
 
-  const pkgMat8 = await db.paket.upsert({
+  const pkgGroup20 = await db.paket.upsert({
     where: { id: '20000000-0000-4000-8000-000000000003' },
     update: { status: PackageStatus.ACTIVE },
     create: {
       id: '20000000-0000-4000-8000-000000000003',
-      classTypeId: 'c1000000-0000-4000-8000-000000000001',
+      classTypeId: classTypeGroup.id,
       code: 'PK-V1-3',
       name: 'Paket 20 Sesi Group Class',
       sessionCount: 20,
@@ -687,12 +769,12 @@ export async function seedPackagesAndPromotions(
     },
   });
 
-  const pkgBarre8 = await db.paket.upsert({
+  const pkgPrivateGroup1 = await db.paket.upsert({
     where: { id: '20000000-0000-4000-8000-000000000004' },
     update: { status: PackageStatus.ACTIVE },
     create: {
       id: '20000000-0000-4000-8000-000000000004',
-      classTypeId: 'c1000000-0000-4000-8000-000000000004',
+      classTypeId: classTypePrivateGroup.id,
       code: 'PK-V1-4',
       name: 'Drop In Private Group Class',
       sessionCount: 1,
@@ -737,10 +819,10 @@ export async function seedPackagesAndPromotions(
   });
 
   return {
-    pkgReformer10,
-    pkgReformer5,
-    pkgMat8,
-    pkgBarre8,
+    pkgGroup10,
+    pkgPrivate8,
+    pkgGroup20,
+    pkgPrivateGroup1,
   };
 }
 
@@ -789,7 +871,7 @@ export async function seedTimetableAndOperationalData(
   fixtures: {
     branches: { jkt: Cabang; bsd: Cabang };
     users: { admin: User; customerAnisa: User; coachSarah: User; coachBudi: User; coachJessica: User };
-    packages: { pkgReformer10: Paket };
+    packages: { pkgGroup10: Paket };
     masters: {
       studioJktReformer: Studio;
       studioJktMat: Studio;
@@ -797,16 +879,17 @@ export async function seedTimetableAndOperationalData(
       roomJkt1A: Ruangan;
       roomJkt2A: Ruangan;
       roomBsd1A: Ruangan;
-      classTypeReformer: JenisKelas;
-      classTypeMat: JenisKelas;
-      classTypeBarre: JenisKelas;
+      classTypeGroup: JenisKelas;
+      classTypePrivate: JenisKelas;
+      classTypeSemiPrivate: JenisKelas;
+      classTypePrivateGroup: JenisKelas;
     };
   },
 ): Promise<void> {
   console.info('🗓️ [6/6] Seeding Timetable slots, Demo Customer Order & Booking...');
   const { jkt, bsd } = fixtures.branches;
   const { admin, customerAnisa, coachSarah, coachBudi, coachJessica } = fixtures.users;
-  const { pkgReformer10 } = fixtures.packages;
+  const { pkgGroup10 } = fixtures.packages;
   const {
     studioJktReformer,
     studioJktMat,
@@ -814,9 +897,10 @@ export async function seedTimetableAndOperationalData(
     roomJkt1A,
     roomJkt2A,
     roomBsd1A,
-    classTypeReformer,
-    classTypeMat,
-    classTypeBarre,
+    classTypeGroup,
+    classTypePrivate,
+    classTypeSemiPrivate,
+    classTypePrivateGroup,
   } = fixtures.masters;
 
   // Paket Pelanggan & Pembelian Riil untuk Customer Demo
@@ -828,7 +912,7 @@ export async function seedTimetableAndOperationalData(
       invoiceNumber: 'INV-2026-0001',
       userId: customerAnisa.id,
       branchId: jkt.id,
-      packageId: pkgReformer10.id,
+      packageId: pkgGroup10.id,
       subtotalRp: 1730000,
       discountRp: 0,
       totalAmountRp: 1730000,
@@ -847,13 +931,85 @@ export async function seedTimetableAndOperationalData(
       id: '00000000-0000-4000-8000-000000000202',
       purchaseId: purchase.id,
       userId: customerAnisa.id,
-      packageId: pkgReformer10.id,
+      packageId: pkgGroup10.id,
       totalSessions: 10,
       remainingSessions: 9,
       usedSessions: 1,
       validFrom: new Date(),
       validUntil: new Date(Date.now() + 90 * 24 * 3600 * 1000),
       status: CustomerPackageStatus.ACTIVE,
+    },
+  });
+
+  // Seed initial SessionLedger mutations (Single Source of Truth)
+  await db.sessionLedger.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000203' },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000203',
+      customerPackageId: customerPackage.id,
+      type: SessionMutationType.PURCHASE,
+      amount: 10,
+      balanceAfter: 10,
+      referenceId: purchase.id,
+      notes: 'Initial package purchase allocation',
+    },
+  });
+
+  await db.sessionLedger.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000204' },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000204',
+      customerPackageId: customerPackage.id,
+      type: SessionMutationType.ATTEND,
+      amount: -1,
+      balanceAfter: 9,
+      notes: 'Class session completed',
+    },
+  });
+
+  // Seed MinQuotaSetting, InstructorFee, and ProjectionRate
+  await db.minQuotaSetting.upsert({
+    where: {
+      branchId_classTypeId: {
+        branchId: jkt.id,
+        classTypeId: classTypeGroup.id,
+      },
+    },
+    update: { minQuota: 3, cutoffHours: 24 },
+    create: {
+      id: '00000000-0000-4000-8000-000000000210',
+      branchId: jkt.id,
+      classTypeId: classTypeGroup.id,
+      minQuota: 3,
+      cutoffHours: 24,
+      active: true,
+    },
+  });
+
+  await db.instructorFee.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000211' },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000211',
+      instructorId: coachSarah.id,
+      branchId: jkt.id,
+      classTypeId: classTypeGroup.id,
+      feePerJamRp: 150000,
+      effectiveDate: new Date('2026-01-01'),
+    },
+  });
+
+  await db.projectionRate.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000212' },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000212',
+      branchId: jkt.id,
+      classTypeId: classTypeGroup.id,
+      ratePerSesiRp: 125000,
+      effectiveDate: new Date('2026-01-01'),
     },
   });
 
@@ -867,28 +1023,28 @@ export async function seedTimetableAndOperationalData(
 
   const slotConfigs = [
     // Monday
-    { dayOffset: 0, hour: 7, minute: 30, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 0, hour: 9, minute: 0, coach: coachBudi, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 0, hour: 17, minute: 30, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
+    { dayOffset: 0, hour: 7, minute: 30, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 0, hour: 9, minute: 0, coach: coachBudi, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 0, hour: 17, minute: 30, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
     // Tuesday
-    { dayOffset: 1, hour: 8, minute: 0, coach: coachBudi, classType: classTypeMat, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 14 },
-    { dayOffset: 1, hour: 10, minute: 0, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 1, hour: 18, minute: 30, coach: coachSarah, classType: classTypeBarre, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 14 },
+    { dayOffset: 1, hour: 8, minute: 0, coach: coachBudi, classType: classTypePrivate, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 1 },
+    { dayOffset: 1, hour: 10, minute: 0, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 1, hour: 18, minute: 30, coach: coachSarah, classType: classTypePrivateGroup, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 5 },
     // Wednesday
-    { dayOffset: 2, hour: 7, minute: 30, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 2, hour: 16, minute: 0, coach: coachBudi, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
+    { dayOffset: 2, hour: 7, minute: 30, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 2, hour: 16, minute: 0, coach: coachBudi, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
     // Thursday
-    { dayOffset: 3, hour: 9, minute: 0, coach: coachBudi, classType: classTypeMat, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 14 },
-    { dayOffset: 3, hour: 17, minute: 30, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
+    { dayOffset: 3, hour: 9, minute: 0, coach: coachBudi, classType: classTypeSemiPrivate, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 2 },
+    { dayOffset: 3, hour: 17, minute: 30, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
     // Friday
-    { dayOffset: 4, hour: 8, minute: 0, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 4, hour: 18, minute: 0, coach: coachBudi, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
+    { dayOffset: 4, hour: 8, minute: 0, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 4, hour: 18, minute: 0, coach: coachBudi, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
     // Saturday (Weekend Special)
-    { dayOffset: 5, hour: 9, minute: 0, coach: coachSarah, classType: classTypeReformer, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 10 },
-    { dayOffset: 5, hour: 11, minute: 0, coach: coachBudi, classType: classTypeBarre, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 14 },
+    { dayOffset: 5, hour: 9, minute: 0, coach: coachSarah, classType: classTypeGroup, studio: studioJktReformer, room: roomJkt1A, branch: jkt, capacity: 5 },
+    { dayOffset: 5, hour: 11, minute: 0, coach: coachBudi, classType: classTypePrivateGroup, studio: studioJktMat, room: roomJkt2A, branch: jkt, capacity: 5 },
     // Sunday (BSD Sessions)
-    { dayOffset: 6, hour: 9, minute: 30, coach: coachJessica, classType: classTypeReformer, studio: studioBsdReformer, room: roomBsd1A, branch: bsd, capacity: 12 },
-    { dayOffset: 6, hour: 11, minute: 0, coach: coachJessica, classType: classTypeReformer, studio: studioBsdReformer, room: roomBsd1A, branch: bsd, capacity: 12 },
+    { dayOffset: 6, hour: 9, minute: 30, coach: coachJessica, classType: classTypeGroup, studio: studioBsdReformer, room: roomBsd1A, branch: bsd, capacity: 5 },
+    { dayOffset: 6, hour: 11, minute: 0, coach: coachJessica, classType: classTypeGroup, studio: studioBsdReformer, room: roomBsd1A, branch: bsd, capacity: 5 },
   ];
 
   let firstSlotId: string | null = null;

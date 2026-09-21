@@ -13,8 +13,8 @@ const footerLinks = [
   {
     label: 'Bantuan & Info',
     links: [
-      { href: '/guide', label: 'Panduan Penggunaan' },
-      { href: '/contact', label: 'Tentang Studio' },
+      { href: '/guide', label: 'Panduan & Etika Studio' },
+      { href: '/#about', label: 'Tentang Studio' },
       { href: '/contact', label: 'Hubungi Kami' },
     ],
   },
@@ -30,25 +30,26 @@ export function PublicFooter() {
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <span
-              className="grid size-12 shrink-0 place-items-center rounded-full border border-white/50 text-white"
+              className="grid size-12 shrink-0 place-items-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-sm"
               aria-hidden="true"
             >
-              <Mail className="size-5" />
+              <Mail className="size-5 text-dd-brass-soft" />
             </span>
-            <p className="m-0 text-sm leading-6">
-              Dapatkan kabar terbaru tentang kelas,
-              <br />
-              promo, dan wellness tips.
-            </p>
+            <div>
+              <p className="m-0 text-sm font-semibold text-white">
+                Dapatkan kabar terbaru tentang kelas, promo &amp; wellness tips
+              </p>
+              <p className="m-0 text-xs text-white/60 mt-0.5">
+                Bergabung dengan komunitas mindful movement Daily Dose Pilates.
+              </p>
+            </div>
           </div>
           <Link
-            className="flex min-h-[46px] shrink-0 items-center justify-between gap-3 rounded-full bg-white py-[5px] pr-1.5 pl-5 text-[13px] text-dd-muted no-underline transition hover:bg-white/90"
+            className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 text-sm font-bold text-white no-underline backdrop-blur-sm transition hover:bg-white hover:text-dd-forest"
             href="/contact"
           >
-            Hubungi kami untuk update
-            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-4 py-2.5 text-xs font-bold text-white">
-              Hubungi <ChevronRight className="size-3.5" />
-            </span>
+            <span>Hubungi Kami</span>
+            <ChevronRight className="size-4" />
           </Link>
         </div>
       </div>
@@ -58,7 +59,7 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-12">
           {/* Brand Column */}
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-base font-bold tracking-wide">Daily Dose Pilates</p>
+            <p className="font-serif text-2xl font-normal tracking-tight text-white">Daily Dose Pilates</p>
             <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/65">
               Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup lebih seimbang.
             </p>

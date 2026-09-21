@@ -817,3 +817,6 @@ export function RadioCard({
     </label>
   );
 }
+
+export { ImageUploadField, type ImageUploadFieldProps } from './forms/image-upload-field';
+export { MultiImageGalleryField, type MultiImageGalleryFieldProps } from './forms/multi-image-gallery-field';

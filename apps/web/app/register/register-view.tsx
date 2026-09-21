@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   useEffect,
   useRef,
@@ -187,7 +188,6 @@ function UploadField({
         type="file"
         accept="image/jpeg,image/png,image/webp"
         capture={capture}
-        required
         disabled={disabled}
         onChange={(event) => onChange(event.currentTarget.files?.[0] ?? null)}
       />
@@ -307,7 +307,7 @@ export function RegisterView() {
     <AuthPageShell
       eyebrow="Registrasi customer"
       title="Buat akun Daily Dose"
-      description="Akun langsung aktif. Selfie dan foto KTP akan diperiksa secara privat oleh tim kami sebelum pembelian dan booking tersedia."
+      description="Akun Anda langsung aktif dan siap digunakan untuk memilih paket dan memesan jadwal latihan."
       compactMobileVisual
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
@@ -339,10 +339,12 @@ export function RegisterView() {
               email: values.email.trim(),
               password: values.password,
               consent: values.consent,
-              selfie: values.selfie!,
-              ktp: values.ktp!,
+              selfie: values.selfie,
+              ktp: values.ktp,
             });
-            const completed = await session?.completeSignIn('/account/verification');
+            const searchParams = new URLSearchParams(window.location.search);
+            const returnTo = searchParams.get('returnTo') || '/classes#schedule';
+            const completed = await session?.completeSignIn(returnTo);
             if (!completed) throw new Error('session');
           } catch (error) {
             const status = (error as { response?: { status?: number } }).response?.status;
@@ -437,7 +439,7 @@ export function RegisterView() {
         {/* Section 3: Verifikasi Identitas (KYC) */}
         <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
           <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <UserCheck className="size-3.5" /> 3. Verifikasi Identitas (KYC)
+            <UserCheck className="size-3.5" /> 3. Foto Identitas (Opsional)
           </div>
           <UploadField
             id="register-selfie"
@@ -491,7 +493,6 @@ export function RegisterView() {
               name="consent"
               type="checkbox"
               value="true"
-              required
               disabled={loading}
               aria-invalid={Boolean(errors.consent) || undefined}
               aria-describedby={[
@@ -517,7 +518,22 @@ export function RegisterView() {
         <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Membuat akun…">
           Daftar dan masuk
         </Button>
-        {state === 'error' && <Feedback kind="error">{message}</Feedback>}
+        {state === 'error' && (
+          <div className="space-y-2">
+            <Feedback kind="error">{message}</Feedback>
+            {(message.includes('terdaftar') || message.includes('digunakan')) && (
+              <div className="rounded-dd-md bg-dd-cream/50 p-2.5 text-center text-xs text-dd-ink border border-dd-line/60">
+                <span>Sudah memiliki akun? </span>
+                <Link
+                  href="/sign-in"
+                  className="font-bold text-dd-forest hover:underline"
+                >
+                  Masuk ke Akun Sekarang &rarr;
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </form>
     </AuthPageShell>
   );

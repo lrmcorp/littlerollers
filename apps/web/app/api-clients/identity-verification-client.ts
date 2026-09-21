@@ -108,8 +108,8 @@ export const verificationClient = {
     email: string;
     password: string;
     consent: boolean;
-    selfie: File;
-    ktp: File;
+    selfie?: File | null;
+    ktp?: File | null;
   }) {
     const form = new FormData();
     form.set('displayName', input.displayName);
@@ -117,8 +117,8 @@ export const verificationClient = {
     form.set('email', input.email);
     form.set('password', input.password);
     form.set('consent', String(input.consent));
-    form.set('selfie', input.selfie);
-    form.set('ktp', input.ktp);
+    if (input.selfie) form.set('selfie', input.selfie);
+    if (input.ktp) form.set('ktp', input.ktp);
     return request('/auth/customer-registrations', { method: 'POST', body: form });
   },
   mine(): Promise<VerificationSummary> {

@@ -18,11 +18,13 @@ import {
 } from '@/api-clients/order-client';
 import { Skeleton } from '../ui';
 import { formatRupiah } from '../lib/formatters';
+import { useSessionContext } from '../session-context';
 
 export function CheckoutView() {
   const params = useSearchParams();
   const router = useTrackedRouter();
   const feedback = useAppFeedback();
+  const session = useSessionContext();
   const packageId = params.get('package') ?? '';
   const branchId = params.get('branch');
   const requestedClassTypeId = params.get('classType') ?? '';
@@ -95,7 +97,42 @@ export function CheckoutView() {
     );
   }
 
-  if (!packageId || !options)
+  if (!packageId || !options) {
+    const isAuthError =
+      error?.toLowerCase().includes('sesi') ||
+      error?.toLowerCase().includes('unauthorized') ||
+      error?.toLowerCase().includes('401') ||
+      session?.status === 'unauthenticated';
+
+    if (isAuthError && packageId) {
+      const returnUrl = encodeURIComponent(
+        `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}`,
+      );
+      return (
+        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-forest/10 text-dd-forest">
+            <ShieldCheck className="size-6" />
+          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+            Pembelian Paket Sesi
+          </p>
+          <h1 className="text-2xl font-semibold text-dd-ink">Masuk untuk Melanjutkan Pembelian</h1>
+          <p className="text-sm leading-6 text-dd-muted">
+            Untuk mengaitkan paket sesi Pilates dengan akun Anda dan memproses pembayaran secara aman,
+            silakan masuk atau buat akun baru terlebih dahulu.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+            <ButtonLink href={`/sign-in?returnUrl=${returnUrl}`} className="w-full sm:w-auto">
+              Masuk ke Akun
+            </ButtonLink>
+            <ButtonLink variant="secondary" href={`/register?returnUrl=${returnUrl}`} className="w-full sm:w-auto">
+              Daftar Akun Baru
+            </ButtonLink>
+          </div>
+        </section>
+      );
+    }
+
     return (
       <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Checkout</p>
@@ -113,6 +150,7 @@ export function CheckoutView() {
         </ButtonLink>
       </section>
     );
+  }
 
   return (
     <main className="space-y-6 pt-2" aria-labelledby="checkout-title">

@@ -27,7 +27,7 @@ export class CustomerManagementService {
   ) {}
 
   private require(principal: SessionPrincipal, capability: string) {
-    this.policy.requireGlobalCapability(principal, capability);
+    this.policy.requireCapability(principal.capabilities, capability);
   }
 
   async list(
@@ -46,7 +46,7 @@ export class CustomerManagementService {
     const q = filters.q?.trim();
 
     const where: Prisma.UserWhereInput = {
-      role: 'MEMBER',
+      role: { in: ['CUSTOMER', 'MEMBER'] },
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
       ...(q
@@ -107,7 +107,7 @@ export class CustomerManagementService {
   async detail(principal: SessionPrincipal, id: string) {
     this.require(principal, 'customer:read');
     const customer = await this.db.user.findFirst({
-      where: { id, role: 'MEMBER' },
+      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
       include: {
         profile: true,
         customerPackages: {
@@ -150,6 +150,8 @@ export class CustomerManagementService {
       email: customer.email,
       phoneE164: customer.phone,
       status: customer.status,
+      stoppedAt: customer.stoppedAt?.toISOString() ?? null,
+      isStopped: customer.stoppedAt !== null,
       version: 1,
       preferredBranch: branch,
       profile: customer.profile,
@@ -455,5 +457,68 @@ export class CustomerManagementService {
     correlationId: string,
   ) {
     return this.setStatus(principal, id, input, key, correlationId);
+  }
+
+  async markStopped(
+    principal: SessionPrincipal,
+    id: string,
+    _reason?: string,
+  ) {
+    this.require(principal, 'customer:write');
+    const user = await this.db.user.findFirst({
+      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+    });
+    if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    if (
+      user.preferredBranchId &&
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(user.preferredBranchId)
+    ) {
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    }
+
+    const updated = await this.db.user.update({
+      where: { id },
+      data: { stoppedAt: new Date() },
+    });
+
+    return {
+      id: updated.id,
+      stoppedAt: updated.stoppedAt?.toISOString() ?? null,
+      isStopped: true,
+      status: updated.status,
+    };
+  }
+
+  async unmarkStopped(
+    principal: SessionPrincipal,
+    id: string,
+  ) {
+    this.require(principal, 'customer:write');
+    const user = await this.db.user.findFirst({
+      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+    });
+    if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    if (
+      user.preferredBranchId &&
+      !principal.capabilities.includes('branch:all') &&
+      !principal.branchIds.includes(user.preferredBranchId)
+    ) {
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    }
+
+    const updated = await this.db.user.update({
+      where: { id },
+      data: { stoppedAt: null },
+    });
+
+    return {
+      id: updated.id,
+      stoppedAt: null,
+      isStopped: false,
+      status: updated.status,
+    };
   }
 }

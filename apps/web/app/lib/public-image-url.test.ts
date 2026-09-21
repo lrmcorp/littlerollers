@@ -33,12 +33,13 @@ describe('resolvePublicImageUrl', () => {
   });
 
   it('resolves MinIO object storage keys', () => {
+    const bucket = process.env.OBJECT_STORAGE_BUCKET || 'dailydose-testing';
     expect(
       resolvePublicImageUrl(
         'SdQmwuNnsmEG7hYWOiKskJDkTe9WdO-metaV2hhdHNBcHAgSW1hZ2UgMjAyNi0wMi0xNiBhdCAxNC4yNi4zNyAoMSkuanBlZw==-.jpeg',
       ),
     ).toBe(
-      'https://storage.dailydosepilates.com/dailydose/SdQmwuNnsmEG7hYWOiKskJDkTe9WdO-metaV2hhdHNBcHAgSW1hZ2UgMjAyNi0wMi0xNiBhdCAxNC4yNi4zNyAoMSkuanBlZw==-.jpeg',
+      `https://storage.dailydosepilates.com/${bucket}/SdQmwuNnsmEG7hYWOiKskJDkTe9WdO-metaV2hhdHNBcHAgSW1hZ2UgMjAyNi0wMi0xNiBhdCAxNC4yNi4zNyAoMSkuanBlZw==-.jpeg`,
     );
   });
 });

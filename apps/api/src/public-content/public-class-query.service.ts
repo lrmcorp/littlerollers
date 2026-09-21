@@ -12,10 +12,27 @@ export class PublicClassQueryService {
 
     const now = new Date();
 
+    const aliasMap: Record<string, string> = {
+      'reformer-pilates': 'GROUP_CLASS',
+      'reformer': 'GROUP_CLASS',
+      'group-class': 'GROUP_CLASS',
+      'group_class': 'GROUP_CLASS',
+      'group': 'GROUP_CLASS',
+      'private-class': 'PRIVATE_CLASS',
+      'private_class': 'PRIVATE_CLASS',
+      'private': 'PRIVATE_CLASS',
+      'semi-private': 'SEMI_PRIVATE',
+      'semi_private': 'SEMI_PRIVATE',
+      'private-group': 'PRIVATE_GROUP',
+      'private_group': 'PRIVATE_GROUP',
+    };
+    const lookupCode = aliasMap[raw.toLowerCase()] ?? raw.toUpperCase();
+
     const classType = await this.db.jenisKelas.findFirst({
       where: {
         active: true,
         OR: [
+          { code: lookupCode },
           { code: raw.toUpperCase() },
           { id: raw },
         ],

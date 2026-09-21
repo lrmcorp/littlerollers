@@ -65,6 +65,12 @@ export interface Studio {
     contactPhoneE164?: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof Studio
+     */
+    imageKey?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof Studio
      */
@@ -105,6 +111,7 @@ export function StudioFromJSONTyped(json: any, ignoreDiscriminator: boolean): St
         'name': json['name'],
         'equipmentText': json['equipmentText'] == null ? undefined : json['equipmentText'],
         'contactPhoneE164': json['contactPhoneE164'] == null ? undefined : json['contactPhoneE164'],
+        'imageKey': json['imageKey'] == null ? undefined : json['imageKey'],
         'active': json['active'],
         'rooms': json['rooms'] == null ? undefined : ((json['rooms'] as Array<any>).map(RoomFromJSON)),
     };
@@ -127,6 +134,7 @@ export function StudioToJSONTyped(value?: Studio | null, ignoreDiscriminator: bo
         'name': value['name'],
         'equipmentText': value['equipmentText'],
         'contactPhoneE164': value['contactPhoneE164'],
+        'imageKey': value['imageKey'],
         'active': value['active'],
         'rooms': value['rooms'] == null ? undefined : ((value['rooms'] as Array<any>).map(RoomToJSON)),
     };

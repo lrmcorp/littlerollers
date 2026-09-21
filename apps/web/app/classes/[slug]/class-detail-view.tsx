@@ -58,16 +58,18 @@ export function ClassDetailView({
   }, [attempt, slug, initialData]);
 
   const classNameFormatted = item
-    ? item.profile.code === 'BARRE'
-      ? 'Barre'
-      : item.profile.code === 'MAT'
-        ? 'Mat Pilates'
-        : item.profile.code === 'REFORMER'
-          ? 'Reformer Pilates'
-          : item.profile.slug
-              .split('-')
-              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-              .join(' ')
+    ? item.profile.code === 'GROUP_CLASS'
+      ? 'Group Class'
+      : item.profile.code === 'PRIVATE_CLASS'
+        ? 'Private Class'
+        : item.profile.code === 'SEMI_PRIVATE'
+          ? 'Semi Private Class'
+          : item.profile.code === 'PRIVATE_GROUP'
+            ? 'Private Group'
+            : item.profile.slug
+                .split('-')
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ')
     : 'Detail';
 
   return (

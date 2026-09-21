@@ -34,16 +34,10 @@ type PrincipalAccess = {
   capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
 };
 
-const STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
+const GLOBAL_STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
   'SUPERADMIN',
   'SUPER_OWNER',
-  'ADMIN',
-  'COACH',
-  'INSTRUCTOR',
-  'MANAGER',
-  'OWNER',
   'FINANCE',
-  'OPS',
 ]);
 
 @Injectable()
@@ -51,7 +45,7 @@ export class PolicyService {
   capabilities(roles: readonly EffectiveRole[]): string[] {
     const caps = roles.flatMap(({ role, branchId }) => {
       const roleCaps = [...(ROLE_CAPABILITIES[role] || [])];
-      if (branchId === null && STAFF_ROLES.has(role)) {
+      if (branchId === null && GLOBAL_STAFF_ROLES.has(role)) {
         roleCaps.push('branch:all');
       }
       return roleCaps;
@@ -62,7 +56,7 @@ export class PolicyService {
   private staticAccess(roles: readonly EffectiveRole[]): EffectiveAccess {
     const grants = roles.flatMap(({ role, branchId }) => {
       const caps = [...(ROLE_CAPABILITIES[role] || [])];
-      if (branchId === null && STAFF_ROLES.has(role)) {
+      if (branchId === null && GLOBAL_STAFF_ROLES.has(role)) {
         caps.push('branch:all');
       }
       return caps.map((capability) => ({
@@ -216,5 +210,14 @@ export class PolicyService {
     const customerOnly = roles.length > 0 && roles.every(({ role }) => role === 'CUSTOMER');
     if (!customerOnly || !capabilities.includes('customer:self'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+  }
+
+  requireBranchScope(principal: PrincipalAccess, branchId: string): void {
+    if (!branchId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const hasGlobal = principal.capabilities.includes('branch:all');
+    const hasSpecific = principal.branchIds.includes(branchId);
+    if (!hasGlobal && !hasSpecific) {
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    }
   }
 }

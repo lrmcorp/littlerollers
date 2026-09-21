@@ -125,4 +125,21 @@ export class CustomerManagementController {
       request.correlationId ?? 'unknown',
     );
   }
+
+  @Post(':id/mark-stopped')
+  markStopped(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.customers.markStopped(request.principal, id, body?.reason);
+  }
+
+  @Post(':id/unmark-stopped')
+  unmarkStopped(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.customers.unmarkStopped(request.principal, id);
+  }
 }

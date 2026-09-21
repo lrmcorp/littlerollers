@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
-import { Prisma, PurchaseStatus } from '@prisma/client';
+import { Prisma, PurchaseStatus, SessionMutationType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
@@ -517,6 +517,19 @@ export class PaymentReviewService {
                 validFrom: decidedAt,
                 validUntil,
                 status: 'ACTIVE',
+              },
+            });
+
+            // Catat mutasi awal kuota sesi di SessionLedger (Spesifikasi v1.0)
+            await tx.sessionLedger.create({
+              data: {
+                customerPackageId: customerPackage.id,
+                type: SessionMutationType.PURCHASE,
+                amount: purchase.package.sessionCount,
+                balanceAfter: purchase.package.sessionCount,
+                referenceId: purchase.id,
+                notes: `Saldo awal pembelian paket #${purchase.invoiceNumber}`,
+                createdById: principal.userId,
               },
             });
           }

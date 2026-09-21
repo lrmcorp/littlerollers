@@ -2,7 +2,21 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Download, RefreshCw, Scale } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  DollarSign,
+  Download,
+  FileSpreadsheet,
+  Lock,
+  PieChart,
+  RefreshCw,
+  Scale,
+  Trash2,
+  TrendingUp,
+  Unlock,
+  Users,
+} from 'lucide-react';
 import { useSessionContext } from '../session-context';
 import { Feedback, PageHeader } from '../ui';
 import {
@@ -15,30 +29,87 @@ import {
   StatCard,
 } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
-import { browserFinanceClient, type FinanceClient, type FinanceData } from './finance-client';
-import { controlClassName } from '../components/forms';
+import { useAppFeedback } from '../components/app-feedback';
+import { SearchSelect } from '../components/forms';
+import {
+  browserFinanceClient,
+  type FinanceClient,
+  type FinanceData,
+  type OmsetReportData,
+  type OmsetTransaction,
+  type InstructorCostRealtimeData,
+  type InstructorCostBreakdown,
+  type InstructorCostProjectionData,
+  type ProjectionClassTypeBreakdown,
+  type OtherCostReportData,
+  type OtherCostItem,
+  type MonthlyProfitData,
+} from './finance-client';
 import { FinanceCommandsPanel } from './finance-commands-panel';
 import { formatRupiah } from '../lib/formatters';
 
 const date = (value: Date) => value.toISOString().slice(0, 10);
 
+type MainTab = 'FINANCIAL_REPORTS' | 'RECONCILIATION';
+type ReportSubTab =
+  | 'PROFIT_CLOSE'
+  | 'OMSET'
+  | 'INSTRUCTOR_REALTIME'
+  | 'INSTRUCTOR_PROJECTION'
+  | 'OTHER_COST';
+
 export function FinanceView({ client = browserFinanceClient }: { client?: FinanceClient }) {
   const context = useSessionContext();
+  const session = context?.session;
+  const branches = session?.branches ?? [];
+  const feedback = useAppFeedback();
+  const [mainTab, setMainTab] = useState<MainTab>('RECONCILIATION');
+  const [reportTab, setReportTab] = useState<ReportSubTab>('PROFIT_CLOSE');
+
+  // Filter states
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
+    new Date().toISOString().slice(0, 7),
+  );
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+
+  // Reconciliation / Legacy states
   const [from, setFrom] = useState(() => date(new Date(Date.now() - 29 * 86_400_000)));
   const [until, setUntil] = useState(() => date(new Date()));
-  const [data, setData] = useState<FinanceData>();
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [reconData, setReconData] = useState<FinanceData>();
+  const [reconLoading, setReconLoading] = useState(false);
+  const [reconFailed, setReconFailed] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [anomalyCursor, setAnomalyCursor] = useState<string>();
   const [anomalyCursorHistory, setAnomalyCursorHistory] = useState<string[]>([]);
   const [legacyCursor, setLegacyCursor] = useState<string>();
   const [legacyCursorHistory, setLegacyCursorHistory] = useState<string[]>([]);
+
+  // 5 Laporan Finansial states
+  const [profitData, setProfitData] = useState<MonthlyProfitData | null>(null);
+  const [omsetData, setOmsetData] = useState<OmsetReportData | null>(null);
+  const [instructorRealtimeData, setInstructorRealtimeData] =
+    useState<InstructorCostRealtimeData | null>(null);
+  const [instructorProjectionData, setInstructorProjectionData] =
+    useState<InstructorCostProjectionData | null>(null);
+  const [otherCostData, setOtherCostData] = useState<OtherCostReportData | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+
   const allowed = context?.hasCapability('finance:reconcile');
-  const load = useCallback(async () => {
+
+  // Inisialisasi cabang
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranchId) {
+      const active = branches.find((b) => b.id === context?.activeBranchId) || branches[0];
+      if (active) setSelectedBranchId(active.id);
+    }
+  }, [branches, context?.activeBranchId, selectedBranchId]);
+
+  // Load Rekonsiliasi data
+  const loadReconciliation = useCallback(async () => {
     if (!allowed) return;
-    setLoading(true);
-    setFailed(false);
+    setReconLoading(true);
+    setReconFailed(false);
     try {
       const input = { branchId: context?.activeBranchId || undefined, from, until };
       const [overview, anomalies, legacyCashflow] = await Promise.all([
@@ -46,71 +117,105 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         client.anomalies(input),
         client.legacyCashflow(input),
       ]);
-      setData({ overview, anomalies, legacyCashflow });
+      setReconData({ overview, anomalies, legacyCashflow });
       setAnomalyCursor(undefined);
       setAnomalyCursorHistory([]);
       setLegacyCursor(undefined);
       setLegacyCursorHistory([]);
     } catch {
-      setFailed(true);
+      setReconFailed(true);
     } finally {
-      setLoading(false);
+      setReconLoading(false);
     }
   }, [allowed, client, context?.activeBranchId, from, until]);
 
+  // Load 5 Laporan Finansial
+  const loadReports = useCallback(async () => {
+    if (
+      !selectedBranchId ||
+      !client.getMonthlyProfit ||
+      !client.getOmsetReport ||
+      !client.getInstructorCostRealtime ||
+      !client.getInstructorCostProjection ||
+      !client.getOtherCostReport
+    )
+      return;
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const [profit, omset, realtime, projection, other] = await Promise.all([
+        client.getMonthlyProfit(selectedBranchId, selectedPeriod),
+        client.getOmsetReport(selectedBranchId, selectedPeriod),
+        client.getInstructorCostRealtime(selectedBranchId, selectedPeriod),
+        client.getInstructorCostProjection(selectedBranchId, selectedPeriod),
+        client.getOtherCostReport(selectedBranchId, selectedPeriod),
+      ]);
+      setProfitData(profit);
+      setOmsetData(omset);
+      setInstructorRealtimeData(realtime);
+      setInstructorProjectionData(projection);
+      setOtherCostData(other);
+    } catch (err: any) {
+      setReportError(err.message || 'Gagal memuat laporan finansial.');
+    } finally {
+      setReportLoading(false);
+    }
+  }, [client, selectedBranchId, selectedPeriod]);
+
+  useEffect(() => {
+    void loadReconciliation();
+  }, [loadReconciliation]);
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      void loadReports();
+    }
+  }, [selectedBranchId, selectedPeriod, loadReports]);
+
   const loadAnomalyPage = async (cursor?: string) => {
-    if (!allowed || !data) return false;
-    setLoading(true);
-    setFailed(false);
+    if (!allowed || !reconData) return false;
+    setReconLoading(true);
+    setReconFailed(false);
     try {
       const anomalies = await client.anomalies(
         { branchId: context?.activeBranchId || undefined, from, until },
         cursor,
       );
-      setData({ ...data, anomalies });
+      setReconData({ ...reconData, anomalies });
       setAnomalyCursor(cursor);
       return true;
     } catch {
-      setFailed(true);
+      setReconFailed(true);
       return false;
     } finally {
-      setLoading(false);
+      setReconLoading(false);
     }
   };
+
   const loadLegacyPage = async (cursor?: string) => {
-    if (!allowed || !data) return false;
-    setLoading(true);
-    setFailed(false);
+    if (!allowed || !reconData) return false;
+    setReconLoading(true);
+    setReconFailed(false);
     try {
       const legacyCashflow = await client.legacyCashflow(
         { branchId: context?.activeBranchId || undefined, from, until },
         cursor,
       );
-      setData({ ...data, legacyCashflow });
+      setReconData({ ...reconData, legacyCashflow });
       setLegacyCursor(cursor);
       return true;
     } catch {
-      setFailed(true);
+      setReconFailed(true);
       return false;
     } finally {
-      setLoading(false);
+      setReconLoading(false);
     }
   };
-  useEffect(() => {
-    void load();
-  }, [load]);
 
-  if (!allowed)
-    return (
-      <Feedback kind="error">
-        Anda tidak memiliki capability finance:reconcile untuk membuka rekonsiliasi.
-      </Feedback>
-    );
-  const metrics = data?.overview.metrics;
   const exportCsv = async () => {
-    if (!data || !client.exportReport || !context?.hasCapability('finance:export')) return;
+    if (!reconData || !client.exportReport || !context?.hasCapability('finance:export')) return;
     setExporting(true);
-    setFailed(false);
+    setReconFailed(false);
     try {
       const result = await client.exportReport({
         branchId: context.activeBranchId || undefined,
@@ -118,315 +223,869 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         until,
       });
       const blob = new Blob([result.content], { type: String(result.mimeType) });
-      const anchor = document.createElement('a');
-      anchor.href = URL.createObjectURL(blob);
-      anchor.download = result.fileName;
-      anchor.click();
-      URL.revokeObjectURL(anchor.href);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
     } catch {
-      setFailed(true);
+      setReconFailed(true);
     } finally {
       setExporting(false);
     }
   };
 
+  if (!allowed)
+    return (
+      <Feedback kind="error">
+        Anda tidak memiliki capability finance:reconcile untuk membuka modul finansial.
+      </Feedback>
+    );
+
+  const metrics = reconData?.overview.metrics;
+  const isLocked = profitData?.isLocked || profitData?.status === 'LOCKED';
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Operasional Keuangan"
-        title="Rekonsiliasi transaksi"
-        description="Bandingkan pembayaran, approval, dan pengakuan ledger dari data aktual lintas cabang."
+        eyebrow="Finansial & Akuntansi"
+        title="Modul Finansial & Tutup Buku"
+        description="5 Laporan Inti Keuangan (Omset, Realtime Instructor Cost, Projection Cost, Other Cost, Laba Bersih), Tutup Buku Bulanan, dan Rekonsiliasi Transaksi."
         context={
           <div className="flex gap-2">
+            {context?.hasCapability('finance:export') && (
+              <Button
+                variant="secondary"
+                leadingIcon={<Download className="h-4 w-4" />}
+                disabled={exporting || !reconData || !client.exportReport}
+                onClick={() => void exportCsv()}
+              >
+                {exporting ? 'Mengekspor…' : 'Ekspor CSV'}
+              </Button>
+            )}
             <Button
               variant="secondary"
-              leadingIcon={<Download className="size-4" aria-hidden="true" />}
-              onClick={() => void exportCsv()}
-              disabled={
-                exporting ||
-                !data ||
-                !client.exportReport ||
-                !context?.hasCapability('finance:export')
-              }
-            >
-              Ekspor CSV
-            </Button>
-            <Button
-              onClick={() => void load()}
-              disabled={loading}
               leadingIcon={
-                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                <RefreshCw
+                  className={`h-4 w-4 ${reconLoading || reportLoading ? 'animate-spin' : ''}`}
+                />
               }
+              disabled={reconLoading || reportLoading}
+              onClick={() => {
+                void loadReconciliation();
+                void loadReports();
+              }}
             >
               Segarkan
             </Button>
           </div>
         }
       />
-      <FilterBar>
-        <label className="grid gap-1 text-xs font-bold text-dd-muted">
-          Dari
-          <input
-            className={controlClassName}
-            type="date"
-            value={from}
-            max={until}
-            onChange={(event) => setFrom(event.target.value)}
-          />
-        </label>
-        <label className="grid gap-1 text-xs font-bold text-dd-muted">
-          Sampai
-          <input
-            className={controlClassName}
-            type="date"
-            value={until}
-            min={from}
-            onChange={(event) => setUntil(event.target.value)}
-          />
-        </label>
-        {context?.activeBranch && (
-          <Badge tone="info">
-            {context.activeBranch.code} · {context.activeBranch.name}
-          </Badge>
-        )}
-      </FilterBar>
-      {failed && (
+
+      {reportError && <Feedback kind="error">{reportError}</Feedback>}
+      {reconFailed && (
         <Feedback kind="error">
-          Data rekonsiliasi gagal dimuat. Periksa periode dan coba kembali.
+          Gagal memuat atau mengekspor data finansial server. Silakan coba kembali.
         </Feedback>
       )}
-      <section
-        aria-label="Ringkasan rekonsiliasi"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"
-      >
-        <StatCard
-          label="Expected"
-          value={formatRupiah(metrics?.expectedRp ?? 0)}
-          helper="Nilai transaksi periode"
-        />
-        <StatCard
-          label="Received"
-          value={formatRupiah(metrics?.receivedRp ?? 0)}
-          helper="Bukti final dan bersih"
-        />
-        <StatCard
-          label="Approved"
-          value={formatRupiah(metrics?.approvedRp ?? 0)}
-          helper="Keputusan Finance"
-        />
-        <StatCard
-          label="Identifikasi transfer"
-          value={formatRupiah(metrics?.identificationAmountRp ?? 0)}
-          helper="Penyesuaian tiga digit, terpisah dari harga paket"
-        />
-        <StatCard
-          label="Ledger delta"
-          value={formatRupiah(metrics?.ledgerDeltaRp ?? 0)}
-          tone={metrics?.ledgerDeltaRp ? 'danger' : 'success'}
-          helper={`${metrics?.unreconciledCount ?? 0} belum direkonsiliasi`}
-        />
-      </section>
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
-        <Panel className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-dd-line p-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
-                Branch comparison
-              </p>
-              <h2 className="mt-1 text-xl font-semibold">Status per cabang</h2>
-            </div>
-            <Scale className="size-5 text-dd-brass" />
-          </div>
-          {data?.overview.branches.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-[680px]">
-                <thead>
-                  <tr>
-                    <th>Cabang</th>
-                    <th>Expected</th>
-                    <th>Received</th>
-                    <th>Approved</th>
-                    <th>Identifikasi</th>
-                    <th>Pending</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.overview.branches.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <strong>{item.name}</strong>
-                        <span className="ml-2 text-xs text-dd-muted">{item.code}</span>
-                      </td>
-                      <td>{formatRupiah(item.expectedRp)}</td>
-                      <td>{formatRupiah(item.receivedRp)}</td>
-                      <td>{formatRupiah(item.approvedRp)}</td>
-                      <td>{formatRupiah(item.identificationAmountRp)}</td>
-                      <td>
-                        <Badge tone={item.pendingCount ? 'warning' : 'success'}>
-                          {item.pendingCount}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <AdminEmptyState
-              title="Belum ada transaksi"
-              description="Tidak ada data pada periode dan cabang yang dipilih."
-            />
-          )}
-        </Panel>
-        <Panel className="p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
-                Anomaly review
-              </p>
-              <h2 className="mt-1 text-xl font-semibold">Perlu pemeriksaan</h2>
-            </div>
-            <Badge tone={data?.anomalies.total ? 'danger' : 'success'}>
-              {data?.anomalies.total ?? 0}
-            </Badge>
-          </div>
-          <div className="mt-4 space-y-3">
-            {data?.anomalies.items.length ? (
-              data.anomalies.items.map((item) => (
-                <Link
-                  href={item.href}
-                  key={`${item.purchaseId}-${item.code}`}
-                  className="flex gap-3 rounded-dd-md border border-dd-line p-3 text-dd-ink no-underline hover:border-dd-brass"
-                >
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
-                  <span>
-                    <strong className="block text-sm">{item.code.replaceAll('_', ' ')}</strong>
-                    <span className="text-xs text-dd-muted">
-                      {item.branchCode} · {formatRupiah(item.amountRp)}
-                    </span>
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <p className="py-10 text-center text-sm text-dd-muted">
-                Tidak ada anomali pada periode ini.
-              </p>
-            )}
-          </div>
-          {data && (
-            <div className="mt-4">
-              <Pagination
-                hasPrevious={anomalyCursorHistory.length > 0 && !loading}
-                hasNext={Boolean(data.anomalies.page.nextCursor) && !loading}
-                totalLabel={`Halaman ${anomalyCursorHistory.length + 1} · ${data.anomalies.items.length.toLocaleString('id-ID')} data dari ${data.anomalies.total.toLocaleString('id-ID')} anomali`}
-                onPrevious={() => {
-                  const previous = anomalyCursorHistory.at(-1) ?? '';
-                  void loadAnomalyPage(previous || undefined).then((loaded) => {
-                    if (loaded) setAnomalyCursorHistory((current) => current.slice(0, -1));
-                  });
-                }}
-                onNext={() => {
-                  const next = data.anomalies.page.nextCursor;
-                  if (!next) return;
-                  void loadAnomalyPage(next).then((loaded) => {
-                    if (loaded)
-                      setAnomalyCursorHistory((current) => [...current, anomalyCursor ?? '']);
-                  });
-                }}
-              />
-            </div>
-          )}
-        </Panel>
+
+      {/* TABS UTAMA: 5 LAPORAN vs REKONSILIASI */}
+      <div className="flex gap-4 border-b border-dd-line pb-2">
+        <button
+          type="button"
+          onClick={() => setMainTab('FINANCIAL_REPORTS')}
+          className={`flex items-center gap-2 pb-2 text-base font-semibold transition-colors ${
+            mainTab === 'FINANCIAL_REPORTS'
+              ? 'border-b-2 border-dd-primary text-dd-primary'
+              : 'text-dd-muted hover:text-dd-text'
+          }`}
+        >
+          <PieChart className="h-5 w-5" />
+          5 Laporan Finansial & Tutup Buku
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMainTab('RECONCILIATION')}
+          className={`flex items-center gap-2 pb-2 text-base font-semibold transition-colors ${
+            mainTab === 'RECONCILIATION'
+              ? 'border-b-2 border-dd-primary text-dd-primary'
+              : 'text-dd-muted hover:text-dd-text'
+          }`}
+        >
+          <Scale className="h-5 w-5" />
+          Rekonsiliasi Transaksi & Anomali
+        </button>
       </div>
-      <Panel className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line p-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
-              Data historis v1
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">Legacy cashflow</h2>
-            <p className="mt-1 text-sm text-dd-muted">
-              Income/expense single-entry v1 ditampilkan terpisah dari jurnal double-entry v2.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Badge tone="success">
-              Income {formatRupiah(data?.legacyCashflow.summary.INCOME?.amountRp ?? 0)}
-            </Badge>
-            <Badge tone="warning">
-              Expense {formatRupiah(data?.legacyCashflow.summary.EXPENSE?.amountRp ?? 0)}
-            </Badge>
-          </div>
-        </div>
-        <DataTable
-          items={data?.legacyCashflow.items ?? []}
-          loading={loading}
-          rowKey={(item) => item.id}
-          emptyTitle="Belum ada legacy cashflow"
-          emptyDescription="Tidak ada jurnal v1 pada periode dan scope ini."
-          columns={[
-            {
-              id: 'date',
-              header: 'Tanggal',
-              cell: (item) => item.occurredAt.toLocaleDateString('id-ID'),
-            },
-            {
-              id: 'type',
-              header: 'Tipe',
-              cell: (item) => (
-                <Badge tone={item.type === 'INCOME' ? 'success' : 'warning'}>
-                  {item.type === 'INCOME' ? 'Income' : 'Expense'}
+
+      {/* ========================================================================= */}
+      {/* SECTION: 5 LAPORAN FINANSIAL & TUTUP BUKU                                */}
+      {/* ========================================================================= */}
+      {mainTab === 'FINANCIAL_REPORTS' && (
+        <div className="space-y-6">
+          {/* FILTER BAR: CABANG & PERIODE */}
+          <Panel className="flex flex-wrap items-center justify-between gap-4 p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="w-64">
+                <SearchSelect
+                  label="Cabang Studio"
+                  value={selectedBranchId}
+                  onChange={(val) => setSelectedBranchId(val)}
+                  options={branches.map((b) => ({ id: b.id, label: `${b.code} - ${b.name}` }))}
+                  placeholder="Pilih Cabang..."
+                />
+              </div>
+
+              <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
+                Periode Bulan
+                <input
+                  type="month"
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text focus:border-dd-primary focus:outline-none"
+                />
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase text-dd-muted">Status Periode:</span>
+              {isLocked ? (
+                <Badge tone="neutral">
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    LOCKED (TERKUNCI)
+                  </span>
                 </Badge>
-              ),
-            },
-            { id: 'description', header: 'Deskripsi', cell: (item) => item.description ?? '—' },
-            {
-              id: 'branch',
-              header: 'Studio/Cabang',
-              cell: (item) => item.branch?.name ?? 'Global',
-            },
-            { id: 'amount', header: 'Nominal', cell: (item) => formatRupiah(item.amountRp) },
-          ]}
-        />
-        {data && (
-          <div className="border-t border-dd-line p-4">
-            <Pagination
-              previousAriaLabel="Legacy cashflow sebelumnya"
-              nextAriaLabel="Legacy cashflow berikutnya"
-              hasPrevious={legacyCursorHistory.length > 0 && !loading}
-              hasNext={Boolean(data.legacyCashflow.page.nextCursor) && !loading}
-              totalLabel={`Halaman ${legacyCursorHistory.length + 1} · ${data.legacyCashflow.items.length.toLocaleString('id-ID')} data dari ${data.legacyCashflow.total.toLocaleString('id-ID')} legacy entry`}
-              onPrevious={() => {
-                const previous = legacyCursorHistory.at(-1) ?? '';
-                void loadLegacyPage(previous || undefined).then((loaded) => {
-                  if (loaded) setLegacyCursorHistory((current) => current.slice(0, -1));
-                });
-              }}
-              onNext={() => {
-                const next = data.legacyCashflow.page.nextCursor;
-                if (!next) return;
-                void loadLegacyPage(next).then((loaded) => {
-                  if (loaded) setLegacyCursorHistory((current) => [...current, legacyCursor ?? '']);
-                });
-              }}
+              ) : (
+                <Badge tone="success">
+                  <span className="inline-flex items-center gap-1">
+                    <Unlock className="h-3 w-3" />
+                    OPEN (TERBUKA)
+                  </span>
+                </Badge>
+              )}
+            </div>
+          </Panel>
+
+          {/* SUB-TABS 5 LAPORAN */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setReportTab('PROFIT_CLOSE')}
+              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                reportTab === 'PROFIT_CLOSE'
+                  ? 'bg-dd-primary text-white shadow-sm'
+                  : 'text-dd-muted hover:bg-dd-surface-alt'
+              }`}
+            >
+              <PieChart className="h-4 w-4" />
+              1. Laba Bersih & Tutup Buku
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportTab('OMSET')}
+              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                reportTab === 'OMSET'
+                  ? 'bg-dd-primary text-white shadow-sm'
+                  : 'text-dd-muted hover:bg-dd-surface-alt'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              2. Omset Penjualan
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportTab('INSTRUCTOR_REALTIME')}
+              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                reportTab === 'INSTRUCTOR_REALTIME'
+                  ? 'bg-dd-primary text-white shadow-sm'
+                  : 'text-dd-muted hover:bg-dd-surface-alt'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              3. Cost Instruktur Realtime
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportTab('INSTRUCTOR_PROJECTION')}
+              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                reportTab === 'INSTRUCTOR_PROJECTION'
+                  ? 'bg-dd-primary text-white shadow-sm'
+                  : 'text-dd-muted hover:bg-dd-surface-alt'
+              }`}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              4. Cost Instruktur Projection
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportTab('OTHER_COST')}
+              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                reportTab === 'OTHER_COST'
+                  ? 'bg-dd-primary text-white shadow-sm'
+                  : 'text-dd-muted hover:bg-dd-surface-alt'
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              5. Biaya Operasional (Other Cost)
+            </button>
+          </div>
+
+          {/* TAB 1: LABA BERSIH & TUTUP BUKU */}
+          {reportTab === 'PROFIT_CLOSE' && profitData && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  label="Total Omset Penjualan"
+                  value={formatRupiah(profitData.omsetRp)}
+                  tone="success"
+                />
+                <StatCard
+                  label="Beban Instruktur Realtime"
+                  value={formatRupiah(profitData.costRealtimeRp)}
+                  tone="neutral"
+                />
+                <StatCard
+                  label="Beban Operasional Lain"
+                  value={formatRupiah(profitData.otherCostRp)}
+                  tone="neutral"
+                />
+                <StatCard
+                  label="Laba Bersih Realtime"
+                  value={formatRupiah(profitData.netProfitRealtimeRp)}
+                  tone={profitData.netProfitRealtimeRp >= 0 ? 'success' : 'danger'}
+                />
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Panel className="space-y-4 p-5">
+                  <h3 className="text-base font-semibold">Komparasi Realtime vs Projeksi</h3>
+                  <div className="space-y-3 divide-y divide-dd-line text-sm">
+                    <div className="flex justify-between pt-2">
+                      <span className="text-dd-muted">Total Omset Bulan {selectedPeriod}:</span>
+                      <span className="font-semibold">{formatRupiah(profitData.omsetRp)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <span className="text-dd-muted">Beban Instruktur Realtime (QR Check-in):</span>
+                      <span className="font-semibold text-amber-600">
+                        - {formatRupiah(profitData.costRealtimeRp)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <span className="text-dd-muted">Beban Instruktur Projeksi (Sesi Terjual):</span>
+                      <span className="font-semibold text-purple-600">
+                        - {formatRupiah(profitData.costProjectionRp)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <span className="text-dd-muted">Beban Operasional Lain (Other Cost):</span>
+                      <span className="font-semibold text-rose-600">
+                        - {formatRupiah(profitData.otherCostRp)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <span className="font-medium text-dd-text">Laba Bersih Projeksi:</span>
+                      <span className="font-bold text-dd-primary">
+                        {formatRupiah(profitData.netProfitProjectionRp)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <span className="font-medium text-dd-text">Laba Bersih Realtime:</span>
+                      <span className="font-bold text-emerald-600">
+                        {formatRupiah(profitData.netProfitRealtimeRp)}
+                      </span>
+                    </div>
+                    {profitData.totalCorrectionAdjustmentRp !== 0 && (
+                      <div className="flex justify-between pt-2">
+                        <span className="text-dd-muted">Penyesuaian Jurnal Koreksi:</span>
+                        <span className="font-semibold">
+                          {formatRupiah(profitData.totalCorrectionAdjustmentRp)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+
+                <Panel className="space-y-4 p-5">
+                  <h3 className="text-base font-semibold">Status Tutup Buku & Audit</h3>
+                  <p className="text-xs text-dd-muted">
+                    Tutup Buku membekukan angka finansial ke dalam snapshot permanen. Setelah periode
+                    berstatus LOCKED, penambahan atau perubahan biaya lama diblokir (Keputusan Bisnis #8).
+                  </p>
+                  <div className="rounded-dd-md border border-dd-line bg-dd-surface p-4 text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-dd-muted">Status Periode:</span>
+                      <span className="font-bold">{profitData.status}</span>
+                    </div>
+                    {profitData.closedAt && (
+                      <div className="flex justify-between">
+                        <span className="text-dd-muted">Waktu Tutup Buku:</span>
+                        <span>{new Date(profitData.closedAt).toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
+                    {profitData.closedByName && (
+                      <div className="flex justify-between">
+                        <span className="text-dd-muted">Petugas Tutup Buku:</span>
+                        <span className="font-semibold">{profitData.closedByName}</span>
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+              </div>
+
+              {selectedBranchId && (
+                <FinanceCommandsPanel client={client} branchId={selectedBranchId} />
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: OMSET */}
+          {reportTab === 'OMSET' && omsetData && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                  label="Total Omset Paket PAID"
+                  value={formatRupiah(omsetData.totalOmsetRp)}
+                  tone="success"
+                />
+                <StatCard
+                  label="Jumlah Transaksi Terbayar"
+                  value={`${omsetData.totalTransactionCount} Transaksi`}
+                  tone="neutral"
+                />
+                <StatCard
+                  label="Rata-rata Transaksi"
+                  value={
+                    omsetData.totalTransactionCount > 0
+                      ? formatRupiah(
+                          Math.round(omsetData.totalOmsetRp / omsetData.totalTransactionCount),
+                        )
+                      : 'Rp 0'
+                  }
+                  tone="neutral"
+                />
+              </div>
+
+              <Panel className="p-5 space-y-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-dd-muted">
+                  Distribusi Metode Pembayaran
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  {Object.entries(omsetData.byPaymentMethod).map(([method, val]) => (
+                    <div key={method} className="rounded-dd-md border border-dd-line p-3">
+                      <span className="text-xs font-bold text-dd-muted uppercase">{method}</span>
+                      <p className="mt-1 text-base font-semibold">{formatRupiah(val.amountRp)}</p>
+                      <p className="text-xs text-dd-muted">{val.count} pembayaran</p>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="space-y-4 p-5">
+                <h3 className="text-base font-semibold">Daftar Transaksi Pembelian Paket</h3>
+                {omsetData.transactions.length === 0 ? (
+                  <AdminEmptyState
+                    title="Tidak Ada Transaksi"
+                    description="Belum ada transaksi paket terbayar (PAID) pada periode ini."
+                  />
+                ) : (
+                  <DataTable<OmsetTransaction>
+                    items={omsetData.transactions}
+                    rowKey={(t) => t.id}
+                    columns={[
+                      { id: 'orderNumber', header: 'Nomor Invoice', cell: (t) => t.orderNumber },
+                      { id: 'customerName', header: 'Pelanggan', cell: (t) => t.customerName },
+                      { id: 'packageName', header: 'Paket', cell: (t) => t.packageName },
+                      {
+                        id: 'totalAmountRp',
+                        header: 'Total Nominal',
+                        cell: (t) => (
+                          <span className="font-semibold text-emerald-600">
+                            {formatRupiah(t.totalAmountRp)}
+                          </span>
+                        ),
+                      },
+                      { id: 'paymentMethod', header: 'Metode', cell: (t) => t.paymentMethod },
+                      {
+                        id: 'paidAt',
+                        header: 'Waktu Bayar',
+                        cell: (t) => new Date(t.paidAt).toLocaleDateString('id-ID'),
+                      },
+                    ]}
+                  />
+                )}
+              </Panel>
+            </div>
+          )}
+
+          {/* TAB 3: COST INSTRUKTUR REALTIME */}
+          {reportTab === 'INSTRUCTOR_REALTIME' && instructorRealtimeData && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                  label="Total Beban Instruktur Realtime"
+                  value={formatRupiah(instructorRealtimeData.totalInstructorCostRp)}
+                  tone="success"
+                />
+                <StatCard
+                  label="Total Jam Mengajar Aktual"
+                  value={`${instructorRealtimeData.totalTeachingHours} Jam`}
+                  tone="neutral"
+                />
+                <StatCard
+                  label="Jumlah Instruktur Aktif"
+                  value={`${instructorRealtimeData.instructorCount} Orang`}
+                  tone="neutral"
+                />
+              </div>
+
+              <Panel className="space-y-4 p-5">
+                <h3 className="text-base font-semibold">
+                  Rincian Biaya Mengajar Instruktur (Rule #10)
+                </h3>
+                <p className="text-xs text-dd-muted">
+                  Dihitung dari jam mengajar riil via QR Check-in dikalikan tarif efektif per jenis kelas.
+                </p>
+
+                {instructorRealtimeData.instructors.length === 0 ? (
+                  <AdminEmptyState
+                    title="Belum Ada Aktivitas Kelas"
+                    description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
+                  />
+                ) : (
+                  <DataTable<InstructorCostBreakdown>
+                    items={instructorRealtimeData.instructors}
+                    rowKey={(r) => r.instructorId}
+                    columns={[
+                      {
+                        id: 'instructorName',
+                        header: 'Nama Instruktur',
+                        cell: (r) => <span className="font-bold">{r.instructorName}</span>,
+                      },
+                      {
+                        id: 'groupFeeRp',
+                        header: 'Group Class',
+                        cell: (r) => (
+                          <div>
+                            <span>{formatRupiah(r.groupFeeRp)}</span>
+                            <span className="block text-xs text-dd-muted">({r.groupHours} jam)</span>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'semiPrivateFeeRp',
+                        header: 'Semi Private',
+                        cell: (r) => (
+                          <div>
+                            <span>{formatRupiah(r.semiPrivateFeeRp)}</span>
+                            <span className="block text-xs text-dd-muted">
+                              ({r.semiPrivateHours} jam)
+                            </span>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'privateFeeRp',
+                        header: 'Private Class',
+                        cell: (r) => (
+                          <div>
+                            <span>{formatRupiah(r.privateFeeRp)}</span>
+                            <span className="block text-xs text-dd-muted">
+                              ({r.privateHours} jam)
+                            </span>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'totalFeeRp',
+                        header: 'Total Honorarium',
+                        cell: (r) => (
+                          <div>
+                            <span className="font-bold text-dd-primary">
+                              {formatRupiah(r.totalFeeRp)}
+                            </span>
+                            <span className="block text-xs font-semibold text-dd-muted">
+                              {r.totalHours} jam total
+                            </span>
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                )}
+              </Panel>
+            </div>
+          )}
+
+          {/* TAB 4: COST INSTRUKTUR PROJECTION */}
+          {reportTab === 'INSTRUCTOR_PROJECTION' && instructorProjectionData && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  label="Total Cost Projeksi Instruktur"
+                  value={formatRupiah(instructorProjectionData.totalProjectionCostRp)}
+                  tone="success"
+                />
+                <StatCard
+                  label="Total Sesi Terjual"
+                  value={`${instructorProjectionData.totalSessionsSold} Sesi`}
+                  tone="neutral"
+                />
+              </div>
+
+              <Panel className="space-y-4 p-5">
+                <h3 className="text-base font-semibold">
+                  Breakdown Projeksi Beban per Kategori Kelas
+                </h3>
+                <p className="text-xs text-dd-muted">
+                  Formula: Sesi Terjual Paket × Projection Rate per Sesi (Effective Date).
+                </p>
+
+                {instructorProjectionData.breakdown.length === 0 ? (
+                  <AdminEmptyState
+                    title="Tidak Ada Sesi Terjual"
+                    description="Belum ada penjualan paket sesi pada periode bulan ini."
+                  />
+                ) : (
+                  <DataTable<ProjectionClassTypeBreakdown>
+                    items={instructorProjectionData.breakdown}
+                    rowKey={(b) => b.classTypeId}
+                    columns={[
+                      { id: 'classTypeId', header: 'ID Jenis Kelas', cell: (b) => b.classTypeId },
+                      { id: 'sessionsSold', header: 'Sesi Terjual', cell: (b) => b.sessionsSold },
+                      {
+                        id: 'ratePerSesiRp',
+                        header: 'Rate Projeksi / Sesi',
+                        cell: (b) => formatRupiah(b.ratePerSesiRp),
+                      },
+                      {
+                        id: 'totalCostRp',
+                        header: 'Total Biaya Projeksi',
+                        cell: (b) => (
+                          <span className="font-semibold text-purple-600">
+                            {formatRupiah(b.totalCostRp)}
+                          </span>
+                        ),
+                      },
+                    ]}
+                  />
+                )}
+              </Panel>
+            </div>
+          )}
+
+          {/* TAB 5: OTHER COST */}
+          {reportTab === 'OTHER_COST' && otherCostData && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                  label="Total Biaya Operasional"
+                  value={formatRupiah(otherCostData.totalOtherCostRp)}
+                  tone="danger"
+                />
+                <StatCard
+                  label="Jumlah Pengeluaran"
+                  value={`${otherCostData.items.length} Item`}
+                  tone="neutral"
+                />
+                <StatCard
+                  label="Status Mutasi"
+                  value={isLocked ? 'TERKUNCI (LOCKED)' : 'DAPAT DIINPUT (OPEN)'}
+                  tone={isLocked ? 'neutral' : 'success'}
+                />
+              </div>
+
+              <Panel className="p-5 space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-dd-muted">
+                  Distribusi Kategori Beban
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-6">
+                  {Object.entries(otherCostData.byCategory).map(([cat, val]) => (
+                    <div key={cat} className="rounded-dd-md border border-dd-line p-3">
+                      <span className="text-xs font-bold uppercase text-dd-muted">{cat}</span>
+                      <p className="mt-1 text-sm font-semibold">{formatRupiah(val.amountRp)}</p>
+                      <p className="text-xs text-dd-muted">{val.count} transaksi</p>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="space-y-4 p-5">
+                <h3 className="text-base font-semibold">Daftar Pengeluaran Operasional</h3>
+                {otherCostData.items.length === 0 ? (
+                  <AdminEmptyState
+                    title="Belum Ada Biaya Operasional"
+                    description="Belum ada pencatatan biaya operasional untuk periode ini."
+                  />
+                ) : (
+                  <DataTable<OtherCostItem>
+                    items={otherCostData.items}
+                    rowKey={(c) => c.id}
+                    columns={[
+                      { id: 'category', header: 'Kategori', cell: (c) => c.category },
+                      { id: 'description', header: 'Deskripsi', cell: (c) => c.description },
+                      {
+                        id: 'amountRp',
+                        header: 'Nominal',
+                        cell: (c) => (
+                          <span className="font-semibold text-rose-600">
+                            {formatRupiah(c.amountRp)}
+                          </span>
+                        ),
+                      },
+                      { id: 'createdByName', header: 'Dicatat Oleh', cell: (c) => c.createdByName },
+                      {
+                        id: 'createdAt',
+                        header: 'Tanggal Input',
+                        cell: (c) => new Date(c.createdAt).toLocaleDateString('id-ID'),
+                      },
+                      {
+                        id: 'id',
+                        header: 'Aksi',
+                        cell: (c) =>
+                          !isLocked ? (
+                            <Button
+                              variant="ghost"
+                              leadingIcon={<Trash2 className="h-4 w-4 text-rose-500" />}
+                              onClick={() => {
+                                void feedback
+                                  .confirm({
+                                    tone: 'danger',
+                                    title: 'Hapus Biaya Operasional',
+                                    message: 'Biaya operasional ini akan dihapus permanen.',
+                                    confirmLabel: 'Hapus',
+                                  })
+                                  .then(async (accepted) => {
+                                    if (!accepted) return;
+                                    try {
+                                      if (client.deleteOtherCost) {
+                                        await client.deleteOtherCost(c.id);
+                                        void loadReports();
+                                      }
+                                    } catch {
+                                      // handled gracefully
+                                    }
+                                  });
+                              }}
+                            >
+                              Hapus
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-dd-muted">Terkunci</span>
+                          ),
+                      },
+                    ]}
+                  />
+                )}
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SECTION: REKONSILIASI TRANSAKSI & ANOMALI (LEGACY VIEW)                   */}
+      {/* ========================================================================= */}
+      {mainTab === 'RECONCILIATION' && (
+        <div className="space-y-6">
+          <Panel className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Rekonsiliasi transaksi</h2>
+              <p className="text-sm text-dd-muted">
+                Audit otomatis mutasi rekening dan transaksi pesanan per periode serta deteksi anomali.
+              </p>
+            </div>
+            <FilterBar>
+              <div className="flex flex-wrap gap-3">
+                <label className="grid gap-1 text-xs font-bold text-dd-muted">
+                  Dari tanggal
+                  <input
+                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text"
+                    type="date"
+                    value={from}
+                    onChange={(event) => setFrom(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-bold text-dd-muted">
+                  Sampai tanggal
+                  <input
+                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text"
+                    type="date"
+                    value={until}
+                    onChange={(event) => setUntil(event.target.value)}
+                  />
+                </label>
+              </div>
+            </FilterBar>
+          </Panel>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard
+              label="Ekspektasi Pembayaran"
+              value={formatRupiah(metrics?.expectedRp ?? 0)}
+              tone="neutral"
+            />
+            <StatCard
+              label="Diterima Rekening"
+              value={formatRupiah(metrics?.receivedRp ?? 0)}
+              tone="neutral"
+            />
+            <StatCard
+              label="Disetujui Manual / Gateway"
+              value={formatRupiah(metrics?.approvedRp ?? 0)}
+              tone="success"
             />
           </div>
-        )}
-      </Panel>
-      <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <strong>Antrean keputusan pembayaran</strong>
-          <p className="mt-1 text-sm text-dd-muted">
-            Keputusan final hanya tersedia untuk Finance dan Super Admin, lengkap dengan alasan
-            serta expected version.
-          </p>
+
+          {/* Anomali Table */}
+          <Panel className="space-y-4 p-5">
+            <h3 className="text-base font-semibold">Deteksi Anomali Rekonsiliasi</h3>
+            <DataTable
+              items={reconData?.anomalies.items ?? []}
+              loading={reconLoading}
+              rowKey={(item) => item.purchaseId}
+              emptyTitle="Tidak ada anomali"
+              emptyDescription="Seluruh mutasi dan pembayaran pada periode ini sinkron."
+              columns={[
+                {
+                  id: 'branch',
+                  header: 'Studio/Cabang',
+                  cell: (item: any) => item.branchCode ?? '—',
+                },
+                {
+                  id: 'severity',
+                  header: 'Severity',
+                  cell: (item: any) => (
+                    <Badge tone={item.severity === 'ERROR' ? 'danger' : 'warning'}>
+                      {item.severity}
+                    </Badge>
+                  ),
+                },
+                {
+                  id: 'code',
+                  header: 'Jenis Anomali',
+                  cell: (item: any) => (
+                    <span className="font-mono text-xs">{item.code}</span>
+                  ),
+                },
+                {
+                  id: 'amount',
+                  header: 'Nominal',
+                  cell: (item: any) => formatRupiah(item.amountRp),
+                },
+                {
+                  id: 'date',
+                  header: 'Waktu Submit',
+                  cell: (item: any) =>
+                    new Date(item.submittedAt).toLocaleDateString('id-ID'),
+                },
+                {
+                  id: 'action',
+                  header: 'Aksi',
+                  cell: (item: any) => (
+                    <Link
+                      href={item.href || '#'}
+                      className="text-xs font-semibold text-dd-primary hover:underline"
+                    >
+                      Buka Pembayaran
+                    </Link>
+                  ),
+                },
+              ]}
+            />
+            {reconData && (
+              <div className="border-t border-dd-line p-4">
+                <Pagination
+                  hasPrevious={anomalyCursorHistory.length > 0 && !reconLoading}
+                  hasNext={Boolean(reconData.anomalies.page.nextCursor) && !reconLoading}
+                  totalLabel={`Halaman ${anomalyCursorHistory.length + 1} · ${reconData.anomalies.items.length.toLocaleString('id-ID')} data dari ${reconData.anomalies.total.toLocaleString('id-ID')} anomali`}
+                  onPrevious={() => {
+                    const previous = anomalyCursorHistory.at(-1) ?? '';
+                    void loadAnomalyPage(previous || undefined).then((loaded) => {
+                      if (loaded) setAnomalyCursorHistory((current) => current.slice(0, -1));
+                    });
+                  }}
+                  onNext={() => {
+                    const next = reconData.anomalies.page.nextCursor;
+                    if (!next) return;
+                    void loadAnomalyPage(next).then((loaded) => {
+                      if (loaded)
+                        setAnomalyCursorHistory((current) => [...current, anomalyCursor ?? '']);
+                    });
+                  }}
+                />
+              </div>
+            )}
+          </Panel>
+
+          {/* Legacy Cashflow Table */}
+          <Panel className="space-y-4 p-5">
+            <h3 className="text-base font-semibold">Legacy Cashflow Entry</h3>
+            <DataTable
+              items={reconData?.legacyCashflow.items ?? []}
+              loading={reconLoading}
+              rowKey={(item) => item.id}
+              emptyTitle="Belum ada legacy cashflow"
+              emptyDescription="Tidak ada jurnal v1 pada periode dan scope ini."
+              columns={[
+                {
+                  id: 'date',
+                  header: 'Tanggal',
+                  cell: (item) => new Date(item.occurredAt).toLocaleDateString('id-ID'),
+                },
+                {
+                  id: 'type',
+                  header: 'Tipe',
+                  cell: (item) => (
+                    <Badge tone={item.type === 'INCOME' ? 'success' : 'warning'}>
+                      {item.type === 'INCOME' ? 'Income' : 'Expense'}
+                    </Badge>
+                  ),
+                },
+                {
+                  id: 'description',
+                  header: 'Deskripsi',
+                  cell: (item) => item.description ?? '—',
+                },
+                {
+                  id: 'branch',
+                  header: 'Studio/Cabang',
+                  cell: (item) => item.branch?.name ?? 'Global',
+                },
+                { id: 'amount', header: 'Nominal', cell: (item) => formatRupiah(item.amountRp) },
+              ]}
+            />
+            {reconData && (
+              <div className="border-t border-dd-line p-4">
+                <Pagination
+                  previousAriaLabel="Legacy cashflow sebelumnya"
+                  nextAriaLabel="Legacy cashflow berikutnya"
+                  hasPrevious={legacyCursorHistory.length > 0 && !reconLoading}
+                  hasNext={Boolean(reconData.legacyCashflow.page.nextCursor) && !reconLoading}
+                  totalLabel={`Halaman ${legacyCursorHistory.length + 1} · ${reconData.legacyCashflow.items.length.toLocaleString('id-ID')} data dari ${reconData.legacyCashflow.total.toLocaleString('id-ID')} legacy entry`}
+                  onPrevious={() => {
+                    const previous = legacyCursorHistory.at(-1) ?? '';
+                    void loadLegacyPage(previous || undefined).then((loaded) => {
+                      if (loaded) setLegacyCursorHistory((current) => current.slice(0, -1));
+                    });
+                  }}
+                  onNext={() => {
+                    const next = reconData.legacyCashflow.page.nextCursor;
+                    if (!next) return;
+                    void loadLegacyPage(next).then((loaded) => {
+                      if (loaded) setLegacyCursorHistory((current) => [...current, legacyCursor ?? '']);
+                    });
+                  }}
+                />
+              </div>
+            )}
+          </Panel>
         </div>
-        <Link className="button button-secondary" href="/workspace/payments?status=PENDING">
-          Buka payment queue
-        </Link>
-      </Panel>
-      {context?.activeBranchId && context.hasCapability('finance:manage') && (
-        <FinanceCommandsPanel client={client} branchId={context.activeBranchId} />
       )}
     </div>
   );

@@ -97,7 +97,7 @@ describe('public landing page', () => {
     expect(screen.getByAltText('Reformer Pilates di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByAltText('Mat Pilates di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByAltText('Barre di Daily Dose Pilates')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Lihat Jadwal' })).toHaveLength(3);
+    expect(screen.getAllByRole('link', { name: 'Lihat Jadwal' })).toHaveLength(2);
     screen.getAllByRole('link', { name: 'Lihat Jadwal' }).forEach((link) => {
       expect(link).toHaveAttribute('href', '/classes#schedule');
     });

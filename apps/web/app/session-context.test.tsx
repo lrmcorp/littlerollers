@@ -272,7 +272,7 @@ describe('capability-aware session shell', () => {
         '/health',
       ),
     ).toBe(true);
-    expect(defaultSessionDestination(customerSession)).toBe('/account/verification');
+    expect(defaultSessionDestination(customerSession)).toBe('/classes#schedule');
     expect(
       defaultSessionDestination({
         ...customerSession,
@@ -327,12 +327,12 @@ describe('capability-aware session shell', () => {
     expect(resolveSessionDestination(customerSession, '/classes?slot=one')).toBe(
       '/classes?slot=one',
     );
-    expect(resolveSessionDestination(customerSession, '/bookings')).toBe('/account/verification');
+    expect(resolveSessionDestination(customerSession, '/bookings')).toBe('/bookings');
     expect(resolveSessionDestination(customerSession, '/purchases?package=one')).toBe(
-      '/account/verification',
+      '/purchases?package=one',
     );
     expect(resolveSessionDestination(customerSession, '//evil.example/path')).toBe(
-      '/account/verification',
+      '/classes#schedule',
     );
     expect(
       resolveSessionDestination(

@@ -88,6 +88,27 @@ export function CustomerDetailView({ id }: { id: string }) {
     }
   }
 
+  async function toggleStopped() {
+    if (!customer) return;
+    setBusy(true);
+    setError('');
+    setSuccess('');
+    try {
+      if (customer.stoppedAt) {
+        await customerClient.unmarkStopped(id);
+        setSuccess('Customer berhasil diaktifkan kembali dan dimasukkan ke antrean reminder.');
+      } else {
+        await customerClient.markStopped(id, 'Ditandai berhenti oleh Manager');
+        setSuccess('Customer ditandai berhenti. Reminder otomatis WhatsApp telah dinonaktifkan.');
+      }
+      await load();
+    } catch {
+      setError('Gagal mengubah status berhenti customer. Periksa hak akses Anda.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!customer)
     return error ? (
       <Feedback kind="error">{error}</Feedback>
@@ -122,6 +143,11 @@ export function CustomerDetailView({ id }: { id: string }) {
               >
                 {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
               </StatusBadge>
+              {customer.stoppedAt && (
+                <StatusBadge tone="danger">
+                  Berhenti (Reminder Nonaktif)
+                </StatusBadge>
+              )}
             </>
           }
         />
@@ -238,6 +264,31 @@ export function CustomerDetailView({ id }: { id: string }) {
               </Button>
             </ActionGroup>
           </form>
+          <div className="rounded-dd-lg border border-dd-line bg-white p-6 space-y-3">
+            <h2 className="font-semibold text-dd-ink">Status Reminder & Keaktifan (Rule #12 & #13)</h2>
+            <p className="text-sm text-dd-muted">
+              Tandai berhenti jika customer telah berhenti pilates agar sistem tidak lagi mengirimkan pesan pengingat kedaluwarsa berkala melalui WhatsApp.
+            </p>
+            {customer.stoppedAt ? (
+              <div className="rounded-dd border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                Customer ditandai <strong>BERHENTI</strong> sejak {new Date(customer.stoppedAt).toLocaleDateString('id-ID')}. Pesan reminder otomatis dinonaktifkan.
+              </div>
+            ) : (
+              <div className="rounded-dd border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                Customer aktif dalam antrean reminder berkala normal.
+              </div>
+            )}
+            <ActionGroup>
+              <Button
+                type="button"
+                variant={customer.stoppedAt ? 'primary' : 'danger'}
+                loading={busy}
+                onClick={toggleStopped}
+              >
+                {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Customer Berhenti'}
+              </Button>
+            </ActionGroup>
+          </div>
           <div className="rounded-dd-lg border border-dd-line bg-white p-6">
             <h2 className="font-semibold">Workflow transaksi</h2>
             <p className="mt-3 text-sm leading-6 text-dd-muted">

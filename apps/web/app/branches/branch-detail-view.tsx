@@ -1,14 +1,15 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, Pencil, Plus, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Pencil, Plus, Power, PowerOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ButtonLink } from '../components/actions';
-import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
+import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { Badge, Panel, StatCard } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
 import { PageHeader, Skeleton } from '../ui';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 import { BranchPaymentAccountsPanel } from './branch-payment-accounts-panel';
 import { BranchVenuesPanel } from './branch-venues-panel';
 import { BranchPublicProfileDrawer } from './branch-public-profile-drawer';
@@ -58,13 +59,12 @@ export function BranchDetailView({ id }: { id: string }) {
   if (!session || session.status === 'loading') return <Skeleton label="Memuat detail cabang" />;
   if (!canRead)
     return (
-      <AlertBanner
-        tone="danger"
-        title="Akses cabang tidak tersedia"
-        message="Akun Anda tidak memiliki capability untuk membaca Branch Management."
-      />
+      <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <strong className="block font-semibold">Akses cabang tidak tersedia</strong>
+        <p className="text-sm">Akun Anda tidak memiliki capability untuk membaca Branch Management.</p>
+      </div>
     );
-  if (failure) return <AlertBanner tone="danger" title="Cabang tidak tersedia" message={failure} />;
+  if (failure) return <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">{failure}</div>;
   if (!branch) return <Skeleton label="Memuat detail cabang" />;
 
   const blockingDependencies =
@@ -83,7 +83,7 @@ export function BranchDetailView({ id }: { id: string }) {
       title: branch.active ? 'Nonaktifkan cabang?' : 'Aktifkan kembali cabang?',
       message: branch.active
         ? blockingDependencies
-          ? `Terdapat ${blockingDependencies} dependency operasional aktif. Selesaikan dependency sebelum menonaktifkan cabang.`
+          ? `Terdapat ${blockingDependencies} dependency operasional aktif (penugasan instruktur, kelas mendatang, paket, atau rekening). Seluruh dependency harus diselesaikan sebelum cabang dapat dinonaktifkan.`
           : 'Cabang tidak lagi tersedia untuk operasi dan katalog baru.'
         : 'Cabang akan kembali tersedia untuk konfigurasi dan operasi baru.',
       confirmLabel: branch.active ? 'Nonaktifkan' : 'Aktifkan kembali',
@@ -114,6 +114,9 @@ export function BranchDetailView({ id }: { id: string }) {
     }
   };
 
+  const heroImageKey = branch.heroImageKey || branch.publicProfile?.heroImageKey;
+  const heroImageUrl = heroImageKey ? resolvePublicImageUrl(heroImageKey) : null;
+
   return (
     <section className="grid gap-5" aria-labelledby="branch-title">
       <ButtonLink
@@ -125,78 +128,176 @@ export function BranchDetailView({ id }: { id: string }) {
       >
         Kembali ke cabang
       </ButtonLink>
-      <PageHeader
-        eyebrow="Manajemen Cabang"
-        title={branch.name}
-        titleId="branch-title"
-        description={`${branch.code} · ${branch.timezone}`}
-        context={
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={branch.active ? 'success' : 'neutral'}>
-              {branch.active ? 'Aktif' : 'Tidak aktif'}
-            </Badge>
-            {canManage && (
-              <>
-                <Button
-                  variant="secondary"
-                  leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
-                  onClick={() => setEditorOpen(true)}
-                >
-                  Edit cabang
-                </Button>
-                <Button
-                  variant={branch.active ? 'danger' : 'primary'}
-                  leadingIcon={
-                    branch.active ? (
-                      <PowerOff className="size-4" aria-hidden="true" />
-                    ) : (
-                      <Power className="size-4" aria-hidden="true" />
-                    )
-                  }
-                  loading={busy}
-                  onClick={transition}
-                >
-                  {branch.active ? 'Nonaktifkan' : 'Aktifkan kembali'}
-                </Button>
-              </>
-            )}
+
+      {/* Hero Visual Banner */}
+      {heroImageUrl && (
+        <div className="relative h-56 sm:h-72 w-full overflow-hidden rounded-dd-xl border border-dd-line/80 bg-dd-surface-muted shadow-sm group">
+          <img
+            src={heroImageUrl}
+            alt={`Foto Cabang ${branch.name}`}
+            className="size-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            onError={(e) => {
+              const parent = (e.currentTarget as HTMLElement).parentElement;
+              if (parent) parent.style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+          <div className="absolute bottom-5 left-5 right-5 flex flex-wrap items-end justify-between gap-4 text-white">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md">
+                <MapPin className="size-3.5" />
+                {branch.publicProfile ? `${branch.publicProfile.area}, ${branch.publicProfile.city}` : branch.code}
+              </span>
+              <h1 id="branch-title" className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-white drop-shadow-sm">
+                {branch.name}
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-2">
+                {branch.address || branch.publicProfile?.address || `${branch.code} · ${branch.timezone}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={branch.active ? 'success' : 'neutral'}>
+                {branch.active ? 'Cabang Aktif' : 'Tidak aktif'}
+              </Badge>
+              {canManage && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
+                    className="bg-white/90 text-dd-ink hover:bg-white backdrop-blur-md"
+                    onClick={() => setEditorOpen(true)}
+                  >
+                    Edit cabang
+                  </Button>
+                  <Button
+                    variant={branch.active ? 'danger' : 'primary'}
+                    size="sm"
+                    leadingIcon={
+                      branch.active ? (
+                        <PowerOff className="size-4" aria-hidden="true" />
+                      ) : (
+                        <Power className="size-4" aria-hidden="true" />
+                      )
+                    }
+                    loading={busy}
+                    onClick={transition}
+                  >
+                    {branch.active ? 'Nonaktifkan' : 'Aktifkan'}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        }
-      />
+        </div>
+      )}
+
+      {!heroImageUrl && (
+        <PageHeader
+          eyebrow="Manajemen Cabang"
+          title={branch.name}
+          titleId="branch-title"
+          description={`${branch.code} · ${branch.timezone}`}
+          context={
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={branch.active ? 'success' : 'neutral'}>
+                {branch.active ? 'Aktif' : 'Tidak aktif'}
+              </Badge>
+              {canManage && (
+                <>
+                  <Button
+                    variant="secondary"
+                    leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
+                    onClick={() => setEditorOpen(true)}
+                  >
+                    Edit cabang
+                  </Button>
+                  <Button
+                    variant={branch.active ? 'danger' : 'primary'}
+                    leadingIcon={
+                      branch.active ? (
+                        <PowerOff className="size-4" aria-hidden="true" />
+                      ) : (
+                        <Power className="size-4" aria-hidden="true" />
+                      )
+                    }
+                    loading={busy}
+                    onClick={transition}
+                  >
+                    {branch.active ? 'Nonaktifkan' : 'Aktifkan kembali'}
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+        />
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Staf aktif" value={String(branch.dependencies.staff)} />
         <StatCard label="Kelas mendatang" value={String(branch.dependencies.futureClasses)} />
         <StatCard label="Paket aktif" value={String(branch.dependencies.packages)} />
         <StatCard label="Rekening aktif" value={String(branch.dependencies.paymentAccounts)} />
       </div>
-      {branch.active && blockingDependencies > 0 && (
-        <AlertBanner
-          tone="warning"
-          title="Cabang memiliki dependency aktif"
-          message="Assignment, kelas mendatang, paket aktif, dan rekening aktif harus diselesaikan sebelum cabang dapat dinonaktifkan."
-        />
-      )}
+
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel className="p-5">
-          <h2 className="text-lg font-semibold">Identitas & support</h2>
+          <h2 className="text-lg font-semibold text-dd-ink">Identitas &amp; Alamat Cabang</h2>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
             <Info label="Kode cabang" value={branch.code} />
             <Info label="Zona waktu" value={branch.timezone} />
             <Info label="WhatsApp support" value={branch.supportWhatsappE164 ?? 'Belum diatur'} />
-            <Info label="Versi data" value={String(branch.version)} />
+            <Info label="Status operasional" value={branch.active ? 'Aktif Beroperasi' : 'Nonaktif'} />
+            <div className="sm:col-span-2 border-t border-dd-line/60 pt-3">
+              <dt className="text-xs font-semibold text-dd-muted">Alamat Fisik Cabang</dt>
+              <dd className="mt-1 text-sm leading-relaxed text-dd-ink font-medium">
+                {branch.address || branch.publicProfile?.address || 'Alamat fisik belum dicatat.'}
+              </dd>
+            </div>
           </dl>
         </Panel>
+
         <Panel className="p-5">
-          <h2 className="text-lg font-semibold">Profil publik</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-dd-ink">Profil Publik Website</h2>
+            {canManage && (
+              <Button
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Pencil className="size-3.5" aria-hidden="true" />}
+                onClick={() => setPublicProfileOpen(true)}
+              >
+                Ubah profil
+              </Button>
+            )}
+          </div>
           {branch.publicProfile ? (
             <div className="mt-4 grid gap-3">
               <p className="text-sm">
-                <strong>
+                <strong className="text-dd-ink">
                   {branch.publicProfile.area}, {branch.publicProfile.city}
                 </strong>
               </p>
               <p className="text-sm leading-6 text-dd-muted">{branch.publicProfile.address}</p>
-              <div className="grid gap-1.5 text-xs text-dd-muted">
+              
+              {branch.publicProfile.openingHours?.length ? (
+                <div className="text-xs text-dd-muted">
+                  <span className="font-semibold text-dd-ink">Jam Buka: </span>
+                  {branch.publicProfile.openingHours.join(' · ')}
+                </div>
+              ) : null}
+
+              {branch.publicProfile.amenities?.length ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {branch.publicProfile.amenities.map((a) => (
+                    <span key={a} className="rounded bg-dd-forest/10 px-2 py-0.5 text-[11px] font-medium text-dd-forest">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="grid gap-1.5 border-t border-dd-line/60 pt-2 text-xs text-dd-muted">
                 {branch.publicProfile.operationalEmail && (
                   <p>
                     <span className="font-semibold text-dd-ink">Email: </span>
@@ -223,17 +324,6 @@ export function BranchDetailView({ id }: { id: string }) {
                   </p>
                 )}
               </div>
-              {canManage && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  leadingIcon={<Pencil className="size-4" aria-hidden="true" />}
-                  className="w-fit mt-1"
-                  onClick={() => setPublicProfileOpen(true)}
-                >
-                  Edit profil publik
-                </Button>
-              )}
             </div>
           ) : (
             <div className="mt-4">
@@ -337,15 +427,7 @@ export function BranchDetailView({ id }: { id: string }) {
               timezone: String(data.get('timezone')).trim(),
               supportWhatsappE164: String(data.get('supportWhatsappE164')).trim() || null,
               expectedVersion: branch.version,
-              reason: String(data.get('reason')).trim(),
             };
-            const accepted = await feedback.confirm({
-              tone: 'warning',
-              title: 'Simpan perubahan cabang?',
-              message: 'Nama, timezone, dan nomor support akan digunakan pada operasi berikutnya.',
-              confirmLabel: 'Simpan perubahan',
-            });
-            if (!accepted) return;
             setBusy(true);
             try {
               await browserBranchClient.update(branch.id, input);
@@ -355,7 +437,7 @@ export function BranchDetailView({ id }: { id: string }) {
               feedback.showToast({
                 tone: 'success',
                 title: 'Cabang diperbarui',
-                message: 'Perubahan tercatat pada audit trail.',
+                message: 'Informasi cabang berhasil disimpan.',
               });
             } catch {
               feedback.showAlert({
@@ -377,7 +459,6 @@ export function BranchDetailView({ id }: { id: string }) {
             defaultValue={branch.supportWhatsappE164 ?? ''}
             description="Gunakan format E.164."
           />
-          <TextInput name="reason" label="Alasan perubahan" minLength={3} required />
         </form>
       </Drawer>
 

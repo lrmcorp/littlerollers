@@ -264,9 +264,9 @@ export function PublicClassesView({
 
             <div className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
               <SearchSelect
-                label="Studio"
+                label="Pilih Lokasi Studio"
                 value={branchId}
-                placeholder="Pilih studio"
+                placeholder="Pilih lokasi studio..."
                 options={branches.map((item) => ({
                   id: item.id,
                   label: item.name,
@@ -411,11 +411,13 @@ export function PublicClassesView({
                               </Link>
                               <Link
                                 href={`/classes/${
-                                  slot.classType.code === 'REFORMER'
-                                    ? 'reformer-pilates'
-                                    : slot.classType.code === 'MAT'
-                                      ? 'mat-pilates'
-                                      : 'barre'
+                                  slot.classType.code === 'GROUP_CLASS'
+                                    ? 'group-class'
+                                    : slot.classType.code === 'PRIVATE_CLASS'
+                                      ? 'private-class'
+                                      : slot.classType.code === 'SEMI_PRIVATE'
+                                        ? 'semi-private'
+                                        : 'private-group'
                                 }`}
                                 className="text-dd-forest underline-offset-4 hover:underline"
                               >
@@ -438,11 +440,9 @@ export function PublicClassesView({
                               slot.available > 0
                                 ? session?.roles.some((role) => role !== 'CUSTOMER')
                                   ? '/workspace/classes'
-                                  : session?.identityVerificationStatus === 'APPROVED'
+                                  : session
                                     ? `/bookings/new?slot=${slot.id}`
-                                    : session
-                                      ? '/account/verification'
-                                      : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
+                                    : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
                                 : undefined
                             }
                           >
@@ -450,9 +450,7 @@ export function PublicClassesView({
                               ? 'Penuh'
                               : session?.roles.some((role) => role !== 'CUSTOMER')
                                 ? 'Buka workspace kelas'
-                                : session && session.identityVerificationStatus !== 'APPROVED'
-                                  ? 'Selesaikan verifikasi'
-                                  : 'Lanjutkan booking'}
+                                : 'Lanjutkan booking'}
                           </a>
                         </article>
                       ))}

@@ -73,27 +73,22 @@ export function packageDescriptor(
 export function packageCtaLabel(session: WebSession | null) {
   const audience = packageAudienceState(session);
   if (audience === 'GUEST') return 'Masuk untuk memilih';
-  if (audience === 'CUSTOMER_UNVERIFIED') return 'Verifikasi untuk memilih';
-  if (audience === 'CUSTOMER_APPROVED') return 'Pilih paket';
-  return 'Buka Workspace';
+  if (audience === 'STAFF') return 'Buka Workspace';
+  return 'Pilih paket';
 }
 
 export function packageJourneyCopy(session: WebSession | null) {
   const audience = packageAudienceState(session);
   if (audience === 'GUEST') return 'Masuk atau buat akun untuk melanjutkan pembelian.';
-  if (audience === 'CUSTOMER_UNVERIFIED')
-    return 'Selesaikan verifikasi akun untuk melanjutkan pembelian.';
-  if (audience === 'CUSTOMER_APPROVED')
-    return 'Pilih paket yang sesuai, lalu lanjutkan ke pembayaran.';
-  return 'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.';
+  if (audience === 'STAFF')
+    return 'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.';
+  return 'Pilih paket yang sesuai, lalu lanjutkan ke pembayaran.';
 }
 
 export function packageCtaHref(audience: PackageAudienceState, purchase: string): string {
   if (audience === 'GUEST') return signInReturnTo(purchase);
-  if (audience === 'CUSTOMER_UNVERIFIED')
-    return `/account/verification?returnTo=${encodeURIComponent(purchase)}`;
-  if (audience === 'CUSTOMER_APPROVED') return purchase;
-  return '/workspace';
+  if (audience === 'STAFF') return '/workspace';
+  return purchase;
 }
 
 function syncCatalogQuery(branchId: string, classTypeId: string) {

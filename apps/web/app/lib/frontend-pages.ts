@@ -88,6 +88,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'warning',
     roleRelevance: ['SUPER_OWNER', 'ADMIN', 'MANAGER'],
   },
+  {
+    href: '/workspace/reminders',
+    label: 'Pengingat WhatsApp & Otomasi',
+    shortLabel: 'Otomasi WA',
+    description: 'Monitoring sistem auto-cancel kelas H-24 dan antrean notifikasi WhatsApp berjenjang.',
+    group: 'Operasional Studio',
+    capabilities: [],
+    priority: 6,
+    accent: 'brand',
+    icon: 'message-square',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER', 'ADMIN'],
+  },
 
   // ==========================================
   // 2. MEMBER & PELANGGAN (Membership)
@@ -107,7 +119,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 10,
     accent: 'brand',
     icon: 'users',
-    roleRelevance: ['SUPER_OWNER'],
+    roleRelevance: ['SUPER_OWNER', 'MANAGER', 'ADMIN'],
   },
   {
     href: '/ledger',
@@ -144,6 +156,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'warning',
     queueBadgeSource: 'adjustments',
     dashboardDeepLink: '/ledger/adjustments?status=PENDING',
+    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER'],
     isAdvanced: true,
   },
 
@@ -161,7 +174,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 20,
     accent: 'warning',
     icon: 'credit-card',
-    roleRelevance: ['ADMIN', 'FINANCE', 'SUPER_OWNER'],
+    roleRelevance: ['ADMIN', 'MANAGER', 'FINANCE', 'SUPER_OWNER'],
     queueBadgeSource: 'payments',
     dashboardDeepLink: '/workspace/payments?status=PENDING',
   },
@@ -206,6 +219,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     queueBadgeSource: 'payments',
     dashboardDeepLink: '/finance',
     isAdvanced: true,
+  },
+  {
+    href: '/workspace/branch-performance',
+    label: 'Performa Cabang',
+    shortLabel: 'Performa Cabang',
+    description: 'Omset cabang, estimasi profit, dan detail breakdown fee instruktur.',
+    group: 'Penjualan & Keuangan',
+    capabilities: ['branch:own', 'dashboard:read'],
+    priority: 24,
+    accent: 'brand',
+    icon: 'circle-dollar-sign',
+    roleRelevance: ['OWNER', 'SUPER_OWNER'],
   },
 
   // ==========================================

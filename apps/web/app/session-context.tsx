@@ -111,9 +111,7 @@ export function defaultSessionDestination(session: WebSession): string {
   if (session.passwordChangeRequired) return '/account/security?required=true';
   if (session.roles.some((role) => internalRoles.has(role))) return '/workspace';
   if (session.roles.includes('CUSTOMER'))
-    return session.identityVerificationStatus === 'APPROVED'
-      ? '/classes#schedule'
-      : '/account/verification';
+    return '/classes#schedule';
   return '/workspace';
 }
 
@@ -142,19 +140,6 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
     return false;
   if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
-  if (
-    customerOnly &&
-    session.identityVerificationStatus !== 'APPROVED' &&
-    (path === '/bookings' ||
-      path.startsWith('/bookings/') ||
-      path === '/checkout' ||
-      path.startsWith('/checkout/') ||
-      path === '/orders' ||
-      path.startsWith('/orders/') ||
-      path === '/purchases' ||
-      path.startsWith('/purchases/'))
-  )
-    return false;
   if (path === '/workspace') return session.roles.some((role) => internalRoles.has(role));
   const rule = routeCapabilities.find(([route]) => path === route || path.startsWith(`${route}/`));
   if (!rule) return false;

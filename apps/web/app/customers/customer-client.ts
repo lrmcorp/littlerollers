@@ -6,6 +6,8 @@ export interface CustomerSummary {
   email: string | null;
   phoneE164: string | null;
   status: CustomerStatus;
+  stoppedAt?: string | null;
+  isStopped?: boolean;
   version: number;
   verificationStatus: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
   emailVerified: boolean;
@@ -123,4 +125,22 @@ export const customerClient = {
       },
     );
   },
+  markStopped(id: string, reason?: string) {
+    return request<{ id: string; stoppedAt: string | null; isStopped: boolean; status: CustomerStatus }>(
+      `/customers/${encodeURIComponent(id)}/mark-stopped`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      },
+    );
+  },
+  unmarkStopped(id: string) {
+    return request<{ id: string; stoppedAt: null; isStopped: boolean; status: CustomerStatus }>(
+      `/customers/${encodeURIComponent(id)}/unmark-stopped`,
+      {
+        method: 'POST',
+      },
+    );
+  },
 };
+

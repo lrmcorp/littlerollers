@@ -12,9 +12,21 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
-  const title = item
-    ? `${item.profile.code === 'BARRE' ? 'Barre' : item.profile.code === 'MAT' ? 'Mat Pilates' : 'Reformer Pilates'} · Daily Dose`
+  const titleName = item
+    ? item.profile.code === 'GROUP_CLASS'
+      ? 'Group Class'
+      : item.profile.code === 'PRIVATE_CLASS'
+        ? 'Private Class'
+        : item.profile.code === 'SEMI_PRIVATE'
+          ? 'Semi Private Class'
+          : item.profile.code === 'PRIVATE_GROUP'
+            ? 'Private Group'
+            : item.profile.slug
+                .split('-')
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ')
     : 'Detail Kelas';
+  const title = `${titleName} · Daily Dose`;
   const description =
     item?.profile.summary ?? 'Manfaat, perlengkapan, paket, dan jadwal kelas Daily Dose.';
   return {

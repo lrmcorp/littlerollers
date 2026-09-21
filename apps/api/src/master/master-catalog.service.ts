@@ -5,18 +5,78 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { MasterAccessService } from './master-access.service';
+import type { PublicProfileInput } from './public-profile-admin.service';
 
 function isUnique(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002';
 }
+
+const BRANCH_METADATA: Record<string, { city: string; area: string; email?: string; mapUrl?: string }> = {
+  'DD-GG': {
+    city: 'Jakarta Barat',
+    area: 'Kedoya Utara, Kebon Jeruk',
+    email: 'dailydosepilates@gmail.com',
+    mapUrl: 'https://goo.gl/maps/hQGG9dUKHd8L73AR8',
+  },
+  'DD-MK': {
+    city: 'Jakarta Utara',
+    area: 'Pluit, Penjaringan',
+    email: 'dailydosepilatesmk@gmail.com',
+    mapUrl: 'https://maps.app.goo.gl/QeAXRpoDcH8bXbDVA',
+  },
+  'DD-SBY': {
+    city: 'Surabaya',
+    area: 'Dukuhpakis, Surabaya Barat',
+    email: 'ddosesby@lrmcorporation.com',
+    mapUrl: 'https://maps.app.goo.gl/XVUaQ1zEPpMyW3aJ8',
+  },
+  'DD-UNTAR': {
+    city: 'Jakarta Barat',
+    area: 'Tanjung Duren, Grogol Petamburan',
+    email: 'ddpuntar@lrmcorporation.com',
+    mapUrl: 'https://maps.app.goo.gl/yLp3CuQP7TTWvHxx9',
+  },
+  'DD-PIK2': {
+    city: 'Tangerang',
+    area: 'PIK 2, Kosambi',
+    email: 'ogddose@lrmcorporation.com',
+    mapUrl: 'https://maps.app.goo.gl/5s86jgTXbiWnsW6a9',
+  },
+};
 
 @Injectable()
 export class MasterCatalogService {
   constructor(
     private readonly db: PrismaService,
     private readonly access: MasterAccessService,
-    private readonly idempotency: IdempotencyService,
+    private readonly idempotency?: IdempotencyService,
   ) {}
+
+  /**
+   * Helper ringkas untuk mutasi dengan dukungan idempotensi transaksional.
+   */
+  private async executeMutation<T>(
+    scope: string,
+    key: string | undefined,
+    payload: unknown,
+    action: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    if (!key || !this.idempotency) {
+      return this.db.$transaction(action);
+    }
+    const result = await this.idempotency.execute(
+      { scope, key, payload, ttlMs: 86_400_000, leaseMs: 30_000 },
+      async (tx) => {
+        const body = await action(tx);
+        return { status: 200, body: body as unknown as Prisma.InputJsonValue };
+      },
+    );
+    return result.body as unknown as T;
+  }
+
+  // ============================================================================
+  // CABANG (BRANCHES)
+  // ============================================================================
 
   async listBranches(
     principal: SessionPrincipal,
@@ -59,7 +119,18 @@ export class MasterCatalogService {
     ]);
 
     const hasMore = rows.length > limit;
-    const items = rows.slice(0, limit);
+    const items = rows.slice(0, limit).map((b) => {
+      const meta = BRANCH_METADATA[b.code];
+      return {
+        ...b,
+        publicProfile: {
+          slug: b.code.toLowerCase(),
+          area: meta?.area ?? b.name,
+          city: meta?.city ?? 'Jakarta',
+          address: b.address ?? null,
+        },
+      };
+    });
     return {
       items,
       summary: { total: active + inactive, active, inactive },
@@ -67,55 +138,257 @@ export class MasterCatalogService {
     };
   }
 
-  async branchDetail(principal: SessionPrincipal, id: string) {
+  async branchDetail(principal: SessionPrincipal, idOrCode: string) {
     this.access.authorize(principal);
-    this.access.ensureBranchScope(principal, id);
-    const branch = await this.db.cabang.findUnique({
-      where: { id },
-    });
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrCode);
+    const branch = isUuid
+      ? await this.db.cabang.findUnique({ where: { id: idOrCode } })
+      : await this.db.cabang.findFirst({
+          where: {
+            OR: [{ code: idOrCode.toUpperCase() }, { code: idOrCode }],
+          },
+        });
     if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
+    const id = branch.id;
+    this.access.ensureBranchScope(principal, id);
+
     const now = new Date();
-    const [
-      assignments,
-      futureClasses,
-      packages,
-      paymentAccounts,
-      classTypes,
-      staff,
-    ] = await Promise.all([
-      this.db.penugasanInstruktur.count({
-        where: { branchId: id, active: true },
-      }),
-      this.db.slotKelas.count({
-        where: {
-          branchId: id,
-          endAt: { gt: now },
-          status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
-        },
-      }),
-      this.db.paket.count({
-        where: { status: 'ACTIVE' },
-      }),
-      this.db.rekeningPembayaran.count({ where: { branchId: id, active: true } }),
-      this.db.jenisKelas.count({ where: { active: true } }),
-      this.db.user.count({
-        where: {
-          preferredBranchId: id,
-          status: 'ACTIVE',
-        },
-      }),
-    ]);
+    const [assignments, futureClasses, packages, paymentAccounts, classTypes, staff] =
+      await Promise.all([
+        this.db.penugasanInstruktur.count({ where: { branchId: id, active: true } }),
+        this.db.slotKelas.count({
+          where: {
+            branchId: id,
+            endAt: { gt: now },
+            status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
+          },
+        }),
+        this.db.paket.count({ where: { status: 'ACTIVE' } }),
+        this.db.rekeningPembayaran.count({ where: { branchId: id, active: true } }),
+        this.db.jenisKelas.count({ where: { active: true } }),
+        this.db.user.count({ where: { preferredBranchId: id, status: 'ACTIVE' } }),
+      ]);
+
+    const meta = BRANCH_METADATA[branch.code];
+    const publicProfile = {
+      slug: branch.code.toLowerCase(),
+      area: meta?.area ?? branch.name,
+      city: meta?.city ?? 'Jakarta',
+      address: branch.address ?? '',
+      description: `${branch.name} Studio Pilates`,
+      arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+      parkingInformation: 'Tersedia tempat parkir kendaraan.',
+      openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+      heroImageKey: branch.heroImageKey ?? null,
+      galleryImageKeys: (branch.galleryImageKeys as string[]) ?? [],
+      operationalEmail: meta?.email ?? 'dailydosepilates@gmail.com',
+      mapUrl: meta?.mapUrl ?? `https://maps.google.com/?q=${encodeURIComponent(branch.name + ' ' + (branch.address ?? ''))}`,
+      version: 1,
+    };
 
     return {
       ...branch,
+      publicProfile,
+      version: 1,
       dependencies: { assignments, futureClasses, packages, paymentAccounts, classTypes, staff },
       auditActivity: [],
     };
   }
 
-  async listStudios(principal: SessionPrincipal, branchId: string) {
+  async createBranch(
+    principal: SessionPrincipal,
+    input: {
+      code: string;
+      name: string;
+      timezone: string;
+      supportWhatsappE164?: string | null;
+      reason?: string;
+    },
+    correlationId: string,
+    key?: string,
+  ): Promise<Cabang> {
+    this.access.authorize(principal, true);
+    const code = input.code.trim().toUpperCase();
+    const name = input.name.trim();
+    if (!/^[A-Z0-9_-]{2,30}$/.test(code) || name.length < 2 || name.length > 120)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
+    } catch {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    }
+    if (input.supportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(input.supportWhatsappE164.trim()))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    try {
+      return await this.executeMutation(
+        `branch-create:${code}`,
+        key,
+        input,
+        async (tx) => {
+          const branch = await tx.cabang.create({
+            data: {
+              id: newId(),
+              code,
+              name,
+              timezone: input.timezone,
+              supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
+              active: true,
+            },
+          });
+
+          await this.access.audit(
+            tx,
+            principal,
+            correlationId,
+            'master.branch_created',
+            'Branch',
+            branch.id,
+            branch.id,
+            undefined,
+            { code: branch.code, name: branch.name, timezone: branch.timezone },
+          );
+          return branch;
+        },
+      );
+    } catch (error) {
+      if (isUnique(error)) throw new ApiProblem('BUSINESS_KEY_CONFLICT', HttpStatus.CONFLICT);
+      throw error;
+    }
+  }
+
+  async updateBranch(
+    principal: SessionPrincipal,
+    id: string,
+    input: {
+      name: string;
+      timezone: string;
+      supportWhatsappE164?: string | null;
+      expectedVersion?: number;
+      reason?: string;
+    },
+    key: string | undefined,
+    correlationId: string,
+  ): Promise<Cabang> {
+    this.access.authorize(principal, true);
+    this.access.ensureBranchScope(principal, id, true);
+    const name = input.name?.trim();
+    if (!name || name.length < 2)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
+    } catch {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    }
+    if (input.supportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(input.supportWhatsappE164.trim()))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    return this.executeMutation(
+      `branch-update:${id}`,
+      key,
+      input,
+      async (tx) => {
+        const current = await tx.cabang.findUnique({ where: { id } });
+        if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const updated = await tx.cabang.update({
+          where: { id },
+          data: {
+            name,
+            timezone: input.timezone,
+            supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
+          },
+        });
+
+        await this.access.audit(
+          tx,
+          principal,
+          correlationId,
+          'master.branch_updated',
+          'Branch',
+          id,
+          id,
+          { name: current.name, timezone: current.timezone },
+          { name: updated.name, timezone: updated.timezone },
+        );
+        return updated;
+      },
+    );
+  }
+
+  async transitionBranch(
+    principal: SessionPrincipal,
+    id: string,
+    status: 'ACTIVE' | 'INACTIVE',
+    input: { expectedVersion?: number; reason?: string },
+    key: string | undefined,
+    correlationId: string,
+  ): Promise<Cabang> {
+    this.access.authorize(principal, true);
+    this.access.ensureBranchScope(principal, id, true);
+
+    return this.executeMutation(
+      `branch-transition:${id}`,
+      key,
+      { status, ...input },
+      async (tx) => {
+        const current = await tx.cabang.findUnique({ where: { id } });
+        if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const updated = await tx.cabang.update({
+          where: { id },
+          data: { active: status === 'ACTIVE' },
+        });
+
+        await this.access.audit(
+          tx,
+          principal,
+          correlationId,
+          status === 'ACTIVE' ? 'master.branch_activated' : 'master.branch_deactivated',
+          'Branch',
+          id,
+          id,
+          { active: current.active },
+          { active: updated.active },
+        );
+        return updated;
+      },
+    );
+  }
+
+  async deactivateBranch(
+    principal: SessionPrincipal,
+    id: string,
+    expectedVersion?: number,
+    correlationId: string = 'unknown',
+  ) {
+    return this.transitionBranch(
+      principal,
+      id,
+      'INACTIVE',
+      { expectedVersion: expectedVersion ?? 1, reason: 'Deactivated via API' },
+      undefined,
+      correlationId,
+    );
+  }
+
+  // ============================================================================
+  // STUDIO & RUANGAN (STUDIOS & ROOMS)
+  // ============================================================================
+
+  async listStudios(principal: SessionPrincipal, branchIdOrCode: string) {
     this.access.authorize(principal);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(branchIdOrCode);
+    const branch = isUuid
+      ? await this.db.cabang.findUnique({ where: { id: branchIdOrCode } })
+      : await this.db.cabang.findFirst({
+          where: { OR: [{ code: branchIdOrCode.toUpperCase() }, { code: branchIdOrCode }] },
+        });
+    const branchId = branch?.id ?? branchIdOrCode;
     this.access.ensureBranchScope(principal, branchId);
     const items = await this.db.studio.findMany({
       where: { branchId, active: true },
@@ -133,6 +406,7 @@ export class MasterCatalogService {
       name: string;
       equipmentText?: string | null;
       contactPhoneE164?: string | null;
+      imageKey?: string | null;
     },
     correlationId: string,
   ) {
@@ -154,6 +428,7 @@ export class MasterCatalogService {
           code,
           name,
           description: input.equipmentText?.trim() || null,
+          imageKey: input.imageKey?.trim() || null,
           active: true,
         },
       });
@@ -178,6 +453,7 @@ export class MasterCatalogService {
       name: string;
       equipmentText?: string | null;
       contactPhoneE164?: string | null;
+      imageKey?: string | null;
       active?: boolean;
     },
     correlationId: string,
@@ -188,13 +464,18 @@ export class MasterCatalogService {
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, current.branchId, true);
 
+      const dataToUpdate: Record<string, unknown> = {
+        name: input.name?.trim(),
+        description: input.equipmentText?.trim() || null,
+        active: input.active,
+      };
+      if (input.imageKey !== undefined) {
+        dataToUpdate.imageKey = input.imageKey?.trim() || null;
+      }
+
       const updated = await tx.studio.update({
         where: { id },
-        data: {
-          name: input.name?.trim(),
-          description: input.equipmentText?.trim() || null,
-          active: input.active,
-        },
+        data: dataToUpdate,
       });
 
       await this.access.audit(
@@ -215,12 +496,11 @@ export class MasterCatalogService {
     const studio = await this.db.studio.findUnique({ where: { id: studioId } });
     if (!studio) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     this.access.ensureBranchScope(principal, studio.branchId);
-
     const items = await this.db.ruangan.findMany({
       where: { studioId, active: true },
-      orderBy: [{ code: 'asc' }, { id: 'asc' }],
+      orderBy: { code: 'asc' },
     });
-    return { items, page: { hasMore: false, nextCursor: null } };
+    return { items };
   }
 
   async createRoom(
@@ -236,11 +516,7 @@ export class MasterCatalogService {
 
     const code = input.code?.trim().toUpperCase();
     const name = input.name?.trim();
-    if (
-      !/^[A-Z0-9_-]{2,64}$/u.test(code) ||
-      name.length < 2 ||
-      (input.capacity != null && input.capacity < 1)
-    )
+    if (!/^[A-Z0-9_-]{1,64}$/u.test(code) || name.length < 1)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     return this.db.$transaction(async (tx) => {
@@ -276,7 +552,10 @@ export class MasterCatalogService {
   ) {
     this.access.authorize(principal, true);
     return this.db.$transaction(async (tx) => {
-      const current = await tx.ruangan.findUnique({ where: { id }, include: { studio: true } });
+      const current = await tx.ruangan.findUnique({
+        where: { id },
+        include: { studio: true },
+      });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, current.studio.branchId, true);
 
@@ -302,224 +581,9 @@ export class MasterCatalogService {
     });
   }
 
-  async updateBranch(
-    principal: SessionPrincipal,
-    id: string,
-    input: {
-      name: string;
-      timezone: string;
-      supportWhatsappE164?: string | null;
-      expectedVersion?: number;
-      reason?: string;
-    },
-    key: string | undefined,
-    correlationId: string,
-  ): Promise<Cabang> {
-    this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, id, true);
-    const name = input.name?.trim();
-    if (!name || name.length < 2)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
-    } catch {
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    }
-    if (input.supportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(input.supportWhatsappE164.trim()))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-    const updateAction = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.cabang.findUnique({ where: { id } });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const updated = await tx.cabang.update({
-        where: { id },
-        data: {
-          name,
-          timezone: input.timezone,
-          supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
-        },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        'master.branch_updated',
-        'Branch',
-        id,
-        id,
-        { name: current.name, timezone: current.timezone },
-        { name: updated.name, timezone: updated.timezone },
-      );
-      return updated;
-    };
-
-    if (!key) {
-      return this.db.$transaction(updateAction);
-    }
-
-    const result = await this.idempotency.execute(
-      {
-        scope: `branch-update:${id}`,
-        key,
-        payload: input,
-        ttlMs: 86_400_000,
-        leaseMs: 30_000,
-      },
-      async (tx) => {
-        const updated = await updateAction(tx);
-        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
-      },
-    );
-    return result.body as unknown as Cabang;
-  }
-
-  async transitionBranch(
-    principal: SessionPrincipal,
-    id: string,
-    status: 'ACTIVE' | 'INACTIVE',
-    input: { expectedVersion?: number; reason?: string },
-    key: string | undefined,
-    correlationId: string,
-  ): Promise<Cabang> {
-    this.access.authorize(principal, true);
-    this.access.ensureBranchScope(principal, id, true);
-
-    const transitionAction = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.cabang.findUnique({ where: { id } });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const updated = await tx.cabang.update({
-        where: { id },
-        data: { active: status === 'ACTIVE' },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        status === 'ACTIVE' ? 'master.branch_activated' : 'master.branch_deactivated',
-        'Branch',
-        id,
-        id,
-        { active: current.active },
-        { active: updated.active },
-      );
-      return updated;
-    };
-
-    if (!key) {
-      return this.db.$transaction(transitionAction);
-    }
-
-    const result = await this.idempotency.execute(
-      {
-        scope: `branch-transition:${id}`,
-        key,
-        payload: { status, ...input },
-        ttlMs: 86_400_000,
-        leaseMs: 30_000,
-      },
-      async (tx) => {
-        const updated = await transitionAction(tx);
-        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
-      },
-    );
-    return result.body as unknown as Cabang;
-  }
-
-  async createBranch(
-    principal: SessionPrincipal,
-    input: {
-      code: string;
-      name: string;
-      timezone: string;
-      supportWhatsappE164?: string | null;
-      reason?: string;
-    },
-    correlationId: string,
-    key?: string,
-  ): Promise<Cabang> {
-    this.access.authorize(principal, true);
-    const code = input.code.trim().toUpperCase();
-    const name = input.name.trim();
-    if (!/^[A-Z0-9_-]{2,30}$/.test(code) || name.length < 2 || name.length > 120)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
-    } catch {
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    }
-    if (input.supportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(input.supportWhatsappE164.trim()))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-
-    try {
-      const create = async (tx: Prisma.TransactionClient) => {
-        const branch = await tx.cabang.create({
-          data: {
-            id: newId(),
-            code,
-            name,
-            timezone: input.timezone,
-            supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
-            active: true,
-          },
-        });
-
-        await this.access.audit(
-          tx,
-          principal,
-          correlationId,
-          'master.branch_created',
-          'Branch',
-          branch.id,
-          branch.id,
-          undefined,
-          { code, timezone: input.timezone, active: true },
-        );
-        return branch;
-      };
-
-      if (!key) return await this.db.$transaction(create);
-
-      const result = await this.idempotency.execute(
-        {
-          scope: `branch-create:${code}`,
-          key,
-          payload: input,
-          ttlMs: 86_400_000,
-          leaseMs: 30_000,
-        },
-        async (tx) => ({
-          status: 201,
-          body: (await create(tx)) as unknown as Prisma.InputJsonValue,
-        }),
-      );
-      return result.body as unknown as Cabang;
-    } catch (error) {
-      if (isUnique(error)) throw new ApiProblem('BUSINESS_KEY_CONFLICT', HttpStatus.CONFLICT);
-      throw error;
-    }
-  }
-
-  async deactivateBranch(
-    principal: SessionPrincipal,
-    id: string,
-    expectedVersion: number,
-    correlationId: string,
-  ) {
-    return this.transitionBranch(
-      principal,
-      id,
-      'INACTIVE',
-      { expectedVersion, reason: 'Deactivated via API' },
-      undefined,
-      correlationId,
-    );
-  }
+  // ============================================================================
+  // JENIS KELAS (CLASS TYPES)
+  // ============================================================================
 
   async listClassTypes(principal: SessionPrincipal, branchId?: string) {
     this.access.authorize(principal);
@@ -566,11 +630,7 @@ export class MasterCatalogService {
     const code = input.code.trim().toUpperCase();
     const name = input.name.trim();
 
-    if (
-      !/^[A-Z0-9_-]{2,30}$/.test(code) ||
-      name.length < 2 ||
-      name.length > 120
-    )
+    if (!/^[A-Z0-9_-]{2,30}$/.test(code) || name.length < 2 || name.length > 120)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     try {
@@ -608,30 +668,16 @@ export class MasterCatalogService {
   async deactivateClassType(
     principal: SessionPrincipal,
     id: string,
-    _expectedVersion: number,
-    correlationId: string,
+    expectedVersion?: number,
+    correlationId: string = 'unknown',
   ) {
-    this.access.authorize(principal, true);
-    return this.db.$transaction(async (tx) => {
-      const item = await tx.jenisKelas.findUnique({ where: { id } });
-      if (!item) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const result = await tx.jenisKelas.update({
-        where: { id },
-        data: { active: false },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        'master.class_type_deactivated',
-        'ClassType',
-        id,
-        null,
-      );
-      return result;
-    });
+    return this.deactivateClassTypeIdempotent(
+      principal,
+      id,
+      { expectedVersion },
+      undefined,
+      correlationId,
+    );
   }
 
   async deactivateClassTypeIdempotent(
@@ -642,43 +688,31 @@ export class MasterCatalogService {
     correlationId: string,
   ): Promise<JenisKelas> {
     this.access.authorize(principal, true);
-    const action = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.jenisKelas.findUnique({ where: { id } });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const updated = await tx.jenisKelas.update({
-        where: { id },
-        data: { active: false },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        'master.class_type_deactivated',
-        'ClassType',
-        id,
-        null,
-      );
-      return updated;
-    };
-
-    if (!key) return this.db.$transaction(action);
-
-    const result = await this.idempotency.execute(
-      {
-        scope: `class-type-deactivate:${id}`,
-        key,
-        payload: input,
-        ttlMs: 86_400_000,
-        leaseMs: 30_000,
-      },
+    return this.executeMutation(
+      `class-type-deactivate:${id}`,
+      key,
+      input,
       async (tx) => {
-        const updated = await action(tx);
-        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
+        if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const updated = await tx.jenisKelas.update({
+          where: { id },
+          data: { active: false },
+        });
+
+        await this.access.audit(
+          tx,
+          principal,
+          correlationId,
+          'master.class_type_deactivated',
+          'ClassType',
+          id,
+          null,
+        );
+        return updated;
       },
     );
-    return result.body as unknown as JenisKelas;
   }
 
   async updateClassType(
@@ -693,43 +727,31 @@ export class MasterCatalogService {
     if (!name || name.length < 2 || name.length > 120)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-    const action = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.jenisKelas.findUnique({ where: { id } });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const updated = await tx.jenisKelas.update({
-        where: { id },
-        data: { name },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        'master.class_type_updated',
-        'ClassType',
-        id,
-        null,
-      );
-      return updated;
-    };
-
-    if (!key) return this.db.$transaction(action);
-
-    const result = await this.idempotency.execute(
-      {
-        scope: `class-type-update:${id}`,
-        key,
-        payload: input,
-        ttlMs: 86_400_000,
-        leaseMs: 30_000,
-      },
+    return this.executeMutation(
+      `class-type-update:${id}`,
+      key,
+      input,
       async (tx) => {
-        const updated = await action(tx);
-        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
+        if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const updated = await tx.jenisKelas.update({
+          where: { id },
+          data: { name },
+        });
+
+        await this.access.audit(
+          tx,
+          principal,
+          correlationId,
+          'master.class_type_updated',
+          'ClassType',
+          id,
+          null,
+        );
+        return updated;
       },
     );
-    return result.body as unknown as JenisKelas;
   }
 
   async reactivateClassType(
@@ -740,49 +762,37 @@ export class MasterCatalogService {
     correlationId: string,
   ): Promise<JenisKelas> {
     this.access.authorize(principal, true);
-    const action = async (tx: Prisma.TransactionClient) => {
-      const current = await tx.jenisKelas.findUnique({ where: { id } });
-      if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-      const updated = await tx.jenisKelas.update({
-        where: { id },
-        data: { active: true },
-      });
-
-      await this.access.audit(
-        tx,
-        principal,
-        correlationId,
-        'master.class_type_reactivated',
-        'ClassType',
-        id,
-        null,
-      );
-      return updated;
-    };
-
-    if (!key) return this.db.$transaction(action);
-
-    const result = await this.idempotency.execute(
-      {
-        scope: `class-type-reactivate:${id}`,
-        key,
-        payload: input,
-        ttlMs: 86_400_000,
-        leaseMs: 30_000,
-      },
+    return this.executeMutation(
+      `class-type-reactivate:${id}`,
+      key,
+      input,
       async (tx) => {
-        const updated = await action(tx);
-        return { status: 200, body: updated as unknown as Prisma.InputJsonValue };
+        const current = await tx.jenisKelas.findUnique({ where: { id } });
+        if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const updated = await tx.jenisKelas.update({
+          where: { id },
+          data: { active: true },
+        });
+
+        await this.access.audit(
+          tx,
+          principal,
+          correlationId,
+          'master.class_type_reactivated',
+          'ClassType',
+          id,
+          null,
+        );
+        return updated;
       },
     );
-    return result.body as unknown as JenisKelas;
   }
 
   async replaceClassTypeScopes(
     principal: SessionPrincipal,
     id: string,
-    input: { branchIds: string[]; expectedVersion?: number; reason?: string },
+    _input: { branchIds: string[]; expectedVersion?: number; reason?: string },
     _correlationId: string,
   ) {
     this.access.authorize(principal, true);
@@ -791,128 +801,129 @@ export class MasterCatalogService {
     });
   }
 
-  // --- Indonesian Domain Aliases ---
-  async daftarCabang(
-    principal: SessionPrincipal,
-    query?: Parameters<MasterCatalogService['listBranches']>[1],
-  ) {
-    return this.listBranches(principal, query);
+  // ============================================================================
+  // PROFIL PUBLIK (PUBLIC PROFILES)
+  // ============================================================================
+
+  async listPublicProfiles(principal: SessionPrincipal, branchId: string) {
+    this.access.authorize(principal);
+    this.access.ensureBranchScope(principal, branchId);
+    const branch = await this.db.cabang.findUnique({
+      where: { id: branchId },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        address: true,
+        heroImageKey: true,
+        galleryImageKeys: true,
+      },
+    });
+    if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const meta = BRANCH_METADATA[branch.code];
+    const publicProfile = {
+      slug: branch.code.toLowerCase(),
+      area: meta?.area ?? branch.name,
+      city: meta?.city ?? 'Jakarta',
+      address: branch.address ?? '',
+      description: `${branch.name} Studio Pilates`,
+      arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
+      parkingInformation: 'Tersedia tempat parkir kendaraan.',
+      openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      amenities: ['Locker', 'Shower', 'Water Refill', 'Towel'],
+      heroImageKey: branch.heroImageKey,
+      galleryImageKeys: (branch.galleryImageKeys as string[]) ?? [],
+      version: 1,
+    };
+
+    // Dynamically discover all unique image keys registered in database
+    const [allBranches, allStudios, allClasses] = await Promise.all([
+      this.db.cabang.findMany({ select: { heroImageKey: true, galleryImageKeys: true } }),
+      this.db.studio.findMany({ select: { imageKey: true } }),
+      this.db.jenisKelas.findMany({ select: { heroImageKey: true, galleryImageKeys: true } }),
+    ]);
+
+    const dynamicKeys = new Set<string>();
+    for (const b of allBranches) {
+      if (b.heroImageKey) dynamicKeys.add(b.heroImageKey);
+      if (Array.isArray(b.galleryImageKeys)) {
+        for (const k of b.galleryImageKeys as string[]) {
+          if (typeof k === 'string' && k.trim()) dynamicKeys.add(k.trim());
+        }
+      }
+    }
+    for (const s of allStudios) {
+      if (s.imageKey) dynamicKeys.add(s.imageKey);
+    }
+    for (const c of allClasses) {
+      if (c.heroImageKey) dynamicKeys.add(c.heroImageKey);
+      if (Array.isArray(c.galleryImageKeys)) {
+        for (const k of c.galleryImageKeys as string[]) {
+          if (typeof k === 'string' && k.trim()) dynamicKeys.add(k.trim());
+        }
+      }
+    }
+
+    return {
+      branch: { ...branch, publicProfile, classTypes: [] },
+      classProfiles: [],
+      assetKeys: Array.from(dynamicKeys).sort(),
+    };
   }
 
-  async detailCabang(principal: SessionPrincipal, id: string) {
-    return this.branchDetail(principal, id);
-  }
-
-  async buatCabang(
+  async updatePublicProfile(
     principal: SessionPrincipal,
-    input: Parameters<MasterCatalogService['createBranch']>[1],
-    correlationId: string,
-    key?: string,
-  ) {
-    return this.createBranch(principal, input, correlationId, key);
-  }
-
-  async perbaruiCabang(
-    principal: SessionPrincipal,
+    kind: 'branch' | 'class' | 'package',
     id: string,
-    input: Parameters<MasterCatalogService['updateBranch']>[2],
-    key: string | undefined,
-    correlationId: string,
+    input: PublicProfileInput,
+    _correlationId: string,
   ) {
-    return this.updateBranch(principal, id, input, key, correlationId);
-  }
+    this.access.authorize(principal, true);
+    const version = Number.isInteger(input.expectedVersion) ? (input.expectedVersion as number) : 1;
 
-  async nonaktifkanCabang(
-    principal: SessionPrincipal,
-    id: string,
-    expectedVersion: number,
-    correlationId: string,
-  ) {
-    return this.deactivateBranch(principal, id, expectedVersion, correlationId);
-  }
+    if (kind === 'branch') {
+      const dataToUpdate: Record<string, unknown> = {};
+      if (typeof input.heroImageKey === 'string') {
+        dataToUpdate.heroImageKey = input.heroImageKey.trim() || null;
+      }
+      if (Array.isArray(input.galleryImageKeys)) {
+        dataToUpdate.galleryImageKeys = input.galleryImageKeys;
+      }
+      if (typeof input.address === 'string') {
+        dataToUpdate.address = input.address.trim() || null;
+      }
 
-  async daftarStudio(principal: SessionPrincipal, branchId: string) {
-    return this.listStudios(principal, branchId);
-  }
+      if (Object.keys(dataToUpdate).length > 0) {
+        await this.db.cabang.update({
+          where: { id },
+          data: dataToUpdate,
+        });
+      }
+    } else if (kind === 'class') {
+      const dataToUpdate: Record<string, unknown> = {};
+      if (typeof input.heroImageKey === 'string') {
+        dataToUpdate.heroImageKey = input.heroImageKey.trim() || null;
+      }
+      if (Array.isArray(input.galleryImageKeys)) {
+        dataToUpdate.galleryImageKeys = input.galleryImageKeys;
+      }
+      if (typeof input.description === 'string') {
+        dataToUpdate.description = input.description.trim() || null;
+      }
+      if (Object.keys(dataToUpdate).length > 0) {
+        await this.db.jenisKelas.update({
+          where: { id },
+          data: dataToUpdate,
+        });
+      }
+    }
 
-  async buatStudio(
-    principal: SessionPrincipal,
-    branchId: string,
-    input: Parameters<MasterCatalogService['createStudio']>[2],
-    correlationId: string,
-  ) {
-    return this.createStudio(principal, branchId, input, correlationId);
-  }
-
-  async perbaruiStudio(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<MasterCatalogService['updateStudio']>[2],
-    correlationId: string,
-  ) {
-    return this.updateStudio(principal, id, input, correlationId);
-  }
-
-  async daftarRuangan(principal: SessionPrincipal, studioId: string) {
-    return this.listRooms(principal, studioId);
-  }
-
-  async buatRuangan(
-    principal: SessionPrincipal,
-    studioId: string,
-    input: Parameters<MasterCatalogService['createRoom']>[2],
-    correlationId: string,
-  ) {
-    return this.createRoom(principal, studioId, input, correlationId);
-  }
-
-  async perbaruiRuangan(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<MasterCatalogService['updateRoom']>[2],
-    correlationId: string,
-  ) {
-    return this.updateRoom(principal, id, input, correlationId);
-  }
-
-  async daftarJenisKelas(principal: SessionPrincipal, branchId?: string) {
-    return this.listClassTypes(principal, branchId);
-  }
-
-  async buatJenisKelas(
-    principal: SessionPrincipal,
-    input: Parameters<MasterCatalogService['createClassType']>[1],
-    correlationId: string,
-  ) {
-    return this.createClassType(principal, input, correlationId);
-  }
-
-  async perbaruiJenisKelas(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<MasterCatalogService['updateClassType']>[2],
-    key: string | undefined,
-    correlationId: string,
-  ) {
-    return this.updateClassType(principal, id, input, key, correlationId);
-  }
-
-  async nonaktifkanJenisKelas(
-    principal: SessionPrincipal,
-    id: string,
-    expectedVersion: number,
-    correlationId: string,
-  ) {
-    return this.deactivateClassType(principal, id, expectedVersion, correlationId);
-  }
-
-  async aktifkanKembaliJenisKelas(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<MasterCatalogService['reactivateClassType']>[2],
-    key: string | undefined,
-    correlationId: string,
-  ) {
-    return this.reactivateClassType(principal, id, input, key, correlationId);
+    return {
+      kind,
+      id,
+      version: version + 1,
+      updated: true,
+    };
   }
 }

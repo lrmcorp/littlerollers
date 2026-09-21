@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { Feedback } from '../ui';
-import { controlClassName, SearchSelect, TextInput } from '../components/forms';
-import { resolvePublicImageUrl } from '../lib/public-image-url';
+import {
+  controlClassName,
+  ImageUploadField,
+  MultiImageGalleryField,
+  TextInput,
+} from '../components/forms';
 
 type Editable = Record<string, unknown> & { version: number };
 type ProfileData = {
@@ -68,7 +71,9 @@ export function BranchPublicProfileDrawer({
     setLoading(true);
     setError('');
     request<ProfileData>(`/api/v1/master/public-profiles?branchId=${encodeURIComponent(branchId)}`)
-      .then(setData)
+      .then((res) => {
+        setData(res);
+      })
       .catch(() => setError('Profil publik cabang belum dapat dimuat.'))
       .finally(() => setLoading(false));
   }, [branchId, open]);
@@ -76,20 +81,12 @@ export function BranchPublicProfileDrawer({
   const profile = data?.branch.publicProfile;
   const assetKeys = data?.assetKeys ?? [];
 
+
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile) return;
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const reason = String(formData.get('reason')).trim();
-
-    const confirmed = await feedback.confirm({
-      tone: 'warning',
-      title: 'Simpan perubahan profil publik?',
-      message: 'Perubahan alamat, kontak, dan deskripsi akan langsung tampil pada halaman publik customer.',
-      confirmLabel: 'Simpan perubahan',
-    });
-    if (!confirmed) return;
 
     setSaving(true);
     try {
@@ -110,7 +107,6 @@ export function BranchPublicProfileDrawer({
           heroImageKey: String(formData.get('heroImageKey')).trim(),
           galleryImageKeys: list(formData, 'galleryImageKeys'),
           expectedVersion: profile.version,
-          reason,
         }),
       });
       setDirty(false);
@@ -125,7 +121,7 @@ export function BranchPublicProfileDrawer({
       feedback.showAlert({
         tone: 'danger',
         title: 'Gagal menyimpan profil publik',
-        message: 'Periksa kelengkapan gambar kurasi, alasan perubahan, atau coba beberapa saat lagi.',
+        message: 'Periksa kelengkapan gambar atau format isian, lalu coba beberapa saat lagi.',
       });
     } finally {
       setSaving(false);
@@ -172,17 +168,16 @@ export function BranchPublicProfileDrawer({
           onChange={() => setDirty(true)}
           onSubmit={handleSave}
         >
-          {Boolean(profile.heroImageKey) && (
-            <div className="relative h-44 w-full overflow-hidden rounded-dd-lg border border-dd-line/80 bg-dd-surface-muted">
-              <Image
-                src={resolvePublicImageUrl(String(profile.heroImageKey))}
-                alt={`Preview Hero ${branchName}`}
-                fill
-                sizes="520px"
-                className="object-cover"
-              />
-            </div>
-          )}
+          {/* Direct Image Upload Field for Hero Image */}
+          <ImageUploadField
+            name="heroImageKey"
+            label="Foto Hero Utama Cabang"
+            defaultValue={text(profile.heroImageKey)}
+            description="Unggah foto terbaik untuk banner utama cabang di halaman publik."
+            presetOptions={assetKeys.map((key) => ({ id: key, label: key }))}
+            required
+            onChange={() => setDirty(true)}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <TextInput label="Slug URL" name="slug" defaultValue={text(profile.slug)} required />
@@ -271,35 +266,14 @@ export function BranchPublicProfileDrawer({
             </span>
           </label>
 
-          <SearchSelect
-            name="heroImageKey"
-            label="Foto Hero Utama"
-            defaultValue={text(profile.heroImageKey)}
-            required
-            options={assetKeys.map((key) => ({ id: key, label: key }))}
+          <MultiImageGalleryField
+            name="galleryImageKeys"
+            label="Galeri Foto Cabang"
+            defaultValue={profile.galleryImageKeys as string[]}
+            description="Unggah foto suasana studio, fasilitas, atau ruangan cabang ini. Anda dapat mengunggah banyak foto sekaligus atau menyeret berkas ke area galeri."
+            onChange={() => setDirty(true)}
           />
 
-          <label className="text-sm font-semibold text-dd-ink">
-            Galeri Foto (Asset Keys)
-            <textarea
-              name="galleryImageKeys"
-              defaultValue={lines(profile.galleryImageKeys)}
-              required
-              rows={3}
-              className={`${controlClassName} min-h-24 resize-y mt-1.5`}
-            />
-            <span className="mt-1 block text-xs font-normal text-dd-muted">
-              Kunci aset gambar yang telah dikurasi: {assetKeys.join(', ')}.
-            </span>
-          </label>
-
-          <TextInput
-            label="Alasan Perubahan"
-            name="reason"
-            minLength={3}
-            required
-            placeholder="Contoh: Update jam buka dan penambahan link Google Maps"
-          />
         </form>
       )}
     </Drawer>

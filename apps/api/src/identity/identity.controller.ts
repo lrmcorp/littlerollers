@@ -130,23 +130,26 @@ export class IdentityController {
   ) {
     const selfie = files?.selfie?.[0];
     const ktp = files?.ktp?.[0];
-    if (!selfie || !ktp) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.deliverSession(
       response,
       await this.identities.registerCustomer(
         {
           ...body,
           consent: body.consent === true || body.consent === 'true',
-          selfie: {
-            originalName: selfie.originalname,
-            claimedMimeType: selfie.mimetype,
-            buffer: selfie.buffer,
-          },
-          ktp: {
-            originalName: ktp.originalname,
-            claimedMimeType: ktp.mimetype,
-            buffer: ktp.buffer,
-          },
+          selfie: selfie
+            ? {
+                originalName: selfie.originalname,
+                claimedMimeType: selfie.mimetype,
+                buffer: selfie.buffer,
+              }
+            : undefined,
+          ktp: ktp
+            ? {
+                originalName: ktp.originalname,
+                claimedMimeType: ktp.mimetype,
+                buffer: ktp.buffer,
+              }
+            : undefined,
         },
         request.correlationId ?? 'unknown',
         `${request.ip}:${request.header('user-agent') ?? ''}`,

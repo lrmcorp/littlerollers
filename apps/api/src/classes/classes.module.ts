@@ -6,10 +6,13 @@ import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './ketersediaan-instruktur.service';
 import { ClassSlotController } from './class-slot.controller';
 import { ClassSlotService } from './slot-kelas.service';
+import { AutoCancelService } from './auto-cancel.service';
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
   controllers: [AvailabilityController, ClassSlotController],
-  providers: [AvailabilityService, ClassSlotService],
+  providers: [AvailabilityService, ClassSlotService, AutoCancelService],
+  exports: [ClassSlotService, AutoCancelService],
 })
 export class ClassesModule {}
+

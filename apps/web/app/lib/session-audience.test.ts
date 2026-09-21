@@ -43,8 +43,8 @@ describe('public detail routing and audience', () => {
     expect(packageAudienceState(session(['CUSTOMER', 'ADMIN'], 'APPROVED'))).toBe('STAFF');
   });
 
-  it('distinguishes pending and approved customer sessions', () => {
-    expect(packageAudienceState(session(['CUSTOMER'], 'PENDING'))).toBe('CUSTOMER_UNVERIFIED');
+  it('allows customers to purchase packages regardless of KYC verification status', () => {
+    expect(packageAudienceState(session(['CUSTOMER'], 'PENDING'))).toBe('CUSTOMER_APPROVED');
     expect(packageAudienceState(session(['CUSTOMER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
   });
 });

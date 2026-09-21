@@ -5,10 +5,10 @@ import { Building2, DoorOpen, Pencil, Phone, Plus, Wrench } from 'lucide-react';
 import { Badge, Panel } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
-import { CheckboxInput, SearchSelect, TextInput } from '../components/forms';
+import { CheckboxInput, ImageUploadField, SearchSelect, TextInput } from '../components/forms';
 import { EmptyState, Feedback, StatusBadge } from '../ui';
-import { browserMasterClient } from '@/api-clients/master-client';
-import type { Room, Studio } from '@dailydose/api-client-ts/generated';
+import { browserMasterClient, type Room, type Studio } from '@/api-clients/master-client';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 export function BranchVenuesPanel({
   branchId,
@@ -66,6 +66,7 @@ export function BranchVenuesPanel({
     const name = String(data.get('name')).trim();
     const equipmentText = String(data.get('equipmentText')).trim() || undefined;
     const contactPhoneE164 = String(data.get('contactPhoneE164')).trim() || undefined;
+    const imageKey = String(data.get('imageKey') ?? '').trim() || null;
     const active = data.get('active') === 'true' || data.get('active') === 'on';
 
     setBusy(true);
@@ -76,6 +77,7 @@ export function BranchVenuesPanel({
           name,
           equipmentText,
           contactPhoneE164,
+          imageKey,
           active,
         });
         feedback.showToast({
@@ -90,6 +92,7 @@ export function BranchVenuesPanel({
           name,
           equipmentText,
           contactPhoneE164,
+          imageKey,
         });
         feedback.showToast({
           tone: 'success',
@@ -249,19 +252,42 @@ export function BranchVenuesPanel({
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           {studios.map((studio) => {
             const rooms = studio.rooms ?? [];
+            const studioImageKey = (studio as any).imageKey;
+            const studioImageUrl = studioImageKey ? resolvePublicImageUrl(studioImageKey) : null;
             return (
               <div
                 key={studio.id}
-                className="flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-5 shadow-sm transition hover:border-dd-forest/40 hover:shadow-dd-card"
+                className="group flex flex-col justify-between overflow-hidden rounded-dd-lg border border-dd-line/80 bg-white shadow-sm transition hover:border-dd-forest/40 hover:shadow-dd-card"
               >
-                <div>
+                {studioImageUrl && (
+                  <div className="relative h-40 w-full overflow-hidden bg-dd-surface-muted border-b border-dd-line/60">
+                    <img
+                      src={studioImageUrl}
+                      alt={`Foto Studio ${studio.name}`}
+                      className="size-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        const parent = (e.currentTarget as HTMLElement).parentElement;
+                        if (parent) parent.style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                    <div className="absolute top-2.5 right-2.5">
+                      <StatusBadge tone={studio.active ? 'success' : 'neutral'}>
+                        {studio.active ? 'Aktif' : 'Nonaktif'}
+                      </StatusBadge>
+                    </div>
+                  </div>
+                )}
+                <div className="p-5">
                   {/* Studio Top Row */}
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="grid size-7 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
-                          <Building2 className="size-4" />
-                        </span>
+                        {!studioImageUrl && (
+                          <span className="grid size-7 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
+                            <Building2 className="size-4" />
+                          </span>
+                        )}
                         <strong className="text-base font-bold text-dd-ink">{studio.name}</strong>
                       </div>
                       <span className="mt-1 inline-block text-xs font-semibold text-dd-muted">
@@ -269,9 +295,11 @@ export function BranchVenuesPanel({
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <StatusBadge tone={studio.active ? 'success' : 'neutral'}>
-                        {studio.active ? 'Aktif' : 'Nonaktif'}
-                      </StatusBadge>
+                      {!studioImageUrl && (
+                        <StatusBadge tone={studio.active ? 'success' : 'neutral'}>
+                          {studio.active ? 'Aktif' : 'Nonaktif'}
+                        </StatusBadge>
+                      )}
                       {canManage && (
                         <button
                           type="button"
@@ -456,6 +484,13 @@ export function BranchVenuesPanel({
             defaultValue={editingStudio?.contactPhoneE164 ?? ''}
             placeholder="+628…"
             description="Format internasional E.164 (opsional)."
+          />
+          <ImageUploadField
+            name="imageKey"
+            label="Foto Area Studio"
+            defaultValue={editingStudio?.imageKey ?? ''}
+            description="Foto interior, reformer, atau suasana studio untuk informasi publik."
+            onChange={() => setStudioDirty(true)}
           />
           {editingStudio && (
             <CheckboxInput

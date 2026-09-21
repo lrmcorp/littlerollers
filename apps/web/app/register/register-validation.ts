@@ -22,11 +22,13 @@ const e164Pattern = /^\+[1-9]\d{7,14}$/u;
 
 export function normalizeRegistrationPhone(value: string): string {
   const compact = value.trim().replace(/[\s().-]/g, '');
-  return compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
+  if (compact.startsWith('0')) return `+62${compact.slice(1)}`;
+  if (compact.startsWith('62')) return `+${compact}`;
+  return compact;
 }
 
 function validateIdentityFile(file: File | null, label: string): string | undefined {
-  if (!file || file.size === 0) return `${label} wajib dipilih.`;
+  if (!file || file.size === 0) return undefined;
   if (!IDENTITY_IMAGE_TYPES.includes(file.type as (typeof IDENTITY_IMAGE_TYPES)[number]))
     return `${label} harus berformat JPG, PNG, atau WebP.`;
   if (file.size > MAX_IDENTITY_FILE_BYTES) return `${label} maksimal berukuran 8 MB.`;
@@ -64,11 +66,13 @@ export function validateRegisterField(
       if (values.confirmation !== values.password) return 'Konfirmasi password tidak sama.';
       return undefined;
     case 'selfie':
+      if (!values.selfie) return undefined;
       return validateIdentityFile(values.selfie, 'Foto selfie');
     case 'ktp':
+      if (!values.ktp) return undefined;
       return validateIdentityFile(values.ktp, 'Foto KTP');
     case 'consent':
-      return values.consent ? undefined : 'Persetujuan verifikasi identitas wajib diberikan.';
+      return undefined;
   }
 }
 
@@ -81,7 +85,6 @@ export function validateRegistration(values: RegisterValues): RegisterErrors {
     'confirmation',
     'selfie',
     'ktp',
-    'consent',
   ];
   return Object.fromEntries(
     fields.flatMap((field) => {

@@ -33,8 +33,18 @@ export function resolvePublicImageUrl(
   }
 
   // Fallback to MinIO Object Storage
+  const bucket =
+    process.env.NEXT_PUBLIC_OBJECT_STORAGE_BUCKET ||
+    process.env.OBJECT_STORAGE_BUCKET ||
+    'dailydose-testing';
+  const endpoint =
+    process.env.NEXT_PUBLIC_OBJECT_STORAGE_ENDPOINT ||
+    process.env.OBJECT_STORAGE_ENDPOINT ||
+    'https://storage.dailydosepilates.com';
   const objectStorageBase =
     process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ||
-    'https://storage.dailydosepilates.com/dailydose';
+    `${endpoint.replace(/\/+$/, '')}/${bucket.replace(/^\/+/, '')}`;
   return `${objectStorageBase.replace(/\/+$/, '')}/${trimmed.replace(/^\/+/, '')}`;
 }
+
+export const resolveImageUrl = resolvePublicImageUrl;

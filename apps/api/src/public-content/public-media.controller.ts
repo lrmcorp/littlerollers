@@ -35,16 +35,35 @@ export class PublicMediaController {
       contentBase64: string;
     },
   ) {
-    this.policy.requireCapability(req.principal.capabilities, 'public-content:manage');
+    const hasPermission =
+      req.principal.capabilities.includes('public-content:manage') ||
+      req.principal.capabilities.includes('master:manage');
+    if (!hasPermission) {
+      this.policy.requireCapability(req.principal.capabilities, 'public-content:manage');
+    }
     return this.mediaService.savePublicImage(body);
   }
 
   @Get('public-media/:filename')
   @Header('Cache-Control', 'public, max-age=31536000, immutable')
-  serveMedia(@Param('filename') filename: string, @Res() res: Response) {
-    const { buffer, mimeType } = this.mediaService.getPublicImage(filename);
+  async serveMedia(@Param('filename') filename: string, @Res() res: Response) {
+    const { buffer, mimeType } = await this.mediaService.getPublicImage(filename);
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
+  }
+
+  @Get('public-content-management/media')
+  @UseGuards(AuthGuard)
+  async listMedia(@Req() req: AuthenticatedRequest) {
+    const hasPermission =
+      req.principal.capabilities.includes('public-content:manage') ||
+      req.principal.capabilities.includes('master:manage') ||
+      req.principal.capabilities.includes('master:read');
+    if (!hasPermission) {
+      this.policy.requireCapability(req.principal.capabilities, 'master:read');
+    }
+    const items = await this.mediaService.listMedia();
+    return { items };
   }
 }

@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { CheckInMethod, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
@@ -148,13 +148,14 @@ export class AttendanceService {
         const payload = `dd-checkin:v1:${rawToken}`;
         const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
         const passUrl = `${base}/check-in-pass#token=${encodeURIComponent(payload)}`;
+        const checkInLink = `${base}/check-in/${rawToken}`;
         const digits = booking.user.phone?.replace(/\D/gu, '') ?? '';
         const schedule = new Intl.DateTimeFormat('id-ID', {
           dateStyle: 'medium',
           timeStyle: 'short',
           timeZone: booking.classSlot.branch.timezone,
         }).format(booking.classSlot.startAt);
-        const message = `Halo ${booking.user.displayName}, berikut QR check-in Daily Dose untuk kelas ${schedule}. Buka pass ini saat tiba di studio: ${passUrl}`;
+        const message = `Halo ${booking.user.displayName}, berikut link check-in kehadiran Daily Dose untuk kelas ${schedule}. Buka link ini saat tiba di studio sebelum latihan dimulai: ${checkInLink}`;
 
         return {
           id: token.id,
@@ -164,6 +165,7 @@ export class AttendanceService {
           token: rawToken,
           qrPayload: payload,
           passUrl,
+          checkInLink,
           maskedCustomerPhone: maskedPhone(booking.user.phone ?? null),
           whatsappUrl: digits ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}` : null,
           message,
@@ -419,10 +421,18 @@ export class AttendanceService {
         if (booking.classSlot.startAt > now)
           throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
 
+        // Rule #9: Batas toleransi backfill admin adalah maksimal H+2 jam setelah kelas selesai
+        const cutoffBackfill = new Date(booking.classSlot.endAt.getTime() + 2 * 3_600_000);
+        if (now > cutoffBackfill)
+          throw new ApiProblem('ADMIN_BACKFILL_WINDOW_CLOSED', HttpStatus.GONE);
+
         const attendance = await tx.kehadiranPelanggan.create({
           data: {
             id: randomUUID(),
             bookingId: booking.id,
+            method: CheckInMethod.MANUAL_FRONTDESK,
+            recordedById: principal.userId,
+            notes: input.reason,
             checkedInAt: now,
           },
         });
@@ -430,6 +440,45 @@ export class AttendanceService {
           where: { id: booking.id },
           data: { status: 'ATTENDED' },
         });
+
+        // Jika kelas sudah COMPLETED dan customer baru di-backfill oleh admin:
+        // Potong sesi via SessionLedger jika belum pernah tercatat (Rule #1)
+        if (booking.classSlot.status === 'COMPLETED') {
+          const existingLedger = await tx.sessionLedger.findFirst({
+            where: {
+              referenceId: booking.id,
+              type: SessionMutationType.ATTEND,
+            },
+          });
+          if (!existingLedger) {
+            const customerPackage = await tx.paketPelanggan.findUnique({
+              where: { id: booking.customerPackageId },
+            });
+            if (customerPackage) {
+              const remainingAfter = customerPackage.remainingSessions - 1;
+              await tx.sessionLedger.create({
+                data: {
+                  customerPackageId: customerPackage.id,
+                  type: SessionMutationType.ATTEND,
+                  amount: -1,
+                  balanceAfter: remainingAfter,
+                  referenceId: booking.id,
+                  notes: `Admin backfill attendance: ${booking.classSlot.classType.name} at ${booking.classSlot.branch.name} (${input.reason})`,
+                  createdById: principal.userId,
+                },
+              });
+              await tx.paketPelanggan.update({
+                where: { id: customerPackage.id },
+                data: {
+                  usedSessions: { increment: 1 },
+                  remainingSessions: { decrement: 1 },
+                  status: remainingAfter <= 0 ? 'DEPLETED' : customerPackage.status,
+                },
+              });
+            }
+          }
+        }
+
         return {
           status: HttpStatus.CREATED,
           body: {
@@ -608,5 +657,147 @@ export class AttendanceService {
         checkedInAt: now.toISOString(),
       },
     };
+  }
+
+  /** Dapatkan ringkasan info kelas dari token check-in customer (Rule #1). */
+  async getCustomerLinkInfo(tokenInput: string, now = new Date()) {
+    const raw = rawTokenFrom(tokenInput);
+    const tokenHash = sha256(raw);
+
+    const token = await this.db.checkInToken.findUnique({
+      where: { token: tokenHash },
+      include: {
+        booking: {
+          include: {
+            attendance: true,
+            user: { select: { displayName: true } },
+            classSlot: {
+              include: {
+                classType: { select: { name: true } },
+                branch: { select: { code: true, name: true, timezone: true } },
+                instructor: { select: { displayName: true } },
+                studio: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!token) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
+
+    const slot = token.booking.classSlot;
+    const opensAt = new Date(slot.startAt.getTime() - 60 * 60_000);
+    const isTooEarly = now < opensAt;
+    const isExpired = now > slot.endAt || token.expiresAt < now;
+    const isAttended = Boolean(token.booking.attendance) || token.booking.status === 'ATTENDED';
+
+    return {
+      bookingId: token.bookingId,
+      customerName: token.booking.user.displayName,
+      className: slot.classType.name,
+      branchName: slot.branch.name,
+      studioName: slot.studio?.name ?? null,
+      instructorName: slot.instructor?.displayName ?? null,
+      startAt: slot.startAt.toISOString(),
+      endAt: slot.endAt.toISOString(),
+      timezone: slot.branch.timezone,
+      status: isAttended ? 'ATTENDED' : isExpired ? 'EXPIRED' : isTooEarly ? 'TOO_EARLY' : 'OPEN',
+      canConfirm: !isAttended && !isExpired && !isTooEarly,
+    };
+  }
+
+  /** Konfirmasi kehadiran customer via tautan web (Rule #1). */
+  async confirmCustomerLink(tokenInput: string, now = new Date()) {
+    const raw = rawTokenFrom(tokenInput);
+    const tokenHash = sha256(raw);
+
+    return this.db.$transaction(
+      async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT \`id\` FROM \`check_in_token\` WHERE \`token\` = ${tokenHash} FOR UPDATE
+        `;
+        const id = rows[0]?.id;
+        if (!id) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
+
+        const token = await tx.checkInToken.findUnique({
+          where: { id },
+          include: {
+            booking: {
+              include: {
+                attendance: true,
+                user: { select: { id: true, displayName: true, email: true } },
+                classSlot: {
+                  include: {
+                    classType: { select: { name: true } },
+                    branch: { select: { code: true, name: true, timezone: true } },
+                    instructor: { select: { displayName: true } },
+                    studio: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+        });
+        if (!token) throw new ApiProblem('CHECK_IN_TOKEN_INVALID', HttpStatus.NOT_FOUND);
+
+        // Idempotent: jika sudah hadir
+        if (token.booking.attendance || token.booking.status === 'ATTENDED') {
+          return {
+            ok: true,
+            status: 'ALREADY_ATTENDED',
+            bookingId: token.bookingId,
+            customerName: token.booking.user.displayName,
+            className: token.booking.classSlot.classType.name,
+            branchName: token.booking.classSlot.branch.name,
+            checkedInAt: token.booking.attendance?.checkedInAt?.toISOString() ?? now.toISOString(),
+            message: 'Kehadiran Anda sudah terkonfirmasi sebelumnya.',
+          };
+        }
+
+        if (token.isUsed) throw new ApiProblem('CHECK_IN_TOKEN_REVOKED', HttpStatus.GONE);
+
+        // Window waktu: mulai 60 menit sebelum kelas hingga akhir kelas
+        const opensAt = new Date(token.booking.classSlot.startAt.getTime() - 60 * 60_000);
+        if (now < opensAt) throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
+        if (now > token.booking.classSlot.endAt || token.expiresAt < now)
+          throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
+        if (!['BOOKED', 'NO_SHOW'].includes(token.booking.status))
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+
+        const attendance = await tx.kehadiranPelanggan.create({
+          data: {
+            id: randomUUID(),
+            bookingId: token.bookingId,
+            method: CheckInMethod.WEB_LINK,
+            checkedInAt: now,
+          },
+        });
+
+        await tx.pemesananKelas.update({
+          where: { id: token.bookingId },
+          data: { status: 'ATTENDED' },
+        });
+
+        await tx.checkInToken.update({
+          where: { id: token.id },
+          data: { isUsed: true },
+        });
+
+        return {
+          ok: true,
+          status: 'ATTENDED',
+          bookingId: token.bookingId,
+          attendanceId: attendance.id,
+          customerName: token.booking.user.displayName,
+          className: token.booking.classSlot.classType.name,
+          instructorName: token.booking.classSlot.instructor?.displayName ?? null,
+          branchName: token.booking.classSlot.branch.name,
+          studioName: token.booking.classSlot.studio?.name ?? null,
+          checkedInAt: attendance.checkedInAt.toISOString(),
+          message: 'Kehadiran Anda berhasil dikonfirmasi. Selamat berlatih!',
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 }

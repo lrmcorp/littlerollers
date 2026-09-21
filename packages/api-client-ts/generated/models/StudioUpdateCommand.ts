@@ -43,6 +43,12 @@ export interface StudioUpdateCommand {
      * @memberof StudioUpdateCommand
      */
     active?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof StudioUpdateCommand
+     */
+    imageKey?: string | null;
 }
 
 /**
@@ -67,6 +73,7 @@ export function StudioUpdateCommandFromJSONTyped(json: any, ignoreDiscriminator:
         'equipmentText': json['equipmentText'] == null ? undefined : json['equipmentText'],
         'contactPhoneE164': json['contactPhoneE164'] == null ? undefined : json['contactPhoneE164'],
         'active': json['active'] == null ? undefined : json['active'],
+        'imageKey': json['imageKey'] == null ? undefined : json['imageKey'],
     };
 }
 
@@ -85,6 +92,7 @@ export function StudioUpdateCommandToJSONTyped(value?: StudioUpdateCommand | nul
         'equipmentText': value['equipmentText'],
         'contactPhoneE164': value['contactPhoneE164'],
         'active': value['active'],
+        'imageKey': value['imageKey'],
     };
 }
 

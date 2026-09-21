@@ -36,7 +36,5 @@ export function isCustomerOnlySession(session: WebSession | null | undefined) {
 export function packageAudienceState(session: WebSession | null | undefined): PackageAudienceState {
   if (!session) return 'GUEST';
   if (!isCustomerOnlySession(session)) return 'STAFF';
-  return session.identityVerificationStatus === 'APPROVED'
-    ? 'CUSTOMER_APPROVED'
-    : 'CUSTOMER_UNVERIFIED';
+  return 'CUSTOMER_APPROVED';
 }

@@ -236,7 +236,7 @@ export class DashboardService {
     const global =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some(
-        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE', 'OWNER'].includes(role),
+        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE', 'SUPERADMIN'].includes(role),
       );
     if (query.branchId && !global && !principal.branchIds.includes(query.branchId)) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);

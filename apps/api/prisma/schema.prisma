@@ -12,8 +12,14 @@ generator client {
 // ============================================================================
 
 enum Role {
-  SUPERADMIN
+  SUPER_OWNER
+  OWNER
+  MANAGER
+  FINANCE
   ADMIN
+  INSTRUCTOR
+  CUSTOMER
+  SUPERADMIN
   COACH
   MEMBER
 }
@@ -22,6 +28,30 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum SessionMutationType {
+  PURCHASE
+  ATTEND
+  REFUND_AUTOCANCEL
+  ADJUST_MANUAL
+}
+
+enum AdjustRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CloseStatus {
+  OPEN
+  LOCKED
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ClassModality {
@@ -85,6 +115,7 @@ enum RescheduleStatus {
 enum CheckInMethod {
   QR_SCAN
   MANUAL_FRONTDESK
+  WEB_LINK
 }
 
 // ============================================================================
@@ -109,6 +140,15 @@ model Cabang {
   instructorAssignments PenugasanInstruktur[]
   purchases             Pembelian[]
   paymentAccounts       RekeningPembayaran[]
+  ownerAssignments      OwnerCabang[]
+  minQuotaSettings      MinQuotaSetting[]
+  instructorFees        InstructorFee[]
+  projectionRates       ProjectionRate[]
+  otherCosts            OtherCost[]
+  monthlyCloses         MonthlyClose[]
+  correctionJournals    CorrectionJournal[]
+  instructorAvailabilities InstructorAvailability[]
+  packages              Paket[]
 
   @@map("cabang")
 }
@@ -165,8 +205,11 @@ model JenisKelas {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  packages   Paket[]
-  classSlots SlotKelas[]
+  packages         Paket[]
+  classSlots       SlotKelas[]
+  minQuotaSettings MinQuotaSetting[]
+  instructorFees   InstructorFee[]
+  projectionRates  ProjectionRate[]
 
   @@map("jenis_kelas")
 }
@@ -183,7 +226,9 @@ model User {
   passwordHash      String?    @db.VarChar(255)
   role              Role       @default(MEMBER)
   status            UserStatus @default(ACTIVE)
+  rememberToken     String?    @map("remember_token") @db.VarChar(100)
   preferredBranchId String?    @db.Char(36)
+  stoppedAt         DateTime?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -196,6 +241,16 @@ model User {
   bookings              PemesananKelas[]
   verifiedPurchases     Pembelian[]           @relation("PurchaseVerifier")
   recordedAttendances   KehadiranPelanggan[]  @relation("AttendanceRecorder")
+  ownedBranches         OwnerCabang[]
+  instructorFees        InstructorFee[]
+  createdSessionLedgers SessionLedger[]       @relation("LedgerCreator")
+  createdOtherCosts     OtherCost[]           @relation("OtherCostCreator")
+  closedMonths          MonthlyClose[]        @relation("MonthlyCloseUser")
+  requestedCorrections  CorrectionJournal[]   @relation("CorrectionRequester")
+  approvedCorrections   CorrectionJournal[]   @relation("CorrectionApprover")
+  requestedAdjustments  SessionAdjustRequest[] @relation("AdjustRequester")
+  approvedAdjustments   SessionAdjustRequest[] @relation("AdjustApprover")
+  instructorAvailabilities InstructorAvailability[]
 
   @@index([role, status])
   @@map("user")
@@ -264,6 +319,7 @@ model PenugasanInstruktur {
 
 model Paket {
   id           String        @id @default(uuid()) @db.Char(36)
+  branchId     String?       @db.Char(36)
   classTypeId  String?       @db.Char(36)
   code         String        @unique @db.VarChar(32)
   name         String        @db.VarChar(128)
@@ -275,11 +331,13 @@ model Paket {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  branch           Cabang?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
   classType        JenisKelas?      @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   purchases        Pembelian[]
   customerPackages PaketPelanggan[]
 
   @@index([status, classTypeId])
+  @@index([branchId])
   @@map("paket")
 }
 
@@ -344,10 +402,12 @@ model PaketPelanggan {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
-  purchase Pembelian?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-  user     User             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  package  Paket            @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  bookings PemesananKelas[]
+  purchase       Pembelian?             @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  package        Paket                  @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  bookings       PemesananKelas[]
+  ledgers        SessionLedger[]
+  adjustRequests SessionAdjustRequest[]
 
   @@index([userId, status, validUntil])
   @@map("paket_pelanggan")
@@ -403,6 +463,7 @@ model SlotKelas {
   endAt              DateTime
   capacity           Int
   bookedCount        Int             @default(0)
+  minQuota           Int?
   status             ClassSlotStatus @default(PUBLISHED)
   notes              String?         @db.Text
   cancellationReason String?         @db.Text
@@ -436,12 +497,13 @@ model PemesananKelas {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  classSlot       SlotKelas           @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
-  user            User                @relation(fields: [userId], references: [id], onDelete: Restrict)
-  customerPackage PaketPelanggan      @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
+  classSlot       SlotKelas              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  customerPackage PaketPelanggan         @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
   attendance      KehadiranPelanggan?
   checkInTokens   CheckInToken[]
   reschedules     UbahJadwal[]
+  adjustRequests  SessionAdjustRequest[]
 
   @@index([userId, status])
   @@index([classSlotId, status])
@@ -513,4 +575,210 @@ model PasswordActionToken {
   @@index([emailHash])
   @@index([userId])
   @@map("password_action_token")
+}
+
+// ============================================================================
+// PILAR 6: SPESIFIKASI V1.0 (MUTASI LEDGER, OTORISASI & MODUL KEUANGAN)
+// ============================================================================
+
+model SessionLedger {
+  id                String              @id @default(uuid()) @db.Char(36)
+  customerPackageId String              @db.Char(36)
+  type              SessionMutationType
+  amount            Int
+  balanceAfter      Int
+  referenceId       String?             @db.VarChar(64)
+  notes             String?             @db.Text
+  createdById       String?             @db.Char(36)
+  createdAt         DateTime            @default(now())
+
+  customerPackage   PaketPelanggan      @relation(fields: [customerPackageId], references: [id], onDelete: Cascade)
+  createdBy         User?               @relation("LedgerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([customerPackageId, createdAt])
+  @@map("session_ledger")
+}
+
+model OwnerCabang {
+  id        String   @id @default(uuid()) @db.Char(36)
+  ownerId   String   @db.Char(36)
+  branchId  String   @db.Char(36)
+  createdAt DateTime @default(now())
+
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  branch    Cabang   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@unique([ownerId, branchId])
+  @@index([branchId])
+  @@map("owner_cabang")
+}
+
+model MinQuotaSetting {
+  id          String   @id @default(uuid()) @db.Char(36)
+  branchId    String   @db.Char(36)
+  classTypeId String   @db.Char(36)
+  minQuota    Int      @default(1)
+  cutoffHours Int      @default(24)
+  active      Boolean  @default(true) @map("isActive")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch    Cabang     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType JenisKelas @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, classTypeId])
+  @@map("min_quota_setting")
+}
+
+model InstructorFee {
+  id            String   @id @default(uuid()) @db.Char(36)
+  instructorId  String   @db.Char(36)
+  branchId      String   @db.Char(36)
+  classTypeId   String   @db.Char(36)
+  feePerJamRp   Int
+  effectiveDate DateTime @db.Date
+  createdAt     DateTime @default(now())
+
+  instructor User       @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+  branch     Cabang     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType  JenisKelas @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([instructorId, branchId, classTypeId, effectiveDate])
+  @@map("instructor_fee")
+}
+
+model ProjectionRate {
+  id            String   @id @default(uuid()) @db.Char(36)
+  branchId      String   @db.Char(36)
+  classTypeId   String   @db.Char(36)
+  ratePerSesiRp Int
+  effectiveDate DateTime @db.Date
+  createdAt     DateTime @default(now())
+
+  branch    Cabang     @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType JenisKelas @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, classTypeId, effectiveDate])
+  @@map("projection_rate")
+}
+
+model OtherCost {
+  id          String   @id @default(uuid()) @db.Char(36)
+  branchId    String   @db.Char(36)
+  period      String   @db.VarChar(7)
+  category    String   @default("OTHER") @db.VarChar(64)
+  description String   @db.Text
+  amountRp    Int
+  createdById String?  @db.Char(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch    Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy User?  @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([branchId, period])
+  @@map("other_cost")
+}
+
+model MonthlyClose {
+  id               String      @id @default(uuid()) @db.Char(36)
+  branchId         String      @db.Char(36)
+  period           String      @db.VarChar(7)
+  omsetRp          Int         @default(0)
+  costProjectionRp Int         @default(0)
+  costRealtimeRp   Int         @default(0)
+  otherCostRp      Int         @default(0)
+  profitRp         Int         @default(0)
+  status           CloseStatus @default(OPEN)
+  controlHash      String?     @db.VarChar(128)
+  closedById       String?     @db.Char(36)
+  closedAt         DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  branch   Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  closedBy User?  @relation("MonthlyCloseUser", fields: [closedById], references: [id], onDelete: SetNull)
+
+  @@unique([branchId, period])
+  @@map("monthly_close")
+}
+
+model CorrectionJournal {
+  id            String           @id @default(uuid()) @db.Char(36)
+  branchId      String           @db.Char(36)
+  period        String           @db.VarChar(7)
+  targetPeriod  String           @db.VarChar(7)
+  amountRp      Int
+  reason        String           @db.Text
+  status        CorrectionStatus @default(PENDING)
+  requestedById String           @db.Char(36)
+  approvedById  String?          @db.Char(36)
+  approvedAt    DateTime?
+  createdAt     DateTime         @default(now())
+
+  branch      Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  requestedBy User   @relation("CorrectionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvedBy  User?  @relation("CorrectionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([branchId, period])
+  @@map("correction_journal")
+}
+
+model SessionAdjustRequest {
+  id                String              @id @default(uuid()) @db.Char(36)
+  customerPackageId String              @db.Char(36)
+  bookingId         String?             @db.Char(36)
+  reason            String              @db.Text
+  sessionCount      Int                 @default(1)
+  status            AdjustRequestStatus @default(PENDING)
+  requestedById     String              @db.Char(36)
+  approvedById      String?             @db.Char(36)
+  decisionReason    String?             @db.Text
+  createdAt         DateTime            @default(now())
+  decidedAt         DateTime?
+
+  customerPackage PaketPelanggan  @relation(fields: [customerPackageId], references: [id], onDelete: Cascade)
+  booking         PemesananKelas? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  requestedBy     User            @relation("AdjustRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvedBy      User?           @relation("AdjustApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([customerPackageId, status])
+  @@map("session_adjust_request")
+}
+
+model InstructorAvailability {
+  id           String   @id @default(uuid()) @db.Char(36)
+  instructorId String   @db.Char(36)
+  branchId     String   @db.Char(36)
+  date         DateTime @db.Date
+  startTime    String   @db.VarChar(8)
+  endTime      String   @db.VarChar(8)
+  createdAt    DateTime @default(now())
+
+  instructor User   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  branch     Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([instructorId, date])
+  @@map("instructor_availability")
+}
+
+model ReminderLog {
+  id             String   @id @default(uuid()) @db.Char(36)
+  recipientPhone String   @db.VarChar(32)
+  recipientType  String   @db.VarChar(16)
+  reminderType   String   @db.VarChar(64)
+  payload        Json?
+  status         String   @default("SENT") @db.VarChar(16)
+  sentAt         DateTime @default(now())
+
+  @@index([recipientPhone, reminderType, sentAt])
+  @@map("reminder_log")
+}
+
+model LaravelMigration {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+
+  @@map("migrations")
 }

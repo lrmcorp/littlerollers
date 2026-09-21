@@ -32,7 +32,7 @@ describe('customer self-registration', () => {
       screen.getByLabelText(
         'Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.',
       ),
-    ).toBeRequired();
+    ).not.toBeRequired();
     expect(
       screen.getByText(/Selfie dan foto KTP hanya digunakan untuk verifikasi identitas/),
     ).toBeVisible();

@@ -165,7 +165,7 @@ describe('public package catalog', () => {
     expect(publicBranchLocation(branch)).toBe('Jakarta · WIB');
     expect(packageCtaLabel(null)).toBe('Masuk untuk memilih');
     expect(packageCtaLabel({ ...approvedCustomer, identityVerificationStatus: 'PENDING' })).toBe(
-      'Verifikasi untuk memilih',
+      'Pilih paket',
     );
     expect(packageCtaLabel(approvedCustomer)).toBe('Pilih paket');
     expect(packageCtaLabel(superOwner)).toBe('Buka Workspace');

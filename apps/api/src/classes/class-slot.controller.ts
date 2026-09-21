@@ -131,7 +131,7 @@ export class ClassSlotController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
-    @Body() body: { expectedVersion: number; controlHash: string; reason: string },
+    @Body() body: { expectedVersion?: number; controlHash?: string; reason?: string },
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.respond(

@@ -136,8 +136,26 @@ export class AvailabilityService {
         });
         if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
 
+        const recordId = randomUUID();
+        const dateOnly = new Date(startAt.toISOString().slice(0, 10));
+        const startTimeStr = startAt.toISOString().slice(11, 19);
+        const endTimeStr = endAt.toISOString().slice(11, 19);
+
+        if ((tx as any).instructorAvailability?.create) {
+          await (tx as any).instructorAvailability.create({
+            data: {
+              id: recordId,
+              instructorId: principal.userId,
+              branchId: branch.id,
+              date: dateOnly,
+              startTime: startTimeStr,
+              endTime: endTimeStr,
+            },
+          });
+        }
+
         const item = {
-          id: randomUUID(),
+          id: recordId,
           instructorUserId: principal.userId,
           branchId: branch.id,
           startAt,

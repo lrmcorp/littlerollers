@@ -16,7 +16,9 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./app/*"]
+      "@/*": ["./app/*"],
+      "@dailydose/api-client-ts/generated": ["../../packages/api-client-ts/generated/index.ts"],
+      "@dailydose/api-client-ts": ["../../packages/api-client-ts/src/index.ts"]
     }
   },
   "include": [

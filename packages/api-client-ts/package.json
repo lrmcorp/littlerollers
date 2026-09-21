@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "source": "./src/index.ts",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
+      "source": "./src/index.ts",
       "import": "./dist/src/index.js"
     },
     "./generated": {
       "types": "./dist/generated/index.d.ts",
+      "source": "./generated/index.ts",
       "import": "./dist/generated/index.js"
     }
   },

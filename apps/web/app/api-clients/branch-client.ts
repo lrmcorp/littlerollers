@@ -14,7 +14,10 @@ export type BranchManagementItem = {
   code: string;
   name: string;
   timezone: string;
+  address?: string | null;
   supportWhatsappE164: string | null;
+  heroImageKey?: string | null;
+  galleryImageKeys?: string[] | null;
   active: boolean;
   version: number;
   publicProfile: {
@@ -22,8 +25,15 @@ export type BranchManagementItem = {
     city: string;
     address: string;
     slug: string;
+    description?: string;
     operationalEmail?: string | null;
     mapUrl?: string | null;
+    openingHours?: string[];
+    amenities?: string[];
+    heroImageKey?: string | null;
+    galleryImageKeys?: string[];
+    arrivalInformation?: string | null;
+    parkingInformation?: string | null;
   } | null;
 };
 
@@ -47,8 +57,8 @@ type BranchCommand = {
   name: string;
   timezone: string;
   supportWhatsappE164?: string | null;
-  reason: string;
-  expectedVersion: number;
+  reason?: string;
+  expectedVersion?: number;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -81,30 +91,39 @@ export const browserBranchClient = {
     name: string;
     timezone: string;
     supportWhatsappE164?: string | null;
-    reason: string;
+    reason?: string;
   }) {
     return request<BranchManagementItem>('/branches', {
       method: 'POST',
       headers: mutationHeaders(),
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        reason: input.reason ?? 'Pembuatan cabang baru via Web Admin',
+      }),
     });
   },
   update(id: string, input: BranchCommand) {
     return request<BranchManagementItem>(`/branches/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: mutationHeaders(),
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        reason: input.reason ?? 'Pembaruan cabang via Web Admin',
+      }),
     });
   },
   transition(
     id: string,
     action: 'deactivate' | 'reactivate',
-    input: { expectedVersion: number; reason: string },
+    input?: { expectedVersion?: number; reason?: string },
   ) {
     return request<BranchManagementItem>(`/branches/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: mutationHeaders(),
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        expectedVersion: input?.expectedVersion ?? 1,
+        reason: input?.reason ?? (action === 'deactivate' ? 'Menonaktifkan cabang' : 'Mengaktifkan kembali cabang'),
+      }),
     });
   },
 };

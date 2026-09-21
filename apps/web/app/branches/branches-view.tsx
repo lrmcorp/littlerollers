@@ -160,7 +160,7 @@ export function BranchesView() {
         loading={loading}
         rowKey={(item) => item.id}
         rowDescription={(item) => `Buka detail ${item.name}`}
-        onRowClick={(item) => router.push(`/workspace/branches/${item.id}`)}
+        onRowClick={(item) => router.push(`/workspace/branches/${item.code.toLowerCase()}`)}
         mobileCard={(item) => <BranchCard item={item} />}
         columns={[
           {
@@ -176,10 +176,12 @@ export function BranchesView() {
           {
             id: 'location',
             header: 'Lokasi',
-            cell: (item) =>
-              item.publicProfile
-                ? `${item.publicProfile.area}, ${item.publicProfile.city}`
-                : 'Profil publik belum lengkap',
+            cell: (item) => {
+              if (item.publicProfile?.area && item.publicProfile?.city) {
+                return `${item.publicProfile.area}, ${item.publicProfile.city}`;
+              }
+              return item.publicProfile?.address || (item as { address?: string | null }).address || 'Lokasi belum diatur';
+            },
           },
           { id: 'timezone', header: 'Zona waktu', cell: (item) => item.timezone },
           {
@@ -196,7 +198,7 @@ export function BranchesView() {
             header: 'Tindakan',
             cell: (item) => (
               <ButtonLink
-                href={`/workspace/branches/${item.id}`}
+                href={`/workspace/branches/${item.code.toLowerCase()}`}
                 size="sm"
                 variant="secondary"
                 leadingIcon={<Building2 className="size-4" aria-hidden="true" />}
@@ -240,13 +242,6 @@ export function BranchesView() {
         <BranchCreateForm
           onDirty={() => setCreateDirty(true)}
           onSubmit={async (input) => {
-            const accepted = await feedback.confirm({
-              tone: 'warning',
-              title: 'Buat cabang baru?',
-              message: `${input.name} akan ditambahkan sebagai studio operasional aktif.`,
-              confirmLabel: 'Buat cabang',
-            });
-            if (!accepted) return;
             setBusy(true);
             try {
               const created = await browserBranchClient.create(input);
@@ -287,9 +282,9 @@ function BranchCard({ item }: { item: BranchManagementItem }) {
         </Badge>
       </div>
       <p className="text-sm text-dd-muted">
-        {item.publicProfile
+        {item.publicProfile?.area && item.publicProfile?.city
           ? `${item.publicProfile.area}, ${item.publicProfile.city}`
-          : 'Profil publik belum lengkap'}
+          : item.publicProfile?.address || (item as { address?: string | null }).address || 'Lokasi belum diatur'}
       </p>
     </div>
   );
@@ -305,7 +300,7 @@ function BranchCreateForm({
     name: string;
     timezone: string;
     supportWhatsappE164?: string;
-    reason: string;
+    reason?: string;
   }): Promise<void>;
 }) {
   return (
@@ -321,7 +316,6 @@ function BranchCreateForm({
           name: String(data.get('name')).trim(),
           timezone: String(data.get('timezone')).trim(),
           supportWhatsappE164: String(data.get('supportWhatsappE164')).trim() || undefined,
-          reason: String(data.get('reason')).trim(),
         });
       }}
     >
@@ -334,7 +328,6 @@ function BranchCreateForm({
         description="Gunakan format E.164, misalnya +628123456789."
         placeholder="+628123456789"
       />
-      <TextInput name="reason" label="Alasan pembuatan" minLength={3} required />
     </form>
   );
 }

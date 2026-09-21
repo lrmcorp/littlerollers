@@ -146,9 +146,9 @@ export function PublicHeader() {
             )}
             <Link
               className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark lg:inline-flex"
-              href={`${routes.classes}#schedule`}
+              href={routes.packages}
             >
-              Lihat Jadwal
+              Lihat Paket
             </Link>
             <IconButton
               ref={triggerRef}
@@ -258,7 +258,14 @@ export function PublicHeader() {
                 </button>
               )}
               <Link
-                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline"
+                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:bg-dd-forest-dark"
+                href={routes.packages}
+                onClick={close}
+              >
+                Lihat Paket
+              </Link>
+              <Link
+                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline transition hover:border-dd-forest"
                 href={`${routes.classes}#schedule`}
                 onClick={close}
               >
@@ -267,19 +274,12 @@ export function PublicHeader() {
               {session && (
                 <button
                   type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-danger/30 bg-white px-5 text-sm font-bold text-dd-danger"
+                  className="min-h-12 rounded-dd-sm border border-dd-danger/30 bg-white px-5 text-sm font-bold text-dd-danger transition hover:bg-dd-danger-soft"
                   onClick={() => void sessionContext?.logout()}
                 >
                   Keluar
                 </button>
               )}
-              <Link
-                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline"
-                href={routes.packages}
-                onClick={close}
-              >
-                Lihat Paket
-              </Link>
             </div>
           </div>
         </div>

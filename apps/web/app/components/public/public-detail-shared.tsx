@@ -195,12 +195,7 @@ export function AudienceAction({
         <ArrowRight className="size-4" />
       </Link>
     );
-  if (audience === 'CUSTOMER_UNVERIFIED')
-    return (
-      <Link className={publicPrimaryButton} href="/account/verification">
-        Verifikasi untuk melanjutkan <ArrowRight className="size-4" />
-      </Link>
-    );
+
   return (
     <Link
       className={publicPrimaryButton}

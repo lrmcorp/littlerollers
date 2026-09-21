@@ -45,24 +45,41 @@ export interface SessionPrincipal {
 export function mapUserToEffectiveRoles(user: {
   role: string;
   preferredBranchId?: string | null;
+  ownedBranches?: Array<{ branchId: string }>;
 }): Array<{ role: ApplicationRole; branchId: string | null }> {
   switch (user.role) {
+    case 'SUPER_OWNER':
     case 'SUPERADMIN':
       return [
         { role: 'SUPER_OWNER', branchId: null },
-        { role: 'OWNER', branchId: null },
-        { role: 'ADMIN', branchId: null },
         { role: 'SUPERADMIN', branchId: null },
+      ];
+    case 'FINANCE':
+      return [
+        { role: 'FINANCE', branchId: null },
+      ];
+    case 'OWNER': {
+      const owned = user.ownedBranches ?? [];
+      if (owned.length > 0) {
+        return owned.map((ob) => ({ role: 'OWNER' as ApplicationRole, branchId: ob.branchId }));
+      }
+      return [{ role: 'OWNER', branchId: user.preferredBranchId ?? null }];
+    }
+    case 'MANAGER':
+      return [
+        { role: 'MANAGER', branchId: user.preferredBranchId ?? null },
       ];
     case 'ADMIN':
       return [
         { role: 'ADMIN', branchId: user.preferredBranchId ?? null },
       ];
+    case 'INSTRUCTOR':
     case 'COACH':
       return [
         { role: 'INSTRUCTOR', branchId: user.preferredBranchId ?? null },
         { role: 'COACH', branchId: user.preferredBranchId ?? null },
       ];
+    case 'CUSTOMER':
     case 'MEMBER':
     default:
       return [
@@ -101,6 +118,7 @@ export class IdentityService {
   async me(userId: string, _at = new Date()) {
     const user = await this.db.user.findUnique({
       where: { id: userId },
+      include: { ownedBranches: true },
     });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
@@ -270,7 +288,11 @@ export class IdentityService {
     const session = await this.db.userSession.findUnique({
       where: { accessTokenHash: digest(raw) },
       include: {
-        user: true,
+        user: {
+          include: {
+            ownedBranches: true,
+          },
+        },
       },
     });
 
@@ -522,24 +544,52 @@ export class IdentityService {
     _requestFingerprint?: string,
   ) {
     const displayName = input.displayName?.trim();
-    const email = normalizeEmail(input.email);
-    const phone = input.phone.replace(/[\s().-]/gu, '');
-    if (!displayName || !email || !input.password) {
+    const email = input.email ? normalizeEmail(input.email) : '';
+    const phone = input.phone ? input.phone.replace(/[\s().-]/gu, '') : '';
+    if (!displayName || !email || !input.password || !phone) {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    const passwordHash = await hashPassword(input.password);
-    const user = await this.db.user.create({
-      data: {
-        id: newId(),
-        displayName,
-        email,
-        phone,
-        passwordHash,
-        role: 'MEMBER',
-        status: 'ACTIVE',
+
+    // Pre-check for duplicate email or phone (Zero-crash defensive check)
+    const existingUser = await this.db.user.findFirst({
+      where: {
+        OR: [{ email }, { phone }],
       },
     });
-    return this.issueSession(user.id, 'WEB');
+    if (existingUser) {
+      if (existingUser.email?.toLowerCase() === email.toLowerCase()) {
+        throw new ApiProblem('EMAIL_ALREADY_REGISTERED', HttpStatus.CONFLICT);
+      }
+      throw new ApiProblem('PHONE_ALREADY_REGISTERED', HttpStatus.CONFLICT);
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    try {
+      const user = await this.db.user.create({
+        data: {
+          id: newId(),
+          displayName,
+          email,
+          phone,
+          passwordHash,
+          role: 'MEMBER',
+          status: 'ACTIVE',
+        },
+      });
+      return this.issueSession(user.id, 'WEB');
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const target = String(error?.meta?.target ?? '');
+        if (target.includes('email')) {
+          throw new ApiProblem('EMAIL_ALREADY_REGISTERED', HttpStatus.CONFLICT);
+        }
+        if (target.includes('phone')) {
+          throw new ApiProblem('PHONE_ALREADY_REGISTERED', HttpStatus.CONFLICT);
+        }
+        throw new ApiProblem('DUPLICATE_ENTRY', HttpStatus.CONFLICT);
+      }
+      throw error;
+    }
   }
 
   async myVerification(_principal: SessionPrincipal) {

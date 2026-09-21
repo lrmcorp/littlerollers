@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { ClassSlotStatus, Prisma } from '@prisma/client';
+import { ClassSlotStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -227,6 +227,28 @@ export class ClassSlotService {
         if (!branch?.active || !classType?.active || !studio?.active)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        const collisionConditions: Prisma.SlotKelasWhereInput[] = [];
+        if (room?.id) {
+          collisionConditions.push({ studioId: studio.id, roomId: room.id });
+        } else {
+          collisionConditions.push({ studioId: studio.id });
+        }
+        if (input.instructorUserId) {
+          collisionConditions.push({ instructorId: input.instructorUserId });
+        }
+
+        const collision = await tx.slotKelas.findFirst({
+          where: {
+            status: { not: ClassSlotStatus.CANCELLED },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+            OR: collisionConditions,
+          },
+        });
+        if (collision) {
+          throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
+        }
+
         const slot = await tx.slotKelas.create({
           data: {
             id: newId(),
@@ -278,6 +300,19 @@ export class ClassSlotService {
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
 
+        const instructorCollision = await tx.slotKelas.findFirst({
+          where: {
+            id: { not: slot.id },
+            instructorId: input.instructorUserId,
+            status: { not: ClassSlotStatus.CANCELLED },
+            startAt: { lt: slot.endAt },
+            endAt: { gt: slot.startAt },
+          },
+        });
+        if (instructorCollision) {
+          throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
+        }
+
         const updated = await tx.slotKelas.update({
           where: { id },
           data: { instructorId: input.instructorUserId },
@@ -328,6 +363,30 @@ export class ClassSlotService {
         const slot = await tx.slotKelas.findUnique({ where: { id } });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
+
+        const targetInstructorId = input.instructorUserId !== undefined ? input.instructorUserId : slot.instructorId;
+        const updateCollisionConditions: Prisma.SlotKelasWhereInput[] = [];
+        if (slot.roomId) {
+          updateCollisionConditions.push({ studioId: slot.studioId, roomId: slot.roomId });
+        } else {
+          updateCollisionConditions.push({ studioId: slot.studioId });
+        }
+        if (targetInstructorId) {
+          updateCollisionConditions.push({ instructorId: targetInstructorId });
+        }
+
+        const updateCollision = await tx.slotKelas.findFirst({
+          where: {
+            id: { not: slot.id },
+            status: { not: ClassSlotStatus.CANCELLED },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+            OR: updateCollisionConditions,
+          },
+        });
+        if (updateCollision) {
+          throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
+        }
 
         const updated = await tx.slotKelas.update({
           where: { id },
@@ -475,21 +534,74 @@ export class ClassSlotService {
         const slot = await tx.slotKelas.findUnique({
           where: { id },
           include: {
+            branch: true,
+            classType: true,
             bookings: {
-              include: { attendance: true },
+              include: { attendance: true, customerPackage: true },
             },
           },
         });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-        // Mark bookings: if attended keep ATTENDED, else mark NO_SHOW
+        // Jika slot sudah pernah COMPLETED, return view (idempotent guard)
+        if (slot.status === ClassSlotStatus.COMPLETED) {
+          return this.view(slot);
+        }
+
+        // Evaluasi kehadiran & potong sesi bagi customer yang ATTENDED (Rule #1)
         for (const booking of slot.bookings) {
-          if (booking.status === 'BOOKED') {
-            const attended = Boolean(booking.attendance);
+          const wasAttended = booking.status === 'ATTENDED' || Boolean(booking.attendance);
+          const newStatus = wasAttended ? 'ATTENDED' : 'NO_SHOW';
+
+          if (booking.status !== newStatus) {
             await tx.pemesananKelas.update({
               where: { id: booking.id },
-              data: { status: attended ? 'ATTENDED' : 'NO_SHOW' },
+              data: { status: newStatus },
             });
+          }
+
+          // Rule #1 & Kebijakan No-Show: Sesi terpotong saat kelas COMPLETED baik hadir maupun mangkir
+          const existingLedger = await tx.sessionLedger.findFirst({
+            where: {
+              referenceId: booking.id,
+              type: SessionMutationType.ATTEND,
+            },
+          });
+
+          if (!existingLedger && booking.customerPackageId) {
+            const customerPackage = await tx.paketPelanggan.findUnique({
+              where: { id: booking.customerPackageId },
+            });
+
+            if (customerPackage) {
+              const remainingAfter = Math.max(0, customerPackage.remainingSessions - 1);
+              const noteText = wasAttended
+                ? `Class session completed: ${slot.classType?.name ?? 'Class'} at ${slot.branch?.name ?? 'Studio'}`
+                : `Sesi hangus (NO SHOW): Mangkir tanpa pembatalan resmi kelas ${slot.classType?.name ?? 'Class'} di ${slot.branch?.name ?? 'Studio'}`;
+
+              // Catat mutasi SessionLedger
+              await tx.sessionLedger.create({
+                data: {
+                  customerPackageId: customerPackage.id,
+                  type: SessionMutationType.ATTEND,
+                  amount: -1,
+                  balanceAfter: remainingAfter,
+                  referenceId: booking.id,
+                  notes: noteText,
+                  createdById: principal.userId,
+                },
+              });
+
+              // Update saldo kuota di PaketPelanggan
+              await tx.paketPelanggan.update({
+                where: { id: customerPackage.id },
+                data: {
+                  usedSessions: { increment: 1 },
+                  remainingSessions: { decrement: 1 },
+                  status: remainingAfter <= 0 ? 'DEPLETED' : customerPackage.status,
+                },
+              });
+            }
           }
 
           // Revoke active checkin tokens

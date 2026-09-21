@@ -43,6 +43,12 @@ export interface StudioCommand {
      * @memberof StudioCommand
      */
     contactPhoneE164?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof StudioCommand
+     */
+    imageKey?: string | null;
 }
 
 /**
@@ -68,6 +74,7 @@ export function StudioCommandFromJSONTyped(json: any, ignoreDiscriminator: boole
         'name': json['name'],
         'equipmentText': json['equipmentText'] == null ? undefined : json['equipmentText'],
         'contactPhoneE164': json['contactPhoneE164'] == null ? undefined : json['contactPhoneE164'],
+        'imageKey': json['imageKey'] == null ? undefined : json['imageKey'],
     };
 }
 
@@ -86,6 +93,7 @@ export function StudioCommandToJSONTyped(value?: StudioCommand | null, ignoreDis
         'name': value['name'],
         'equipmentText': value['equipmentText'],
         'contactPhoneE164': value['contactPhoneE164'],
+        'imageKey': value['imageKey'],
     };
 }
 

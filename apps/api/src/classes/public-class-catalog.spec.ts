@@ -44,7 +44,6 @@ describe('PublicScheduleQueryService', () => {
       expect.objectContaining({
         select: expect.objectContaining({
           supportWhatsappE164: true,
-          publicProfile: true,
         }),
       }),
     );

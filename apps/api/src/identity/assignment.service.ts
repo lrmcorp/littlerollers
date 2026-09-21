@@ -53,6 +53,66 @@ export class AssignmentService {
         : {}),
     };
 
+    if (input.type === 'OWNER') {
+      const scopeWhere: Prisma.OwnerCabangWhereInput = input.branchId
+        ? { branchId: input.branchId }
+        : principal.capabilities.includes('branch:all')
+          ? {}
+          : { branchId: { in: principal.branchIds } };
+
+      const [rows, total] = await Promise.all([
+        this.db.ownerCabang.findMany({
+          where: {
+            ...scopeWhere,
+            ...(query
+              ? {
+                  OR: [
+                    { owner: { displayName: { contains: query } } },
+                    { owner: { email: { contains: query } } },
+                    { branch: { name: { contains: query } } },
+                    { branch: { code: { contains: query } } },
+                  ],
+                }
+              : {}),
+          },
+          include: {
+            owner: { select: { id: true, displayName: true, phone: true } },
+            branch: { select: { id: true, code: true, name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: limit + 1,
+        }),
+        this.db.ownerCabang.count({ where: scopeWhere }),
+      ]);
+
+      const hasMore = rows.length > limit;
+      const items = rows.slice(0, limit);
+
+      return {
+        items: items.map((item) => ({
+          id: item.id,
+          userId: item.ownerId,
+          branchId: item.branchId,
+          assignmentType: 'OWNER' as AssignmentType,
+          activeFrom: item.createdAt.toISOString().slice(0, 10),
+          activeUntil: null,
+          status: 'ACTIVE' as const,
+          version: 1,
+          user: {
+            id: item.owner.id,
+            displayName: item.owner.displayName,
+            phoneE164: item.owner.phone,
+          },
+          branch: item.branch,
+        })),
+        summary: { total, active: total, ended: 0 },
+        page: {
+          hasMore,
+          nextCursor: hasMore && items.at(-1) ? items.at(-1)!.id : null,
+        },
+      };
+    }
+
     const [rows, total, active, ended] = await Promise.all([
       this.db.penugasanInstruktur.findMany({
         where,
@@ -119,6 +179,37 @@ export class AssignmentService {
     if (!user || user.status !== 'ACTIVE' || !branch || !branch.active)
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
+    if (input.assignmentType === 'OWNER') {
+      const isSuperOwner = principal.roles.some((r) =>
+        ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+      );
+      if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+
+      if (user.role !== 'OWNER' && user.role !== 'SUPER_OWNER' && (user.role as any) !== 'SUPERADMIN') {
+        await this.db.user.update({
+          where: { id: user.id },
+          data: { role: 'OWNER' },
+        });
+      }
+
+      const assignment = await this.db.ownerCabang.upsert({
+        where: {
+          ownerId_branchId: {
+            ownerId: input.userId,
+            branchId: input.branchId,
+          },
+        },
+        create: {
+          id: newId(),
+          ownerId: input.userId,
+          branchId: input.branchId,
+        },
+        update: {},
+      });
+
+      return { id: assignment.id, status: 'ACTIVE', version: 1 };
+    }
+
     const assignment = await this.db.penugasanInstruktur.upsert({
       where: {
         coachId_branchId: {
@@ -147,6 +238,17 @@ export class AssignmentService {
     _correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:manage');
+
+    const ownerBranch = await this.db.ownerCabang.findUnique({ where: { id: assignmentId } });
+    if (ownerBranch) {
+      const isSuperOwner = principal.roles.some((r) =>
+        ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+      );
+      if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+
+      await this.db.ownerCabang.delete({ where: { id: assignmentId } });
+      return { id: assignmentId, status: 'ENDED', version: 1 };
+    }
 
     const assignment = await this.db.penugasanInstruktur.findUnique({
       where: { id: assignmentId },

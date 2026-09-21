@@ -27,6 +27,9 @@ import { CustomerManagementController } from './customer-management.controller';
 import { CustomerManagementService } from './manajemen-pelanggan.service';
 import { InstructorManagementController } from './instructor-management.controller';
 import { InstructorManagementService } from './manajemen-instruktur.service';
+import { OwnerBranchController } from './owner-branch.controller';
+import { OwnerBranchService } from './owner-branch.service';
+import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [DatabaseModule],
@@ -35,6 +38,7 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
     AccessManagementController,
     CustomerManagementController,
     InstructorManagementController,
+    OwnerBranchController,
   ],
   providers: [
     IdentityService,
@@ -42,6 +46,8 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
     IdentityReviewQueryService,
     IdentityDocumentAccessService,
     AssignmentService,
+    OwnerBranchService,
+    RolesGuard,
     IdentityDocumentWorkflowService,
     UserAdministrationService,
     AccessManagementService,
@@ -75,6 +81,6 @@ import { InstructorManagementService } from './manajemen-instruktur.service';
     },
     AuthGuard,
   ],
-  exports: [IdentityService, PolicyService, AuthGuard, PRIVATE_FILE_STORAGE],
+  exports: [IdentityService, PolicyService, AuthGuard, RolesGuard, OwnerBranchService, PRIVATE_FILE_STORAGE],
 })
 export class IdentityModule {}

@@ -130,7 +130,7 @@ export function CustomerNavigation({
             ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
                 {group as string}
               </p>
               <div className="space-y-1">
@@ -163,24 +163,24 @@ export function CustomerNavigation({
                       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
                       <span className="min-w-0 flex-1">{item.label}</span>
                       {showOrderBadge && (
-                        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                           {badges.actionableOrdersCount}
                         </span>
                       )}
                       {showBookingBadge && (
-                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        <span className="rounded-full bg-dd-forest px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                           {badges.upcomingBookingsCount}
                         </span>
                       )}
                       {showVerificationDot && (
                         <span
-                          className="size-2.5 rounded-full bg-amber-400 ring-2 ring-dd-sidebar"
+                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
                           title="Perlu perbaikan dokumen"
                         />
                       )}
                       {showPackageDot && (
                         <span
-                          className="size-2.5 rounded-full bg-amber-400 ring-2 ring-dd-sidebar"
+                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
                           title="Segera kedaluwarsa atau kuota sisa 1 sesi"
                         />
                       )}

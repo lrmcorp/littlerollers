@@ -18,12 +18,12 @@ describe('PublicMediaService', () => {
       contentBase64: validPngBase64,
     });
 
-    expect(result.url).toMatch(/^\/api\/v1\/public-media\/banner-.+\.png$/);
+    expect(result.url).toMatch(/^\/api\/v1\/public-media\/media-.+\.png$/);
     expect(result.sizeBytes).toBeGreaterThan(0);
     expect(result.mimeType).toBe('image/png');
 
     // Retrieve
-    const retrieved = service.getPublicImage(result.filename);
+    const retrieved = await service.getPublicImage(result.filename);
     expect(retrieved.mimeType).toBe('image/png');
     expect(retrieved.buffer.length).toBe(result.sizeBytes);
   });

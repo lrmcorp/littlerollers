@@ -14,7 +14,7 @@ import {
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { MasterCatalogService } from './master-catalog.service';
 import { EffectiveSettingsService, type SettingInput } from './konfigurasi-efektif.service';
-import { PublicProfileAdminService, type PublicProfileInput } from './public-profile-admin.service';
+import { type PublicProfileInput } from './public-profile-admin.service';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -22,7 +22,6 @@ export class MasterController {
   constructor(
     private readonly catalog: MasterCatalogService,
     private readonly settings: EffectiveSettingsService,
-    private readonly publicProfiles: PublicProfileAdminService,
   ) {}
   @Get('branches') listBranches(
     @Req() req: AuthenticatedRequest,
@@ -51,6 +50,7 @@ export class MasterController {
       name: string;
       equipmentText?: string | null;
       contactPhoneE164?: string | null;
+      imageKey?: string | null;
     },
   ) {
     return this.catalog.createStudio(req.principal, id, body, req.correlationId ?? 'unknown');
@@ -63,6 +63,7 @@ export class MasterController {
       name: string;
       equipmentText?: string | null;
       contactPhoneE164?: string | null;
+      imageKey?: string | null;
       active?: boolean;
     },
   ) {
@@ -103,21 +104,21 @@ export class MasterController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string | undefined,
-    @Body() body: { expectedVersion: number; reason?: string },
+    @Body() body?: { expectedVersion?: number; reason?: string },
   ) {
     return key
       ? this.catalog.transitionBranch(
           req.principal,
           id,
           'INACTIVE',
-          { expectedVersion: body.expectedVersion, reason: body.reason ?? 'Menonaktifkan cabang' },
+          { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason ?? 'Menonaktifkan cabang' },
           key,
           req.correlationId ?? 'unknown',
         )
       : this.catalog.deactivateBranch(
           req.principal,
           id,
-          body.expectedVersion,
+          body?.expectedVersion,
           req.correlationId ?? 'unknown',
         );
   }
@@ -125,13 +126,13 @@ export class MasterController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string | undefined,
-    @Body() body: { expectedVersion: number; reason: string },
+    @Body() body?: { expectedVersion?: number; reason?: string },
   ) {
     return this.catalog.transitionBranch(
       req.principal,
       id,
       'ACTIVE',
-      body,
+      { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason ?? 'Mengaktifkan kembali cabang' },
       key,
       req.correlationId ?? 'unknown',
     );
@@ -145,8 +146,8 @@ export class MasterController {
       name: string;
       timezone: string;
       supportWhatsappE164?: string | null;
-      expectedVersion: number;
-      reason: string;
+      expectedVersion?: number;
+      reason?: string;
     },
   ) {
     return this.catalog.updateBranch(req.principal, id, body, key, req.correlationId ?? 'unknown');
@@ -282,10 +283,26 @@ export class MasterController {
       req.correlationId ?? 'unknown',
     );
   }
+  @Get('min-quota-settings') listMinQuota(
+    @Req() req: AuthenticatedRequest,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.settings.list(req.principal, 'QUOTA_CAPACITY', branchId);
+  }
+  @Post('min-quota-settings') createMinQuota(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: SettingInput,
+  ) {
+    return this.settings.create(
+      req.principal,
+      { ...body, kind: 'QUOTA_CAPACITY' },
+      req.correlationId ?? 'unknown',
+    );
+  }
 
   @Get('master/public-profiles')
   listPublicProfiles(@Req() req: AuthenticatedRequest, @Query('branchId') branchId: string) {
-    return this.publicProfiles.list(req.principal, branchId);
+    return this.catalog.listPublicProfiles(req.principal, branchId);
   }
 
   @Patch('master/public-profiles/:kind/:id')
@@ -295,7 +312,7 @@ export class MasterController {
     @Param('id') id: string,
     @Body() body: PublicProfileInput,
   ) {
-    return this.publicProfiles.update(
+    return this.catalog.updatePublicProfile(
       req.principal,
       kind,
       id,

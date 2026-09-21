@@ -1,13 +1,34 @@
-import {
-  Configuration,
-  MasterApi,
-  type Room,
-  type Studio,
-} from '@dailydose/api-client-ts/generated';
-import { appLoading } from '../components/app-loading';
+import { apiFetch } from '../lib/api-client';
 import { notifySessionFailure } from './session-client';
 
+export interface Studio {
+  id: string;
+  branchId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  equipmentText?: string | null;
+  contactPhoneE164?: string | null;
+  imageKey?: string | null;
+  active: boolean;
+  rooms?: Room[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface Room {
+  id: string;
+  studioId: string;
+  code: string;
+  name: string;
+  capacity?: number | null;
+  active: boolean;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
 export type MasterKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
+
 export interface MasterSetting {
   id: string;
   kind: MasterKind;
@@ -19,6 +40,7 @@ export interface MasterSetting {
   effectiveUntil: Date | null;
   version: number;
 }
+
 export interface MasterSettingInput {
   kind: MasterKind;
   branchId: string;
@@ -30,6 +52,7 @@ export interface MasterSettingInput {
   effectiveUntil?: string;
   reason: string;
 }
+
 export type MasterBranch = {
   id: string;
   code: string;
@@ -38,11 +61,13 @@ export type MasterBranch = {
   active: boolean;
   version: number;
 };
+
 export type MasterBranchPage = {
   items: MasterBranch[];
   summary: { total: number; active: number; inactive: number };
   page: { hasMore: boolean; nextCursor: string | null };
 };
+
 export interface MasterClient {
   listBranches(input?: {
     q?: string;
@@ -70,11 +95,23 @@ export interface MasterClient {
   listStudios(branchId: string): Promise<Studio[]>;
   createStudio(
     branchId: string,
-    input: { code: string; name: string; equipmentText?: string; contactPhoneE164?: string },
+    input: {
+      code: string;
+      name: string;
+      equipmentText?: string;
+      contactPhoneE164?: string;
+      imageKey?: string | null;
+    },
   ): Promise<Studio>;
   updateStudio(
     id: string,
-    input: { name: string; equipmentText?: string; contactPhoneE164?: string; active?: boolean },
+    input: {
+      name: string;
+      equipmentText?: string;
+      contactPhoneE164?: string;
+      imageKey?: string | null;
+      active?: boolean;
+    },
   ): Promise<Studio>;
   createRoom(
     studioId: string,
@@ -102,218 +139,234 @@ export interface MasterClient {
   createSetting(input: MasterSettingInput): Promise<void>;
 }
 
-const api = new MasterApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
+
 export const browserMasterClient: MasterClient = {
   async listBranches(input = {}) {
-    const result = await appLoading.track(api.listBranches(input), { label: 'Memuat cabang…' });
+    const params = new URLSearchParams();
+    if (input.q) params.set('q', input.q);
+    if (input.status) params.set('status', input.status);
+    if (input.cursor) params.set('cursor', input.cursor);
+    if (input.limit) params.set('limit', String(input.limit));
+    const qs = params.toString();
+
+    const result = await apiFetch<MasterBranchPage>(`/branches${qs ? `?${qs}` : ''}`, {
+      label: 'Memuat cabang…',
+    });
     return {
-      items: result.items,
-      summary: result.summary,
+      items: result.items ?? [],
+      summary: result.summary ?? { total: 0, active: 0, inactive: 0 },
       page: {
-        hasMore: result.page.hasMore,
-        nextCursor: result.page.nextCursor ?? null,
+        hasMore: result.page?.hasMore ?? false,
+        nextCursor: result.page?.nextCursor ?? null,
       },
     };
   },
+
   async listClassTypes(branchId) {
-    return (
-      await appLoading.track(api.listClassTypes({ branchId }), {
-        label: 'Memuat tipe kelas…',
-      })
-    ).items;
+    const qs = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+    const res = await apiFetch<{ items: Array<{
+      id: string;
+      code: string;
+      name: string;
+      active: boolean;
+      version: number;
+      branchScopes: Array<{ branchId: string; active: boolean; branch?: { name: string } }>;
+    }> }>(`/class-types${qs}`, {
+      label: 'Memuat tipe kelas…',
+    });
+    return res.items ?? [];
   },
+
   async createBranch(input) {
-    await appLoading.track(
-      api.createBranch({
-        idempotencyKey: crypto.randomUUID(),
-        branchCommand: {
-          ...input,
-          reason: input.reason ?? 'Membuat cabang melalui Master Data.',
-        },
+    await apiFetch('/branches', {
+      method: 'POST',
+      idempotent: true,
+      label: 'Membuat cabang…',
+      body: JSON.stringify({
+        ...input,
+        reason: input.reason ?? 'Membuat cabang melalui Master Data.',
       }),
-      {
-        label: 'Membuat cabang…',
-      },
-    );
+    });
   },
+
   async createClassType(input) {
-    await appLoading.track(
-      api.createClassType({
-        classTypeCommand: {
-          code: input.code,
-          name: input.name,
-          branchIds: input.branchIds ? new Set(input.branchIds) : undefined,
-        },
+    await apiFetch('/class-types', {
+      method: 'POST',
+      label: 'Membuat tipe kelas…',
+      body: JSON.stringify({
+        code: input.code,
+        name: input.name,
+        branchIds: input.branchIds,
       }),
-      {
-        label: 'Membuat tipe kelas…',
-      },
-    );
+    });
   },
+
   async listStudios(branchId) {
-    return (
-      await appLoading.track(api.listBranchStudios({ id: branchId }), {
-        label: 'Memuat area studio…',
-      })
-    ).items;
+    const res = await apiFetch<{ items: Studio[] }>(
+      `/branches/${encodeURIComponent(branchId)}/studios`,
+      { label: 'Memuat area studio…' },
+    );
+    return res.items ?? [];
   },
+
   createStudio(branchId, input) {
-    return appLoading.track(api.createBranchStudio({ id: branchId, studioCommand: input }), {
+    return apiFetch<Studio>(`/branches/${encodeURIComponent(branchId)}/studios`, {
+      method: 'POST',
       label: 'Menyimpan area studio…',
+      body: JSON.stringify(input),
     });
   },
+
   updateStudio(id, input) {
-    return appLoading.track(api.updateStudio({ id, studioUpdateCommand: input }), {
+    return apiFetch<Studio>(`/studios/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
       label: 'Memperbarui area studio…',
+      body: JSON.stringify(input),
     });
   },
+
   createRoom(studioId, input) {
-    return appLoading.track(api.createStudioRoom({ id: studioId, roomCommand: input }), {
+    return apiFetch<Room>(`/studios/${encodeURIComponent(studioId)}/rooms`, {
+      method: 'POST',
       label: 'Menyimpan ruangan…',
+      body: JSON.stringify(input),
     });
   },
+
   updateRoom(id, input) {
-    return appLoading.track(api.updateRoom({ id, roomUpdateCommand: input }), {
+    return apiFetch<Room>(`/rooms/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
       label: 'Memperbarui ruangan…',
+      body: JSON.stringify(input),
     });
   },
+
   async replaceClassTypeScopes(id, input) {
-    await appLoading.track(
-      api.replaceClassTypeBranchScopes({
-        id,
-        classTypeScopeCommand: {
-          branchIds: new Set(input.branchIds),
-          expectedVersion: input.expectedVersion,
-          reason: input.reason,
-        },
-      }),
-      { label: 'Memperbarui cakupan tipe kelas…' },
-    );
+    await apiFetch(`/class-types/${encodeURIComponent(id)}/scopes`, {
+      method: 'PUT',
+      label: 'Memperbarui cakupan tipe kelas…',
+      body: JSON.stringify(input),
+    });
   },
+
   async updateClassType(id, input) {
-    await appLoading.track(
-      api.updateClassType({
-        id,
-        idempotencyKey: crypto.randomUUID(),
-        classTypeUpdateCommand: input,
-      }),
-      { label: 'Memperbarui tipe kelas…' },
-    );
+    await apiFetch(`/class-types/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      idempotent: true,
+      label: 'Memperbarui tipe kelas…',
+      body: JSON.stringify(input),
+    });
   },
+
   async deactivateBranch(id, expectedVersion) {
-    await appLoading.track(
-      api.deactivateBranch({
-        id,
-        idempotencyKey: crypto.randomUUID(),
-        body: {
-          expectedVersion,
-          reason: 'Menonaktifkan cabang melalui Master Data.',
-        },
+    await apiFetch(`/branches/${encodeURIComponent(id)}/deactivate`, {
+      method: 'POST',
+      idempotent: true,
+      label: 'Menonaktifkan cabang…',
+      body: JSON.stringify({
+        expectedVersion,
+        reason: 'Menonaktifkan cabang melalui Master Data.',
       }),
-      { label: 'Menonaktifkan cabang…' },
-    );
+    });
   },
+
   async deactivateClassType(id, expectedVersion) {
-    await appLoading.track(
-      api.deactivateClassType({
-        id,
-        idempotencyKey: crypto.randomUUID(),
-        reasonedVersionCommand: {
-          expectedVersion,
-          reason: 'Menonaktifkan tipe kelas melalui Master Data.',
-        },
+    await apiFetch(`/class-types/${encodeURIComponent(id)}/deactivate`, {
+      method: 'POST',
+      idempotent: true,
+      label: 'Menonaktifkan tipe kelas…',
+      body: JSON.stringify({
+        expectedVersion,
+        reason: 'Menonaktifkan tipe kelas melalui Master Data.',
       }),
-      {
-        label: 'Menonaktifkan tipe kelas…',
-      },
-    );
+    });
   },
+
   async reactivateClassType(id, input) {
-    await appLoading.track(
-      api.reactivateClassType({
-        id,
-        idempotencyKey: crypto.randomUUID(),
-        reasonedVersionCommand: input,
-      }),
-      { label: 'Mengaktifkan tipe kelas…' },
-    );
+    await apiFetch(`/class-types/${encodeURIComponent(id)}/reactivate`, {
+      method: 'POST',
+      idempotent: true,
+      label: 'Mengaktifkan tipe kelas…',
+      body: JSON.stringify(input),
+    });
   },
+
   async listSettings(kind, branchId) {
-    if (kind === 'INSTRUCTOR_FEE')
-      return (
-        await appLoading.track(api.listInstructorFees({ branchId }), {
-          label: 'Memuat honor instruktur…',
-        })
-      ).items as MasterSetting[];
-    if (kind === 'PROJECTION_RATE')
-      return (
-        await appLoading.track(api.listProjectionRates({ branchId }), {
-          label: 'Memuat proyeksi…',
-        })
-      ).items as MasterSetting[];
-    return (
-      await appLoading.track(api.listQuotaCapacitySettings({ branchId }), {
-        label: 'Memuat kuota dan kapasitas…',
-      })
-    ).items as MasterSetting[];
+    const qs = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+    if (kind === 'INSTRUCTOR_FEE') {
+      const res = await apiFetch<{ items: MasterSetting[] }>(`/instructor-fees${qs}`, {
+        label: 'Memuat honor instruktur…',
+      });
+      return res.items ?? [];
+    }
+    if (kind === 'PROJECTION_RATE') {
+      const res = await apiFetch<{ items: MasterSetting[] }>(`/projection-rates${qs}`, {
+        label: 'Memuat proyeksi…',
+      });
+      return res.items ?? [];
+    }
+    const res = await apiFetch<{ items: MasterSetting[] }>(`/quota-capacity-settings${qs}`, {
+      label: 'Memuat kuota dan kapasitas…',
+    });
+    return res.items ?? [];
   },
+
   async createSetting(input) {
     const period = {
-      effectiveFrom: date(input.effectiveFrom)!,
-      effectiveUntil: date(input.effectiveUntil),
+      effectiveFrom: date(input.effectiveFrom)!.toISOString(),
+      effectiveUntil: input.effectiveUntil ? date(input.effectiveUntil)!.toISOString() : undefined,
     };
+
     if (input.kind === 'INSTRUCTOR_FEE') {
-      await appLoading.track(
-        api.createInstructorFee({
-          instructorFeeCommand: {
-            ...period,
-            kind: 'INSTRUCTOR_FEE',
-            branchId: input.branchId,
-            classTypeId: input.classTypeId,
-            instructorUserId: input.instructorUserId!,
-            feeRp: input.value,
-            reason: input.reason,
-          },
+      await apiFetch('/instructor-fees', {
+        method: 'POST',
+        label: 'Menyimpan honor instruktur…',
+        body: JSON.stringify({
+          ...period,
+          kind: 'INSTRUCTOR_FEE',
+          branchId: input.branchId,
+          classTypeId: input.classTypeId,
+          instructorUserId: input.instructorUserId!,
+          feeRp: input.value,
+          reason: input.reason,
         }),
-        { label: 'Menyimpan honor instruktur…' },
-      );
+      });
     } else if (input.kind === 'PROJECTION_RATE') {
-      await appLoading.track(
-        api.createProjectionRate({
-          projectionRateCommand: {
-            ...period,
-            kind: 'PROJECTION_RATE',
-            branchId: input.branchId,
-            classTypeId: input.classTypeId,
-            rateRp: input.value,
-            reason: input.reason,
-          },
+      await apiFetch('/projection-rates', {
+        method: 'POST',
+        label: 'Menyimpan proyeksi…',
+        body: JSON.stringify({
+          ...period,
+          kind: 'PROJECTION_RATE',
+          branchId: input.branchId,
+          classTypeId: input.classTypeId,
+          rateRp: input.value,
+          reason: input.reason,
         }),
-        { label: 'Menyimpan proyeksi…' },
-      );
+      });
     } else {
-      await appLoading.track(
-        api.createQuotaCapacitySetting({
-          quotaCapacityCommand: {
-            ...period,
-            kind: 'QUOTA_CAPACITY',
-            branchId: input.branchId,
-            classTypeId: input.classTypeId,
-            minimumQuota: input.value,
-            defaultCapacity: input.capacity!,
-            reason: input.reason,
-          },
+      await apiFetch('/quota-capacity-settings', {
+        method: 'POST',
+        label: 'Menyimpan kuota dan kapasitas…',
+        body: JSON.stringify({
+          ...period,
+          kind: 'QUOTA_CAPACITY',
+          branchId: input.branchId,
+          classTypeId: input.classTypeId,
+          minimumQuota: input.value,
+          defaultCapacity: input.capacity!,
+          reason: input.reason,
         }),
-        { label: 'Menyimpan kuota dan kapasitas…' },
-      );
+      });
     }
   },
 };
 
 export function masterFailure(error: unknown): string {
   notifySessionFailure(error);
-  const status = (error as { response?: { status?: number } })?.response?.status;
+  const status = (error as { status?: number; response?: { status?: number } })?.status ??
+    (error as { response?: { status?: number } })?.response?.status;
   if (status === 403) return 'FORBIDDEN';
   if (status === 404) return 'RESOURCE_NOT_FOUND';
   if (status === 409) return 'EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION';

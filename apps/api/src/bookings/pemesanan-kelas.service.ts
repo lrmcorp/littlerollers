@@ -272,16 +272,6 @@ export class BookingsService {
           },
         });
 
-        // Kembalikan 1 sesi ke paket pelanggan O(1)
-        await tx.paketPelanggan.update({
-          where: { id: booking.customerPackageId },
-          data: {
-            usedSessions: { decrement: 1 },
-            remainingSessions: { increment: 1 },
-            status: 'ACTIVE',
-          },
-        });
-
         // Kurangi bookedCount di slot kelas O(1)
         await tx.slotKelas.update({
           where: { id: booking.classSlotId },
@@ -322,16 +312,27 @@ export class BookingsService {
       },
     });
 
-    const items = packages.map((pkg) => ({
-      id: pkg.id,
-      customerPackageId: pkg.id,
-      packageId: pkg.packageId,
-      packageName: pkg.package.name,
-      remainingSessions: pkg.remainingSessions,
-      totalSessions: pkg.totalSessions,
-      expiresAt: pkg.validUntil,
-      isEligible: true,
-    }));
+    const items = await Promise.all(
+      packages.map(async (pkg) => {
+        const activeBookingsCount = await this.db.pemesananKelas.count({
+          where: {
+            customerPackageId: pkg.id,
+            status: 'BOOKED',
+          },
+        });
+        const availableSessions = Math.max(0, pkg.remainingSessions - activeBookingsCount);
+        return {
+          id: pkg.id,
+          customerPackageId: pkg.id,
+          packageId: pkg.packageId,
+          packageName: pkg.package.name,
+          remainingSessions: availableSessions,
+          totalSessions: pkg.totalSessions,
+          expiresAt: pkg.validUntil,
+          isEligible: availableSessions > 0,
+        };
+      }),
+    );
 
     return {
       classSlotId: slot.id,
@@ -519,8 +520,31 @@ export class BookingsService {
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (customerPackage.status !== 'ACTIVE' || customerPackage.validUntil <= new Date())
           throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
-        if (customerPackage.remainingSessions <= 0)
+
+        // Validasi kecocokan cabang & jenis kelas paket (Integritas Aturan Bisnis)
+        if (
+          customerPackage.package?.branchId &&
+          customerPackage.package.branchId !== slot.branchId
+        ) {
+          throw new ApiProblem('PACKAGE_BRANCH_MISMATCH', HttpStatus.CONFLICT);
+        }
+        if (
+          customerPackage.package?.classTypeId &&
+          customerPackage.package.classTypeId !== slot.classTypeId
+        ) {
+          throw new ApiProblem('PACKAGE_CLASS_TYPE_MISMATCH', HttpStatus.CONFLICT);
+        }
+
+        // Periksa sisa sesi dikurangi booking aktif (Rule #1 & #2: sesi fisik belum dipotong)
+        const activeBookingsCount = await tx.pemesananKelas.count({
+          where: {
+            customerPackageId: customerPackage.id,
+            status: 'BOOKED',
+          },
+        });
+        if (customerPackage.remainingSessions - activeBookingsCount <= 0)
           throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
+
         if (!['PUBLISHED', 'CONFIRMED'].includes(slot.status))
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
 
@@ -539,7 +563,11 @@ export class BookingsService {
         });
         if (duplicate) throw new ApiProblem('DUPLICATE_ACTIVE_BOOKING', HttpStatus.CONFLICT);
 
-        if (slot.bookedCount >= slot.capacity)
+        const currentSlot = await tx.slotKelas.findUnique({
+          where: { id: slot.id },
+          select: { bookedCount: true, capacity: true },
+        });
+        if (!currentSlot || currentSlot.bookedCount >= currentSlot.capacity)
           throw new ApiProblem('CLASS_CAPACITY_FULL', HttpStatus.CONFLICT);
 
         const bookingNumber = `BK-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
@@ -563,16 +591,8 @@ export class BookingsService {
           },
         });
 
-        // Potong sesi O(1)
-        const remainingAfter = customerPackage.remainingSessions - 1;
-        await tx.paketPelanggan.update({
-          where: { id: customerPackage.id },
-          data: {
-            usedSessions: { increment: 1 },
-            remainingSessions: { decrement: 1 },
-            status: remainingAfter <= 0 ? 'DEPLETED' : 'ACTIVE',
-          },
-        });
+        // Catatan: Sesi TIDAK dipotong saat booking (Rule #1).
+        // Pemotongan sesi ke SessionLedger & PaketPelanggan dieksekusi saat kelas COMPLETED dan customer hadir.
 
         // Tambah bookedCount O(1)
         await tx.slotKelas.update({

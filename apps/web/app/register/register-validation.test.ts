@@ -47,7 +47,6 @@ describe('registration validation', () => {
       email: 'Masukkan alamat email yang valid.',
       password: 'Password minimal 8 karakter.',
       confirmation: 'Konfirmasi password tidak sama.',
-      consent: 'Persetujuan verifikasi identitas wajib diberikan.',
     });
   });
 
@@ -63,7 +62,7 @@ describe('registration validation', () => {
     expect(errors.ktp).toBe('Foto KTP maksimal berukuran 8 MB.');
   });
 
-  it('rejects unsupported and missing identity images', () => {
+  it('rejects unsupported identity images when provided and accepts null', () => {
     const errors = validateRegistration(
       validValues({
         selfie: new File(['selfie'], 'selfie.gif', { type: 'image/gif' }),
@@ -71,7 +70,7 @@ describe('registration validation', () => {
       }),
     );
     expect(errors.selfie).toBe('Foto selfie harus berformat JPG, PNG, atau WebP.');
-    expect(errors.ktp).toBe('Foto KTP wajib dipilih.');
+    expect(errors.ktp).toBeUndefined();
   });
 
   it('maps conflict, validation and dependency failures to safe customer messages', () => {
