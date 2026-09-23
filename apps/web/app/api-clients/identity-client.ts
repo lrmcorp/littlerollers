@@ -260,7 +260,10 @@ function mapUser(user: GeneratedUserSummary): UserSummary {
       mapped.assignmentRoles ?? roles.filter(({ source }) => source === 'ASSIGNMENT'),
     effectiveCapabilities: mapped.effectiveCapabilities ?? [],
     audience:
-      mapped.audience ?? (roles.some(({ role }) => role === 'CUSTOMER') ? 'CUSTOMER' : 'STAFF'),
+      mapped.audience ??
+      (roles.some(({ role }) => role === 'CUSTOMER' || (role as string) === 'MEMBER')
+        ? 'CUSTOMER'
+        : 'STAFF'),
     identityVerification: user.identityVerification
       ? {
           status: user.identityVerification.status,

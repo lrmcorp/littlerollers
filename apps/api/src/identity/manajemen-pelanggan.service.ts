@@ -118,12 +118,21 @@ export class CustomerManagementService {
         purchases: {
           orderBy: { createdAt: 'desc' },
           take: 20,
-          include: { package: true },
+          include: { package: true, paymentProof: true, branch: true },
         },
         bookings: {
           orderBy: { createdAt: 'desc' },
           take: 20,
-          include: { classSlot: { include: { classType: true } } },
+          include: {
+            classSlot: {
+              include: {
+                classType: true,
+                instructor: { select: { id: true, displayName: true } },
+                branch: { select: { id: true, name: true } },
+              },
+            },
+            attendance: true,
+          },
         },
         _count: {
           select: {
@@ -144,6 +153,38 @@ export class CustomerManagementService {
         })
       : null;
 
+    const identityDocuments = [];
+    if (customer.profile?.ktpUrl) {
+      identityDocuments.push({
+        id: `doc-ktp-${customer.id}`,
+        kind: 'KTP_FRONT',
+        status: 'APPROVED',
+        fileName: 'ktp.jpg',
+        url: `/api/v1/identity-verifications/doc-ktp-${customer.id}/view-authorizations`,
+        uploadedAt: customer.profile.updatedAt?.toISOString() ?? null,
+        reviewedAt: customer.profile.updatedAt?.toISOString() ?? null,
+      });
+    }
+    if (customer.profile?.selfieUrl) {
+      identityDocuments.push({
+        id: `doc-selfie-${customer.id}`,
+        kind: 'SELFIE',
+        status: 'APPROVED',
+        fileName: 'selfie.jpg',
+        url: `/api/v1/identity-verifications/doc-selfie-${customer.id}/view-authorizations`,
+        uploadedAt: customer.profile.updatedAt?.toISOString() ?? null,
+        reviewedAt: customer.profile.updatedAt?.toISOString() ?? null,
+      });
+    }
+
+    const hasDocs = Boolean(customer.profile?.ktpUrl || customer.profile?.selfieUrl);
+    const verificationStatus =
+      customer.profile?.ktpUrl && customer.profile?.selfieUrl
+        ? ('APPROVED' as const)
+        : hasDocs
+          ? ('PENDING' as const)
+          : ('ACTION_REQUIRED' as const);
+
     return {
       id: customer.id,
       displayName: customer.displayName,
@@ -155,18 +196,22 @@ export class CustomerManagementService {
       version: 1,
       preferredBranch: branch,
       profile: customer.profile,
-      verificationStatus: 'APPROVED' as const,
+      verificationStatus,
       passwordCredential: { mustChangePassword: false },
       identities: [],
-      identityDocuments: [],
+      identityDocuments,
       purchases: customer.purchases.map((p) => ({
         id: p.id,
+        invoiceNumber: p.invoiceNumber,
         status: p.status,
         packageNameSnapshot: p.package.name,
         priceRpSnapshot: p.subtotalRp,
         payableAmountRpSnapshot: p.totalAmountRp,
         submittedAt: p.createdAt,
         decidedAt: p.paidAt,
+        paymentMethod: p.paymentMethod,
+        branchName: p.branch?.name ?? null,
+        paymentProofUrl: p.paymentProof?.fileUrl ?? null,
       })),
       customerPackages: customer.customerPackages.map((cp) => ({
         id: cp.id,
@@ -180,10 +225,17 @@ export class CustomerManagementService {
       })),
       customerBookings: customer.bookings.map((b) => ({
         id: b.id,
+        bookingNumber: b.bookingNumber,
         status: b.status,
         classSlotId: b.classSlotId,
         createdAt: b.createdAt,
         cancelledAt: b.cancelledAt,
+        classTypeName: b.classSlot?.classType?.name ?? 'Kelas Pilates',
+        instructorName: b.classSlot?.instructor?.displayName ?? 'Instruktur',
+        startAt: b.classSlot?.startAt,
+        endAt: b.classSlot?.endAt,
+        branchName: b.classSlot?.branch?.name ?? null,
+        attendanceStatus: b.attendance ? 'HADIR' : b.status === 'CANCELLED' ? 'BATAL' : 'MENUNGGU',
         classSlot: b.classSlot,
       })),
       voucherRedemptions: [],

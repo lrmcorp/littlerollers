@@ -642,6 +642,17 @@ export function VerificationView() {
                     Catatan tim peninjau: {document.rejectionNote}
                   </p>
                 )}
+                {['PENDING', 'ACTION_REQUIRED'].includes(document.status) && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setReplacement(document)}
+                    fullWidth
+                    className="mt-3"
+                  >
+                    Ganti dokumen
+                  </Button>
+                )}
                 {document.status === 'REJECTED' && (
                   <Button
                     type="button"
@@ -651,6 +662,12 @@ export function VerificationView() {
                   >
                     Unggah ulang dokumen
                   </Button>
+                )}
+                {document.status === 'APPROVED' && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5 rounded-dd-md bg-dd-surface-muted/60 py-2 px-3 text-xs text-dd-muted">
+                    <LockKeyhole className="size-3.5 text-dd-forest" />
+                    <span>Dokumen terverifikasi resmi &amp; terkunci</span>
+                  </div>
                 )}
                 {['PENDING_DELETION', 'DELETE_FAILED', 'DELETED'].includes(document.status) && (
                   <Link

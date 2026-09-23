@@ -18,6 +18,7 @@ import {
   type PublicSiteConfig,
 } from '@/api-clients/account-client';
 import { useSessionContext } from '../../session-context';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 import { Button } from '../actions';
 import { Modal, useAppFeedback } from '../app-feedback';
 import { RadioCard } from '../forms';
@@ -69,9 +70,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
   const context = useSessionContext();
   const feedback = useAppFeedback();
   const session = context?.session;
-  const customerOnly = Boolean(
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
-  );
+  const customerOnly = isCustomerOnlySession(session);
   const [config, setConfig] = useState<PublicSiteConfig | null>(null);
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [chooserOpen, setChooserOpen] = useState(false);

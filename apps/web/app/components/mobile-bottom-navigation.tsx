@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CreditCard,
   Gauge,
+  House,
   LayoutDashboard,
   ListChecks,
   LockKeyhole,
@@ -34,7 +35,7 @@ export function MobileBottomNavigation({
 
   if (customerOnly) {
     const tabs = [
-      { href: '/account', label: 'Dashboard', icon: Gauge },
+      { href: '/account', label: 'Beranda', icon: House },
       { href: '/classes', label: 'Jadwal', icon: CalendarDays },
       { href: '/packages', label: 'Paket', icon: ListChecks },
       {

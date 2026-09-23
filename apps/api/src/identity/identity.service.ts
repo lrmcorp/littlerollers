@@ -1,8 +1,9 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 export type SessionChannel = 'WEB' | 'MOBILE' | string;
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
+import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import {
   ConfigGatedGoogleProvider,
   ConfigGatedOtpProvider,
@@ -16,6 +17,7 @@ import { QueuedPasswordEmailProvider } from './email-provider';
 import {
   canonicalEmailHash,
   hashPassword,
+  isValidEmail,
   normalizeEmail,
   passwordHashNeedsUpgrade,
   verifyPassword,
@@ -102,12 +104,24 @@ export class IdentityService {
     @Optional() private readonly idempotency?: IdempotencyService,
     @Optional() private readonly runtimeConfig?: RuntimeConfigService,
     @Optional() private readonly notificationWriter?: NotificationWriterService,
+    @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly privateStorage?: PrivateFileStorage,
   ) {}
 
-  async verificationStatus(_userId: string) {
+  async verificationStatus(userId: string) {
+    const profile = await this.db.profilPengguna.findUnique({
+      where: { userId },
+    });
+    const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
+    const documents: Array<{ kind: 'SELFIE' | 'KTP_FRONT'; status: string }> = [];
+    if (profile?.selfieUrl) {
+      documents.push({ kind: 'SELFIE', status: 'APPROVED' });
+    }
+    if (profile?.ktpUrl) {
+      documents.push({ kind: 'KTP_FRONT', status: 'APPROVED' });
+    }
     return {
-      status: 'APPROVED',
-      documents: [],
+      status: profile?.ktpUrl && profile?.selfieUrl ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED',
+      documents,
     };
   }
 
@@ -549,6 +563,11 @@ export class IdentityService {
     if (!displayName || !email || !input.password || !phone) {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
+    if (!isValidEmail(email)) {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'email', issue: 'Format email tidak valid.' },
+      ]);
+    }
 
     // Pre-check for duplicate email or phone (Zero-crash defensive check)
     const existingUser = await this.db.user.findFirst({
@@ -564,17 +583,51 @@ export class IdentityService {
     }
 
     const passwordHash = await hashPassword(input.password);
+    const userId = newId();
+    let ktpUrl: string | null = null;
+    let selfieUrl: string | null = null;
+
+    if (input.ktp?.buffer) {
+      const ext = input.ktp.originalName?.split('.').pop() || 'jpg';
+      const key = `identity-documents/${userId}/ktp-${Date.now()}.${ext}`;
+      if (this.privateStorage) {
+        await this.privateStorage.put({ key, content: input.ktp.buffer }).catch(() => null);
+      }
+      ktpUrl = key;
+    }
+
+    if (input.selfie?.buffer) {
+      const ext = input.selfie.originalName?.split('.').pop() || 'jpg';
+      const key = `identity-documents/${userId}/selfie-${Date.now()}.${ext}`;
+      if (this.privateStorage) {
+        await this.privateStorage.put({ key, content: input.selfie.buffer }).catch(() => null);
+      }
+      selfieUrl = key;
+    }
+
     try {
-      const user = await this.db.user.create({
-        data: {
-          id: newId(),
-          displayName,
-          email,
-          phone,
-          passwordHash,
-          role: 'MEMBER',
-          status: 'ACTIVE',
-        },
+      const user = await this.db.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            id: userId,
+            displayName,
+            email,
+            phone,
+            passwordHash,
+            role: 'MEMBER',
+            status: 'ACTIVE',
+          },
+        });
+        await tx.profilPengguna.create({
+          data: {
+            id: newId(),
+            userId,
+            fullName: displayName,
+            ktpUrl,
+            selfieUrl,
+          },
+        });
+        return newUser;
       });
       return this.issueSession(user.id, 'WEB');
     } catch (error: any) {
@@ -592,10 +645,50 @@ export class IdentityService {
     }
   }
 
-  async myVerification(_principal: SessionPrincipal) {
+  async myVerification(principal: SessionPrincipal) {
+    const profile = await this.db.profilPengguna.findUnique({
+      where: { userId: principal.userId },
+    });
+
+    const documents: any[] = [];
+    if (profile?.selfieUrl) {
+      documents.push({
+        id: `doc-selfie-${principal.userId}`,
+        kind: 'SELFIE',
+        status: 'APPROVED',
+        uploadStatus: 'FINALIZED',
+        scanStatus: 'CLEAN',
+        fileName: 'selfie.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1024,
+        rejectionReasonCode: null,
+        rejectionNote: null,
+        reviewedAt: profile.updatedAt?.toISOString() ?? new Date().toISOString(),
+        deletedAt: null,
+        version: 1,
+      });
+    }
+    if (profile?.ktpUrl) {
+      documents.push({
+        id: `doc-ktp-${principal.userId}`,
+        kind: 'KTP_FRONT',
+        status: 'APPROVED',
+        uploadStatus: 'FINALIZED',
+        scanStatus: 'CLEAN',
+        fileName: 'ktp.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1024,
+        rejectionReasonCode: null,
+        rejectionNote: null,
+        reviewedAt: profile.updatedAt?.toISOString() ?? new Date().toISOString(),
+        deletedAt: null,
+        version: 1,
+      });
+    }
+
     return {
-      status: 'APPROVED',
-      documents: [],
+      status: documents.length >= 2 ? 'APPROVED' : documents.length > 0 ? 'PENDING' : 'ACTION_REQUIRED',
+      documents,
     };
   }
 

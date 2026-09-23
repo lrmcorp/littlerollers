@@ -381,7 +381,7 @@ export function UserDetailView({
                     Verifikasi Identitas
                   </h2>
                   <p className="mt-1 text-sm text-dd-muted">
-                    Status aman Selfie dan KTP. Gambar tidak dimuat pada halaman pengguna.
+                    Status verifikasi dokumen Selfie dan KTP pengguna. Akses review penuh dan pratinjau berkas tersedia melalui antrean verifikasi.
                   </p>
                 </div>
                 {verification && (

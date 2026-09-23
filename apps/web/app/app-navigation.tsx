@@ -33,6 +33,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { browserDashboardClient } from '@/api-clients/dashboard-client';
@@ -108,8 +109,7 @@ export function AppNavigation({
   const isCurrentInAdvanced = advancedPages.some((item) => item.href === activeHref);
   const showAdvanced = advancedOpen || isCurrentInAdvanced;
 
-  const customerOnly =
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER');
+  const customerOnly = isCustomerOnlySession(session);
   const customerLinks = [
     { href: '/classes', label: 'Jadwal', icon: CalendarDays },
     ...(session?.identityVerificationStatus === 'APPROVED'

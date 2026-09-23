@@ -207,7 +207,9 @@ export class PolicyService {
   }
 
   requireCustomerSelf(roles: readonly EffectiveRole[], capabilities: readonly string[]): void {
-    const customerOnly = roles.length > 0 && roles.every(({ role }) => role === 'CUSTOMER');
+    const customerOnly =
+      roles.length > 0 &&
+      roles.every(({ role }) => role === 'CUSTOMER' || role === 'MEMBER');
     if (!customerOnly || !capabilities.includes('customer:self'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }

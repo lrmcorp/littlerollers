@@ -191,11 +191,11 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
                 {/* Title */}
                 <h1
                   id="marketing-hero-title"
-                  className="m-0 font-serif text-4xl sm:text-5xl lg:text-6xl font-normal leading-[1.08] tracking-tight text-dd-ink text-balance"
+                  className="m-0 font-sans text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight text-dd-ink text-balance"
                 >
                   {slide.title}{' '}
                   {slide.highlightTitle && (
-                    <span className="italic font-normal text-dd-forest block sm:inline">
+                    <span className="font-bold text-dd-forest block sm:inline">
                       {slide.highlightTitle}
                     </span>
                   )}

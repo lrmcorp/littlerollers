@@ -92,7 +92,7 @@ export function CustomerNavigation({
       {rendered && (
         <div
           aria-hidden="true"
-          className={`fixed inset-0 z-40 bg-dd-sidebar/55 transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${visible ? 'opacity-100' : 'opacity-0'}`}
+          className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${visible ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={onClose}
         />
       )}
@@ -105,21 +105,21 @@ export function CustomerNavigation({
         inert={!rendered}
         role={rendered ? 'dialog' : undefined}
         data-overlay-phase={rendered ? phase : undefined}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-dd-sidebar pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col bg-white border-r border-dd-line pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-dd-ink shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:hidden ${
           visible ? 'translate-x-0 visible' : '-translate-x-full'
         } ${rendered ? 'pointer-events-auto' : 'invisible pointer-events-none'}`}
       >
         <div className="mb-7 flex items-center justify-between">
           <BrandMark
-            className="w-40 brightness-0 invert"
+            className="w-36 sm:w-40"
             href="/"
             ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
           />
           <IconButton
             label="Tutup navigasi akun"
-            variant="ghost"
+            variant="secondary"
             onClick={onClose}
-            className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+            className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none hover:bg-dd-surface-muted"
           >
             <X className="size-5" />
           </IconButton>
@@ -130,7 +130,7 @@ export function CustomerNavigation({
             ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+              <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-dd-forest/80">
                 {group as string}
               </p>
               <div className="space-y-1">
@@ -154,10 +154,10 @@ export function CustomerNavigation({
                       aria-current={open && selected ? 'page' : undefined}
                       aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
                       onClick={onClose}
-                      className={`flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold no-underline ${
+                      className={`flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold no-underline transition ${
                         selected
-                          ? 'bg-white text-dd-sidebar shadow-dd-soft'
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'bg-dd-forest text-white shadow-dd-soft'
+                          : 'text-dd-ink hover:bg-dd-surface-muted hover:text-dd-forest'
                       }`}
                     >
                       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
@@ -174,19 +174,19 @@ export function CustomerNavigation({
                       )}
                       {showVerificationDot && (
                         <span
-                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-white"
                           title="Perlu perbaikan dokumen"
                         />
                       )}
                       {showPackageDot && (
                         <span
-                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                          className="size-2.5 rounded-full bg-dd-brass ring-2 ring-white"
                           title="Segera kedaluwarsa atau kuota sisa 1 sesi"
                         />
                       )}
                       {locked && (
                         <LockKeyhole
-                          className={selected ? 'size-3.5 text-dd-muted' : 'size-3.5 text-white/45'}
+                          className="size-3.5 text-dd-muted"
                           aria-hidden="true"
                         />
                       )}
@@ -198,28 +198,28 @@ export function CustomerNavigation({
           ))}
         </div>
         {!approved && (
-          <div className="mt-5 rounded-dd-lg border border-white/10 bg-white/5 p-3 text-xs leading-5 text-white/65">
+          <div className="mt-5 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-3 text-xs leading-5 text-dd-muted">
             Selesaikan verifikasi untuk membuka booking dan transaksi.
           </div>
         )}
-        <div className="mt-5 grid gap-1 border-t border-white/10 pt-4">
+        <div className="mt-5 grid gap-1 border-t border-dd-line pt-4">
           <button
             type="button"
             onClick={() => {
               onClose();
               studioPreference?.openStudioPreference();
             }}
-            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
           >
-            <MapPin className="size-[18px] shrink-0" aria-hidden="true" />
+            <MapPin className="size-[18px] shrink-0 text-dd-forest" aria-hidden="true" />
             Ganti studio
           </button>
           <Link
             href="/"
             onClick={onClose}
-            className="flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold text-white/70 no-underline hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
           >
-            <House className="size-[18px] shrink-0" aria-hidden="true" />
+            <House className="size-[18px] shrink-0 text-dd-forest" aria-hidden="true" />
             Kunjungi situs utama
           </Link>
           <button
@@ -228,7 +228,7 @@ export function CustomerNavigation({
               onClose();
               void onLogout();
             }}
-            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
           >
             <LogOut className="size-[18px] shrink-0" aria-hidden="true" />
             Keluar

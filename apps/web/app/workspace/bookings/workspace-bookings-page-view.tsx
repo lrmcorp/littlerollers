@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BookingView } from '../../bookings/booking-view';
 import { useTrackedRouter } from '../../components/app-loading';
+import { isCustomerOnlySession } from '../../lib/session-audience';
 import { useSessionContext } from '../../session-context';
 import { Skeleton } from '../../ui';
 
@@ -12,9 +13,7 @@ export function WorkspaceBookingsPageView() {
   const router = useTrackedRouter();
   const params = useSearchParams();
   const session = context?.session;
-  const customerOnly = Boolean(
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
-  );
+  const customerOnly = isCustomerOnlySession(session);
   const branchSync = useRef({
     initialized: false,
     sessionId: '',

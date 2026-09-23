@@ -17,13 +17,70 @@ export interface CustomerSummary {
   updatedAt: string;
   preferredBranch: { id: string; code: string; name: string } | null;
   profile: {
-    barcode: string | null;
+    barcode?: string | null;
     address?: string | null;
     genderCode?: string | null;
+    gender?: string | null;
     countryCode?: string | null;
     birthDate?: string | null;
+    nik?: string | null;
+    emergencyContactName?: string | null;
+    emergencyContactPhone?: string | null;
+    notes?: string | null;
+    ktpUrl?: string | null;
+    selfieUrl?: string | null;
   } | null;
   _count: { purchases: number; customerBookings: number };
+}
+
+export interface CustomerDetailPurchase {
+  id: string;
+  invoiceNumber?: string;
+  status: string;
+  packageNameSnapshot?: string;
+  priceRpSnapshot?: number;
+  payableAmountRpSnapshot?: number;
+  submittedAt: string;
+  decidedAt?: string | null;
+  paymentMethod?: string;
+  branchName?: string | null;
+  paymentProofUrl?: string | null;
+}
+
+export interface CustomerDetailPackage {
+  id: string;
+  status: string;
+  sessionCountSnapshot?: number;
+  remainingSessions: number;
+  usedSessions: number;
+  activationDate?: string | null;
+  expiryAt?: string | null;
+  package?: { name: string; sessionCount?: number };
+}
+
+export interface CustomerDetailBooking {
+  id: string;
+  bookingNumber?: string;
+  status: string;
+  classSlotId: string;
+  createdAt: string;
+  cancelledAt?: string | null;
+  classTypeName?: string;
+  instructorName?: string;
+  startAt?: string;
+  endAt?: string;
+  branchName?: string | null;
+  attendanceStatus?: string;
+}
+
+export interface CustomerDetailDocument {
+  id?: string;
+  kind: string;
+  status: string;
+  fileName?: string;
+  reviewedAt: string | null;
+  uploadedAt?: string | null;
+  url?: string;
 }
 
 export interface CustomerList {
@@ -35,15 +92,15 @@ export interface CustomerList {
 export interface CustomerDetail extends CustomerSummary {
   createdAt: string;
   identities: Array<{ provider: string; verifiedAt: string | null; createdAt: string }>;
-  identityDocuments: Array<{ kind: string; status: string; reviewedAt: string | null }>;
+  identityDocuments: CustomerDetailDocument[];
   passwordCredential: {
     verifiedAt: string | null;
     passwordChangedAt: string;
     mustChangePassword: boolean;
   } | null;
-  purchases: Array<Record<string, unknown>>;
-  customerPackages: Array<Record<string, unknown>>;
-  customerBookings: Array<Record<string, unknown>>;
+  purchases: CustomerDetailPurchase[];
+  customerPackages: CustomerDetailPackage[];
+  customerBookings: CustomerDetailBooking[];
   voucherRedemptions: Array<Record<string, unknown>>;
   notifications: Array<Record<string, unknown>>;
   _count: {

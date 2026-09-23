@@ -20,6 +20,8 @@ import {
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { SearchSelect, SelectInput } from '../components/forms';
+import { useSessionContext } from '../session-context';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 import {
   publicContainer as container,
   publicPrimaryButton as primary,
@@ -51,6 +53,8 @@ const studioBenefits = [
 ] as const;
 
 export function LocationsView() {
+  const session = useSessionContext()?.session;
+  const inCustomerShell = isCustomerOnlySession(session);
   const [studios, setStudios] = useState<PreferredStudio[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -107,7 +111,7 @@ export function LocationsView() {
       <a className="skip-link" href="#studios-main">
         Langsung ke daftar studio
       </a>
-      <PublicHeader />
+      {!inCustomerShell && <PublicHeader />}
 
       <main id="studios-main">
         <section
@@ -343,7 +347,7 @@ export function LocationsView() {
         </section>
       </main>
 
-      <PublicFooter />
+      {!inCustomerShell && <PublicFooter />}
     </div>
   );
 }

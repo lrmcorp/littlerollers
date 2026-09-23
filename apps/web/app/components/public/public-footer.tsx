@@ -59,7 +59,7 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-12">
           {/* Brand Column */}
           <div className="col-span-2 sm:col-span-1">
-            <p className="font-serif text-2xl font-normal tracking-tight text-white">Daily Dose Pilates</p>
+            <p className="font-sans text-2xl font-bold tracking-tight text-white">Daily Dose Pilates</p>
             <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/65">
               Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup lebih seimbang.
             </p>

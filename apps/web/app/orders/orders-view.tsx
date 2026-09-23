@@ -114,7 +114,10 @@ export function OrdersView() {
         }
       />
 
-      <section aria-label="Ringkasan pesanan" className="grid grid-cols-2 gap-3 lg:grid-cols-7">
+      <section
+        aria-label="Ringkasan pesanan"
+        className="flex gap-2.5 overflow-x-auto pb-2 pt-0.5 no-scrollbar lg:grid lg:grid-cols-7 lg:overflow-visible"
+      >
         {summaryCards.map((card) => {
           const selected = status === card.status;
           return (
@@ -123,7 +126,7 @@ export function OrdersView() {
               key={card.key}
               aria-pressed={selected}
               onClick={() => updateFilters({ status: card.status })}
-              className={`min-h-20 rounded-dd-lg border p-3 text-left transition ${
+              className={`min-w-[115px] shrink-0 rounded-dd-lg border p-3 text-left transition lg:min-w-0 ${
                 selected
                   ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft'
                   : 'border-dd-line bg-white text-dd-ink hover:border-dd-forest/40'

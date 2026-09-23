@@ -75,7 +75,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'support:read',
     'support:manage',
     'branch:manage',
-    'user:read',
     'customer:read',
     'customer:manage',
     'customer:write',

@@ -8,6 +8,14 @@ const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 128;
 
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/u;
+
+export const isValidEmail = (email: string): boolean => {
+  if (!email || typeof email !== 'string' || email.length > 254) return false;
+  return EMAIL_REGEX.test(email.trim());
+};
+
 export const canonicalEmailHash = (email: string): string =>
   createHash('sha256')
     .update(`email:${normalizeEmail(email)}`)

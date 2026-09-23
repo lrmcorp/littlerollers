@@ -256,7 +256,7 @@ export function PublicPackagesView({
                 01 — Pilih studio
               </span>
               <h2
-                className="mt-1 font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-tight text-dd-ink"
+                className="mt-1 font-sans text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight text-dd-ink"
                 id="package-discovery-title"
               >
                 Pilih studio tempat Anda <span className="italic text-dd-forest">berlatih</span>.
@@ -411,7 +411,7 @@ export function PublicPackagesView({
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-3 font-serif text-2xl sm:text-3xl font-normal tracking-tight text-dd-ink">
+                        <h3 className="mt-3 font-sans text-2xl sm:text-3xl font-bold tracking-tight text-dd-ink">
                           {item.name}
                         </h3>
                         <p className="mt-1 text-xs sm:text-sm text-dd-muted">
@@ -428,11 +428,11 @@ export function PublicPackagesView({
                         <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-dd-line/60 py-4">
                           <div>
                             <dt className="text-xs font-semibold text-dd-muted">Jumlah sesi</dt>
-                            <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-dd-ink">{item.sessionCount} sesi</dd>
+                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-dd-ink">{item.sessionCount} sesi</dd>
                           </div>
                           <div>
                             <dt className="text-xs font-semibold text-dd-muted">Masa berlaku</dt>
-                            <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-dd-ink">{item.durationDays} hari</dd>
+                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-dd-ink">{item.durationDays} hari</dd>
                           </div>
                         </dl>
                         <div className="mt-auto grid gap-3 pt-5">

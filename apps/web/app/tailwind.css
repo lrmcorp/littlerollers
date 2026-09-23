@@ -2,7 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-serif), 'Playfair Display', Georgia, Cambria, serif;
+  --font-serif: var(--font-sans);
 
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;

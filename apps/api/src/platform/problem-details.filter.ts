@@ -20,11 +20,17 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     const response = http.getResponse<Response>();
 
-    const status =
-      error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const isConcurrencyConflict = (error as any)?.code === 'P2034';
 
-    const code =
-      error instanceof ApiProblem
+    const status = isConcurrencyConflict
+      ? HttpStatus.CONFLICT
+      : error instanceof HttpException
+        ? error.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const code = isConcurrencyConflict
+      ? 'CONCURRENCY_CONFLICT'
+      : error instanceof ApiProblem
         ? error.code
         : error instanceof HttpException
           ? `HTTP_${status}`
@@ -54,11 +60,14 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       .send({
         error: {
           code,
-          message:
-            status >= 500 ? 'Terjadi kesalahan internal.' : 'Permintaan tidak dapat diproses.',
+          message: isConcurrencyConflict
+            ? 'Terjadi konflik konkurensi pada transaksi. Silakan coba kembali.'
+            : status >= 500
+              ? 'Terjadi kesalahan internal.'
+              : 'Permintaan tidak dapat diproses.',
           correlationId: request.correlationId ?? 'unknown',
           details: error instanceof ApiProblem ? error.details : [],
-          retryable: error instanceof ApiProblem ? error.retryable : status >= 500,
+          retryable: isConcurrencyConflict || (error instanceof ApiProblem ? error.retryable : status >= 500),
         },
       });
   }

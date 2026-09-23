@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap');
-
 :root {
   color-scheme: light;
   --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+  --font-serif: var(--font-sans);
   --color-brand: #396552;
   --color-brand-strong: #24483a;
   --color-brand-soft: #e8f0ec;

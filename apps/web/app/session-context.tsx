@@ -10,7 +10,11 @@ import {
   type WebSession,
 } from '@/api-clients/session-client';
 import { Feedback, Skeleton } from './ui';
-import { isPublicExperiencePath } from '@/lib/session-audience';
+import {
+  internalStaffRoles,
+  isCustomerOnlySession,
+  isPublicExperiencePath,
+} from '@/lib/session-audience';
 import { useOptionalAppFeedback } from './components/app-feedback';
 import { useTrackedRouter } from './components/app-loading';
 import { ActionGroup, Button, ButtonLink } from './components/actions';
@@ -81,15 +85,16 @@ export function safeReturnTo(value: string | null): string {
   try {
     const url = new URL(value, 'http://local.invalid');
     if (url.origin !== 'http://local.invalid') return '/workspace';
-    if (
-      [
-        '/sign-in',
-        '/register',
-        '/activate-account',
-        '/forgot-password',
-        '/reset-password',
-      ].includes(url.pathname)
-    )
+    const forbidden = [
+      '/sign-in',
+      '/register',
+      '/activate-account',
+      '/forgot-password',
+      '/reset-password',
+    ];
+    if (forbidden.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`)))
+      return '/workspace';
+    if (url.pathname === '/account/verification')
       return '/workspace';
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
@@ -97,32 +102,21 @@ export function safeReturnTo(value: string | null): string {
   }
 }
 
-const internalRoles = new Set([
-  'INSTRUCTOR',
-  'ADMIN',
-  'MANAGER',
-  'OWNER',
-  'SUPER_OWNER',
-  'FINANCE',
-  'OPS',
-]);
-
 export function defaultSessionDestination(session: WebSession): string {
   if (session.passwordChangeRequired) return '/account/security?required=true';
-  if (session.roles.some((role) => internalRoles.has(role))) return '/workspace';
-  if (session.roles.includes('CUSTOMER'))
+  if (session.roles.some((role) => internalStaffRoles.has(role))) return '/workspace';
+  if (session.roles.some((role) => role === 'CUSTOMER' || role === 'MEMBER'))
     return '/classes#schedule';
   return '/workspace';
 }
 
 export function forbiddenSessionDestination(session: WebSession, pathname: string): string {
-  const customerOnly =
-    session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  const customerOnly = isCustomerOnlySession(session);
   if (customerOnly && pathname.startsWith('/workspace/bookings'))
     return `/bookings${pathname.slice('/workspace/bookings'.length)}`;
   if (!customerOnly && (pathname === '/bookings' || pathname.startsWith('/bookings/')))
     return `/workspace/bookings${pathname.slice('/bookings'.length)}`;
-  if (pathname === '/account/verification' && session.roles.some((role) => internalRoles.has(role)))
+  if (pathname === '/account/verification' && session.roles.some((role) => internalStaffRoles.has(role)))
     return session.capabilities.includes('identity-verification:read')
       ? '/identity-verifications'
       : '/workspace';
@@ -133,21 +127,16 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
   const path = new URL(value, 'http://local.invalid').pathname;
   if (isPublicExperiencePath(path)) return true;
   if (session.passwordChangeRequired) return path === '/account/security';
-  const customerOnly =
-    session.roles.includes('CUSTOMER') && !session.roles.some((role) => internalRoles.has(role));
+  const customerOnly = isCustomerOnlySession(session);
   if (!customerOnly && (path === '/bookings' || path.startsWith('/bookings/'))) return false;
   if (customerOnly && (path === '/workspace/bookings' || path.startsWith('/workspace/bookings/')))
     return false;
   if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
-  if (path === '/workspace') return session.roles.some((role) => internalRoles.has(role));
+  if (path === '/workspace') return session.roles.some((role) => internalStaffRoles.has(role));
   const rule = routeCapabilities.find(([route]) => path === route || path.startsWith(`${route}/`));
   if (!rule) return false;
-  const required = rule[1];
-  return (
-    required.length === 0 ||
-    required.some((capability) => session.capabilities.includes(capability))
-  );
+  return rule[1].length === 0 || rule[1].some((cap) => session.capabilities.includes(cap));
 }
 
 export function resolveSessionDestination(
@@ -314,7 +303,7 @@ export function SessionProvider({
   const staffVerificationRedirect = Boolean(
     session &&
     pathname === '/account/verification' &&
-    session.roles.some((role) => internalRoles.has(role)),
+    session.roles.some((role) => internalStaffRoles.has(role)),
   );
 
   useEffect(() => {

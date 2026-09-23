@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
@@ -76,7 +76,7 @@ export function CustomerDashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-            Dashboard saya
+            Beranda Member
           </p>
           <h1 id="customer-dashboard-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
             Halo, {session.displayName}
@@ -134,7 +134,7 @@ export function CustomerDashboard() {
           href="/orders"
         />
         <MetricCard
-          icon={ShieldCheck}
+          icon={Bell}
           label="Notifikasi belum dibaca"
           value={String(overview?.unreadNotifications ?? 0)}
           href="/account"

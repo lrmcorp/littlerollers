@@ -143,7 +143,7 @@ export function PublicLanding() {
                   key={number}
                   className="space-y-2.5 border-l-2 border-dd-brass/30 pl-5 transition hover:border-dd-forest"
                 >
-                  <span className="font-serif text-2xl sm:text-3xl font-normal text-dd-brass">
+                  <span className="font-sans text-2xl sm:text-3xl font-bold text-dd-brass">
                     {number}
                   </span>
                   <div>
@@ -183,7 +183,7 @@ export function PublicLanding() {
                 <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wider text-dd-brass uppercase backdrop-blur-md">
                   Studio kami
                 </span>
-                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-tight text-white">
+                <h2 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight text-white tracking-tight">
                   Ruang tenang yang dirancang untuk <span className="italic">bergerak</span>
                 </h2>
                 <p className="text-sm sm:text-base leading-relaxed text-white/80 max-w-xl">
@@ -218,7 +218,7 @@ export function PublicLanding() {
                     <dt className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
                       {term}
                     </dt>
-                    <dd className="mt-1 font-serif text-lg sm:text-xl font-normal text-white">
+                    <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-white">
                       {value}
                     </dd>
                   </div>
@@ -236,7 +236,7 @@ export function PublicLanding() {
                 Kelas populer
               </span>
               <h2
-                className="mt-2 font-serif text-2xl sm:text-3xl lg:text-4xl font-normal tracking-tight text-dd-ink"
+                className="mt-2 font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink"
                 id="popular-title"
               >
                 Temukan kelas sesuai <span className="italic text-dd-forest">tujuan Anda</span>
@@ -290,7 +290,7 @@ export function PublicLanding() {
                     </div>
                   </div>
                   <div className="p-6 space-y-3">
-                    <h3 className="font-serif text-xl sm:text-2xl font-normal text-dd-ink group-hover:text-dd-forest transition">
+                    <h3 className="font-sans text-xl sm:text-2xl font-semibold text-dd-ink group-hover:text-dd-forest transition">
                       {name}
                     </h3>
                     <p className="text-xs sm:text-sm leading-relaxed text-dd-muted min-h-[40px]">
@@ -351,14 +351,14 @@ export function PublicLanding() {
             >
               Prinsip gerak kami
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal text-dd-ink">
+            <h2 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink">
               Refined Movement. <span className="italic text-dd-forest">Real Transformation.</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <blockquote className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card font-serif text-xl sm:text-2xl font-normal leading-relaxed text-dd-ink">
-              <span className="text-4xl text-dd-brass font-serif leading-none">“</span>
+            <blockquote className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card font-sans text-xl sm:text-2xl font-medium leading-relaxed text-dd-ink">
+              <span className="text-4xl text-dd-brass font-sans leading-none">“</span>
               <p className="my-4 leading-relaxed italic">
                 Consistency is not perfection. It is choosing to return to yourself.
               </p>
@@ -372,7 +372,7 @@ export function PublicLanding() {
                 <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
                   Member Experience
                 </span>
-                <strong className="block font-serif text-lg font-normal text-dd-ink leading-snug">
+                <strong className="block font-sans text-lg font-semibold text-dd-ink leading-snug">
                   Move with confidence
                 </strong>
                 <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
@@ -390,7 +390,7 @@ export function PublicLanding() {
                 <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
                   Personal Guidance
                 </span>
-                <strong className="block font-serif text-lg font-normal text-dd-ink leading-snug">
+                <strong className="block font-sans text-lg font-semibold text-dd-ink leading-snug">
                   Train at your pace
                 </strong>
                 <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
@@ -416,7 +416,7 @@ export function PublicLanding() {
                 Paket Daily Dose
               </span>
               <h2
-                className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal tracking-tight text-dd-ink leading-tight"
+                className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink leading-tight"
                 id="package-cta-title"
               >
                 Bangun rutinitas yang <span className="italic text-dd-forest">konsisten</span>.
@@ -443,7 +443,7 @@ export function PublicLanding() {
                   className="flex items-start gap-4 p-6 transition hover:bg-white/60"
                   key={number}
                 >
-                  <span className="font-serif grid size-9 shrink-0 place-items-center rounded-full border border-dd-brass/40 bg-dd-brass-soft text-sm font-normal text-dd-brass-dark">
+                  <span className="font-sans grid size-9 shrink-0 place-items-center rounded-full border border-dd-brass/40 bg-dd-brass-soft text-sm font-bold text-dd-brass-dark">
                     {number}
                   </span>
                   <div className="space-y-0.5">
@@ -462,7 +462,7 @@ export function PublicLanding() {
         >
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="space-y-3 max-w-xl">
-              <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-normal leading-snug">
+              <h2 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-snug">
                 Temukan kelas Pilates yang <span className="italic">sesuai untuk Anda</span>
               </h2>
               <p className="text-sm sm:text-base text-white/80 leading-relaxed">

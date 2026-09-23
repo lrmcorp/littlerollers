@@ -264,7 +264,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => studioPreference?.openStudioPreference()}
-                  className="flex min-h-9 max-w-44 items-center gap-1.5 truncate rounded-full border border-dd-line/80 bg-white px-2.5 py-1 text-xs font-semibold text-dd-ink shadow-2xs hover:border-dd-forest/40 sm:max-w-48 sm:rounded-dd-md sm:px-3 sm:py-2"
+                  className="hidden min-h-9 max-w-44 items-center gap-1.5 truncate rounded-full border border-dd-line/80 bg-white px-2.5 py-1 text-xs font-semibold text-dd-ink shadow-2xs hover:border-dd-forest/40 md:flex sm:max-w-48 sm:rounded-dd-md sm:px-3 sm:py-2"
                 >
                   <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
                   <span className="truncate">{session.preferredBranch.name}</span>

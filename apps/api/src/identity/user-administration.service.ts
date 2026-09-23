@@ -72,8 +72,23 @@ export class UserAdministrationService {
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:read');
 
+    const hasGlobalBranch = principal.capabilities.includes('branch:all');
+    let preferredBranchCondition: string | { in: string[] } | undefined = filters.branchId;
+
+    if (!hasGlobalBranch) {
+      const allowedBranches = principal.branchIds ?? [];
+      if (filters.branchId) {
+        if (!allowedBranches.includes(filters.branchId)) {
+          throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+        }
+        preferredBranchCondition = filters.branchId;
+      } else {
+        preferredBranchCondition = { in: allowedBranches };
+      }
+    }
+
     const where: Prisma.UserWhereInput = {
-      ...(filters.branchId ? { preferredBranchId: filters.branchId } : {}),
+      ...(preferredBranchCondition ? { preferredBranchId: preferredBranchCondition } : {}),
       ...(filters.status ? { status: filters.status as UserStatus } : {}),
       ...(filters.role ? { role: filters.role as Role } : {}),
       ...(filters.audience === 'CUSTOMER'
@@ -235,6 +250,16 @@ export class UserAdministrationService {
       include: { profile: true },
     });
     if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const hasGlobalBranch = principal.capabilities.includes('branch:all');
+    if (
+      !hasGlobalBranch &&
+      user.preferredBranchId &&
+      !principal.branchIds?.includes(user.preferredBranchId)
+    ) {
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    }
+
     return this.userView(user);
   }
 
@@ -380,7 +405,7 @@ export class UserAdministrationService {
   }
 
   async listAuditLogs(
-    _principal: SessionPrincipal,
+    principal: SessionPrincipal,
     _filters: {
       actorId?: string;
       targetUserId?: string;
@@ -394,6 +419,7 @@ export class UserAdministrationService {
       limit?: number;
     } = {},
   ) {
+    this.policy.requireCapability(principal.capabilities, 'audit:read');
     return { items: [], summary: { total: 0 }, page: { hasMore: false, nextCursor: null } };
   }
 

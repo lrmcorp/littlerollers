@@ -77,7 +77,7 @@ export function PublicHeader() {
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-2">
             {!session ? (
               <Link
-                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
+                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest sm:hidden"
                 href={routes.signIn}
                 aria-label="Masuk ke akun"
               >
@@ -85,7 +85,7 @@ export function PublicHeader() {
               </Link>
             ) : (
               <Link
-                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
+                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest sm:hidden"
                 href={customerOnly ? routes.account : routes.workspace}
                 aria-label={customerOnly ? 'Akun Saya' : 'Buka workspace'}
               >
@@ -102,37 +102,74 @@ export function PublicHeader() {
             ) : (
               <details className="relative hidden sm:block">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-dd-sm border border-dd-line bg-white px-3 text-sm font-bold text-dd-forest">
-                  <UserRound className="size-4" /> Akun Saya
+                  <UserRound className="size-4" /> {customerOnly ? 'Akun Saya' : 'Staf Panel'}
                 </summary>
                 <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float">
-                  <Link
-                    href={customerOnly ? routes.account : routes.workspace}
-                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                  >
-                    {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
-                  </Link>
-                  <Link
-                    href="/account/profile"
-                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
-                  >
-                    Profil Saya
-                  </Link>
-                  {customerOnly && (
+                  {customerOnly ? (
+                    <>
+                      <Link
+                        href="/account"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Dashboard Saya
+                      </Link>
+                      <Link
+                        href="/bookings"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Booking Saya
+                      </Link>
+                      <Link
+                        href="/account/packages"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Paket Saya
+                      </Link>
+                      <Link
+                        href="/orders"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Riwayat Pesanan
+                      </Link>
+                      <Link
+                        href="/account/profile"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Profil Saya
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => studioPreference?.openStudioPreference()}
+                        className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                      >
+                        Ganti studio
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/workspace"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Buka Workspace
+                      </Link>
+                      <Link
+                        href="/account/profile"
+                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                      >
+                        Profil Saya
+                      </Link>
+                    </>
+                  )}
+                  <div className="mt-1 border-t border-dd-line pt-1">
                     <button
                       type="button"
-                      onClick={() => studioPreference?.openStudioPreference()}
-                      className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                      onClick={() => void sessionContext?.logout()}
+                      className="w-full min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                     >
-                      Ganti studio
+                      Keluar
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void sessionContext?.logout()}
-                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
-                  >
-                    Keluar
-                  </button>
+                  </div>
                 </div>
               </details>
             )}
@@ -236,27 +273,49 @@ export function PublicHeader() {
                   </Link>
                 </>
               )}
-              {session && (
+              {session && customerOnly ? (
+                <>
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    href="/account"
+                    onClick={close}
+                  >
+                    Dashboard Saya
+                  </Link>
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    href="/bookings"
+                    onClick={close}
+                  >
+                    Booking Saya
+                  </Link>
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    href="/account/packages"
+                    onClick={close}
+                  >
+                    Paket Saya
+                  </Link>
+                  <button
+                    type="button"
+                    className="min-h-12 rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest"
+                    onClick={() => {
+                      close();
+                      studioPreference?.openStudioPreference();
+                    }}
+                  >
+                    Ganti studio
+                  </button>
+                </>
+              ) : session ? (
                 <Link
                   className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
-                  href={customerOnly ? routes.account : routes.workspace}
+                  href="/workspace"
                   onClick={close}
                 >
-                  {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
+                  Buka Workspace
                 </Link>
-              )}
-              {customerOnly && (
-                <button
-                  type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest"
-                  onClick={() => {
-                    close();
-                    studioPreference?.openStudioPreference();
-                  }}
-                >
-                  Ganti studio
-                </button>
-              )}
+              ) : null}
               <Link
                 className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:bg-dd-forest-dark"
                 href={routes.packages}

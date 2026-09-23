@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { accountClient, type MyProfile } from '@/api-clients/account-client';
+import { internalStaffRoles, isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from '../../session-context';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
@@ -74,9 +75,9 @@ export function ProfileView() {
   const isReviewer = Boolean(session?.capabilities.includes('identity-verification:read'));
   const kycHref = isReviewer ? '/identity-verifications' : '/account/verification';
   const isInternal = Boolean(
-    session?.roles.some((role) =>
-      ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'INSTRUCTOR'].includes(role),
-    ),
+    session &&
+      !isCustomerOnlySession(session) &&
+      session.roles.some((role) => internalStaffRoles.has(role)),
   );
   const roleBadge = (() => {
     if (session?.roles.includes('SUPER_OWNER')) return { tone: 'success' as const, label: 'Super Owner', detail: 'Akses Penuh Sistem' };
@@ -101,7 +102,7 @@ export function ProfileView() {
         description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
         titleId="profile-heading"
         context={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isInternal && (
               <ButtonLink href="/workspace" variant="primary">
                 Buka Workspace

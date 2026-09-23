@@ -20,6 +20,7 @@ import {
 } from '../components/public/public-styles';
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
+import { isCustomerOnlySession } from '@/lib/session-audience';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -62,9 +63,8 @@ export function PublicClassesView({
   client?: PublicClassCatalogClient;
 }) {
   const session = useSessionContext()?.session;
-  const inCustomerShell = Boolean(
-    session?.roles.includes('CUSTOMER') && session.roles.every((role) => role === 'CUSTOMER'),
-  );
+  const inCustomerShell = isCustomerOnlySession(session);
+  const isStaff = Boolean(session && !isCustomerOnlySession(session));
   const [branches, setBranches] = useState<PublicBranch[]>([]);
   const [branchId, setBranchId] = useState('');
   const [slots, setSlots] = useState<PublicClassSlot[]>([]);
@@ -438,7 +438,7 @@ export function PublicClassesView({
                             aria-disabled={slot.available < 1}
                             href={
                               slot.available > 0
-                                ? session?.roles.some((role) => role !== 'CUSTOMER')
+                                ? isStaff
                                   ? '/workspace/classes'
                                   : session
                                     ? `/bookings/new?slot=${slot.id}`
@@ -448,7 +448,7 @@ export function PublicClassesView({
                           >
                             {slot.available < 1
                               ? 'Penuh'
-                              : session?.roles.some((role) => role !== 'CUSTOMER')
+                              : isStaff
                                 ? 'Buka workspace kelas'
                                 : 'Lanjutkan booking'}
                           </a>

@@ -498,6 +498,9 @@ export class BookingsService {
         leaseMs: 30_000,
       },
       async (tx) => {
+        // Kunci baris slot_kelas secara eksklusif (pessimistic lock) untuk mencegah race condition & overbooking
+        await tx.$queryRaw`SELECT id FROM slot_kelas WHERE id = ${input.classSlotId} FOR UPDATE`;
+
         const slot = await tx.slotKelas.findUnique({
           where: { id: input.classSlotId },
           include: { branch: true, classType: true, instructor: true, studio: true },
