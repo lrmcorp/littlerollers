@@ -87,6 +87,7 @@ export class OfficialWhatsAppProvider implements WhatsAppProvider {
 @Injectable()
 export class WhatsAppGatewayService {
   private readonly logger = new Logger(WhatsAppGatewayService.name);
+  private readonly inFlightLocks = new Set<string>();
   private provider: WhatsAppProvider;
   public readonly mockProvider = new MockWhatsAppProvider();
 
@@ -128,9 +129,26 @@ export class WhatsAppGatewayService {
     const phone = this.normalizePhone(options.to);
     const dedupWindowMs = options.dedupWindowMs ?? 3 * 3_600_000; // Default 3 jam
     const now = options.sentAt ?? new Date();
+    const flightKey = `${phone}:${options.reminderType}`;
 
-    // 1. Idempotency Guard via ReminderLog
+    // 1. Idempotency Guard via In-Flight Lock & ReminderLog
     if (!options.bypassDeduplication) {
+      if (this.inFlightLocks.has(flightKey)) {
+        this.logger.debug(
+          `[DEDUPLICATED] Pesan ke ${phone} (${options.reminderType}) dilewati karena sedang dalam proses pengiriman serentak.`,
+        );
+        return {
+          success: true,
+          messageId: 'in-flight-duplicate',
+          provider: 'IDEMPOTENCY_GUARD',
+          recipientPhone: phone,
+          status: 'SKIPPED_DUPLICATE',
+        };
+      }
+
+      // Kunci in-flight secara sinkron SEBELUM yield await apapun
+      this.inFlightLocks.add(flightKey);
+
       const cutoffTime = new Date(now.getTime() - dedupWindowMs);
       const existingLog = await this.db.reminderLog.findFirst({
         where: {
@@ -156,36 +174,42 @@ export class WhatsAppGatewayService {
       }
     }
 
-    // 2. Eksekusi Pengiriman Pesan via Provider
-    const result = await this.provider.sendMessage(phone, options.text, options.payload);
+    try {
+      // 2. Eksekusi Pengiriman Pesan via Provider
+      const result = await this.provider.sendMessage(phone, options.text, options.payload);
 
-    // 3. Catat ke tabel ReminderLog
-    const status = result.success ? 'SENT' : 'FAILED';
-    const logRecord = await this.db.reminderLog.create({
-      data: {
-        recipientPhone: phone,
-        recipientType: options.recipientType,
-        reminderType: options.reminderType,
-        payload: {
-          ...(options.payload ?? {}),
-          provider: this.provider.name,
-          messageId: result.messageId,
-          textPreview: options.text.slice(0, 160),
-          error: result.error,
+      // 3. Catat ke tabel ReminderLog
+      const status = result.success ? 'SENT' : 'FAILED';
+      const logRecord = await this.db.reminderLog.create({
+        data: {
+          recipientPhone: phone,
+          recipientType: options.recipientType,
+          reminderType: options.reminderType,
+          payload: {
+            ...(options.payload ?? {}),
+            provider: this.provider.name,
+            messageId: result.messageId,
+            textPreview: options.text.slice(0, 160),
+            error: result.error,
+          },
+          status,
+          sentAt: now,
         },
-        status,
-        sentAt: now,
-      },
-    });
+      });
 
-    return {
-      success: result.success,
-      messageId: result.messageId ?? logRecord.id,
-      provider: this.provider.name,
-      recipientPhone: phone,
-      status: result.success ? 'SENT' : 'FAILED',
-      error: result.error,
-    };
+      return {
+        success: result.success,
+        messageId: result.messageId ?? logRecord.id,
+        provider: this.provider.name,
+        recipientPhone: phone,
+        status,
+        error: result.error,
+      };
+    } finally {
+      if (!options.bypassDeduplication) {
+        setTimeout(() => this.inFlightLocks.delete(flightKey), 1000);
+      }
+    }
   }
 
   /**

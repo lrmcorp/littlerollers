@@ -2,7 +2,7 @@ import type { WebSession } from '@/api-clients/session-client';
 
 export type PackageAudienceState = 'GUEST' | 'CUSTOMER_UNVERIFIED' | 'CUSTOMER_APPROVED' | 'STAFF';
 
-const publicRoutePrefixes = ['/classes', '/packages', '/schedule', '/locations'] as const;
+const publicRoutePrefixes = ['/classes', '/packages', '/schedule', '/locations', '/check-in'] as const;
 
 export function isPublicExperiencePath(pathname: string) {
   return (

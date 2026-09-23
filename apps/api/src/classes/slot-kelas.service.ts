@@ -259,7 +259,7 @@ export class ClassSlotService {
             instructorId: input.instructorUserId ?? null,
             startAt,
             endAt,
-            capacity: classType.defaultCapacity ?? 8,
+            capacity: (input as any).capacity ?? classType.defaultCapacity ?? 8,
             bookedCount: 0,
             status: ClassSlotStatus.DRAFT,
           },
@@ -480,15 +480,25 @@ export class ClassSlotService {
             data: { status: 'CANCELLED', cancellationReason: input.reasonCode, cancelledAt: new Date() },
           });
 
-          // Return session quota
-          await tx.paketPelanggan.update({
-            where: { id: booking.customerPackageId },
-            data: {
-              remainingSessions: { increment: 1 },
-              usedSessions: { decrement: 1 },
-              status: 'ACTIVE',
-            },
-          });
+          // Rule #1: Sesi tidak dipotong saat booking, kuota virtual dipulihkan otomatis saat booking CANCELLED.
+          // Audit integritas saldo paket:
+          if (booking.customerPackageId) {
+            const customerPkg = await tx.paketPelanggan.findUnique({
+              where: { id: booking.customerPackageId },
+            });
+            if (customerPkg) {
+              await tx.sessionLedger.create({
+                data: {
+                  customerPackageId: booking.customerPackageId,
+                  type: SessionMutationType.REFUND_AUTOCANCEL,
+                  amount: 0, // Saldo tidak terpotong di muka pada Rule #1, dicatat untuk audit trail
+                  balanceAfter: customerPkg.remainingSessions,
+                  referenceId: booking.id,
+                  notes: `Manual cancel kelas slot: ${input.reasonCode}`,
+                },
+              });
+            }
+          }
         }
 
         const updated = await tx.slotKelas.update({
@@ -546,6 +556,27 @@ export class ClassSlotService {
         // Jika slot sudah pernah COMPLETED, return view (idempotent guard)
         if (slot.status === ClassSlotStatus.COMPLETED) {
           return this.view(slot);
+        }
+
+        // Atomic lock guard: update status ke COMPLETED terlebih dahulu untuk mengunci baris secara eksklusif di MySQL
+        const lockResult = await tx.slotKelas.updateMany({
+          where: { id, status: { not: ClassSlotStatus.COMPLETED } },
+          data: { status: ClassSlotStatus.COMPLETED },
+        });
+
+        if (lockResult.count === 0) {
+          // Sudah diselesaikan secara bersamaan oleh request paralel lain
+          const currentSlot = await tx.slotKelas.findUniqueOrThrow({
+            where: { id },
+            include: {
+              branch: true,
+              studio: true,
+              room: true,
+              classType: true,
+              instructor: { include: { profile: true } },
+            },
+          });
+          return this.view(currentSlot);
         }
 
         // Evaluasi kehadiran & potong sesi bagi customer yang ATTENDED (Rule #1)
@@ -611,9 +642,8 @@ export class ClassSlotService {
           });
         }
 
-        const updated = await tx.slotKelas.update({
+        const updated = await tx.slotKelas.findUniqueOrThrow({
           where: { id },
-          data: { status: ClassSlotStatus.COMPLETED },
           include: {
             branch: true,
             studio: true,

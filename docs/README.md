@@ -1,117 +1,57 @@
-# Dokumentasi Proyek Daily Dose Pilates
+# 📚 Dokumentasi Resmi Daily Dose Pilates v2
 
-Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsitektur, kualitas, migrasi, dan operasi aplikasi Daily Dose. Dokumen sumber bisnis tetap tersedia pada [Spesifikasi Sistem Daily Dose Pilates v1.0 copy.pdf](./Spesifikasi%20Sistem%20Daily%20Dose%20Pilates%20v1.0%20copy.pdf).
+Selamat datang di pusat dokumentasi resmi **Daily Dose Pilates Studio Management System v2.0**.
+Direktori ini berisi seluruh dokumen acuan arsitektur, spesifikasi bisnis, panduan operasional produksi, kamus data, dan skenario pengujian resmi (UAT).
 
-## Aturan Pengelolaan
+---
 
-- Dokumen repository menggunakan Bahasa Indonesia; nama API, schema, status, dan istilah engineering menggunakan Bahasa Inggris.
-- Perubahan requirement yang telah berstatus `APPROVED` wajib mengikuti Change Request.
-- Figma adalah source of truth untuk desain visual dan prototype.
-- GitHub Projects adalah source of truth untuk epic, user story, task, bug, sprint, dan release.
-- Seluruh role delivery dijalankan sebagai AI work modes; register mencatat separation of concerns dan evidence, bukan staffing manusia.
-- Setiap business rule memakai ID stabil `BR-xxx`; user story `US-xxx`; acceptance criteria `AC-xxx`; test case `TC-xxx`.
+## 📑 Indeks Dokumen Resmi (Authoritative Index)
 
-## Indeks Dokumen
+### 1. Kredensial & Pengujian Sistem (Testing & QA)
+| Dokumen | Format | Deskripsi & Kegunaan |
+| :--- | :---: | :--- |
+| [**AKUN_TESTING_RESMI.md**](./AKUN_TESTING_RESMI.md) | Markdown | **Single Source of Truth** untuk seluruh akun testing resmi (7 Role + Customer), kredensial argon2, scope cabang, dan pemetaan rute. |
+| [**PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md**](./PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md) | Markdown | Panduan lengkap 10 skenario UAT kronologis alami (Customer Journey, KYC, Booking, Presensi, hingga Tutup Buku). |
+| [**DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md**](./DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md) | Markdown | Laporan komprehensif hasil audit teknis, temuan cacat/bug, celah operasional, dan rencana remediasi sistem. |
 
-| Area | Dokumen | Pemilik | Approver |
-|---|---|---|---|
-| Governance | [Project Charter & Governance](governance/01-project-charter-and-governance.md) | PM/BA | Product Owner |
-| Governance | [Role Charter, RACI & Vendor SOW](governance/02-roles-raci-and-vendor-sow.md) | PM/BA | Product Owner |
-| Governance | [Document Register, Baseline & Gates](governance/03-document-register-and-gates.md) | PM/BA | Product Owner |
-| Governance | [Source Reconciliation & Decisions](governance/04-reconciliation-and-decisions.md) | PM/BA | Product Owner |
-| Governance (historical) | [Candidate Selection & Scorecards — Superseded](governance/05-candidate-selection-and-scorecards.md) | N/A | N/A |
-| Governance | [Business Configuration & Decision Workbook](governance/06-business-configuration-and-decision-workbook.md) | PM/BA | Product Owner + Finance sesuai item |
-| Governance | [Gate 2–4 Review & Approval Pack](governance/07-gate-2-4-review-and-approval-pack.md) | PM/BA | PO/TL sesuai gate |
-| Governance | [Decision Closure Workshop Pack](governance/08-decision-closure-workshop-pack.md) | PM/BA | PO/TL sesuai keputusan |
-| Governance (historical) | [External Human Staffing Pack — Superseded](governance/09-external-activation-execution-pack.md) | N/A | N/A |
-| Governance | [AI Delivery Operating Model & Coding Authorization](governance/10-ai-delivery-and-coding-authorization.md) | AI Product/BA | Product Owner untuk business/production boundary |
-| Delivery | [Master Implementation Plan](delivery/01-master-implementation-plan.md) | PM/BA | Product Owner |
-| Delivery | [WBS & Role Delivery Plan](delivery/02-work-breakdown-and-role-delivery-plan.md) | PM/BA | Product Owner |
-| Delivery | [Handoff Matrix & Sprint Playbook](delivery/03-handoff-matrix-and-sprint-playbook.md) | PM/BA | PO + TL + QA sesuai area |
-| Delivery | [Environment, CI/CD & Release Plan](delivery/04-environment-cicd-and-release-plan.md) | Technical Lead | Product Owner untuk release |
-| Delivery | [Sprint 0 Kickoff Pack](delivery/05-sprint-0-kickoff-pack.md) | PM/BA | Product Owner |
-| Delivery | [Sprint 0–3 Detailed Execution Backlog](delivery/06-sprint-0-3-detailed-execution-backlog.md) | PM/BA | Product Owner |
-| Delivery | [Sprint 2–3 Readiness Audit](delivery/07-sprint-2-3-readiness-audit.md) | PM/BA | PO + TL + QA sesuai area |
-| Delivery | [Pre-coding Readiness & Consolidated Blocker Ledger](delivery/08-pre-coding-readiness-and-blocker-ledger.md) | PM/BA | PO + TL + QA sesuai gate |
-| Delivery | [Current Work & Role Execution Register](delivery/10-current-work-register.md) | AI Product/BA | AI TL + QA + Peer Reviewer |
-| Delivery | [BG-2 Identity Increment Evidence](delivery/11-bg-2-identity-increment-evidence.md) | AI Backend/TL | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Assignment Evidence](delivery/12-bg-2-assignment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Effective Master Evidence](delivery/13-bg-2-effective-master-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Package Purchase Evidence](delivery/14-bg-2-package-purchase-evidence.md) | AI Backend/Web/Flutter/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Package Decision Evidence](delivery/15-bg-2-package-decision-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Ledger Read Evidence](delivery/16-bg-2-ledger-read-evidence.md) | AI Backend/Web/Flutter/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Session Adjustment Evidence](delivery/17-bg-2-session-adjustment-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Operations | [Session Adjustment Runbook](operations/session-adjustment-runbook.md) | Ops | PO/TL/QA/Ops |
-| Delivery | [BG-2 Instructor Availability Evidence](delivery/18-bg-2-instructor-availability-evidence.md) | AI Backend/Flutter/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Class Slot Lifecycle Evidence](delivery/19-bg-2-class-slot-lifecycle-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 H-24 Quota Evaluation Evidence](delivery/20-bg-2-quota-evaluation-evidence.md) | AI Backend/Web/Ops/Data | AI QA/Security/Peer Reviewer |
-| Delivery | [BG-2 Web-first Booking Evidence](delivery/21-bg-2-booking-evidence.md) | AI Backend/Web/Data | AI QA/Security/Peer Reviewer |
-| Product | [PRD & Business Rules](product/01-prd-and-business-rules.md) | PM/BA | Product Owner |
-| Product | [Backlog, Acceptance & Traceability](product/02-backlog-and-traceability.md) | PM/BA | Product Owner |
-| Product | [MVP Implementation Backlog](product/03-mvp-implementation-backlog.md) | PM/BA | Product Owner |
-| Product | [Sprint 2–3 Detailed Story Specification](product/04-sprint-2-3-detailed-story-specification.md) | PM/BA | Product Owner |
-| Product | [Sprint 2–3 Traceability & Gate 2 Review Workbook](product/05-sprint-2-3-traceability-and-gate-2-review.md) | PM/BA | Product Owner |
-| Product | [Remaining MVP Detailed Story Specification](product/06-remaining-mvp-detailed-story-specification.md) | PM/BA | Product Owner |
-| Product | [Remaining MVP Traceability, Readiness & Review](product/07-remaining-mvp-traceability-readiness-and-review.md) | PM/BA | Product Owner |
-| Design | [UX/UI Delivery Specification](design/01-ux-ui-delivery-specification.md) | UI/UX Designer | Product Owner |
-| Design | [Screen, Flow & Design-System Contract](design/02-screen-flow-and-design-system-contract.md) | UI/UX Designer | Product Owner |
-| Design | [Priority Flow Screen-Level Handoff](design/03-priority-flow-screen-handoff.md) | UI/UX Designer | Product Owner |
-| Design | [Priority Figma Production & Review Pack](design/04-priority-figma-production-and-review-pack.md) | UI/UX Designer | Product Owner |
-| Design | [Remaining MVP Screen-level Handoff Queue](design/05-remaining-mvp-screen-handoff-queue.md) | UI/UX Designer | Product Owner |
-| Design | [Remaining MVP Detailed Screen Handoff](design/06-remaining-mvp-detailed-screen-handoff.md) | UI/UX Designer | Product Owner |
-| Design | [Frontend Design Baseline — Interim Executable Reference](design/07-frontend-design-baseline.md) | AI Design/Web | Product Owner untuk visual production acceptance |
-| Design | [Frontend Page Inventory dan Route Map](design/08-frontend-page-inventory.md) | AI Design/Web | Product Owner untuk scope dan visual production acceptance |
-| Design | [ChatGPT Public UI Handoff — Landing dan Studios](design/09-chatgpt-public-ui-handoff.md) | AI Design/Web/QA | Product Owner untuk visual production acceptance |
-| Technical | [Solution Architecture](technical/01-solution-architecture.md) | Technical Lead | Technical Lead |
-| Technical | [Data, API, Security & Operations](technical/02-data-api-security-operations.md) | Technical Lead | Technical Lead |
-| Technical | [Architecture Decision Baseline](technical/03-architecture-decision-baseline.md) | Technical Lead | Technical Lead |
-| Technical | [Data Dictionary & ERD](technical/04-data-dictionary-and-erd.md) | Technical Lead | Technical Lead |
-| Technical | [API/Event/Security Contract](technical/05-api-event-security-contract.md) | Technical Lead | Technical Lead |
-| Technical | [OpenAPI v1](technical/openapi-v1.yaml) | Technical Lead | Technical Lead |
-| Technical | [MVP Proposed Contract Manifest](technical/06-sprint-2-3-contract-manifest.md) | Technical Lead | Technical Lead |
-| Technical | [Technical Contract Review Workbook](technical/07-technical-contract-review-workbook.md) | Technical Lead | Technical Lead |
-| Technical | [Dynamic Role & Permission Reference](technical/07-rbac-role-capability-reference.md) | Technical Lead | PO + TL + Security |
-| Delivery | [Dynamic RBAC Implementation & UAT Evidence](delivery/23-dynamic-rbac-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
-| Delivery | [Identity User Management Implementation & UAT Evidence](delivery/24-identity-user-management-evidence.md) | Technical Lead + QA | PO + TL + QA + Ops |
-| Technical | [SMTP Email Delivery Contract](technical/11-smtp-email-delivery.md) | Technical Lead | PO + TL + Ops |
-| Technical | [Package Promotion Pricing](technical/13-package-promotion-pricing.md) | Technical Lead | PO + TL + Finance |
-| Product | [Transactional Email Matrix](product/08-transactional-email-matrix.md) | PM/BA | Product Owner |
-| Operations | [SMTP Email Runbook](operations/01-smtp-email-runbook.md) | Operations | Technical Lead |
-| Operations | [Customer Reschedule Runbook](operations/reschedule-runbook.md) | Operations | Product Owner + Technical Lead |
-| Operations | [Dynamic RBAC & Access Recovery Runbook](operations/02-rbac-access-recovery-runbook.md) | Operations | Technical Lead + Security |
-| Operations | [Identity Review Runbook](operations/03-identity-review-runbook.md) | Operations | PO + TL + QA + Ops |
-| Governance | [CR-SMTP-001](governance/11-cr-smtp-001.md) | Product Owner | PO + TL |
-| Template | [Email Template Register](templates/email-template-register.md) | PM/BA | PO + TL |
-| Quality | [Test Strategy, UAT & Release](quality/01-test-uat-and-release.md) | QA Engineer | PM/BA + Technical Lead |
-| Quality | [Detailed Tests, Data & UAT](quality/02-detailed-tests-data-and-uat.md) | QA Engineer | PM/BA + Technical Lead |
-| Quality | [Sprint 2–3 Interface & Test Readiness](quality/03-sprint-2-3-interface-and-test-readiness.md) | QA Engineer | Technical Lead + QA |
-| Quality | [Remaining MVP Contract & UX Readiness](quality/04-remaining-mvp-contract-and-ux-readiness.md) | QA Engineer | Technical Lead + QA |
-| Migration | [Migration, Pilot & Support](migration-rollout/01-migration-pilot-and-support.md) | PM/BA | Product Owner |
-| Migration | [Mapping, Reconciliation & Cutover Workbook](migration-rollout/02-mapping-reconciliation-and-cutover-workbook.md) | PM/BA | Product Owner |
-| Template | [PIC Assignment Register](templates/pic-assignment-register.md) | PM/BA | Product Owner |
-| Template | [Registers & Change Request](templates/registers-and-change-request.md) | PM/BA | Sesuai jenis perubahan |
-| Template | [Gate 1 Signed Review Record](templates/gate-1-signed-review-record.md) | PM/BA | Product Owner |
-| Template | [Gate 2 Signed Review Record](templates/gate-2-signed-review-record.md) | PM/BA | Product Owner |
-| Template | [Gate 3 Signed Review Record](templates/gate-3-signed-review-record.md) | Designer | Product Owner |
-| Template | [Gate 4 Signed Review Record](templates/gate-4-signed-review-record.md) | Technical Lead | Technical Lead |
+---
 
-## Status Dokumen
+### 2. Panduan Operasional & Kepatuhan Bisnis (Operations & Governance)
+| Dokumen | Format | Deskripsi & Kegunaan |
+| :--- | :---: | :--- |
+| [**FITUR_MODUL_DAN_FLOW_PER_ROLE.md**](./FITUR_MODUL_DAN_FLOW_PER_ROLE.md) | Markdown | **Spesifikasi Lengkap Modul, Fitur, Alur End-to-End per Role (7 Peran), dan Matriks Hak Akses & Pembatasan.** |
+| [**Spesifikasi Sistem Daily Dose Pilates v1.0.pdf**](./Spesifikasi%20Sistem%20Daily%20Dose%20Pilates%20v1.0.pdf) | PDF | Dokumen sumber hukum & spesifikasi bisnis resmi dari manajemen (Reyner - HR Group) yang memuat **13 Keputusan Bisnis Mutlak**. |
+| [**PANDUAN_OPERASIONAL_PRODUKSI.md**](./PANDUAN_OPERASIONAL_PRODUKSI.md) | Markdown | Standar Prosedur Operasional (SOP) produksi, konfigurasi runtime (Next.js 15, NestJS, Background Worker), manajemen port, dan penanganan insiden. |
+| [**RENCANA_AKSI_SPESIFIKASI_V1.md**](./RENCANA_AKSI_SPESIFIKASI_V1.md) | Markdown | Roadmap implementasi teknis untuk memastikan 100% kepatuhan terhadap 13 Keputusan Bisnis yang sudah dikunci. |
 
-Gunakan status berikut pada metadata dokumen atau Pull Request:
+---
 
-- `DRAFT`: sedang disusun dan belum menjadi acuan kerja.
-- `IN_REVIEW`: menunggu review pihak terkait.
-- `APPROVED`: telah disetujui dan menjadi baseline.
-- `SUPERSEDED`: digantikan versi baru, tetap disimpan sebagai histori.
+### 3. Arsitektur, Basis Data & API (Architecture & Data)
+| Dokumen | Format | Deskripsi & Kegunaan |
+| :--- | :---: | :--- |
+| [**PANDUAN_14_TABEL_INTI_DAILYDOSE.md**](./PANDUAN_14_TABEL_INTI_DAILYDOSE.md) | Markdown | *Cheat-sheet* navigasi 14 tabel inti database MySQL untuk mempermudah pengerjaan harian tanpa beban kognitif 97 tabel lama. |
+| [**RENCANA_PENYEDERHANAAN_ARSITEKTUR_V2.md**](./RENCANA_PENYEDERHANAAN_ARSITEKTUR_V2.md) | Markdown | Dokumentasi arsitektur perampingan kode, penghapusan birokrasi form, dan pelepasan ketergantungan build SDK generator. |
+| [**MOBILE_CUSTOMER_API_CONTRACT.md**](./MOBILE_CUSTOMER_API_CONTRACT.md) | Markdown | Kontrak spesifikasi teknis REST API untuk integrasi aplikasi mobile (iOS & Android). |
+| [**DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf**](./DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf) | PDF | Diagram arsitektur modular monolith dan topologi database sistem v2. |
+| [**DailyDose_V2_Database_Design_Document.pdf**](./DailyDose_V2_Database_Design_Document.pdf) | PDF | Dokumen perancangan skema relasional database lengkap. |
+| [**DailyDose_V2_Kamus_Data_dan_Desain_Database.html**](./DailyDose_V2_Kamus_Data_dan_Desain_Database.html) | HTML | Kamus data interaktif seluruh tabel dan kolom database (dapat dibuka langsung di browser). |
+| [**DailyDose_V2_Kamus_Data_dan_Desain_Database.pdf**](./DailyDose_V2_Kamus_Data_dan_Desain_Database.pdf) | PDF | Kamus data format PDF untuk arsip dokumentasi offline. |
 
-Dokumen requirement/technical tetap proposed sampai review per artefak, tetapi AI coding lokal telah diotorisasi melalui BG-0. Readiness cabang, akun layanan, nilai bisnis dan sign-off tetap dibutuhkan sebelum production.
+---
 
-Status gate dan evidence approval otoritatif dicatat pada [Document Register, Baseline & Gates](governance/03-document-register-and-gates.md). Teks `Final untuk Development` pada PDF adalah status dokumen sumber historis dan tidak otomatis membuat artefak repository berstatus `APPROVED`.
+## 🔒 13 Keputusan Bisnis yang Sudah Dikunci (Locked Decisions)
 
-## Urutan Pemakaian
-
-1. BG-1 telah PASS; gunakan Current Work Register untuk mempertahankan executable evidence dan CI hijau.
-2. Implementasikan foundation dan story Sprint 2–3 dengan configuration-required behavior untuk keputusan produksi yang belum tersedia.
-3. Gunakan AI author/reviewer modes dan executable evidence untuk menutup BG-2 per story.
-4. Lanjutkan Sprint 4–12 serta integrated synthetic demo BG-3.
-5. Sebelum production, lengkapi keputusan bisnis, provider/account, migration/UAT, visual acceptance, restore/security review dan PG-1/Gate 6 sign-off.
+Setiap pengembangan fitur, audit, dan pengujian wajib tunduk pada 13 Keputusan Bisnis Mutlak berikut:
+1. **Sesi Terpotong saat Selesai & Hadir**: Sesi pelanggan tidak dipotong saat booking, melainkan saat status kelas berubah menjadi `COMPLETED` dan pelanggan hadir. Presensi pelanggan dilakukan via Link Mandiri, presensi instruktur via QR Scanner.
+2. **Customer Self-Booking**: Pelanggan melakukan booking mandiri dari jadwal kelas (*timetable*); booking manual via Admin hanya untuk *rare cases*.
+3. **Expiry Basis**: Masa berlaku paket berbasis tanggal (*validUntil*); sisa sesi hangus otomatis saat tanggal kedaluwarsa tiba.
+4. **Cutoff Auto-Cancel H-24**: Kelas otomatis dibatalkan sistem jika peserta kurang dari kuota minimum pada jendela H-24 jam sebelum kelas dimulai, sesi dikembalikan utuh via mutasi `REFUND_AUTOCANCEL`.
+5. **Min Quota per Kelas per Cabang**: Kuota minimum peserta ditentukan spesifik per jenis kelas dan per cabang studio.
+6. **Birokrasi Reschedule**: Reschedule $\ge$ H-24 jam mengembalikan sesi secara instan; reschedule $<$ H-24 jam memerlukan permohonan darurat medis via Admin dan persetujuan resmi Studio Manager (`SessionAdjustRequest`).
+7. **Struktur Multi-Cabang**: Peran *Owner* terikat pada cabang tertentu; *Super Owner* yang berwenang menugaskan kepemilikan multi-cabang.
+8. **Tutup Buku Bulanan & Jurnal Koreksi**: Tutup buku membekukan angka finansial (*Period Lock*). Koreksi pasca-lock dicatat sebagai jurnal koreksi di bulan berjalan dengan persetujuan Super Owner.
+9. **Batas Toleransi Backfill H+2**: Admin dapat melakukan backfill presensi susulan maksimal hingga H+2 jam setelah kelas selesai.
+10. **Isolasi Finansial Cabang**: Owner cabang hanya diizinkan melihat data dan rincian beban instruktur pada cabangnya sendiri (*Zero Cross-Branch Leakage*).
+11. **Reminder WhatsApp Internal**: Notifikasi ringkasan paket kedaluwarsa dikirimkan ke WhatsApp Admin setiap 3 jam, serta ke Owner dan Super Owner setiap 3 hari.
+12. **Reminder WhatsApp Customer Menjelang Expired**: Dikirimkan otomatis pada H-7, H-3, dan H-1 sebelum paket habis.
+13. **Reminder WhatsApp Customer Sudah Expired**: Dikirimkan berkala setiap 3 hari untuk penawaran perpanjangan paket.
