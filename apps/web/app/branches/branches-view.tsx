@@ -158,6 +158,7 @@ export function BranchesView() {
       <DataTable
         items={page.items}
         loading={loading}
+        rowNumberOffset={cursorHistory.length * 20}
         rowKey={(item) => item.id}
         rowDescription={(item) => `Buka detail ${item.name}`}
         onRowClick={(item) => router.push(`/workspace/branches/${item.code.toLowerCase()}`)}
@@ -211,9 +212,13 @@ export function BranchesView() {
         ]}
       />
       <Pagination
+        currentPage={cursorHistory.length + 1}
+        totalPages={Math.ceil(page.summary.total / 20) || 1}
+        totalItems={page.summary.total}
+        pageSize={20}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman cabang ${cursorHistory.length + 1}`}
+        totalLabel={`Halaman cabang ${cursorHistory.length + 1} · ${page.items.length} dari ${page.summary.total} cabang`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />

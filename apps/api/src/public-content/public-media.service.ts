@@ -127,11 +127,11 @@ export class PublicMediaService {
   }
 
   async getPublicImage(filename: string): Promise<{ buffer: Buffer; mimeType: string }> {
-    // Sanitize filename to prevent path traversal
-    const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '');
-    if (!safeFilename || safeFilename !== filename) {
+    const decoded = decodeURIComponent(filename);
+    if (!decoded || decoded.includes('..') || decoded.startsWith('/') || !/^[a-zA-Z0-9/_.\s%()=+;,~-]+$/u.test(decoded)) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
+    const safeFilename = decoded;
 
     const filePath = resolve(this.storageDir, safeFilename);
     if (existsSync(filePath)) {

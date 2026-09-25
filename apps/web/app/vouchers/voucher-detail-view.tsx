@@ -276,7 +276,7 @@ export function VoucherDetailView({ id }: { id: string }) {
           <Pagination
             hasPrevious={redemptionHistory.length > 0}
             hasNext={Boolean(redemptions?.page.hasMore && redemptions.page.nextCursor)}
-            totalLabel={`Halaman penggunaan ${redemptionHistory.length + 1}`}
+            currentPage={redemptionHistory.length + 1}
             onPrevious={() => {
               const previous = redemptionHistory.at(-1);
               setRedemptionHistory((current) => current.slice(0, -1));

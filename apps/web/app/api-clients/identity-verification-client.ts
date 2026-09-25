@@ -53,7 +53,13 @@ export interface IdentityVerificationReviewSummary {
 export interface IdentityVerificationReviewPage {
   items: IdentityVerificationReviewCase[];
   summary: IdentityVerificationReviewSummary;
-  page: { hasMore: boolean; nextCursor: string | null };
+  page: {
+    hasMore: boolean;
+    currentPage?: number;
+    totalPages?: number;
+    totalCount?: number;
+    nextCursor: string | null;
+  };
   generatedAt: string;
 }
 
@@ -65,6 +71,7 @@ export interface IdentityVerificationReviewFilters {
   from?: string;
   until?: string;
   cursor?: string;
+  page?: number;
   limit?: number;
   customerUserId?: string;
 }

@@ -333,6 +333,7 @@ export function DetailPanel({
               </Feedback>
             )}
             <DataTable
+              rowNumberOffset={rosterCursorHistory.length * 20}
               items={roster}
               loading={rosterLoading}
               rowKey={(item) => item.id}
@@ -432,7 +433,7 @@ export function DetailPanel({
             <Pagination
               hasPrevious={rosterCursorHistory.length > 0}
               hasNext={Boolean(rosterNextCursor)}
-              totalLabel={`${rosterSummary?.total ?? roster.length} booking ditemukan`}
+              currentPage={rosterCursorHistory.length + 1}
               onPrevious={() => {
                 const previous = [...rosterCursorHistory];
                 const next = previous.pop();

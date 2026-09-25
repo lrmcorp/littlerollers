@@ -997,6 +997,7 @@ export function BookingView({
             {activeTab === 'attendance' ? 'Riwayat kehadiran' : 'Daftar booking'}
           </h2>
           <DataTable
+            rowNumberOffset={cursorHistory.length * 20}
             items={items}
             rowKey={(booking) => booking.id}
             loading={busy && items.length === 0}
@@ -1203,7 +1204,7 @@ export function BookingView({
           <Pagination
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(nextCursor)}
-            totalLabel={`Halaman ${cursorHistory.length + 1} · ${items.length.toLocaleString('id-ID')} data dari ${summary.total.toLocaleString('id-ID')} booking`}
+            currentPage={cursorHistory.length + 1}
             onPrevious={openPreviousPage}
             onNext={openNextPage}
           />

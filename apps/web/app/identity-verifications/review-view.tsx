@@ -94,8 +94,16 @@ export function IdentityReviewView({
   const [from, setFrom] = useState(() => queryValue('from'));
   const [until, setUntil] = useState(() => queryValue('until'));
   const [customerUserId] = useState(() => queryValue('customerUserId'));
+  const [page, setPage] = useState(() => Math.max(1, Number(queryValue('page', '1')) || 1));
   const [cursor, setCursor] = useState<string>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [pageMeta, setPageMeta] = useState<{
+    hasMore: boolean;
+    currentPage?: number;
+    totalPages?: number;
+    totalCount?: number;
+    nextCursor: string | null;
+  }>();
   const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([]);
   const [selected, setSelected] = useState<IdentityVerificationReviewCase>();
   const [previews, setPreviews] = useState<Record<string, string>>({});
@@ -113,6 +121,7 @@ export function IdentityReviewView({
   const [staleDocumentId, setStaleDocumentId] = useState<string>();
 
   const resetPage = useCallback(() => {
+    setPage(1);
     setCursor(undefined);
     setCursorHistory([]);
   }, []);
@@ -134,10 +143,11 @@ export function IdentityReviewView({
       from: from ? `${from}T00:00:00.000Z` : undefined,
       until: until ? `${until}T23:59:59.999Z` : undefined,
       cursor,
+      page,
       limit: 20,
       customerUserId: customerUserId || undefined,
     }),
-    [cursor, customerUserId, from, kind, q, scanStatus, status, until],
+    [cursor, customerUserId, from, kind, page, q, scanStatus, status, until],
   );
 
   const load = useCallback(async () => {
@@ -152,6 +162,7 @@ export function IdentityReviewView({
       setItems(result.items);
       setSummary({ ...emptySummary, ...(result.summary || {}) });
       setNextCursor(result.page.nextCursor);
+      setPageMeta(result.page);
       setGeneratedAt(result.generatedAt);
     } catch (cause) {
       setError(messageForApiError(cause));
@@ -171,13 +182,14 @@ export function IdentityReviewView({
     if (scanStatus) params.set('scanStatus', scanStatus);
     if (from) params.set('from', from);
     if (until) params.set('until', until);
+    if (page > 1) params.set('page', String(page));
     if (customerUserId) params.set('customerUserId', customerUserId);
     window.history.replaceState(
       window.history.state,
       '',
       `/identity-verifications${params.size ? `?${params}` : ''}`,
     );
-  }, [customerUserId, from, kind, q, scanStatus, status, until]);
+  }, [customerUserId, from, kind, page, q, scanStatus, status, until]);
 
   useEffect(
     () => () => {
@@ -496,6 +508,8 @@ export function IdentityReviewView({
         loading={loading}
         rowKey={(item) => item.id}
         onRowClick={(item) => setSelected(item)}
+        rowNumberOffset={(page - 1) * 20}
+        showRowNumbers={true}
         emptyTitle={
           q || kind || scanStatus || from || until
             ? 'Tidak ada hasil yang sesuai'
@@ -588,19 +602,15 @@ export function IdentityReviewView({
       />
 
       <Pagination
-        hasPrevious={cursorHistory.length > 0}
-        hasNext={Boolean(nextCursor)}
-        onPrevious={() => {
-          const previous = [...cursorHistory];
-          const previousCursor = previous.pop();
-          setCursorHistory(previous);
-          setCursor(previousCursor);
-        }}
-        onNext={() => {
-          if (!nextCursor) return;
-          setCursorHistory((current) => [...current, cursor]);
-          setCursor(nextCursor);
-        }}
+        hasPrevious={page > 1}
+        hasNext={Boolean(pageMeta?.hasMore || nextCursor)}
+        currentPage={page}
+        totalPages={pageMeta?.totalPages ?? Math.max(1, Math.ceil((summary?.totalCustomers ?? 0) / 20))}
+        totalItems={summary?.totalCustomers}
+        pageSize={20}
+        onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => p + 1)}
+        onPageChange={(targetPage) => setPage(targetPage)}
       />
 
       {/* Review Drawer */}

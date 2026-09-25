@@ -140,6 +140,17 @@ describe('S3PrivateFileStorage', () => {
     await expect(storage.exists('')).rejects.toThrow('PRIVATE_FILE_KEY_INVALID');
   });
 
+  it('allows legacy file keys with spaces, parentheses and symbols', async () => {
+    const legacyKey = 'bukti_pembayaran/1786753982_WhatsApp Image 2026-08-14 at 21.26.16 (1).jpeg';
+    const content = Buffer.from('legacy-proof-binary');
+    await storage.put({ key: legacyKey, content });
+    expect(await storage.exists(legacyKey)).toBe(true);
+    const readStream = await storage.read(legacyKey);
+    const chunks: Buffer[] = [];
+    for await (const chunk of readStream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    expect(Buffer.concat(chunks).toString()).toBe('legacy-proof-binary');
+  });
+
   it('creates and replays a checksum-verified copy alias', async () => {
     const sourceKey = 'identity-documents/ktp-001';
     const aliasKey = 'v1-compat/private/ktp-alias.jpg';

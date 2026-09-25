@@ -369,6 +369,7 @@ export function UsersView({
         <DataTable
           items={items}
           loading={loading}
+          rowNumberOffset={cursorHistory.length * 20}
           rowKey={(user) => user.id}
           emptyTitle={
             search || status || role || branchId || verificationStatus
@@ -472,6 +473,10 @@ export function UsersView({
       )}
 
       <Pagination
+        currentPage={cursorHistory.length + 1}
+        totalPages={Math.ceil((summary?.total ?? 0) / 20) || 1}
+        totalItems={summary?.total ?? 0}
+        pageSize={20}
         hasPrevious={cursorHistory.length > 0 && !loading}
         hasNext={Boolean(nextCursor) && !loading}
         totalLabel={`${items.length.toLocaleString('id-ID')} ditampilkan dari ${(summary?.total ?? 0).toLocaleString('id-ID')} pengguna`}

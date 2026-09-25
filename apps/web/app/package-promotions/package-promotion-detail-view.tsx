@@ -337,6 +337,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         </div>
         <DataTable
           items={promotionPage?.items ?? []}
+          rowNumberOffset={promotionHistory.length * 20}
           rowKey={(item) => item.id}
           emptyTitle="Belum ada promo harga"
           emptyDescription="Buat promo untuk menampilkan harga asli dicoret pada katalog."
@@ -458,6 +459,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         />
         <div className="border-t border-dd-line p-4">
           <Pagination
+            currentPage={promotionHistory.length + 1}
             hasPrevious={promotionHistory.length > 0}
             hasNext={Boolean(promotionPage?.page?.hasMore && promotionPage.page.nextCursor)}
             totalLabel={`Halaman promo ${promotionHistory.length + 1}`}
@@ -485,6 +487,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           </div>
           <DataTable
             items={orders[selectedOrderPromotionId]!.items}
+            rowNumberOffset={(orderHistory[selectedOrderPromotionId]?.length ?? 0) * 20}
             rowKey={(item) => item.id}
             emptyTitle="Belum ada pesanan"
             emptyDescription="Promo ini belum digunakan pada pesanan."
@@ -525,6 +528,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           />
           <div className="border-t border-dd-line p-4">
             <Pagination
+              currentPage={(orderHistory[selectedOrderPromotionId]?.length ?? 0) + 1}
               hasPrevious={(orderHistory[selectedOrderPromotionId]?.length ?? 0) > 0}
               hasNext={Boolean(
                 orders[selectedOrderPromotionId]?.page?.hasMore &&

@@ -232,10 +232,12 @@ export class IdentityController {
     @Query('from') from?: string,
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
+    @Query('page') rawPage?: string,
     @Query('limit') rawLimit?: string,
     @Query('customerUserId') customerUserId?: string,
   ) {
     const limit = rawLimit == null ? undefined : Number(rawLimit);
+    const page = rawPage == null ? undefined : Number(rawPage);
     return this.identityReviews.list(request.principal, {
       q,
       status,
@@ -244,6 +246,7 @@ export class IdentityController {
       from,
       until,
       cursor,
+      page,
       limit,
       customerUserId,
     });

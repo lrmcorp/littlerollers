@@ -454,6 +454,25 @@ export class PaymentReviewService {
           return { bytes, mimeType: this.detectMime(bytes) };
         }
       } catch {}
+
+      if (proof.fileUrl && !proof.fileUrl.startsWith('http') && !proof.fileUrl.startsWith('data:')) {
+        const cleanPath = proof.fileUrl.replace(/^\//, '');
+        try {
+          const bytes = await this.storage.readPrivateObject(cleanPath);
+          if (bytes && bytes.length > 0) {
+            return { bytes, mimeType: this.detectMime(bytes) };
+          }
+        } catch {}
+        if (cleanPath.includes('%')) {
+          try {
+            const decodedPath = decodeURIComponent(cleanPath);
+            const bytes = await this.storage.readPrivateObject(decodedPath);
+            if (bytes && bytes.length > 0) {
+              return { bytes, mimeType: this.detectMime(bytes) };
+            }
+          } catch {}
+        }
+      }
     }
 
     try {

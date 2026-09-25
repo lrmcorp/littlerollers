@@ -109,7 +109,8 @@ export function CustomerPackagesView() {
           <Pagination
             hasPrevious={cursorHistory.length > 0 && !loading}
             hasNext={Boolean(nextCursor) && !loading}
-            totalLabel={`Halaman ${cursorHistory.length + 1} · ${items.length.toLocaleString('id-ID')} data dari ${total.toLocaleString('id-ID')} paket`}
+            totalLabel={`${items.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} paket`}
+            currentPage={cursorHistory.length + 1}
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';
               void loadPage(previous || undefined).then((loaded) => {

@@ -206,7 +206,8 @@ export function CustomerBookingsView({
             <Pagination
               hasPrevious={cursorHistory.length > 0 && !loading}
               hasNext={Boolean(nextCursor) && !loading}
-              totalLabel={`Halaman ${cursorHistory.length + 1} · ${items.length.toLocaleString('id-ID')} data dari ${total.toLocaleString('id-ID')} booking`}
+              totalLabel={`${items.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} booking`}
+              currentPage={cursorHistory.length + 1}
               onPrevious={() => {
                 const previous = cursorHistory.at(-1) ?? '';
                 void loadPage(previous || undefined).then((loaded) => {

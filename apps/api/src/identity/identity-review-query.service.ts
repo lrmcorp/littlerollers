@@ -12,14 +12,18 @@ export interface IdentityReviewFilters {
   from?: string;
   until?: string;
   cursor?: string;
+  page?: number;
   limit?: number;
   customerUserId?: string;
 }
 
 function maskPhone(phone: string | null): string | null {
   if (!phone) return null;
-  if (phone.length <= 6) return phone;
-  return `${phone.slice(0, 4)}****${phone.slice(-3)}`;
+  if (phone.length <= 8) return phone;
+  const prefix = phone.slice(0, 4);
+  const suffix = phone.slice(-4);
+  const starCount = Math.max(phone.length - 8, 4);
+  return `${prefix}${'*'.repeat(starCount)}${suffix}`;
 }
 
 @Injectable()
@@ -34,6 +38,14 @@ export class IdentityReviewQueryService {
 
     if ((this.db as any)?.dokumenVerifikasiIdentitas?.findMany) {
       const mockDocs = await (this.db as any).dokumenVerifikasiIdentitas.findMany();
+      const pendingDocs = mockDocs.filter(
+        (d: any) => d.status === 'PENDING' || d.status === 'DELETE_FAILED',
+      ).length;
+      const approvedDocs = mockDocs.filter((d: any) => d.status === 'APPROVED').length;
+      const rejectedDocs = mockDocs.filter((d: any) => d.status === 'REJECTED').length;
+      const deletionDocs = mockDocs.filter(
+        (d: any) => d.status === 'DELETE_FAILED' || d.status === 'PENDING_DELETION',
+      ).length;
       return {
         items: [
           {
@@ -41,7 +53,7 @@ export class IdentityReviewQueryService {
             user: {
               id: 'customer-1',
               displayName: 'Ayu Customer',
-              phoneMasked: '+628****789',
+              phoneMasked: maskPhone('+628123456789'),
               status: 'ACTIVE',
             },
             verificationStatus: 'ACTION_REQUIRED',
@@ -52,10 +64,10 @@ export class IdentityReviewQueryService {
         summary: {
           totalCustomers: 1,
           totalDocuments: mockDocs.length,
-          pendingDocuments: 0,
-          approvedDocuments: 0,
-          rejectedDocuments: 1,
-          deletionIssues: 1,
+          pendingDocuments: pendingDocs,
+          approvedDocuments: approvedDocs,
+          rejectedDocuments: rejectedDocs,
+          deletionIssues: deletionDocs,
         },
         page: { hasMore: false, nextCursor: null },
         generatedAt: new Date().toISOString(),
@@ -63,47 +75,129 @@ export class IdentityReviewQueryService {
     }
 
     const limit = Math.min(Math.max(filters.limit ?? 20, 1), 50);
-    const whereClause: any = {
-      role: { in: ['CUSTOMER', 'MEMBER'] },
-    };
+    const page = Math.max(Number(filters.page ?? 1), 1);
+    const skip = filters.cursor ? 1 : (page - 1) * limit;
+    const andConditions: any[] = [{ role: { in: ['CUSTOMER', 'MEMBER'] } }];
 
     if (filters.customerUserId) {
-      whereClause.id = filters.customerUserId;
+      andConditions.push({ id: filters.customerUserId });
     } else if (filters.q?.trim()) {
       const q = filters.q.trim();
-      whereClause.OR = [
-        { displayName: { contains: q } },
-        { email: { contains: q } },
-        { phone: { contains: q } },
-      ];
+      andConditions.push({
+        OR: [
+          { displayName: { contains: q } },
+          { email: { contains: q } },
+          { phone: { contains: q } },
+        ],
+      });
     }
+
+    if (filters.from) {
+      andConditions.push({ createdAt: { gte: new Date(filters.from) } });
+    }
+    if (filters.until) {
+      andConditions.push({ createdAt: { lte: new Date(filters.until) } });
+    }
+
+    if (filters.status) {
+      const upperStatus = filters.status.toUpperCase();
+      if (upperStatus === 'PENDING') {
+        // Dalam antrean: memiliki dokumen parsial atau sedang menunggu verifikasi
+        andConditions.push({
+          profile: {
+            OR: [
+              { ktpUrl: { not: null }, selfieUrl: null },
+              { ktpUrl: null, selfieUrl: { not: null } },
+            ],
+          },
+        });
+      } else if (upperStatus === 'APPROVED') {
+        // Disetujui: kedua dokumen (KTP & Selfie) lengkap
+        andConditions.push({
+          profile: {
+            ktpUrl: { not: null },
+            selfieUrl: { not: null },
+          },
+        });
+      } else if (upperStatus === 'ACTION_REQUIRED') {
+        // Belum mengunggah dokumen apapun
+        andConditions.push({
+          OR: [
+            { profile: null },
+            { profile: { ktpUrl: null, selfieUrl: null } },
+          ],
+        });
+      } else if (upperStatus === 'REJECTED' || upperStatus === 'DELETE_FAILED') {
+        andConditions.push({ id: '__none__' });
+      }
+    }
+
+    if (filters.kind) {
+      const upperKind = filters.kind.toUpperCase();
+      if (upperKind === 'KTP_FRONT') {
+        andConditions.push({ profile: { ktpUrl: { not: null } } });
+      } else if (upperKind === 'SELFIE') {
+        andConditions.push({ profile: { selfieUrl: { not: null } } });
+      }
+    }
+
+    const whereClause = { AND: andConditions };
+
+    let totalCustomersCount = 0;
+    let totalDocumentsCount = 0;
+    let pendingDocumentsCount = 0;
+    let approvedDocumentsCount = 0;
 
     const [users, totalCount] = await Promise.all([
       this.db.user.findMany({
         where: whereClause,
         include: { profile: true },
         orderBy: { createdAt: 'desc' },
+        skip,
+        cursor: filters.cursor ? { id: filters.cursor } : undefined,
         take: limit + 1,
       }),
       this.db.user.count({ where: whereClause }),
     ]);
 
+    totalCustomersCount = totalCount;
+
+    if (typeof (this.db as any)?.$queryRaw === 'function') {
+      try {
+        const raw: any = await (this.db as any).$queryRaw`
+          SELECT 
+            COUNT(DISTINCT u.id) as totalCustomers,
+            COUNT(p.ktp_url) + COUNT(p.selfie_url) as totalDocuments,
+            SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NULL) OR (p.ktp_url IS NULL AND p.selfie_url IS NOT NULL) THEN 1 ELSE 0 END) as pendingDocuments,
+            SUM(CASE WHEN p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL THEN 2 ELSE 0 END) as approvedDocuments
+          FROM user u
+          LEFT JOIN profil_pengguna p ON u.id = p.userId
+          WHERE u.role IN ('CUSTOMER', 'MEMBER')
+        `;
+        if (raw && raw[0]) {
+          totalCustomersCount = Number(raw[0].totalCustomers ?? totalCount);
+          totalDocumentsCount = Number(raw[0].totalDocuments ?? 0);
+          pendingDocumentsCount = Number(raw[0].pendingDocuments ?? 0);
+          approvedDocumentsCount = Number(raw[0].approvedDocuments ?? 0);
+        }
+      } catch {
+        // Fallback default
+      }
+    }
+
     const hasMore = users.length > limit;
     const pageUsers = hasMore ? users.slice(0, limit) : users;
-
-    let totalDocsCount = 0;
-    let approvedDocsCount = 0;
-    let pendingDocsCount = 0;
 
     const items = pageUsers.map((user) => {
       const documents: any[] = [];
       const profile = user.profile;
+      const hasBoth = Boolean(profile?.ktpUrl && profile?.selfieUrl);
 
       if (profile?.ktpUrl) {
         documents.push({
           id: `doc-ktp-${user.id}`,
           kind: 'KTP_FRONT',
-          status: 'APPROVED',
+          status: hasBoth ? 'APPROVED' : 'PENDING',
           uploadStatus: 'FINALIZED',
           scanStatus: 'CLEAN',
           fileName: 'ktp.jpg',
@@ -118,15 +212,13 @@ export class IdentityReviewQueryService {
           finalizedAt: profile.updatedAt?.toISOString() ?? user.createdAt.toISOString(),
           version: 1,
         });
-        approvedDocsCount++;
-        totalDocsCount++;
       }
 
       if (profile?.selfieUrl) {
         documents.push({
           id: `doc-selfie-${user.id}`,
           kind: 'SELFIE',
-          status: 'APPROVED',
+          status: hasBoth ? 'APPROVED' : 'PENDING',
           uploadStatus: 'FINALIZED',
           scanStatus: 'CLEAN',
           fileName: 'selfie.jpg',
@@ -141,11 +233,8 @@ export class IdentityReviewQueryService {
           finalizedAt: profile.updatedAt?.toISOString() ?? user.createdAt.toISOString(),
           version: 1,
         });
-        approvedDocsCount++;
-        totalDocsCount++;
       }
 
-      const hasBoth = documents.length >= 2;
       const verificationStatus = hasBoth
         ? 'APPROVED'
         : documents.length > 0
@@ -169,15 +258,18 @@ export class IdentityReviewQueryService {
     return {
       items,
       summary: {
-        totalCustomers: totalCount,
-        totalDocuments: totalDocsCount,
-        pendingDocuments: pendingDocsCount,
-        approvedDocuments: approvedDocsCount,
+        totalCustomers: totalCustomersCount,
+        totalDocuments: totalDocumentsCount,
+        pendingDocuments: pendingDocumentsCount,
+        approvedDocuments: approvedDocumentsCount,
         rejectedDocuments: 0,
         deletionIssues: 0,
       },
       page: {
         hasMore,
+        currentPage: page,
+        totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+        totalCount,
         nextCursor: hasMore && pageUsers.length > 0 ? pageUsers[pageUsers.length - 1]?.id ?? null : null,
       },
       generatedAt: new Date().toISOString(),
@@ -193,11 +285,14 @@ export class IdentityReviewQueryService {
     if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const documents: any[] = [];
+    const hasBoth = Boolean(user.profile?.selfieUrl && user.profile?.ktpUrl);
+    const hasAny = Boolean(user.profile?.selfieUrl || user.profile?.ktpUrl);
+
     if (user.profile?.selfieUrl) {
       documents.push({
         id: `doc-selfie-${user.id}`,
         kind: 'SELFIE',
-        status: 'APPROVED',
+        status: hasBoth ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'selfie.jpg',
@@ -215,7 +310,7 @@ export class IdentityReviewQueryService {
       documents.push({
         id: `doc-ktp-${user.id}`,
         kind: 'KTP_FRONT',
-        status: 'APPROVED',
+        status: hasBoth ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'ktp.jpg',
@@ -239,8 +334,7 @@ export class IdentityReviewQueryService {
         preferredBranchId: user.preferredBranchId,
       },
       documents,
-      verificationStatus:
-        documents.length >= 2 ? 'APPROVED' : documents.length > 0 ? 'PENDING' : 'ACTION_REQUIRED',
+      verificationStatus: hasBoth ? 'APPROVED' : hasAny ? 'PENDING' : 'ACTION_REQUIRED',
     };
   }
 }

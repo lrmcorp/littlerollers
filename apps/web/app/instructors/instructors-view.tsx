@@ -227,6 +227,7 @@ export function InstructorsView() {
       <DataTable
         items={items}
         columns={columns}
+        rowNumberOffset={history.length * 20}
         rowKey={(item) => item.id}
         loading={loading && !items.length}
         emptyTitle="Belum ada instruktur"
@@ -266,9 +267,13 @@ export function InstructorsView() {
         )}
       />
       <Pagination
+        currentPage={history.length + 1}
+        totalPages={Math.ceil(total / 20) || 1}
+        totalItems={total}
+        pageSize={20}
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(next) && !loading}
-        totalLabel={`Halaman ${history.length + 1} · ${total} instruktur`}
+        totalLabel={`${total.toLocaleString('id-ID')} instruktur`}
         onPrevious={() => {
           const h = [...history];
           setCursor(h.pop());

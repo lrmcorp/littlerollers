@@ -48,4 +48,67 @@ describe('admin UI primitives', () => {
     expect(getByRole('dialog', { name: 'Batalkan kelas' })).toBeTruthy();
     expect((await axe(container)).violations).toHaveLength(0);
   });
+
+  it('renders row numbering with configurable offset and toggle in DataTable', async () => {
+    const { container, getByText, queryByText, rerender } = render(
+      <DataTable
+        items={[
+          { id: '1', name: 'Item 1' },
+          { id: '2', name: 'Item 2' },
+        ]}
+        rowKey={(item) => item.id}
+        columns={[{ id: 'name', header: 'Nama', cell: (item) => item.name }]}
+        rowNumberOffset={20}
+      />,
+    );
+
+    expect(getByText('No.')).toBeTruthy();
+    expect(getByText('21')).toBeTruthy();
+    expect(getByText('22')).toBeTruthy();
+    expect((await axe(container)).violations).toHaveLength(0);
+
+    rerender(
+      <DataTable
+        items={[{ id: '1', name: 'Item 1' }]}
+        rowKey={(item) => item.id}
+        columns={[{ id: 'name', header: 'Nama', cell: (item) => item.name }]}
+        showRowNumbers={false}
+      />,
+    );
+
+    expect(queryByText('No.')).toBeNull();
+    expect(queryByText('1')).toBeNull();
+  });
+
+  it('renders numbered pagination with active state and page change callbacks', async () => {
+    const onPageChange = vi.fn();
+    const onPrevious = vi.fn();
+    const onNext = vi.fn();
+
+    const { container, getByRole, getByText } = render(
+      <Pagination
+        currentPage={2}
+        totalPages={5}
+        totalItems={100}
+        pageSize={20}
+        hasPrevious={true}
+        hasNext={true}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        onPageChange={onPageChange}
+      />,
+    );
+
+    expect(getByText('Menampilkan 21–40 dari 100 data')).toBeTruthy();
+    const activeBtn = getByRole('button', { name: 'Halaman 2' });
+    expect(activeBtn).toHaveAttribute('aria-current', 'page');
+    expect(activeBtn).toBeDisabled();
+
+    const page3Btn = getByRole('button', { name: 'Halaman 3' });
+    fireEvent.click(page3Btn);
+    expect(onPageChange).toHaveBeenCalledWith(3);
+
+    expect((await axe(container)).violations).toHaveLength(0);
+  });
 });
+

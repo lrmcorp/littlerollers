@@ -211,7 +211,7 @@ export function FormSection({
 export type DataTableColumn<T> = {
   id: string;
   header: ReactNode;
-  cell(item: T): ReactNode;
+  cell(item: T, index?: number): ReactNode;
   className?: string;
 };
 
@@ -227,18 +227,24 @@ export function DataTable<T>({
   rowClassName,
   mobileCardClassName,
   rowDescription,
+  showRowNumbers = true,
+  rowNumberOffset = 0,
+  rowNumberHeader = 'No.',
 }: {
   items: T[];
   columns: DataTableColumn<T>[];
   rowKey(item: T): string;
-  mobileCard?(item: T): ReactNode;
+  mobileCard?(item: T, index?: number): ReactNode;
   loading?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
   onRowClick?(item: T): void;
-  rowClassName?(item: T): string;
-  mobileCardClassName?(item: T): string;
-  rowDescription?(item: T): string;
+  rowClassName?(item: T, index?: number): string;
+  mobileCardClassName?(item: T, index?: number): string;
+  rowDescription?(item: T, index?: number): string;
+  showRowNumbers?: boolean;
+  rowNumberOffset?: number;
+  rowNumberHeader?: string;
 }) {
   if (loading) return <AdminSkeleton rows={5} />;
   if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} />;
@@ -248,6 +254,14 @@ export function DataTable<T>({
         <table className="w-full border-collapse text-left text-sm">
           <thead className="sticky top-0 z-10 bg-dd-surface-muted text-xs uppercase tracking-[0.08em] text-dd-muted">
             <tr>
+              {showRowNumbers && (
+                <th
+                  scope="col"
+                  className="w-14 min-w-[3.5rem] border-b border-dd-line px-3 py-3 text-center text-xs font-bold uppercase tracking-[0.08em] text-dd-muted select-none"
+                >
+                  {rowNumberHeader}
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.id}
@@ -260,23 +274,28 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-dd-line">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <tr
                 key={rowKey(item)}
                 onClick={() => onRowClick?.(item)}
-                aria-label={rowDescription?.(item)}
-                className={`${rowClassName?.(item) ?? ''} ${
+                aria-label={rowDescription?.(item, index)}
+                className={`${rowClassName?.(item, index) ?? ''} ${
                   onRowClick
                     ? 'cursor-pointer transition hover:brightness-[0.98] focus-within:ring-2 focus-within:ring-inset focus-within:ring-dd-forest'
                     : ''
                 }`}
               >
+                {showRowNumbers && (
+                  <td className="w-14 min-w-[3.5rem] px-3 py-3 align-top text-center text-xs font-mono font-medium text-dd-muted bg-dd-surface-muted/20 select-none">
+                    {rowNumberOffset + index + 1}
+                  </td>
+                )}
                 {columns.map((column) => (
                   <td
                     key={column.id}
                     className={`px-4 py-3 align-top text-dd-ink ${column.className ?? ''}`}
                   >
-                    {column.cell(item)}
+                    {column.cell(item, index)}
                   </td>
                 ))}
               </tr>
@@ -286,20 +305,40 @@ export function DataTable<T>({
       </div>
       {mobileCard && (
         <div className="grid divide-y divide-dd-line md:hidden">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={rowKey(item)}
               onClick={() => onRowClick?.(item)}
-              aria-label={rowDescription?.(item)}
-              className={`p-4 ${mobileCardClassName?.(item) ?? ''} ${onRowClick ? 'cursor-pointer active:brightness-[0.98]' : ''}`}
+              aria-label={rowDescription?.(item, index)}
+              className={`p-4 ${mobileCardClassName?.(item, index) ?? ''} ${onRowClick ? 'cursor-pointer active:brightness-[0.98]' : ''}`}
             >
-              {mobileCard(item)}
+              {showRowNumbers && (
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-dd-surface-muted px-2 py-0.5 text-[11px] font-bold text-dd-muted">
+                    #{rowNumberOffset + index + 1}
+                  </span>
+                </div>
+              )}
+              {mobileCard(item, index)}
             </div>
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function getPageWindow(current: number, total: number, maxButtons = 7): (number | '...')[] {
+  if (total <= maxButtons) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
 export function Pagination({
@@ -310,6 +349,12 @@ export function Pagination({
   nextAriaLabel,
   onPrevious,
   onNext,
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+  showPageNumbers = true,
 }: {
   hasPrevious: boolean;
   hasNext: boolean;
@@ -318,31 +363,97 @@ export function Pagination({
   nextAriaLabel?: string;
   onPrevious(): void;
   onNext(): void;
+  currentPage?: number;
+  totalPages?: number;
+  totalItems?: number;
+  pageSize?: number;
+  onPageChange?(page: number): void;
+  showPageNumbers?: boolean;
 }) {
+  const computedTotalPages =
+    totalItems != null && pageSize != null ? Math.max(1, Math.ceil(totalItems / pageSize)) : undefined;
+  const effectiveTotalPages = totalPages ?? computedTotalPages;
+  const pageItems =
+    showPageNumbers && effectiveTotalPages && currentPage
+      ? getPageWindow(currentPage, effectiveTotalPages)
+      : [];
+
+  let displayLabel = totalLabel;
+  if (!displayLabel) {
+    if (currentPage != null && totalItems != null && pageSize != null) {
+      const startItem = Math.min((currentPage - 1) * pageSize + 1, totalItems);
+      const endItem = Math.min(currentPage * pageSize, totalItems);
+      displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} data`;
+    } else if (currentPage != null && effectiveTotalPages != null) {
+      displayLabel = `Halaman ${currentPage.toLocaleString('id-ID')} dari ${effectiveTotalPages.toLocaleString('id-ID')}`;
+    } else if (currentPage != null) {
+      displayLabel = `Halaman ${currentPage.toLocaleString('id-ID')}`;
+    } else {
+      displayLabel = 'Navigasi halaman';
+    }
+  }
+
   return (
     <nav
       aria-label="Paginasi data"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-dd-line bg-white px-4 py-3"
+      className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 shadow-dd-card backdrop-blur-sm"
     >
-      <span className="text-sm text-dd-muted">{totalLabel ?? 'Navigasi halaman'}</span>
-      <div className="flex gap-2">
+      <div className="text-xs sm:text-sm font-medium text-dd-muted">
+        {displayLabel}
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
         <Button
           aria-label={previousAriaLabel}
           variant="secondary"
+          size="sm"
           leadingIcon={<ChevronLeft className="size-4" aria-hidden="true" />}
           disabled={!hasPrevious}
           onClick={onPrevious}
         >
-          Sebelumnya
+          <span className="hidden sm:inline">Sebelumnya</span>
         </Button>
+
+        {pageItems.length > 0 && (
+          <div className="flex items-center gap-1">
+            {pageItems.map((item, idx) =>
+              item === '...' ? (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="px-1.5 py-1 text-xs text-dd-muted select-none"
+                  aria-hidden="true"
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={`page-${item}`}
+                  type="button"
+                  aria-current={item === currentPage ? 'page' : undefined}
+                  aria-label={`Halaman ${item}`}
+                  disabled={item === currentPage || !onPageChange}
+                  onClick={() => onPageChange?.(item)}
+                  className={`size-8 sm:size-9 flex items-center justify-center rounded-lg text-xs sm:text-sm font-semibold transition ${
+                    item === currentPage
+                      ? 'bg-dd-forest text-white shadow-dd-soft pointer-events-none'
+                      : 'text-dd-ink hover:bg-dd-surface-muted hover:text-dd-forest border border-transparent cursor-pointer'
+                  }`}
+                >
+                  {item}
+                </button>
+              ),
+            )}
+          </div>
+        )}
+
         <Button
           aria-label={nextAriaLabel}
           variant="secondary"
+          size="sm"
           trailingIcon={<ChevronRight className="size-4" aria-hidden="true" />}
           disabled={!hasNext}
           onClick={onNext}
         >
-          Berikutnya
+          <span className="hidden sm:inline">Berikutnya</span>
         </Button>
       </div>
     </nav>

@@ -1006,7 +1006,7 @@ export function MasterView({
                     <Pagination
                       hasPrevious={branchCursorHistory.length > 0 && !loading}
                       hasNext={Boolean(branchNextCursor) && !loading}
-                      totalLabel={`Halaman ${branchCursorHistory.length + 1} · ${branches.length.toLocaleString('id-ID')} data dari ${branchSummary.total.toLocaleString('id-ID')} cabang`}
+                      currentPage={branchCursorHistory.length + 1}
                       onPrevious={() => {
                         const previous = branchCursorHistory.at(-1) ?? '';
                         void run(async () => {

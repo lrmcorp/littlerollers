@@ -174,6 +174,7 @@ export function OperationsView({
         />
       ) : (
         <DataTable
+          rowNumberOffset={jobCursorHistory.length * 20}
           items={items}
           rowKey={(job) => job.id}
           columns={[
@@ -358,7 +359,7 @@ export function OperationsView({
       <Pagination
         hasPrevious={jobCursorHistory.length > 0}
         hasNext={Boolean(jobPage?.page.nextCursor)}
-        totalLabel={`${items.length.toLocaleString('id-ID')} job pada halaman ini`}
+        currentPage={jobCursorHistory.length + 1}
         onPrevious={() => {
           const history = [...jobCursorHistory];
           setJobCursor(history.pop());
@@ -448,6 +449,7 @@ export function OperationsView({
         />
       ) : emailPage ? (
         <DataTable
+          rowNumberOffset={emailCursorHistory.length * 20}
           items={emailPage.items}
           rowKey={(item) => item.id}
           columns={[
@@ -542,7 +544,7 @@ export function OperationsView({
         <Pagination
           hasPrevious={emailCursorHistory.length > 0}
           hasNext={Boolean(emailPage.page.nextCursor)}
-          totalLabel={`${emailPage.items.length.toLocaleString('id-ID')} email pada halaman ini`}
+          currentPage={emailCursorHistory.length + 1}
           onPrevious={() => {
             const history = [...emailCursorHistory];
             setEmailCursor(history.pop());

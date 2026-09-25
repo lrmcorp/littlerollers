@@ -211,7 +211,7 @@ export function OrdersView() {
       ) : (
         <>
           <div className="grid gap-3">
-            {data.items.map((item) => (
+            {data.items.map((item, index) => (
               <Link
                 className="group grid gap-4 rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5 hover:border-dd-forest/30 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 href={`/orders/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent(returnTo)}`}
@@ -219,6 +219,9 @@ export function OrdersView() {
               >
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted">
+                      #{cursorHistory.length * 20 + index + 1}
+                    </span>
                     <strong className="text-base">{item.packageName}</strong>
                     <StatusBadge tone={tone(item.status)}>
                       {orderStatusLabels[item.status]}
@@ -255,9 +258,13 @@ export function OrdersView() {
             ))}
           </div>
           <Pagination
+            currentPage={cursorHistory.length + 1}
+            totalPages={Math.ceil(summary.total / 20) || 1}
+            totalItems={summary.total}
+            pageSize={20}
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
-            totalLabel={`Halaman ${cursorHistory.length + 1} · ${data.items.length.toLocaleString('id-ID')} data dari ${summary.total.toLocaleString('id-ID')} pesanan`}
+            totalLabel={`${data.items.length.toLocaleString('id-ID')} dari ${summary.total.toLocaleString('id-ID')} pesanan`}
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';
               setCursorHistory((current) => current.slice(0, -1));

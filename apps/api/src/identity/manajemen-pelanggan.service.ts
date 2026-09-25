@@ -61,22 +61,40 @@ export class CustomerManagementService {
       ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
     };
 
-    const users = await this.db.user.findMany({
-      where,
-      include: {
-        profile: true,
-        customerPackages: { where: { status: 'ACTIVE' } },
-        _count: {
-          select: {
-            customerPackages: true,
-            bookings: true,
-            purchases: true,
+    const countWhere: Prisma.UserWhereInput = {
+      role: { in: ['CUSTOMER', 'MEMBER'] },
+      ...(filters.status ? { status: filters.status as any } : {}),
+      ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
+      ...(q
+        ? {
+            OR: [
+              { displayName: { contains: q } },
+              { email: { contains: q } },
+              { phone: { contains: q } },
+            ],
+          }
+        : {}),
+    };
+
+    const [users, totalCount] = await Promise.all([
+      this.db.user.findMany({
+        where,
+        include: {
+          profile: true,
+          customerPackages: { where: { status: 'ACTIVE' } },
+          _count: {
+            select: {
+              customerPackages: true,
+              bookings: true,
+              purchases: true,
+            },
           },
         },
-      },
-      orderBy: { id: 'asc' },
-      take: 21,
-    });
+        orderBy: { id: 'asc' },
+        take: 21,
+      }),
+      this.db.user.count({ where: countWhere }),
+    ]);
 
     const hasMore = users.length > 20;
     const page = users.slice(0, 20);
@@ -99,7 +117,7 @@ export class CustomerManagementService {
         profile: u.profile,
         createdAt: u.createdAt.toISOString(),
       })),
-      summary: { total: users.length, active: users.length, inactive: 0 },
+      summary: { total: totalCount, active: totalCount, inactive: 0 },
       page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
     };
   }

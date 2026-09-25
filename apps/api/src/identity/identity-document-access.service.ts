@@ -161,7 +161,18 @@ export class IdentityDocumentAccessService {
             : 'image/jpeg';
         return { mimeType, stream };
       } catch {
-        // Fallback to stylized SVG preview if file key not found in storage driver
+        if (auth.objectKey.includes('%')) {
+          try {
+            const decoded = decodeURIComponent(auth.objectKey);
+            const stream = await this.storage.read(decoded);
+            const mimeType = decoded.endsWith('.png')
+              ? 'image/png'
+              : decoded.endsWith('.webp')
+                ? 'image/webp'
+                : 'image/jpeg';
+            return { mimeType, stream };
+          } catch {}
+        }
       }
     }
 

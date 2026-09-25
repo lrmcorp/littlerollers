@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Badge, DataTable, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
@@ -94,6 +94,13 @@ export function PackagesManagementView() {
     }
     router.replace(`/workspace/packages${next.size ? `?${next}` : ''}`);
   };
+  const totalPackages = useMemo(() => {
+    if (filters.effectiveState && page.summary[filters.effectiveState as keyof typeof page.summary] != null) {
+      return page.summary[filters.effectiveState as keyof typeof page.summary] ?? page.items.length;
+    }
+    const sum = Object.values(page.summary).reduce((acc, val) => (acc ?? 0) + (val ?? 0), 0);
+    return sum > 0 ? sum : page.items.length;
+  }, [filters.effectiveState, page.summary, page.items.length]);
   const load = useCallback(async () => {
     if (!canRead) return;
     setBusy(true);
@@ -213,6 +220,7 @@ export function PackagesManagementView() {
         <DataTable
           items={page.items}
           loading={busy}
+          rowNumberOffset={cursorHistory.length * 20}
           rowKey={(item) => item.id}
           onRowClick={(item) => router.push(`/workspace/packages/${item.id}`)}
           rowDescription={(item) => `Buka detail ${item.name}`}
@@ -303,9 +311,13 @@ export function PackagesManagementView() {
         />
       </Panel>
       <Pagination
+        currentPage={cursorHistory.length + 1}
+        totalPages={Math.ceil(totalPackages / 20) || 1}
+        totalItems={totalPackages}
+        pageSize={20}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman paket ${cursorHistory.length + 1}`}
+        totalLabel={`Halaman paket ${cursorHistory.length + 1} · ${page.items.length} dari ${totalPackages} paket`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />

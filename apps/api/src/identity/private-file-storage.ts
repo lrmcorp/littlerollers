@@ -39,7 +39,7 @@ export function resolvePrivateUploadRoot(
 }
 
 export function privateFilePath(root: string, key: string): string {
-  if (!key || isAbsolute(key) || key.includes('..') || !/^[a-zA-Z0-9/_.-]+$/u.test(key))
+  if (!key || isAbsolute(key) || key.includes('..') || !/^[a-zA-Z0-9/_.\s%()=+;,~-]+$/u.test(key))
     throw new Error('PRIVATE_FILE_KEY_INVALID');
   const target = resolve(root, key);
   const scoped = relative(root, target);

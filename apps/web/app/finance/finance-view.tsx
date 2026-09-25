@@ -946,6 +946,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Deteksi Anomali Rekonsiliasi</h3>
             <DataTable
+              rowNumberOffset={anomalyCursorHistory.length * 20}
               items={reconData?.anomalies.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.purchaseId}
@@ -1003,7 +1004,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 <Pagination
                   hasPrevious={anomalyCursorHistory.length > 0 && !reconLoading}
                   hasNext={Boolean(reconData.anomalies.page.nextCursor) && !reconLoading}
-                  totalLabel={`Halaman ${anomalyCursorHistory.length + 1} · ${reconData.anomalies.items.length.toLocaleString('id-ID')} data dari ${reconData.anomalies.total.toLocaleString('id-ID')} anomali`}
+                  currentPage={anomalyCursorHistory.length + 1}
                   onPrevious={() => {
                     const previous = anomalyCursorHistory.at(-1) ?? '';
                     void loadAnomalyPage(previous || undefined).then((loaded) => {
@@ -1027,6 +1028,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Legacy Cashflow Entry</h3>
             <DataTable
+              rowNumberOffset={legacyCursorHistory.length * 20}
               items={reconData?.legacyCashflow.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.id}
@@ -1067,7 +1069,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   nextAriaLabel="Legacy cashflow berikutnya"
                   hasPrevious={legacyCursorHistory.length > 0 && !reconLoading}
                   hasNext={Boolean(reconData.legacyCashflow.page.nextCursor) && !reconLoading}
-                  totalLabel={`Halaman ${legacyCursorHistory.length + 1} · ${reconData.legacyCashflow.items.length.toLocaleString('id-ID')} data dari ${reconData.legacyCashflow.total.toLocaleString('id-ID')} legacy entry`}
+                  currentPage={legacyCursorHistory.length + 1}
                   onPrevious={() => {
                     const previous = legacyCursorHistory.at(-1) ?? '';
                     void loadLegacyPage(previous || undefined).then((loaded) => {

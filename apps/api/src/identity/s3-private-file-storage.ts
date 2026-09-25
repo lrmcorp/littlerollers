@@ -61,7 +61,7 @@ export class S3PrivateFileStorage implements PrivateFileStorage, OnModuleInit {
   }
 
   private validateKey(key: string): void {
-    if (!key || key.startsWith('/') || key.includes('..') || !/^[a-zA-Z0-9/_.-]+$/u.test(key))
+    if (!key || key.startsWith('/') || key.includes('..') || !/^[a-zA-Z0-9/_.\s%()=+;,~-]+$/u.test(key))
       throw new Error('PRIVATE_FILE_KEY_INVALID');
   }
 

@@ -185,7 +185,7 @@ export function MigrationView() {
               <Pagination
                 hasPrevious={batchCursorHistory.length > 0}
                 hasNext={Boolean(batchNextCursor)}
-                totalLabel={`Halaman ${batchCursorHistory.length + 1} · ${batches.length} batch`}
+                currentPage={batchCursorHistory.length + 1}
                 onPrevious={() => {
                   const previous = batchCursorHistory.at(-1) ?? '';
                   setBatchCursorHistory((current) => current.slice(0, -1));
@@ -304,7 +304,7 @@ export function MigrationView() {
                 <Pagination
                   hasPrevious={rejectCursorHistory.length > 0}
                   hasNext={Boolean(rejectNextCursor)}
-                  totalLabel={`Halaman ${rejectCursorHistory.length + 1} · ${rejects.length} reject`}
+                  currentPage={rejectCursorHistory.length + 1}
                   onPrevious={() => {
                     const previous = rejectCursorHistory.at(-1) ?? '';
                     setRejectCursorHistory((current) => current.slice(0, -1));
@@ -389,7 +389,7 @@ export function MigrationView() {
               <Pagination
                 hasPrevious={resolutionCursorHistory.length > 0}
                 hasNext={Boolean(resolutionNextCursor)}
-                totalLabel={`Halaman ${resolutionCursorHistory.length + 1} · ${resolutions.length} resolution`}
+                currentPage={resolutionCursorHistory.length + 1}
                 onPrevious={() => {
                   const previous = resolutionCursorHistory.at(-1) ?? '';
                   setResolutionCursorHistory((current) => current.slice(0, -1));

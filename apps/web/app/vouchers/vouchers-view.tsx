@@ -223,6 +223,7 @@ export function VouchersView() {
         />
       ) : (
         <DataTable
+          rowNumberOffset={cursorHistory.length * 20}
           items={items}
           rowKey={(item) => item.id}
           columns={[
@@ -419,7 +420,7 @@ export function VouchersView() {
       <Pagination
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
-        totalLabel={`Halaman voucher ${cursorHistory.length + 1}`}
+        currentPage={cursorHistory.length + 1}
         onPrevious={() => {
           const previous = cursorHistory.at(-1);
           setCursorHistory((current) => current.slice(0, -1));

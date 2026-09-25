@@ -221,6 +221,9 @@ export function CustomersView() {
           <table className="w-full text-left text-sm">
             <thead className="bg-dd-surface-muted text-xs uppercase text-dd-muted">
               <tr>
+                <th className="w-14 min-w-[3.5rem] p-4 text-center text-xs font-bold text-dd-muted uppercase tracking-wider">
+                  No.
+                </th>
                 <th className="p-4">Customer</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Paket</th>
@@ -229,8 +232,11 @@ export function CustomersView() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <tr key={item.id} className="border-t border-dd-line">
+                  <td className="w-14 p-4 text-center font-mono text-xs text-dd-muted align-middle bg-dd-surface-muted/30">
+                    {history.length * 20 + index + 1}
+                  </td>
                   <td className="p-4">
                     <strong>{item.displayName}</strong>
                     <div className="text-dd-muted">{item.email || item.phoneE164 || item.id}</div>
@@ -261,7 +267,7 @@ export function CustomersView() {
               ))}
               {!items.length && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-dd-muted">
+                  <td colSpan={6} className="p-8 text-center text-dd-muted">
                     Tidak ada customer yang cocok.
                   </td>
                 </tr>
@@ -271,9 +277,13 @@ export function CustomersView() {
         </div>
       )}
       <Pagination
+        currentPage={history.length + 1}
+        totalPages={Math.ceil(total / 20) || 1}
+        totalItems={total}
+        pageSize={20}
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(nextCursor) && !loading}
-        totalLabel={`Halaman ${history.length + 1} · ${total} customer`}
+        totalLabel={`${total.toLocaleString('id-ID')} customer`}
         onPrevious={() => {
           const next = [...history];
           const previous = next.pop();

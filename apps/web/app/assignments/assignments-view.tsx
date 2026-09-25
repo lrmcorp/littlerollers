@@ -299,6 +299,7 @@ export function AssignmentsView({
       ) : (
         <>
           <DataTable
+            rowNumberOffset={cursorHistory.length * 20}
             items={items}
             columns={columns}
             rowKey={(item) => item.id}
@@ -339,6 +340,7 @@ export function AssignmentsView({
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(nextCursor)}
             totalLabel={`${summary.total.toLocaleString('id-ID')} assignment`}
+            currentPage={cursorHistory.length + 1}
             onPrevious={() => {
               const previous = cursorHistory.at(-1);
               setCursorHistory((current) => current.slice(0, -1));

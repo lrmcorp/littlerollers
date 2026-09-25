@@ -635,7 +635,8 @@ export function PaymentReviewDetailView({
                   <Pagination
                     hasPrevious={usageCursorHistory.length > 0 && !usageLoading}
                     hasNext={Boolean(detail.usageHistory.page.nextCursor) && !usageLoading}
-                    totalLabel={`Halaman ${usageCursorHistory.length + 1} · ${detail.usageHistory.items.length.toLocaleString('id-ID')} aktivitas`}
+                    totalLabel={`${detail.usageHistory.items.length.toLocaleString('id-ID')} aktivitas`}
+                    currentPage={usageCursorHistory.length + 1}
                     onPrevious={() => {
                       const previous = usageCursorHistory.at(-1) ?? '';
                       setUsageCursorHistory((current) => current.slice(0, -1));

@@ -355,6 +355,29 @@ export function PurchaseReviewView({
     ['EXPIRED', 'Kedaluwarsa', summary.expired],
   ] as const;
 
+  const currentTotal = useMemo(() => {
+    switch (filters.status) {
+      case 'PENDING':
+        return summary.pending;
+      case 'ACTION_REQUIRED':
+        return summary.actionRequired;
+      case 'APPROVED':
+        return summary.approved;
+      case 'REJECTED':
+        return summary.rejected;
+      case 'EXPIRED':
+        return summary.expired;
+      default:
+        return (
+          summary.pending +
+          summary.actionRequired +
+          summary.approved +
+          summary.rejected +
+          summary.expired
+        );
+    }
+  }, [filters.status, summary]);
+
   const actions = (item: ReviewPurchase, compact = false) => (
     <div
       className={`flex flex-wrap gap-2 ${compact ? 'justify-end' : ''}`}
@@ -543,6 +566,7 @@ export function PurchaseReviewView({
       <DataTable
         items={items}
         loading={loading}
+        rowNumberOffset={cursorHistory.length * 20}
         rowKey={(item) => item.id}
         emptyTitle={filters.q ? 'Transaksi tidak ditemukan' : 'Antrean pembayaran kosong'}
         emptyDescription={
@@ -695,6 +719,10 @@ export function PurchaseReviewView({
       />
 
       <Pagination
+        currentPage={cursorHistory.length + 1}
+        totalPages={Math.ceil(currentTotal / 20) || 1}
+        totalItems={currentTotal}
+        pageSize={20}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
         totalLabel={

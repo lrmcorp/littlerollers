@@ -204,6 +204,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
       )}
       {items.length > 0 && (
         <DataTable
+          rowNumberOffset={cursorHistory.length * 20}
           items={items}
           rowKey={(item) => item.id}
           columns={[
@@ -264,7 +265,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
       <Pagination
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
-        totalLabel={`Halaman audit ${cursorHistory.length + 1}`}
+        currentPage={cursorHistory.length + 1}
         onPrevious={() => {
           const previous = cursorHistory.at(-1);
           setCursorHistory((current) => current.slice(0, -1));
