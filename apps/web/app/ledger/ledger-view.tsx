@@ -475,7 +475,7 @@ export function LedgerView({
         titleId="ledger-title"
         description={
           adjustmentsOnly
-            ? 'Tinjau permintaan perubahan sesi sesuai hak akses, cakupan cabang, dan separation of duties.'
+            ? 'Permintaan tidak langsung mengubah saldo dan harus diputuskan pihak berizin yang berbeda dari pemohon. Tinjau sesuai hak akses dan cakupan cabang.'
             : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan ledger authoritative.'
         }
         actions={
@@ -714,30 +714,32 @@ export function LedgerView({
 
       {(canRequest || canReview) && (adjustmentsOnly || workspaceTab === 'adjustments') && (
         <Panel className="p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-                Kontrol saldo
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-dd-ink">Penyesuaian sesi</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-dd-muted">
-                Permintaan tidak langsung mengubah saldo dan harus diputuskan actor berizin yang
-                berbeda.
-              </p>
+          {!adjustmentsOnly && (
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                  Kontrol saldo
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-dd-ink">Penyesuaian sesi</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-dd-muted">
+                  Permintaan tidak langsung mengubah saldo dan harus diputuskan pihak berizin yang
+                  berbeda dari pemohon.
+                </p>
+              </div>
+              <UsersRound className="size-6 text-dd-brass" aria-hidden="true" />
             </div>
-            <UsersRound className="size-6 text-dd-brass" aria-hidden="true" />
-          </div>
+          )}
 
           {canRequest && (
-            <div className="mt-5">
+            <div className={adjustmentsOnly ? '' : 'mt-5'}>
               <Button onClick={() => setRequestOpen(true)}>Buat permintaan penyesuaian</Button>
             </div>
           )}
 
           {!canRequest && canDecide && (
-            <div className="mt-5">
+            <div className={adjustmentsOnly ? '' : 'mt-5'}>
               <Feedback kind="status">
-                Anda berperan sebagai approver. Permintaan dibuat oleh Admin dan harus diputuskan
+                Anda berperan sebagai penyetuju. Permintaan dibuat oleh Admin dan harus diputuskan
                 oleh actor berbeda agar pemisahan tugas tetap terjaga.
               </Feedback>
             </div>
@@ -773,7 +775,7 @@ export function LedgerView({
               </FilterBar>
               {adjustmentSummary && (
                 <section
-                  className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                  className="my-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
                   aria-label="Ringkasan penyesuaian sesi"
                 >
                   <StatCard label="Total permintaan" value={String(adjustmentSummary.total)} />

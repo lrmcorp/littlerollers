@@ -16,6 +16,7 @@ import { useSessionContext } from '../session-context';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
 import { AsyncSearchSelect, DateInput, SelectInput, TextInput } from '../components/forms';
+import { pageOffset } from '../lib/pagination';
 
 const failureCopy: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -181,7 +182,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
       )}
       {items.length > 0 && (
         <DataTable
-          rowNumberOffset={cursorHistory.length * 20}
+          rowNumberOffset={pageOffset(cursorHistory.length)}
           items={items}
           rowKey={(item) => item.id}
           columns={[

@@ -37,6 +37,22 @@ const labels: Record<string, string> = {
   SUCCEEDED: 'Berhasil',
   FAILED: 'Gagal',
   SENT: 'Terkirim',
+  SENDING: 'Sedang dikirim',
+  RETRYING: 'Mencoba kembali',
+  ACCEPTED_BY_SMTP: 'Diterima server email',
+  FAILED_RETRYABLE: 'Gagal (dapat dicoba lagi)',
+  FAILED_TERMINAL: 'Gagal permanen',
+  FALLBACK_IN_APP: 'Dialihkan ke notifikasi aplikasi',
+  DEAD_LETTER: 'Antrean gagal',
+  // Booking dan kehadiran
+  BOOKED: 'Terjadwal',
+  ATTENDED: 'Hadir',
+  NO_SHOW: 'Tidak hadir',
+  HADIR: 'Hadir',
+  BATAL: 'Batal',
+  MENUNGGU: 'Menunggu',
+  DEPLETED: 'Habis',
+  FROZEN: 'Dibekukan',
 };
 
 function humanize(value: string) {

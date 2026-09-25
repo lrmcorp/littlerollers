@@ -26,6 +26,7 @@ import {
   statusLabels,
   type CancellationReason,
 } from './class-slot-presenters';
+import { pageOffset } from '../lib/pagination';
 
 export function CreatePanel({
   branchId,
@@ -333,7 +334,7 @@ export function DetailPanel({
               </Feedback>
             )}
             <DataTable
-              rowNumberOffset={rosterCursorHistory.length * 20}
+              rowNumberOffset={pageOffset(rosterCursorHistory.length)}
               items={roster}
               loading={rosterLoading}
               rowKey={(item) => item.id}

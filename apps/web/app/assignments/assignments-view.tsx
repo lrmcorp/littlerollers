@@ -34,6 +34,7 @@ import {
   Textarea,
   TextInput,
 } from '../components/forms';
+import { pageOffset } from '../lib/pagination';
 
 const emptySummary: AssignmentManagementSummary = { total: 0, active: 0, ended: 0 };
 
@@ -295,7 +296,7 @@ export function AssignmentsView({
       ) : (
         <>
           <DataTable
-            rowNumberOffset={cursorHistory.length * 20}
+            rowNumberOffset={pageOffset(cursorHistory.length)}
             items={items}
             columns={columns}
             rowKey={(item) => item.id}

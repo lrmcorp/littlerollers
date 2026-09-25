@@ -48,6 +48,7 @@ import {
 } from './finance-client';
 import { FinanceCommandsPanel } from './finance-commands-panel';
 import { formatRupiah } from '../lib/formatters';
+import { pageOffset } from '../lib/pagination';
 
 const date = (value: Date) => value.toISOString().slice(0, 10);
 
@@ -946,7 +947,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Deteksi Anomali Rekonsiliasi</h3>
             <DataTable
-              rowNumberOffset={anomalyCursorHistory.length * 20}
+              rowNumberOffset={pageOffset(anomalyCursorHistory.length)}
               items={reconData?.anomalies.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.purchaseId}
@@ -1028,7 +1029,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Entri arus kas lama (v1)</h3>
             <DataTable
-              rowNumberOffset={legacyCursorHistory.length * 20}
+              rowNumberOffset={pageOffset(legacyCursorHistory.length)}
               items={reconData?.legacyCashflow.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.id}

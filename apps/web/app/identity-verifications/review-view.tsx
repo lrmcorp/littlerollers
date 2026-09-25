@@ -45,6 +45,7 @@ import {
   statusLabels,
   SummaryButton,
 } from './review-components';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 
 type ReviewClient = Pick<
   typeof verificationClient,
@@ -507,7 +508,7 @@ export function IdentityReviewView({
         loading={loading}
         rowKey={(item) => item.id}
         onRowClick={(item) => setSelected(item)}
-        rowNumberOffset={(page - 1) * 20}
+        rowNumberOffset={(page - 1) * ADMIN_PAGE_SIZE}
         showRowNumbers={true}
         emptyTitle={
           q || kind || scanStatus || from || until
@@ -604,9 +605,9 @@ export function IdentityReviewView({
         hasPrevious={page > 1}
         hasNext={Boolean(pageMeta?.hasMore || nextCursor)}
         currentPage={page}
-        totalPages={pageMeta?.totalPages ?? Math.max(1, Math.ceil((summary?.totalCustomers ?? 0) / 20))}
+        totalPages={pageMeta?.totalPages ?? Math.max(1, Math.ceil((summary?.totalCustomers ?? 0) / ADMIN_PAGE_SIZE))}
         totalItems={summary?.totalCustomers}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         onPrevious={() => setPage((p) => Math.max(1, p - 1))}
         onNext={() => setPage((p) => p + 1)}
         onPageChange={(targetPage) => setPage(targetPage)}

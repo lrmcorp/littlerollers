@@ -17,6 +17,7 @@ import {
 import { useTrackedRouter } from '../components/app-loading';
 import { browserMasterClient } from '@/api-clients/master-client';
 import { formatRupiah } from '../lib/formatters';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 
 const stateLabels = {
   ACTIVE: 'Aktif',
@@ -209,7 +210,7 @@ export function PackagesManagementView() {
         <DataTable
           items={page.items}
           loading={busy}
-          rowNumberOffset={cursorHistory.length * 20}
+          rowNumberOffset={pageOffset(cursorHistory.length)}
           rowKey={(item) => item.id}
           onRowClick={(item) => router.push(`/workspace/packages/${item.id}`)}
           rowDescription={(item) => `Buka detail ${item.name}`}
@@ -301,9 +302,9 @@ export function PackagesManagementView() {
       </Panel>
       <Pagination
         currentPage={cursorHistory.length + 1}
-        totalPages={Math.ceil(totalPackages / 20) || 1}
+        totalPages={Math.ceil(totalPackages / ADMIN_PAGE_SIZE) || 1}
         totalItems={totalPackages}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
         totalLabel={`Halaman paket ${cursorHistory.length + 1} · ${page.items.length} dari ${totalPackages} paket`}

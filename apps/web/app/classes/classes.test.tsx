@@ -95,6 +95,37 @@ describe('ClassSlotView', () => {
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
   });
 
+  it('shows the instructor and class names sent with the slot instead of id fragments', async () => {
+    const named = {
+      ...slot,
+      instructorUserId: 'a45ec6c1-0000-4000-8000-000000000000',
+      instructor: { displayName: 'Sarah Coach' },
+      classType: { name: 'Reformer Pilates' },
+    };
+    render(
+      <ClassSlotView
+        client={fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [named] }) })}
+        branchOverride={branch}
+        capabilitiesOverride={readCapabilities}
+      />,
+    );
+    expect((await screen.findAllByText('Sarah Coach')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Reformer Pilates').length).toBeGreaterThan(0);
+  });
+
+  it('never prints an id fragment when the instructor is not in the loaded lists', async () => {
+    const orphan = { ...slot, instructorUserId: 'a45ec6c1-0000-4000-8000-000000000000' };
+    const view = render(
+      <ClassSlotView
+        client={fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [orphan] }) })}
+        branchOverride={branch}
+        capabilitiesOverride={readCapabilities}
+      />,
+    );
+    expect((await screen.findAllByText('Instruktur belum dimuat')).length).toBeGreaterThan(0);
+    expect(view.container).not.toHaveTextContent('a45ec6c1');
+  });
+
   it('requires an explicit authoritative branch for a branch-scoped reader', () => {
     render(<ClassSlotView client={fake()} capabilitiesOverride={readCapabilities} />);
     expect(

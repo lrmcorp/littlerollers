@@ -18,6 +18,7 @@ import {
 } from '@/api-clients/package-promotion-client';
 import { browserMasterClient } from '@/api-clients/master-client';
 import { formatRupiah } from '../lib/formatters';
+import { pageOffset } from '../lib/pagination';
 const stateLabels: Record<string, string> = {
   DRAFT: 'Draft',
   ACTIVE: 'Aktif',
@@ -337,7 +338,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         </div>
         <DataTable
           items={promotionPage?.items ?? []}
-          rowNumberOffset={promotionHistory.length * 20}
+          rowNumberOffset={pageOffset(promotionHistory.length)}
           rowKey={(item) => item.id}
           emptyTitle="Belum ada promo harga"
           emptyDescription="Buat promo untuk menampilkan harga asli dicoret pada katalog."
@@ -487,7 +488,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
           </div>
           <DataTable
             items={orders[selectedOrderPromotionId]!.items}
-            rowNumberOffset={(orderHistory[selectedOrderPromotionId]?.length ?? 0) * 20}
+            rowNumberOffset={pageOffset(orderHistory[selectedOrderPromotionId]?.length ?? 0)}
             rowKey={(item) => item.id}
             emptyTitle="Belum ada pesanan"
             emptyDescription="Promo ini belum digunakan pada pesanan."

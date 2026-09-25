@@ -27,6 +27,7 @@ import { useSessionContext } from '../session-context';
 import { InviteUserDrawer, roleSummary, statusLabels } from './user-admin-controls';
 import { roleLabel } from '../lib/role-labels';
 import { SearchInput, SearchSelect, SelectInput } from '../components/forms';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 
 const failureCopy: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -348,7 +349,7 @@ export function UsersView({
         <DataTable
           items={items}
           loading={loading}
-          rowNumberOffset={cursorHistory.length * 20}
+          rowNumberOffset={pageOffset(cursorHistory.length)}
           rowKey={(user) => user.id}
           emptyTitle={
             search || status || role || verificationStatus
@@ -453,9 +454,9 @@ export function UsersView({
 
       <Pagination
         currentPage={cursorHistory.length + 1}
-        totalPages={Math.ceil((summary?.total ?? 0) / 20) || 1}
+        totalPages={Math.ceil((summary?.total ?? 0) / ADMIN_PAGE_SIZE) || 1}
         totalItems={summary?.total ?? 0}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0 && !loading}
         hasNext={Boolean(nextCursor) && !loading}
         totalLabel={`${items.length.toLocaleString('id-ID')} ditampilkan dari ${(summary?.total ?? 0).toLocaleString('id-ID')} pengguna`}

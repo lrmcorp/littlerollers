@@ -28,6 +28,7 @@ import {
   StatCard,
   Tabs,
 } from '../components/admin/admin-ui';
+import { pageOffset } from '../lib/pagination';
 
 const newIntentKey = () => crypto.randomUUID();
 const shortId = (id: string) => id.slice(0, 8);
@@ -992,7 +993,7 @@ export function BookingView({
             {activeTab === 'attendance' ? 'Riwayat kehadiran' : 'Daftar booking'}
           </h2>
           <DataTable
-            rowNumberOffset={cursorHistory.length * 20}
+            rowNumberOffset={pageOffset(cursorHistory.length)}
             items={items}
             rowKey={(booking) => booking.id}
             loading={busy && items.length === 0}

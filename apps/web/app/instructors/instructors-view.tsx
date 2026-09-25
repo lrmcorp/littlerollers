@@ -12,6 +12,7 @@ import { useSessionContext } from '../session-context';
 import { instructorClient, type InstructorSummary } from './instructor-client';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 
 export function InstructorsView() {
   const sessionContext = useSessionContext();
@@ -213,7 +214,7 @@ export function InstructorsView() {
       <DataTable
         items={items}
         columns={columns}
-        rowNumberOffset={history.length * 20}
+        rowNumberOffset={pageOffset(history.length)}
         rowKey={(item) => item.id}
         loading={loading && !items.length}
         emptyTitle="Belum ada instruktur"
@@ -254,9 +255,9 @@ export function InstructorsView() {
       />
       <Pagination
         currentPage={history.length + 1}
-        totalPages={Math.ceil(total / 20) || 1}
+        totalPages={Math.ceil(total / ADMIN_PAGE_SIZE) || 1}
         totalItems={total}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(next) && !loading}
         totalLabel={`${total.toLocaleString('id-ID')} instruktur`}

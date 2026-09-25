@@ -19,12 +19,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { ActionGroup, Button } from '../../components/actions';
+import { ActionGroup, Button, ButtonLink } from '../../components/actions';
 import { PreviewModal } from '../../components/app-feedback';
 import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, Skeleton, StatusBadge } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
+import { DataTable } from '../../components/admin/admin-ui';
+import { statusLabel } from '../../lib/status-labels';
 import { customerStatusLabels, verificationStatusLabels } from '../customers-view';
 import { customerClient, type CustomerDetail, type CustomerDetailDocument } from '../customer-client';
 import { verificationClient } from '../../api-clients/identity-verification-client';
@@ -477,46 +479,71 @@ export function CustomerDetailView({ id }: { id: string }) {
                 Pelanggan belum memiliki paket aktif saat ini.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-dd-line bg-dd-surface-muted/50 text-xs font-semibold uppercase text-dd-muted">
-                    <tr>
-                      <th className="p-3">Nama Paket</th>
-                      <th className="p-3">Total Sesi</th>
-                      <th className="p-3">Sisa Sesi</th>
-                      <th className="p-3">Sesi Digunakan</th>
-                      <th className="p-3">Masa Berlaku</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dd-line/60">
-                    {customer.customerPackages.map((cp) => (
-                      <tr key={cp.id} className="hover:bg-dd-surface-muted/20">
-                        <td className="p-3 font-semibold text-dd-ink">
-                          {cp.package?.name ?? 'Paket Pilates'}
-                        </td>
-                        <td className="p-3 text-dd-muted">{cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—'}</td>
-                        <td className="p-3">
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                            {cp.remainingSessions} Sesi
-                          </span>
-                        </td>
-                        <td className="p-3 text-dd-muted">{cp.usedSessions} Sesi</td>
-                        <td className="p-3 text-xs text-dd-muted">
-                          {cp.expiryAt
-                            ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
-                            : 'Permanen'}
-                        </td>
-                        <td className="p-3">
-                          <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
-                            {cp.status}
-                          </StatusBadge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                showRowNumbers={false}
+                items={customer.customerPackages}
+                rowKey={(cp) => cp.id}
+                columns={[
+                  {
+                    id: 'name',
+                    header: 'Nama Paket',
+                    cell: (cp) => (
+                      <span className="font-semibold text-dd-ink">
+                        {cp.package?.name ?? 'Paket Pilates'}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: 'total',
+                    header: 'Total Sesi',
+                    cell: (cp) => cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—',
+                  },
+                  {
+                    id: 'remaining',
+                    header: 'Sisa Sesi',
+                    cell: (cp) => (
+                      <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                        {cp.remainingSessions} Sesi
+                      </span>
+                    ),
+                  },
+                  { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
+                  {
+                    id: 'expiry',
+                    header: 'Masa Berlaku',
+                    cell: (cp) =>
+                      cp.expiryAt
+                        ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                        : 'Permanen',
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    cell: (cp) => (
+                      <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
+                        {statusLabel(cp.status)}
+                      </StatusBadge>
+                    ),
+                  },
+                ]}
+                mobileCard={(cp) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-dd-ink">{cp.package?.name ?? 'Paket Pilates'}</strong>
+                      <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
+                        {statusLabel(cp.status)}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-sm text-dd-muted">
+                      Sisa {cp.remainingSessions} dari{' '}
+                      {cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—'} sesi ·{' '}
+                      {cp.expiryAt
+                        ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                        : 'Permanen'}
+                    </p>
+                  </div>
+                )}
+              />
             )}
           </div>
         )}
@@ -529,58 +556,86 @@ export function CustomerDetailView({ id }: { id: string }) {
                 Pelanggan belum memiliki riwayat pembelian paket.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-dd-line bg-dd-surface-muted/50 text-xs font-semibold uppercase text-dd-muted">
-                    <tr>
-                      <th className="p-3">Invoice / Tanggal</th>
-                      <th className="p-3">Paket</th>
-                      <th className="p-3">Cabang</th>
-                      <th className="p-3">Nominal (Rp)</th>
-                      <th className="p-3">Metode</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Bukti Bayar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dd-line/60">
-                    {customer.purchases.map((p) => (
-                      <tr key={p.id} className="hover:bg-dd-surface-muted/20">
-                        <td className="p-3">
-                          <strong className="block text-dd-ink">{p.invoiceNumber ?? p.id.slice(0, 8)}</strong>
-                          <span className="text-xs text-dd-muted">
-                            {new Date(p.submittedAt).toLocaleDateString('id-ID')}
-                          </span>
-                        </td>
-                        <td className="p-3 font-semibold text-dd-ink">
-                          {p.packageNameSnapshot ?? 'Paket Pilates'}
-                        </td>
-                        <td className="p-3 text-xs text-dd-muted">{p.branchName || '—'}</td>
-                        <td className="p-3 font-semibold text-dd-forest">
-                          Rp {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
-                        </td>
-                        <td className="p-3 text-xs text-dd-muted">{p.paymentMethod ?? 'TRANSFER'}</td>
-                        <td className="p-3">
-                          <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
-                            {p.status}
-                          </StatusBadge>
-                        </td>
-                        <td className="p-3 text-xs">
-                          {p.paymentProofUrl ? (
-                            <Link
-                              href={`/workspace/payments/${p.id}`}
-                              className="font-semibold text-dd-forest hover:underline"
-                            >
-                              Lihat Bukti
-                            </Link>
-                          ) : (
-                            <span className="text-dd-muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                showRowNumbers={false}
+                items={customer.purchases}
+                rowKey={(p) => p.id}
+                columns={[
+                  {
+                    id: 'invoice',
+                    header: 'Invoice / Tanggal',
+                    cell: (p) => (
+                      <>
+                        <strong className="block text-dd-ink">
+                          {p.invoiceNumber ?? p.id.slice(0, 8)}
+                        </strong>
+                        <span className="text-xs text-dd-muted">
+                          {new Date(p.submittedAt).toLocaleDateString('id-ID')}
+                        </span>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'package',
+                    header: 'Paket',
+                    cell: (p) => (
+                      <span className="font-semibold text-dd-ink">
+                        {p.packageNameSnapshot ?? 'Paket Pilates'}
+                      </span>
+                    ),
+                  },
+                  { id: 'branch', header: 'Cabang', cell: (p) => p.branchName || '—' },
+                  {
+                    id: 'amount',
+                    header: 'Nominal',
+                    cell: (p) => (
+                      <span className="font-semibold text-dd-forest">
+                        Rp {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
+                      </span>
+                    ),
+                  },
+                  { id: 'method', header: 'Metode', cell: (p) => p.paymentMethod ?? 'Transfer' },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    cell: (p) => (
+                      <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
+                        {statusLabel(p.status)}
+                      </StatusBadge>
+                    ),
+                  },
+                  {
+                    id: 'proof',
+                    header: 'Bukti Bayar',
+                    cell: (p) =>
+                      p.paymentProofUrl ? (
+                        <ButtonLink
+                          variant="secondary"
+                          size="sm"
+                          href={`/workspace/payments/${p.id}`}
+                        >
+                          Lihat bukti
+                        </ButtonLink>
+                      ) : (
+                        <span className="text-dd-muted">—</span>
+                      ),
+                  },
+                ]}
+                mobileCard={(p) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-dd-ink">{p.invoiceNumber ?? p.id.slice(0, 8)}</strong>
+                      <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
+                        {statusLabel(p.status)}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-sm text-dd-muted">
+                      {p.packageNameSnapshot ?? 'Paket Pilates'} · Rp{' '}
+                      {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                )}
+              />
             )}
           </div>
         )}
@@ -593,52 +648,77 @@ export function CustomerDetailView({ id }: { id: string }) {
                 Pelanggan belum memiliki riwayat pemesanan kelas.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-dd-line bg-dd-surface-muted/50 text-xs font-semibold uppercase text-dd-muted">
-                    <tr>
-                      <th className="p-3">No. Booking</th>
-                      <th className="p-3">Tipe Kelas</th>
-                      <th className="p-3">Instruktur</th>
-                      <th className="p-3">Waktu Kelas</th>
-                      <th className="p-3">Status Booking</th>
-                      <th className="p-3">Kehadiran</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dd-line/60">
-                    {customer.customerBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-dd-surface-muted/20">
-                        <td className="p-3 font-semibold text-dd-ink">{b.bookingNumber ?? b.id.slice(0, 8)}</td>
-                        <td className="p-3 font-medium text-dd-ink">{b.classTypeName ?? 'Kelas Pilates'}</td>
-                        <td className="p-3 text-xs text-dd-muted">{b.instructorName ?? '—'}</td>
-                        <td className="p-3 text-xs text-dd-muted">
-                          {b.startAt
-                            ? `${new Date(b.startAt).toLocaleDateString('id-ID')} (${new Date(b.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`
-                            : '—'}
-                        </td>
-                        <td className="p-3">
-                          <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
-                            {b.status}
-                          </StatusBadge>
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              b.attendanceStatus === 'HADIR'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : b.attendanceStatus === 'BATAL'
-                                  ? 'bg-rose-50 text-rose-700'
-                                  : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {b.attendanceStatus ?? 'MENUNGGU'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                showRowNumbers={false}
+                items={customer.customerBookings}
+                rowKey={(b) => b.id}
+                columns={[
+                  {
+                    id: 'number',
+                    header: 'No. Booking',
+                    cell: (b) => (
+                      <span className="font-semibold text-dd-ink">
+                        {b.bookingNumber ?? b.id.slice(0, 8)}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: 'class',
+                    header: 'Tipe Kelas',
+                    cell: (b) => b.classTypeName ?? 'Kelas Pilates',
+                  },
+                  { id: 'instructor', header: 'Instruktur', cell: (b) => b.instructorName ?? '—' },
+                  {
+                    id: 'time',
+                    header: 'Waktu Kelas',
+                    cell: (b) =>
+                      b.startAt
+                        ? `${new Date(b.startAt).toLocaleDateString('id-ID')} (${new Date(b.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`
+                        : '—',
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status Booking',
+                    cell: (b) => (
+                      <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
+                        {statusLabel(b.status)}
+                      </StatusBadge>
+                    ),
+                  },
+                  {
+                    id: 'attendance',
+                    header: 'Kehadiran',
+                    cell: (b) => (
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          b.attendanceStatus === 'HADIR'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : b.attendanceStatus === 'BATAL'
+                              ? 'bg-rose-50 text-rose-700'
+                              : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
+                      </span>
+                    ),
+                  },
+                ]}
+                mobileCard={(b) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-dd-ink">{b.classTypeName ?? 'Kelas Pilates'}</strong>
+                      <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
+                        {statusLabel(b.status)}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-sm text-dd-muted">
+                      {b.bookingNumber ?? b.id.slice(0, 8)} ·{' '}
+                      {b.startAt ? new Date(b.startAt).toLocaleDateString('id-ID') : '—'} ·{' '}
+                      {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
+                    </p>
+                  </div>
+                )}
+              />
             )}
           </div>
         )}

@@ -19,6 +19,7 @@ import { useTrackedRouter } from '../components/app-loading';
 import { useAppFeedback } from '../components/app-feedback';
 import { browserPackagePromotionClient } from '@/api-clients/package-promotion-client';
 import { browserMasterClient } from '@/api-clients/master-client';
+import { pageOffset } from '../lib/pagination';
 
 const labels: Record<string, string> = {
   DRAFT: 'Draft',
@@ -223,7 +224,7 @@ export function VouchersView() {
         />
       ) : (
         <DataTable
-          rowNumberOffset={cursorHistory.length * 20}
+          rowNumberOffset={pageOffset(cursorHistory.length)}
           items={items}
           rowKey={(item) => item.id}
           columns={[

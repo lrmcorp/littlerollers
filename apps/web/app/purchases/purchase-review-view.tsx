@@ -20,6 +20,7 @@ import { useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';
 import { formatRupiah } from '../lib/formatters';
 import { statusLabel } from '../lib/status-labels';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 
 /** Opsi filter antrean; status lain (mis. PAID) ditampilkan lewat `statusLabel`. */
 const statusLabels: Record<string, string> = {
@@ -549,7 +550,7 @@ export function PurchaseReviewView({
       <DataTable
         items={items}
         loading={loading}
-        rowNumberOffset={cursorHistory.length * 20}
+        rowNumberOffset={pageOffset(cursorHistory.length)}
         rowKey={(item) => item.id}
         emptyTitle={filters.q ? 'Transaksi tidak ditemukan' : 'Antrean pembayaran kosong'}
         emptyDescription={
@@ -703,9 +704,9 @@ export function PurchaseReviewView({
 
       <Pagination
         currentPage={cursorHistory.length + 1}
-        totalPages={Math.ceil(currentTotal / 20) || 1}
+        totalPages={Math.ceil(currentTotal / ADMIN_PAGE_SIZE) || 1}
         totalItems={currentTotal}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
         totalLabel={

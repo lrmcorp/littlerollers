@@ -30,6 +30,12 @@ import { browserBookingClient, type BookingClient } from '@/api-clients/booking-
 
 type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
+/** Nama yang dikirim API bersama slot (tidak ada di tipe ter-generate). */
+type SlotNames = {
+  classType?: { name?: string | null } | null;
+  instructor?: { displayName?: string | null } | null;
+  branch?: { name?: string | null } | null;
+};
 
 const statuses = [
   'ALL',
@@ -159,14 +165,21 @@ export function ClassSlotView({
       setBusy(false);
     }
   };
-  const classTypeName = (id: string) =>
-    classTypes.find((item) => item.id === id)?.name ?? `Class ${id.slice(0, 8)}`;
-  const instructorName = (id?: string | null) =>
+  // API sudah menyertakan nama tipe kelas/instruktur/cabang pada slot; daftar lokal hanya cadangan.
+  const classTypeName = (id: string, slot?: ClassSlot) =>
+    (slot as SlotNames | undefined)?.classType?.name ??
+    classTypes.find((item) => item.id === id)?.name ??
+    'Tipe kelas';
+  const instructorName = (id?: string | null, slot?: ClassSlot) =>
     id
-      ? (instructors.find((item) => item.id === id)?.displayName ?? `Instruktur ${id.slice(0, 8)}`)
+      ? ((slot as SlotNames | undefined)?.instructor?.displayName ??
+        instructors.find((item) => item.id === id)?.displayName ??
+        'Instruktur belum dimuat')
       : 'Belum ditetapkan';
-  const branchName = (id: string) =>
-    branches.find((item) => item.id === id)?.name ?? `Cabang ${id.slice(0, 8)}`;
+  const branchName = (id: string, slot?: ClassSlot) =>
+    (slot as SlotNames | undefined)?.branch?.name ??
+    branches.find((item) => item.id === id)?.name ??
+    'Cabang';
   const visible = slots
     .filter((slot) => !classTypeFilter || slot.classTypeId === classTypeFilter)
     .filter((slot) => !instructorFilter || slot.instructorUserId === instructorFilter)
@@ -228,8 +241,8 @@ export function ClassSlotView({
         key={slot.id}
         onClick={() => openPanel({ kind: 'detail', slot })}
       >
-        <div className="flex items-center justify-between gap-1 text-xs font-bold text-dd-ink">
-          <span>
+        <div className="flex flex-col items-start gap-1 text-xs font-bold text-dd-ink">
+          <span className="whitespace-nowrap">
             {formatBranchTime(slot.startAt, slot.timezone)}–
             {formatBranchTime(slot.endAt, slot.timezone)}
           </span>
@@ -238,14 +251,14 @@ export function ClassSlotView({
           </StatusBadge>
         </div>
         <div className="font-semibold text-sm text-dd-forest leading-snug">
-          {classTypeName(slot.classTypeId)}
+          {classTypeName(slot.classTypeId, slot)}
         </div>
         <div className="text-xs text-dd-ink font-medium">
-          {instructorName(slot.instructorUserId)}
+          {instructorName(slot.instructorUserId, slot)}
         </div>
         {globalMode && (
           <div className="text-[11px] text-dd-muted">
-            {branchName(slot.branchId)}
+            {branchName(slot.branchId, slot)}
           </div>
         )}
         <div className="mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] text-dd-muted flex items-center justify-between">

@@ -21,6 +21,7 @@ import {
   StatCard,
 } from '../components/admin/admin-ui';
 import { SelectInput, TextInput } from '../components/forms';
+import { pageOffset } from '../lib/pagination';
 
 const statusLabel: Record<string, string> = {
   QUEUED: 'Menunggu',
@@ -178,7 +179,7 @@ export function OperationsView({
         />
       ) : (
         <DataTable
-          rowNumberOffset={jobCursorHistory.length * 20}
+          rowNumberOffset={pageOffset(jobCursorHistory.length)}
           items={items}
           rowKey={(job) => job.id}
           columns={[
@@ -453,7 +454,7 @@ export function OperationsView({
         />
       ) : emailPage ? (
         <DataTable
-          rowNumberOffset={emailCursorHistory.length * 20}
+          rowNumberOffset={pageOffset(emailCursorHistory.length)}
           items={emailPage.items}
           rowKey={(item) => item.id}
           columns={[

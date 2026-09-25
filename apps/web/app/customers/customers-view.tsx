@@ -1,14 +1,15 @@
 'use client';
 
-import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
-import { Pagination } from '../components/admin/admin-ui';
-import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { DataTable, Pagination } from '../components/admin/admin-ui';
+import { Feedback, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { customerClient, type CustomerSummary } from './customer-client';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
+import { statusLabel } from '../lib/status-labels';
 
 export const customerStatusLabels: Record<string, string> = {
   ACTIVE: 'Aktif',
@@ -204,73 +205,90 @@ export function CustomersView() {
           <option value="PENDING">Menunggu</option>
         </SelectInput>
       </div>
-      {loading && !items.length ? (
-        <Skeleton label="Memuat pelanggan" />
-      ) : (
-        <div className="overflow-x-auto rounded-dd-lg border border-dd-line bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-dd-surface-muted text-xs uppercase text-dd-muted">
-              <tr>
-                <th className="w-14 min-w-[3.5rem] p-4 text-center text-xs font-bold text-dd-muted uppercase tracking-wider">
-                  No.
-                </th>
-                <th className="p-4">Pelanggan</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Paket</th>
-                <th className="p-4">Aktivitas</th>
-                <th className="p-4">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} className="border-t border-dd-line">
-                  <td className="w-14 p-4 text-center font-mono text-xs text-dd-muted align-middle bg-dd-surface-muted/30">
-                    {history.length * 20 + index + 1}
-                  </td>
-                  <td className="p-4">
-                    <strong>{item.displayName}</strong>
-                    <div className="text-dd-muted">{item.email || item.phoneE164 || item.id}</div>
-                  </td>
-                  <td className="p-4">
-                    <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
-                      {customerStatusLabels[item.status] ?? item.status}
-                    </StatusBadge>
-                    <div className="mt-1 text-xs text-dd-muted">
-                      {verificationStatusLabels[item.verificationStatus] ?? item.verificationStatus}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    {item.activePackageCount} aktif · {item.purchasedSessions} sesi pembelian
-                  </td>
-                  <td className="p-4">
-                    {item._count?.purchases ?? 0} order · {item._count?.customerBookings ?? 0} booking
-                  </td>
-                  <td className="p-4">
-                    <Link
-                      className="font-semibold text-dd-forest hover:underline"
-                      href={`/customers/${item.id}`}
-                    >
-                      Buka profil
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-dd-muted">
-                    Tidak ada pelanggan yang cocok.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        items={items}
+        loading={loading && !items.length}
+        rowNumberOffset={pageOffset(history.length)}
+        rowKey={(item) => item.id}
+        emptyTitle="Tidak ada pelanggan yang cocok"
+        emptyDescription="Ubah kata kunci atau filter untuk melihat pelanggan lain."
+        columns={[
+          {
+            id: 'customer',
+            header: 'Pelanggan',
+            cell: (item) => (
+              <>
+                <strong>{item.displayName}</strong>
+                <div className="text-dd-muted">{item.email || item.phoneE164 || item.id}</div>
+              </>
+            ),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (item) => (
+              <>
+                <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
+                  {customerStatusLabels[item.status] ?? statusLabel(item.status)}
+                </StatusBadge>
+                <div className="mt-1 text-xs text-dd-muted">
+                  {verificationStatusLabels[item.verificationStatus] ??
+                    statusLabel(item.verificationStatus)}
+                </div>
+              </>
+            ),
+          },
+          {
+            id: 'packages',
+            header: 'Paket',
+            cell: (item) => `${item.activePackageCount} aktif · ${item.purchasedSessions} sesi pembelian`,
+          },
+          {
+            id: 'activity',
+            header: 'Aktivitas',
+            cell: (item) =>
+              `${item._count?.purchases ?? 0} order · ${item._count?.customerBookings ?? 0} booking`,
+          },
+          {
+            id: 'action',
+            header: <span className="sr-only">Tindakan</span>,
+            cell: (item) => (
+              <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
+                Lihat detail
+              </ButtonLink>
+            ),
+          },
+        ]}
+        mobileCard={(item) => (
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <strong className="block truncate">{item.displayName}</strong>
+                <span className="text-sm text-dd-muted">
+                  {item.email || item.phoneE164 || item.id}
+                </span>
+              </div>
+              <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
+                {customerStatusLabels[item.status] ?? statusLabel(item.status)}
+              </StatusBadge>
+            </div>
+            <p className="text-xs text-dd-muted">
+              {verificationStatusLabels[item.verificationStatus] ??
+                statusLabel(item.verificationStatus)}{' '}
+              · {item.activePackageCount} paket aktif · {item._count?.purchases ?? 0} order ·{' '}
+              {item._count?.customerBookings ?? 0} booking
+            </p>
+            <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
+              Lihat detail
+            </ButtonLink>
+          </div>
+        )}
+      />
       <Pagination
         currentPage={history.length + 1}
-        totalPages={Math.ceil(total / 20) || 1}
+        totalPages={Math.ceil(total / ADMIN_PAGE_SIZE) || 1}
         totalItems={total}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(nextCursor) && !loading}
         totalLabel={`${total.toLocaleString('id-ID')} pelanggan`}

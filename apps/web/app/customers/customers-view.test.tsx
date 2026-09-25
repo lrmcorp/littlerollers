@@ -52,4 +52,30 @@ describe('CustomersView create form', () => {
     expect(payload.reason).toBeUndefined();
     expect(options.stepUpToken).toBeUndefined();
   });
+
+  it('lists customers in the shared table with a consistent detail action', async () => {
+    (customerClient.list as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
+      items: [
+        {
+          id: 'c-1',
+          displayName: 'Amanda',
+          email: 'amanda@example.test',
+          phoneE164: '+62811',
+          status: 'PENDING_ACTIVATION',
+          verificationStatus: 'ACTION_REQUIRED',
+          activePackageCount: 2,
+          purchasedSessions: 20,
+          _count: { purchases: 3, customerBookings: 5 },
+        },
+      ],
+      summary: { total: 1 },
+      page: { hasMore: false, nextCursor: null },
+    });
+    render(<CustomersView />);
+    expect((await screen.findAllByText('Amanda'))[0]).toBeVisible();
+    const detail = screen.getAllByRole('link', { name: 'Lihat detail' })[0]!;
+    expect(detail).toHaveAttribute('href', '/customers/c-1');
+    expect(screen.queryByText('Buka profil')).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'No.' })).toBeVisible();
+  });
 });
