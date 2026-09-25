@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Building2, Plus, UserCheck } from 'lucide-react';
 import { DataTable, type DataTableColumn, Pagination, Badge } from '../components/admin/admin-ui';
 import { SearchInput, SearchSelect, TextInput } from '../components/forms';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { formatRupiah } from '../lib/formatters';
 import { useSessionContext } from '../session-context';
 import { instructorClient, type InstructorSummary } from './instructor-client';
@@ -55,7 +56,7 @@ export function InstructorsView() {
       setTotal(result.summary.total);
       setNext(result.page.nextCursor);
     } catch {
-      setError('Data instructor belum dapat dimuat.');
+      setError('Data instruktur belum dapat dimuat.');
     } finally {
       setLoading(false);
     }
@@ -181,11 +182,10 @@ export function InstructorsView() {
 
   return (
     <section className="space-y-6">
-      <PageHeader
-        eyebrow="Operasional tim"
+      <AdminPageHeader
         title="Manajemen Instruktur"
         description="Pendaftaran instruktur baru, penugasan cabang, ketersediaan, jadwal sesi kelas, check-in, dan kompensasi."
-        context={
+        actions={
           canManage && (
             <Button
               onClick={() => setCreateOpen(true)}
@@ -245,7 +245,7 @@ export function InstructorsView() {
             </div>
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-dd-muted">
               <span>
-                {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada assignment'}
+                {item.assignments.map((a) => a.branch.name).join(', ') || 'Belum ada penugasan'}
               </span>
               <span>·</span>
               <span>{item._count.instructedClassSlots} kelas</span>

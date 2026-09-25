@@ -17,6 +17,10 @@ import {
 export const controlClassName =
   'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-100';
 
+/** Chevron kustom agar `<select>` bawaan terlihat sama dengan `SearchSelect`. */
+const selectChevronClassName =
+  "cursor-pointer appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23667069%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-9";
+
 export function CheckboxInput({
   label,
   description,
@@ -217,7 +221,7 @@ export const SelectInput = forwardRef<
       aria-label={props['aria-label'] ?? label}
       required={required}
       aria-invalid={Boolean(error) || undefined}
-      className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${className}`}
+      className={`${controlClassName} ${selectChevronClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${className}`}
     >
       {children}
     </select>

@@ -70,7 +70,7 @@ export function PaymentAccountsView() {
       className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
       aria-labelledby="payment-account-title"
     >
-      <div className="page-header">
+      <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-dd-forest">
           Master pembayaran
         </p>
@@ -80,7 +80,7 @@ export function PaymentAccountsView() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-dd-muted">
           Satu rekening aktif per cabang. Nomor rekening selalu dimasking pada daftar dan audit.
         </p>
-        <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
+        <StatusBadge tone="success">Hak akses terverifikasi</StatusBadge>
       </div>
       {message && <Feedback kind="status">{message}</Feedback>}
       {error && <Feedback kind="error">{error}</Feedback>}
@@ -334,7 +334,7 @@ export function PaymentAccountsView() {
               await load();
             } catch {
               setError(
-                'Rekening gagal dibuat. Periksa data, permission, dan rekening aktif cabang.',
+                'Rekening gagal dibuat. Periksa data, hak akses, dan rekening aktif cabang.',
               );
               setLoading(false);
             }

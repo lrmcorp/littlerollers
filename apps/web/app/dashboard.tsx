@@ -73,7 +73,7 @@ const roleCopy = {
   BRANCH_OPERATIONS: {
     eyebrow: 'Pusat Operasional Cabang',
     title: 'Operasional cabang hari ini',
-    description: 'Prioritaskan kelas, booking, customer, dan antrean keputusan untuk cabang aktif.',
+    description: 'Prioritaskan kelas, booking, pelanggan, dan antrean keputusan untuk cabang aktif.',
   },
   FINANCE: {
     eyebrow: 'Ikhtisar Keuangan',
@@ -82,7 +82,7 @@ const roleCopy = {
   },
   OPERATIONS: {
     eyebrow: 'Kontrol Operasional',
-    title: 'Kesehatan operasional dan recovery',
+    title: 'Kesehatan operasional dan pemulihan',
     description:
       'Identifikasi job bermasalah, retry, dan kondisi sistem yang membutuhkan perhatian.',
   },
@@ -275,7 +275,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
             }
           >
-            Refresh
+            Segarkan
           </Button>
         </div>
       </header>
@@ -288,7 +288,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         !session.roles.includes('OPS') && (
           <Feedback kind="warning">
             Pilih cabang aktif di bagian atas sebelum membuka atau menjalankan pekerjaan yang
-            memiliki scope cabang.
+            memiliki cakupan cabang.
           </Feedback>
         )}
       {failure && (
@@ -694,7 +694,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               Job health
             </span>
             <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
-              Aktivitas recovery terbaru
+              Aktivitas pemulihan terbaru
             </h2>
           </div>
           {overview.jobs.length ? (
@@ -726,7 +726,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               ))}
             </div>
           ) : (
-            <p className="p-8 text-center text-sm text-dd-muted">Belum ada job pada scope ini.</p>
+            <p className="p-8 text-center text-sm text-dd-muted">Belum ada job pada cakupan ini.</p>
           )}
         </Panel>
       )}

@@ -263,7 +263,7 @@ describe('identity UI', () => {
       expect(listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ audience: 'STAFF' })),
     );
     expect(screen.queryByRole('tab', { name: 'Customer' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Customer dikelola melalui Customer Management/)).toBeVisible();
+    expect(screen.getByText(/Pelanggan dikelola lewat Data Pelanggan/)).toBeVisible();
   });
 
   it('shows customer identity metadata without loading images on the user detail page', async () => {
@@ -363,7 +363,7 @@ describe('identity UI', () => {
     expect(view.container.querySelector('img')).toBeNull();
     expect(await screen.findByRole('heading', { name: 'Paket & Sesi' })).toBeVisible();
     expect(screen.getByText('7')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lihat detail sesi' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Lihat detail' })).toHaveAttribute(
       'href',
       '/ledger/customer-package-1',
     );
@@ -437,19 +437,19 @@ describe('identity UI', () => {
         />
       </AppFeedbackProvider>,
     );
-    expect(await screen.findByRole('heading', { name: 'Role & Hak Akses' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Peran & Hak Akses' })).toBeVisible();
     expect(await screen.findByText('Manager cabang.')).toBeVisible();
     expect(screen.getByRole('link', { name: /Daftar pengguna/ })).toHaveAttribute('href', '/users');
-    expect(screen.getByRole('tab', { name: /Role & Capability/ })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /Role & Izin/ })).toHaveAttribute(
       'aria-selected',
       'true',
     );
     expect(screen.queryAllByRole('checkbox', { name: /user:read/ })).toHaveLength(0);
-    await userEvent.type(screen.getByLabelText('Cari capability'), 'user');
+    await userEvent.type(screen.getByLabelText('Cari izin'), 'user');
     expect(screen.getByText('user:read')).toBeVisible();
     expect(screen.queryByText('ledger:adjust:decide')).not.toBeInTheDocument();
-    await userEvent.clear(screen.getByLabelText('Cari capability'));
-    await userEvent.type(screen.getByLabelText('Cari capability'), 'tidak-ada');
+    await userEvent.clear(screen.getByLabelText('Cari izin'));
+    await userEvent.type(screen.getByLabelText('Cari izin'), 'tidak-ada');
     expect(screen.queryByText('user:read')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: /Akses Pengguna/ }));
     expect(screen.getByRole('tab', { name: /Akses Pengguna/ })).toHaveAttribute(
@@ -483,8 +483,8 @@ describe('identity UI', () => {
     });
     const view = render(<AuditView client={fake} />);
     await userEvent.type(screen.getByLabelText('Tindakan'), 'security.user');
-    await userEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
-    expect((await screen.findAllByText('Role dan scope pengguna diubah'))[0]).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Terapkan' }));
+    expect((await screen.findAllByText('Role dan cakupan pengguna diubah'))[0]).toBeVisible();
     expect(fake.listAuditLogs).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'security.user' }),
     );
@@ -583,7 +583,7 @@ describe('assignment UI', () => {
         access={{ canRead: true, canManage: true }}
       />,
     );
-    expect(await screen.findByText(/Belum ada assignment/)).toBeInTheDocument();
+    expect(await screen.findByText(/Belum ada penugasan/)).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
     expect(screen.getByText(/Semua cabang yang diizinkan/)).toBeInTheDocument();
   });
@@ -619,18 +619,18 @@ describe('assignment UI', () => {
       />,
     );
     await screen.findAllByText('Instructor Satu');
-    await userEvent.click(screen.getByRole('button', { name: 'Buat assignment' }));
-    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat assignment' });
+    await userEvent.click(screen.getByRole('button', { name: 'Buat penugasan' }));
+    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat penugasan' });
     expect(assignmentDialog).toBeVisible();
     const assignmentForm = within(assignmentDialog);
     await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
     await userEvent.click(await assignmentForm.findByRole('option', { name: /Instructor Satu/ }));
     await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
     await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'assignment baru');
-    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
+    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat penugasan' }));
     expect(fake.create).toHaveBeenCalled();
     await userEvent.click(await screen.findByRole('button', { name: 'Akhiri' }));
-    const endDialog = await screen.findByRole('dialog', { name: 'Akhiri assignment' });
+    const endDialog = await screen.findByRole('dialog', { name: 'Akhiri penugasan' });
     const endForm = within(endDialog);
     fireEvent.change(endForm.getByLabelText(/Efektif berakhir/), {
       target: { value: '2026-08-10T00:00' },
@@ -638,7 +638,7 @@ describe('assignment UI', () => {
     fireEvent.change(endForm.getByLabelText(/Alasan/), {
       target: { value: 'periode selesai' },
     });
-    await userEvent.click(endForm.getByRole('button', { name: 'Akhiri assignment' }));
+    await userEvent.click(endForm.getByRole('button', { name: 'Akhiri penugasan' }));
     await waitFor(() =>
       expect(fake.end).toHaveBeenCalledWith(
         'assignment-1',
@@ -666,14 +666,14 @@ describe('assignment UI', () => {
         })}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Buat assignment' }));
-    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat assignment' });
+    await userEvent.click(screen.getByRole('button', { name: 'Buat penugasan' }));
+    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat penugasan' });
     const assignmentForm = within(assignmentDialog);
     await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Ins');
     await userEvent.click(await assignmentForm.findByRole('option', { name: /Instructor Satu/ }));
     await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
     await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'test failure');
-    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat assignment' }));
+    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat penugasan' }));
     expect(
       await screen.findByText(
         new RegExp(

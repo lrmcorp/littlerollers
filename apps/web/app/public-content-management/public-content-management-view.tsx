@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchSelect } from '../components/forms';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import type { HeroCarouselPayload, HeroSlideItem } from '@/api-clients/account-client';
 
@@ -328,13 +329,12 @@ export function PublicContentManagementView() {
 
   return (
     <main className="space-y-6" aria-labelledby="content-mgmt-title">
-      <div className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <PageHeader
-          eyebrow="Administrasi Situs"
+      <div className="space-y-4">
+        <AdminPageHeader
           title="Manajemen Konten Publik"
           description="Kelola banner carousel beranda, unggah gambar promosi, FAQ, dan informasi publik Daily Dose Pilates."
           titleId="content-mgmt-title"
-          context={
+          actions={
             <ButtonLink href="/" target="_blank" variant="secondary" className="inline-flex items-center gap-1.5">
               <span>Lihat Halaman Utama</span>
               <ExternalLink className="size-3.5" />
@@ -343,7 +343,7 @@ export function PublicContentManagementView() {
         />
 
         {/* Tab Switcher */}
-        <div className="mt-6 flex flex-wrap gap-2 border-b border-dd-line/70 pb-3">
+        <div className="flex flex-wrap gap-2 border-b border-dd-line/70 pb-3">
           <button
             type="button"
             onClick={() => setActiveTab('slider')}
@@ -866,7 +866,7 @@ export function PublicContentManagementView() {
               <option>BRANCH_CONTENT</option>
             </select>
             <SearchSelect
-              label="Scope Studio/Cabang"
+              label="Cakupan Studio/Cabang"
               name="branchId"
               placeholder="Global"
               options={(session?.branches ?? []).map((branch) => ({

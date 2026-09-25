@@ -14,7 +14,8 @@ import {
   type BranchManagementItem,
   type BranchManagementPage,
 } from '@/api-clients/branch-client';
-import { PageHeader, Skeleton } from '../ui';
+import { Skeleton } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 
 const emptyPage: BranchManagementPage = {
   items: [],
@@ -113,12 +114,11 @@ export function BranchesView() {
 
   return (
     <section className="grid gap-5" aria-labelledby="branches-title">
-      <PageHeader
-        eyebrow="Master operasional"
+      <AdminPageHeader
         title="Manajemen Cabang"
         titleId="branches-title"
         description="Kelola identitas studio, status operasional, dan dependency setiap cabang."
-        context={
+        actions={
           canManage ? (
             <Button
               leadingIcon={<Plus className="size-4" aria-hidden="true" />}

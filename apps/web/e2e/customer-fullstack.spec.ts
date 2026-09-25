@@ -21,7 +21,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
 
   const openVerificationCase = async (page: Page, customerName: string) => {
     await page.goto('/identity-verifications?status=PENDING');
-    await page.getByLabel('Cari customer atau ID').fill(customerName);
+    await page.getByLabel('Cari pelanggan atau ID').fill(customerName);
     const customerRow = page.getByRole('row', { name: new RegExp(customerName) });
     await expect(customerRow).toBeVisible({ timeout: 20_000 });
     await customerRow.getByRole('button', { name: 'Periksa' }).click();

@@ -181,7 +181,7 @@ export function DocumentReviewCard({
           Dokumen belum diunggah
         </strong>
         <p className="mt-1 max-w-xs text-xs text-dd-muted">
-          Customer belum mengunggah dokumen aktif untuk bagian ini.
+          Pelanggan belum mengunggah dokumen aktif untuk bagian ini.
         </p>
       </div>
     );
@@ -447,7 +447,7 @@ export function DecisionDialog({
         )}
         <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning">
           <AlertTriangle className="mr-2 inline size-4" />
-          Keputusan dicatat dalam audit dan memberitahu customer.
+          Keputusan dicatat dalam audit dan memberitahu pelanggan.
         </div>
       </form>
     </Modal>

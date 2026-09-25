@@ -52,8 +52,8 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/workspace/bookings',
-    label: 'Jadwal & Presensi',
-    shortLabel: 'Jadwal',
+    label: 'Manajemen Booking',
+    shortLabel: 'Booking',
     description: 'Booking bantuan, antrean perubahan jadwal, QR, dan kehadiran pelanggan.',
     group: 'Operasional Studio',
     capabilities: ['booking:read', 'reschedule:read'],
@@ -67,9 +67,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/check-in-scanner',
-    label: 'Scan check-in',
+    label: 'Scan QR check-in',
     shortLabel: 'Scan QR',
-    description: 'Scan QR pass customer dan catat attendance pada jadwal aktif.',
+    description: 'Scan QR pass pelanggan dan catat attendance pada jadwal aktif.',
     group: 'Operasional Studio',
     capabilities: ['attendance:manage'],
     priority: 4,
@@ -90,7 +90,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/workspace/reminders',
-    label: 'Pengingat WhatsApp & Otomasi',
+    label: 'Otomasi & Log Pengingat WhatsApp',
     shortLabel: 'Otomasi WA',
     description: 'Monitoring sistem auto-cancel kelas H-24 dan antrean notifikasi WhatsApp berjenjang.',
     group: 'Operasional Studio',
@@ -109,7 +109,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/customers',
     label: 'Data Pelanggan',
     shortLabel: 'Pelanggan',
-    description: 'Profil customer terpadu, keamanan akun, order, paket, booking, dan timeline.',
+    description: 'Profil pelanggan terpadu, keamanan akun, order, paket, booking, dan timeline.',
     group: 'Member & Pelanggan',
     capabilities: ['customer:read'],
     mutationCapabilities: [
@@ -124,9 +124,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/ledger',
-    label: 'Sesi Customer',
-    shortLabel: 'Sesi Customer',
-    description: 'Saldo paket, sesi tertahan, tersedia, dan histori pemakaian customer.',
+    label: 'Sesi Pelanggan',
+    shortLabel: 'Sesi Pelanggan',
+    description: 'Saldo paket, sesi tertahan, tersedia, dan histori pemakaian pelanggan.',
     group: 'Member & Pelanggan',
     capabilities: ['ledger:read'],
     priority: 11,
@@ -134,9 +134,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/identity-verifications',
-    label: 'Verifikasi customer',
+    label: 'Verifikasi pelanggan',
     shortLabel: 'Verifikasi ID',
-    description: 'Review selfie dan KTP customer berdasarkan permission reviewer.',
+    description: 'Review selfie dan KTP pelanggan berdasarkan hak akses reviewer.',
     group: 'Member & Pelanggan',
     capabilities: ['identity-verification:read'],
     mutationCapabilities: ['identity-verification:decide'],
@@ -165,7 +165,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   // ==========================================
   {
     href: '/workspace/payments',
-    label: 'Pembayaran',
+    label: 'Antrean Pembayaran',
     shortLabel: 'Pembayaran',
     description: 'Antrean pemeriksaan bukti transfer dan keputusan pembayaran.',
     group: 'Penjualan & Keuangan',
@@ -193,7 +193,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/workspace/vouchers',
-    label: 'Voucher',
+    label: 'Voucher & promo',
     shortLabel: 'Voucher',
     description: 'Kelola kode voucher, periode aktif, cakupan paket, dan penggunaannya.',
     group: 'Penjualan & Keuangan',
@@ -206,7 +206,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/finance',
-    label: 'Keuangan & Rekonsiliasi',
+    label: 'Keuangan & Tutup Buku',
     shortLabel: 'Keuangan',
     description: 'Rekonsiliasi transaksi, perbandingan cabang, anomali ledger, dan export.',
     group: 'Penjualan & Keuangan',
@@ -236,7 +236,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   // ==========================================
   {
     href: '/workspace/branches',
-    label: 'Studio/Cabang',
+    label: 'Manajemen Cabang',
     shortLabel: 'Studio/Cabang',
     description: 'Kelola profil, rekening, jam buka, Area Studio, dan Ruangan.',
     group: 'Pengaturan & Sistem',
@@ -262,7 +262,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/users',
     label: 'Pengguna internal',
     shortLabel: 'Staf',
-    description: 'Buat, atur role, dan nonaktifkan staf sesuai scope cabang.',
+    description: 'Buat, atur role, dan nonaktifkan staf sesuai cakupan cabang.',
     group: 'Pengaturan & Sistem',
     capabilities: ['user:read'],
     mutationCapabilities: ['user:admin'],
@@ -284,9 +284,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/assignments',
-    label: 'Assignment',
-    shortLabel: 'Assignment',
-    description: 'Periode penugasan Owner dan Instructor per cabang.',
+    label: 'Penugasan',
+    shortLabel: 'Penugasan',
+    description: 'Periode penugasan Owner dan Instruktur per cabang.',
     group: 'Pengaturan & Sistem',
     capabilities: ['assignment:read'],
     mutationCapabilities: ['assignment:manage'],
@@ -296,9 +296,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/master',
-    label: 'Master data',
-    shortLabel: 'Master',
-    description: 'Katalog tipe kelas global, scope, fee, projection rate, quota, dan capacity.',
+    label: 'Data Master',
+    shortLabel: 'Data Master',
+    description: 'Katalog tipe kelas global, cakupan, fee, projection rate, quota, dan capacity.',
     group: 'Pengaturan & Sistem',
     capabilities: ['master:read'],
     mutationCapabilities: ['master:manage'],
@@ -338,7 +338,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/audit',
     label: 'Audit akses',
     shortLabel: 'Audit Akses',
-    description: 'Riwayat perubahan pengguna, role, assignment, dan sesi yang sudah dimasking.',
+    description: 'Riwayat perubahan pengguna, role, penugasan, dan sesi yang sudah dimasking.',
     group: 'Pengaturan & Sistem',
     capabilities: ['audit:read'],
     priority: 38,
@@ -349,7 +349,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/notification-management',
     label: 'Manajemen Notifikasi',
     shortLabel: 'Notifikasi',
-    description: 'Template, event mapping, delivery, retry, dan dead-letter.',
+    description: 'Template, event mapping, delivery, retry, dan antrean gagal.',
     group: 'Pengaturan & Sistem',
     capabilities: ['notification:manage'],
     priority: 39,
@@ -359,7 +359,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/public-content-management',
-    label: 'Konten Publik',
+    label: 'Manajemen Konten Publik',
     shortLabel: 'Konten',
     description: 'Draft, preview, publish, archive, dan versi konten situs.',
     group: 'Pengaturan & Sistem',
@@ -372,9 +372,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/operations',
-    label: 'Operations H-24',
-    shortLabel: 'Operations',
-    description: 'Monitor quota evaluation job dan lakukan recovery yang berizin.',
+    label: 'Evaluasi kuota H-24',
+    shortLabel: 'Kuota H-24',
+    description: 'Monitor quota evaluation job dan lakukan pemulihan yang berizin.',
     group: 'Pengaturan & Sistem',
     capabilities: ['operations:read'],
     mutationCapabilities: ['operations:recover'],
@@ -387,7 +387,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   {
     href: '/health',
     label: 'Status sistem',
-    shortLabel: 'Health',
+    shortLabel: 'Status sistem',
     description: 'Kesiapan API dan dependency tanpa mengekspos detail koneksi.',
     group: 'Pengaturan & Sistem',
     capabilities: ['operations:read'],
@@ -401,9 +401,9 @@ export const frontendPages: FrontendPageDefinition[] = [
   // ==========================================
   {
     href: '/account',
-    label: 'Dashboard customer',
+    label: 'Dashboard pelanggan',
     shortLabel: 'Dashboard Saya',
-    description: 'Status verifikasi, jadwal, paket, dan booking customer.',
+    description: 'Status verifikasi, jadwal, paket, dan booking pelanggan.',
     group: 'Operasional Studio',
     capabilities: ['customer:self'],
     priority: 0,
@@ -427,6 +427,17 @@ export const frontendPageGroups: FrontendPageGroup[] = [
   'Penjualan & Keuangan',
   'Pengaturan & Sistem',
 ];
+
+/** Halaman registry yang paling spesifik untuk sebuah path (detail `/x/[id]` memakai halaman `/x`). */
+export function pageForPath(pathname: string): FrontendPageDefinition | undefined {
+  return [...frontendPages]
+    .sort((left, right) => right.href.length - left.href.length)
+    .find(
+      (page) =>
+        pathname === page.href ||
+        (page.href !== '/workspace' && pathname.startsWith(`${page.href}/`)),
+    );
+}
 
 export function canReadPage(capabilities: string[], page: FrontendPageDefinition) {
   return (

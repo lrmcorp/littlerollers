@@ -3,7 +3,9 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '../components/actions';
 import { SelectInput, Textarea, TextInput } from '../components/forms';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
+import { statusLabel } from '../lib/status-labels';
 async function api(path: string, init?: RequestInit) {
   const response = await fetch(`/api/v1${path}`, {
     credentials: 'include',
@@ -76,10 +78,9 @@ export function NotificationManagementView() {
     );
   return (
     <section className="space-y-6">
-      <PageHeader
-        eyebrow="Komunikasi"
+      <AdminPageHeader
         title="Manajemen Notifikasi"
-        description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. Pengingat WhatsApp berjalan terpisah lewat Otomasi WA."
+        description="Kelola template notifikasi in-app dan email, pemicu, status pengiriman, percobaan ulang, serta antrean gagal. Pengingat WhatsApp berjalan terpisah lewat Otomasi WA."
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       <Feedback kind="info">
@@ -95,30 +96,30 @@ export function NotificationManagementView() {
         className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
       >
         <TextInput
-          label="Template Key"
+          label="Kunci template"
           required
           name="templateKey"
           placeholder="Contoh: BOOKING_CONFIRMED"
         />
-        <SelectInput label="Channel" name="channel">
+        <SelectInput label="Kanal" name="channel">
           <option value="IN_APP">In-app</option>
           <option value="EMAIL">Email</option>
         </SelectInput>
         <TextInput
-          label="Event Mapping"
+          label="Pemicu (event)"
           required
           name="eventType"
           placeholder="Contoh: booking.created"
         />
         <TextInput
-          label="Audience Role"
+          label="Peran penerima"
           name="audience"
-          placeholder="Audience role, dipisahkan koma"
+          placeholder="Peran penerima, dipisahkan koma"
         />
         <TextInput
-          label="Subject Email"
+          label="Subjek email"
           name="subject"
-          placeholder="Subject email (opsional jika email)"
+          placeholder="Subjek email (opsional untuk in-app)"
         />
         <TextInput
           label="Judul Notifikasi"
@@ -142,6 +143,14 @@ export function NotificationManagementView() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="rounded-dd-lg border border-dd-line bg-white p-5">
           <h2 className="font-semibold">Template</h2>
+          {!data.templates.length && (
+            <div className="mt-3">
+              <EmptyState
+                title="Belum ada template"
+                description="Simpan draf pertama lewat formulir di atas, lalu terbitkan."
+              />
+            </div>
+          )}
           <ul className="mt-3 divide-y divide-dd-line">
             {data.templates.map((item: any) => (
               <li key={item.id} className="py-3 text-sm">
@@ -150,7 +159,7 @@ export function NotificationManagementView() {
                     {item.templateKey} v{item.version}
                   </strong>
                   <StatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>
-                    {item.status}
+                    {statusLabel(item.status)}
                   </StatusBadge>
                 </div>
                 <div className="text-dd-muted">
@@ -163,7 +172,7 @@ export function NotificationManagementView() {
                       disabled={busy}
                       onClick={() => void transition(item.id, 'PUBLISHED')}
                     >
-                      Publish
+                      Terbitkan
                     </Button>
                   )}
                   {item.status !== 'ARCHIVED' && (
@@ -173,7 +182,7 @@ export function NotificationManagementView() {
                       disabled={busy}
                       onClick={() => void transition(item.id, 'ARCHIVED')}
                     >
-                      Archive
+                      Arsipkan
                     </Button>
                   )}
                 </div>
@@ -183,22 +192,30 @@ export function NotificationManagementView() {
         </div>
         <div className="rounded-dd-lg border border-dd-line bg-white p-5">
           <h2 className="font-semibold">Pengiriman terbaru</h2>
+          {!data.deliveries.length && (
+            <div className="mt-3">
+              <EmptyState
+                title="Belum ada pengiriman"
+                description="Pengiriman notifikasi akan tercatat di sini setelah template diterbitkan dan dipicu."
+              />
+            </div>
+          )}
           <ul className="mt-3 divide-y divide-dd-line">
             {data.deliveries.map((item: any) => (
               <li key={item.id} className="py-3 text-sm">
                 <strong>{item.eventType}</strong>
                 <div className="text-dd-muted">
-                  {item.recipientMasked} · {item.status} · percobaan {item.attemptCount}
+                  {item.recipientMasked} · {statusLabel(item.status)} · percobaan {item.attemptCount}
                 </div>
               </li>
             ))}
           </ul>
-          <a
+          <Link
             href="/operations"
             className="mt-4 inline-block font-semibold text-dd-forest hover:underline"
           >
-            Buka retry dan dead-letter di Operations
-          </a>
+            Buka percobaan ulang dan antrean gagal di Operations
+          </Link>
         </div>
       </div>
     </section>

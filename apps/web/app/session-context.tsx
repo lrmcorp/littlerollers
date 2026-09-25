@@ -314,11 +314,11 @@ export function SessionProvider({
   return (
     <SessionContext.Provider value={value}>
       {!publicRoute && status === 'loading' ? (
-        <main className="content session-state">
+        <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
           <Skeleton label="Memuat sesi" />
         </main>
       ) : !publicRoute && status === 'dependency-error' ? (
-        <main className="content session-state space-y-4">
+        <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-10 sm:px-6">
           <Feedback kind="error">Konteks sesi tidak dapat dimuat.</Feedback>
           <ActionGroup>
             <Button onClick={() => void refresh()}>Coba lagi</Button>
@@ -328,7 +328,7 @@ export function SessionProvider({
           </ActionGroup>
         </main>
       ) : !publicRoute && status === 'authenticated' && !allowed ? (
-        <main className="content session-state space-y-4">
+        <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-10 sm:px-6">
           <Feedback kind={staffVerificationRedirect ? 'info' : 'error'}>
             {staffVerificationRedirect
               ? 'Halaman verifikasi akun hanya untuk customer. Anda sedang diarahkan ke antrean reviewer.'
@@ -341,7 +341,7 @@ export function SessionProvider({
           </ActionGroup>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
-        <main className="content session-state">
+        <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
           <Skeleton label="Mengarahkan ke halaman masuk" />
         </main>
       ) : (

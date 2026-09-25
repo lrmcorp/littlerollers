@@ -5,7 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../../components/actions';
 import { SelectInput, Textarea, TextInput } from '../../components/forms';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { supportPriorityLabel, supportStatusLabel } from '../support-labels';
 type CaseDetail = {
   id: string;
@@ -44,7 +45,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
     () =>
       request(`/support-cases/${encodeURIComponent(id)}`)
         .then(setItem)
-        .catch(() => setError('Support case tidak tersedia atau berada di luar scope Anda.')),
+        .catch(() => setError('Kasus bantuan tidak tersedia atau berada di luar cakupan Anda.')),
     [id],
   );
   useEffect(() => void load(), [load]);
@@ -68,7 +69,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           expectedVersion: item.version,
         }),
       });
-      setSuccess('Support case diperbarui.');
+      setSuccess('Kasus bantuan diperbarui.');
       await load();
     } catch {
       setError('Perubahan belum dapat disimpan. Muat ulang bila data telah berubah.');
@@ -88,7 +89,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
         body: JSON.stringify({ body: data.get('body') }),
       });
       form.reset();
-      setSuccess('Catatan internal ditambahkan dan tidak terlihat oleh customer.');
+      setSuccess('Catatan internal ditambahkan dan tidak terlihat oleh pelanggan.');
       await load();
     } catch {
       setError('Catatan internal belum dapat ditambahkan.');
@@ -100,31 +101,31 @@ export function SupportCaseDetailView({ id }: { id: string }) {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
     ) : (
-      <Skeleton label="Memuat support case" />
+      <Skeleton label="Memuat kasus bantuan" />
     );
   return (
     <section className="space-y-6">
-      <Link href="/support-cases" className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline">
+      <Link
+        href="/support-cases"
+        className="inline-flex items-center gap-1.5 font-semibold text-dd-forest hover:underline"
+      >
         <ArrowLeft className="size-4" />
-        <span>Kembali ke Customer Support</span>
+        <span>Kembali ke Bantuan Pelanggan</span>
       </Link>
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
-        <PageHeader
-          eyebrow="Customer Support"
-          title={item.subject}
-          description={`${item.customer.displayName} · ${item.branch?.name ?? 'Tanpa Studio/Cabang'}`}
-          context={
-            <>
-              <StatusBadge tone={item.priority === 'URGENT' ? 'danger' : 'neutral'}>
-                {supportPriorityLabel(item.priority)}
-              </StatusBadge>
-              <StatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
-                {supportStatusLabel(item.status)}
-              </StatusBadge>
-            </>
-          }
-        />
-      </div>
+      <AdminPageHeader
+        title={item.subject}
+        description={`${item.customer.displayName} · ${item.branch?.name ?? 'Tanpa Studio/Cabang'}`}
+        actions={
+          <>
+            <StatusBadge tone={item.priority === 'URGENT' ? 'danger' : 'neutral'}>
+              {supportPriorityLabel(item.priority)}
+            </StatusBadge>
+            <StatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
+              {supportStatusLabel(item.status)}
+            </StatusBadge>
+          </>
+        }
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       {success && <Feedback kind="status">{success}</Feedback>}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -132,7 +133,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           onSubmit={update}
           className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-5"
         >
-          <h2 className="font-semibold text-dd-ink">Status dan assignment</h2>
+          <h2 className="font-semibold text-dd-ink">Status dan penugasan</h2>
           <SelectInput label="Status Case" name="status" defaultValue={item.status}>
             {['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'RESOLVED', 'CLOSED'].map((x) => (
               <option key={x} value={x}>
@@ -163,7 +164,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
             Simpan perubahan
           </Button>
           <p className="text-xs text-dd-muted">
-            Perubahan transaksi dan saldo tidak tersedia dari support case.
+            Perubahan transaksi dan saldo tidak tersedia dari kasus bantuan.
           </p>
         </form>
         <form

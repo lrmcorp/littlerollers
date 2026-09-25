@@ -156,8 +156,8 @@ export function RoleDialog({
   return (
     <Modal
       open={open}
-      title="Kelola role dan scope"
-      description="Role dari Assignment tidak diubah dari dialog ini."
+      title="Kelola role dan cakupan"
+      description="Role dari Penugasan tidak diubah dari dialog ini."
       busy={submitting}
       dirty={guard.dirty}
       onDirtyClose={guard.confirmDiscard}

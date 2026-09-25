@@ -23,7 +23,8 @@ import { ActionGroup, Button } from '../../components/actions';
 import { PreviewModal } from '../../components/app-feedback';
 import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { customerStatusLabels, verificationStatusLabels } from '../customers-view';
 import { customerClient, type CustomerDetail, type CustomerDetailDocument } from '../customer-client';
 import { verificationClient } from '../../api-clients/identity-verification-client';
@@ -140,7 +141,7 @@ export function CustomerDetailView({ id }: { id: string }) {
       setCustomer(await customerClient.detail(id));
       setError('');
     } catch {
-      setError('Profil customer tidak tersedia atau berada di luar hak akses Anda.');
+      setError('Profil pelanggan tidak tersedia atau berada di luar hak akses Anda.');
     }
   }, [id]);
 
@@ -167,7 +168,7 @@ export function CustomerDetailView({ id }: { id: string }) {
         },
         { stepUpToken: String(data.get('stepUpToken') || ''), idempotencyKey: crypto.randomUUID() },
       );
-      setSuccess('Profil customer berhasil diperbarui dan tercatat pada audit.');
+      setSuccess('Profil pelanggan berhasil diperbarui dan tercatat pada audit.');
       await load();
     } catch {
       setError(
@@ -195,8 +196,8 @@ export function CustomerDetailView({ id }: { id: string }) {
       );
       setSuccess(
         action === 'deactivate'
-          ? 'Akun customer dinonaktifkan.'
-          : 'Akun customer diaktifkan kembali.',
+          ? 'Akun pelanggan dinonaktifkan.'
+          : 'Akun pelanggan diaktifkan kembali.',
       );
       await load();
     } catch {
@@ -216,14 +217,14 @@ export function CustomerDetailView({ id }: { id: string }) {
     try {
       if (customer.stoppedAt) {
         await customerClient.unmarkStopped(id);
-        setSuccess('Customer berhasil diaktifkan kembali dan dimasukkan ke antrean reminder.');
+        setSuccess('Pelanggan berhasil diaktifkan kembali dan dimasukkan ke antrean reminder.');
       } else {
         await customerClient.markStopped(id, 'Ditandai berhenti oleh Manager');
-        setSuccess('Customer ditandai berhenti. Reminder otomatis WhatsApp telah dinonaktifkan.');
+        setSuccess('Pelanggan ditandai berhenti. Reminder otomatis WhatsApp telah dinonaktifkan.');
       }
       await load();
     } catch {
-      setError('Gagal mengubah status berhenti customer. Periksa hak akses Anda.');
+      setError('Gagal mengubah status berhenti pelanggan. Periksa hak akses Anda.');
     } finally {
       setBusy(false);
     }
@@ -233,7 +234,7 @@ export function CustomerDetailView({ id }: { id: string }) {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
     ) : (
-      <Skeleton label="Memuat profil customer" />
+      <Skeleton label="Memuat profil pelanggan" />
     );
 
   const ktpDoc = customer.identityDocuments.find((d) => d.kind === 'KTP_FRONT');
@@ -274,16 +275,14 @@ export function CustomerDetailView({ id }: { id: string }) {
         href="/customers"
       >
         <ArrowLeft className="size-4" />
-        <span>Kembali ke Manajemen Customer</span>
+        <span>Kembali ke Data Pelanggan</span>
       </Link>
 
       {/* Profile Header Banner */}
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs">
-        <PageHeader
-          eyebrow="Customer / Profil Terpadu"
+      <AdminPageHeader
           title={customer.displayName}
           description={`${customer.email ?? 'Email belum tersedia'} · ${customer.phoneE164 ?? 'Telepon belum tersedia'}`}
-          context={
+          badges={
             <>
               <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
                 {customerStatusLabels[customer.status] ?? customer.status}
@@ -295,25 +294,26 @@ export function CustomerDetailView({ id }: { id: string }) {
               </StatusBadge>
               {customer.stoppedAt && (
                 <StatusBadge tone="danger">
-                  Berhenti (Reminder Nonaktif)
+                  Berhenti (pengingat nonaktif)
                 </StatusBadge>
+              )}
+              {customer.preferredBranch && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-dd-muted">
+                  <MapPin className="size-3.5 text-dd-forest" aria-hidden="true" />
+                  Cabang pilihan:{' '}
+                  <strong className="text-dd-ink">{customer.preferredBranch.name}</strong> (
+                  {customer.preferredBranch.code})
+                </span>
               )}
             </>
           }
         />
-        {customer.preferredBranch && (
-          <div className="mt-4 flex items-center gap-2 text-xs text-dd-muted border-t border-dd-line/50 pt-3">
-            <MapPin className="size-3.5 text-dd-forest" />
-            <span>Cabang Pilihan: <strong className="text-dd-ink">{customer.preferredBranch.name}</strong> ({customer.preferredBranch.code})</span>
-          </div>
-        )}
-      </div>
 
       {error && <Feedback kind="error">{error}</Feedback>}
       {success && <Feedback kind="status">{success}</Feedback>}
       {customer.passwordCredential?.mustChangePassword && (
         <Feedback kind="warning">
-          Customer wajib mengganti password awal sebelum mengakses transaksi bisnis.
+          Pelanggan wajib mengganti password awal sebelum mengakses transaksi bisnis.
         </Feedback>
       )}
 
@@ -342,7 +342,7 @@ export function CustomerDetailView({ id }: { id: string }) {
               Dokumen Verifikasi Identitas (KYC)
             </h2>
             <p className="mt-0.5 text-xs text-dd-muted">
-              Dokumen KTP dan foto selfie terenkripsi yang diunggah customer saat registrasi atau pembaruan profil.
+              Dokumen KTP dan foto selfie terenkripsi yang diunggah pelanggan saat registrasi atau pembaruan profil.
             </p>
           </div>
           <StatusBadge tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}>
@@ -358,7 +358,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             onZoom={(title, src) => setZoomImage({ title, src })}
           />
           <CustomerDocumentCard
-            title="Foto Selfie Customer"
+            title="Foto Selfie Pelanggan"
             kind="SELFIE"
             doc={selfieDoc}
             onZoom={(title, src) => setZoomImage({ title, src })}
@@ -474,7 +474,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           <div className="p-6">
             {customer.customerPackages.length === 0 ? (
               <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Customer belum memiliki paket aktif saat ini.
+                Pelanggan belum memiliki paket aktif saat ini.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -526,7 +526,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           <div className="p-6">
             {customer.purchases.length === 0 ? (
               <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Customer belum memiliki riwayat pembelian paket.
+                Pelanggan belum memiliki riwayat pembelian paket.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -590,7 +590,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           <div className="p-6">
             {customer.customerBookings.length === 0 ? (
               <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Customer belum memiliki riwayat pemesanan kelas.
+                Pelanggan belum memiliki riwayat pemesanan kelas.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -698,7 +698,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             onSubmit={changeStatus}
             className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs"
           >
-            <h2 className="font-semibold text-dd-ink">Status Akun Customer</h2>
+            <h2 className="font-semibold text-dd-ink">Status Akun Pelanggan</h2>
             <p className="text-sm text-dd-muted">
               Menonaktifkan akun mencabut seluruh sesi aktif. Tindakan ini tidak mengubah saldo atau
               transaksi.
@@ -724,7 +724,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 variant={customer.status === 'ACTIVE' ? 'danger' : 'primary'}
                 loading={busy}
               >
-                {customer.status === 'ACTIVE' ? 'Nonaktifkan customer' : 'Aktifkan customer'}
+                {customer.status === 'ACTIVE' ? 'Nonaktifkan pelanggan' : 'Aktifkan pelanggan'}
               </Button>
             </ActionGroup>
           </form>
@@ -732,15 +732,15 @@ export function CustomerDetailView({ id }: { id: string }) {
           <div className="rounded-dd-lg border border-dd-line bg-white p-6 space-y-3 shadow-xs">
             <h2 className="font-semibold text-dd-ink">Status Reminder &amp; Keaktifan (Rule #12 &amp; #13)</h2>
             <p className="text-sm text-dd-muted">
-              Tandai berhenti jika customer telah berhenti pilates agar sistem tidak lagi mengirimkan pesan pengingat kedaluwarsa berkala melalui WhatsApp.
+              Tandai berhenti jika pelanggan telah berhenti pilates agar sistem tidak lagi mengirimkan pesan pengingat kedaluwarsa berkala melalui WhatsApp.
             </p>
             {customer.stoppedAt ? (
               <div className="rounded-dd-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                Customer ditandai <strong>BERHENTI</strong> sejak {new Date(customer.stoppedAt).toLocaleDateString('id-ID')}. Pesan reminder otomatis dinonaktifkan.
+                Pelanggan ditandai <strong>BERHENTI</strong> sejak {new Date(customer.stoppedAt).toLocaleDateString('id-ID')}. Pesan reminder otomatis dinonaktifkan.
               </div>
             ) : (
               <div className="rounded-dd-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                Customer aktif dalam antrean reminder berkala normal.
+                Pelanggan aktif dalam antrean reminder berkala normal.
               </div>
             )}
             <ActionGroup>
@@ -750,7 +750,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 loading={busy}
                 onClick={toggleStopped}
               >
-                {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Customer Berhenti'}
+                {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Pelanggan Berhenti'}
               </Button>
             </ActionGroup>
           </div>

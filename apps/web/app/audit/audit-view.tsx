@@ -10,7 +10,8 @@ import {
   type AuditExportSummary,
   type UiFailure,
 } from '@/api-clients/identity-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
@@ -28,7 +29,7 @@ const failureCopy: Record<UiFailure, string> = {
   INTERNAL_ERROR: 'Audit mengalami gangguan internal.',
   RATE_LIMITED: 'Terlalu banyak permintaan. Coba kembali nanti.',
   SERVICE_UNAVAILABLE: 'Layanan audit tidak dapat dihubungi.',
-  FORBIDDEN: 'Anda tidak memiliki permission untuk melihat audit.',
+  FORBIDDEN: 'Anda tidak memiliki hak akses untuk melihat audit.',
   IDENTITY_CONFLICT: 'Filter audit tidak dapat diterapkan.',
   STALE_VERSION: 'Data audit berubah. Muat ulang.',
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -45,7 +46,7 @@ const actionLabels: Record<string, string> = {
   'payment-proof.viewed': 'Bukti pembayaran dilihat',
   'security.identity_document_viewed': 'Dokumen identitas dilihat',
   'security.identity_document_view_authorized': 'Akses dokumen identitas diterbitkan',
-  'security.user_roles_changed': 'Role dan scope pengguna diubah',
+  'security.user_roles_changed': 'Role dan cakupan pengguna diubah',
   'security.user_profile_updated': 'Profil pengguna diperbarui',
 };
 
@@ -112,87 +113,78 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
 
   return (
     <section className="audit-workspace space-y-6" aria-labelledby="audit-page-title">
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Keamanan dan akses"
-          title="Audit akses"
-          titleId="audit-page-title"
-          description="Riwayat perubahan akses yang sudah dimasking. Token, password, OTP, dan data privat tidak ditampilkan."
-          context={<StatusBadge tone="info">SUPER OWNER</StatusBadge>}
-        />
-      </Panel>
+      <AdminPageHeader
+        title="Audit akses"
+        titleId="audit-page-title"
+        description="Riwayat perubahan akses yang sudah dimasking. Token, password, OTP, dan data privat tidak ditampilkan."
+        actions={<StatusBadge tone="info">SUPER OWNER</StatusBadge>}
+      />
 
-      <form
-        className="space-y-4"
-        aria-label="Filter audit akses"
-        onSubmit={(event) => {
-          event.preventDefault();
+      <FilterBar
+        label="Filter audit akses"
+        applying={loading}
+        onApply={() => {
           setCursor(undefined);
           setCursorHistory([]);
           void load();
         }}
       >
-        <FilterBar>
-          <AsyncSearchSelect
-            label="Aktor"
-            value={actor?.id ?? ''}
-            selectedOption={actor}
-            loadOptions={lookup}
-            onChange={(_id, option) => {
-              setActor(option as LookupOption | undefined);
-              setFilters({ ...filters, actorId: option?.id ?? '' });
-            }}
-            placeholder="Cari nama aktor"
-          />
-          <AsyncSearchSelect
-            label="Target pengguna"
-            value={target?.id ?? ''}
-            selectedOption={target}
-            loadOptions={lookup}
-            onChange={(_id, option) => {
-              setTarget(option as LookupOption | undefined);
-              setFilters({ ...filters, targetUserId: option?.id ?? '' });
-            }}
-            placeholder="Cari nama target"
-          />
-          <TextInput
-            label="Tindakan"
-            value={filters.action}
-            onChange={(event) => setFilters({ ...filters, action: event.target.value })}
-            placeholder="Contoh: role pengguna diubah"
-          />
-          <SearchSelect
-            label="Cabang"
-            value={filters.branchId}
-            placeholder="Semua cabang"
-            options={(context?.session?.branches ?? []).map((branch) => ({
-              id: branch.id,
-              label: branch.name,
-              description: branch.code,
-            }))}
-            onChange={(branchId) => setFilters({ ...filters, branchId })}
-          />
-          <DateInput
-            label="Dari tanggal"
-            value={filters.from}
-            onChange={(event) => setFilters({ ...filters, from: event.target.value })}
-          />
-          <DateInput
-            label="Sampai tanggal"
-            value={filters.until}
-            onChange={(event) => setFilters({ ...filters, until: event.target.value })}
-          />
-          <TextInput
-            label="Referensi permintaan"
-            value={filters.correlationId}
-            onChange={(event) => setFilters({ ...filters, correlationId: event.target.value })}
-            placeholder="Correlation ID"
-          />
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Memuat…' : 'Terapkan filter'}
-          </Button>
-        </FilterBar>
-      </form>
+        <AsyncSearchSelect
+          label="Aktor"
+          value={actor?.id ?? ''}
+          selectedOption={actor}
+          loadOptions={lookup}
+          onChange={(_id, option) => {
+            setActor(option as LookupOption | undefined);
+            setFilters({ ...filters, actorId: option?.id ?? '' });
+          }}
+          placeholder="Cari nama aktor"
+        />
+        <AsyncSearchSelect
+          label="Target pengguna"
+          value={target?.id ?? ''}
+          selectedOption={target}
+          loadOptions={lookup}
+          onChange={(_id, option) => {
+            setTarget(option as LookupOption | undefined);
+            setFilters({ ...filters, targetUserId: option?.id ?? '' });
+          }}
+          placeholder="Cari nama target"
+        />
+        <TextInput
+          label="Tindakan"
+          value={filters.action}
+          onChange={(event) => setFilters({ ...filters, action: event.target.value })}
+          placeholder="Contoh: role pengguna diubah"
+        />
+        <SearchSelect
+          label="Cabang"
+          value={filters.branchId}
+          placeholder="Semua cabang"
+          options={(context?.session?.branches ?? []).map((branch) => ({
+            id: branch.id,
+            label: branch.name,
+            description: branch.code,
+          }))}
+          onChange={(branchId) => setFilters({ ...filters, branchId })}
+        />
+        <DateInput
+          label="Dari tanggal"
+          value={filters.from}
+          onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+        />
+        <DateInput
+          label="Sampai tanggal"
+          value={filters.until}
+          onChange={(event) => setFilters({ ...filters, until: event.target.value })}
+        />
+        <TextInput
+          label="Referensi permintaan"
+          value={filters.correlationId}
+          onChange={(event) => setFilters({ ...filters, correlationId: event.target.value })}
+          placeholder="Correlation ID"
+        />
+      </FilterBar>
 
       {loading && items.length === 0 && <Skeleton label="Memuat audit akses" />}
       {failure && <Feedback kind="error">{failureCopy[failure]}</Feedback>}

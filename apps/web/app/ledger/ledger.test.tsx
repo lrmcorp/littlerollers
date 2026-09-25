@@ -58,9 +58,10 @@ describe('synthetic ledger UI', () => {
         .map(({ id, nodes }) => `${id}: ${nodes[0]?.failureSummary}`)
         .join('\n'),
     ).toHaveLength(0);
-    expect(
-      screen.getAllByRole('link', { name: /Lihat detail sesi|Lihat histori/ })[0],
-    ).toHaveAttribute('href', '/ledger/cp-1?returnTo=%2Fledger');
+    expect(screen.getAllByRole('link', { name: /Lihat detail|Lihat histori/ })[0]).toHaveAttribute(
+      'href',
+      '/ledger/cp-1?returnTo=%2Fledger',
+    );
   });
   it('shows safe invariant and expired states', async () => {
     renderLedger(
@@ -87,7 +88,7 @@ describe('synthetic ledger UI', () => {
     const view = renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
     await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
-    const lookup = screen.getByLabelText('Cari customer atau paket aktif');
+    const lookup = screen.getByLabelText('Cari pelanggan atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
     await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
     await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));
@@ -152,7 +153,7 @@ describe('synthetic ledger UI', () => {
     renderLedger(<LedgerView client={fake({ requestAdjustment })} />);
     await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
-    const lookup = screen.getByLabelText('Cari customer atau paket aktif');
+    const lookup = screen.getByLabelText('Cari pelanggan atau paket aktif');
     await userEvent.type(lookup, 'Nadia');
     await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
     await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));

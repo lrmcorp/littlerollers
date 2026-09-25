@@ -13,7 +13,7 @@ import {
   type AssignmentStatus,
   type AssignmentType,
 } from '@/api-clients/assignment-client';
-import { PageHeader } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import { DestructiveDialog, Drawer, useOptionalAppFeedback } from '../components/app-feedback';
@@ -38,12 +38,12 @@ import {
 const emptySummary: AssignmentManagementSummary = { total: 0, active: 0, ended: 0 };
 
 const failureCopy: Record<AssignmentFailure, string> = {
-  EFFECTIVE_PERIOD_OVERLAP: 'Periode assignment bertabrakan dengan assignment yang sudah ada.',
-  STALE_VERSION: 'Assignment telah berubah. Muat ulang sebelum melanjutkan.',
-  RESOURCE_NOT_FOUND: 'Assignment tidak ditemukan atau berada di luar scope cabang Anda.',
-  FORBIDDEN: 'Akun ini tidak memiliki izin untuk mengelola assignment.',
+  EFFECTIVE_PERIOD_OVERLAP: 'Periode penugasan bertabrakan dengan penugasan yang sudah ada.',
+  STALE_VERSION: 'Penugasan telah berubah. Muat ulang sebelum melanjutkan.',
+  RESOURCE_NOT_FOUND: 'Penugasan tidak ditemukan atau berada di luar cakupan cabang Anda.',
+  FORBIDDEN: 'Akun ini tidak memiliki izin untuk mengelola penugasan.',
   VALIDATION_ERROR: 'Periksa kembali pengguna, periode, dan alasan tindakan.',
-  API_UNAVAILABLE: 'Layanan assignment belum dapat dijangkau. Silakan coba kembali.',
+  API_UNAVAILABLE: 'Layanan penugasan belum dapat dijangkau. Silakan coba kembali.',
 };
 
 const typeLabel: Record<AssignmentType, string> = {
@@ -142,7 +142,7 @@ export function AssignmentsView({
       },
       {
         id: 'type',
-        header: 'Assignment',
+        header: 'Penugasan',
         cell: (item: AssignmentManagementItem) => typeLabel[item.assignmentType],
       },
       {
@@ -191,19 +191,18 @@ export function AssignmentsView({
       <AdminPageState
         kind="error"
         title="Memuat konteks akses"
-        description="Capability dan scope cabang sedang diperiksa."
+        description="Izin dan cakupan cabang sedang diperiksa."
       />
     );
   if (!canRead) return <AdminPageState kind="forbidden" />;
 
   return (
     <div className="grid gap-5">
-      <PageHeader
-        eyebrow="Role dan scope"
-        title="Assignment"
+      <AdminPageHeader
+        title="Penugasan"
         titleId="assignment-title"
         description="Kelola periode Owner dan Instruktur. Pembacaan dapat lintas cabang; mutasi selalu mengikuti cabang aktif di topbar."
-        context={
+        actions={
           <>
             <Badge tone={branchId ? 'info' : 'neutral'}>{scopeLabel}</Badge>
             <Button
@@ -220,11 +219,9 @@ export function AssignmentsView({
               leadingIcon={<Plus className="size-4" aria-hidden="true" />}
               onClick={() => setCreateOpen(true)}
               disabled={!canManage || !branchId}
-              title={
-                !branchId ? 'Pilih cabang aktif di topbar untuk membuat assignment' : undefined
-              }
+              title={!branchId ? 'Pilih cabang aktif di topbar untuk membuat penugasan' : undefined}
             >
-              Buat assignment
+              Buat penugasan
             </Button>
           </>
         }
@@ -233,12 +230,12 @@ export function AssignmentsView({
       {!branchId && canManage && (
         <Panel className="border-dd-brass/40 bg-dd-brass-soft/35 p-4 text-sm text-dd-warning">
           Mode semua cabang bersifat baca saja. Pilih cabang dari topbar untuk membuat atau
-          mengakhiri assignment.
+          mengakhiri penugasan.
         </Panel>
       )}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Total assignment" value={summary.total.toLocaleString('id-ID')} />
+        <StatCard label="Total penugasan" value={summary.total.toLocaleString('id-ID')} />
         <StatCard label="Aktif" value={summary.active.toLocaleString('id-ID')} tone="success" />
         <StatCard label="Berakhir" value={summary.ended.toLocaleString('id-ID')} />
       </div>
@@ -252,7 +249,7 @@ export function AssignmentsView({
           wrapperClassName="min-w-64 flex-1"
         />
         <SelectInput
-          label="Tipe assignment"
+          label="Tipe penugasan"
           value={filters.type ?? ''}
           onChange={(event) =>
             resetPage({
@@ -304,8 +301,8 @@ export function AssignmentsView({
             columns={columns}
             rowKey={(item) => item.id}
             loading={loading}
-            emptyTitle="Belum ada assignment"
-            emptyDescription="Tidak ada assignment yang sesuai dengan scope dan filter saat ini."
+            emptyTitle="Belum ada penugasan"
+            emptyDescription="Tidak ada penugasan yang sesuai dengan cakupan dan filter saat ini."
             mobileCard={(item) => (
               <div className="grid gap-3">
                 <div className="flex items-start justify-between gap-3">
@@ -330,7 +327,7 @@ export function AssignmentsView({
                 </div>
                 {item.status === 'ACTIVE' && canManage && (
                   <Button type="button" variant="secondary" onClick={() => setEnding(item)}>
-                    Akhiri assignment
+                    Akhiri penugasan
                   </Button>
                 )}
               </div>
@@ -339,7 +336,7 @@ export function AssignmentsView({
           <Pagination
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(nextCursor)}
-            totalLabel={`${summary.total.toLocaleString('id-ID')} assignment`}
+            totalLabel={`${summary.total.toLocaleString('id-ID')} penugasan`}
             currentPage={cursorHistory.length + 1}
             onPrevious={() => {
               const previous = cursorHistory.at(-1);
@@ -371,8 +368,8 @@ export function AssignmentsView({
           setSelectedUser(undefined);
           feedback?.showToast({
             tone: 'success',
-            title: 'Assignment dibuat',
-            message: 'Assignment baru telah dicatat dan diaudit.',
+            title: 'Penugasan dibuat',
+            message: 'Penugasan baru telah dicatat dan diaudit.',
           });
           await load();
         }}
@@ -388,7 +385,7 @@ export function AssignmentsView({
           setEnding(undefined);
           feedback?.showToast({
             tone: 'success',
-            title: 'Assignment diakhiri',
+            title: 'Penugasan diakhiri',
             message: 'Perubahan periode telah dicatat dalam audit.',
           });
           await load();
@@ -427,7 +424,7 @@ function CreateAssignmentDrawer({
   const confirmDiscard = () =>
     feedback?.confirm({
       tone: 'warning',
-      title: 'Batalkan assignment?',
+      title: 'Batalkan penugasan?',
       message: 'Pengguna dan periode yang dipilih akan dikosongkan.',
       confirmLabel: 'Buang input',
     }) ?? Promise.resolve(true);
@@ -450,7 +447,7 @@ function CreateAssignmentDrawer({
   return (
     <Drawer
       open={open}
-      title="Buat assignment"
+      title="Buat penugasan"
       busy={busy}
       dirty={hasChanges}
       onDirtyClose={confirmDiscard}
@@ -471,7 +468,7 @@ function CreateAssignmentDrawer({
             leadingIcon={<UserRoundCheck className="size-4" aria-hidden="true" />}
             disabled={!selectedUser || !branchId}
           >
-            Buat assignment
+            Buat penugasan
           </Button>
         </div>
       }
@@ -487,9 +484,9 @@ function CreateAssignmentDrawer({
           const assignmentType = String(data.get('assignmentType')) as AssignmentType;
           const confirmed =
             (await feedback?.confirm({
-              title: 'Buat assignment?',
-              message: `${selectedUser.label} akan memperoleh assignment ${typeLabel[assignmentType]} pada ${branchName}.`,
-              confirmLabel: 'Buat assignment',
+              title: 'Buat penugasan?',
+              message: `${selectedUser.label} akan memperoleh penugasan ${typeLabel[assignmentType]} pada ${branchName}.`,
+              confirmLabel: 'Buat penugasan',
             })) ?? true;
           if (!confirmed) return;
           setBusy(true);
@@ -513,7 +510,7 @@ function CreateAssignmentDrawer({
         }}
       >
         <Panel className="bg-dd-surface-muted p-4 text-sm text-dd-muted">
-          Scope cabang: <strong className="text-dd-ink">{branchName}</strong>
+          Cakupan cabang: <strong className="text-dd-ink">{branchName}</strong>
         </Panel>
         <AsyncSearchSelect
           label="Pengguna"
@@ -523,7 +520,7 @@ function CreateAssignmentDrawer({
           onChange={(_id, option) => onSelectedUser(option)}
           placeholder="Ketik minimal 2 karakter"
         />
-        <SelectInput label="Tipe assignment" name="assignmentType" defaultValue="INSTRUCTOR">
+        <SelectInput label="Tipe penugasan" name="assignmentType" defaultValue="INSTRUCTOR">
           <option value="INSTRUCTOR">Instruktur</option>
           <option value="OWNER">Owner cabang</option>
         </SelectInput>
@@ -559,7 +556,7 @@ function EndAssignmentDialog({
   const confirmDiscard = () =>
     feedback?.confirm({
       tone: 'warning',
-      title: 'Batalkan akhir assignment?',
+      title: 'Batalkan akhir penugasan?',
       message: 'Waktu efektif dan alasan yang belum diproses akan hilang.',
       confirmLabel: 'Buang perubahan',
     }) ?? Promise.resolve(true);
@@ -572,7 +569,7 @@ function EndAssignmentDialog({
   return (
     <DestructiveDialog
       open={Boolean(item)}
-      title="Akhiri assignment"
+      title="Akhiri penugasan"
       impact={`Akses ${item ? typeLabel[item.assignmentType] : ''} berhenti pada awal tanggal efektif.`}
       scope={item?.branch.name}
       busy={busy}
@@ -588,7 +585,7 @@ function EndAssignmentDialog({
             Batal
           </Button>
           <Button type="submit" form="assignment-end-form" variant="danger" loading={busy}>
-            Akhiri assignment
+            Akhiri penugasan
           </Button>
         </div>
       }
@@ -604,9 +601,9 @@ function EndAssignmentDialog({
           const confirmed =
             (await feedback?.confirm({
               tone: 'danger',
-              title: 'Konfirmasi akhir assignment',
-              message: `Assignment ${item.user.displayName} pada ${item.branch.name} akan diakhiri dan dicatat dalam audit.`,
-              confirmLabel: 'Akhiri assignment',
+              title: 'Konfirmasi akhir penugasan',
+              message: `Penugasan ${item.user.displayName} pada ${item.branch.name} akan diakhiri dan dicatat dalam audit.`,
+              confirmLabel: 'Akhiri penugasan',
             })) ?? true;
           if (!confirmed) return;
           setBusy(true);

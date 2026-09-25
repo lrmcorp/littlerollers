@@ -35,7 +35,7 @@ export function RoleSelection({
 }) {
   return (
     <fieldset className="grid gap-3 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4">
-      <legend className="px-2 text-sm font-bold text-dd-ink">Role dan scope</legend>
+      <legend className="px-2 text-sm font-bold text-dd-ink">Role dan cakupan</legend>
       {catalog.map((item) => {
         const selected = value[item.role] !== undefined;
         return (
@@ -55,7 +55,7 @@ export function RoleSelection({
               <span>
                 <strong className="block text-sm text-dd-ink">{roleLabel(item.role)}</strong>
                 <small className="mt-1 block text-xs leading-5 text-dd-muted">
-                  {item.scope === 'BRANCH' ? 'Wajib dibatasi pada satu cabang.' : 'Scope global.'}
+                  {item.scope === 'BRANCH' ? 'Wajib dibatasi pada satu cabang.' : 'Cakupan global.'}
                 </small>
               </span>
             </label>

@@ -21,7 +21,8 @@ import {
 } from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
 import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { useSessionContext } from '../../session-context';
 import { roleSummary, statusLabels } from '../user-admin-controls';
 import { PasswordDialog, ProfileDialog, RoleDialog, StatusDialog } from './user-detail-dialogs';
@@ -157,11 +158,9 @@ export function UserDetailView({
       <AdminPageState
         kind="error"
         title="Pengguna tidak ditemukan"
-        description="Pengguna tidak tersedia atau berada di luar scope cabang Anda."
+        description="Pengguna tidak tersedia atau berada di luar cakupan cabang Anda."
         action={
-          <Link className="button-primary" href="/users">
-            Kembali ke Pengguna
-          </Link>
+          <ButtonLink href="/users">Kembali ke Pengguna</ButtonLink>
         }
       />
     );
@@ -188,13 +187,11 @@ export function UserDetailView({
       >
         <ArrowLeft className="size-4" /> Kembali ke Pengguna
       </Link>
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Pengguna / Detail"
+        <AdminPageHeader
           title={user.displayName}
           titleId="user-detail-title"
-          description="Profil, role, assignment, keamanan akun, dan aktivitas audit dalam satu halaman."
-          context={
+          description="Profil, role, penugasan, keamanan akun, dan aktivitas audit dalam satu halaman."
+          badges={
             <>
               <StatusBadge
                 tone={
@@ -208,18 +205,18 @@ export function UserDetailView({
                 {statusLabels[user.status]}
               </StatusBadge>
               <StatusBadge tone={canAdmin ? 'info' : 'neutral'}>
-                {canAdmin ? 'Dapat mengelola' : 'Read only'}
+                {canAdmin ? 'Dapat mengelola' : 'Hanya lihat'}
               </StatusBadge>
             </>
           }
-        />
-        <div className="mt-5 flex flex-wrap gap-3">
+          actions={
+            <>
           <Button
             variant="secondary"
             leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
             onClick={() => void load()}
           >
-            Muat ulang
+            Segarkan
           </Button>
           {canAdminStaff && (
             <Button onClick={() => setAction('profile')}>
@@ -244,8 +241,9 @@ export function UserDetailView({
               {user.status === 'ACTIVE' ? 'Nonaktifkan' : 'Aktifkan kembali'}
             </Button>
           )}
-        </div>
-      </Panel>
+            </>
+          }
+        />
 
       {message && <Feedback kind="status">{message}</Feedback>}
       {failure && <Feedback kind="error">{failureCopy[failure]}</Feedback>}
@@ -279,22 +277,22 @@ export function UserDetailView({
                   Role langsung dapat dikelola; role assignment mengikuti periode penugasan.
                 </p>
               </div>
-              <Link className="button-quiet" href="/users/roles-permissions">
-                Lihat matrix permission
-              </Link>
+              <ButtonLink variant="secondary" size="sm" href="/users/roles-permissions">
+                Lihat matriks hak akses
+              </ButtonLink>
             </div>
             <RoleList title="Role langsung" roles={directRoles} empty="Belum ada role langsung." />
             <RoleList
-              title="Role dari assignment"
+              title="Role dari penugasan"
               roles={assignmentRoles}
-              empty="Tidak ada role berbasis assignment."
+              empty="Tidak ada role berbasis penugasan."
             />
             {assignmentRoles.length > 0 && (
               <Link
                 className="mt-4 inline-flex text-sm font-bold text-dd-forest"
                 href="/assignments"
               >
-                Kelola melalui halaman Assignment
+                Kelola melalui halaman Penugasan
               </Link>
             )}
           </Panel>
@@ -314,12 +312,12 @@ export function UserDetailView({
                   variant="secondary"
                   href={`/ledger?customerUserId=${encodeURIComponent(user.id)}`}
                 >
-                  Lihat seluruh paket customer
+                  Lihat seluruh paket pelanggan
                 </ButtonLink>
               </div>
               {sessionLoading ? (
                 <div className="mt-5">
-                  <Skeleton label="Memuat paket dan sesi customer" />
+                  <Skeleton label="Memuat paket dan sesi pelanggan" />
                 </div>
               ) : sessionError ? (
                 <div className="mt-5">
@@ -330,7 +328,7 @@ export function UserDetailView({
                 </div>
               ) : sessionPackages.length === 0 ? (
                 <p className="mt-5 rounded-dd-md bg-dd-surface-muted p-4 text-sm text-dd-muted">
-                  Customer belum memiliki paket yang dapat ditampilkan.
+                  Pelanggan belum memiliki paket yang dapat ditampilkan.
                 </p>
               ) : (
                 <ul className="mt-5 grid gap-3">
@@ -339,7 +337,7 @@ export function UserDetailView({
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <strong className="text-dd-ink">
-                            {item.packageName ?? 'Paket customer'}
+                            {item.packageName ?? 'Paket pelanggan'}
                           </strong>
                           <p className="mt-1 text-xs text-dd-muted">
                             {item.branchName ?? 'Cabang'} · {item.classTypeName ?? 'Tipe kelas'} ·
@@ -364,7 +362,7 @@ export function UserDetailView({
                         <SessionValue label="Tersedia" value={item.available} highlight />
                       </dl>
                       <ButtonLink className="mt-4" variant="ghost" href={`/ledger/${item.id}`}>
-                        Lihat detail sesi
+                        Lihat detail
                       </ButtonLink>
                     </li>
                   ))}
@@ -404,7 +402,7 @@ export function UserDetailView({
               </div>
               {!canReadIdentity ? (
                 <p className="mt-4 text-sm text-dd-muted">
-                  Permission global verifikasi identitas diperlukan untuk melihat status dokumen.
+                  Hak akses global verifikasi identitas diperlukan untuk melihat status dokumen.
                 </p>
               ) : !verification ? (
                 <p className="mt-4 text-sm text-dd-muted">
@@ -432,12 +430,13 @@ export function UserDetailView({
                       );
                     })}
                   </div>
-                  <Link
-                    className="button-primary mt-5 inline-flex"
+                  <ButtonLink
+                    className="mt-5"
                     href={`/identity-verifications?customerUserId=${encodeURIComponent(user.id)}`}
+                    leadingIcon={<Eye className="size-4" aria-hidden="true" />}
                   >
-                    <Eye className="size-4" /> Periksa dokumen
-                  </Link>
+                    Periksa dokumen
+                  </ButtonLink>
                 </>
               )}
             </Panel>
@@ -466,7 +465,7 @@ export function UserDetailView({
           </h2>
           {!canAudit ? (
             <p className="mt-3 text-sm text-dd-muted">
-              Capability audit diperlukan untuk melihat aktivitas.
+              Izin audit diperlukan untuk melihat aktivitas.
             </p>
           ) : audit.length === 0 ? (
             <p className="mt-3 text-sm text-dd-muted">
@@ -511,7 +510,7 @@ export function UserDetailView({
         onSubmit={(roles, reason) =>
           runMutation(async () => {
             await client.updateRoles(user.id, roles, user.version, reason);
-          }, 'Role dan scope berhasil diperbarui. Seluruh sesi pengguna telah dicabut.')
+          }, 'Role dan cakupan berhasil diperbarui. Seluruh sesi pengguna telah dicabut.')
         }
       />
       <PasswordDialog

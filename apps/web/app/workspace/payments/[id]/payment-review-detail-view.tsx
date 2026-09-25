@@ -161,11 +161,11 @@ export function PaymentReviewDetailView({
     const copy = {
       APPROVE: [
         'Setujui pembayaran',
-        'Paket customer akan diaktifkan dan ledger pembelian dibuat.',
+        'Paket pelanggan akan diaktifkan dan ledger pembelian dibuat.',
       ],
       ACTION_REQUIRED: [
         'Minta perbaikan bukti',
-        'Customer harus mengunggah bukti pembayaran pengganti.',
+        'Pelanggan harus mengunggah bukti pembayaran pengganti.',
       ],
       DUPLICATE: [
         'Tolak sebagai duplikat',
@@ -176,7 +176,7 @@ export function PaymentReviewDetailView({
       ? await feedback.confirm({
           tone: action === 'APPROVE' ? 'warning' : 'danger',
           title: copy[action][0],
-          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Scope ${purchase.branch.name}, versi ${purchase.version}.`,
+          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Cakupan ${purchase.branch.name}, versi ${purchase.version}.`,
           confirmLabel: copy[action][0],
         })
       : Boolean(authorityOverride);
@@ -236,7 +236,7 @@ export function PaymentReviewDetailView({
       <AlertBanner
         tone="danger"
         title="Akses tidak tersedia"
-        message="Role Anda tidak memiliki capability untuk memeriksa pembayaran."
+        message="Role Anda tidak memiliki izin untuk memeriksa pembayaran."
       />
     );
   if (loading && !detail) return <Skeleton label="Memuat detail pembayaran" />;
@@ -245,7 +245,7 @@ export function PaymentReviewDetailView({
       <AlertBanner
         tone="danger"
         title="Detail pembayaran belum tersedia"
-        message={error || 'Transaksi tidak ditemukan dalam scope Anda.'}
+        message={error || 'Transaksi tidak ditemukan dalam cakupan Anda.'}
         action={{ label: 'Coba lagi', onSelect: () => void load() }}
       />
     );
@@ -323,7 +323,7 @@ export function PaymentReviewDetailView({
           <Panel className="p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Customer</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Pelanggan</p>
                 <h2 className="mt-1 text-xl font-semibold">{purchase.customer.displayName}</h2>
                 <p className="text-sm text-dd-muted">
                   {purchase.customer.phoneMasked ?? 'Kontak termasking tidak tersedia'}
@@ -414,7 +414,7 @@ export function PaymentReviewDetailView({
           <Panel className="p-5 sm:p-6">
             <h2 className="text-lg font-semibold">Timeline pembayaran</h2>
             <p className="mt-1 text-sm text-dd-muted">
-              Waktu berikut berasal dari proses sistem, bukan waktu transfer pada bank customer.
+              Waktu berikut berasal dari proses sistem, bukan waktu transfer pada bank pelanggan.
             </p>
             <ol className="mt-5 space-y-4">
               {timeline.map(([label, value], index) => (
@@ -499,7 +499,7 @@ export function PaymentReviewDetailView({
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="size-6 text-dd-success" />
                 <div>
-                  <h2 className="text-lg font-semibold">Paket customer telah aktif</h2>
+                  <h2 className="text-lg font-semibold">Paket pelanggan telah aktif</h2>
                   <p className="text-sm text-dd-muted">
                     Hasil ini dimuat dari paket dan ledger authoritative.
                   </p>
@@ -695,7 +695,7 @@ export function PaymentReviewDetailView({
           <Panel className="p-5">
             <h2 className="text-lg font-semibold">Keputusan Finance</h2>
             <p className="mt-1 text-sm leading-6 text-dd-muted">
-              Setiap tindakan mencatat scope cabang, versi data, idempotency key, dan audit.
+              Setiap tindakan mencatat cakupan cabang, versi data, idempotency key, dan audit.
             </p>
             {canDecide && purchase.status === 'PENDING' ? (
               <div className="mt-5 space-y-4">

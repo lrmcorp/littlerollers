@@ -9,7 +9,8 @@ import {
 } from '@/api-clients/booking-client';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';
-import { Feedback, PageHeader } from '../ui';
+import { Feedback } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 
 export function CheckInScannerView() {
@@ -81,12 +82,11 @@ export function CheckInScannerView() {
 
   return (
     <section className="grid gap-6" aria-labelledby="scanner-title">
-      <PageHeader
-        eyebrow="Attendance branch-scoped"
+      <AdminPageHeader
         title="Scan QR check-in"
         titleId="scanner-title"
-        description="Pindai QR pass customer saat datang. Backend memvalidasi booking, cabang, status, dan window jadwal."
-        context={
+        description="Pindai QR pass pelanggan saat datang. Backend memvalidasi booking, cabang, status, dan window jadwal."
+        actions={
           <span className="rounded-full bg-dd-success-soft px-3 py-1 text-xs font-bold text-dd-success">
             Kamera + fallback manual
           </span>

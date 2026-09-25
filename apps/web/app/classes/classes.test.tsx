@@ -98,7 +98,7 @@ describe('ClassSlotView', () => {
   it('requires an explicit authoritative branch for a branch-scoped reader', () => {
     render(<ClassSlotView client={fake()} capabilitiesOverride={readCapabilities} />);
     expect(
-      screen.getByText('Pilih cabang aktif untuk membuka timetable sesuai scope Anda.'),
+      screen.getByText('Pilih cabang aktif untuk membuka timetable sesuai cakupan Anda.'),
     ).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Muat timetable' })).not.toBeInTheDocument();
   });
@@ -112,8 +112,8 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={['class-slot:read', 'class-slot:manage', 'branch:all']}
       />,
     );
-    expect(await screen.findByText('Semua cabang · ringkasan global')).toBeVisible();
-    expect(screen.getByText('Semua Cabang')).toBeVisible();
+    expect(await screen.findByText('Semua cabang')).toBeVisible();
+    expect(screen.getByText('Semua cabang')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
     expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });

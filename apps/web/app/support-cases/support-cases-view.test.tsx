@@ -58,10 +58,10 @@ describe('SupportCasesView', () => {
     expect(screen.queryByLabelText(/Customer ID/i)).not.toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('combobox', { name: /Customer/ }));
+    await user.click(screen.getByRole('combobox', { name: /Pelanggan/ }));
     await user.click(await screen.findByRole('option', { name: /Budi Santoso/ }));
     await user.type(screen.getByLabelText(/Subjek Case/), 'Lupa membawa QR');
-    await user.click(screen.getByRole('button', { name: 'Buat support case' }));
+    await user.click(screen.getByRole('button', { name: 'Buat kasus bantuan' }));
 
     await waitFor(() => {
       const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');

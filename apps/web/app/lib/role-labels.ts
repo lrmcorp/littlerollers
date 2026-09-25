@@ -14,10 +14,10 @@ const labels: Record<string, { scoped: string; short: string }> = {
   MANAGER: { scoped: 'Manager cabang', short: 'Manager' },
   FINANCE: { scoped: 'Finance', short: 'Finance' },
   OPS: { scoped: 'Operations', short: 'Operations' },
-  INSTRUCTOR: { scoped: 'Instruktur', short: 'Instructor' },
-  COACH: { scoped: 'Instruktur', short: 'Instructor' },
-  CUSTOMER: { scoped: 'Customer', short: 'Customer' },
-  MEMBER: { scoped: 'Customer', short: 'Customer' },
+  INSTRUCTOR: { scoped: 'Instruktur', short: 'Instruktur' },
+  COACH: { scoped: 'Instruktur', short: 'Instruktur' },
+  CUSTOMER: { scoped: 'Pelanggan', short: 'Pelanggan' },
+  MEMBER: { scoped: 'Pelanggan', short: 'Pelanggan' },
 };
 
 function humanizeRoleCode(role: string): string {

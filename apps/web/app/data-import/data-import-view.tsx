@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/actions';
 import { Badge, Panel } from '../components/admin/admin-ui';
-import { Feedback, PageHeader } from '../ui';
+import { Feedback } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import {
   browserDataImportClient,
   type ImportExecutionResult,
@@ -292,8 +293,7 @@ export function DataImportView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        eyebrow="Administrasi"
+      <AdminPageHeader
         title="Import Data"
         titleId="data-import-title"
         description="Import data operasional dari Daily Dose v1 atau spreadsheet eksternal ke dalam sistem v2. Validasi baris per baris sebelum eksekusi untuk memastikan keakuratan data."

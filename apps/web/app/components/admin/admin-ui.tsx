@@ -140,15 +140,18 @@ export function Tabs({
   items,
   value,
   onChange,
+  wrap = false,
 }: {
   items: { value: string; label: string; count?: number }[];
   value: string;
   onChange(value: string): void;
+  /** Bungkus ke baris berikutnya (untuk banyak tab) alih-alih menggulir mendatar. */
+  wrap?: boolean;
 }) {
   return (
     <div
       role="tablist"
-      className="flex gap-1 overflow-x-auto rounded-dd-md border border-dd-line bg-dd-surface-muted p-1"
+      className={`flex gap-1 rounded-dd-md border border-dd-line bg-dd-surface-muted p-1 ${wrap ? 'flex-wrap' : 'overflow-x-auto'}`}
     >
       {items.map((item) => (
         <button
@@ -171,22 +174,69 @@ export function Tabs({
   );
 }
 
+/**
+ * Kotak filter standar. Aturannya: pencarian dan status berlaku langsung tanpa tombol; filter berat
+ * (mis. rentang tanggal) memakai `onApply` sehingga muncul tombol "Terapkan" (Enter juga menerapkan)
+ * dan `onReset` untuk tombol "Reset".
+ */
 export function FilterBar({
   children,
   activeFilters,
+  label,
+  onApply,
+  onReset,
+  applying = false,
+  showReset = true,
 }: {
   children: ReactNode;
   activeFilters?: ReactNode;
+  /** Nama form untuk pembaca layar; hanya dipakai bila `onApply` diberikan. */
+  label?: string;
+  onApply?(): void;
+  onReset?(): void;
+  applying?: boolean;
+  /** Sembunyikan "Reset" saat tidak ada filter aktif. */
+  showReset?: boolean;
 }) {
-  return (
-    <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-sm">
-      <div className="flex flex-wrap items-end gap-3">{children}</div>
+  const className = 'rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-sm';
+  const content = (
+    <>
+      <div className="flex flex-wrap items-end gap-3">
+        {children}
+        {(onApply || onReset) && (
+          <div className="ml-auto flex items-end gap-2">
+            {onReset && showReset && (
+              <Button type="button" variant="ghost" onClick={onReset}>
+                Reset
+              </Button>
+            )}
+            {onApply && (
+              <Button type="submit" variant="secondary" loading={applying}>
+                Terapkan
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
       {activeFilters && (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-dd-line pt-3">
           {activeFilters}
         </div>
       )}
-    </div>
+    </>
+  );
+  if (!onApply) return <div className={className}>{content}</div>;
+  return (
+    <form
+      className={className}
+      aria-label={label}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onApply();
+      }}
+    >
+      {content}
+    </form>
   );
 }
 
@@ -511,7 +561,7 @@ export function AdminPageState({
 }) {
   const copy =
     kind === 'forbidden'
-      ? ['Akses tidak tersedia', 'Akun ini tidak memiliki capability untuk membuka data tersebut.']
+      ? ['Akses tidak tersedia', 'Akun ini tidak memiliki izin untuk membuka data tersebut.']
       : kind === 'stale'
         ? ['Data telah berubah', 'Muat ulang data terbaru sebelum melanjutkan tindakan.']
         : ['Terjadi kendala', 'Data belum dapat dimuat. Silakan coba kembali.'];

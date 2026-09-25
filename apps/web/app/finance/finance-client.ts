@@ -274,7 +274,7 @@ export const browserFinanceClient: FinanceClient = {
   requestCorrection(command) {
     return appLoading.track(
       api.requestCorrection({ idempotencyKey: crypto.randomUUID(), correctionCommand: command }),
-      { label: 'Membuat correction request…' },
+      { label: 'Membuat permintaan koreksi…' },
     );
   },
   decideCorrection(id, decision, reason) {
@@ -285,7 +285,7 @@ export const browserFinanceClient: FinanceClient = {
         idempotencyKey: crypto.randomUUID(),
         reasonCommand: { reason },
       }),
-      { label: 'Memutuskan correction…' },
+      { label: 'Memutuskan koreksi…' },
     );
   },
   async corrections(branchId, period, status = 'PENDING') {

@@ -155,20 +155,18 @@ test('Super Admin creates and opens an integrated customer without exposing the 
     });
   });
   await page.goto('/customers');
-  await page.getByRole('button', { name: 'Buat customer aktif' }).click();
+  await page.getByRole('button', { name: 'Buat pelanggan aktif' }).click();
   await page.getByLabel('Nama').fill('Ayu Customer');
   await page.getByLabel('Email').fill('ayu@example.test');
   await page.getByLabel('Telepon').fill('+6281234567890');
   await page.getByLabel('Password awal').fill('InitialPass123');
   await page.getByLabel('Ulangi password').fill('InitialPass123');
-  await page.getByLabel('Alasan').fill('Pembuatan akun customer terverifikasi');
-  await page.getByLabel('Step-up token').fill('one-time-step-up');
-  await page.getByRole('button', { name: 'Simpan customer' }).click();
+  await page.getByRole('button', { name: 'Simpan pelanggan' }).click();
   await expect.poll(() => created).toBe(true);
   await page.reload();
   await expect(page.getByText('Ayu Customer')).toBeVisible();
   await expect(page.getByText('InitialPass123')).toHaveCount(0);
-  await page.getByRole('link', { name: 'Buka profil' }).click();
+  await page.getByRole('link', { name: 'Lihat detail' }).click();
   await expect(page.getByText(/wajib mengganti password awal/i)).toBeVisible();
   await expect(
     page.getByText(/Saldo, pembayaran, booking, dan voucher tidak diedit/i),
@@ -198,7 +196,7 @@ test('management consoles expose controlled lifecycle actions', async ({ page })
     }),
   );
   await page.goto('/notification-management');
-  await expect(page.getByRole('button', { name: 'Publish' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Terbitkan' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Otomasi WA' })).toBeVisible();
 
   await page.route('**/api/v1/public-content-management**', (route) =>

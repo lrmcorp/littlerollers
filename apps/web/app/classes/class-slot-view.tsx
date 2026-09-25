@@ -18,7 +18,8 @@ import {
   shiftWeek,
   weekWindow,
 } from '@/lib/class-time';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { CreatePanel, DetailPanel } from './class-slot-panels';
 import { classStatusTone, statusLabels } from './class-slot-presenters';
@@ -162,7 +163,7 @@ export function ClassSlotView({
     classTypes.find((item) => item.id === id)?.name ?? `Class ${id.slice(0, 8)}`;
   const instructorName = (id?: string | null) =>
     id
-      ? (instructors.find((item) => item.id === id)?.displayName ?? `Instructor ${id.slice(0, 8)}`)
+      ? (instructors.find((item) => item.id === id)?.displayName ?? `Instruktur ${id.slice(0, 8)}`)
       : 'Belum ditetapkan';
   const branchName = (id: string) =>
     branches.find((item) => item.id === id)?.name ?? `Cabang ${id.slice(0, 8)}`;
@@ -183,13 +184,12 @@ export function ClassSlotView({
         className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-6"
         aria-labelledby="classes-title"
       >
-        <PageHeader
-          eyebrow="Akses terbatas"
+        <AdminPageHeader
           title="Timetable kelas"
           titleId="classes-title"
-          description="Anda tidak memiliki capability untuk membaca jadwal kelas."
+          description="Anda tidak memiliki izin untuk membaca jadwal kelas."
         />
-        <Feedback kind="error">Akses kelas memerlukan capability class-slot:read.</Feedback>
+        <Feedback kind="error">Akses kelas memerlukan izin class-slot:read.</Feedback>
       </section>
     );
   }
@@ -200,14 +200,13 @@ export function ClassSlotView({
         className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
         aria-labelledby="classes-title"
       >
-        <PageHeader
-          eyebrow="Timetable branch-scoped"
+        <AdminPageHeader
           title="Timetable kelas"
           titleId="classes-title"
           description="Pilih cabang aktif pada bagian atas workspace untuk membuka jadwal."
         />
         <Feedback kind="warning">
-          Pilih cabang aktif untuk membuka timetable sesuai scope Anda.
+          Pilih cabang aktif untuk membuka timetable sesuai cakupan Anda.
         </Feedback>
       </section>
     );
@@ -259,23 +258,22 @@ export function ClassSlotView({
 
   return (
     <section className="space-y-6" aria-labelledby="classes-title">
-      <PageHeader
-        eyebrow={
-          globalMode ? 'Semua cabang · ringkasan global' : `${branch?.name} · ${branch?.timezone}`
-        }
+      <AdminPageHeader
         title="Timetable kelas mingguan"
         titleId="classes-title"
         description={
           globalMode
             ? 'Pantau jadwal seluruh cabang. Pilih cabang aktif di topbar untuk menjalankan tindakan operasional.'
-            : 'Kelola draft, instructor, publish, dan pembatalan pada waktu lokal cabang.'
+            : 'Kelola draft, instruktur, publish, dan pembatalan pada waktu lokal cabang.'
         }
-        context={
+        actions={
           <>
             <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
               {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
             </StatusBadge>
-            <span>{globalMode ? 'Semua Cabang' : `Cabang ${branch?.name}`}</span>
+            <StatusBadge tone="neutral">
+              {globalMode ? 'Semua cabang' : `${branch?.name} · ${branch?.timezone}`}
+            </StatusBadge>
           </>
         }
       />
@@ -365,7 +363,7 @@ export function ClassSlotView({
       ) : !busy && visible.length === 0 ? (
         <EmptyState
           title="Tidak ada kelas sesuai filter"
-          description="Ubah status, class type, atau instructor."
+          description="Ubah status, class type, atau instruktur."
         />
       ) : (
         <>
@@ -531,7 +529,7 @@ export function ClassSlotView({
               if (accepted)
                 await run(
                   () => client.assign(panel.slot.id, instructorId, panel.slot.version),
-                  'Instructor berhasil ditetapkan.',
+                  'Instruktur berhasil ditetapkan.',
                 );
             }}
             onUpdate={async (input) => {

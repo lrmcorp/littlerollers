@@ -14,7 +14,8 @@ import { AlertBanner } from '../../../components/app-feedback';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/actions';
 import { Badge, Panel, StatCard } from '../../../components/admin/admin-ui';
-import { PageHeader, Skeleton } from '../../../ui';
+import { Skeleton } from '../../../ui';
+import { AdminPageHeader } from '../../../components/admin/admin-page-header';
 import { useSessionContext } from '../../../session-context';
 
 const statusLabels: Record<string, string> = {
@@ -26,7 +27,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const sourceLabels: Record<string, string> = {
-  SELF: 'Dibuat customer',
+  SELF: 'Dibuat pelanggan',
   ADMIN_ASSISTED: 'Booking bantuan staf',
 };
 
@@ -129,39 +130,36 @@ export function StaffBookingDetailView({
         <ArrowLeft className="size-4" aria-hidden="true" />
         Kembali ke antrean
       </Link>
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Detail booking"
-          title={booking.classSlot?.classType.name ?? 'Booking customer'}
-          titleId="staff-booking-title"
-          description={`${booking.customer?.displayName ?? 'Customer'} · ${booking.branch?.name ?? 'Cabang'} · ${statusLabels[booking.status] ?? 'Status booking'}`}
-          context={
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                tone={
-                  booking.status === 'ATTENDED'
-                    ? 'success'
-                    : booking.status === 'CANCELLED' || booking.status === 'NO_SHOW'
-                      ? 'danger'
-                      : booking.status === 'RESCHEDULE_PENDING'
-                        ? 'warning'
-                        : 'info'
-                }
-              >
-                {statusLabels[booking.status] ?? 'Status booking'}
-              </Badge>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
-                onClick={() => void load()}
-              >
-                Segarkan
-              </Button>
-            </div>
-          }
-        />
-      </Panel>
+      <AdminPageHeader
+        title={booking.classSlot?.classType.name ?? 'Booking pelanggan'}
+        titleId="staff-booking-title"
+        description={`${booking.customer?.displayName ?? 'Pelanggan'} · ${booking.branch?.name ?? 'Cabang'} · ${statusLabels[booking.status] ?? 'Status booking'}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              tone={
+                booking.status === 'ATTENDED'
+                  ? 'success'
+                  : booking.status === 'CANCELLED' || booking.status === 'NO_SHOW'
+                    ? 'danger'
+                    : booking.status === 'RESCHEDULE_PENDING'
+                      ? 'warning'
+                      : 'info'
+              }
+            >
+              {statusLabels[booking.status] ?? 'Status booking'}
+            </Badge>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+              onClick={() => void load()}
+            >
+              Segarkan
+            </Button>
+          </div>
+        }
+      />
 
       {error && <AlertBanner tone="danger" title="Tindakan belum berhasil" message={error} />}
       {!context?.activeBranchId && context?.hasCapability('attendance:manage') && (
@@ -194,11 +192,11 @@ export function StaffBookingDetailView({
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel className="p-5">
           <UserRound className="size-6 text-dd-forest" aria-hidden="true" />
-          <h2 className="mt-3 text-lg font-semibold">Customer dan paket</h2>
+          <h2 className="mt-3 text-lg font-semibold">Pelanggan dan paket</h2>
           <dl className="mt-4 grid gap-3 text-sm">
             <div>
-              <dt className="text-dd-muted">Customer</dt>
-              <dd className="font-semibold">{booking.customer?.displayName ?? 'Customer'}</dd>
+              <dt className="text-dd-muted">Pelanggan</dt>
+              <dd className="font-semibold">{booking.customer?.displayName ?? 'Pelanggan'}</dd>
             </div>
             <div>
               <dt className="text-dd-muted">Kontak</dt>
@@ -206,7 +204,7 @@ export function StaffBookingDetailView({
             </div>
             <div>
               <dt className="text-dd-muted">Paket</dt>
-              <dd className="font-semibold">{booking.package?.name ?? 'Paket customer'}</dd>
+              <dd className="font-semibold">{booking.package?.name ?? 'Paket pelanggan'}</dd>
             </div>
             <div>
               <dt className="text-dd-muted">Sumber booking</dt>

@@ -39,7 +39,8 @@ import {
   type LookupOption,
 } from '@/api-clients/identity-client';
 import { browserMasterClient, type MasterClient } from '@/api-clients/master-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 
 const REASONS = [
   ['POLICY_UPDATE', 'Pembaruan kebijakan'],
@@ -68,14 +69,14 @@ const idempotencyKey = () => crypto.randomUUID();
 const normalized = (items: string[]) => [...new Set(items)].sort();
 
 const CATEGORY_LABELS: Record<string, string> = {
-  ACCESS: 'Akses dan permission',
-  ASSIGNMENT: 'Assignment',
+  ACCESS: 'Akses dan hak akses',
+  ASSIGNMENT: 'Penugasan',
   ATTENDANCE: 'Kehadiran',
   AUDIT: 'Audit',
   BOOKING: 'Booking',
   BRANCH: 'Cabang',
   CLASS: 'Kelas',
-  CUSTOMER: 'Customer',
+  CUSTOMER: 'Pelanggan',
   DASHBOARD: 'Dashboard',
   FINANCE: 'Finance',
   IDENTITY: 'Verifikasi identitas',
@@ -116,10 +117,10 @@ function errorMessage(code: string) {
     ROLE_CODE_CONFLICT: 'Kode role sudah digunakan.',
     ROLE_IN_USE: 'Role masih digunakan user aktif dan tidak dapat dinonaktifkan.',
     PROTECTED_ROLE_CHANGE: 'Perubahan ini melanggar proteksi system role.',
-    PROTECTED_CAPABILITY: 'Capability inti hanya dapat dimiliki SUPER_OWNER.',
+    PROTECTED_CAPABILITY: 'Izin inti hanya dapat dimiliki SUPER_OWNER.',
     LAST_SUPER_OWNER: 'Perubahan ditolak karena akan menghilangkan Super Admin aktif terakhir.',
     SELF_ACCESS_CHANGE_FORBIDDEN: 'Super Admin tidak boleh mengubah akses akunnya sendiri.',
-    PERMISSION_OVERRIDE_EXISTS: 'Override aktif untuk user, capability, dan scope itu sudah ada.',
+    PERMISSION_OVERRIDE_EXISTS: 'Override aktif untuk user, izin, dan cakupan itu sudah ada.',
     STALE_VERSION: 'Data telah berubah. Muat ulang sebelum menyimpan kembali.',
     IDEMPOTENCY_KEY_REUSED: 'Intent penyimpanan telah berubah. Ulangi dari data terbaru.',
   };
@@ -336,8 +337,8 @@ export function RolePermissionsView({
       tone: removed.length ? 'danger' : 'warning',
       title: creatingRole ? 'Buat role baru?' : 'Aktifkan perubahan role?',
       message: creatingRole
-        ? `${roleDraft.code} akan dibuat dengan ${roleDraft.capabilityKeys.length} capability.`
-        : `${added.length} capability ditambahkan, ${removed.length} dicabut, dan session ${selectedRole?.affectedUsers ?? 0} user terdampak akan dicabut.`,
+        ? `${roleDraft.code} akan dibuat dengan ${roleDraft.capabilityKeys.length} izin.`
+        : `${added.length} izin ditambahkan, ${removed.length} dicabut, dan session ${selectedRole?.affectedUsers ?? 0} user terdampak akan dicabut.`,
       confirmLabel: creatingRole ? 'Buat role' : 'Simpan perubahan',
     });
     if (!accepted) return;
@@ -496,7 +497,7 @@ export function RolePermissionsView({
     const accepted = await feedback.confirm({
       tone: 'warning',
       title: 'Ganti role langsung user?',
-      message: `Role langsung ${userAccess.user.displayName} akan diganti dan seluruh session aktifnya dicabut. Role lifecycle/assignment tidak berubah.`,
+      message: `Role langsung ${userAccess.user.displayName} akan diganti dan seluruh session aktifnya dicabut. Role lifecycle/penugasan tidak berubah.`,
       confirmLabel: 'Ganti role',
     });
     if (!accepted) return;
@@ -526,7 +527,7 @@ export function RolePermissionsView({
     if (!userAccess || !overrideCapability) return;
     const accepted = await feedback.confirm({
       tone: overrideEffect === 'DENY' ? 'danger' : 'warning',
-      title: `${overrideEffect === 'DENY' ? 'Tolak' : 'Berikan'} permission langsung?`,
+      title: `${overrideEffect === 'DENY' ? 'Tolak' : 'Berikan'} hak akses langsung?`,
       message: `${overrideCapability} berlaku ${
         overrideBranchId ? 'pada cabang terpilih' : 'secara global'
       } sampai dicabut eksplisit. Session user akan dicabut.`,
@@ -556,7 +557,7 @@ export function RolePermissionsView({
     if (!userAccess) return;
     const accepted = await feedback.confirm({
       tone: 'warning',
-      title: 'Cabut permission override?',
+      title: 'Cabut hak akses override?',
       message: `${override.effect} ${override.capabilityKey} akan berhenti berlaku dan user harus login ulang.`,
       confirmLabel: 'Cabut override',
     });
@@ -589,45 +590,42 @@ export function RolePermissionsView({
 
   return (
     <section className="space-y-5" aria-labelledby="roles-permissions-title">
-      <Panel className="p-5 sm:p-6">
-        <PageHeader
-          eyebrow="Administrasi akses"
-          title="Role & Hak Akses"
-          titleId="roles-permissions-title"
-          description="Kelola katalog role, scope cabang, dan akses efektif pengguna. Setiap perubahan diaudit dan mencabut session terdampak."
-          context={
-            <div className="grid justify-items-start gap-3 sm:justify-items-end">
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge tone="success">RBAC dari database</StatusBadge>
-                <StatusBadge tone="info">Khusus Super Admin</StatusBadge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <ButtonLink
-                  href="/users"
-                  variant="secondary"
-                  trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
-                >
-                  Daftar pengguna
-                </ButtonLink>
-                <ButtonLink
-                  href="/audit"
-                  variant="secondary"
-                  trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
-                >
-                  Audit akses
-                </ButtonLink>
-              </div>
+      <AdminPageHeader
+        title="Peran & Hak Akses"
+        titleId="roles-permissions-title"
+        description="Kelola katalog role, cakupan cabang, dan akses efektif pengguna. Setiap perubahan diaudit dan mencabut session terdampak."
+        actions={
+          <div className="grid justify-items-start gap-3 sm:justify-items-end">
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge tone="success">RBAC dari database</StatusBadge>
+              <StatusBadge tone="info">Khusus Super Admin</StatusBadge>
             </div>
-          }
-        />
-      </Panel>
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink
+                href="/users"
+                variant="secondary"
+                trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+              >
+                Daftar pengguna
+              </ButtonLink>
+              <ButtonLink
+                href="/audit"
+                variant="secondary"
+                trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+              >
+                Audit akses
+              </ButtonLink>
+            </div>
+          </div>
+        }
+      />
 
       <Tabs
         value={urlState.tab}
         items={[
           {
             value: 'roles',
-            label: 'Role & Capability',
+            label: 'Role & Izin',
             count: roles.filter((role) => role.active).length,
           },
           { value: 'users', label: 'Akses Pengguna' },
@@ -637,7 +635,7 @@ export function RolePermissionsView({
 
       {failure && <Feedback kind="error">{errorMessage(failure)}</Feedback>}
       {loading ? (
-        <Skeleton label="Memuat role dan capability" />
+        <Skeleton label="Memuat role dan izin" />
       ) : failure === 'FORBIDDEN' ? null : (
         <>
           {urlState.tab === 'roles' && (
@@ -694,7 +692,7 @@ export function RolePermissionsView({
                   options={visibleRoles.map((role) => ({
                     id: role.id,
                     label: role.displayName,
-                    description: role.scope === 'GLOBAL' ? 'Scope global' : 'Scope per cabang',
+                    description: role.scope === 'GLOBAL' ? 'Cakupan global' : 'Cakupan per cabang',
                   }))}
                   onChange={(value) => {
                     const role = visibleRoles.find((item) => item.id === value);
@@ -722,7 +720,7 @@ export function RolePermissionsView({
                         </span>
                       </span>
                       <span className="mt-1 block text-xs text-dd-muted">
-                        {role.scope === 'GLOBAL' ? 'Scope global' : 'Scope per cabang'} ·{' '}
+                        {role.scope === 'GLOBAL' ? 'Cakupan global' : 'Cakupan per cabang'} ·{' '}
                         {role.affectedUsers} pengguna
                       </span>
                       <span className="mt-2 block font-mono text-[11px] text-dd-muted/80">
@@ -794,7 +792,7 @@ export function RolePermissionsView({
                       <dl className="mt-5 grid gap-3 sm:grid-cols-3">
                         <Metadata label="Kode role" value={roleDraft.code} mono />
                         <Metadata
-                          label="Scope"
+                          label="Cakupan"
                           value={roleDraft.scope === 'GLOBAL' ? 'Global' : 'Per cabang'}
                         />
                         <Metadata
@@ -822,7 +820,7 @@ export function RolePermissionsView({
                           }
                         />
                         <SelectInput
-                          label="Scope"
+                          label="Cakupan"
                           description={
                             creatingRole ? 'Tentukan jangkauan role.' : 'Immutable setelah dibuat.'
                           }
@@ -874,7 +872,7 @@ export function RolePermissionsView({
                       <div className="min-w-64 flex-1">
                         <SearchInput
                           id="capability-search"
-                          label="Cari capability"
+                          label="Cari izin"
                           description="Cari key, label, atau deskripsi."
                           placeholder="Contoh: ledger:adjust"
                           value={capabilitySearch}
@@ -916,13 +914,13 @@ export function RolePermissionsView({
                           tone="info"
                           title={
                             selectedRole?.system
-                              ? 'Capability system role bersifat tetap'
-                              : 'Ringkasan capability custom role'
+                              ? 'Izin system role bersifat tetap'
+                              : 'Ringkasan izin custom role'
                           }
                           message={
                             selectedRole?.system
-                              ? 'Matrix ini hanya dapat dibaca. Kelola siapa yang memperoleh role dan scope melalui tab Akses Pengguna.'
-                              : 'Gunakan Edit custom role untuk mengubah capability dengan confirmation dan audit.'
+                              ? 'Matrix ini hanya dapat dibaca. Kelola siapa yang memperoleh role dan cakupan melalui tab Akses Pengguna.'
+                              : 'Gunakan Edit custom role untuk mengubah izin dengan confirmation dan audit.'
                           }
                         />
                       </div>
@@ -980,8 +978,8 @@ export function RolePermissionsView({
                         ))}
                         {capabilityGroups.length === 0 && (
                           <EmptyState
-                            title="Capability tidak ditemukan"
-                            description="Ubah pencarian atau kategori untuk melihat capability role ini."
+                            title="Izin tidak ditemukan"
+                            description="Ubah pencarian atau kategori untuk melihat izin role ini."
                           />
                         )}
                       </div>
@@ -1086,7 +1084,7 @@ export function RolePermissionsView({
               ) : (
                 <EmptyState
                   title="Pilih atau buat role"
-                  description="Pilih role untuk melihat metadata dan capability."
+                  description="Pilih role untuk melihat metadata dan izin."
                 />
               )}
             </section>
@@ -1097,7 +1095,7 @@ export function RolePermissionsView({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="eyebrow">Akses efektif pengguna</p>
-                  <h2>Assignment dan override</h2>
+                  <h2>Penugasan dan override</h2>
                   <p className="mt-1 text-sm text-dd-muted">
                     Penolakan akses lebih kuat daripada pemberian role. Override tetap aktif sampai
                     dicabut.
@@ -1111,7 +1109,7 @@ export function RolePermissionsView({
                     id="access-user-search"
                     label="Cari pengguna"
                     description="Cari nama, email, atau nomor telepon."
-                    placeholder="Nama customer atau staf"
+                    placeholder="Nama pelanggan atau staf"
                     value={userSearch}
                     onChange={(event) => setUserSearch(event.target.value)}
                   />
@@ -1145,7 +1143,7 @@ export function RolePermissionsView({
                 <div className="mt-6">
                   <EmptyState
                     title="Pilih pengguna"
-                    description="Cari dan pilih pengguna untuk melihat role, scope, serta permission efektif."
+                    description="Cari dan pilih pengguna untuk melihat role, cakupan, serta hak akses efektif."
                   />
                 </div>
               )}
@@ -1171,7 +1169,7 @@ export function RolePermissionsView({
                         type="button"
                         onClick={() => void loadUser(userAccess.user.id)}
                       >
-                        Muat ulang
+                        Segarkan
                       </Button>
                     </div>
                     <h4 className="mt-5 text-sm">Role langsung</h4>
@@ -1230,7 +1228,7 @@ export function RolePermissionsView({
                     </div>
                     {userAccess.roleAssignments.some(({ source }) => source === 'ASSIGNMENT') && (
                       <div className="mt-4 rounded-dd-lg bg-dd-surface-muted p-3 text-sm">
-                        <strong>Role dari lifecycle/assignment</strong>
+                        <strong>Role dari lifecycle/penugasan</strong>
                         <ul className="mt-2 list-disc pl-5 text-dd-muted">
                           {userAccess.roleAssignments
                             .filter(({ source }) => source === 'ASSIGNMENT')
@@ -1256,12 +1254,12 @@ export function RolePermissionsView({
                   </section>
 
                   <section className="rounded-dd-lg border border-dd-line p-4">
-                    <h3>Permission override</h3>
+                    <h3>Hak akses override</h3>
                     <div className="mt-4 grid gap-3">
                       <SearchSelect
-                        label="Capability"
+                        label="Izin"
                         value={overrideCapability}
-                        placeholder="Pilih capability"
+                        placeholder="Pilih izin"
                         options={capabilities
                           .filter(({ systemOnly }) => !systemOnly)
                           .map((item) => ({
@@ -1287,7 +1285,7 @@ export function RolePermissionsView({
                           <option value="DENY">Tolak akses</option>
                         </SelectInput>
                         <SearchSelect
-                          label="Scope"
+                          label="Cakupan"
                           value={overrideBranchId}
                           placeholder="Global"
                           disabled={
@@ -1306,7 +1304,7 @@ export function RolePermissionsView({
                         disabled={!overrideCapability}
                         onClick={() => void createOverride()}
                       >
-                        Review permission override
+                        Review hak akses override
                       </Button>
                     </div>
                     <div className="mt-5 grid gap-2">
@@ -1348,7 +1346,7 @@ export function RolePermissionsView({
 
                   <section className="rounded-dd-lg border border-dd-line p-4 xl:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h3>Permission efektif</h3>
+                      <h3>Hak akses efektif</h3>
                       <ButtonLink
                         variant="secondary"
                         size="sm"
@@ -1359,8 +1357,8 @@ export function RolePermissionsView({
                       </ButtonLink>
                     </div>
                     <p className="mt-1 text-xs text-dd-muted">
-                      Hasil per capability dan cabang. Penolakan selalu mengalahkan role maupun
-                      pemberian akses.
+                      Hasil per izin dan cabang. Penolakan selalu mengalahkan role maupun pemberian
+                      akses.
                     </p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {[
@@ -1395,7 +1393,7 @@ export function RolePermissionsView({
                                 ? 'System role'
                                 : grant.source === 'CUSTOM_ROLE'
                                   ? 'Custom role'
-                                  : 'Permission override'}
+                                  : 'Hak akses override'}
                             </p>
                           </article>
                         );
@@ -1411,7 +1409,7 @@ export function RolePermissionsView({
       <Drawer
         open={roleDrawerOpen}
         title={creatingRole ? 'Buat custom role' : `Edit ${selectedRole?.displayName ?? 'role'}`}
-        description="Atur metadata, scope, dan capability. Perubahan akan dikonfirmasi dan dicatat dalam audit."
+        description="Atur metadata, cakupan, dan izin. Perubahan akan dikonfirmasi dan dicatat dalam audit."
         busy={saving}
         dirty
         onDirtyClose={async () => {
@@ -1469,9 +1467,11 @@ export function RolePermissionsView({
                 }
               />
               <SelectInput
-                label="Scope"
+                label="Cakupan"
                 description={
-                  creatingRole ? 'Tentukan jangkauan role.' : 'Scope immutable setelah role dibuat.'
+                  creatingRole
+                    ? 'Tentukan jangkauan role.'
+                    : 'Cakupan immutable setelah role dibuat.'
                 }
                 value={roleDraft.scope}
                 disabled={!creatingRole}
@@ -1515,7 +1515,7 @@ export function RolePermissionsView({
             <div className="border-t border-dd-line pt-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <SearchInput
-                  label="Cari capability"
+                  label="Cari izin"
                   placeholder="Nama, deskripsi, atau key"
                   value={capabilitySearch}
                   onChange={(event) => setCapabilitySearch(event.target.value)}

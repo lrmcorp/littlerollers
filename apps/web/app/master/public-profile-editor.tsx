@@ -208,7 +208,7 @@ export function PublicProfileEditor({
               const accepted = await feedback.confirm({
                 tone: 'warning',
                 title: 'Simpan profil publik?',
-                message: 'Konten yang dipublikasikan akan digunakan pada halaman customer.',
+                message: 'Konten yang dipublikasikan akan digunakan pada halaman pelanggan.',
                 confirmLabel: 'Simpan perubahan',
               });
               if (!accepted) return;

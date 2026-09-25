@@ -279,12 +279,12 @@ export function DetailPanel({
         <div>
           <h3 id="class-roster-title">Daftar peserta</h3>
           <p className="text-sm text-dd-muted">
-            Customer dan status booking ditampilkan sesuai scope akses Anda.
+            Pelanggan dan status booking ditampilkan sesuai cakupan akses Anda.
           </p>
         </div>
         {!canReadBookings ? (
           <Feedback kind="info">
-            Anda dapat melihat jumlah peserta, tetapi detail customer memerlukan akses booking.
+            Anda dapat melihat jumlah peserta, tetapi detail pelanggan memerlukan akses booking.
           </Feedback>
         ) : (
           <>
@@ -342,10 +342,10 @@ export function DetailPanel({
               columns={[
                 {
                   id: 'customer',
-                  header: 'Customer',
+                  header: 'Pelanggan',
                   cell: (item) => (
                     <div>
-                      <strong className="block">{item.customer?.displayName ?? 'Customer'}</strong>
+                      <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
                       <span className="text-xs text-dd-muted">
                         {item.customer?.phoneMasked ?? 'Kontak termasking'}
                       </span>
@@ -357,7 +357,7 @@ export function DetailPanel({
                   header: 'Paket & sesi',
                   cell: (item) => (
                     <div>
-                      <span className="block">{item.package?.name ?? 'Paket customer'}</span>
+                      <span className="block">{item.package?.name ?? 'Paket pelanggan'}</span>
                       <span className="text-xs text-dd-muted">
                         {item.sessionBalance?.available ?? 0} sesi tersedia
                       </span>
@@ -399,7 +399,7 @@ export function DetailPanel({
                 <div className="grid gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <strong className="block">{item.customer?.displayName ?? 'Customer'}</strong>
+                      <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
                       <span className="text-xs text-dd-muted">
                         {item.customer?.phoneMasked ?? 'Kontak termasking'}
                       </span>
@@ -417,8 +417,8 @@ export function DetailPanel({
                     </StatusBadge>
                   </div>
                   <p className="m-0 text-sm">
-                    {item.package?.name ?? 'Paket customer'} · {item.sessionBalance?.available ?? 0}{' '}
-                    sesi tersedia
+                    {item.package?.name ?? 'Paket pelanggan'} ·{' '}
+                    {item.sessionBalance?.available ?? 0} sesi tersedia
                   </p>
                   <ButtonLink
                     size="sm"
@@ -466,7 +466,7 @@ export function DetailPanel({
                   tone: 'warning',
                   title: 'Buat QR untuk roster?',
                   message:
-                    'Pass diterbitkan per booking aktif. Kegagalan satu customer tidak membatalkan hasil lainnya.',
+                    'Pass diterbitkan per booking aktif. Kegagalan satu pelanggan tidak membatalkan hasil lainnya.',
                   confirmLabel: 'Terbitkan QR',
                 })
                 .then((accepted) => {
@@ -583,7 +583,7 @@ export function DetailPanel({
       )}
       {slot.status === 'DRAFT' && (
         <section>
-          <h3>Tetapkan instructor</h3>
+          <h3>Tetapkan instruktur</h3>
           <SearchSelect
             label="Instruktur"
             value={instructorId}
@@ -595,7 +595,7 @@ export function DetailPanel({
             disabled={busy || !canManage || !instructorId}
             onClick={() => void onAssign(instructorId)}
           >
-            Tetapkan instructor
+            Tetapkan instruktur
           </Button>
         </section>
       )}

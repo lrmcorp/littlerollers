@@ -241,20 +241,20 @@ test('assignment create and end use one branch and expected version', async ({ p
   });
   await page.goto('/assignments');
   await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
-  await page.getByRole('button', { name: 'Buat assignment' }).click();
-  const assignmentDrawer = page.getByRole('dialog', { name: 'Buat assignment' });
+  await page.getByRole('button', { name: 'Buat penugasan' }).click();
+  const assignmentDrawer = page.getByRole('dialog', { name: 'Buat penugasan' });
   await assignmentDrawer.getByLabel('Pengguna').fill('Synthetic');
   await assignmentDrawer.getByRole('option', { name: /Synthetic Instructor/ }).click();
   await assignmentDrawer.getByLabel('Aktif mulai').fill('2026-08-01');
   await assignmentDrawer.getByLabel('Alasan').fill('synthetic create');
-  await assignmentDrawer.getByRole('button', { name: 'Buat assignment' }).click();
+  await assignmentDrawer.getByRole('button', { name: 'Buat penugasan' }).click();
   await page
-    .getByRole('dialog', { name: 'Buat assignment?' })
+    .getByRole('dialog', { name: 'Buat penugasan?' })
     .getByRole('button', {
-      name: 'Buat assignment',
+      name: 'Buat penugasan',
     })
     .click();
-  await expect(page.getByText('Assignment baru telah dicatat dan diaudit.')).toBeVisible();
+  await expect(page.getByText('Penugasan baru telah dicatat dan diaudit.')).toBeVisible();
   await page.getByRole('button', { name: 'Akhiri', exact: true }).click();
   await page.getByLabel('Efektif berakhir').fill('2026-08-10T00:00');
   await page
@@ -575,7 +575,7 @@ test('ledger balance and history are keyboard accessible and branch scoped', asy
   );
   await page.goto('/ledger');
   await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
-  await page.getByRole('link', { name: 'Lihat detail sesi' }).press('Enter');
+  await page.getByRole('link', { name: 'Lihat detail' }).press('Enter');
   await expect(page.getByText('Aktivasi paket', { exact: true })).toBeVisible();
   await expect(page.getByText('+10')).toBeVisible();
 });
@@ -963,7 +963,7 @@ test('operations H-24 queue and recovery are keyboard operable', async ({ page }
   await expect(
     page.getByRole('row', { name: /Mencoba kembali.*Memerlukan pemeriksaan operasional/ }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Jalankan recovery' }).press('Enter');
+  await page.getByRole('button', { name: 'Jalankan pemulihan' }).press('Enter');
   await expect(page.getByText('Evaluasi selesai.')).toBeVisible();
 });
 

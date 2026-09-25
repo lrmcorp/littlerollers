@@ -4,33 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Activity,
-  Bell,
   BookOpenCheck,
-  Building2,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   CircleDollarSign,
-  ClipboardCheck,
   CreditCard,
-  Database,
-  FileSpreadsheet,
-  Globe,
-  HeartPulse,
-  LayoutDashboard,
-  Landmark,
-  LifeBuoy,
   ListChecks,
-  PackageIcon,
-  ScrollText,
   ShieldCheck,
   Sliders,
-  TicketPercent,
-  UserCheck,
   Users,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
 import { isCustomerOnlySession } from '@/lib/session-audience';
@@ -38,36 +22,8 @@ import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
 import { IconButton } from './components/actions';
+import { iconForPage } from './lib/page-icons';
 import type { QueueCounts } from './components/use-queue-counts';
-
-const pageIcons: Record<string, LucideIcon> = {
-  '/workspace': LayoutDashboard,
-  '/workspace/classes': CalendarDays,
-  '/workspace/bookings': BookOpenCheck,
-  '/check-in-scanner': ClipboardCheck,
-  '/support-cases': LifeBuoy,
-  '/customers': Users,
-  '/ledger': CircleDollarSign,
-  '/identity-verifications': ShieldCheck,
-  '/ledger/adjustments': ListChecks,
-  '/workspace/payments': CreditCard,
-  '/workspace/packages': PackageIcon,
-  '/workspace/vouchers': TicketPercent,
-  '/finance': Landmark,
-  '/workspace/branches': Building2,
-  '/instructors': UserCheck,
-  '/users': Users,
-  '/users/roles-permissions': ShieldCheck,
-  '/assignments': ClipboardCheck,
-  '/master': Database,
-  '/data-import': FileSpreadsheet,
-  '/migrations': Database,
-  '/audit': ScrollText,
-  '/notification-management': Bell,
-  '/public-content-management': Globe,
-  '/operations': Activity,
-  '/health': HeartPulse,
-};
 
 export function AppNavigation({
   mobileOpen = false,
@@ -255,7 +211,7 @@ export function AppNavigation({
                     )}
                     {pagesInGroup.map((item) => {
                       const active = item.href === activeHref;
-                      const Icon = pageIcons[item.href] ?? ListChecks;
+                      const Icon = iconForPage(item.href);
                       return (
                         <Link
                           href={item.href}
@@ -320,7 +276,7 @@ export function AppNavigation({
                     <div className="space-y-1">
                       {advancedPages.map((item) => {
                         const active = item.href === activeHref;
-                        const Icon = pageIcons[item.href] ?? ListChecks;
+                        const Icon = iconForPage(item.href);
                         return (
                           <Link
                             href={item.href}

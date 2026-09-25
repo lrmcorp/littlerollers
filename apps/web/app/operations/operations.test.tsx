@@ -40,7 +40,7 @@ describe('OperationsView', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Pengiriman email' })).toBeVisible();
     expect((await screen.findAllByText('Mencoba kembali'))[0]).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await user.click(screen.getAllByRole('button', { name: 'Jalankan recovery' })[0]!);
+    await user.click(screen.getAllByRole('button', { name: 'Jalankan pemulihan' })[0]!);
     expect(client.run).toHaveBeenCalledWith(job);
     expect(await screen.findByText('Evaluasi selesai.')).toBeInTheDocument();
   });

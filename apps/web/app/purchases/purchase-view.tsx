@@ -326,7 +326,7 @@ export function PurchaseView({
               onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
             />
           </label>
-          <p className="form-hint">
+          <p className="text-sm text-dd-muted">
             Format PNG, JPEG, atau PDF (maks. 5MB). Verifikasi keamanan file dilakukan sebelum pengunggahan.
           </p>
           <Button

@@ -8,7 +8,7 @@ export const supportPriorityLabels: Record<string, string> = {
 export const supportStatusLabels: Record<string, string> = {
   OPEN: 'Terbuka',
   IN_PROGRESS: 'Diproses',
-  WAITING_CUSTOMER: 'Menunggu customer',
+  WAITING_CUSTOMER: 'Menunggu pelanggan',
   RESOLVED: 'Selesai',
   CLOSED: 'Ditutup',
 };

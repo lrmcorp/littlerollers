@@ -17,7 +17,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../components/actions';
 import { Panel, StatCard } from '../components/admin/admin-ui';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { notifySessionFailure } from '@/api-clients/session-client';
 
 export type HealthStatus = 'READY' | 'DEGRADED' | 'NOT_READY';
@@ -157,13 +158,12 @@ export function HealthView({
 
   return (
     <section className="space-y-6" aria-labelledby="health-title">
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Operasional sistem"
+      <>
+        <AdminPageHeader
           title="Status sistem"
           titleId="health-title"
           description="Kesiapan layanan internal dan dependency penting tanpa menampilkan konfigurasi privat."
-          context={
+          actions={
             <Button
               variant="secondary"
               disabled={state.kind === 'loading'}
@@ -173,13 +173,13 @@ export function HealthView({
                 className={`size-4 ${state.kind === 'loading' ? 'animate-spin' : ''}`}
                 aria-hidden="true"
               />
-              Periksa ulang
+              Segarkan
             </Button>
           }
         />
 
         {result && meta ? (
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <StatCard label="Kondisi sistem" value={meta.label} tone={meta.tone} />
             <StatCard
               label="Komponen normal"
@@ -188,16 +188,14 @@ export function HealthView({
             <StatCard label="Pemeriksaan terakhir" value={checkedAt ?? '—'} />
           </div>
         ) : (
-          <div className="mt-6">
-            <Skeleton label="Memeriksa status sistem" />
-          </div>
+          <Skeleton label="Memeriksa status sistem" />
         )}
-      </Panel>
+      </>
 
       {state.kind === 'error' && (
         <Feedback kind="error">
           Status terbaru tidak dapat diperiksa. Data lama tidak dianggap sebagai kondisi terkini.
-          Periksa koneksi lalu gunakan tombol “Periksa ulang”.
+          Periksa koneksi lalu gunakan tombol “Segarkan”.
         </Feedback>
       )}
 

@@ -14,7 +14,10 @@ export function LegacyPurchaseRedirect() {
     );
   }, [context, router]);
   return (
-    <section className="card" role="status">
+    <section
+      className="mx-auto w-full max-w-xl space-y-3 rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+      role="status"
+    >
       Mengarahkan ke halaman pesanan…
     </section>
   );

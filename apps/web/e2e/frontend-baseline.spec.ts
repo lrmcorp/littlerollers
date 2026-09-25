@@ -331,7 +331,7 @@ test('admin sees only a read-only scoped user workspace', async ({ page }) => {
 
   await page.goto('/users');
   await expect(page.getByRole('link', { name: 'Branch User' }).first()).toBeVisible();
-  await expect(page.getByText('Read only')).toBeVisible();
+  await expect(page.getByText('Hanya lihat')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Buat pengguna internal' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Branch User' }).first().click();
   await expect(page.getByRole('button', { name: 'Kelola role' })).toHaveCount(0);
@@ -556,9 +556,9 @@ test('navigation hides capabilities that are not effective', async ({ page }) =>
     }),
   );
   await page.goto('/workspace');
-  await expect(page.getByRole('link', { name: 'Sesi Customer', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sesi Pelanggan', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pengguna', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Operations H-24' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Evaluasi kuota H-24' })).toHaveCount(0);
 });
 
 test('branch choice persists per tab and a revoked API response ends the session', async ({

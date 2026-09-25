@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Calendar, CircleDollarSign, RefreshCw, Users } from 'lucide-react';
-import { PageHeader } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from '../../components/admin/admin-ui';
 import { Button } from '../../components/actions';
 import { SearchSelect } from '../../components/forms';
@@ -93,11 +93,10 @@ export function OwnerBranchPerformanceView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Owner Cabang / Finansial"
+      <AdminPageHeader
         title="Performa Cabang Privat"
         description="Laporan Omset, Estimasi Profit, dan Rincian Biaya Mengajar Instruktur untuk Owner Cabang (Keputusan Bisnis #7 & #10)"
-        context={
+        actions={
           <Button
             variant="secondary"
             leadingIcon={<RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />}

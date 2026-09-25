@@ -97,7 +97,7 @@ export function VoucherDetailView({ id }: { id: string }) {
   const transition = async (action: 'activate' | 'pause' | 'archive') => {
     if (!voucher || busy) return;
     const labels = {
-      activate: ['Aktifkan voucher?', 'Voucher dapat digunakan customer yang memenuhi syarat.'],
+      activate: ['Aktifkan voucher?', 'Voucher dapat digunakan pelanggan yang memenuhi syarat.'],
       pause: ['Jeda voucher?', 'Voucher tidak dapat dipakai untuk pesanan baru selama dijeda.'],
       archive: [
         'Arsipkan voucher?',
@@ -107,7 +107,7 @@ export function VoucherDetailView({ id }: { id: string }) {
     const accepted = await feedback.confirm({
       tone: action === 'archive' ? 'danger' : 'warning',
       title: labels[action][0],
-      message: `${labels[action][1]} Scope: ${voucher.branch?.name ?? 'semua cabang'}.`,
+      message: `${labels[action][1]} Cakupan: ${voucher.branch?.name ?? 'semua cabang'}.`,
       confirmLabel: action === 'archive' ? 'Arsipkan' : 'Lanjutkan',
     });
     if (!accepted) return;
@@ -197,7 +197,7 @@ export function VoucherDetailView({ id }: { id: string }) {
           </strong>
         </div>
         <div className="sm:col-span-2">
-          <span className="text-xs text-dd-muted">Scope paket</span>
+          <span className="text-xs text-dd-muted">Cakupan paket</span>
           <strong className="mt-1 block">
             {voucher.packages?.length
               ? voucher.packages.map((item) => item.name).join(', ')
@@ -205,7 +205,7 @@ export function VoucherDetailView({ id }: { id: string }) {
           </strong>
         </div>
         <div>
-          <span className="text-xs text-dd-muted">Scope tipe kelas</span>
+          <span className="text-xs text-dd-muted">Cakupan tipe kelas</span>
           <strong className="mt-1 block">{voucher.classType?.name ?? 'Semua tipe kelas'}</strong>
         </div>
         <div>
@@ -479,13 +479,13 @@ export function VoucherDetailView({ id }: { id: string }) {
           />
           <TextInput
             name="perCustomerUsageLimit"
-            label="Batas per customer"
+            label="Batas per pelanggan"
             type="number"
             min={0}
             defaultValue={voucher.perCustomerUsageLimit ?? ''}
           />
           <SearchSelect
-            label="Scope cabang"
+            label="Cakupan cabang"
             value={editBranchId}
             placeholder="Semua cabang"
             options={(session.session?.branches ?? []).map((branch) => ({
@@ -499,7 +499,7 @@ export function VoucherDetailView({ id }: { id: string }) {
                   selectedPackageIds.length > 0 &&
                   !(await feedback.confirm({
                     tone: 'warning',
-                    title: 'Ganti scope cabang?',
+                    title: 'Ganti cakupan cabang?',
                     message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
                     confirmLabel: 'Ganti cabang',
                   }))
@@ -516,7 +516,7 @@ export function VoucherDetailView({ id }: { id: string }) {
           />
           <SearchSelect
             name="classTypeId"
-            label="Scope tipe kelas"
+            label="Cakupan tipe kelas"
             value={editClassTypeId}
             placeholder="Semua tipe kelas"
             options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
@@ -526,7 +526,7 @@ export function VoucherDetailView({ id }: { id: string }) {
                   selectedPackageIds.length > 0 &&
                   !(await feedback.confirm({
                     tone: 'warning',
-                    title: 'Ganti scope tipe kelas?',
+                    title: 'Ganti cakupan tipe kelas?',
                     message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
                     confirmLabel: 'Ganti tipe kelas',
                   }))
@@ -539,8 +539,8 @@ export function VoucherDetailView({ id }: { id: string }) {
             }}
           />
           <AsyncMultiSearchSelect
-            label="Scope paket"
-            description="Tanpa pilihan berarti semua paket dalam scope cabang dan tipe kelas."
+            label="Cakupan paket"
+            description="Tanpa pilihan berarti semua paket dalam cakupan cabang dan tipe kelas."
             placeholder="Cari dan pilih paket"
             value={selectedPackageIds}
             selectedOptions={packageOptions.map((item) => ({

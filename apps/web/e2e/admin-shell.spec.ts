@@ -98,7 +98,7 @@ for (const viewport of viewports) {
       await expect(navigation).toHaveAttribute('aria-hidden', 'true');
       await expect(navigation).toHaveAttribute('inert', '');
 
-      for (const label of ['Buka navigasi', 'Cari atau jalankan perintah', 'Notifikasi']) {
+      for (const label of ['Buka navigasi', 'Cari halaman', 'Notifikasi']) {
         const control = page.getByRole('button', { name: label });
         const box = await control.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);

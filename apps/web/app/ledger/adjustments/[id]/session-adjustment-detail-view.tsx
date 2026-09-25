@@ -8,7 +8,8 @@ import { Button, ButtonLink } from '../../../components/actions';
 import { Modal, useAppFeedback } from '../../../components/app-feedback';
 import { SelectInput, Textarea } from '../../../components/forms';
 import { Badge, Panel, StatCard } from '../../../components/admin/admin-ui';
-import { EmptyState, Feedback, PageHeader, Skeleton } from '../../../ui';
+import { EmptyState, Feedback, Skeleton } from '../../../ui';
+import { AdminPageHeader } from '../../../components/admin/admin-page-header';
 import { useSessionContext } from '../../../session-context';
 
 const statusCopy = {
@@ -77,7 +78,7 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
     const accepted = await feedback.confirm({
       tone: decision === 'approve' ? 'warning' : 'danger',
       title: decision === 'approve' ? 'Setujui penyesuaian sesi?' : 'Tolak penyesuaian sesi?',
-      message: `${item.customer?.displayName ?? 'Customer'} · perubahan ${item.quantity > 0 ? '+' : ''}${item.quantity} sesi · saldo tersedia diproyeksikan menjadi ${item.projectedAvailable ?? '—'} sesi. Keputusan dicatat pada audit trail.`,
+      message: `${item.customer?.displayName ?? 'Pelanggan'} · perubahan ${item.quantity > 0 ? '+' : ''}${item.quantity} sesi · saldo tersedia diproyeksikan menjadi ${item.projectedAvailable ?? '—'} sesi. Keputusan dicatat pada audit trail.`,
       confirmLabel: decision === 'approve' ? 'Setujui dan posting' : 'Tolak permintaan',
     });
     if (!accepted) return;
@@ -115,7 +116,7 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
       <div className="space-y-4">
         <EmptyState
           title="Penyesuaian tidak tersedia"
-          description={error || 'Data tidak ditemukan atau berada di luar scope cabang Anda.'}
+          description={error || 'Data tidak ditemukan atau berada di luar cakupan cabang Anda.'}
         />
         <div className="text-center">
           <Button onClick={() => void load()}>Coba lagi</Button>
@@ -133,27 +134,24 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
       >
         Kembali ke Penyesuaian Sesi
       </ButtonLink>
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Penyesuaian Sesi / Detail"
-          title={item.customer?.displayName ?? 'Customer'}
-          titleId="adjustment-detail-title"
-          description={`${item.package?.name ?? 'Paket'} · ${item.branch?.name ?? 'Cabang'} · ${item.classType?.name ?? 'Tipe kelas'}`}
-          context={
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={status.tone}>{status.label}</Badge>
-              <Button
-                variant="secondary"
-                loading={loading}
-                leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
-                onClick={() => void load()}
-              >
-                Perbarui
-              </Button>
-            </div>
-          }
-        />
-      </Panel>
+      <AdminPageHeader
+        title={item.customer?.displayName ?? 'Pelanggan'}
+        titleId="adjustment-detail-title"
+        description={`${item.package?.name ?? 'Paket'} · ${item.branch?.name ?? 'Cabang'} · ${item.classType?.name ?? 'Tipe kelas'}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={status.tone}>{status.label}</Badge>
+            <Button
+              variant="secondary"
+              loading={loading}
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+              onClick={() => void load()}
+            >
+              Perbarui
+            </Button>
+          </div>
+        }
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Dampak penyesuaian">
         <StatCard label="Saldo saat diminta" value={String(item.ledgerBalanceAtRequest ?? '—')} />

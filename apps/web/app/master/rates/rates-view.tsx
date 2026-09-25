@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Calendar, Plus, RefreshCw } from 'lucide-react';
 import { useSessionContext } from '../../session-context';
-import { Feedback, PageHeader } from '../../ui';
+import { Feedback } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import {
   AdminEmptyState,
   Badge,
@@ -174,11 +175,10 @@ export function RatesView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Master Data Finansial"
+      <AdminPageHeader
         title="Konfigurasi Tarif Ber-Effective Date"
         description="Pengaturan Honor Instruktur (Fee/Jam) & Projection Rate Beban Sesi dengan riwayat tanggal berlaku efektif."
-        context={
+        actions={
           <Button
             variant="secondary"
             leadingIcon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}

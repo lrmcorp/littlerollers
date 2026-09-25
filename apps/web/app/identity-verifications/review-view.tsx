@@ -12,7 +12,8 @@ import {
   type IdentityVerificationReviewSummary,
   type VerificationDocument,
 } from '@/api-clients/identity-verification-client';
-import { PageHeader, StatusBadge } from '../ui';
+import { StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import {
@@ -344,16 +345,14 @@ export function IdentityReviewView({
 
   return (
     <section className="space-y-6 font-sans text-dd-ink" aria-labelledby="identity-review-title">
-      {/* Header Panel */}
-      <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
-        <PageHeader
-          eyebrow="Administrasi"
-          title="Verifikasi customer"
+      <div className="space-y-4">
+        <AdminPageHeader
+          title="Verifikasi pelanggan"
           titleId="identity-review-title"
-          description="Cari customer, bandingkan Selfie dan KTP, lalu ambil keputusan dengan jejak audit."
-          context={
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
+          description="Cari pelanggan, bandingkan selfie dan KTP, lalu ambil keputusan yang tercatat."
+          badges={<StatusBadge tone="success">Hak akses terverifikasi</StatusBadge>}
+          actions={
+            <>
               <Button
                 variant="secondary"
                 disabled={loading}
@@ -367,12 +366,12 @@ export function IdentityReviewView({
               >
                 Segarkan
               </Button>
-            </div>
+            </>
           }
         />
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-dd-muted border-t border-dd-line/60 pt-4">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-dd-muted">
           <span className="font-semibold text-dd-ink">
-            {(summary.totalCustomers ?? 0).toLocaleString('id-ID')} customer
+            {(summary.totalCustomers ?? 0).toLocaleString('id-ID')} pelanggan
           </span>
           <span>•</span>
           <span className="font-semibold text-dd-ink">
@@ -389,7 +388,7 @@ export function IdentityReviewView({
               : '—'}
           </span>
         </div>
-      </Panel>
+      </div>
 
       {/* Summary KPI Filter Buttons */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -435,7 +434,7 @@ export function IdentityReviewView({
       {/* Filter Bar */}
       <FilterBar>
         <SearchInput
-          label="Cari customer atau ID"
+          label="Cari pelanggan atau ID"
           value={draftQ}
           onChange={(event) => setDraftQ(event.target.value)}
           placeholder="Nama, nomor telepon, atau UUID"
@@ -518,12 +517,12 @@ export function IdentityReviewView({
         emptyDescription={
           q || kind || scanStatus || from || until
             ? 'Ubah pencarian atau reset filter untuk melihat data lain.'
-            : 'Tidak ada customer yang perlu diperiksa pada status ini.'
+            : 'Tidak ada pelanggan yang perlu diperiksa pada status ini.'
         }
         columns={[
           {
             id: 'customer',
-            header: 'Customer',
+            header: 'Pelanggan',
             cell: (item) => (
               <div className="py-1">
                 <strong className="font-bold text-sm text-dd-ink">{item.user.displayName}</strong>
@@ -617,7 +616,7 @@ export function IdentityReviewView({
       <Drawer
         open={Boolean(selected)}
         onClose={closeDrawer}
-        title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi customer'}
+        title={selected ? `Verifikasi · ${selected.user.displayName}` : 'Verifikasi pelanggan'}
         description="Periksa kejelasan foto, bandingkan wajah dengan foto KTP, lalu tentukan keputusan verifikasi."
         className="max-w-5xl"
         footer={
@@ -644,8 +643,8 @@ export function IdentityReviewView({
               <AlertBanner
                 tone="warning"
                 title="Dokumen telah diperbarui"
-                message="Dokumen telah diubah oleh reviewer lain atau diperbarui oleh customer."
-                action={{ label: 'Muat ulang', onSelect: () => void refreshSelected() }}
+                message="Dokumen telah diubah oleh reviewer lain atau diperbarui oleh pelanggan."
+                action={{ label: 'Segarkan', onSelect: () => void refreshSelected() }}
               />
             )}
 
@@ -653,7 +652,7 @@ export function IdentityReviewView({
               <strong className="block text-sm font-bold text-dd-ink mb-1">
                 Panduan Pemeriksaan:
               </strong>
-              1. Pastikan foto selfie menampilkan wajah customer dengan jelas tanpa kacamata
+              1. Pastikan foto selfie menampilkan wajah pelanggan dengan jelas tanpa kacamata
               hitam/topi.
               <br />
               2. Pastikan KTP asli, seluruh sudut terlihat, nama &amp; NIK terbaca tajam.

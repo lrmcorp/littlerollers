@@ -8,7 +8,8 @@ import {
   type MasterKind,
   type MasterSetting,
 } from '@/api-clients/master-client';
-import { EmptyState, Feedback, PageHeader, StatusBadge } from '../ui';
+import { EmptyState, Feedback, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '@/api-clients/identity-client';
 import { Pagination, StatCard, Tabs } from '../components/admin/admin-ui';
@@ -44,7 +45,7 @@ export type MasterTab =
 const kindLabels: Record<MasterKind, string> = {
   QUOTA_CAPACITY: 'Kuota & kapasitas kelas',
   PROJECTION_RATE: 'Nilai proyeksi per sesi',
-  INSTRUCTOR_FEE: 'Honor instructor',
+  INSTRUCTOR_FEE: 'Honor instruktur',
 };
 
 const dateValue = (value: Date | string | null) =>
@@ -262,17 +263,16 @@ export function MasterView({
   return (
     <div className="space-y-6" aria-labelledby="master-title">
       {/* Top-Level Modern PageHeader */}
-      <PageHeader
-        eyebrow="Master operasional"
+      <AdminPageHeader
         title="Data Master"
         titleId="master-title"
-        description="Kelola katalog tipe kelas global serta konfigurasi kapasitas, proyeksi, honor instructor, dan area studio."
-        context={
+        description="Kelola katalog tipe kelas global serta konfigurasi kapasitas, proyeksi, honor instruktur, dan area studio."
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge tone={canManage ? 'success' : 'neutral'}>
               {canManage ? 'Dapat mengelola' : 'Akses baca'}
             </StatusBadge>
-            <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
+            <StatusBadge tone="success">Hak akses terverifikasi</StatusBadge>
             {sessionContext && (
               <div className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-1.5 text-xs text-dd-muted">
                 Konteks:{' '}
@@ -288,7 +288,7 @@ export function MasterView({
               onClick={() => void load(true)}
               disabled={loading}
             >
-              {loading ? 'Memuat…' : testAccess ? 'Muat master data' : 'Refresh master data'}
+              {loading ? 'Memuat…' : testAccess ? 'Muat master data' : 'Segarkan data master'}
             </Button>
           </div>
         }
@@ -315,6 +315,7 @@ export function MasterView({
       <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-3 shadow-dd-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Tabs
+            wrap
             items={tabItems.map((tab) => ({ value: tab.id, label: tab.label }))}
             value={selectedTab}
             onChange={(value) => {
@@ -804,12 +805,12 @@ export function MasterView({
               />
               {kind === 'INSTRUCTOR_FEE' && (
                 <AsyncSearchSelect
-                  label="Instructor aktif"
+                  label="Instruktur aktif"
                   value={instructor?.id ?? ''}
                   selectedOption={instructor}
                   loadOptions={lookupInstructors}
                   onChange={(_id, option) => setInstructor(option as LookupOption | undefined)}
-                  placeholder="Cari nama instructor"
+                  placeholder="Cari nama instruktur"
                 />
               )}
               <TextInput
@@ -997,7 +998,7 @@ export function MasterView({
                           variant="secondary"
                           href={`/workspace/branches/${item.id}`}
                         >
-                          Lihat detail cabang
+                          Lihat detail
                         </ButtonLink>
                       </li>
                     ))}
@@ -1124,7 +1125,7 @@ export function MasterView({
       <Drawer
         open={Boolean(scopingClassType)}
         title="Atur Studio/Cabang"
-        description="Pilihan disimpan sebagai scope eksplisit. Cabang baru tidak otomatis ikut."
+        description="Pilihan disimpan sebagai cakupan eksplisit. Cabang baru tidak otomatis ikut."
         busy={loading}
         dirty={Boolean(scopingClassType && classTypeScopeReason.trim())}
         onClose={() => {

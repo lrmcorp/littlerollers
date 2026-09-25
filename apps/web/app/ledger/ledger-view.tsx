@@ -12,7 +12,8 @@ import {
   type LedgerClient,
   type LedgerSummary,
 } from '@/api-clients/ledger-client';
-import { EmptyState, Feedback, PageHeader, Skeleton } from '../ui';
+import { EmptyState, Feedback, Skeleton } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
@@ -326,7 +327,7 @@ export function LedgerView({
       const result = await client.list(branchId || undefined, undefined, query, 'ACTIVE');
       return result.items.map((item) => ({
         ...item,
-        label: `${item.customer?.displayName ?? 'Customer'} · ${item.packageName ?? 'Paket'}`,
+        label: `${item.customer?.displayName ?? 'Pelanggan'} · ${item.packageName ?? 'Paket'}`,
         description: `${item.branchName ?? 'Cabang'} · tersedia ${item.available} sesi · berakhir ${date(item.expiryAt)}`,
       }));
     },
@@ -365,12 +366,36 @@ export function LedgerView({
     setBalanceCursor('');
     onBalanceFiltersChange?.('', '');
   };
+  const applyAdjustmentFilters = () => {
+    const normalized = adjustmentSearch.trim();
+    setAppliedAdjustmentSearch(normalized);
+    setAppliedAdjustmentFrom(adjustmentFrom);
+    setAppliedAdjustmentUntil(adjustmentUntil);
+    setActiveAdjustmentCursor('');
+    onAdjustmentFiltersChange?.({
+      q: normalized,
+      from: adjustmentFrom,
+      until: adjustmentUntil,
+      cursor: '',
+    });
+  };
+
+  const resetAdjustmentFilters = () => {
+    setAdjustmentSearch('');
+    setAdjustmentFrom('');
+    setAdjustmentUntil('');
+    setAppliedAdjustmentSearch('');
+    setAppliedAdjustmentFrom('');
+    setAppliedAdjustmentUntil('');
+    setActiveAdjustmentCursor('');
+    onAdjustmentFiltersChange?.({ q: '', from: '', until: '', cursor: '' });
+  };
   const requestDirty = Boolean(selectedPackage || quantity);
   const confirmDiscardRequest = () =>
     feedback.confirm({
       tone: 'warning',
       title: 'Batalkan penyesuaian sesi?',
-      message: 'Customer, paket, dan perubahan sesi yang dipilih akan dikosongkan.',
+      message: 'Pelanggan, paket, dan perubahan sesi yang dipilih akan dikosongkan.',
       confirmLabel: 'Buang input',
     });
   const closeRequest = async () => {
@@ -387,7 +412,7 @@ export function LedgerView({
     const accepted = await feedback.confirm({
       tone: projectedAvailable < 0 ? 'danger' : 'warning',
       title: 'Konfirmasi permintaan penyesuaian',
-      message: `${selectedPackage.customer?.displayName ?? 'Customer'} · ${selectedPackage.packageName} · perubahan ${quantity} sesi · saldo tersedia setelah perubahan ${projectedAvailable} sesi · scope ${selectedPackage.branchName ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reasonCode] ?? 'tercatat'}.`,
+      message: `${selectedPackage.customer?.displayName ?? 'Pelanggan'} · ${selectedPackage.packageName} · perubahan ${quantity} sesi · saldo tersedia setelah perubahan ${projectedAvailable} sesi · cakupan ${selectedPackage.branchName ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reasonCode] ?? 'tercatat'}.`,
       confirmLabel: 'Buat permintaan',
     });
     if (!accepted) return;
@@ -415,7 +440,7 @@ export function LedgerView({
     const accepted = await feedback.confirm({
       tone: decision === 'approve' ? 'warning' : 'danger',
       title: decision === 'approve' ? 'Setujui penyesuaian sesi' : 'Tolak penyesuaian sesi',
-      message: `${item.customer?.displayName ?? 'Customer'} · perubahan ${item.quantity} sesi · proyeksi tersedia ${item.projectedAvailable ?? 'tidak tersedia'} · scope ${item.branch?.name ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reason] ?? 'tercatat'} · versi ${item.version}.`,
+      message: `${item.customer?.displayName ?? 'Pelanggan'} · perubahan ${item.quantity} sesi · proyeksi tersedia ${item.projectedAvailable ?? 'tidak tersedia'} · cakupan ${item.branch?.name ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reason] ?? 'tercatat'} · versi ${item.version}.`,
       confirmLabel: decision === 'approve' ? 'Setujui dan posting' : 'Tolak permintaan',
     });
     if (!accepted) return;
@@ -445,28 +470,25 @@ export function LedgerView({
 
   return (
     <section className="space-y-6" aria-labelledby="ledger-title">
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow={adjustmentsOnly ? 'Kontrol saldo' : 'Operasional customer'}
-          title={adjustmentsOnly ? 'Penyesuaian Sesi' : 'Sesi Customer'}
-          titleId="ledger-title"
-          description={
-            adjustmentsOnly
-              ? 'Tinjau permintaan perubahan sesi sesuai permission, scope cabang, dan separation of duties.'
-              : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan ledger authoritative.'
-          }
-          context={
-            <Button
-              variant="secondary"
-              disabled={loading || adjustmentLoading}
-              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
-              onClick={() => void refreshOperationalData()}
-            >
-              Perbarui data
-            </Button>
-          }
-        />
-      </Panel>
+      <AdminPageHeader
+        title={adjustmentsOnly ? 'Penyesuaian Sesi' : 'Sesi Pelanggan'}
+        titleId="ledger-title"
+        description={
+          adjustmentsOnly
+            ? 'Tinjau permintaan perubahan sesi sesuai hak akses, cakupan cabang, dan separation of duties.'
+            : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan ledger authoritative.'
+        }
+        actions={
+          <Button
+            variant="secondary"
+            disabled={loading || adjustmentLoading}
+            leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+            onClick={() => void refreshOperationalData()}
+          >
+            Segarkan
+          </Button>
+        }
+      />
 
       {!adjustmentsOnly && (
         <Tabs
@@ -489,7 +511,13 @@ export function LedgerView({
 
       {!adjustmentsOnly && workspaceTab === 'balances' && (
         <>
-          <FilterBar>
+          <FilterBar
+            label="Filter saldo paket"
+            applying={loading}
+            onApply={applyFilters}
+            onReset={resetFilters}
+            showReset={Boolean(appliedSearch || appliedStatus)}
+          >
             {injectedAccess && !sessionContext && (
               <TextInput
                 wrapperClassName="min-w-52"
@@ -501,16 +529,10 @@ export function LedgerView({
             )}
             <TextInput
               wrapperClassName="min-w-64 flex-1"
-              label="Cari customer atau paket"
+              label="Cari pelanggan atau paket"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  applyFilters();
-                }
-              }}
-              placeholder="Nama customer, paket, atau tipe kelas"
+              placeholder="Nama pelanggan, paket, atau tipe kelas"
             />
             <SelectInput
               wrapperClassName="min-w-44"
@@ -525,14 +547,6 @@ export function LedgerView({
               <option value="FROZEN">Dibekukan</option>
               <option value="INACTIVE">Tidak aktif</option>
             </SelectInput>
-            <Button disabled={loading} onClick={applyFilters}>
-              Terapkan
-            </Button>
-            {(appliedSearch || appliedStatus) && (
-              <Button variant="ghost" onClick={resetFilters}>
-                Reset filter
-              </Button>
-            )}
           </FilterBar>
 
           {summary ? (
@@ -567,7 +581,7 @@ export function LedgerView({
           <Panel className="overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line px-5 py-4">
               <div>
-                <h2 className="font-semibold text-dd-ink">Paket dan saldo customer</h2>
+                <h2 className="font-semibold text-dd-ink">Paket dan saldo pelanggan</h2>
                 <p className="mt-1 text-sm text-dd-muted">
                   Pilih paket untuk melihat histori sesi secara lengkap.
                 </p>
@@ -577,12 +591,12 @@ export function LedgerView({
 
             {loading && items.length === 0 ? (
               <div className="p-5">
-                <Skeleton label="Memuat paket customer" />
+                <Skeleton label="Memuat paket pelanggan" />
               </div>
             ) : items.length === 0 ? (
               <div className="p-5">
                 <EmptyState
-                  title="Paket customer tidak ditemukan"
+                  title="Paket pelanggan tidak ditemukan"
                   description="Ubah cabang atau filter pencarian untuk melihat data lainnya."
                 />
               </div>
@@ -592,7 +606,7 @@ export function LedgerView({
                   <table className="w-full border-collapse text-left text-sm">
                     <thead className="bg-dd-surface-muted text-xs uppercase tracking-wider text-dd-muted">
                       <tr>
-                        <th className="px-5 py-3">Customer</th>
+                        <th className="px-5 py-3">Pelanggan</th>
                         <th className="px-4 py-3">Paket</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3 text-center">Saldo / tertahan / tersedia</th>
@@ -604,7 +618,7 @@ export function LedgerView({
                         <tr key={item.id} className="hover:bg-dd-surface-muted/60">
                           <td className="px-5 py-4">
                             <strong className="block text-dd-ink">
-                              {item.customer?.displayName ?? 'Customer'}
+                              {item.customer?.displayName ?? 'Pelanggan'}
                             </strong>
                             <span className="mt-1 block text-xs text-dd-muted">
                               {item.customer?.phoneMasked ?? 'Telepon tidak tersedia'} ·{' '}
@@ -634,7 +648,7 @@ export function LedgerView({
                               variant="ghost"
                               href={`/ledger/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}
                             >
-                              Lihat detail sesi
+                              Lihat detail
                             </ButtonLink>
                           </td>
                         </tr>
@@ -649,7 +663,7 @@ export function LedgerView({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <strong className="text-dd-ink">
-                            {item.customer?.displayName ?? 'Customer'}
+                            {item.customer?.displayName ?? 'Pelanggan'}
                           </strong>
                           <span className="mt-1 block text-xs text-dd-muted">
                             {item.packageName ?? 'Paket'} · {item.branchName ?? 'Cabang'}
@@ -670,7 +684,7 @@ export function LedgerView({
                         href={`/ledger/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}
                         aria-label={`Lihat histori ${item.customer?.displayName ?? 'customer'} ${item.packageName ?? 'paket'}`}
                       >
-                        Lihat detail sesi
+                        Lihat detail
                       </ButtonLink>
                     </li>
                   ))}
@@ -681,7 +695,7 @@ export function LedgerView({
               <Pagination
                 hasPrevious={balanceCursor !== ''}
                 hasNext={Boolean(nextCursor)}
-                totalLabel={`${summary?.packageCount ?? items.length} paket customer`}
+                totalLabel={`${summary?.packageCount ?? items.length} paket pelanggan`}
                 onPrevious={() => {
                   const previous = previousCursor ?? '';
                   setBalanceCursor(previous);
@@ -731,10 +745,18 @@ export function LedgerView({
 
           {canReview && (
             <div className="mt-6">
-              <FilterBar>
+              <FilterBar
+                label="Filter penyesuaian sesi"
+                applying={adjustmentLoading}
+                onApply={applyAdjustmentFilters}
+                onReset={resetAdjustmentFilters}
+                showReset={Boolean(
+                  appliedAdjustmentSearch || appliedAdjustmentFrom || appliedAdjustmentUntil,
+                )}
+              >
                 <TextInput
                   wrapperClassName="min-w-56 flex-1"
-                  label="Cari customer atau paket"
+                  label="Cari pelanggan atau paket"
                   value={adjustmentSearch}
                   onChange={(event) => setAdjustmentSearch(event.target.value)}
                 />
@@ -748,24 +770,6 @@ export function LedgerView({
                   value={adjustmentUntil}
                   onChange={(event) => setAdjustmentUntil(event.target.value)}
                 />
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const normalized = adjustmentSearch.trim();
-                    setAppliedAdjustmentSearch(normalized);
-                    setAppliedAdjustmentFrom(adjustmentFrom);
-                    setAppliedAdjustmentUntil(adjustmentUntil);
-                    setActiveAdjustmentCursor('');
-                    onAdjustmentFiltersChange?.({
-                      q: normalized,
-                      from: adjustmentFrom,
-                      until: adjustmentUntil,
-                      cursor: '',
-                    });
-                  }}
-                >
-                  Terapkan filter
-                </Button>
               </FilterBar>
               {adjustmentSummary && (
                 <section
@@ -829,7 +833,7 @@ export function LedgerView({
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <strong className="text-dd-ink">
-                            {item.customer?.displayName ?? 'Customer legacy'}
+                            {item.customer?.displayName ?? 'Pelanggan legacy'}
                           </strong>
                           <span className="mt-1 block text-sm text-dd-muted">
                             {item.package?.name ?? 'Paket'} · {item.classType?.name ?? 'Tipe kelas'}{' '}
@@ -987,7 +991,7 @@ export function LedgerView({
       >
         <div className="grid gap-4">
           <AsyncSearchSelect
-            label="Cari customer atau paket aktif"
+            label="Cari pelanggan atau paket aktif"
             value={selectedPackage?.id ?? ''}
             selectedOption={selectedPackage}
             placeholder="Ketik minimal 2 karakter"
@@ -1088,7 +1092,7 @@ export function LedgerView({
         {decisionIntent && (
           <div className="grid gap-4">
             <p className="text-sm leading-6 text-dd-muted">
-              {decisionIntent.item.customer?.displayName ?? 'Customer'} · perubahan{' '}
+              {decisionIntent.item.customer?.displayName ?? 'Pelanggan'} · perubahan{' '}
               {decisionIntent.item.quantity} · proyeksi tersedia{' '}
               {decisionIntent.item.projectedAvailable ?? '—'}.
             </p>

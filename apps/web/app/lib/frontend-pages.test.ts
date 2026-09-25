@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canMutatePage, canReadPage, frontendPages } from './frontend-pages';
+import { canMutatePage, canReadPage, frontendPages, pageForPath } from './frontend-pages';
+import { pageIcons } from './page-icons';
 
 const page = (href: string) => frontendPages.find((item) => item.href === href)!;
 
@@ -26,5 +27,21 @@ describe('frontend page registry', () => {
     expect(canReadPage(['automation:read'], reminders)).toBe(true);
     expect(canMutatePage(['automation:read'], reminders)).toBe(false);
     expect(canMutatePage(['automation:read', 'automation:run'], reminders)).toBe(true);
+  });
+
+  it('resolves detail paths to their list page', () => {
+    expect(pageForPath('/workspace/payments')?.href).toBe('/workspace/payments');
+    expect(pageForPath('/workspace/payments/abc-123')?.href).toBe('/workspace/payments');
+    expect(pageForPath('/customers/xyz')?.group).toBe('Member & Pelanggan');
+    expect(pageForPath('/tidak-ada')).toBeUndefined();
+  });
+
+  it('gives every staff page its own icon', () => {
+    const staffHrefs = frontendPages
+      .filter((item) => !item.capabilities.includes('customer:self'))
+      .map((item) => item.href);
+    const icons = staffHrefs.map((href) => pageIcons[href]);
+    expect(icons.every(Boolean)).toBe(true);
+    expect(new Set(icons).size).toBe(icons.length);
   });
 });

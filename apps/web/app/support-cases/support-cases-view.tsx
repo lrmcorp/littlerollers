@@ -9,7 +9,8 @@ import {
   TextInput,
   type SearchSelectOption,
 } from '../components/forms';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { customerClient } from '../customers/customer-client';
 import { supportPriorityLabel, supportPriorityLabels, supportStatusLabel } from './support-labels';
@@ -44,7 +45,7 @@ export function SupportCasesView() {
     () =>
       api('/support-cases')
         .then((x) => setItems(x.items))
-        .catch(() => setError('Support case belum dapat dimuat.')),
+        .catch(() => setError('Kasus bantuan belum dapat dimuat.')),
     [],
   );
   useEffect(() => void load(), [load]);
@@ -71,7 +72,7 @@ export function SupportCasesView() {
       setCustomer(undefined);
       await load();
     } catch {
-      setError('Support case belum dapat dibuat. Pastikan customer dipilih dan sesuai scope Studio/Cabang Anda.');
+      setError('Kasus bantuan belum dapat dibuat. Pastikan pelanggan dipilih dan sesuai cakupan Studio/Cabang Anda.');
     } finally {
       setBusy(false);
     }
@@ -80,14 +81,13 @@ export function SupportCasesView() {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
     ) : (
-      <Skeleton label="Memuat Customer Support" />
+      <Skeleton label="Memuat Bantuan Pelanggan" />
     );
   return (
     <section className="space-y-6">
-      <PageHeader
-        eyebrow="Layanan customer"
-        title="Customer Support"
-        description="Case, catatan internal, tag, prioritas, status, assignment, dan tautan ke timeline customer. Transaksi tidak dapat diubah dari sini."
+      <AdminPageHeader
+        title="Bantuan Pelanggan"
+        description="Case, catatan internal, tag, prioritas, status, penugasan, dan tautan ke timeline pelanggan. Transaksi tidak dapat diubah dari sini."
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       <form
@@ -95,14 +95,14 @@ export function SupportCasesView() {
         className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
       >
         <AsyncSearchSelect
-          label="Customer"
+          label="Pelanggan"
           required
           name="customerUserId"
           value={customer?.id ?? ''}
           selectedOption={customer}
           onChange={(_id, option) => setCustomer(option)}
-          placeholder="Ketik nama, email, atau telepon customer"
-          searchPlaceholder="Cari customer…"
+          placeholder="Ketik nama, email, atau telepon pelanggan"
+          searchPlaceholder="Cari pelanggan…"
           loadOptions={searchCustomers}
         />
         <TextInput
@@ -134,7 +134,7 @@ export function SupportCasesView() {
         />
         <div className="flex items-end">
           <Button type="submit" loading={busy}>
-            Buat support case
+            Buat kasus bantuan
           </Button>
         </div>
       </form>

@@ -77,8 +77,8 @@ describe('capability-aware session shell', () => {
     );
     expect(screen.getByRole('status', { name: 'Memuat sesi' })).toBeInTheDocument();
     expect(await screen.findByText('Admin Jakarta')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sesi Customer' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Operations H-24' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sesi Pelanggan' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Evaluasi kuota H-24' })).not.toBeInTheDocument();
     const branchSelect = screen.getByRole('combobox', { name: 'Cabang aktif' });
     expect(branchSelect).toHaveValue('');
     await userEvent.click(branchSelect);
@@ -139,9 +139,9 @@ describe('capability-aware session shell', () => {
       '/workspace/vouchers',
     );
     await user.keyboard('{Control>}k{/Control}');
-    const commandSearch = await screen.findByRole('dialog', { name: 'Pencarian panel' });
+    const commandSearch = await screen.findByRole('dialog', { name: 'Pencarian halaman' });
     expect(within(commandSearch).getByText('Paket & promo harga')).toBeVisible();
-    expect(within(commandSearch).getByText('Voucher')).toBeVisible();
+    expect(within(commandSearch).getByText('Voucher & promo')).toBeVisible();
     expect(canAccessSessionPath(superOwnerSession, '/workspace/packages')).toBe(true);
     expect(canAccessSessionPath(superOwnerSession, '/workspace/vouchers')).toBe(true);
   });
@@ -374,9 +374,9 @@ describe('capability-aware session shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Selamat datang, Admin Jakarta' }),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: /Jadwal & Presensi/ })).toBeVisible();
-    expect(screen.getByRole('link', { name: /Sesi Customer/ })).toBeVisible();
-    expect(screen.queryByRole('link', { name: /Operations H-24/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Manajemen Booking/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Sesi Pelanggan/ })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Evaluasi kuota H-24/ })).not.toBeInTheDocument();
     expect(screen.getByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();
   });
 

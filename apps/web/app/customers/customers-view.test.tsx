@@ -34,7 +34,7 @@ describe('CustomersView create form', () => {
     const create = vi.spyOn(customerClient, 'create').mockResolvedValue({} as never);
     render(<CustomersView />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Buat customer aktif' }));
+    await user.click(await screen.findByRole('button', { name: 'Buat pelanggan aktif' }));
 
     expect(screen.queryByLabelText(/Step-up/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Catatan \(opsional\)/)).not.toBeRequired();
@@ -44,7 +44,7 @@ describe('CustomersView create form', () => {
     await user.type(screen.getByLabelText('Telepon'), '+628123456789');
     await user.type(screen.getByLabelText('Password awal'), 'Rahasia-12345');
     await user.type(screen.getByLabelText('Ulangi password'), 'Rahasia-12345');
-    await user.click(screen.getByRole('button', { name: 'Simpan customer' }));
+    await user.click(screen.getByRole('button', { name: 'Simpan pelanggan' }));
 
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     const [payload, options] = create.mock.calls[0]!;

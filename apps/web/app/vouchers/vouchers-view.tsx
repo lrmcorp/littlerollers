@@ -153,7 +153,7 @@ export function VouchersView() {
             Voucher & promo
           </h1>
           <p className="mt-2 text-sm text-dd-muted">
-            Kelola promo dengan periode, scope paket, dan kuota yang dapat diaudit.
+            Kelola promo dengan periode, cakupan paket, dan kuota yang dapat diaudit.
           </p>
         </div>
         {canManage && (
@@ -245,7 +245,7 @@ export function VouchersView() {
                   ? `${item.discountValue ?? 0}%`
                   : `Rp ${(item.discountValue ?? 0).toLocaleString('id-ID')}`,
             },
-            { id: 'scope', header: 'Scope', cell: (item) => item.branch?.name ?? 'Semua cabang' },
+            { id: 'scope', header: 'Cakupan', cell: (item) => item.branch?.name ?? 'Semua cabang' },
             {
               id: 'period',
               header: 'Periode',
@@ -291,7 +291,7 @@ export function VouchersView() {
                       router.push(`/workspace/vouchers/${item.id}`);
                     }}
                   >
-                    Lihat / Edit
+                    Lihat detail
                   </Button>
                   {canManage && item.status === 'ACTIVE' && (
                     <Button
@@ -366,7 +366,7 @@ export function VouchersView() {
                     router.push(`/workspace/vouchers/${item.id}`);
                   }}
                 >
-                  Lihat / Edit
+                  Lihat detail
                 </Button>
                 {canManage && item.status === 'ACTIVE' && (
                   <Button
@@ -473,7 +473,7 @@ export function VouchersView() {
               tone: 'warning',
               title: 'Buat voucher baru?',
               message:
-                'Voucher disimpan sebagai draft. Scope cabang, class type, dan paket akan menentukan siapa yang dapat menggunakannya.',
+                'Voucher disimpan sebagai draft. Cakupan cabang, class type, dan paket akan menentukan siapa yang dapat menggunakannya.',
               confirmLabel: 'Buat voucher',
             });
             if (!accepted) return;
@@ -503,7 +503,7 @@ export function VouchersView() {
               feedback.showToast({
                 tone: 'success',
                 title: 'Voucher dibuat',
-                message: 'Voucher disimpan sebagai draft dan belum dapat digunakan customer.',
+                message: 'Voucher disimpan sebagai draft dan belum dapat digunakan pelanggan.',
               });
               await load();
             } catch {
@@ -529,7 +529,7 @@ export function VouchersView() {
             label="Deskripsi"
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
-            description="Penjelasan internal yang aman dan tidak memuat data customer."
+            description="Penjelasan internal yang aman dan tidak memuat data pelanggan."
           />
           <SelectInput
             label="Tipe diskon"
@@ -577,7 +577,7 @@ export function VouchersView() {
             description="Kosongkan jika tidak memiliki batas akhir."
           />
           <SearchSelect
-            label="Scope cabang"
+            label="Cakupan cabang"
             value={form.branchId}
             placeholder="Semua cabang"
             options={(session.session?.branches ?? []).map((branch) => ({
@@ -591,7 +591,7 @@ export function VouchersView() {
                   selectedPackageIds.length > 0 &&
                   !(await feedback.confirm({
                     tone: 'warning',
-                    title: 'Ganti scope cabang?',
+                    title: 'Ganti cakupan cabang?',
                     message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
                     confirmLabel: 'Ganti cabang',
                   }))
@@ -606,7 +606,7 @@ export function VouchersView() {
             }}
           />
           <SearchSelect
-            label="Scope tipe kelas"
+            label="Cakupan tipe kelas"
             value={form.classTypeId}
             placeholder="Semua tipe kelas"
             options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
@@ -616,7 +616,7 @@ export function VouchersView() {
                   selectedPackageIds.length > 0 &&
                   !(await feedback.confirm({
                     tone: 'warning',
-                    title: 'Ganti scope tipe kelas?',
+                    title: 'Ganti cakupan tipe kelas?',
                     message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
                     confirmLabel: 'Ganti tipe kelas',
                   }))
@@ -626,11 +626,11 @@ export function VouchersView() {
                 setSelectedPackageIds([]);
               })();
             }}
-            description="Opsional. Kosong berarti seluruh tipe kelas dalam scope."
+            description="Opsional. Kosong berarti seluruh tipe kelas dalam cakupan."
           />
           <AsyncMultiSearchSelect
-            label="Scope paket"
-            description="Tanpa pilihan berarti voucher berlaku untuk semua paket dalam scope."
+            label="Cakupan paket"
+            description="Tanpa pilihan berarti voucher berlaku untuk semua paket dalam cakupan."
             placeholder="Cari dan pilih paket"
             value={selectedPackageIds}
             loadOptions={async (query, cursor) => {
@@ -660,7 +660,7 @@ export function VouchersView() {
             onChange={(event) => setForm({ ...form, totalUsageLimit: event.target.value })}
           />
           <TextInput
-            label="Batas per customer"
+            label="Batas per pelanggan"
             type="number"
             min={0}
             value={form.perCustomerUsageLimit}

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { ArrowLeft, Building2, Calendar, Pencil, Power, PowerOff, ShieldAlert, UserCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { formatRupiah } from '../../lib/formatters';
 import { instructorClient, type InstructorDetail } from '../instructor-client';
 import { Button, ButtonLink } from '../../components/actions';
@@ -145,11 +146,10 @@ export function InstructorDetailView({ id }: { id: string }) {
 
       <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <PageHeader
-            eyebrow="Instruktur / Profil Terpadu"
+          <AdminPageHeader
             title={data.displayName}
             description={`${data.email ?? 'Email belum tersedia'} · ${data.phoneE164 ?? 'Telepon belum tersedia'}`}
-            context={
+            actions={
               <StatusBadge tone={data.status === 'ACTIVE' ? 'success' : 'warning'}>
                 {data.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif'}
               </StatusBadge>

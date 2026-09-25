@@ -18,7 +18,8 @@ import { AppNavigation } from './app-navigation';
 import { useSessionContext } from './session-context';
 import { routes } from '@/lib/routes';
 import { roleLabel } from './lib/role-labels';
-import { canReadPage, frontendPages } from '@/lib/frontend-pages';
+import { canReadPage, frontendPages, pageForPath } from '@/lib/frontend-pages';
+import { PageMetaProvider } from './components/admin/page-meta';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
 import { SearchSelect } from './components/forms';
@@ -48,7 +49,6 @@ const accountPageLabels: Record<string, string> = {
   '/checkout': 'Checkout',
   '/orders': 'Pesanan',
   '/bookings': 'Booking',
-  '/workspace/bookings': 'Booking',
   '/notifications': 'Notifikasi',
 };
 
@@ -58,16 +58,6 @@ function accountPageLabelForPath(pathname: string) {
     .find(
       ([href]) => pathname === href || (href !== '/account' && pathname.startsWith(`${href}/`)),
     )?.[1];
-}
-
-function pageForPath(pathname: string) {
-  return [...frontendPages]
-    .sort((left, right) => right.href.length - left.href.length)
-    .find(
-      (page) =>
-        pathname === page.href ||
-        (page.href !== '/workspace' && pathname.startsWith(`${page.href}/`)),
-    );
 }
 
 export function ApplicationShell({ children }: { children: React.ReactNode }) {
@@ -86,6 +76,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const profileTrigger = useRef<HTMLButtonElement>(null);
   const currentPage = pageForPath(pathname);
   const currentPageLabel = accountPageLabelForPath(pathname) ?? currentPage?.shortLabel;
+  const isDetailPath = Boolean(
+    currentPage && currentPage.href !== '/workspace' && pathname !== currentPage.href,
+  );
   const canViewAllBranches = Boolean(session?.capabilities.includes('branch:all'));
   const primaryRole = session?.roles.find((role) => role !== 'CUSTOMER');
   const activeScopeLabel = context?.activeBranch
@@ -125,7 +118,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
     () =>
       session
         ? frontendPages
-            .filter((page) => canReadPage(session.capabilities, page))
+            .filter((page) => !page.isDormant && canReadPage(session.capabilities, page))
             .filter((page) =>
               `${page.label} ${page.description}`
                 .toLowerCase()
@@ -433,21 +426,51 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               <Menu className="size-5" />
             </IconButton>
             <div className="min-w-0">
-              <div
-                className="hidden min-w-0 items-center gap-2 text-xs text-dd-muted sm:flex"
+              <nav
+                className="hidden min-w-0 items-center gap-2 text-sm text-dd-muted sm:flex"
                 aria-label="Breadcrumb"
               >
-                <Link href="/workspace" className="font-semibold text-dd-forest no-underline">
-                  Workspace
-                </Link>
-                {pathname !== '/workspace' && (
+                {pathname === '/workspace' ? (
+                  <span className="font-semibold text-dd-ink" aria-current="page">
+                    Workspace
+                  </span>
+                ) : (
                   <>
-                    <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
-                    <span className="truncate">{currentPageLabel ?? 'Workspace'}</span>
+                    <Link href="/workspace" className="font-semibold text-dd-forest no-underline">
+                      Workspace
+                    </Link>
+                    {currentPage && !accountPageLabelForPath(pathname) && (
+                      <>
+                        <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
+                        <span className="hidden truncate lg:inline">{currentPage.group}</span>
+                        <ChevronRight
+                          className="hidden size-3.5 shrink-0 lg:inline"
+                          aria-hidden="true"
+                        />
+                      </>
+                    )}
+                    {isDetailPath ? (
+                      <>
+                        <Link
+                          href={currentPage!.href}
+                          className="truncate font-semibold text-dd-forest no-underline"
+                        >
+                          {currentPageLabel}
+                        </Link>
+                        <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
+                        <span className="font-semibold text-dd-ink" aria-current="page">
+                          Detail
+                        </span>
+                      </>
+                    ) : (
+                      <span className="truncate font-semibold text-dd-ink" aria-current="page">
+                        {currentPageLabel ?? 'Workspace'}
+                      </span>
+                    )}
                   </>
                 )}
-              </div>
-              <strong className="block truncate text-sm text-dd-ink sm:mt-0.5 sm:text-base">
+              </nav>
+              <strong className="block truncate text-sm text-dd-ink sm:hidden">
                 {currentPageLabel ?? 'Dashboard'}
               </strong>
             </div>
@@ -462,7 +485,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 className="flex min-h-10 w-full max-w-sm items-center justify-start gap-2 rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-sm font-medium text-dd-muted"
               >
                 <Search className="size-4 shrink-0" />
-                <span className="truncate">Cari atau jalankan perintah…</span>
+                <span className="truncate">Cari halaman…</span>
                 <kbd className="ml-auto rounded border border-dd-line bg-white px-1.5 py-0.5 text-[10px]">
                   ⌘K
                 </kbd>
@@ -470,7 +493,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex min-w-0 items-center justify-end gap-2">
               <IconButton
-                label="Cari atau jalankan perintah"
+                label="Cari halaman"
                 variant="secondary"
                 onClick={() => {
                   setProfileOpen(false);
@@ -497,13 +520,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   />
                 </div>
               )}
-              <Link
-                href="/health"
-                aria-label="Bantuan dan status"
-                className="hidden size-10 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline 2xl:grid"
-              >
-                <CircleHelp className="size-[18px]" />
-              </Link>
+              {context?.hasCapability('operations:read') && (
+                <Link
+                  href="/health"
+                  aria-label="Status sistem"
+                  title="Status sistem"
+                  className="hidden size-10 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline 2xl:grid"
+                >
+                  <CircleHelp className="size-[18px]" />
+                </Link>
+              )}
               <NotificationCenter
                 open={notificationOpen}
                 onOpenChange={(open) => {
@@ -611,7 +637,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 pb-24 lg:pb-8"
           id="main-content"
         >
-          {children}
+          <PageMetaProvider value={currentPage}>{children}</PageMetaProvider>
         </main>
         <MobileBottomNavigation
           customerOnly={false}
@@ -621,7 +647,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       </div>
       <Modal
         open={commandOpen}
-        title="Pencarian panel"
+        title="Pencarian halaman"
         description="Buka halaman yang tersedia sesuai capability akun Anda."
         className="max-w-2xl"
         bodyClassName="p-0 sm:p-0"

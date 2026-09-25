@@ -13,10 +13,11 @@ import {
   type CustomerPackageBalance,
   type ManagementReschedule,
 } from '@/api-clients/booking-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
-import { Button } from '../components/actions';
+import { Button, actionClasses } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import {
   Badge,
@@ -409,7 +410,7 @@ export function BookingView({
     feedback.confirm({
       tone: 'warning',
       title: 'Batalkan booking manual?',
-      message: 'Pilihan customer, paket, dan kelas akan dikosongkan.',
+      message: 'Pilihan pelanggan, paket, dan kelas akan dikosongkan.',
       confirmLabel: 'Buang pilihan',
     });
   const closeCreate = async () => {
@@ -503,12 +504,11 @@ export function BookingView({
 
   return (
     <section className="grid gap-5" aria-labelledby="bookings-title">
-      <PageHeader
-        eyebrow="Operasional booking"
+      <AdminPageHeader
         title="Manajemen Booking"
         titleId="bookings-title"
         description="Pilih pelanggan, paket, dan kelas yang tersedia. Sistem otomatis memvalidasi batas waktu, saldo sesi, kapasitas kelas, dan izin akses saat konfirmasi."
-        context={
+        actions={
           <>
             <StatusBadge tone="info">
               {branchId
@@ -588,7 +588,7 @@ export function BookingView({
             label="Cari booking"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Customer, paket, kelas, atau studio"
+            placeholder="Pelanggan, paket, kelas, atau studio"
             leadingIcon={<Search className="size-4" aria-hidden="true" />}
             wrapperClassName="min-w-64 flex-1"
           />
@@ -636,7 +636,7 @@ export function BookingView({
       <Drawer
         open={createOpen && canCreate && Boolean(branchId)}
         title="Buat booking manual"
-        description="Pilih customer, paket aktif, dan kelas dalam cabang operasional."
+        description="Pilih pelanggan, paket aktif, dan kelas dalam cabang operasional."
         busy={busy}
         dirty={createDirty}
         onDirtyClose={confirmDiscardCreate}
@@ -801,12 +801,12 @@ export function BookingView({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <strong className="block">
-                          {reschedule.customer?.displayName ?? 'Customer'}
+                          {reschedule.customer?.displayName ?? 'Pelanggan'}
                         </strong>
                         <span className="mt-1 block text-xs text-dd-muted">
                           {reschedule.customer?.phoneMasked ?? 'Kontak termasking'} ·{' '}
                           {reschedule.branch?.name ?? 'Cabang'} ·{' '}
-                          {reschedule.package?.name ?? 'Paket customer'}
+                          {reschedule.package?.name ?? 'Paket pelanggan'}
                         </span>
                       </div>
                       <Badge tone="warning">Menunggu keputusan</Badge>
@@ -880,7 +880,7 @@ export function BookingView({
               >
                 <option value="TARGET_UNAVAILABLE">Target tidak tersedia</option>
                 <option value="OUTSIDE_POLICY">Di luar kebijakan reschedule</option>
-                <option value="OUT_OF_SCOPE">Di luar scope cabang</option>
+                <option value="OUT_OF_SCOPE">Di luar cakupan cabang</option>
               </SelectInput>
               <Button
                 type="button"
@@ -908,8 +908,8 @@ export function BookingView({
             <div>
               <h2 className="text-xl font-semibold text-dd-ink">Check-in & Kehadiran</h2>
               <p className="mt-1 text-sm leading-6 text-dd-muted">
-                Booking yang sudah hadir tercatat pada tabel di bawah. Untuk memindai pass customer,
-                buka scanner dan pastikan cabang operasional sudah dipilih.
+                Booking yang sudah hadir tercatat pada tabel di bawah. Untuk memindai pass
+                pelanggan, buka scanner dan pastikan cabang operasional sudah dipilih.
               </p>
               <Link
                 className="mt-4 inline-flex min-h-10 items-center rounded-dd-md border border-dd-forest bg-dd-forest px-4 text-sm font-bold text-white no-underline"
@@ -1002,11 +1002,11 @@ export function BookingView({
             rowKey={(booking) => booking.id}
             loading={busy && items.length === 0}
             emptyTitle="Belum ada booking"
-            emptyDescription="Tidak ada booking yang sesuai dengan scope dan filter saat ini."
+            emptyDescription="Tidak ada booking yang sesuai dengan cakupan dan filter saat ini."
             columns={[
               {
                 id: 'customer',
-                header: 'Customer',
+                header: 'Pelanggan',
                 cell: (booking) => (
                   <div>
                     {activeTab === 'attendance' && (
@@ -1024,7 +1024,9 @@ export function BookingView({
                         }
                       />
                     )}
-                    <strong className="block">{booking.customer?.displayName ?? 'Customer'}</strong>
+                    <strong className="block">
+                      {booking.customer?.displayName ?? 'Pelanggan'}
+                    </strong>
                     <span className="text-xs text-dd-muted">{booking.customer?.phoneMasked}</span>
                   </div>
                 ),
@@ -1113,7 +1115,7 @@ export function BookingView({
                       )}
                     {checkInIssues[booking.id]?.whatsappUrl && (
                       <a
-                        className="button-quiet"
+                        className={actionClasses({ variant: 'secondary', size: 'sm' })}
                         href={checkInIssues[booking.id]?.whatsappUrl ?? '#'}
                         target="_blank"
                         rel="noreferrer"
@@ -1124,7 +1126,7 @@ export function BookingView({
                     {checkInIssues[booking.id]?.passUrl && (
                       <>
                         <a
-                          className="button-quiet"
+                          className={actionClasses({ variant: 'secondary', size: 'sm' })}
                           href={checkInIssues[booking.id]?.passUrl ?? '#'}
                           target="_blank"
                           rel="noreferrer"
@@ -1152,7 +1154,9 @@ export function BookingView({
               <div className="grid gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <strong className="block">{booking.customer?.displayName ?? 'Customer'}</strong>
+                    <strong className="block">
+                      {booking.customer?.displayName ?? 'Pelanggan'}
+                    </strong>
                     <span className="text-sm text-dd-muted">
                       {booking.classSlot?.classType.name ?? 'Kelas'} ·{' '}
                       {booking.branch?.name ?? 'Studio'}

@@ -100,11 +100,11 @@ describe('VouchersView CRUD Actions', () => {
     // Check "Tindakan" header in DataTable
     expect(screen.getByRole('columnheader', { name: 'Tindakan' })).toBeVisible();
 
-    // "Lihat / Edit" buttons should exist for rows
-    const editButtons = screen.getAllByRole('button', { name: 'Lihat / Edit' });
+    // "Lihat detail" buttons should exist for rows
+    const editButtons = screen.getAllByRole('button', { name: 'Lihat detail' });
     expect(editButtons.length).toBeGreaterThanOrEqual(2);
 
-    // Click "Lihat / Edit" navigates to detail
+    // Click "Lihat detail" navigates to detail
     await userEvent.click(editButtons[0]!);
     expect(mockPush).toHaveBeenCalledWith('/workspace/vouchers/v-1');
   });

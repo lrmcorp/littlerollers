@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
 import { Badge, Pagination, Panel } from '../components/admin/admin-ui';
-import { Feedback, PageHeader, Skeleton } from '../ui';
+import { Feedback, Skeleton } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import {
   browserMigrationClient,
   type MigrationBatchSummary,
@@ -81,7 +82,7 @@ export function MigrationView() {
         setResolutionCursorHistory([]);
         if (batchId) await loadBatch(batchId, undefined, undefined);
       } catch {
-        setError('Data migrasi tidak dapat dimuat. Periksa capability dan status API.');
+        setError('Data migrasi tidak dapat dimuat. Periksa izin dan status API.');
       } finally {
         setLoading(false);
       }
@@ -119,15 +120,12 @@ export function MigrationView() {
 
   return (
     <section className="space-y-6" aria-labelledby="migration-page-title">
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Super Admin"
-          title="Kontrol migrasi v1 → v2"
-          titleId="migration-page-title"
-          description="Pantau batch, control total, reject, dan resolution. Import tetap dijalankan melalui CLI operator terbatas."
-          context={<Badge tone="warning">FAIL-CLOSED</Badge>}
-        />
-      </Panel>
+      <AdminPageHeader
+        title="Kontrol migrasi v1 → v2"
+        titleId="migration-page-title"
+        description="Pantau batch, control total, reject, dan resolution. Import tetap dijalankan melalui CLI operator terbatas."
+        actions={<Badge tone="warning">FAIL-CLOSED</Badge>}
+      />
 
       {error && <Feedback kind="error">{error}</Feedback>}
       {loading ? (
@@ -163,7 +161,7 @@ export function MigrationView() {
                 variant="secondary"
                 onClick={() => void load(batchCursor, selectedId)}
               >
-                Muat ulang
+                Segarkan
               </Button>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -286,7 +284,7 @@ export function MigrationView() {
             </Panel>
 
             <Panel className="overflow-hidden">
-              <h2 className="border-b border-dd-line p-5 text-lg font-semibold">Reject terbuka</h2>
+              <h2 className="border-b border-dd-line p-5 text-lg font-semibold">Tolak terbuka</h2>
               <ul className="divide-y divide-dd-line">
                 {rejects.map((reject) => (
                   <li className="p-4 text-sm" key={reject.id}>

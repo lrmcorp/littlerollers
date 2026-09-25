@@ -66,7 +66,9 @@ export function FinanceCommandsPanel({
       setMessage(success);
       await refresh();
     } catch {
-      setFailure('Command ditolak. Periksa scope, periode, versi, dan separation of duties.');
+      setFailure(
+        'Permintaan ditolak. Periksa cakupan, periode, versi, dan pemisahan tugas (pemohon berbeda dari penyetuju).',
+      );
     } finally {
       setBusy(false);
     }
@@ -78,7 +80,7 @@ export function FinanceCommandsPanel({
         <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Finance command</p>
         <h2 className="mt-1 text-xl font-semibold">Biaya, tutup buku, dan koreksi</h2>
         <p className="mt-1 text-sm text-dd-muted">
-          Perubahan memakai idempotency, audit, scope Studio/Cabang, dan tidak mengubah jurnal v1.
+          Perubahan memakai idempotency, audit, cakupan Studio/Cabang, dan tidak mengubah jurnal v1.
         </p>
       </div>
       {message && <Feedback kind="status">{message}</Feedback>}
@@ -102,7 +104,7 @@ export function FinanceCommandsPanel({
         <div className="rounded-dd-md border border-dd-line p-3 text-sm">
           <strong>Status {periodStatus}</strong>
           <p className="mt-1 truncate text-xs text-dd-muted" title={controlHash}>
-            Control {controlHash || 'belum tersedia'}
+            Kode kontrol {controlHash || 'belum tersedia'}
           </p>
         </div>
       </div>
@@ -163,7 +165,7 @@ export function FinanceCommandsPanel({
           </Button>
         </fieldset>
         <fieldset className="space-y-3 rounded-dd-md border border-dd-line p-4">
-          <legend className="px-1 font-semibold">Correction request</legend>
+          <legend className="px-1 font-semibold">Permintaan koreksi</legend>
           <label className="grid gap-1 text-xs font-bold text-dd-muted">
             Periode referensi
             <input
@@ -198,22 +200,22 @@ export function FinanceCommandsPanel({
                   reason: reason.trim(),
                 });
                 if (result) setCorrectionId(result.id);
-              }, 'Correction menunggu approver berbeda.')
+              }, 'Koreksi menunggu approver berbeda.')
             }
           >
-            Ajukan correction
+            Ajukan koreksi
           </Button>
         </fieldset>
         <fieldset className="space-y-3 rounded-dd-md border border-dd-line p-4">
           <legend className="px-1 font-semibold">Approval dan close</legend>
           <label className="grid gap-1 text-xs font-bold text-dd-muted">
-            Antrean correction
+            Antrean koreksi
             <select
               className={controlClassName}
               value={correctionId}
               onChange={(event) => setCorrectionId(event.target.value)}
             >
-              <option value="">Pilih correction menunggu keputusan</option>
+              <option value="">Pilih koreksi menunggu keputusan</option>
               {correctionQueue.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.referencePeriod} · Rp{item.amount.amountMinor.toLocaleString('id-ID')} ·{' '}
@@ -224,7 +226,7 @@ export function FinanceCommandsPanel({
           </label>
           {!correctionQueue.length && (
             <p className="text-sm text-dd-muted">
-              Tidak ada correction yang menunggu keputusan pada periode ini.
+              Tidak ada koreksi yang menunggu keputusan pada periode ini.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -243,11 +245,11 @@ export function FinanceCommandsPanel({
                     async () => {
                       await client.decideCorrection?.(correctionId, decision, reason.trim());
                     },
-                    decision === 'approve' ? 'Correction diposting.' : 'Correction ditolak.',
+                    decision === 'approve' ? 'Koreksi diposting.' : 'Koreksi ditolak.',
                   )
                 }
               >
-                {decision === 'approve' ? 'Approve' : 'Reject'}
+                {decision === 'approve' ? 'Setujui' : 'Tolak'}
               </Button>
             ))}
           </div>

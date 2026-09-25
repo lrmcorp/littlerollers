@@ -168,7 +168,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             <PackageInfo label="Nama paket" value={pkg.name} />
             <PackageInfo label="Business key" value={pkg.businessKey} />
             <PackageInfo
-              label="Scope Studio/Cabang"
+              label="Cakupan Studio/Cabang"
               value={
                 pkg.branchScopes
                   ?.map((scope) => scope.branch?.name)
@@ -177,7 +177,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
               }
             />
             <PackageInfo
-              label="Scope tipe kelas"
+              label="Cakupan tipe kelas"
               value={
                 pkg.classTypeScopes
                   ?.map((scope) => scope.classType?.name)
@@ -187,7 +187,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             />
           </dl>
           <p className="mt-4 text-xs leading-5 text-dd-muted">
-            Business key adalah identitas global. Ketersediaan paket ditentukan oleh scope
+            Business key adalah identitas global. Ketersediaan paket ditentukan oleh cakupan
             Studio/Cabang dan tipe kelas yang eksplisit.
           </p>
         </Panel>
@@ -237,7 +237,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             Buat revisi paket
           </Button>
           <Button variant="secondary" onClick={() => setPackageEditor('scopes')}>
-            Atur scope paket
+            Atur cakupan paket
           </Button>
           <Button
             variant={pkg.status === 'ACTIVE' ? 'danger' : 'primary'}
@@ -494,7 +494,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             columns={[
               {
                 id: 'customer',
-                header: 'Customer',
+                header: 'Pelanggan',
                 cell: (item) => (
                   <div>
                     <strong>{item.user.displayName}</strong>
@@ -701,7 +701,7 @@ function PackageLifecycleEditor({
         mode === 'revision'
           ? 'Buat revisi paket'
           : mode === 'scopes'
-            ? 'Atur scope paket'
+            ? 'Atur cakupan paket'
             : mode === 'lifecycle'
               ? pkg.status === 'ACTIVE'
                 ? 'Nonaktifkan paket'
@@ -735,7 +735,7 @@ function PackageLifecycleEditor({
             mode === 'revision'
               ? 'membuat revisi komersial baru'
               : mode === 'scopes'
-                ? 'mengganti scope paket'
+                ? 'mengganti cakupan paket'
                 : mode === 'lifecycle'
                   ? pkg.status === 'ACTIVE'
                     ? 'menonaktifkan paket'
@@ -924,7 +924,7 @@ function PackageLifecycleEditor({
           <>
             <AlertBanner
               tone="info"
-              title="Scope eksplisit"
+              title="Cakupan eksplisit"
               message="Pilih sedikitnya satu Studio/Cabang dan satu tipe kelas. Pilihan tipe kelas harus tersedia pada seluruh cabang yang dipilih."
             />
             <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">

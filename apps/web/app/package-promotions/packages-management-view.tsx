@@ -122,7 +122,7 @@ export function PackagesManagementView() {
         page: result.page ?? { hasMore: false, nextCursor: null },
       });
     } catch {
-      setError('Daftar paket belum dapat dimuat. Periksa scope atau coba lagi.');
+      setError('Daftar paket belum dapat dimuat. Periksa cakupan atau coba lagi.');
     } finally {
       setBusy(false);
     }
@@ -241,7 +241,7 @@ export function PackagesManagementView() {
             },
             {
               id: 'branch',
-              header: 'Scope Studio/Cabang',
+              header: 'Cakupan Studio/Cabang',
               cell: (item) =>
                 item.branchScopes?.length
                   ? item.branchScopes
@@ -324,7 +324,7 @@ export function PackagesManagementView() {
       <Drawer
         open={createOpen}
         title="Buat paket"
-        description="Paket adalah katalog global dengan scope Studio/Cabang dan tipe kelas yang eksplisit."
+        description="Paket adalah katalog global dengan cakupan Studio/Cabang dan tipe kelas yang eksplisit."
         busy={busy}
         dirty={createDirty}
         onDirtyClose={confirmDiscardCreate}
@@ -443,7 +443,7 @@ function PackageCreateForm({
       }}
     >
       <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
-        <legend className="px-1 text-sm font-semibold">Scope Studio/Cabang</legend>
+        <legend className="px-1 text-sm font-semibold">Cakupan Studio/Cabang</legend>
         {branches.map((branch) => (
           <label className="flex items-center gap-2 text-sm" key={branch.id}>
             <input
@@ -458,7 +458,7 @@ function PackageCreateForm({
         ))}
       </fieldset>
       <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
-        <legend className="px-1 text-sm font-semibold">Scope tipe kelas</legend>
+        <legend className="px-1 text-sm font-semibold">Cakupan tipe kelas</legend>
         {selectedBranches.length === 0 ? (
           <p className="text-sm text-dd-muted">Pilih Studio/Cabang terlebih dahulu.</p>
         ) : availableClassTypes.length === 0 ? (

@@ -28,7 +28,7 @@ describe('roleLabel', () => {
   it('supports the short variant used by the shell', () => {
     expect(roleLabel('OWNER', 'short')).toBe('Owner');
     expect(roleLabel('MANAGER', 'short')).toBe('Manager');
-    expect(roleLabel('COACH', 'short')).toBe('Instructor');
+    expect(roleLabel('COACH', 'short')).toBe('Instruktur');
   });
 
   it('keeps the staff list role column readable for legacy and custom roles', () => {

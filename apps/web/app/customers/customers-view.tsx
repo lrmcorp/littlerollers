@@ -5,7 +5,8 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
 import { Pagination } from '../components/admin/admin-ui';
-import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { customerClient, type CustomerSummary } from './customer-client';
 
@@ -52,7 +53,7 @@ export function CustomersView() {
       setNextCursor(result.page.nextCursor);
       setError('');
     } catch {
-      setError('Data customer belum dapat dimuat. Data halaman sebelumnya tetap dipertahankan.');
+      setError('Data pelanggan belum dapat dimuat. Data halaman sebelumnya tetap dipertahankan.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export function CustomersView() {
           ? 'Email atau nomor telepon sudah digunakan.'
           : code === 'MFA_REQUIRED'
             ? 'Verifikasi MFA Super Admin diperlukan.'
-            : 'Customer belum dapat dibuat. Periksa data dan password.',
+            : 'Pelanggan belum dapat dibuat. Periksa data dan password.',
       );
     } finally {
       setSubmitting(false);
@@ -101,22 +102,18 @@ export function CustomersView() {
 
   return (
     <section className="space-y-6" aria-labelledby="customers-title">
-      <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card sm:p-8">
-        <PageHeader
-          eyebrow="Administrasi customer"
-          title="Manajemen Customer"
-          titleId="customers-title"
-          description="Cari customer dan lihat profil terpadu tanpa mengubah saldo atau transaksi di luar workflow resmi."
-          context={<StatusBadge tone="info">Super Admin</StatusBadge>}
-        />
-        {canCreate && (
-          <div className="mt-5">
+      <AdminPageHeader
+        title="Data Pelanggan"
+        titleId="customers-title"
+        description="Cari pelanggan dan lihat profil terpadu tanpa mengubah saldo atau transaksi di luar alur resmi."
+        actions={
+          canCreate ? (
             <Button onClick={() => setShowCreate((value) => !value)}>
-              {showCreate ? 'Tutup form' : 'Buat customer aktif'}
+              {showCreate ? 'Tutup form' : 'Buat pelanggan aktif'}
             </Button>
-          </div>
-        )}
-      </div>
+          ) : undefined
+        }
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       {showCreate && (
         <form
@@ -156,20 +153,20 @@ export function CustomersView() {
           <TextInput label="Catatan (opsional)" name="reason" maxLength={500} />
           <div className="sm:col-span-2">
             <Feedback kind="warning">
-              Customer langsung aktif, tetapi hanya dapat membuka keamanan akun sampai password awal
+              Pelanggan langsung aktif, tetapi hanya dapat membuka keamanan akun sampai password awal
               diganti. Email belum dianggap terverifikasi.
             </Feedback>
           </div>
           <div className="sm:col-span-2">
             <Button type="submit" loading={submitting}>
-              Simpan customer
+              Simpan pelanggan
             </Button>
           </div>
         </form>
       )}
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-4 sm:grid-cols-3">
         <SearchInput
-          label="Cari customer"
+          label="Cari pelanggan"
           compact
           value={q}
           onChange={(event) => {
@@ -208,7 +205,7 @@ export function CustomersView() {
         </SelectInput>
       </div>
       {loading && !items.length ? (
-        <Skeleton label="Memuat customer" />
+        <Skeleton label="Memuat pelanggan" />
       ) : (
         <div className="overflow-x-auto rounded-dd-lg border border-dd-line bg-white">
           <table className="w-full text-left text-sm">
@@ -217,7 +214,7 @@ export function CustomersView() {
                 <th className="w-14 min-w-[3.5rem] p-4 text-center text-xs font-bold text-dd-muted uppercase tracking-wider">
                   No.
                 </th>
-                <th className="p-4">Customer</th>
+                <th className="p-4">Pelanggan</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Paket</th>
                 <th className="p-4">Aktivitas</th>
@@ -261,7 +258,7 @@ export function CustomersView() {
               {!items.length && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-dd-muted">
-                    Tidak ada customer yang cocok.
+                    Tidak ada pelanggan yang cocok.
                   </td>
                 </tr>
               )}
@@ -276,7 +273,7 @@ export function CustomersView() {
         pageSize={20}
         hasPrevious={Boolean(history.length) && !loading}
         hasNext={Boolean(nextCursor) && !loading}
-        totalLabel={`${total.toLocaleString('id-ID')} customer`}
+        totalLabel={`${total.toLocaleString('id-ID')} pelanggan`}
         onPrevious={() => {
           const next = [...history];
           const previous = next.pop();

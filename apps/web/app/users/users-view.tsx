@@ -20,8 +20,9 @@ import {
   FilterBar,
   Pagination,
 } from '../components/admin/admin-ui';
-import { Button } from '../components/actions';
-import { Feedback, PageHeader, StatusBadge } from '../ui';
+import { Button, ButtonLink } from '../components/actions';
+import { Feedback, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { InviteUserDrawer, roleSummary, statusLabels } from './user-admin-controls';
 import { roleLabel } from '../lib/role-labels';
@@ -163,42 +164,41 @@ export function UsersView({
 
   return (
     <section className="space-y-6" aria-labelledby="users-title">
-      <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card sm:p-8">
-        <PageHeader
-          eyebrow="Administrasi identitas"
-          title="Pengguna internal"
-          titleId="users-title"
-          description="Kelola profil staf, role, scope cabang, aktivasi, dan audit. Customer dikelola melalui Customer Management."
-          context={
+      <AdminPageHeader
+        title="Pengguna internal"
+        titleId="users-title"
+        description="Kelola profil staf, peran, cakupan cabang, aktivasi, dan riwayat perubahan. Pelanggan dikelola lewat Data Pelanggan."
+        badges={
+          <>
+            <StatusBadge tone={canAdmin ? 'info' : 'neutral'}>
+              {canAdmin ? 'Dapat mengelola' : 'Hanya lihat'}
+            </StatusBadge>
+            <StatusBadge tone="success">Hak akses terverifikasi</StatusBadge>
+          </>
+        }
+        actions={
+          canAdmin ? (
             <>
-              <StatusBadge tone={canAdmin ? 'info' : 'neutral'}>
-                {canAdmin ? 'Dapat mengelola' : 'Read only'}
-              </StatusBadge>
-              <StatusBadge tone="success">Permission terverifikasi</StatusBadge>
+              <Button
+                leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+                onClick={() => setInviteOpen(true)}
+              >
+                Buat pengguna internal
+              </Button>
+              <ButtonLink
+                variant="secondary"
+                href="/users/roles-permissions"
+                leadingIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+              >
+                Peran &amp; hak akses
+              </ButtonLink>
+              <ButtonLink variant="secondary" href="/assignments">
+                Kelola penugasan
+              </ButtonLink>
             </>
-          }
-        />
-        <div className="mt-5 flex flex-wrap gap-3">
-          {canAdmin && (
-            <Button
-              leadingIcon={<Plus className="size-4" aria-hidden="true" />}
-              onClick={() => setInviteOpen(true)}
-            >
-              Buat pengguna internal
-            </Button>
-          )}
-          {canAdmin && (
-            <Link className="button-quiet" href="/users/roles-permissions">
-              <ShieldCheck className="size-4" /> Roles &amp; Permissions
-            </Link>
-          )}
-          {canAdmin && (
-            <Link className="button-quiet" href="/assignments">
-              Kelola assignment
-            </Link>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       <div
         className="flex gap-2 border-b border-dd-line"
@@ -231,7 +231,7 @@ export function UsersView({
               resetPage();
             }}
           >
-            Customer
+            Pelanggan
           </button>
         )}
       </div>
@@ -240,7 +240,7 @@ export function UsersView({
         <SummaryFilterCard
           label="Total pengguna"
           value={summary.total}
-          helper="Dalam scope saat ini"
+          helper="Dalam cakupan saat ini"
           active={!status}
           onClick={() => setStatusFilter('')}
         />
@@ -269,7 +269,23 @@ export function UsersView({
         />
       </div>
 
-      <FilterBar>
+      <FilterBar
+        onApply={() => {
+          setSearch(draftSearch.trim());
+          resetPage();
+        }}
+        onReset={() => {
+          setDraftSearch('');
+          setSearch('');
+          setStatus('');
+          setRole('');
+          setBranchId('');
+          setVerificationStatus('');
+          resetPage();
+        }}
+        showReset={Boolean(search || status || role || branchId || verificationStatus)}
+        label="Filter pengguna"
+      >
         <SearchInput
           label="Cari nama"
           value={draftSearch}
@@ -297,7 +313,7 @@ export function UsersView({
             options={catalog.map((item) => ({
               id: item.role,
               label: roleLabel(item.role),
-              description: item.scope === 'BRANCH' ? 'Scope cabang' : 'Scope global',
+              description: item.scope === 'BRANCH' ? 'Cakupan cabang' : 'Cakupan global',
             }))}
             onChange={(value) => {
               setRole(value);
@@ -309,7 +325,7 @@ export function UsersView({
           <SearchSelect
             label="Cabang"
             value={branchId}
-            placeholder="Semua cabang dalam scope"
+            placeholder="Semua cabang dalam cakupan"
             options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
             onChange={(value) => {
               setBranchId(value);
@@ -332,30 +348,6 @@ export function UsersView({
             <option value="APPROVED">Terverifikasi</option>
           </SelectInput>
         )}
-        <Button
-          onClick={() => {
-            setSearch(draftSearch.trim());
-            resetPage();
-          }}
-        >
-          Terapkan filter
-        </Button>
-        {(search || status || role || branchId || verificationStatus) && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setDraftSearch('');
-              setSearch('');
-              setStatus('');
-              setRole('');
-              setBranchId('');
-              setVerificationStatus('');
-              resetPage();
-            }}
-          >
-            Reset
-          </Button>
-        )}
       </FilterBar>
 
       {failure && items.length === 0 ? (
@@ -376,10 +368,10 @@ export function UsersView({
             search || status || role || branchId || verificationStatus
               ? 'Tidak ada hasil filter'
               : audience === 'CUSTOMER'
-                ? 'Belum ada customer'
+                ? 'Belum ada pelanggan'
                 : 'Belum ada staf'
           }
-          emptyDescription="Ubah filter atau buat pengguna internal sesuai scope yang tersedia."
+          emptyDescription="Ubah filter atau buat pengguna internal sesuai cakupan yang tersedia."
           columns={[
             {
               id: 'user',
@@ -425,7 +417,7 @@ export function UsersView({
             },
             {
               id: 'scope',
-              header: audience === 'CUSTOMER' ? 'Dokumen' : 'Scope',
+              header: audience === 'CUSTOMER' ? 'Dokumen' : 'Cakupan',
               cell: (user) =>
                 audience === 'CUSTOMER'
                   ? user.identityVerification

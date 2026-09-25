@@ -8,7 +8,8 @@ import { Badge, Panel, StatCard } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
-import { PageHeader, Skeleton } from '../ui';
+import { Skeleton } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { resolvePublicImageUrl } from '../lib/public-image-url';
 import { BranchPaymentAccountsPanel } from './branch-payment-accounts-panel';
 import { BranchVenuesPanel } from './branch-venues-panel';
@@ -51,7 +52,7 @@ export function BranchDetailView({ id }: { id: string }) {
     browserBranchClient
       .detail(id)
       .then(setBranch)
-      .catch(() => setFailure('Detail cabang tidak dapat dimuat atau berada di luar scope Anda.'));
+      .catch(() => setFailure('Detail cabang tidak dapat dimuat atau berada di luar cakupan Anda.'));
 
   useEffect(() => {
     if (canRead) void load();
@@ -61,7 +62,7 @@ export function BranchDetailView({ id }: { id: string }) {
     return (
       <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">
         <strong className="block font-semibold">Akses cabang tidak tersedia</strong>
-        <p className="text-sm">Akun Anda tidak memiliki capability untuk membaca Branch Management.</p>
+        <p className="text-sm">Akun Anda tidak memiliki izin untuk membaca Branch Management.</p>
       </div>
     );
   if (failure) return <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">{failure}</div>;
@@ -193,12 +194,11 @@ export function BranchDetailView({ id }: { id: string }) {
       )}
 
       {!heroImageUrl && (
-        <PageHeader
-          eyebrow="Manajemen Cabang"
+        <AdminPageHeader
           title={branch.name}
           titleId="branch-title"
           description={`${branch.code} · ${branch.timezone}`}
-          context={
+          actions={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={branch.active ? 'success' : 'neutral'}>
                 {branch.active ? 'Aktif' : 'Tidak aktif'}
@@ -366,7 +366,7 @@ export function BranchDetailView({ id }: { id: string }) {
       <Panel className="p-5">
         <h2 className="text-lg font-semibold">Dependency operasional</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Info label="Assignment aktif" value={String(branch.dependencies.assignments)} />
+          <Info label="Penugasan aktif" value={String(branch.dependencies.assignments)} />
           <Info label="Tipe kelas aktif" value={String(branch.dependencies.classTypes)} />
           <Info label="Kelas mendatang" value={String(branch.dependencies.futureClasses)} />
           <Info label="Paket aktif" value={String(branch.dependencies.packages)} />

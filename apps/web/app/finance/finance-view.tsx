@@ -18,7 +18,8 @@ import {
   Users,
 } from 'lucide-react';
 import { useSessionContext } from '../session-context';
-import { Feedback, PageHeader } from '../ui';
+import { Feedback } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import {
   AdminEmptyState,
   Badge,
@@ -239,7 +240,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   if (!allowed)
     return (
       <Feedback kind="error">
-        Anda tidak memiliki capability finance:reconcile untuk membuka modul finansial.
+        Anda tidak memiliki izin finance:reconcile untuk membuka modul finansial.
       </Feedback>
     );
 
@@ -248,11 +249,10 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Finansial & Akuntansi"
-        title="Modul Finansial & Tutup Buku"
-        description="5 Laporan Inti Keuangan (Omset, Realtime Instructor Cost, Projection Cost, Other Cost, Laba Bersih), Tutup Buku Bulanan, dan Rekonsiliasi Transaksi."
-        context={
+      <AdminPageHeader
+        title="Keuangan & Tutup Buku"
+        description="Lima laporan inti (omzet, beban instruktur aktual, proyeksi beban instruktur, beban operasional lain, dan laba bersih), tutup buku bulanan, dan rekonsiliasi transaksi."
+        actions={
           <div className="flex gap-2">
             {context?.hasCapability('finance:export') && (
               <Button
@@ -1026,14 +1026,14 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
 
           {/* Legacy Cashflow Table */}
           <Panel className="space-y-4 p-5">
-            <h3 className="text-base font-semibold">Legacy Cashflow Entry</h3>
+            <h3 className="text-base font-semibold">Entri arus kas lama (v1)</h3>
             <DataTable
               rowNumberOffset={legacyCursorHistory.length * 20}
               items={reconData?.legacyCashflow.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.id}
               emptyTitle="Belum ada legacy cashflow"
-              emptyDescription="Tidak ada jurnal v1 pada periode dan scope ini."
+              emptyDescription="Tidak ada jurnal v1 pada periode dan cakupan ini."
               columns={[
                 {
                   id: 'date',
@@ -1065,8 +1065,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
             {reconData && (
               <div className="border-t border-dd-line p-4">
                 <Pagination
-                  previousAriaLabel="Legacy cashflow sebelumnya"
-                  nextAriaLabel="Legacy cashflow berikutnya"
+                  previousAriaLabel="Arus kas lama (v1) sebelumnya"
+                  nextAriaLabel="Arus kas lama (v1) berikutnya"
                   hasPrevious={legacyCursorHistory.length > 0 && !reconLoading}
                   hasNext={Boolean(reconData.legacyCashflow.page.nextCursor) && !reconLoading}
                   currentPage={legacyCursorHistory.length + 1}

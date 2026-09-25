@@ -11,7 +11,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useSessionContext } from '../../session-context';
-import { Feedback, PageHeader } from '../../ui';
+import { Feedback } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import {
   AdminEmptyState,
   AdminPageState,
@@ -86,7 +87,7 @@ export function RemindersView() {
     const confirmed = await feedback.confirm({
       title: 'Jalankan Evaluasi Auto-Cancel H-24?',
       message:
-        'Sistem akan memeriksa seluruh jadwal kelas dalam batas H-24. Kelas yang pesertanya kurang dari kuota minimum akan dibatalkan otomatis dan notifikasi WhatsApp akan dikirimkan ke customer, instruktur, dan staf.',
+        'Sistem akan memeriksa seluruh jadwal kelas dalam batas H-24. Kelas yang pesertanya kurang dari kuota minimum akan dibatalkan otomatis dan notifikasi WhatsApp akan dikirimkan ke pelanggan, instruktur, dan staf.',
       confirmLabel: 'Evaluasi Sekarang',
       cancelLabel: 'Batal',
       tone: 'warning',
@@ -119,7 +120,7 @@ export function RemindersView() {
     const confirmed = await feedback.confirm({
       title: 'Jalankan Siklus Reminder WhatsApp?',
       message:
-        'Sistem akan mengevaluasi customer H-7, H-3, H-1, follow-up paket expired (max 5x), digest admin 3 jam, dan rekap owner 3 hari. Customer yang ditandai berhenti (stopped) akan dilindungi dan dilewati otomatis.',
+        'Sistem akan mengevaluasi pelanggan H-7, H-3, H-1, follow-up paket expired (max 5x), digest admin 3 jam, dan rekap owner 3 hari. Pelanggan yang ditandai berhenti (stopped) akan dilindungi dan dilewati otomatis.',
       confirmLabel: 'Kirim Pengingat',
       cancelLabel: 'Batal',
       tone: 'warning',
@@ -142,8 +143,8 @@ export function RemindersView() {
         tone: 'success',
         title: 'Siklus Reminder Berhasil',
         message: mockProvider
-          ? `${totalSent} pesan dicatat dalam mode uji — tidak dikirim ke WhatsApp (${res.stoppedCustomersProtected} customer berhenti terlindungi).`
-          : `${totalSent} pesan WhatsApp terkirim (${res.stoppedCustomersProtected} customer berhenti terlindungi).`,
+          ? `${totalSent} pesan dicatat dalam mode uji — tidak dikirim ke WhatsApp (${res.stoppedCustomersProtected} pelanggan berhenti terlindungi).`
+          : `${totalSent} pesan WhatsApp terkirim (${res.stoppedCustomersProtected} pelanggan berhenti terlindungi).`,
       });
       await loadData();
     } catch (err: any) {
@@ -159,12 +160,12 @@ export function RemindersView() {
 
   const reminderTypeOptions = [
     { value: 'ALL', label: 'Semua Tipe Pengingat' },
-    { value: 'CLASS_AUTO_CANCELLED', label: 'Auto-Cancel Customer' },
+    { value: 'CLASS_AUTO_CANCELLED', label: 'Auto-Cancel Pelanggan' },
     { value: 'CLASS_AUTO_CANCELLED_INSTRUCTOR', label: 'Auto-Cancel Instruktur' },
     { value: 'CLASS_AUTO_CANCELLED_STAFF', label: 'Auto-Cancel Staf Cabang' },
-    { value: 'EXPIRY_H7', label: 'Customer H-7 Expired' },
-    { value: 'EXPIRY_H3', label: 'Customer H-3 Expired' },
-    { value: 'EXPIRY_H1', label: 'Customer H-1 Expired' },
+    { value: 'EXPIRY_H7', label: 'Pelanggan H-7 Expired' },
+    { value: 'EXPIRY_H3', label: 'Pelanggan H-3 Expired' },
+    { value: 'EXPIRY_H1', label: 'Pelanggan H-1 Expired' },
     { value: 'EXPIRED_RENEWAL', label: 'Follow-up Expired (Max 5x)' },
     { value: 'ADMIN_DIGEST', label: 'Digest Admin (3 Jam)' },
     { value: 'OWNER_RECAP', label: 'Rekap Owner (3 Hari)' },
@@ -174,11 +175,10 @@ export function RemindersView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Operasional & Komunikasi"
+      <AdminPageHeader
         title="Otomasi & Log Pengingat WhatsApp"
         description="Monitoring sistem pembatalan kelas otomatis pada H-24 (Rules #4 & #5) dan antrean perpesanan WhatsApp berjenjang (Rules #11, #12, #13)."
-        context={
+        actions={
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="secondary"

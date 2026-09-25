@@ -54,7 +54,7 @@ const routesToAudit: Array<{ route: string; name: string; category: string }> = 
   { route: '/audit', name: 'Audit Log & Akses', category: 'Pengaturan & Sistem' },
   { route: '/notification-management', name: 'Notification Management', category: 'Pengaturan & Sistem' },
   { route: '/public-content-management', name: 'Public Content Management', category: 'Pengaturan & Sistem' },
-  { route: '/operations', name: 'Operations H-24', category: 'Pengaturan & Sistem' },
+  { route: '/operations', name: 'Evaluasi kuota H-24', category: 'Pengaturan & Sistem' },
   { route: '/health', name: 'Status Sistem Health', category: 'Pengaturan & Sistem' },
 
   // Customer Self-Service / Publik

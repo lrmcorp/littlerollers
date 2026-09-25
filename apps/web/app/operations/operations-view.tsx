@@ -8,7 +8,8 @@ import {
   type OperationalJobPage,
   type OperationsClient,
 } from '@/api-clients/operations-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
 import {
@@ -105,27 +106,26 @@ export function OperationsView({
   const items = jobPage?.items ?? [];
   return (
     <section className="space-y-6" aria-labelledby="operations-title">
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Pemulihan operasional"
+      <div className="space-y-4">
+        <AdminPageHeader
           title="Evaluasi kuota H-24"
           titleId="operations-title"
-          description="Antrean evaluasi otomatis berjalan oleh sistem. Pemulihan manual memerlukan izin operasional dan dicatat dalam log audit."
-          context={
+          description="Antrean evaluasi otomatis berjalan oleh sistem. Pemulihan manual memerlukan izin operasional."
+          badges={
             <>
-              <StatusBadge tone="info">OPS / SUPER OWNER</StatusBadge>
-              <StatusBadge tone="warning">Recovery terbatas</StatusBadge>
+              <StatusBadge tone="info">Ops / Super Admin</StatusBadge>
+              <StatusBadge tone="warning">Pemulihan terbatas</StatusBadge>
             </>
           }
         />
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <StatCard
             label="Job ditampilkan"
             value={String(items.length)}
             helper="Sesuai filter aktif"
           />
           <StatCard
-            label="Perlu recovery"
+            label="Perlu pemulihan"
             value={String(
               items.filter((item) => item.status === 'FAILED' || item.status === 'RETRYING').length,
             )}
@@ -137,7 +137,7 @@ export function OperationsView({
             tone="success"
           />
         </div>
-      </Panel>
+      </div>
       <Feedback kind="info">
         Data contoh — daftar job di bagian ini belum terhubung ke evaluasi kuota H-24 yang berjalan
         sungguhan, jadi jangan dipakai untuk memantau atau memulihkan job produksi.
@@ -161,8 +161,8 @@ export function OperationsView({
           ))}
         </SelectInput>
         <TextInput
-          label="Alasan recovery job"
-          aria-label="Alasan recovery job"
+          label="Alasan pemulihan job"
+          aria-label="Alasan pemulihan job"
           value={jobRecoveryReason}
           onChange={(event) => setJobRecoveryReason(event.target.value)}
           placeholder="Minimal 3 karakter"
@@ -212,7 +212,7 @@ export function OperationsView({
             },
             {
               id: 'action',
-              header: 'Recovery',
+              header: 'Pemulihan',
               cell: (job) => (
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -239,7 +239,7 @@ export function OperationsView({
                       }, 'Evaluasi selesai.')
                     }
                   >
-                    Jalankan recovery
+                    Jalankan pemulihan
                   </Button>
                   <Button
                     variant="secondary"
@@ -301,7 +301,7 @@ export function OperationsView({
                               }
                             : current,
                         );
-                      }, 'Job ditandai gagal permanen (dead-letter).')
+                      }, 'Job ditandai gagal permanen (antrean gagal).')
                     }
                   >
                     Tandai gagal
@@ -354,7 +354,7 @@ export function OperationsView({
                   }, 'Evaluasi selesai.')
                 }
               >
-                Jalankan recovery
+                Jalankan pemulihan
               </Button>
             </div>
           )}

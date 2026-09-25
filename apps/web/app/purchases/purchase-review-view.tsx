@@ -10,7 +10,8 @@ import {
   type ReviewPurchase,
   type ReviewSummary,
 } from '@/api-clients/purchase-client';
-import { PageHeader, Skeleton } from '../ui';
+import { Skeleton } from '../ui';
+import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useTrackedRouter } from '../components/app-loading';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
 import { Button, ButtonLink } from '../components/actions';
@@ -18,7 +19,9 @@ import { AlertBanner, PreviewModal, useOptionalAppFeedback } from '../components
 import { useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
 import { formatRupiah } from '../lib/formatters';
+import { statusLabel } from '../lib/status-labels';
 
+/** Opsi filter antrean; status lain (mis. PAID) ditampilkan lewat `statusLabel`. */
 const statusLabels: Record<string, string> = {
   AWAITING_PAYMENT: 'Menunggu pembayaran',
   PENDING: 'Menunggu pemeriksaan',
@@ -304,7 +307,7 @@ export function PurchaseReviewView({
       ? await feedback.confirm({
           tone: 'warning',
           title: 'Setujui pembayaran',
-          message: `${item.customer.displayName} · ${item.branch.name} · ${item.packageNameSnapshot} · ${formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}. Paket customer akan diaktifkan dan ledger pembelian dibuat. Versi ${item.version}.`,
+          message: `${item.customer.displayName} · ${item.branch.name} · ${item.packageNameSnapshot} · ${formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}. Paket pelanggan akan diaktifkan dan ledger pembelian dibuat. Versi ${item.version}.`,
           confirmLabel: 'Setujui dan aktifkan paket',
         })
       : testAuthority;
@@ -342,11 +345,11 @@ export function PurchaseReviewView({
       <AlertBanner
         tone="danger"
         title="Akses antrean tidak tersedia"
-        message="Role Anda tidak memiliki capability untuk memeriksa pembayaran."
+        message="Role Anda tidak memiliki izin untuk memeriksa pembayaran."
       />
     );
 
-  const scopeLabel = activeBranch?.name ?? (isGlobal ? 'Semua cabang' : 'Cabang assignment');
+  const scopeLabel = activeBranch?.name ?? (isGlobal ? 'Semua cabang' : 'Cabang penugasan');
   const summaryCards = [
     ['PENDING', 'Menunggu', summary.pending],
     ['ACTION_REQUIRED', 'Perlu perbaikan', summary.actionRequired],
@@ -408,34 +411,31 @@ export function PurchaseReviewView({
 
   return (
     <section className="space-y-5" aria-labelledby="payment-review-title">
-      <Panel className="p-5 sm:p-7">
-        <PageHeader
-          eyebrow={`Scope · ${scopeLabel}`}
-          title="Antrean Pembayaran"
-          titleId="payment-review-title"
-          description="Periksa bukti privat dan snapshot transaksi. Keputusan hanya tersedia bagi Finance dan Super Admin."
-          context={
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs text-dd-muted">
-                {generatedAt ? `Diperbarui ${generatedAt.toLocaleString('id-ID')}` : 'Belum dimuat'}
-              </span>
-              <Button
-                variant="secondary"
-                disabled={loading}
-                leadingIcon={
-                  <RefreshCw
-                    className={`size-4 ${loading ? 'animate-spin' : ''}`}
-                    aria-hidden="true"
-                  />
-                }
-                onClick={() => void load()}
-              >
-                Segarkan
-              </Button>
-            </div>
-          }
-        />
-      </Panel>
+      <AdminPageHeader
+        title="Antrean Pembayaran"
+        titleId="payment-review-title"
+        description="Periksa bukti privat dan snapshot transaksi. Keputusan hanya dapat diambil oleh peran yang berwenang (Finance, Manager, dan Super Admin)."
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-dd-muted">
+              {generatedAt ? `Diperbarui ${generatedAt.toLocaleString('id-ID')}` : 'Belum dimuat'}
+            </span>
+            <Button
+              variant="secondary"
+              disabled={loading}
+              leadingIcon={
+                <RefreshCw
+                  className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+              }
+              onClick={() => void load()}
+            >
+              Segarkan
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {summaryCards.map(([value, label, count]) => (
@@ -470,7 +470,7 @@ export function PurchaseReviewView({
       <FilterBar>
         <SearchInput
           wrapperClassName="min-w-56 flex-1"
-          label="Cari customer atau transaksi"
+          label="Cari pelanggan atau transaksi"
           leadingIcon={<Search className="size-4" />}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -492,7 +492,7 @@ export function PurchaseReviewView({
           <SearchSelect
             label="Cabang"
             value={filters.branchId ?? ''}
-            placeholder={isGlobal ? 'Semua cabang' : 'Cabang assignment'}
+            placeholder={isGlobal ? 'Semua cabang' : 'Cabang penugasan'}
             options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
             onChange={(branchId) =>
               changeFilters({ branchId: branchId || undefined, cursor: undefined })
@@ -572,18 +572,18 @@ export function PurchaseReviewView({
         emptyDescription={
           filters.q
             ? 'Ubah pencarian atau reset filter untuk melihat hasil lain.'
-            : 'Tidak ada transaksi yang perlu ditampilkan pada scope ini.'
+            : 'Tidak ada transaksi yang perlu ditampilkan pada cakupan ini.'
         }
         onRowClick={(item) => router.push(detailHref(item.id))}
         rowClassName={(item) => rowClasses[paymentRowState(item)]}
         mobileCardClassName={(item) => rowClasses[paymentRowState(item)]}
         rowDescription={(item) =>
-          `${item.customer.displayName}, ${statusLabels[item.status] ?? item.status}, ${item.activationSummary?.status === 'ACTIVE' ? 'paket aktif' : 'paket belum aktif'}`
+          `${item.customer.displayName}, ${statusLabels[item.status] ?? statusLabel(item.status)}, ${item.activationSummary?.status === 'ACTIVE' ? 'paket aktif' : 'paket belum aktif'}`
         }
         columns={[
           {
             id: 'customer',
-            header: 'Customer',
+            header: 'Pelanggan',
             cell: (item) => (
               <div>
                 <strong>{item.customer.displayName}</strong>
@@ -686,7 +686,7 @@ export function PurchaseReviewView({
             header: 'Status',
             cell: (item) => (
               <Badge tone={paymentStatusTone(item.status)}>
-                {statusLabels[item.status] ?? item.status}
+                {statusLabels[item.status] ?? statusLabel(item.status)}
               </Badge>
             ),
           },
@@ -702,7 +702,7 @@ export function PurchaseReviewView({
                 </p>
               </div>
               <Badge tone={paymentStatusTone(item.status)}>
-                {statusLabels[item.status] ?? item.status}
+                {statusLabels[item.status] ?? statusLabel(item.status)}
               </Badge>
             </div>
             <div>

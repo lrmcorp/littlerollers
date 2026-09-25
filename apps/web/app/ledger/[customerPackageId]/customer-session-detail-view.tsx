@@ -11,7 +11,8 @@ import {
 } from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
 import { Badge, Pagination, Panel, StatCard } from '../../components/admin/admin-ui';
-import { EmptyState, Feedback, PageHeader, Skeleton } from '../../ui';
+import { EmptyState, Feedback, Skeleton } from '../../ui';
+import { AdminPageHeader } from '../../components/admin/admin-page-header';
 
 const ledgerLabels: Record<string, string> = {
   PURCHASE: 'Aktivasi paket',
@@ -68,13 +69,13 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
     if (!loading) setLoadingMore(false);
   }, [loading]);
 
-  if (loading && !history) return <Skeleton label="Memuat detail sesi customer" />;
+  if (loading && !history) return <Skeleton label="Memuat detail sesi pelanggan" />;
   if (!history)
     return (
       <div className="space-y-4">
         <EmptyState
           title="Detail sesi belum tersedia"
-          description={error || 'Paket customer tidak ditemukan atau berada di luar scope Anda.'}
+          description={error || 'Paket pelanggan tidak ditemukan atau berada di luar cakupan Anda.'}
         />
         <div className="text-center">
           <Button onClick={() => void load()}>Coba lagi</Button>
@@ -90,25 +91,22 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
         href={returnTo}
         leadingIcon={<ArrowLeft className="size-4" aria-hidden="true" />}
       >
-        Kembali ke Sesi Customer
+        Kembali ke Sesi Pelanggan
       </ButtonLink>
-      <Panel className="p-6 sm:p-8">
-        <PageHeader
-          eyebrow="Sesi Customer / Detail"
-          title={balance.packageName ?? 'Paket customer'}
-          titleId="customer-session-detail-title"
-          description={`${balance.customer?.displayName ?? 'Customer'} · ${balance.branchName ?? 'Cabang'} · ${balance.classTypeName ?? 'Tipe kelas'}`}
-          context={
-            <Button
-              variant="secondary"
-              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
-              onClick={() => void load()}
-            >
-              Perbarui
-            </Button>
-          }
-        />
-      </Panel>
+      <AdminPageHeader
+        title={balance.packageName ?? 'Paket pelanggan'}
+        titleId="customer-session-detail-title"
+        description={`${balance.customer?.displayName ?? 'Pelanggan'} · ${balance.branchName ?? 'Cabang'} · ${balance.classTypeName ?? 'Tipe kelas'}`}
+        actions={
+          <Button
+            variant="secondary"
+            leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+            onClick={() => void load()}
+          >
+            Perbarui
+          </Button>
+        }
+      />
       {error && <Feedback kind="error">{error}</Feedback>}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Saldo sesi">
         <StatCard
@@ -137,7 +135,7 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
         </div>
         {balance.customer?.id && (
           <ButtonLink className="mt-4" variant="secondary" href={`/users/${balance.customer.id}`}>
-            Buka detail customer
+            Buka detail pelanggan
           </ButtonLink>
         )}
       </Panel>

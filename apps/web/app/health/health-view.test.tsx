@@ -34,7 +34,7 @@ describe('HealthView', () => {
     expect(load).toHaveBeenCalledTimes(1);
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(load).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', { name: 'Periksa ulang' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Segarkan' }));
     await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
