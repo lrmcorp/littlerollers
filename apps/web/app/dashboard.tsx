@@ -5,34 +5,34 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
-  BookOpenCheck,
-  Building2,
-  CalendarClock,
-  CalendarDays,
   CheckCircle2,
-  ClipboardCheck,
   Clock,
-  CreditCard,
-  Layers,
   RefreshCw,
-  Sparkles,
   TrendingUp,
 } from 'lucide-react';
-import { canReadPage, frontendPages } from '@/lib/frontend-pages';
+import { shortcutPagesFor } from '@/lib/frontend-pages';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
 import { Button } from './components/actions';
-import { Badge, Panel, StatCard } from './components/admin/admin-ui';
-import { DateInput, SearchSelect } from './components/forms';
+import { AdminPageHeader } from './components/admin/admin-page-header';
+import { Badge, DataTable, Panel, StatCard } from './components/admin/admin-ui';
+import { DateInput } from './components/forms';
 import {
   browserDashboardClient,
   type DashboardClient,
   type DashboardOverview,
 } from '@/api-clients/dashboard-client';
 import { formatRupiah } from './lib/formatters';
+import { iconForPage } from './lib/page-icons';
 
 const number = new Intl.NumberFormat('id-ID');
+const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
+/** Tanggal tren bisa berupa Date (klien ter-generate) atau string ISO; selalu tampil YYYY-MM-DD. */
+const trendDate = (value: Date | string) =>
+  (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
+const shortDate = (value: string) =>
+  new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 const financialMetricKeys = new Set([
   'gross-sales',
   'revenue',
@@ -73,7 +73,8 @@ const roleCopy = {
   BRANCH_OPERATIONS: {
     eyebrow: 'Pusat Operasional Cabang',
     title: 'Operasional cabang hari ini',
-    description: 'Prioritaskan kelas, booking, pelanggan, dan antrean keputusan untuk cabang aktif.',
+    description:
+      'Prioritaskan kelas, booking, pelanggan, dan antrean keputusan untuk cabang aktif.',
   },
   FINANCE: {
     eyebrow: 'Ikhtisar Keuangan',
@@ -103,54 +104,85 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
   const profitPolyline = profitValues
     .map((value, index) => `${(index / (profitValues.length - 1)) * 100},${y(value)}`)
     .join(' ');
+  const format = (value: number) =>
+    finance ? `Rp ${compact.format(value)}` : number.format(value);
+  const formatExact = (value: number) => (finance ? formatRupiah(value) : number.format(value));
+  const step = 100 / (points.length - 1);
   return (
     <figure className="mt-5">
-      <svg
-        role="img"
-        aria-labelledby="dashboard-trend-title dashboard-trend-description"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="h-56 w-full overflow-visible"
-      >
-        <title id="dashboard-trend-title">Tren {finance ? 'pendapatan' : 'booking'}</title>
-        <desc id="dashboard-trend-description">
-          {values.map((value, index) => `${points[index]!.date}: ${value}`).join(', ')}
-        </desc>
-        {[16, 41, 66, 91].map((gridY) => (
-          <line
-            key={gridY}
-            x1="0"
-            y1={gridY}
-            x2="100"
-            y2={gridY}
-            stroke="currentColor"
-            className="text-dd-line/70"
-            strokeWidth="0.5"
-            strokeDasharray="2 2"
-          />
-        ))}
-        <polyline
-          points={polyline}
-          fill="none"
-          stroke="currentColor"
-          className="text-dd-forest drop-shadow-sm"
-          strokeWidth="2.5"
-          vectorEffect="non-scaling-stroke"
-        />
-        {finance && (
+      <div className="flex gap-3">
+        <div
+          className="flex h-56 shrink-0 flex-col justify-between py-3 text-right text-[11px] font-medium text-dd-muted"
+          aria-hidden="true"
+        >
+          <span>{format(maximum)}</span>
+          <span>{format(minimum + span / 2)}</span>
+          <span>{format(minimum)}</span>
+        </div>
+        <svg
+          role="img"
+          aria-labelledby="dashboard-trend-title dashboard-trend-description"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="h-56 min-w-0 flex-1 overflow-visible"
+        >
+          <title id="dashboard-trend-title">Tren {finance ? 'pendapatan' : 'booking'}</title>
+          <desc id="dashboard-trend-description">
+            {values.map((value, index) => `${trendDate(points[index]!.date)}: ${value}`).join(', ')}
+          </desc>
+          {[16, 41, 66, 91].map((gridY) => (
+            <line
+              key={gridY}
+              x1="0"
+              y1={gridY}
+              x2="100"
+              y2={gridY}
+              stroke="currentColor"
+              className="text-dd-line/70"
+              strokeWidth="0.5"
+              strokeDasharray="2 2"
+            />
+          ))}
           <polyline
-            points={profitPolyline}
+            points={polyline}
             fill="none"
             stroke="currentColor"
-            className="text-dd-brass"
-            strokeWidth="2"
-            strokeDasharray="4 3"
+            className="text-dd-forest drop-shadow-sm"
+            strokeWidth="2.5"
             vectorEffect="non-scaling-stroke"
           />
-        )}
-      </svg>
+          {finance && (
+            <polyline
+              points={profitPolyline}
+              fill="none"
+              stroke="currentColor"
+              className="text-dd-brass"
+              strokeWidth="2"
+              strokeDasharray="4 3"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {/* Area sentuh per titik: tooltip bawaan menampilkan tanggal dan nilai. */}
+          {points.map((point, index) => (
+            <rect
+              key={trendDate(point.date)}
+              x={Math.max(0, index * step - step / 2)}
+              y="0"
+              width={step}
+              height="100"
+              fill="transparent"
+            >
+              <title>
+                {`${trendDate(point.date)}: ${formatExact(values[index]!)}${
+                  finance ? ` · profit ${formatExact(profitValues[index]!)}` : ''
+                }`}
+              </title>
+            </rect>
+          ))}
+        </svg>
+      </div>
       {finance && (
-        <div className="mt-3 flex items-center gap-6 text-xs font-semibold text-dd-muted border-t border-dd-line/60 pt-3">
+        <div className="mt-3 flex items-center gap-6 border-t border-dd-line/60 pt-3 text-xs font-semibold text-dd-muted">
           <span className="flex items-center gap-1.5 text-dd-forest">
             <span className="size-2.5 rounded-full bg-dd-forest" /> Omzet Bruto
           </span>
@@ -160,8 +192,8 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
         </div>
       )}
       <figcaption className="mt-2 flex justify-between text-[11px] font-medium text-dd-muted">
-        <span>{String(points[0]!.date).slice(0, 10)}</span>
-        <span>{String(points.at(-1)!.date).slice(0, 10)}</span>
+        <span>{trendDate(points[0]!.date)}</span>
+        <span>{trendDate(points.at(-1)!.date)}</span>
       </figcaption>
     </figure>
   );
@@ -175,30 +207,23 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const [failure, setFailure] = useState(false);
   const [until, setUntil] = useState(() => dateInput(new Date()));
   const [from, setFrom] = useState(() => dateInput(new Date(Date.now() - 29 * 86_400_000)));
-  const [dashboardBranchId, setDashboardBranchId] = useState('');
-  const pages = useMemo(
-    () =>
-      session
-        ? frontendPages
-            .filter((page) => page.href !== '/workspace' && !page.isDormant && canReadPage(session.capabilities, page))
-            .sort((left, right) => left.priority - right.priority)
-        : [],
-    [session],
-  );
+  // Cakupan cabang mengikuti pemilih "Cabang aktif" di topbar (satu-satunya pemilih cabang).
   const activeBranch = context?.activeBranch;
+  const branchId = context?.activeBranchId ?? '';
+  const shortcuts = useMemo(() => (session ? shortcutPagesFor(session) : []), [session]);
 
   const load = useCallback(async () => {
     if (!session) return;
     setLoading(true);
     setFailure(false);
     try {
-      setOverview(await client.overview({ branchId: dashboardBranchId || undefined, from, until }));
+      setOverview(await client.overview({ branchId: branchId || undefined, from, until }));
     } catch {
       setFailure(true);
     } finally {
       setLoading(false);
     }
-  }, [client, dashboardBranchId, from, session, until]);
+  }, [branchId, client, from, session, until]);
 
   useEffect(() => {
     void load();
@@ -216,71 +241,89 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           ? 'OPERATIONS'
           : 'BRANCH_OPERATIONS');
   const copy = roleCopy[focus];
+  const queueTotal = overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0;
+  const queueCounts = Object.fromEntries(
+    (overview?.queues ?? []).map((item) => [item.key, item.count]),
+  );
+  const showQueue = Boolean(overview?.sections.queue);
+  const showRisk = Boolean(overview?.sections.risk);
 
   return (
-    <div className="space-y-8 font-sans text-dd-ink">
-      {/* Header & Filter Card */}
-      <header className="flex flex-col gap-6 rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md xl:flex-row xl:items-end xl:justify-between">
-        <div className="max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-dd-forest/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
-            <Sparkles className="size-3.5 text-dd-brass" />
-            <span>{copy.eyebrow}</span>
-          </div>
-          <h1 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink">
-            Selamat datang, {session.displayName}
-          </h1>
-          <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-dd-muted">
+    <div className="space-y-6 font-sans text-dd-ink">
+      <AdminPageHeader
+        eyebrow={copy.eyebrow}
+        title={`Selamat datang, ${session.displayName}`}
+        description={
+          <>
             <strong className="font-semibold text-dd-ink">{copy.title}.</strong> {copy.description}
-          </p>
-        </div>
+          </>
+        }
+        actions={
+          <>
+            <DateInput
+              label="Dari"
+              value={from}
+              max={until}
+              compact
+              onChange={(event) => setFrom(event.target.value)}
+              wrapperClassName="min-w-36"
+            />
+            <DateInput
+              label="Sampai"
+              value={until}
+              min={from}
+              compact
+              onChange={(event) => setUntil(event.target.value)}
+              wrapperClassName="min-w-36"
+            />
+            <Button
+              variant="secondary"
+              onClick={() => void load()}
+              disabled={loading}
+              leadingIcon={
+                <RefreshCw
+                  className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+              }
+            >
+              Segarkan
+            </Button>
+          </>
+        }
+      />
 
-        {/* Global Filter Bar */}
-        <div className="flex flex-wrap items-end gap-3 rounded-dd-lg border border-dd-line/80 bg-dd-surface-muted/40 p-3.5 shadow-sm">
-          <SearchSelect
-            label="Studio/Cabang"
-            value={dashboardBranchId}
-            compact
-            wrapperClassName="min-w-52"
-            placeholder="Semua Studio / Cabang"
-            searchPlaceholder="Cari Studio/Cabang…"
-            clearable
-            options={session.branches.map((branch) => ({
-              id: branch.id,
-              label: branch.name,
-              description: branch.code,
-            }))}
-            onChange={setDashboardBranchId}
-          />
-          <DateInput
-            label="Dari"
-            value={from}
-            max={until}
-            compact
-            onChange={(event) => setFrom(event.target.value)}
-            wrapperClassName="min-w-36"
-          />
-          <DateInput
-            label="Sampai"
-            value={until}
-            min={from}
-            compact
-            onChange={(event) => setUntil(event.target.value)}
-            wrapperClassName="min-w-36"
-          />
-          <Button
-            variant="secondary"
-            onClick={() => void load()}
-            disabled={loading}
-            leadingIcon={
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-            }
-          >
-            Segarkan
-          </Button>
-        </div>
-      </header>
+      {/* Satu baris cakupan: cabang, periode, dan kesegaran data. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs font-medium text-dd-muted">
+        <span>
+          {activeBranch ? (
+            <>
+              <strong className="text-dd-ink">Cabang operasional: {activeBranch.name}</strong> (
+              {activeBranch.code} · {activeBranch.timezone})
+            </>
+          ) : (
+            <strong className="text-dd-ink">Semua cabang yang diizinkan</strong>
+          )}{' '}
+          · Periode {shortDate(from)} – {shortDate(until)}
+        </span>
+        {overview && (
+          <time dateTime={String(overview.generatedAt)} className="flex items-center gap-1.5">
+            <Clock className="size-3.5" aria-hidden="true" />
+            Diperbarui{' '}
+            {new Date(overview.generatedAt).toLocaleString('id-ID', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+            {' · '}
+            Sumber data s.d.{' '}
+            {new Date(overview.financial.sourceCutoffAt).toLocaleString('id-ID', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+          </time>
+        )}
+      </div>
 
-      {/* Warnings & Scope Banners */}
       {!activeBranch &&
         session.branches.length > 0 &&
         !session.roles.includes('SUPER_OWNER') &&
@@ -293,219 +336,231 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         )}
       {failure && (
         <Feedback kind="error">
-          Ringkasan bisnis belum dapat dimuat. Gunakan pintasan area kerja atau coba refresh.
+          Ringkasan bisnis belum dapat dimuat. Gunakan pintasan di bawah atau coba segarkan.
         </Feedback>
       )}
-      {activeBranch && (
-        <div className="flex flex-wrap items-center gap-3 rounded-dd-lg border border-emerald-200 bg-dd-success-soft px-4 py-3 text-xs sm:text-sm font-medium text-dd-success shadow-sm">
-          <Building2 className="size-4 shrink-0" />
-          <strong>Cabang operasional: {activeBranch.name}</strong>
-          <span className="text-dd-success/75">
-            {activeBranch.code} · {activeBranch.timezone}
-          </span>
-        </div>
-      )}
-
-      {overview && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-dd-muted border-b border-dd-line/60 pb-3">
-          <span>
-            Scope:{' '}
-            <strong className="text-dd-ink">
-              {session.branches.find((branch) => branch.id === dashboardBranchId)?.name ??
-                'Semua Studio/Cabang yang diizinkan'}
-            </strong>
-          </span>
-          <time dateTime={String(overview.generatedAt)} className="flex items-center gap-1.5">
-            <Clock className="size-3.5" />
-            Diperbarui{' '}
-            {new Date(overview.generatedAt).toLocaleString('id-ID', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}
-          </time>
-        </div>
-      )}
-
       {overview?.financial.completeness === 'INCOMPLETE' && (
         <Feedback kind="warning">
           Laporan keuangan belum lengkap ({overview.financial.anomalyCount} anomali). Angka ini
-          belum boleh digunakan untuk monthly close atau sign-off Finance.
+          belum boleh digunakan untuk tutup buku atau persetujuan Finance.
         </Feedback>
       )}
-      {overview && (
-        <p className="text-xs text-dd-muted">
-          Cutoff sumber:{' '}
-          {new Date(overview.financial.sourceCutoffAt).toLocaleString('id-ID', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          })}
-        </p>
+
+      {/* Prioritas: pekerjaan yang menunggu keputusan dan kelas berisiko. */}
+      {overview && (showQueue || showRisk) && (
+        <div className={`grid gap-6 ${showQueue && showRisk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
+          {showQueue && (
+            <Panel className="p-6" aria-labelledby="dashboard-queue-title">
+              <div className="flex items-center justify-between gap-3 border-b border-dd-line/60 pb-4">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    Antrean kerja
+                  </span>
+                  <h2
+                    id="dashboard-queue-title"
+                    className="mt-1 font-sans text-xl font-bold text-dd-ink"
+                  >
+                    Perlu perhatian Anda
+                  </h2>
+                </div>
+                <Badge tone={queueTotal > 0 ? 'warning' : 'success'}>{queueTotal} item</Badge>
+              </div>
+              <div className="mt-2 divide-y divide-dd-line/60">
+                {overview.queues.length ? (
+                  overview.queues.map((item) => (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      className="group flex items-center gap-4 rounded-dd-md px-2 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30"
+                    >
+                      <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
+                        {item.count}
+                      </span>
+                      <span className="text-sm font-semibold sm:text-base">{item.label}</span>
+                      <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
+                    </Link>
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-sm text-dd-muted">
+                    <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
+                    Tidak ada antrean yang membutuhkan tindakan.
+                  </div>
+                )}
+              </div>
+            </Panel>
+          )}
+
+          {showRisk && (
+            <Panel className="p-6" aria-labelledby="dashboard-risk-title">
+              <div className="border-b border-dd-line/60 pb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                  Pantauan H-24
+                </span>
+                <h2
+                  id="dashboard-risk-title"
+                  className="mt-1 font-sans text-xl font-bold text-dd-ink"
+                >
+                  Kelas berisiko
+                </h2>
+              </div>
+              <div className="mt-4 space-y-3">
+                {overview.risks.length ? (
+                  overview.risks.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className="flex gap-3.5 rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
+                    >
+                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
+                      <span className="min-w-0 flex-1">
+                        <strong className="block truncate text-sm font-bold text-dd-ink">
+                          {item.className}
+                        </strong>
+                        <span className="mt-1 block text-xs text-dd-muted">
+                          {item.bookedCount}/{item.minimumQuota} kuota minimum ·{' '}
+                          {new Date(item.startAt).toLocaleString('id-ID', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </span>
+                      </span>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-sm text-dd-muted">
+                    <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
+                    Tidak ada kelas berisiko dalam 24 jam.
+                  </div>
+                )}
+              </div>
+            </Panel>
+          )}
+        </div>
       )}
 
-      {/* Quick Action Hub: Pintasan Cepat Operasional */}
-      <section aria-label="Aksi Cepat Hari Ini" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-            Aksi Cepat Operasional
-          </span>
-          <span className="text-xs text-dd-muted">Pintasan 1-klik pekerjaan harian</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <Link
-            href="/workspace/classes"
-            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
-                <CalendarDays className="size-5" />
-              </span>
-              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
-            </div>
-            <div className="mt-3">
-              <strong className="block text-sm font-bold text-dd-ink">Jadwal Kelas</strong>
-              <span className="text-xs text-dd-muted">Timetable &amp; slot reformer</span>
-            </div>
-          </Link>
+      {/* Pintasan sesuai peran dan hak akses akun (dari registry halaman). */}
+      {shortcuts.length > 0 && (
+        <section aria-labelledby="dashboard-shortcuts-title" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2
+              id="dashboard-shortcuts-title"
+              className="text-xs font-bold uppercase tracking-wider text-dd-forest"
+            >
+              Pintasan
+            </h2>
+            <span className="text-xs text-dd-muted">Pekerjaan harian sesuai peran Anda</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {shortcuts.map((page) => {
+              const Icon = iconForPage(page.href);
+              const count = page.queueBadgeSource ? (queueCounts[page.queueBadgeSource] ?? 0) : 0;
+              return (
+                <Link
+                  key={page.href}
+                  href={page.href}
+                  className="group flex flex-col justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white p-4 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-dd-forest hover:shadow-dd-card"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    {count > 0 && (
+                      <span
+                        aria-label={`${count} antrean`}
+                        className="rounded-full bg-dd-brass px-2 py-0.5 text-[11px] font-bold text-white"
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <strong className="block text-sm font-bold text-dd-ink">
+                      {page.shortLabel}
+                    </strong>
+                    <span className="mt-0.5 line-clamp-2 text-xs text-dd-muted">
+                      {page.description}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-          <Link
-            href="/workspace/bookings"
-            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
-                <BookOpenCheck className="size-5" />
-              </span>
-              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
-            </div>
-            <div className="mt-3">
-              <strong className="block text-sm font-bold text-dd-ink">Booking Member</strong>
-              <span className="text-xs text-dd-muted">Reservasi &amp; reschedule</span>
-            </div>
-          </Link>
+      {overview &&
+        (() => {
+          const metrics = overview.metrics ?? [];
+          const financialMetrics = metrics.filter((m) => financialMetricKeys.has(m.key));
+          const operationalMetrics = metrics.filter((m) => !financialMetricKeys.has(m.key));
 
-          <Link
-            href="/check-in-scanner"
-            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-dd-md bg-sky-50 text-sky-700">
-                <ClipboardCheck className="size-5" />
-              </span>
-              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
-            </div>
-            <div className="mt-3">
-              <strong className="block text-sm font-bold text-dd-ink">Scan Presensi</strong>
-              <span className="text-xs text-dd-muted">Check-in QR kehadiran</span>
-            </div>
-          </Link>
+          const renderCard = (metric: (typeof metrics)[number]) => {
+            const isFinancial = financialMetricKeys.has(metric.key);
+            const isUnavailable =
+              metric.value === null ||
+              metric.value === undefined ||
+              Number.isNaN(metric.value) ||
+              (overview.financial.completeness === 'INCOMPLETE' && isFinancial);
 
-          <Link
-            href="/workspace/payments"
-            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-dd-md bg-amber-50 text-amber-700">
-                <CreditCard className="size-5" />
-              </span>
-              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
-            </div>
-            <div className="mt-3">
-              <strong className="block text-sm font-bold text-dd-ink">Bukti Bayar</strong>
-              <span className="text-xs text-dd-muted">Verifikasi transfer paket</span>
-            </div>
-          </Link>
+            const formattedValue = isUnavailable
+              ? 'Belum tersedia'
+              : metric.unit === 'IDR'
+                ? formatRupiah(metric.value)
+                : metric.unit === 'PERCENT'
+                  ? `${number.format(metric.value)}%`
+                  : number.format(metric.value);
 
-          <Link
-            href="/workspace/branches"
-            className="group flex flex-col justify-between rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-sm transition hover:border-dd-forest hover:shadow-dd-card hover:-translate-y-0.5 col-span-2 sm:col-span-1"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-dd-md bg-dd-brass-soft text-dd-brass-dark">
-                <Building2 className="size-5" />
-              </span>
-              <ArrowRight className="size-4 text-dd-muted opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-dd-forest" />
-            </div>
-            <div className="mt-3">
-              <strong className="block text-sm font-bold text-dd-ink">Studio &amp; Cabang</strong>
-              <span className="text-xs text-dd-muted">Profil, maps &amp; rekening</span>
-            </div>
-          </Link>
-        </div>
-      </section>
+            const helperText = isUnavailable
+              ? 'Konfigurasi atau sumber belum lengkap'
+              : metric.changePercent == null
+                ? 'Periode terpilih'
+                : 'dibanding periode sebelumnya';
 
-      {/* KPI Metrics Stat Cards */}
-      {overview && (() => {
-        const metrics = overview.metrics ?? [];
-        const financialMetrics = metrics.filter((m) => financialMetricKeys.has(m.key));
-        const operationalMetrics = metrics.filter((m) => !financialMetricKeys.has(m.key));
-
-        const renderCard = (metric: (typeof metrics)[number]) => {
-          const isFinancial = financialMetricKeys.has(metric.key);
-          const isUnavailable =
-            metric.value === null ||
-            metric.value === undefined ||
-            Number.isNaN(metric.value) ||
-            (overview.financial.completeness === 'INCOMPLETE' && isFinancial);
-
-          const formattedValue = isUnavailable
-            ? 'Belum tersedia'
-            : metric.unit === 'IDR'
-              ? formatRupiah(metric.value)
-              : metric.unit === 'PERCENT'
-                ? `${number.format(metric.value)}%`
-                : number.format(metric.value);
-
-          const helperText = isUnavailable
-            ? 'Konfigurasi atau sumber belum lengkap'
-            : metric.changePercent == null
-              ? 'Periode terpilih'
-              : 'dibanding periode sebelumnya';
+            return (
+              <StatCard
+                key={metric.key}
+                label={metric.label}
+                value={formattedValue}
+                change={isUnavailable ? undefined : (metric.changePercent ?? undefined)}
+                helper={helperText}
+              />
+            );
+          };
 
           return (
-            <StatCard
-              key={metric.key}
-              label={metric.label}
-              value={formattedValue}
-              change={isUnavailable ? undefined : (metric.changePercent ?? undefined)}
-              helper={helperText}
-            />
-          );
-        };
-
-        return (
-          <div className="space-y-8">
-            {financialMetrics.length > 0 && (
-              <section aria-label="Performa finansial" className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                    Performa Finansial
-                  </span>
-                  {overview.financial.completeness === 'INCOMPLETE' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 shadow-sm">
-                      <span className="size-1.5 rounded-full bg-amber-500" />
-                      {overview.financial.anomalyCount} anomali data migrasi
+            <div className="space-y-8">
+              {financialMetrics.length > 0 && (
+                <section aria-label="Performa finansial" className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                      Performa Finansial
                     </span>
-                  )}
-                </div>
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                  {financialMetrics.map(renderCard)}
-                </div>
-              </section>
-            )}
+                    {overview.financial.completeness === 'INCOMPLETE' && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 shadow-sm">
+                        <span className="size-1.5 rounded-full bg-amber-500" />
+                        {overview.financial.anomalyCount} anomali data migrasi
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                    {financialMetrics.map(renderCard)}
+                  </div>
+                </section>
+              )}
 
-            {operationalMetrics.length > 0 && (
-              <section aria-label="Kinerja operasional dan member" className="space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                  Kinerja Operasional & Member
-                </span>
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                  {operationalMetrics.map(renderCard)}
-                </div>
-              </section>
-            )}
-          </div>
-        );
-      })()}
+              {operationalMetrics.length > 0 && (
+                <section aria-label="Kinerja operasional dan member" className="space-y-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    Kinerja Operasional & Member
+                  </span>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                    {operationalMetrics.map(renderCard)}
+                  </div>
+                </section>
+              )}
+            </div>
+          );
+        })()}
 
       {loading && !overview && (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -518,15 +573,14 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       )}
 
-      {/* Trend Section */}
       {overview?.sections.trend && (
-        <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
+        <Panel className="p-6 sm:p-8">
           <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
                 Tren periode
               </span>
-              <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+              <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
                 {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
                   ? 'Omzet dan profit operasional'
                   : 'Pergerakan booking'}
@@ -541,159 +595,115 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </Panel>
       )}
 
-      {/* Action Queue & Risk Watch Grid */}
-      <div className={`grid gap-6 ${overview?.sections.risk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
-        {overview?.sections.risk && (
-          <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                  Action queue
-                </span>
-                <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink">
-                  Perlu perhatian Anda
-                </h2>
-              </div>
-              <Badge tone="warning">
-                {overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0} item
-              </Badge>
-            </div>
-            <div className="mt-4 divide-y divide-dd-line/60">
-              {overview?.queues.length ? (
-                overview.queues.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className="group flex items-center gap-4 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30 rounded-dd-md px-2"
-                  >
-                    <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
-                      {item.count}
-                    </span>
-                    <span className="font-semibold text-sm sm:text-base">{item.label}</span>
-                    <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
-                  </Link>
-                ))
-              ) : (
-                <div className="py-10 text-center text-sm text-dd-muted">
-                  <CheckCircle2 className="mx-auto size-8 text-dd-success/60 mb-2" />
-                  Tidak ada antrean yang membutuhkan tindakan.
-                </div>
-              )}
-            </div>
-          </Panel>
-        )}
-
-        <Panel className="rounded-dd-lg border border-dd-line/80 bg-white/95 p-6 sm:p-8 shadow-dd-card backdrop-blur-md">
-          <div className="border-b border-dd-line/60 pb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              H-24 risk watch
-            </span>
-            <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink">Kelas berisiko</h2>
-          </div>
-          <div className="mt-4 space-y-3">
-            {overview?.risks.length ? (
-              overview.risks.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex gap-3.5 rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
-                >
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
-                  <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-sm font-bold text-dd-ink">
-                      {item.className}
-                    </strong>
-                    <span className="mt-1 block text-xs text-dd-muted">
-                      {item.bookedCount}/{item.minimumQuota} kuota minimum ·{' '}
-                      {new Date(item.startAt).toLocaleString('id-ID', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </span>
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <div className="py-10 text-center text-sm text-dd-muted">
-                <CheckCircle2 className="mx-auto size-8 text-dd-success/60 mb-2" />
-                Tidak ada kelas berisiko dalam 24 jam.
-              </div>
-            )}
-          </div>
-        </Panel>
-      </div>
-
-      {/* Branch Portfolio Performance Table */}
       {overview?.branches.length ? (
-        <Panel className="overflow-hidden rounded-dd-lg border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
-          <div className="border-b border-dd-line/60 p-6 sm:px-8">
+        <section aria-labelledby="dashboard-branches-title" className="space-y-3">
+          <div>
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              Portfolio cabang
+              Portofolio cabang
             </span>
-            <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+            <h2
+              id="dashboard-branches-title"
+              className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl"
+            >
               Performa per cabang
             </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b border-dd-line bg-dd-surface-muted/50 text-xs font-bold uppercase text-dd-muted">
-                <tr>
-                  <th className="px-6 py-3.5">Cabang</th>
-                  <th className="px-6 py-3.5">Omzet</th>
-                  <th className="px-6 py-3.5">Projection</th>
-                  <th className="px-6 py-3.5">Instruktur</th>
-                  <th className="px-6 py-3.5">Pengeluaran</th>
-                  <th className="px-6 py-3.5">Profit</th>
-                  <th className="px-6 py-3.5">Booking</th>
-                  <th className="px-6 py-3.5">Okupansi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-dd-line/60">
-                {overview.branches.map((branch) => (
-                  <tr key={branch.id} className="transition hover:bg-dd-surface-muted/30">
-                    <td className="px-6 py-4">
-                      <strong className="font-bold text-dd-ink">{branch.name}</strong>
-                      <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
-                        {branch.code}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium">{formatRupiah(branch.revenueRp)}</td>
-                    <td className="px-6 py-4 text-dd-muted">{formatRupiah(branch.projectionRp)}</td>
-                    <td className="px-6 py-4 text-dd-muted">
-                      {formatRupiah(branch.instructorRealtimeRp)}
-                    </td>
-                    <td className="px-6 py-4 text-dd-muted">{formatRupiah(branch.otherCostRp)}</td>
-                    <td className="px-6 py-4 font-bold text-dd-forest">
-                      {formatRupiah(branch.profitRp)}
-                    </td>
-                    <td className="px-6 py-4 font-semibold">{number.format(branch.bookings)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-dd-surface-muted">
-                          <span
-                            className="block h-full rounded-full bg-dd-forest"
-                            style={{ width: `${Math.min(100, branch.occupancyPercent)}%` }}
-                          />
-                        </div>
-                        <span className="font-bold text-xs">{branch.occupancyPercent}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+          <DataTable
+            items={overview.branches}
+            rowKey={(branch) => branch.id}
+            showRowNumbers={false}
+            columns={[
+              {
+                id: 'branch',
+                header: 'Cabang',
+                cell: (branch) => (
+                  <>
+                    <strong className="font-bold text-dd-ink">{branch.name}</strong>
+                    <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+                      {branch.code}
+                    </span>
+                  </>
+                ),
+              },
+              { id: 'revenue', header: 'Omzet', cell: (branch) => formatRupiah(branch.revenueRp) },
+              {
+                id: 'projection',
+                header: 'Proyeksi',
+                cell: (branch) => formatRupiah(branch.projectionRp),
+              },
+              {
+                id: 'instructor',
+                header: 'Instruktur',
+                cell: (branch) => formatRupiah(branch.instructorRealtimeRp),
+              },
+              {
+                id: 'cost',
+                header: 'Pengeluaran',
+                cell: (branch) => formatRupiah(branch.otherCostRp),
+              },
+              {
+                id: 'profit',
+                header: 'Profit',
+                cell: (branch) => (
+                  <span className="font-bold text-dd-forest">{formatRupiah(branch.profitRp)}</span>
+                ),
+              },
+              {
+                id: 'bookings',
+                header: 'Booking',
+                cell: (branch) => (
+                  <span className="font-semibold">{number.format(branch.bookings)}</span>
+                ),
+              },
+              {
+                id: 'occupancy',
+                header: 'Okupansi',
+                cell: (branch) => (
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-24 overflow-hidden rounded-full bg-dd-surface-muted">
+                      <span
+                        className="block h-full rounded-full bg-dd-forest"
+                        style={{ width: `${Math.min(100, branch.occupancyPercent)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold">{branch.occupancyPercent}%</span>
+                  </div>
+                ),
+              },
+            ]}
+            mobileCard={(branch) => (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <strong className="text-dd-ink">{branch.name}</strong>
+                  <span className="rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+                    {branch.code}
+                  </span>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <dt className="text-dd-muted">Omzet</dt>
+                  <dd className="text-right font-medium">{formatRupiah(branch.revenueRp)}</dd>
+                  <dt className="text-dd-muted">Profit</dt>
+                  <dd className="text-right font-bold text-dd-forest">
+                    {formatRupiah(branch.profitRp)}
+                  </dd>
+                  <dt className="text-dd-muted">Booking</dt>
+                  <dd className="text-right font-semibold">{number.format(branch.bookings)}</dd>
+                  <dt className="text-dd-muted">Okupansi</dt>
+                  <dd className="text-right font-bold">{branch.occupancyPercent}%</dd>
+                </dl>
+              </div>
+            )}
+          />
+        </section>
       ) : null}
 
-      {/* Operational Job Health */}
       {overview?.sections.jobHealth && (
-        <Panel className="overflow-hidden rounded-dd-lg border border-dd-line/80 bg-white/95 shadow-dd-card backdrop-blur-md">
+        <Panel className="overflow-hidden">
           <div className="border-b border-dd-line/60 p-6 sm:px-8">
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              Job health
+              Kesehatan job
             </span>
-            <h2 className="mt-1 font-sans text-xl sm:text-2xl font-bold text-dd-ink">
+            <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
               Aktivitas pemulihan terbaru
             </h2>
           </div>
@@ -730,35 +740,6 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           )}
         </Panel>
       )}
-
-      {/* Quick Shortcuts Area */}
-      <section aria-labelledby="quick-work-title" className="space-y-4 pt-2">
-        <div className="flex items-end justify-between">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              Pintasan
-            </span>
-            <h2 id="quick-work-title" className="mt-1 font-sans text-xl font-bold text-dd-ink">
-              Area kerja Anda
-            </h2>
-          </div>
-          <span className="text-xs font-medium text-dd-muted">{pages.length} area tersedia</span>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {pages.slice(0, 8).map((page) => (
-            <Link
-              href={page.href}
-              key={page.href}
-              className="group inline-flex min-h-11 items-center gap-2 rounded-dd-md border border-dd-line/80 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-dd-ink no-underline shadow-dd-soft transition hover:border-dd-forest hover:bg-dd-surface-muted/40 hover:-translate-y-0.5"
-            >
-              <CalendarClock className="size-4 text-dd-brass" />
-              <span>{page.shortLabel}</span>
-              <ArrowRight className="size-3.5 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
-              <span className="sr-only">Buka {page.label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

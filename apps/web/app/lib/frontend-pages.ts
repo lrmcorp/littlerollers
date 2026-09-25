@@ -481,6 +481,28 @@ export function canReadPage(capabilities: string[], page: FrontendPageDefinition
   );
 }
 
+/**
+ * Pintasan Dashboard: halaman yang boleh dibaca akun, diprioritaskan lewat `roleRelevance`
+ * (bila cukup relevan), urut menurut `priority`. Halaman dormant dan halaman customer dikecualikan.
+ */
+export function shortcutPagesFor(
+  session: { roles: readonly string[]; capabilities: readonly string[] },
+  limit = 6,
+): FrontendPageDefinition[] {
+  const readable = frontendPages.filter(
+    (page) =>
+      page.href !== '/workspace' &&
+      !page.isDormant &&
+      !page.capabilities.includes('customer:self') &&
+      canReadPage([...session.capabilities], page),
+  );
+  const relevant = readable.filter((page) =>
+    page.roleRelevance?.some((role) => session.roles.includes(role)),
+  );
+  const pool = relevant.length >= 3 ? relevant : readable;
+  return [...pool].sort((left, right) => left.priority - right.priority).slice(0, limit);
+}
+
 export function canMutatePage(capabilities: string[], page: FrontendPageDefinition) {
   return Boolean(
     page.mutationCapabilities?.some((capability) => capabilities.includes(capability)),

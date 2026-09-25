@@ -81,7 +81,7 @@ function overview(branchId?: string) {
   };
 }
 
-test('Super Owner filters authoritative financial dashboard without changing operational branch', async ({
+test('Super Owner dashboard follows the topbar branch and shows authoritative financials', async ({
   page,
 }) => {
   const overviewRequests: URL[] = [];
@@ -117,11 +117,13 @@ test('Super Owner filters authoritative financial dashboard without changing ope
   await expect(page.getByText('Rp\u00a01.000.000').first()).toBeVisible();
   await expect(page.getByText(/Cabang operasional: Jakarta/)).toBeVisible();
 
-  const branchFilter = page.getByRole('combobox', { name: 'Studio/Cabang', exact: true });
-  await branchFilter.click();
+  // Satu-satunya pemilih cabang ada di topbar; Dashboard mengikutinya.
+  await expect(page.getByRole('combobox', { name: 'Studio/Cabang', exact: true })).toHaveCount(0);
+  const branchSelect = page.getByRole('combobox', { name: 'Cabang aktif', exact: true });
+  await branchSelect.click();
   await page.getByRole('option', { name: /Bandung/ }).click();
 
   await expect(page.getByText('Rp\u00a0400.000').first()).toBeVisible();
-  await expect(page.getByText(/Cabang operasional: Jakarta/)).toBeVisible();
+  await expect(page.getByText(/Cabang operasional: Bandung/)).toBeVisible();
   await expect.poll(() => overviewRequests.at(-1)?.searchParams.get('branchId')).toBe('branch-2');
 });
