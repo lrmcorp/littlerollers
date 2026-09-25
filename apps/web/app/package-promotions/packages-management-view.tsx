@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Badge, DataTable, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
 import { Button } from '../components/actions';
-import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
+import { SearchInput, SelectInput, TextInput } from '../components/forms';
 import { Skeleton } from '../ui';
 import { useSessionContext } from '../session-context';
 import {
@@ -66,7 +66,7 @@ export function PackagesManagementView() {
   const filters = {
     q: searchParams.get('q') ?? '',
     effectiveState: searchParams.get('state') ?? '',
-    branchId: searchParams.get('branch') ?? session?.activeBranchId ?? '',
+    branchId: session?.activeBranchId ?? '',
     cursor: searchParams.get('cursor') ?? '',
   };
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
@@ -203,17 +203,6 @@ export function PackagesManagementView() {
             </option>
           ))}
         </SelectInput>
-        <SearchSelect
-          label="Cabang"
-          value={filters.branchId}
-          placeholder="Semua cabang"
-          options={(session.session?.branches ?? []).map((branch) => ({
-            id: branch.id,
-            label: branch.name,
-            description: branch.code,
-          }))}
-          onChange={(value) => replaceFilter('branch', value)}
-        />
       </Panel>
       {error && <AlertBanner tone="danger" title="Paket tidak tersedia" message={error} />}
       <Panel className="p-0">

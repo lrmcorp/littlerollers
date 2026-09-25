@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Building2, Plus, UserCheck } from 'lucide-react';
 import { DataTable, type DataTableColumn, Pagination, Badge } from '../components/admin/admin-ui';
-import { SearchInput, SearchSelect, TextInput } from '../components/forms';
+import { SearchInput, TextInput } from '../components/forms';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { formatRupiah } from '../lib/formatters';
@@ -25,7 +25,8 @@ export function InstructorsView() {
   const [items, setItems] = useState<InstructorSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
-  const [branchId, setBranchId] = useState('');
+  // Cakupan cabang mengikuti pemilih "Cabang aktif" di topbar.
+  const branchId = sessionContext?.activeBranchId ?? '';
   const [cursor, setCursor] = useState<string>();
   const [history, setHistory] = useState<Array<string | undefined>>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -207,21 +208,6 @@ export function InstructorsView() {
             reset();
           }}
           placeholder="Nama, email, telepon"
-        />
-        <SearchSelect
-          label="Studio / Cabang"
-          compact
-          clearable
-          placeholder="Semua Studio / Cabang"
-          options={(session?.branches ?? []).map((branch) => ({
-            id: branch.id,
-            label: branch.name,
-          }))}
-          value={branchId}
-          onChange={(value) => {
-            setBranchId(value);
-            reset();
-          }}
         />
       </div>
       <DataTable

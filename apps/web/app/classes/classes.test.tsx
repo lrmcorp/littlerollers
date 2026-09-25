@@ -112,8 +112,7 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={['class-slot:read', 'class-slot:manage', 'branch:all']}
       />,
     );
-    expect(await screen.findByText('Semua cabang')).toBeVisible();
-    expect(screen.getByText('Semua cabang')).toBeVisible();
+    expect(await screen.findByText(/Pantau jadwal seluruh cabang/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
     expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });

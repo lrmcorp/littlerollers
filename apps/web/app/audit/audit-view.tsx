@@ -15,13 +15,7 @@ import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
-import {
-  AsyncSearchSelect,
-  DateInput,
-  SearchSelect,
-  SelectInput,
-  TextInput,
-} from '../components/forms';
+import { AsyncSearchSelect, DateInput, SelectInput, TextInput } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -56,6 +50,8 @@ const humanizeAction = (action: string) =>
 
 export function AuditView({ client = browserIdentityClient }: { client?: IdentityClient }) {
   const context = useSessionContext();
+  // Cakupan cabang mengikuti pemilih "Cabang aktif" di topbar.
+  const branchId = context?.activeBranchId ?? '';
   const [items, setItems] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<UiFailure>();
@@ -71,7 +67,6 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
     actorId: '',
     targetUserId: '',
     action: '',
-    branchId: '',
     correlationId: '',
     from: '',
     until: '',
@@ -85,9 +80,9 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
   const lookup = useCallback(
     (q: string) =>
       client
-        .lookupUsers({ q, branchId: filters.branchId || undefined, limit: 10 })
+        .lookupUsers({ q, branchId: branchId || undefined, limit: 10 })
         .then(({ items }) => items),
-    [client, filters.branchId],
+    [client, branchId],
   );
 
   const load = async (requestedCursor?: string) => {
@@ -96,6 +91,7 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
     try {
       const result = await client.listAuditLogs({
         ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)),
+        ...(branchId ? { branchId } : {}),
         ...(filters.from ? { from: new Date(`${filters.from}T00:00:00`).toISOString() } : {}),
         ...(filters.until
           ? { until: new Date(`${filters.until}T23:59:59.999`).toISOString() }
@@ -156,17 +152,6 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
           value={filters.action}
           onChange={(event) => setFilters({ ...filters, action: event.target.value })}
           placeholder="Contoh: role pengguna diubah"
-        />
-        <SearchSelect
-          label="Cabang"
-          value={filters.branchId}
-          placeholder="Semua cabang"
-          options={(context?.session?.branches ?? []).map((branch) => ({
-            id: branch.id,
-            label: branch.name,
-            description: branch.code,
-          }))}
-          onChange={(branchId) => setFilters({ ...filters, branchId })}
         />
         <DateInput
           label="Dari tanggal"
@@ -300,8 +285,8 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
               void (async () => {
                 setLoading(true);
                 try {
-                  const branchIds = filters.branchId
-                    ? [filters.branchId]
+                  const branchIds = branchId
+                    ? [branchId]
                     : (context?.session?.branches ?? []).map(({ id }) => id);
                   setExportJob(
                     await client.createAuditExport(

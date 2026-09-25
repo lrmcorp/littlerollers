@@ -204,7 +204,6 @@ export function AssignmentsView({
         description="Kelola periode Owner dan Instruktur. Pembacaan dapat lintas cabang; mutasi selalu mengikuti cabang aktif di topbar."
         actions={
           <>
-            <Badge tone={branchId ? 'info' : 'neutral'}>{scopeLabel}</Badge>
             <Button
               type="button"
               variant="secondary"

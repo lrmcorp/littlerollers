@@ -76,6 +76,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const profileTrigger = useRef<HTMLButtonElement>(null);
   const currentPage = pageForPath(pathname);
   const currentPageLabel = accountPageLabelForPath(pathname) ?? currentPage?.shortLabel;
+  // Halaman lintas cabang: pemilih di topbar dinonaktifkan agar tidak menyesatkan.
+  const branchLocked = currentPage?.branchScope === 'global';
+  const lockedBranchHint = 'Halaman ini mencakup semua cabang yang diizinkan';
   const isDetailPath = Boolean(
     currentPage && currentPage.href !== '/workspace' && pathname !== currentPage.href,
   );
@@ -505,13 +508,21 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <Search className="size-[18px]" />
               </IconButton>
               {session && (
-                <div className="!hidden max-w-[220px] md:!block">
+                <div
+                  className="!hidden max-w-[220px] md:!block"
+                  title={branchLocked ? lockedBranchHint : undefined}
+                >
                   <SearchSelect
                     label="Cabang aktif"
                     compact
+                    disabled={branchLocked}
                     wrapperClassName="w-[clamp(160px,18vw,220px)] [&>label]:sr-only"
-                    value={context?.activeBranchId ?? ''}
-                    placeholder={aggregateBranchLabel ?? 'Pilih cabang'}
+                    value={branchLocked ? '' : (context?.activeBranchId ?? '')}
+                    placeholder={
+                      branchLocked
+                        ? (aggregateBranchLabel ?? 'Semua cabang')
+                        : (aggregateBranchLabel ?? 'Pilih cabang')
+                    }
                     clearable={false}
                     options={branchOptions}
                     onChange={(branchId) =>
@@ -611,13 +622,21 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           {session && (
-            <div className="border-t border-dd-line px-4 py-2 md:hidden">
+            <div
+              className="border-t border-dd-line px-4 py-2 md:hidden"
+              title={branchLocked ? lockedBranchHint : undefined}
+            >
               <SearchSelect
                 label="Cabang aktif mobile"
                 compact
+                disabled={branchLocked}
                 wrapperClassName="[&>label]:sr-only"
-                value={context?.activeBranchId ?? ''}
-                placeholder={aggregateBranchLabel ?? 'Pilih cabang aktif'}
+                value={branchLocked ? '' : (context?.activeBranchId ?? '')}
+                placeholder={
+                  branchLocked
+                    ? (aggregateBranchLabel ?? 'Semua cabang')
+                    : (aggregateBranchLabel ?? 'Pilih cabang aktif')
+                }
                 clearable={false}
                 options={branchOptions.map((option) => ({
                   ...option,

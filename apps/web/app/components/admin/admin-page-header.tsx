@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { usePageMeta } from './page-meta';
+import { ScopeChip } from './scope-chip';
 
 /**
  * Header standar halaman panel staf: eyebrow = nama grup menu, judul, deskripsi, lalu aksi.
@@ -42,7 +43,10 @@ export function AdminPageHeader({
         {description && (
           <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
         )}
-        {badges && <div className="mt-3 flex flex-wrap items-center gap-2">{badges}</div>}
+        <div className="mt-3 flex flex-wrap items-center gap-2 empty:hidden">
+          <ScopeChip />
+          {badges}
+        </div>
       </div>
       {actions && (
         <div className="flex flex-wrap items-center gap-2 xl:shrink-0 xl:justify-end">

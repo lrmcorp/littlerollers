@@ -17,7 +17,7 @@ import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/ad
 import { Button, ButtonLink } from '../components/actions';
 import { AlertBanner, PreviewModal, useOptionalAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
-import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
+import { DateInput, SearchInput, SelectInput } from '../components/forms';
 import { formatRupiah } from '../lib/formatters';
 import { statusLabel } from '../lib/status-labels';
 
@@ -156,11 +156,6 @@ export function PurchaseReviewView({
   const canDecide =
     testAuthority || Boolean(sessionContext?.hasCapability('payment:decide', 'purchase:decide'));
   const activeBranch = branchOverride ?? sessionContext?.activeBranch ?? null;
-  const branches = branchOverride ? [branchOverride] : (sessionContext?.session?.branches ?? []);
-  const isGlobal = Boolean(
-    sessionContext?.hasCapability('branch:all') ||
-    sessionContext?.hasCapability('finance:reconcile'),
-  );
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [search, setSearch] = useState(() => readFilters().q ?? '');
   const [items, setItems] = useState<ReviewPurchase[]>([]);
@@ -349,7 +344,6 @@ export function PurchaseReviewView({
       />
     );
 
-  const scopeLabel = activeBranch?.name ?? (isGlobal ? 'Semua cabang' : 'Cabang penugasan');
   const summaryCards = [
     ['PENDING', 'Menunggu', summary.pending],
     ['ACTION_REQUIRED', 'Perlu perbaikan', summary.actionRequired],
@@ -488,17 +482,6 @@ export function PurchaseReviewView({
             </option>
           ))}
         </SelectInput>
-        {branches.length > 1 && !activeBranch && (
-          <SearchSelect
-            label="Cabang"
-            value={filters.branchId ?? ''}
-            placeholder={isGlobal ? 'Semua cabang' : 'Cabang penugasan'}
-            options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
-            onChange={(branchId) =>
-              changeFilters({ branchId: branchId || undefined, cursor: undefined })
-            }
-          />
-        )}
         <DateInput
           label="Dari"
           value={dateInput(filters.from)}

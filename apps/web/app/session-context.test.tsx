@@ -146,6 +146,56 @@ describe('capability-aware session shell', () => {
     expect(canAccessSessionPath(superOwnerSession, '/workspace/vouchers')).toBe(true);
   });
 
+  it('disables the branch selector on pages that cover every branch and keeps it on branch pages', async () => {
+    const session: WebSession = {
+      ...adminSession,
+      capabilities: ['user:read', 'ledger:read', 'booking:read', 'customer:read'],
+    };
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(session), logout: vi.fn() };
+
+    navigation.pathname = '/customers';
+    const view = render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Data pelanggan</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    expect(await screen.findByRole('combobox', { name: 'Cabang aktif' })).toBeDisabled();
+    view.unmount();
+
+    navigation.pathname = '/workspace/bookings';
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Booking</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    expect(await screen.findByRole('combobox', { name: 'Cabang aktif' })).toBeEnabled();
+  });
+
+  it('shows Workspace › group › page in the breadcrumb and links back from a detail page', async () => {
+    const session: WebSession = { ...adminSession, capabilities: ['customer:read'] };
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(session), logout: vi.fn() };
+    navigation.pathname = '/customers/abc-123';
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Detail pelanggan</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    const breadcrumb = await screen.findByRole('navigation', { name: 'Breadcrumb' });
+    expect(breadcrumb).toHaveTextContent('Workspace');
+    expect(breadcrumb).toHaveTextContent('Member & Pelanggan');
+    expect(within(breadcrumb).getByRole('link', { name: 'Pelanggan' })).toHaveAttribute(
+      'href',
+      '/customers',
+    );
+    expect(breadcrumb).toHaveTextContent('Detail');
+  });
+
   it('keeps the WhatsApp automation route capability-scoped instead of closed for everyone', () => {
     expect(canAccessSessionPath(adminSession, '/workspace/reminders')).toBe(false);
     expect(

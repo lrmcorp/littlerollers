@@ -77,8 +77,9 @@ export function UsersView({
   const [search, setSearch] = useState(() => queryValue('search'));
   const [status, setStatus] = useState(() => queryValue('status'));
   const [role, setRole] = useState(() => queryValue('role'));
-  const [branchId, setBranchId] = useState(() => queryValue('branchId'));
   const [audience, setAudience] = useState<'STAFF' | 'CUSTOMER'>('STAFF');
+  // Cakupan cabang mengikuti pemilih "Cabang aktif" di topbar; daftar pelanggan tidak dibatasi cabang.
+  const branchId = audience === 'STAFF' ? (context?.activeBranchId ?? '') : '';
   const [verificationStatus, setVerificationStatus] = useState(() =>
     queryValue('verificationStatus'),
   );
@@ -144,13 +145,12 @@ export function UsersView({
     if (search) params.set('search', search);
     if (status) params.set('status', status);
     if (role) params.set('role', role);
-    if (branchId) params.set('branchId', branchId);
     if (audience === 'CUSTOMER') params.set('audience', audience);
     if (verificationStatus && audience === 'CUSTOMER')
       params.set('verificationStatus', verificationStatus);
     const query = params.toString();
     window.history.replaceState(window.history.state, '', `/users${query ? `?${query}` : ''}`);
-  }, [audience, branchId, role, search, status, verificationStatus]);
+  }, [audience, role, search, status, verificationStatus]);
 
   const assignable = useMemo(() => catalog.filter((item) => item.assignable), [catalog]);
   const resetPage = () => {
@@ -227,7 +227,6 @@ export function UsersView({
             onClick={() => {
               setAudience('CUSTOMER');
               setRole('');
-              setBranchId('');
               resetPage();
             }}
           >
@@ -279,11 +278,10 @@ export function UsersView({
           setSearch('');
           setStatus('');
           setRole('');
-          setBranchId('');
           setVerificationStatus('');
           resetPage();
         }}
-        showReset={Boolean(search || status || role || branchId || verificationStatus)}
+        showReset={Boolean(search || status || role || verificationStatus)}
         label="Filter pengguna"
       >
         <SearchInput
@@ -321,18 +319,6 @@ export function UsersView({
             }}
           />
         )}
-        {audience === 'STAFF' && branches.length > 0 && (
-          <SearchSelect
-            label="Cabang"
-            value={branchId}
-            placeholder="Semua cabang dalam cakupan"
-            options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
-            onChange={(value) => {
-              setBranchId(value);
-              resetPage();
-            }}
-          />
-        )}
         {audience === 'CUSTOMER' && canReadIdentity && (
           <SelectInput
             label="Status verifikasi"
@@ -365,7 +351,7 @@ export function UsersView({
           rowNumberOffset={cursorHistory.length * 20}
           rowKey={(user) => user.id}
           emptyTitle={
-            search || status || role || branchId || verificationStatus
+            search || status || role || verificationStatus
               ? 'Tidak ada hasil filter'
               : audience === 'CUSTOMER'
                 ? 'Belum ada pelanggan'

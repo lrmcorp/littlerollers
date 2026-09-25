@@ -5,7 +5,6 @@ import { Calendar, CircleDollarSign, RefreshCw, Users } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from '../../components/admin/admin-ui';
 import { Button } from '../../components/actions';
-import { SearchSelect } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { formatRupiah } from '../../lib/formatters';
 
@@ -43,20 +42,15 @@ export function OwnerBranchPerformanceView() {
   const session = context?.session;
   const branches = session?.branches ?? [];
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+  // Cabang mengikuti pemilih "Cabang aktif" di topbar; bila "Semua cabang", tampilkan cabang pertama.
+  const activeBranchId = context?.activeBranchId ?? '';
+  const selectedBranchId = activeBranchId || branches[0]?.id || '';
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
     new Date().toISOString().slice(0, 7),
   );
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (branches.length > 0 && !selectedBranchId) {
-      const first = branches[0];
-      if (first) setSelectedBranchId(first.id);
-    }
-  }, [branches, selectedBranchId]);
 
   const loadData = useCallback(async () => {
     if (!selectedBranchId) return;
@@ -110,18 +104,11 @@ export function OwnerBranchPerformanceView() {
 
       {/* Filter Cabang & Periode */}
       <div className="flex flex-wrap items-center gap-4 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
-        <div className="min-w-64">
-          <SearchSelect
-            label="Cabang"
-            options={branches.map((b) => ({
-              id: b.id,
-              label: `${b.code} - ${b.name}`,
-            }))}
-            value={selectedBranchId}
-            onChange={(val) => setSelectedBranchId(val)}
-            compact
-          />
-        </div>
+        {!activeBranchId && branches.length > 1 && (
+          <p className="text-xs text-dd-muted">
+            Menampilkan {branches[0]?.name}. Pilih cabang di topbar untuk cabang lain.
+          </p>
+        )}
 
         <div className="flex items-center gap-2 pt-5">
           <Calendar className="size-4 text-dd-muted" />

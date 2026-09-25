@@ -271,9 +271,9 @@ export function ClassSlotView({
             <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
               {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
             </StatusBadge>
-            <StatusBadge tone="neutral">
-              {globalMode ? 'Semua cabang' : `${branch?.name} · ${branch?.timezone}`}
-            </StatusBadge>
+            {!globalMode && (
+              <StatusBadge tone="neutral">Zona waktu {branch?.timezone}</StatusBadge>
+            )}
           </>
         }
       />

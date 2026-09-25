@@ -585,7 +585,7 @@ describe('assignment UI', () => {
     );
     expect(await screen.findByText(/Belum ada penugasan/)).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
-    expect(screen.getByText(/Semua cabang yang diizinkan/)).toBeInTheDocument();
+    expect(screen.getByText(/Kelola periode Owner dan Instruktur/)).toBeInTheDocument();
   });
 
   it('creates and ends with expected version through keyboard-operable forms', async () => {

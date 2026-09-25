@@ -510,11 +510,6 @@ export function BookingView({
         description="Pilih pelanggan, paket, dan kelas yang tersedia. Sistem otomatis memvalidasi batas waktu, saldo sesi, kapasitas kelas, dan izin akses saat konfirmasi."
         actions={
           <>
-            <StatusBadge tone="info">
-              {branchId
-                ? (sessionContext?.activeBranch?.name ?? 'Cabang aktif')
-                : 'Semua cabang yang diizinkan'}
-            </StatusBadge>
             <StatusBadge tone="warning">Batas Reschedule H-2</StatusBadge>
             <Button
               type="button"
