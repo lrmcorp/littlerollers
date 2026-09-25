@@ -102,7 +102,7 @@ export function PaymentReviewDetailView({
     [previewUrl],
   );
 
-  const loadPreview = async () => {
+  const loadPreview = useCallback(async () => {
     const proof = detail?.purchase.paymentProof;
     if (!proof || proof.scanStatus !== 'CLEAN') return;
     setPreviewLoading(true);
@@ -117,7 +117,18 @@ export function PaymentReviewDetailView({
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [client, detail?.purchase.paymentProof, previewUrl]);
+
+  useEffect(() => {
+    if (
+      detail?.purchase.paymentProof?.id &&
+      detail?.purchase.paymentProof?.scanStatus === 'CLEAN' &&
+      !previewUrl &&
+      !previewLoading
+    ) {
+      void loadPreview();
+    }
+  }, [detail?.purchase.paymentProof?.id, detail?.purchase.paymentProof?.scanStatus, loadPreview, previewLoading, previewUrl]);
 
   const loadUsagePage = async (cursor?: string) => {
     if (!detail) return;
@@ -449,7 +460,11 @@ export function PaymentReviewDetailView({
                     : 'Preview bukti'}
               </Button>
             </div>
-            {previewUrl && previewType.startsWith('image/') ? (
+            {previewLoading ? (
+              <div className="mt-5 grid min-h-48 place-items-center rounded-dd-lg border border-dd-line bg-dd-surface-muted p-6">
+                <Skeleton label="Memuat bukti pembayaran…" />
+              </div>
+            ) : previewUrl && (previewType.startsWith('image/') || previewType === 'image/svg+xml') ? (
               <img
                 src={previewUrl}
                 alt={`Bukti pembayaran ${purchase.customer.displayName}`}

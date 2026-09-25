@@ -26,25 +26,37 @@ import {
 } from '../components/forms';
 
 type PackageOption = LedgerBalance & { label: string; description: string };
-type PackageStatus = '' | 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
+type PackageStatus = '' | 'ACTIVE' | 'EXPIRED' | 'INACTIVE' | 'DEPLETED' | 'FROZEN';
 type AdjustmentMode = 'PENDING' | 'HISTORY';
 
 const packageStatus: Record<
-  LedgerBalance['status'],
-  { label: string; tone: 'success' | 'warning' | 'neutral' }
+  string,
+  { label: string; tone: 'success' | 'warning' | 'neutral' | 'danger' }
 > = {
   ACTIVE: { label: 'Aktif', tone: 'success' },
   EXPIRED: { label: 'Berakhir', tone: 'warning' },
+  DEPLETED: { label: 'Habis', tone: 'neutral' },
+  FROZEN: { label: 'Dibekukan', tone: 'warning' },
   INACTIVE: { label: 'Tidak aktif', tone: 'neutral' },
 };
 
+const getPackageStatusInfo = (status?: string | null) => {
+  if (!status) return { label: 'Tidak aktif', tone: 'neutral' as const };
+  return packageStatus[status] ?? { label: status, tone: 'neutral' as const };
+};
+
 const adjustmentStatus: Record<
-  Adjustment['status'],
-  { label: string; tone: 'warning' | 'success' | 'danger' }
+  string,
+  { label: string; tone: 'warning' | 'success' | 'danger' | 'neutral' }
 > = {
   PENDING: { label: 'Menunggu keputusan', tone: 'warning' },
   POSTED: { label: 'Diposting', tone: 'success' },
   REJECTED: { label: 'Ditolak', tone: 'danger' },
+};
+
+const getAdjustmentStatusInfo = (status?: string | null) => {
+  if (!status) return { label: 'Menunggu', tone: 'warning' as const };
+  return adjustmentStatus[status] ?? { label: status, tone: 'neutral' as const };
 };
 
 const adjustmentReasonLabels: Record<string, string> = {
@@ -509,6 +521,8 @@ export function LedgerView({
               <option value="">Semua status</option>
               <option value="ACTIVE">Aktif</option>
               <option value="EXPIRED">Berakhir</option>
+              <option value="DEPLETED">Habis</option>
+              <option value="FROZEN">Dibekukan</option>
               <option value="INACTIVE">Tidak aktif</option>
             </SelectInput>
             <Button disabled={loading} onClick={applyFilters}>
@@ -607,9 +621,10 @@ export function LedgerView({
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <Badge tone={packageStatus[item.status].tone}>
-                              {packageStatus[item.status].label}
-                            </Badge>
+                            {(() => {
+                              const info = getPackageStatusInfo(item.status);
+                              return <Badge tone={info.tone}>{info.label}</Badge>;
+                            })()}
                           </td>
                           <td className="min-w-60 px-4 py-4">
                             <BalanceValues item={item} />
@@ -640,9 +655,10 @@ export function LedgerView({
                             {item.packageName ?? 'Paket'} · {item.branchName ?? 'Cabang'}
                           </span>
                         </div>
-                        <Badge tone={packageStatus[item.status].tone}>
-                          {packageStatus[item.status].label}
-                        </Badge>
+                        {(() => {
+                          const info = getPackageStatusInfo(item.status);
+                          return <Badge tone={info.tone}>{info.label}</Badge>;
+                        })()}
                       </div>
                       <div className="my-4 rounded-dd-md bg-dd-surface-muted p-3">
                         <BalanceValues item={item} />
@@ -820,9 +836,10 @@ export function LedgerView({
                             · {item.branch?.name ?? 'Cabang'}
                           </span>
                         </div>
-                        <Badge tone={adjustmentStatus[item.status].tone}>
-                          {adjustmentStatus[item.status].label}
-                        </Badge>
+                        {(() => {
+                          const info = getAdjustmentStatusInfo(item.status);
+                          return <Badge tone={info.tone}>{info.label}</Badge>;
+                        })()}
                       </div>
                       <div className="mt-4 grid gap-3 rounded-dd-md bg-dd-surface-muted p-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
                         <span>

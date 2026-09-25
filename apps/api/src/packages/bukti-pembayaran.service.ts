@@ -7,7 +7,7 @@ import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import type { ObjectStorageProvider } from './proof-providers';
+import { ConfigGatedObjectStorageProvider, type ObjectStorageProvider } from './proof-providers';
 
 const digest = (v: string) => createHash('sha256').update(v).digest('hex');
 
@@ -18,7 +18,7 @@ export class PaymentProofService {
     private readonly access: PackageAccessService,
     private readonly config: RuntimeConfigService,
     private readonly auditService: AuditService,
-    @Optional() private readonly storage?: ObjectStorageProvider,
+    @Optional() private readonly storage?: ConfigGatedObjectStorageProvider,
   ) {}
 
   async issue(principal: SessionPrincipal, input: any, correlationId: string) {

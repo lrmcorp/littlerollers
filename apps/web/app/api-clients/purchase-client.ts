@@ -154,8 +154,14 @@ export const browserPurchaseReviewClient: PurchaseReviewClient = {
     const authorization = await appLoading.track(api.authorizePaymentProofDownload({ id }), {
       label: 'Menyiapkan bukti pembayaran…',
     });
+    let targetUrl = authorization.url;
+    if (targetUrl.includes('/uploads/payment-proofs/') && !targetUrl.includes('/view-authorizations/')) {
+      targetUrl = `/api/v1/uploads/payment-proofs/view-authorizations/${encodeURIComponent(id)}/content`;
+    } else if (targetUrl.startsWith('/') && !targetUrl.startsWith('/api/v1')) {
+      targetUrl = `/api/v1${targetUrl}`;
+    }
     const response = await foregroundFetch(
-      authorization.url,
+      targetUrl,
       {
         credentials: 'include',
         headers: { Accept: 'image/*,application/pdf' },

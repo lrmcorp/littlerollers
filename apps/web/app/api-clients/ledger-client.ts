@@ -5,7 +5,7 @@ import { notifySessionFailure } from './session-client';
 export type LedgerBalance = {
   id: string;
   branchId: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
+  status: 'ACTIVE' | 'EXPIRED' | 'INACTIVE' | 'DEPLETED' | 'FROZEN' | string;
   activationDate: Date;
   expiryAt: Date;
   ledgerBalance: number;
@@ -104,7 +104,7 @@ export interface LedgerClient {
     branchId?: string,
     cursor?: string,
     search?: string,
-    status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE',
+    status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE' | 'DEPLETED' | 'FROZEN' | string,
     customerUserId?: string,
   ): Promise<{
     items: LedgerBalance[];

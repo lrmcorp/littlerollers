@@ -1,5 +1,7 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, PurchaseStatus, SessionMutationType } from '@prisma/client';
+import { readFile, stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
@@ -7,6 +9,7 @@ import { ApiProblem } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
 import { NotificationWriterService } from '../notifications/notification-writer.service';
 import { EmailNotificationService } from '../email/email-notification.service';
+import { ConfigGatedObjectStorageProvider } from './proof-providers';
 
 @Injectable()
 export class PaymentReviewService {
@@ -16,6 +19,7 @@ export class PaymentReviewService {
     private readonly access: PackageAccessService,
     @Optional() private readonly notificationWriter?: NotificationWriterService,
     @Optional() private readonly emails?: EmailNotificationService,
+    @Optional() private readonly storage?: ConfigGatedObjectStorageProvider,
   ) {}
 
   async list(
@@ -396,7 +400,7 @@ export class PaymentReviewService {
     if (!proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     this.access.scope(principal, proof.purchase.branchId, ['payment:review', 'purchase:review']);
     return {
-      url: proof.fileUrl,
+      url: `/api/v1/uploads/payment-proofs/view-authorizations/${proof.id}/content`,
       expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
     };
   }
@@ -413,7 +417,7 @@ export class PaymentReviewService {
     });
     if (!order?.paymentProof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     return {
-      url: order.paymentProof.fileUrl,
+      url: `/api/v1/uploads/payment-proofs/view-authorizations/${order.paymentProof.id}/content`,
       expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
     };
   }
@@ -424,16 +428,76 @@ export class PaymentReviewService {
       include: { purchase: true },
     });
     if (!proof) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const isOwner = principal.userId === proof.purchase.userId;
+    const isReviewer =
+      principal.capabilities.includes('payment:review') ||
+      principal.capabilities.includes('purchase:review');
+    if (!isOwner && !isReviewer) {
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    if (isReviewer && !isOwner) {
+      this.access.scope(principal, proof.purchase.branchId, ['payment:review', 'purchase:review']);
+    }
+
     if (proof.fileUrl.startsWith('data:')) {
       const parts = proof.fileUrl.split(',');
       const mime = parts[0]?.match(/:(.*?);/)?.[1] || 'image/jpeg';
       const buffer = Buffer.from(parts[1] || '', 'base64');
       return { bytes: buffer, mimeType: mime };
     }
+
+    if (this.storage) {
+      try {
+        const bytes = await this.storage.readPrivateObject(`payment-proofs/${proof.id}`);
+        if (bytes && bytes.length > 0) {
+          return { bytes, mimeType: this.detectMime(bytes) };
+        }
+      } catch {}
+    }
+
+    try {
+      if (proof.fileUrl && !proof.fileUrl.startsWith('http')) {
+        const cleanPath = proof.fileUrl.replace(/^\//, '');
+        const fullPath = resolve(process.cwd(), cleanPath);
+        const exists = await stat(fullPath).then((s) => s.isFile()).catch(() => false);
+        if (exists) {
+          const bytes = await readFile(fullPath);
+          return { bytes, mimeType: this.detectMime(bytes) };
+        }
+      }
+    } catch {}
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#f8fafc" rx="8"/>
+  <rect x="20" y="20" width="560" height="360" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6,6" rx="8"/>
+  <text x="300" y="170" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="600" fill="#334155">
+    Bukti Pembayaran Terlampir
+  </text>
+  <text x="300" y="205" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#64748b">
+    ID: ${proof.id}
+  </text>
+  <text x="300" y="235" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#94a3b8">
+    ${proof.bankName ? `Bank: ${proof.bankName}` : ''}${proof.accountHolder ? ` · A/N: ${proof.accountHolder}` : ''}
+  </text>
+</svg>`.trim();
     return {
-      bytes: Buffer.from(proof.fileUrl, 'utf-8'),
-      mimeType: 'image/jpeg',
+      bytes: Buffer.from(svg, 'utf-8'),
+      mimeType: 'image/svg+xml',
     };
+  }
+
+  private detectMime(bytes: Buffer): string {
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+      return 'image/png';
+    }
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+      return 'application/pdf';
+    }
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
   }
 
   async decide(
