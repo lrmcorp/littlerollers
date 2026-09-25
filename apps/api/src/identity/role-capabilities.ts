@@ -51,6 +51,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'class-slot:read',
   ],
   ADMIN: [
+    'automation:read',
+    'automation:run',
     'support:read',
     'support:manage',
     'branch:operate',
@@ -72,6 +74,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:manage',
   ],
   MANAGER: [
+    'automation:read',
+    'automation:run',
     'support:read',
     'support:manage',
     'branch:manage',
@@ -95,6 +99,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:manage',
   ],
   OWNER: [
+    'automation:read',
     'branch:own',
     'dashboard:read',
     'user:read',
@@ -111,6 +116,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:read',
   ],
   SUPER_OWNER: [
+    'automation:read',
+    'automation:run',
     'notification:manage',
     'public-content:read',
     'public-content:manage',
@@ -169,6 +176,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'identity-verification:delete',
   ],
   SUPERADMIN: [
+    'automation:read',
+    'automation:run',
     'notification:manage',
     'public-content:read',
     'public-content:manage',
@@ -221,6 +230,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'identity-verification:delete',
   ],
   FINANCE: [
+    'automation:read',
     'finance:read',
     'finance:manage',
     'finance:reconcile',

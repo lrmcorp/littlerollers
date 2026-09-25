@@ -138,6 +138,10 @@ export function OperationsView({
           />
         </div>
       </Panel>
+      <Feedback kind="info">
+        Data contoh — daftar job di bagian ini belum terhubung ke evaluasi kuota H-24 yang berjalan
+        sungguhan, jadi jangan dipakai untuk memantau atau memulihkan job produksi.
+      </Feedback>
       <FilterBar>
         <SelectInput
           label="Filter status job"
@@ -199,7 +203,7 @@ export function OperationsView({
             {
               id: 'attempt',
               header: 'Percobaan',
-              cell: (job) => `${job.attemptCount}/${job.maxAttempts}`,
+              cell: (job) => `${job.attemptCount}/${job.maxAttempts ?? '—'}`,
             },
             {
               id: 'failure',
@@ -321,7 +325,7 @@ export function OperationsView({
                   {statusLabel[job.status] ?? 'Status tidak dikenal'}
                 </Badge>
                 <span className="text-xs text-dd-muted">
-                  {job.attemptCount}/{job.maxAttempts} percobaan
+                  {job.attemptCount}/{job.maxAttempts ?? '—'} percobaan
                 </span>
               </div>
               <p className="mt-3 text-sm">Due {job.dueAt.toLocaleString('id-ID')}</p>

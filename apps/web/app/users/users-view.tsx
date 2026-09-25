@@ -23,7 +23,8 @@ import {
 import { Button } from '../components/actions';
 import { Feedback, PageHeader, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
-import { InviteUserDrawer, roleLabels, roleSummary, statusLabels } from './user-admin-controls';
+import { InviteUserDrawer, roleSummary, statusLabels } from './user-admin-controls';
+import { roleLabel } from '../lib/role-labels';
 import { SearchInput, SearchSelect, SelectInput } from '../components/forms';
 
 const failureCopy: Record<UiFailure, string> = {
@@ -295,7 +296,7 @@ export function UsersView({
             placeholder="Semua role"
             options={catalog.map((item) => ({
               id: item.role,
-              label: roleLabels[item.role],
+              label: roleLabel(item.role),
               description: item.scope === 'BRANCH' ? 'Scope cabang' : 'Scope global',
             }))}
             onChange={(value) => {

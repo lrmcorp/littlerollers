@@ -9,7 +9,26 @@ import { PackageAccessService } from './package-access.service';
 import { PackagePricingService } from './kalkulasi-harga-paket.service';
 
 export type VoucherDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+/** Status yang dapat diminta lewat perintah (transition). */
 export type VoucherStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
+/** Status yang ditampilkan: turunan dari kolom `active`, `validUntil`, `quota`, dan `usedCount`. */
+export type VoucherDisplayStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'EXHAUSTED';
+
+export function deriveVoucherStatus(
+  voucher: {
+    active: boolean;
+    validUntil?: Date | string | null;
+    quota?: number | null;
+    usedCount?: number | null;
+  },
+  now: Date = new Date(),
+): VoucherDisplayStatus {
+  if (!voucher.active) return 'PAUSED';
+  if (voucher.validUntil && new Date(voucher.validUntil).getTime() < now.getTime())
+    return 'EXPIRED';
+  if (voucher.quota != null && (voucher.usedCount ?? 0) >= voucher.quota) return 'EXHAUSTED';
+  return 'ACTIVE';
+}
 
 export type VoucherInput = {
   code: string;
@@ -29,6 +48,45 @@ export type VoucherInput = {
 };
 
 const PAGE_SIZE = 20;
+
+/**
+ * Ringkasan per status (dari seluruh hasil pencarian), filter status, dan halaman berbasis cursor.
+ * Status `ARCHIVED` dari klien lama diperlakukan sama dengan `PAUSED`.
+ */
+export function paginateVouchers<
+  T extends {
+    id: string;
+    active: boolean;
+    validUntil?: Date | string | null;
+    quota?: number | null;
+    usedCount?: number | null;
+  },
+>(
+  rows: T[],
+  options: { status?: string; cursor?: string; limit: number; now?: Date },
+): {
+  items: T[];
+  hasMore: boolean;
+  nextCursor: string | null;
+  summary: Record<VoucherDisplayStatus | 'total', number>;
+} {
+  const now = options.now ?? new Date();
+  const summary: Record<VoucherDisplayStatus | 'total', number> = {
+    ACTIVE: 0,
+    PAUSED: 0,
+    EXPIRED: 0,
+    EXHAUSTED: 0,
+    total: rows.length,
+  };
+  for (const row of rows) summary[deriveVoucherStatus(row, now)] += 1;
+
+  const wanted = options.status === 'ARCHIVED' ? 'PAUSED' : options.status;
+  const filtered = wanted ? rows.filter((row) => deriveVoucherStatus(row, now) === wanted) : rows;
+  const start = options.cursor ? filtered.findIndex((row) => row.id === options.cursor) + 1 : 0;
+  const items = filtered.slice(start, start + options.limit);
+  const hasMore = start + options.limit < filtered.length;
+  return { items, hasMore, nextCursor: hasMore ? (items[items.length - 1]?.id ?? null) : null, summary };
+}
 
 export function normalizeVoucherCode(code: string) {
   return (code ?? '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
@@ -76,7 +134,7 @@ export class VoucherService {
 
   private view(voucher: any) {
     const isPercent = voucher.discountType === 'PERCENTAGE';
-    const status: VoucherStatus = voucher.active ? 'ACTIVE' : 'PAUSED';
+    const status = deriveVoucherStatus(voucher);
     return {
       id: voucher.id,
       code: voucher.code,
@@ -123,42 +181,30 @@ export class VoucherService {
     this.requireRead(principal);
     const limit = query.limit ? Math.min(Number(query.limit), 100) : PAGE_SIZE;
 
-    const where: Prisma.VoucherWhereInput = {
-      ...(query.status === 'ACTIVE'
-        ? { active: true }
-        : query.status === 'PAUSED' || query.status === 'ARCHIVED'
-          ? { active: false }
-          : {}),
-      ...(query.q?.trim()
+    // Status tampilan diturunkan dari beberapa kolom (tidak bisa difilter di SQL), dan tabel
+    // voucher kecil, jadi filter status + ringkasan + cursor dihitung di memori.
+    const rows = await this.db.voucher.findMany({
+      where: query.q?.trim()
         ? {
             OR: [
               { code: { contains: query.q.trim() } },
               { name: { contains: query.q.trim() } },
             ],
           }
-        : {}),
-    };
-
-    const items = await this.db.voucher.findMany({
-      where,
-      take: limit + 1,
-      orderBy: { createdAt: 'desc' },
+        : {},
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    const page = paginateVouchers(rows, {
+      status: query.status,
+      cursor: query.cursor,
+      limit,
     });
 
-    const hasNext = items.length > limit;
-    const pageItems = hasNext ? items.slice(0, limit) : items;
-
     return {
-      items: pageItems.map((v) => this.view(v)),
-      nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
-      page: {
-        hasMore: hasNext,
-        nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
-      },
-      summary: {
-        total: items.length,
-        active: items.filter((v) => v.active).length,
-      },
+      items: page.items.map((v) => this.view(v)),
+      nextCursor: page.nextCursor,
+      page: { hasMore: page.hasMore, nextCursor: page.nextCursor },
+      summary: page.summary,
     };
   }
 

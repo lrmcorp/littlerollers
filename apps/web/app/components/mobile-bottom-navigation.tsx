@@ -4,18 +4,30 @@ import {
   BookOpenCheck,
   CalendarDays,
   CreditCard,
-  Gauge,
   House,
+  Landmark,
   LayoutDashboard,
   ListChecks,
   LockKeyhole,
   Menu,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { frontendPages } from '@/lib/frontend-pages';
+import { useSessionContext } from '../session-context';
 import { useCustomerBadges } from './customer/use-customer-badges';
 import { isCustomerNavigationActive } from './customer/customer-navigation';
+
+/** Urutan prioritas tab staf; hanya halaman yang boleh dibuka akun yang tampil (maks. 4). */
+const MAX_STAFF_TABS = 4;
+const staffTabCandidates = [
+  { href: '/workspace', label: 'Beranda', icon: LayoutDashboard, badgeColor: 'bg-dd-forest' },
+  { href: '/workspace/bookings', label: 'Booking', icon: BookOpenCheck, badgeColor: 'bg-dd-forest' },
+  { href: '/workspace/payments', label: 'Pembayaran', icon: CreditCard, badgeColor: 'bg-dd-brass' },
+  { href: '/workspace/classes', label: 'Kelas', icon: CalendarDays, badgeColor: 'bg-dd-forest' },
+  { href: '/finance', label: 'Keuangan', icon: Landmark, badgeColor: 'bg-dd-brass' },
+  { href: '/ledger/adjustments', label: 'Penyesuaian', icon: ListChecks, badgeColor: 'bg-dd-brass' },
+];
 
 export interface MobileBottomNavigationProps {
   customerOnly: boolean;
@@ -32,6 +44,7 @@ export function MobileBottomNavigation({
 }: MobileBottomNavigationProps) {
   const pathname = usePathname();
   const customerBadges = useCustomerBadges();
+  const context = useSessionContext();
 
   if (customerOnly) {
     const tabs = [
@@ -112,37 +125,40 @@ export function MobileBottomNavigation({
     );
   }
 
-  // Workspace / Staff Mobile Navigation
-  const staffTabs = [
-    { href: '/workspace', label: 'Beranda', icon: LayoutDashboard },
-    {
-      href: '/workspace/bookings',
-      label: 'Booking',
-      icon: BookOpenCheck,
-      badge: queueCounts['reschedules'] ?? 0,
-      badgeColor: 'bg-dd-forest',
-    },
-    {
-      href: '/workspace/payments',
-      label: 'Pembayaran',
-      icon: CreditCard,
-      badge: queueCounts['payments'] ?? 0,
-      badgeColor: 'bg-dd-brass',
-    },
-    { href: '/workspace/classes', label: 'Kelas', icon: CalendarDays },
-  ];
-
-  const hasAnyOtherQueue =
-    (queueCounts['verifications'] ?? 0) > 0 ||
-    (queueCounts['adjustments'] ?? 0) > 0 ||
-    (queueCounts['jobs'] ?? 0) > 0;
+  // Workspace / Staff Mobile Navigation: tab mengikuti hak akses akun, bukan daftar tetap.
+  const allowed = (href: string) => {
+    const page = frontendPages.find((item) => item.href === href);
+    return Boolean(
+      page &&
+        (page.capabilities.length === 0 || context?.hasCapability(...page.capabilities)),
+    );
+  };
+  const badgeFor = (href: string) => {
+    const source = frontendPages.find((item) => item.href === href)?.queueBadgeSource;
+    return source ? (queueCounts[source] ?? 0) : 0;
+  };
+  const staffTabs = staffTabCandidates
+    .filter((tab) => allowed(tab.href))
+    .slice(0, MAX_STAFF_TABS)
+    .map((tab) => ({ ...tab, badge: badgeFor(tab.href) }));
+  const tabHrefs = new Set(staffTabs.map((tab) => tab.href));
+  const hasAnyOtherQueue = frontendPages.some(
+    (page) =>
+      page.queueBadgeSource &&
+      !tabHrefs.has(page.href) &&
+      allowed(page.href) &&
+      (queueCounts[page.queueBadgeSource] ?? 0) > 0,
+  );
 
   return (
     <nav
       aria-label="Navigasi Bawah Workspace"
       className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-dd-line/80 bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1.5 px-2"
     >
-      <div className="grid grid-cols-5 items-center justify-around gap-1 max-w-lg mx-auto">
+      <div
+        className="grid items-center justify-around gap-1 max-w-lg mx-auto"
+        style={{ gridTemplateColumns: `repeat(${staffTabs.length + 1}, minmax(0, 1fr))` }}
+      >
         {staffTabs.map((tab) => {
           const active =
             pathname === tab.href ||
@@ -165,8 +181,9 @@ export function MobileBottomNavigation({
                   className={`size-5 transition-transform ${active ? 'scale-110 stroke-[2.2]' : 'stroke-[1.8]'}`}
                   aria-hidden="true"
                 />
-                {tab.badge && tab.badge > 0 ? (
+                {tab.badge > 0 ? (
                   <span
+                    aria-label={`${tab.badge} antrean`}
                     className={`absolute -top-1.5 -right-2.5 grid min-h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-white leading-none shadow-xs ${tab.badgeColor}`}
                   >
                     {tab.badge > 99 ? '99+' : tab.badge}

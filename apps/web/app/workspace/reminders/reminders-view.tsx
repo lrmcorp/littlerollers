@@ -11,9 +11,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useSessionContext } from '../../session-context';
-import { PageHeader } from '../../ui';
+import { Feedback, PageHeader } from '../../ui';
 import {
   AdminEmptyState,
+  AdminPageState,
   Badge,
   DataTable,
   FilterBar,
@@ -31,6 +32,8 @@ import {
 export function RemindersView() {
   const session = useSessionContext();
   const feedback = useAppFeedback();
+  const canRead = session?.hasCapability('automation:read') ?? false;
+  const canRun = session?.hasCapability('automation:run') ?? false;
 
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<ReminderLogItem[]>([]);
@@ -39,6 +42,7 @@ export function RemindersView() {
     totalRecentFailed: 0,
     lastSentAt: null,
   });
+  const mockProvider = summary.provider === 'MOCK';
 
   const [searchPhone, setSearchPhone] = useState('');
   const [selectedType, setSelectedType] = useState('ALL');
@@ -47,6 +51,7 @@ export function RemindersView() {
   const [executingReminders, setExecutingReminders] = useState(false);
 
   const loadData = useCallback(async () => {
+    if (!canRead) return;
     try {
       setLoading(true);
       const [logList, summaryData] = await Promise.all([
@@ -70,7 +75,7 @@ export function RemindersView() {
     } finally {
       setLoading(false);
     }
-  }, [searchPhone, selectedType, selectedStatus, feedback]);
+  }, [canRead, searchPhone, selectedType, selectedStatus, feedback]);
 
   useEffect(() => {
     void loadData();
@@ -136,7 +141,9 @@ export function RemindersView() {
       feedback.showToast({
         tone: 'success',
         title: 'Siklus Reminder Berhasil',
-        message: `${totalSent} pesan WhatsApp terkirim (${res.stoppedCustomersProtected} customer berhenti terlindungi).`,
+        message: mockProvider
+          ? `${totalSent} pesan dicatat dalam mode uji — tidak dikirim ke WhatsApp (${res.stoppedCustomersProtected} customer berhenti terlindungi).`
+          : `${totalSent} pesan WhatsApp terkirim (${res.stoppedCustomersProtected} customer berhenti terlindungi).`,
       });
       await loadData();
     } catch (err: any) {
@@ -163,6 +170,8 @@ export function RemindersView() {
     { value: 'OWNER_RECAP', label: 'Rekap Owner (3 Hari)' },
   ];
 
+  if (!canRead) return <AdminPageState kind="forbidden" />;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -180,27 +189,38 @@ export function RemindersView() {
             >
               Segarkan
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleTriggerAutoCancel}
-              disabled={executingAutoCancel}
-              leadingIcon={<Play className="size-4 text-amber-600" />}
-            >
-              {executingAutoCancel ? 'Mengevaluasi...' : 'Jalankan Auto-Cancel H-24'}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleTriggerBatchReminders}
-              disabled={executingReminders}
-              leadingIcon={<Send className="size-4" />}
-            >
-              {executingReminders ? 'Mengirim...' : 'Jalankan Reminder Batch'}
-            </Button>
+            {canRun && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleTriggerAutoCancel}
+                  disabled={executingAutoCancel}
+                  leadingIcon={<Play className="size-4 text-amber-600" />}
+                >
+                  {executingAutoCancel ? 'Mengevaluasi...' : 'Jalankan Auto-Cancel H-24'}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleTriggerBatchReminders}
+                  disabled={executingReminders}
+                  leadingIcon={<Send className="size-4" />}
+                >
+                  {executingReminders ? 'Mengirim...' : 'Jalankan Reminder Batch'}
+                </Button>
+              </>
+            )}
           </div>
         }
       />
+
+      {mockProvider && (
+        <Feedback kind="warning">
+          Mode uji — penyedia WhatsApp belum dikonfigurasi, jadi pesan hanya dicatat di log dan
+          tidak dikirim ke nomor mana pun.
+        </Feedback>
+      )}
 
       {/* 4 StatCards Ringkasan */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

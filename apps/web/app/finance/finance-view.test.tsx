@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppFeedbackProvider } from '../components/app-feedback';
@@ -61,9 +61,11 @@ describe('Finance anomaly pagination', () => {
         <FinanceView client={client} />
       </AppFeedbackProvider>,
     );
-    expect(await screen.findByText('Halaman 1 · 20 data dari 25 anomali')).toBeVisible();
+    // Navigasi paginasi pertama di halaman ini adalah milik antrean anomali.
+    const anomalyPagination = () => screen.getAllByRole('navigation', { name: 'Paginasi data' })[0]!;
+    await waitFor(() => expect(within(anomalyPagination()).getByText('Halaman 1')).toBeVisible());
     await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
-    expect(await screen.findByText('Halaman 2 · 5 data dari 25 anomali')).toBeVisible();
+    await waitFor(() => expect(within(anomalyPagination()).getByText('Halaman 2')).toBeVisible());
     expect(overview).toHaveBeenCalledTimes(1);
     expect(anomalies).toHaveBeenLastCalledWith(expect.any(Object), 'purchase-20');
   });

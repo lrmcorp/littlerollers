@@ -215,6 +215,7 @@ export const inMemoryOperationalJobs: Array<{
   dueAt: string;
   version: number;
   attemptCount: number;
+  maxAttempts: number;
   payload: Record<string, unknown>;
   failureReason?: string | null;
   createdAt: string;
@@ -226,6 +227,7 @@ export const inMemoryOperationalJobs: Array<{
     dueAt: new Date(Date.now() - 3600000).toISOString(),
     version: 1,
     attemptCount: 1,
+    maxAttempts: 3,
     payload: { task: 'auto-cancel-low-quota' },
     createdAt: new Date(Date.now() - 7200000).toISOString(),
   },
@@ -236,6 +238,7 @@ export const inMemoryOperationalJobs: Array<{
     dueAt: new Date(Date.now() - 1800000).toISOString(),
     version: 1,
     attemptCount: 1,
+    maxAttempts: 3,
     payload: { batchSize: 50 },
     createdAt: new Date(Date.now() - 3600000).toISOString(),
   },

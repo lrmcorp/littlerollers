@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../../components/actions';
 import { SelectInput, Textarea, TextInput } from '../../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { supportPriorityLabel, supportStatusLabel } from '../support-labels';
 type CaseDetail = {
   id: string;
   subject: string;
@@ -115,10 +116,10 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           context={
             <>
               <StatusBadge tone={item.priority === 'URGENT' ? 'danger' : 'neutral'}>
-                {item.priority}
+                {supportPriorityLabel(item.priority)}
               </StatusBadge>
               <StatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
-                {item.status}
+                {supportStatusLabel(item.status)}
               </StatusBadge>
             </>
           }
@@ -135,14 +136,14 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           <SelectInput label="Status Case" name="status" defaultValue={item.status}>
             {['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'RESOLVED', 'CLOSED'].map((x) => (
               <option key={x} value={x}>
-                {x}
+                {supportStatusLabel(x)}
               </option>
             ))}
           </SelectInput>
           <SelectInput label="Prioritas" name="priority" defaultValue={item.priority}>
             {['LOW', 'NORMAL', 'HIGH', 'URGENT'].map((x) => (
               <option key={x} value={x}>
-                {x}
+                {supportPriorityLabel(x)}
               </option>
             ))}
           </SelectInput>

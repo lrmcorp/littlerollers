@@ -83,6 +83,30 @@ export class BookingsService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
+  /**
+   * Batas cabang untuk staf yang membaca daftar booking. Tanpa `booking:read` ditolak (403);
+   * `branchId` di luar scope diperlakukan seperti tidak ada (404), sama seperti `requireBranch`.
+   * Mengembalikan filter `SlotKelas.branchId`, atau `undefined` bila akses global tanpa pengecualian.
+   */
+  private staffBranchScope(
+    principal: SessionPrincipal,
+    requestedBranchId?: string,
+  ): string | { in: string[] } | { notIn: string[] } | undefined {
+    this.policy.requireCapability(principal.capabilities, 'booking:read');
+    const scope = this.policy.capabilityBranchScope(principal, 'booking:read');
+    if (!scope.all && scope.included.length === 0)
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    if (requestedBranchId) {
+      const allowed = scope.all
+        ? !scope.excluded.includes(requestedBranchId)
+        : scope.included.includes(requestedBranchId);
+      if (!allowed) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      return requestedBranchId;
+    }
+    if (scope.all) return scope.excluded.length > 0 ? { notIn: scope.excluded } : undefined;
+    return { in: scope.included };
+  }
+
   private async requireVerifiedCustomer(principal: SessionPrincipal) {
     const user = await this.db.user.findUnique({ where: { id: principal.userId } });
     if (!user || user.status !== 'ACTIVE')
@@ -361,10 +385,15 @@ export class BookingsService {
     const customerFlow = this.isCustomer(principal);
     const targetUserId = customerFlow ? principal.userId : query.customerId;
     const limit = Math.min(query.limit ?? PAGE_SIZE, 100);
+    if (query.cursor && !UUID.test(query.cursor))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
-    const classSlotFilter: any = {};
-    if (query.branchId) {
-      classSlotFilter.branchId = query.branchId;
+    const classSlotFilter: Prisma.SlotKelasWhereInput = {};
+    if (customerFlow) {
+      if (query.branchId) classSlotFilter.branchId = query.branchId;
+    } else {
+      const branchScope = this.staffBranchScope(principal, query.branchId);
+      if (branchScope) classSlotFilter.branchId = branchScope;
     }
     if (query.from || query.until) {
       classSlotFilter.startAt = {
@@ -372,39 +401,62 @@ export class BookingsService {
         ...(query.until ? { lte: new Date(query.until) } : {}),
       };
     }
-    if (query.timeline === 'UPCOMING') {
-      classSlotFilter.startAt = {
-        ...(classSlotFilter.startAt || {}),
-        gte: new Date(),
-      };
-    }
 
-    const where: Prisma.PemesananKelasWhereInput = {
-      ...(targetUserId ? { userId: targetUserId } : {}),
-      ...(query.status ? { status: query.status as BookingStatus } : {}),
-      ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
-      ...(Object.keys(classSlotFilter).length > 0 ? { classSlot: classSlotFilter } : {}),
-    };
-
-    if (query.timeline === 'UPCOMING') {
-      where.status = 'BOOKED';
-    } else if (query.timeline === 'HISTORY') {
-      where.OR = [
-        { status: { in: ['ATTENDED', 'CANCELLED'] } },
-        { classSlot: { endAt: { lt: new Date() } } },
-      ];
-    }
-
+    // Kondisi dasar dipakai bersama oleh daftar dan ringkasan (KPI): tanpa filter status,
+    // timeline, maupun cursor, agar kartu KPI menunjukkan sebaran seluruh hasil pencarian.
+    const conditions: Prisma.PemesananKelasWhereInput[] = [];
     if (query.q?.trim()) {
       const q = query.q.trim();
-      where.OR = [
-        { bookingNumber: { contains: q } },
-        { user: { displayName: { contains: q } } },
-      ];
+      conditions.push({
+        OR: [{ bookingNumber: { contains: q } }, { user: { displayName: { contains: q } } }],
+      });
     }
+    const baseWhere: Prisma.PemesananKelasWhereInput = {
+      ...(targetUserId ? { userId: targetUserId } : {}),
+      ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
+      ...(Object.keys(classSlotFilter).length > 0 ? { classSlot: classSlotFilter } : {}),
+      ...(conditions.length > 0 ? { AND: conditions } : {}),
+    };
+
+    const listConditions = [...conditions];
+    if (query.timeline === 'UPCOMING') {
+      listConditions.push({ classSlot: { startAt: { gte: new Date() } } });
+    } else if (query.timeline === 'HISTORY') {
+      listConditions.push({
+        OR: [
+          { status: { in: ['ATTENDED', 'CANCELLED'] } },
+          { classSlot: { endAt: { lt: new Date() } } },
+        ],
+      });
+    }
+    const where: Prisma.PemesananKelasWhereInput = {
+      ...baseWhere,
+      ...(query.timeline === 'UPCOMING'
+        ? { status: 'BOOKED' }
+        : query.status
+          ? { status: query.status as BookingStatus }
+          : {}),
+      ...(listConditions.length > 0 ? { AND: listConditions } : {}),
+    };
+    const orderBy: Prisma.PemesananKelasOrderByWithRelationInput[] =
+      query.timeline === 'UPCOMING'
+        ? [{ classSlot: { startAt: 'asc' } }, { id: 'asc' }]
+        : [{ bookedAt: 'desc' }, { id: 'desc' }];
+
+    const [statusGroups, reschedulePending] = await Promise.all([
+      this.db.pemesananKelas.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { _all: true },
+      }),
+      this.db.ubahJadwal.count({ where: { status: 'PENDING', booking: baseWhere } }),
+    ]);
+    const statusCount = (status: BookingStatus) =>
+      statusGroups.find((group) => group.status === status)?._count._all ?? 0;
 
     const items = await this.db.pemesananKelas.findMany({
       where,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: {
         user: true,
         classSlot: {
@@ -422,21 +474,32 @@ export class BookingsService {
         checkInTokens: { take: 1, orderBy: { createdAt: 'desc' } },
       },
       take: limit + 1,
-      orderBy: { bookedAt: 'desc' },
+      orderBy,
     });
 
     const hasNext = items.length > limit;
     const pageItems = hasNext ? items.slice(0, limit) : items;
+    const nextCursor = hasNext ? (pageItems[pageItems.length - 1]?.id ?? null) : null;
 
     return {
       items: pageItems.map((b) => this.bookingView(b)),
-      nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
+      page: { hasMore: hasNext, nextCursor },
+      nextCursor,
+      summary: {
+        total: statusGroups.reduce((sum, group) => sum + group._count._all, 0),
+        booked: statusCount('BOOKED'),
+        attended: statusCount('ATTENDED'),
+        cancelled: statusCount('CANCELLED'),
+        noShow: statusCount('NO_SHOW'),
+        reschedulePending,
+      },
     };
   }
 
   async detail(principal: SessionPrincipal, id: string) {
     if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const customerFlow = this.isCustomer(principal);
+    if (!customerFlow) this.policy.requireCapability(principal.capabilities, 'booking:read');
 
     const booking = await this.db.pemesananKelas.findUnique({
       where: { id },
@@ -460,6 +523,7 @@ export class BookingsService {
     if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (customerFlow && booking.userId !== principal.userId)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!customerFlow) this.requireBranch(principal, booking.classSlot.branchId, 'booking:read');
 
     return this.bookingView(booking);
   }

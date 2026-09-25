@@ -14,6 +14,8 @@ export interface RemindersSummary {
   totalRecentSent: number;
   totalRecentFailed: number;
   lastSentAt: string | null;
+  /** `MOCK` = pesan hanya dicatat (tidak dikirim ke WhatsApp); `META_CLOUD_API` = terkirim sungguhan. */
+  provider?: string;
 }
 
 export interface AutoCancelResult {

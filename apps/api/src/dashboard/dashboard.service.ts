@@ -301,6 +301,7 @@ export class DashboardService {
       slots,
       pendingPurchases,
       pendingReschedules,
+      pendingAdjustments,
       trendBookings,
       risks,
     ] = await Promise.all([
@@ -336,6 +337,14 @@ export class DashboardService {
       }),
       this.db.pembelian.count({ where: { ...scoped, status: PurchaseStatus.PENDING } }),
       this.db.ubahJadwal.count({ where: { status: 'PENDING' } }),
+      this.db.sessionAdjustRequest.count({
+        where: {
+          status: 'PENDING',
+          ...(global && !query.branchId
+            ? {}
+            : { customerPackage: { purchase: { branchId: branchWhere } } }),
+        },
+      }),
       this.db.pemesananKelas.findMany({
         where: { classSlot: { OR: slotCurrentScopes }, status: 'BOOKED' },
         select: { createdAt: true },
@@ -602,6 +611,13 @@ export class DashboardService {
           count: pendingReschedules,
           href: '/workspace/bookings?tab=reschedules&status=PENDING',
           capabilities: ['reschedule:read'],
+        },
+        {
+          key: 'adjustments',
+          label: 'Penyesuaian sesi menunggu',
+          count: pendingAdjustments,
+          href: '/ledger/adjustments?status=PENDING',
+          capabilities: ['ledger:adjust:read'],
         },
       ]
         .filter((item) =>

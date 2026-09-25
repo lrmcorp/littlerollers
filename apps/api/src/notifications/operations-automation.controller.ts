@@ -88,6 +88,7 @@ export class OperationsAutomationController {
         totalRecentSent: sentCount,
         totalRecentFailed: failedCount,
         lastSentAt: recentLogs[0]?.sentAt ?? null,
+        provider: this.whatsapp.providerName,
       },
     };
   }

@@ -70,18 +70,19 @@ describe('migration console pagination', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<MigrationView />);
-    expect(await screen.findByText('Halaman 1 · 1 reject')).toBeVisible();
-    expect(screen.getAllByRole('navigation', { name: 'Paginasi data' })).toHaveLength(3);
-
-    const rejectPagination = screen.getByText('Halaman 1 · 1 reject').closest('nav');
-    expect(rejectPagination).not.toBeNull();
-    await userEvent.click(within(rejectPagination!).getByRole('button', { name: 'Berikutnya' }));
+    // Urutan navigasi di halaman: batch, reject, resolution.
+    const paginations = () => screen.getAllByRole('navigation', { name: 'Paginasi data' });
+    await waitFor(() => expect(paginations()).toHaveLength(3));
+    const rejectPagination = () => paginations()[1]!;
+    expect(within(rejectPagination()).getByText('Halaman 1')).toBeVisible();
+    await userEvent.click(within(rejectPagination()).getByRole('button', { name: 'Berikutnya' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('rejects?status=OPEN&cursor=reject-next'),
         expect.anything(),
       ),
     );
-    expect(await screen.findByText('Halaman 2 · 1 reject')).toBeVisible();
+    await waitFor(() => expect(within(rejectPagination()).getByText('Halaman 2')).toBeVisible());
+    expect(within(paginations()[0]!).getByText('Halaman 1')).toBeVisible();
   });
 });

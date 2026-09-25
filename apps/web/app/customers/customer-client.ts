@@ -137,11 +137,12 @@ export const customerClient = {
   detail(id: string) {
     return request<CustomerDetail>(`/customers/${encodeURIComponent(id)}`);
   },
-  create(input: Record<string, unknown>, options: { stepUpToken: string; idempotencyKey: string }) {
+  create(input: Record<string, unknown>, options: { stepUpToken?: string; idempotencyKey: string }) {
     return request<CustomerSummary>('/customers', {
       method: 'POST',
       headers: {
-        'x-customer-step-up': options.stepUpToken,
+        // Backend belum memvalidasi step-up untuk pembuatan customer; kirim hanya bila ada.
+        ...(options.stepUpToken ? { 'x-customer-step-up': options.stepUpToken } : {}),
         'idempotency-key': options.idempotencyKey,
       },
       body: JSON.stringify(input),

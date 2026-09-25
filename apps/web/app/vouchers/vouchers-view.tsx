@@ -166,7 +166,7 @@ export function VouchersView() {
         )}
       </header>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {(['ACTIVE', 'DRAFT', 'PAUSED', 'EXHAUSTED'] as const).map((value) => (
+        {(['ACTIVE', 'PAUSED', 'EXPIRED', 'EXHAUSTED'] as const).map((value) => (
           <button
             key={value}
             type="button"

@@ -9,17 +9,7 @@ import {
 import { Button } from '../components/actions';
 import { Drawer, useOptionalAppFeedback } from '../components/app-feedback';
 import { SearchSelect, TextInput } from '../components/forms';
-
-export const roleLabels: Record<ApplicationRole, string> = {
-  SUPER_OWNER: 'Super Admin',
-  OWNER: 'Owner cabang',
-  ADMIN: 'Admin cabang',
-  MANAGER: 'Manager cabang',
-  FINANCE: 'Finance',
-  OPS: 'Operations',
-  INSTRUCTOR: 'Instruktur',
-  CUSTOMER: 'Customer',
-};
+import { roleLabel } from '../lib/role-labels';
 
 export const statusLabels = {
   PENDING_ACTIVATION: 'Menunggu aktivasi',
@@ -63,7 +53,7 @@ export function RoleSelection({
                 }}
               />
               <span>
-                <strong className="block text-sm text-dd-ink">{roleLabels[item.role]}</strong>
+                <strong className="block text-sm text-dd-ink">{roleLabel(item.role)}</strong>
                 <small className="mt-1 block text-xs leading-5 text-dd-muted">
                   {item.scope === 'BRANCH' ? 'Wajib dibatasi pada satu cabang.' : 'Scope global.'}
                 </small>
@@ -72,7 +62,7 @@ export function RoleSelection({
             {selected && item.scope === 'BRANCH' && (
               <SearchSelect
                 wrapperClassName="mt-3"
-                label={`Cabang untuk ${roleLabels[item.role]}`}
+                label={`Cabang untuk ${roleLabel(item.role)}`}
                 value={value[item.role] ?? ''}
                 required
                 placeholder="Pilih cabang"
@@ -215,7 +205,7 @@ export function InviteUserDrawer({
 }
 
 export function roleSummary(roles: UserRoleSummary[]) {
-  return roles.map(({ role, branch }) => `${roleLabels[role]}${branch ? ` · ${branch.name}` : ''}`);
+  return roles.map(({ role, branch }) => `${roleLabel(role)}${branch ? ` · ${branch.name}` : ''}`);
 }
 
 export { inputClass };

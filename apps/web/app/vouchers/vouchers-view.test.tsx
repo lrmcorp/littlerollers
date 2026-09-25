@@ -109,6 +109,28 @@ describe('VouchersView CRUD Actions', () => {
     expect(mockPush).toHaveBeenCalledWith('/workspace/vouchers/v-1');
   });
 
+  it('shows a KPI card per derived status with the counts from the API summary', async () => {
+    vi.spyOn(browserVoucherClient, 'list').mockResolvedValue({
+      items: mockVouchers,
+      summary: { ACTIVE: 7, PAUSED: 3, EXPIRED: 2, EXHAUSTED: 1 },
+      page: { hasMore: false, nextCursor: null },
+    });
+    render(
+      <AppFeedbackProvider>
+        <VouchersView />
+      </AppFeedbackProvider>,
+    );
+
+    await screen.findAllByText('PROMO-AKTIF');
+    const card = (label: string) =>
+      screen.getByText(label, { selector: 'p' }).closest('section') as HTMLElement;
+    expect(card('Aktif')).toHaveTextContent('7');
+    expect(card('Dijeda')).toHaveTextContent('3');
+    expect(card('Kedaluwarsa')).toHaveTextContent('2');
+    expect(card('Kuota habis')).toHaveTextContent('1');
+    expect(screen.queryByText('Draft', { selector: 'p' })).not.toBeInTheDocument();
+  });
+
   it('renders quick status actions (Jeda for ACTIVE, Aktifkan for PAUSED)', async () => {
     render(
       <AppFeedbackProvider>

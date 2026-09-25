@@ -146,6 +146,16 @@ describe('capability-aware session shell', () => {
     expect(canAccessSessionPath(superOwnerSession, '/workspace/vouchers')).toBe(true);
   });
 
+  it('keeps the WhatsApp automation route capability-scoped instead of closed for everyone', () => {
+    expect(canAccessSessionPath(adminSession, '/workspace/reminders')).toBe(false);
+    expect(
+      canAccessSessionPath(
+        { ...adminSession, capabilities: [...adminSession.capabilities, 'automation:read'] },
+        '/workspace/reminders',
+      ),
+    ).toBe(true);
+  });
+
   it('keeps voucher and promotion routes capability-scoped', () => {
     expect(canAccessSessionPath(adminSession, '/workspace/vouchers')).toBe(false);
     expect(canAccessSessionPath(adminSession, '/workspace/packages')).toBe(false);

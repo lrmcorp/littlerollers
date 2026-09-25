@@ -109,11 +109,11 @@ describe('customer booking timeline', () => {
 
     render(<CustomerBookingsView client={client} />);
     expect(await screen.findByText('Kelas 1')).toBeVisible();
-    expect(screen.getByText('Halaman 1 · 20 data dari 25 booking')).toBeVisible();
+    expect(screen.getByText('20 dari 25 booking')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
     expect(await screen.findByText('Kelas 21')).toBeVisible();
     expect(screen.queryByText('Kelas 1')).not.toBeInTheDocument();
-    expect(screen.getByText('Halaman 2 · 5 data dari 25 booking')).toBeVisible();
+    expect(screen.getByText('5 dari 25 booking')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Sebelumnya' }));
     expect(await screen.findByText('Kelas 1')).toBeVisible();
   });

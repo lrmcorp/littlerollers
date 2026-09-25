@@ -23,7 +23,7 @@ import { Button, ButtonLink } from '../../components/actions';
 import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
 import { useSessionContext } from '../../session-context';
-import { roleLabels, roleSummary, statusLabels } from '../user-admin-controls';
+import { roleSummary, statusLabels } from '../user-admin-controls';
 import { PasswordDialog, ProfileDialog, RoleDialog, StatusDialog } from './user-detail-dialogs';
 
 type DetailAction = 'profile' | 'roles' | 'password' | 'status' | null;

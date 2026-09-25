@@ -94,7 +94,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     shortLabel: 'Otomasi WA',
     description: 'Monitoring sistem auto-cancel kelas H-24 dan antrean notifikasi WhatsApp berjenjang.',
     group: 'Operasional Studio',
-    capabilities: [],
+    capabilities: ['automation:read'],
+    mutationCapabilities: ['automation:run'],
     priority: 6,
     accent: 'brand',
     icon: 'message-square',
@@ -157,7 +158,6 @@ export const frontendPages: FrontendPageDefinition[] = [
     queueBadgeSource: 'adjustments',
     dashboardDeepLink: '/ledger/adjustments?status=PENDING',
     roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER'],
-    isAdvanced: true,
   },
 
   // ==========================================
@@ -216,9 +216,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'info',
     icon: 'landmark',
     roleRelevance: ['FINANCE', 'SUPER_OWNER'],
-    queueBadgeSource: 'payments',
     dashboardDeepLink: '/finance',
-    isAdvanced: true,
   },
   {
     href: '/workspace/branch-performance',

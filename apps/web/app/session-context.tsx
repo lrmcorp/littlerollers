@@ -52,6 +52,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/orders', ['customer:self']],
   ['/account/packages', ['customer:self']],
   ['/workspace/payments', ['payment:review', 'purchase:review']],
+  ['/workspace/reminders', ['automation:read']],
   ['/workspace/bookings', ['booking:read', 'reschedule:read']],
   ['/workspace/branches', ['master:read', 'master:manage']],
   ['/workspace/packages', ['package-promotion:read', 'package-promotion:manage']],

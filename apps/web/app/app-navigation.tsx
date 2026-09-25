@@ -36,9 +36,9 @@ import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
 import { isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
-import { browserDashboardClient } from '@/api-clients/dashboard-client';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
 import { IconButton } from './components/actions';
+import type { QueueCounts } from './components/use-queue-counts';
 
 const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
@@ -74,6 +74,7 @@ export function AppNavigation({
   mobileRendered = false,
   mobilePhase = 'exiting',
   collapsed = false,
+  queueCounts = {},
   onClose,
   onCollapse,
 }: {
@@ -81,6 +82,7 @@ export function AppNavigation({
   mobileRendered?: boolean;
   mobilePhase?: OverlayPhase;
   collapsed?: boolean;
+  queueCounts?: QueueCounts;
   onClose?(): void;
   onCollapse?(): void;
 }) {
@@ -94,7 +96,6 @@ export function AppNavigation({
         pathname === item.href ||
         (item.href !== '/workspace' && pathname.startsWith(`${item.href}/`)),
     )?.href;
-  const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedPages = frontendPages
@@ -148,23 +149,6 @@ export function AppNavigation({
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
   }, []);
-
-  useEffect(() => {
-    if (!session || customerOnly) return;
-    let active = true;
-    browserDashboardClient
-      .overview({ branchId: context?.activeBranchId || undefined })
-      .then((overview) => {
-        if (active)
-          setQueueCounts(Object.fromEntries(overview.queues.map((item) => [item.key, item.count])));
-      })
-      .catch(() => {
-        if (active) setQueueCounts({});
-      });
-    return () => {
-      active = false;
-    };
-  }, [context?.activeBranchId, customerOnly, session]);
 
   const linkClass = (active: boolean) =>
     `group flex min-h-10 items-center gap-3 rounded-dd-md px-3 py-2 text-sm font-semibold transition ${active ? 'bg-white text-dd-sidebar shadow-sm' : 'text-white/72 hover:bg-white/8 hover:text-white'}`;

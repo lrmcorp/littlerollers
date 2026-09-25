@@ -1,5 +1,6 @@
 'use client';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Button } from '../components/actions';
 import { SelectInput, Textarea, TextInput } from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
@@ -78,11 +79,16 @@ export function NotificationManagementView() {
       <PageHeader
         eyebrow="Komunikasi"
         title="Manajemen Notifikasi"
-        description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. WhatsApp belum menjadi channel aktif."
+        description="Kelola template in-app dan email, event mapping, delivery, retry, serta dead-letter. Pengingat WhatsApp berjalan terpisah lewat Otomasi WA."
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       <Feedback kind="info">
-        WhatsApp/Meta ditunda berdasarkan keputusan produk dan tidak dikirim kepada customer.
+        Template di halaman ini hanya untuk notifikasi in-app dan email. Pengingat WhatsApp (H-7, H-3,
+        H-1, auto-cancel) dijadwalkan dan dipantau dari{' '}
+        <Link className="font-semibold underline" href="/workspace/reminders">
+          Otomasi WA
+        </Link>
+        .
       </Feedback>
       <form
         onSubmit={create}

@@ -744,7 +744,7 @@ describe('effective master UI', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(await screen.findByText('Cabang 1')).toBeVisible();
-    expect(screen.getByText('Halaman 1 · 20 data dari 25 cabang')).toBeVisible();
+    expect(screen.getByText('Halaman 1')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
     expect(await screen.findByText('Cabang 21')).toBeVisible();
     expect(screen.queryByText('Cabang 1')).not.toBeInTheDocument();

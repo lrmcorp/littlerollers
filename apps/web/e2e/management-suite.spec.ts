@@ -199,7 +199,7 @@ test('management consoles expose controlled lifecycle actions', async ({ page })
   );
   await page.goto('/notification-management');
   await expect(page.getByRole('button', { name: 'Publish' })).toBeVisible();
-  await expect(page.getByText(/WhatsApp\/Meta ditunda/i)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Otomasi WA' })).toBeVisible();
 
   await page.route('**/api/v1/public-content-management**', (route) =>
     route.fulfill({

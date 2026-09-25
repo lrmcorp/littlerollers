@@ -17,6 +17,7 @@ import {
 import { AppNavigation } from './app-navigation';
 import { useSessionContext } from './session-context';
 import { routes } from '@/lib/routes';
+import { roleLabel } from './lib/role-labels';
 import { canReadPage, frontendPages } from '@/lib/frontend-pages';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
@@ -31,23 +32,13 @@ import {
 } from './components/customer/customer-navigation';
 import { useCustomerBadges } from './components/customer/use-customer-badges';
 import { MobileBottomNavigation } from './components/mobile-bottom-navigation';
+import { useQueueCounts } from './components/use-queue-counts';
 import { BrandMark } from './components/public/brand-mark';
 import {
   isCustomerCatalogPath,
   isCustomerOnlySession,
   isPublicExperiencePath,
 } from '@/lib/session-audience';
-
-const roleLabels: Record<string, string> = {
-  SUPER_OWNER: 'Super Admin',
-  OWNER: 'Owner',
-  ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  FINANCE: 'Finance',
-  OPS: 'Operations',
-  INSTRUCTOR: 'Instructor',
-  CUSTOMER: 'Customer',
-};
 
 const accountPageLabels: Record<string, string> = {
   '/account': 'Dashboard',
@@ -126,7 +117,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         ...session.branches.map((branch) => ({
           id: branch.id,
           label: branch.name,
-          description: `${branch.code} · ${roleLabels[primaryRole ?? ''] ?? primaryRole ?? 'Staf'} · ${activeScopeLabel}`,
+          description: `${branch.code} · ${primaryRole ? roleLabel(primaryRole, 'short') : 'Staf'} · ${activeScopeLabel}`,
         })),
       ]
     : [];
@@ -174,6 +165,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const customerBadges = useCustomerBadges();
   const customerOnly = isCustomerOnlySession(session);
   const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
+  const queueCounts = useQueueCounts(
+    Boolean(session) && !customerOnly && !isPublicExperiencePath(pathname),
+  );
   if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
   if (customerOnly) {
     const approved = session?.identityVerificationStatus === 'APPROVED';
@@ -418,6 +412,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         mobileRendered={mobileOverlay.rendered}
         mobilePhase={mobileOverlay.phase}
         collapsed={collapsed}
+        queueCounts={queueCounts}
         onClose={() => setMobileOpen(false)}
         onCollapse={() => setCollapsed((value) => !value)}
       />
@@ -552,7 +547,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                         {session?.displayName ?? 'Akun internal'}
                       </strong>
                       <span className="mt-1 block text-xs text-dd-muted">
-                        {session?.roles.map((role) => roleLabels[role] ?? role).join(' · ')}
+                        {session?.roles.map((role) => roleLabel(role, 'short')).join(' · ')}
                       </span>
                       <span className="mt-2 inline-flex rounded-full bg-dd-surface-muted px-2.5 py-1 text-[11px] font-semibold text-dd-forest">
                         {context?.activeBranch
@@ -618,7 +613,11 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </main>
-        <MobileBottomNavigation customerOnly={false} onOpenMenu={() => setMobileOpen(true)} />
+        <MobileBottomNavigation
+          customerOnly={false}
+          queueCounts={queueCounts}
+          onOpenMenu={() => setMobileOpen(true)}
+        />
       </div>
       <Modal
         open={commandOpen}

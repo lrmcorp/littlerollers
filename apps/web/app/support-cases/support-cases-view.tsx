@@ -2,9 +2,17 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/actions';
-import { SearchSelect, SelectInput, TextInput } from '../components/forms';
+import {
+  AsyncSearchSelect,
+  SearchSelect,
+  SelectInput,
+  TextInput,
+  type SearchSelectOption,
+} from '../components/forms';
 import { Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
+import { customerClient } from '../customers/customer-client';
+import { supportPriorityLabel, supportPriorityLabels, supportStatusLabel } from './support-labels';
 async function api(path: string, init?: RequestInit) {
   const r = await fetch(`/api/v1${path}`, {
     credentials: 'include',
@@ -14,11 +22,24 @@ async function api(path: string, init?: RequestInit) {
   if (!r.ok) throw new Error('REQUEST_FAILED');
   return r.json();
 }
+async function searchCustomers(query: string, cursor?: string) {
+  const result = await customerClient.list({ q: query.trim() || undefined, cursor });
+  return {
+    items: result.items.map((customer) => ({
+      id: customer.id,
+      label: customer.displayName,
+      description: customer.email || customer.phoneE164 || undefined,
+    })),
+    nextCursor: result.page.nextCursor ?? undefined,
+  };
+}
+
 export function SupportCasesView() {
   const session = useSessionContext()?.session;
   const [items, setItems] = useState<any[]>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [customer, setCustomer] = useState<SearchSelectOption>();
   const load = useCallback(
     () =>
       api('/support-cases')
@@ -36,7 +57,7 @@ export function SupportCasesView() {
       await api('/support-cases', {
         method: 'POST',
         body: JSON.stringify({
-          customerUserId: d.get('customerUserId'),
+          customerUserId: customer?.id ?? d.get('customerUserId'),
           branchId: d.get('branchId') || null,
           subject: d.get('subject'),
           priority: d.get('priority'),
@@ -47,9 +68,10 @@ export function SupportCasesView() {
         }),
       });
       f.reset();
+      setCustomer(undefined);
       await load();
     } catch {
-      setError('Support case belum dapat dibuat. Pastikan Customer ID valid dan sesuai scope.');
+      setError('Support case belum dapat dibuat. Pastikan customer dipilih dan sesuai scope Studio/Cabang Anda.');
     } finally {
       setBusy(false);
     }
@@ -72,11 +94,16 @@ export function SupportCasesView() {
         onSubmit={create}
         className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
       >
-        <TextInput
-          label="Customer ID"
+        <AsyncSearchSelect
+          label="Customer"
           required
           name="customerUserId"
-          placeholder="ID pengguna customer"
+          value={customer?.id ?? ''}
+          selectedOption={customer}
+          onChange={(_id, option) => setCustomer(option)}
+          placeholder="Ketik nama, email, atau telepon customer"
+          searchPlaceholder="Cari customer…"
+          loadOptions={searchCustomers}
         />
         <TextInput
           label="Subjek Case"
@@ -93,11 +120,12 @@ export function SupportCasesView() {
             label: branch.name,
           }))}
         />
-        <SelectInput label="Prioritas" name="priority">
-          <option value="NORMAL">NORMAL</option>
-          <option value="LOW">LOW</option>
-          <option value="HIGH">HIGH</option>
-          <option value="URGENT">URGENT</option>
+        <SelectInput label="Prioritas" name="priority" defaultValue="NORMAL">
+          {Object.entries(supportPriorityLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </SelectInput>
         <TextInput
           label="Tags"
@@ -136,10 +164,10 @@ export function SupportCasesView() {
               </div>
               <div className="flex gap-2">
                 <StatusBadge tone={item.priority === 'URGENT' ? 'danger' : 'neutral'}>
-                  {item.priority}
+                  {supportPriorityLabel(item.priority)}
                 </StatusBadge>
                 <StatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
-                  {item.status}
+                  {supportStatusLabel(item.status)}
                 </StatusBadge>
               </div>
             </li>

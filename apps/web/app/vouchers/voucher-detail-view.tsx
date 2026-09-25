@@ -153,7 +153,15 @@ export function VoucherDetailView({ id }: { id: string }) {
             {voucher.name} · {voucher.branch?.name ?? 'Semua cabang'}
           </p>
         </div>
-        <Badge tone={voucher.status === 'ACTIVE' ? 'success' : 'warning'}>
+        <Badge
+          tone={
+            voucher.status === 'ACTIVE'
+              ? 'success'
+              : voucher.status === 'EXPIRED' || voucher.status === 'EXHAUSTED'
+                ? 'danger'
+                : 'warning'
+          }
+        >
           {statusLabel[voucher.status]}
         </Badge>
       </header>
@@ -224,7 +232,8 @@ export function VoucherDetailView({ id }: { id: string }) {
           >
             Edit konfigurasi
           </Button>
-          {voucher.status !== 'ACTIVE' && (
+          {/* Kedaluwarsa/kuota habis tetap "menyala" di data, jadi hanya PAUSED yang perlu diaktifkan. */}
+          {voucher.status === 'PAUSED' && (
             <Button disabled={busy} onClick={() => void transition('activate')}>
               Aktifkan
             </Button>

@@ -104,6 +104,11 @@ export class WhatsAppGatewayService {
     }
   }
 
+  /** Nama provider aktif: `MOCK` berarti pesan hanya dicatat, tidak dikirim ke WhatsApp. */
+  get providerName(): string {
+    return this.provider.name;
+  }
+
   /**
    * Set provider secara manual (berguna saat test/mocking)
    */

@@ -77,9 +77,9 @@ export function CustomersView() {
           preferredBranchId: data.get('preferredBranchId') || null,
           password: data.get('password'),
           passwordConfirmation: data.get('passwordConfirmation'),
-          reason: data.get('reason'),
+          reason: String(data.get('reason') || '').trim() || undefined,
         },
-        { stepUpToken: String(data.get('stepUpToken') || ''), idempotencyKey: crypto.randomUUID() },
+        { idempotencyKey: crypto.randomUUID() },
       );
       event.currentTarget.reset();
       setShowCreate(false);
@@ -92,7 +92,7 @@ export function CustomersView() {
           ? 'Email atau nomor telepon sudah digunakan.'
           : code === 'MFA_REQUIRED'
             ? 'Verifikasi MFA Super Admin diperlukan.'
-            : 'Customer belum dapat dibuat. Periksa data, password, alasan, dan step-up.',
+            : 'Customer belum dapat dibuat. Periksa data dan password.',
       );
     } finally {
       setSubmitting(false);
@@ -153,14 +153,7 @@ export function CustomersView() {
             maxLength={128}
             autoComplete="new-password"
           />
-          <TextInput required label="Alasan" name="reason" minLength={3} maxLength={500} />
-          <TextInput
-            required
-            type="password"
-            label="Step-up token"
-            name="stepUpToken"
-            autoComplete="one-time-code"
-          />
+          <TextInput label="Catatan (opsional)" name="reason" maxLength={500} />
           <div className="sm:col-span-2">
             <Feedback kind="warning">
               Customer langsung aktif, tetapi hanya dapat membuka keamanan akun sampai password awal

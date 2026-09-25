@@ -47,6 +47,6 @@ describe('customer packages actions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
     expect(await screen.findByText('Paket 21')).toBeVisible();
     expect(screen.queryByText('Paket 1')).not.toBeInTheDocument();
-    expect(screen.getByText('Halaman 2 · 5 data dari 25 paket')).toBeVisible();
+    expect(screen.getByText('5 dari 25 paket')).toBeVisible();
   });
 });

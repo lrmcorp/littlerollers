@@ -45,6 +45,21 @@ describe('OperationsView', () => {
     expect(await screen.findByText('Evaluasi selesai.')).toBeInTheDocument();
   });
 
+  it('never prints "undefined" when a job has no attempt limit, and flags the job list as sample data', async () => {
+    const { maxAttempts: _omit, ...jobWithoutLimit } = job;
+    const client = {
+      list: vi.fn().mockResolvedValue({
+        items: [jobWithoutLimit],
+        page: { hasMore: false, nextCursor: null },
+      }),
+      run: vi.fn(),
+    };
+    const view = render(<OperationsView client={client as never} access={{ canRecover: false }} />);
+    expect((await screen.findAllByText('1/—'))[0]).toBeVisible();
+    expect(view.container).not.toHaveTextContent('undefined');
+    expect(screen.getByText(/Data contoh/)).toBeVisible();
+  });
+
   it('shows masked SMTP metrics and requires a reason for manual retry', async () => {
     const delivery = {
       id: '00000000-0000-4000-8000-000000000201',
