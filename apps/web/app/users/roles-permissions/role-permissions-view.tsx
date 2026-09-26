@@ -138,6 +138,13 @@ function capabilityMatches(item: CapabilityDefinition, search: string, category:
   );
 }
 
+/**
+ * Peran dan izin ditetapkan sistem (`role-capabilities.ts`); `PolicyService.resolveAccess` tidak
+ * membaca database. Buat/duplikasi peran khusus dan pengecualian izin dinonaktifkan sampai RBAC
+ * dinamis dibangun (lihat access-management.service.ts).
+ */
+const CUSTOM_RBAC_AVAILABLE = false;
+
 export function RolePermissionsView({
   accessClient = browserAccessClient,
   identityClient,
@@ -593,11 +600,11 @@ export function RolePermissionsView({
       <AdminPageHeader
         title="Peran & Hak Akses"
         titleId="roles-permissions-title"
-        description="Kelola katalog role, cakupan cabang, dan akses efektif pengguna. Setiap perubahan diaudit dan mencabut session terdampak."
+        description="Katalog peran bawaan sistem beserta izinnya, dan akses efektif pengguna. Peran dan izin ditetapkan sistem (hanya baca); membuat peran khusus dan pengecualian izin belum tersedia. Mengganti peran langsung pengguna mencabut sesi aktifnya."
         actions={
           <div className="grid justify-items-start gap-3 sm:justify-items-end">
             <div className="flex flex-wrap gap-2">
-              <StatusBadge tone="success">RBAC dari database</StatusBadge>
+              <StatusBadge tone="info">Peran bawaan sistem (hanya baca)</StatusBadge>
               <StatusBadge tone="info">Khusus Super Admin</StatusBadge>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -648,14 +655,16 @@ export function RolePermissionsView({
                       {visibleRoles.length} role ditampilkan
                     </p>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leadingIcon={<Plus className="size-4" aria-hidden="true" />}
-                    onClick={() => createRoleFrom()}
-                  >
-                    Buat
-                  </Button>
+                  {CUSTOM_RBAC_AVAILABLE && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+                      onClick={() => createRoleFrom()}
+                    >
+                      Buat
+                    </Button>
+                  )}
                 </div>
                 <div className="mt-4 grid gap-3">
                   <SearchInput
@@ -752,7 +761,7 @@ export function RolePermissionsView({
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {selectedRole && (
+                        {CUSTOM_RBAC_AVAILABLE && selectedRole && (
                           <Button
                             variant="secondary"
                             size="sm"
@@ -1253,96 +1262,107 @@ export function RolePermissionsView({
                     </Button>
                   </section>
 
-                  <section className="rounded-dd-lg border border-dd-line p-4">
-                    <h3>Hak akses override</h3>
-                    <div className="mt-4 grid gap-3">
-                      <SearchSelect
-                        label="Izin"
-                        value={overrideCapability}
-                        placeholder="Pilih izin"
-                        options={capabilities
-                          .filter(({ systemOnly }) => !systemOnly)
-                          .map((item) => ({
-                            id: item.key,
-                            label: item.label,
-                            description: item.key,
-                          }))}
-                        onChange={(key) => {
-                          setOverrideCapability(key);
-                          if (capabilities.find((item) => item.key === key)?.globalOnly)
-                            setOverrideBranchId('');
-                        }}
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <SelectInput
-                          label="Efek"
-                          value={overrideEffect}
-                          onChange={(event) =>
-                            setOverrideEffect(event.target.value as OverrideEffect)
-                          }
-                        >
-                          <option value="GRANT">Berikan akses</option>
-                          <option value="DENY">Tolak akses</option>
-                        </SelectInput>
+                  {CUSTOM_RBAC_AVAILABLE ? (
+                    <section className="rounded-dd-lg border border-dd-line p-4">
+                      <h3>Hak akses override</h3>
+                      <div className="mt-4 grid gap-3">
                         <SearchSelect
-                          label="Cakupan"
-                          value={overrideBranchId}
-                          placeholder="Global"
-                          disabled={
-                            capabilities.find((item) => item.key === overrideCapability)?.globalOnly
-                          }
-                          options={branches.map((branch) => ({
-                            id: branch.id,
-                            label: branch.name,
-                            description: branch.code,
-                          }))}
-                          onChange={setOverrideBranchId}
+                          label="Izin"
+                          value={overrideCapability}
+                          placeholder="Pilih izin"
+                          options={capabilities
+                            .filter(({ systemOnly }) => !systemOnly)
+                            .map((item) => ({
+                              id: item.key,
+                              label: item.label,
+                              description: item.key,
+                            }))}
+                          onChange={(key) => {
+                            setOverrideCapability(key);
+                            if (capabilities.find((item) => item.key === key)?.globalOnly)
+                              setOverrideBranchId('');
+                          }}
                         />
-                      </div>
-                      <Button
-                        variant={overrideEffect === 'DENY' ? 'danger' : 'primary'}
-                        disabled={!overrideCapability}
-                        onClick={() => void createOverride()}
-                      >
-                        Review hak akses override
-                      </Button>
-                    </div>
-                    <div className="mt-5 grid gap-2">
-                      {userAccess.overrides.length === 0 ? (
-                        <p className="text-sm text-dd-muted">Belum ada override aktif.</p>
-                      ) : (
-                        userAccess.overrides.map((override) => (
-                          <article
-                            key={override.id}
-                            className="rounded-dd-lg border border-dd-line p-3"
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <SelectInput
+                            label="Efek"
+                            value={overrideEffect}
+                            onChange={(event) =>
+                              setOverrideEffect(event.target.value as OverrideEffect)
+                            }
                           >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div>
-                                <StatusBadge
-                                  tone={override.effect === 'DENY' ? 'danger' : 'success'}
+                            <option value="GRANT">Berikan akses</option>
+                            <option value="DENY">Tolak akses</option>
+                          </SelectInput>
+                          <SearchSelect
+                            label="Cakupan"
+                            value={overrideBranchId}
+                            placeholder="Global"
+                            disabled={
+                              capabilities.find((item) => item.key === overrideCapability)
+                                ?.globalOnly
+                            }
+                            options={branches.map((branch) => ({
+                              id: branch.id,
+                              label: branch.name,
+                              description: branch.code,
+                            }))}
+                            onChange={setOverrideBranchId}
+                          />
+                        </div>
+                        <Button
+                          variant={overrideEffect === 'DENY' ? 'danger' : 'primary'}
+                          disabled={!overrideCapability}
+                          onClick={() => void createOverride()}
+                        >
+                          Review hak akses override
+                        </Button>
+                      </div>
+                      <div className="mt-5 grid gap-2">
+                        {userAccess.overrides.length === 0 ? (
+                          <p className="text-sm text-dd-muted">Belum ada override aktif.</p>
+                        ) : (
+                          userAccess.overrides.map((override) => (
+                            <article
+                              key={override.id}
+                              className="rounded-dd-lg border border-dd-line p-3"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <StatusBadge
+                                    tone={override.effect === 'DENY' ? 'danger' : 'success'}
+                                  >
+                                    {override.effect}
+                                  </StatusBadge>
+                                  <strong className="ml-2 font-mono text-xs">
+                                    {override.capabilityKey}
+                                  </strong>
+                                  <p className="mt-2 text-xs text-dd-muted">
+                                    {override.branch?.name ?? 'Global'} · {override.reasonCode}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => void revokeOverride(override)}
                                 >
-                                  {override.effect}
-                                </StatusBadge>
-                                <strong className="ml-2 font-mono text-xs">
-                                  {override.capabilityKey}
-                                </strong>
-                                <p className="mt-2 text-xs text-dd-muted">
-                                  {override.branch?.name ?? 'Global'} · {override.reasonCode}
-                                </p>
+                                  Cabut
+                                </Button>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => void revokeOverride(override)}
-                              >
-                                Cabut
-                              </Button>
-                            </div>
-                          </article>
-                        ))
-                      )}
-                    </div>
-                  </section>
+                            </article>
+                          ))
+                        )}
+                      </div>
+                    </section>
+                  ) : (
+                    <section className="rounded-dd-lg border border-dd-line p-4">
+                      <h3>Hak akses override</h3>
+                      <p className="mt-2 text-sm text-dd-muted">
+                        Pengecualian izin per pengguna belum tersedia: izin ditetapkan sistem per
+                        peran. Bila seseorang perlu izin berbeda, ganti peran langsungnya.
+                      </p>
+                    </section>
+                  )}
 
                   <section className="rounded-dd-lg border border-dd-line p-4 xl:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-3">

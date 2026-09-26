@@ -439,6 +439,10 @@ describe('identity UI', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Peran & Hak Akses' })).toBeVisible();
     expect(await screen.findByText('Manager cabang.')).toBeVisible();
+    // Peran/izin ditetapkan sistem: tidak ada aksi buat/duplikasi peran khusus, dan jelas hanya-baca.
+    expect(screen.getByText('Peran bawaan sistem (hanya baca)')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Buat' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Duplikasi' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Daftar pengguna/ })).toHaveAttribute('href', '/users');
     expect(screen.getByRole('tab', { name: /Role & Izin/ })).toHaveAttribute(
       'aria-selected',

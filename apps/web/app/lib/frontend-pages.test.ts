@@ -61,7 +61,7 @@ describe('frontend page registry', () => {
   it('marks pages backed by sample or in-memory data as preview, each with an explanation', () => {
     const preview = frontendPages.filter((item) => item.maturity === 'preview');
     expect(preview.map((item) => item.href).sort()).toEqual(
-      ['/audit', '/migrations', '/operations', '/support-cases'].sort(),
+      ['/audit', '/migrations', '/operations', '/support-cases', '/users/roles-permissions'].sort(),
     );
     for (const item of preview) expect(item.previewNote?.trim().length).toBeGreaterThan(20);
     // Catatan tanpa penanda tidak boleh ada, dan halaman biasa tidak boleh berlabel pratinjau.

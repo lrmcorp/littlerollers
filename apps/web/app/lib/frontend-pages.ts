@@ -314,6 +314,9 @@ export const frontendPages: FrontendPageDefinition[] = [
     icon: 'shield-check',
     roleRelevance: ['SUPER_OWNER'],
     isAdvanced: true,
+    maturity: 'preview',
+    previewNote:
+      'Peran dan izin ditetapkan oleh sistem (hanya baca). Membuat peran khusus dan pengecualian izin belum tersedia; yang dapat diubah di sini adalah peran langsung pengguna.',
   },
   {
     href: '/assignments',

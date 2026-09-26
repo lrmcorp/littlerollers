@@ -1,11 +1,62 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Role } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
-import type { SessionPrincipal } from './identity.service';
+import { mapUserToEffectiveRoles, type SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
-import { ApiProblem, newId } from './security';
+import { ApiProblem } from './security';
 import { ROLE_CAPABILITIES, type ApplicationRole } from './role-capabilities';
+
+/**
+ * Peran & Hak Akses (versi jujur, hanya-baca).
+ *
+ * Izin setiap peran ditetapkan sistem di `role-capabilities.ts` dan `PolicyService.resolveAccess`
+ * tidak membaca database. Karena itu membuat peran khusus, mengubah izin peran, dan pengecualian
+ * izin per pengguna BELUM ADA dan mengembalikan 501 — bukan "sukses" yang tidak tersimpan.
+ * Yang nyata: melihat katalog peran/izin, melihat akses efektif pengguna, dan mengganti peran
+ * langsung pengguna (dengan validasi). RBAC dinamis dikerjakan sebagai tahap terpisah.
+ */
+
+/** Kosakata kanonik; SUPERADMIN/COACH/MEMBER hanyalah alias lama dari SUPER_OWNER/INSTRUCTOR/CUSTOMER. */
+const CANONICAL_ROLES: readonly ApplicationRole[] = [
+  'SUPER_OWNER',
+  'OWNER',
+  'MANAGER',
+  'ADMIN',
+  'FINANCE',
+  'OPS',
+  'INSTRUCTOR',
+  'CUSTOMER',
+];
+const ROLE_ALIASES: Record<string, ApplicationRole> = {
+  SUPERADMIN: 'SUPER_OWNER',
+  COACH: 'INSTRUCTOR',
+  MEMBER: 'CUSTOMER',
+};
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_OWNER: 'Super Admin',
+  OWNER: 'Owner cabang',
+  MANAGER: 'Manager cabang',
+  ADMIN: 'Admin cabang',
+  FINANCE: 'Finance',
+  OPS: 'Operations',
+  INSTRUCTOR: 'Instruktur',
+  CUSTOMER: 'Pelanggan',
+};
+const SENSITIVE = /:(manage|admin|decide|recover|export|delete|resolve|run|reconcile|credential|revoke)/;
+const GLOBAL_ONLY = new Set(['branch:all', 'role-permission:manage', 'identity-verification:decide']);
+const PROTECTED_ROLES: ReadonlySet<string> = new Set(['SUPER_OWNER', 'SUPERADMIN']);
+const EPOCH = new Date(0).toISOString();
+
+const humanize = (key: string) =>
+  key
+    .split(/[:-]/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const notImplemented = (): never => {
+  throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
+};
 
 @Injectable()
 export class AccessManagementService {
@@ -19,22 +70,52 @@ export class AccessManagementService {
     this.policy.requireScopedCapability(principal, 'role-permission:manage');
   }
 
+  private capabilityView(key: string) {
+    return {
+      key,
+      label: humanize(key),
+      description: key,
+      category: key.split(':')[0] || 'GENERAL',
+      sensitive: SENSITIVE.test(key),
+      active: true,
+      systemOnly: false,
+      globalOnly: GLOBAL_ONLY.has(key),
+    };
+  }
+
+  private roleView(role: ApplicationRole, affectedUsers = 0) {
+    const scope = this.policy.roleCatalog().find((item) => item.role === role)?.scope ?? 'BRANCH';
+    return {
+      id: role,
+      code: role,
+      displayName: ROLE_LABELS[role] ?? role,
+      description: `Peran bawaan sistem. Izin ditetapkan di kode dan hanya dapat dilihat di sini.`,
+      scope,
+      systemRole: role,
+      system: true,
+      protected: true,
+      active: true,
+      version: 1,
+      affectedUsers,
+      capabilities: [...new Set(ROLE_CAPABILITIES[role] ?? [])]
+        .sort()
+        .map((key) => {
+          const { label, category, sensitive, systemOnly, globalOnly } = this.capabilityView(key);
+          return { key, label, category, sensitive, systemOnly, globalOnly };
+        }),
+      createdAt: EPOCH,
+      updatedAt: EPOCH,
+    };
+  }
+
   async listCapabilities(
     principal: SessionPrincipal,
     _query: { q?: string; category?: string; sensitive?: boolean; active?: boolean } = {},
   ) {
     this.authorize(principal);
-    const allCapabilities = new Set<string>();
-    for (const caps of Object.values(ROLE_CAPABILITIES)) {
-      for (const cap of caps) allCapabilities.add(cap);
-    }
-    const items = Array.from(allCapabilities).sort().map((key) => ({
-      key,
-      name: key.replace(/[:-]/g, ' ').toUpperCase(),
-      category: key.split(':')[0] || 'GENERAL',
-      isSensitive: key.includes('manage') || key.includes('admin'),
-      active: true,
-    }));
+    const keys = new Set<string>();
+    for (const role of CANONICAL_ROLES) for (const cap of ROLE_CAPABILITIES[role] ?? []) keys.add(cap);
+    const items = [...keys].sort().map((key) => this.capabilityView(key));
     return { items, summary: { total: items.length, active: items.length, inactive: 0 } };
   }
 
@@ -43,327 +124,138 @@ export class AccessManagementService {
     _query: { q?: string; scope?: 'GLOBAL' | 'BRANCH'; active?: boolean } = {},
   ) {
     this.authorize(principal);
-    const roles: ApplicationRole[] = ['SUPERADMIN', 'ADMIN', 'COACH', 'MEMBER'];
-    const items = roles.map((code) => ({
-      id: code,
-      code,
-      displayName: code,
-      description: `Default system role for ${code}`,
-      scope: code === 'SUPERADMIN' ? 'GLOBAL' : 'BRANCH',
-      active: true,
-      version: 1,
-      capabilities: (ROLE_CAPABILITIES[code] || []).map((key) => ({
-        capabilityKey: key,
-        capability: { key, name: key, category: key.split(':')[0] || 'GENERAL' },
-      })),
-    }));
+    const counts = await this.db.user.groupBy({ by: ['role'], _count: { _all: true } });
+    const countOf = (role: ApplicationRole) =>
+      counts
+        .filter(({ role: stored }) => (ROLE_ALIASES[stored] ?? stored) === role)
+        .reduce((sum, item) => sum + item._count._all, 0);
+    const items = CANONICAL_ROLES.map((role) => this.roleView(role, countOf(role)));
     return { items, summary: { total: items.length, active: items.length, inactive: 0 } };
-  }
-
-  async createRole(
-    principal: SessionPrincipal,
-    body: {
-      code: string;
-      displayName: string;
-      description: string;
-      scope: 'GLOBAL' | 'BRANCH';
-      capabilityKeys: string[];
-      reasonCode: string;
-      note?: string;
-    },
-    key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: 'access:create-role',
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const item = {
-          id: body.code.toUpperCase(),
-          code: body.code.toUpperCase(),
-          displayName: body.displayName,
-          description: body.description,
-          scope: body.scope,
-          active: true,
-          version: 1,
-        };
-        return { status: HttpStatus.OK, body: item as unknown as Prisma.InputJsonValue };
-      },
-    );
   }
 
   async getRole(principal: SessionPrincipal, id: string) {
     this.authorize(principal);
-    const code = id.toUpperCase() as ApplicationRole;
-    return {
-      id: code,
-      code,
-      displayName: code,
-      description: `System role for ${code}`,
-      scope: code === 'SUPERADMIN' ? 'GLOBAL' : 'BRANCH',
-      active: true,
-      version: 1,
-      capabilities: (ROLE_CAPABILITIES[code] || []).map((key) => ({
-        capabilityKey: key,
-        capability: { key, name: key, category: key.split(':')[0] || 'GENERAL' },
-      })),
-    };
+    const code = (ROLE_ALIASES[id.toUpperCase()] ?? id.toUpperCase()) as ApplicationRole;
+    if (!CANONICAL_ROLES.includes(code)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return this.roleView(code);
+  }
+
+  // --- Belum ada: penyimpanan peran/izin khusus (RBAC dinamis) ---------------------------------
+
+  async createRole(
+    principal: SessionPrincipal,
+    _body: unknown,
+    _key: string,
+    _correlationId: string,
+  ) {
+    this.authorize(principal);
+    return notImplemented();
   }
 
   async updateRole(
     principal: SessionPrincipal,
-    id: string,
-    body: {
-      displayName: string;
-      description: string;
-      expectedVersion: number;
-      reasonCode: string;
-      note?: string;
-    },
-    key: string,
+    _id: string,
+    _body: unknown,
+    _key: string,
     _correlationId: string,
   ) {
     this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:update-role:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const role = await this.getRole(principal, id);
-        return {
-          status: HttpStatus.OK,
-          body: { ...role, displayName: body.displayName, description: body.description },
-        };
-      },
-    );
+    return notImplemented();
   }
 
   async replaceRoleCapabilities(
     principal: SessionPrincipal,
-    id: string,
-    body: { capabilityKeys: string[]; expectedVersion: number; reasonCode: string; note?: string },
-    key: string,
+    _id: string,
+    _body: unknown,
+    _key: string,
     _correlationId: string,
   ) {
     this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:replace-role-caps:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const role = await this.getRole(principal, id);
-        return { status: HttpStatus.OK, body: role as unknown as Prisma.InputJsonValue };
-      },
-    );
-  }
-
-  async deprecateRole(
-    principal: SessionPrincipal,
-    id: string,
-    body: { expectedVersion: number; reasonCode: string; note?: string },
-    key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:deprecate-role:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const role = await this.getRole(principal, id);
-        return { status: HttpStatus.OK, body: { ...role, active: false } };
-      },
-    );
-  }
-
-  async reactivateRole(
-    principal: SessionPrincipal,
-    id: string,
-    body: { expectedVersion: number; reasonCode: string; note?: string },
-    key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:reactivate-role:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const role = await this.getRole(principal, id);
-        return { status: HttpStatus.OK, body: { ...role, active: true } };
-      },
-    );
+    return notImplemented();
   }
 
   async deactivateRole(
     principal: SessionPrincipal,
-    id: string,
-    body: { expectedVersion: number; reasonCode: string; note?: string },
-    key: string,
+    _id: string,
+    _body: unknown,
+    _key: string,
     _correlationId: string,
   ) {
     this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:deactivate-role:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const role = await this.getRole(principal, id);
-        return { status: HttpStatus.OK, body: { ...role, active: false } };
-      },
-    );
+    return notImplemented();
   }
 
-  async listAssignments(
+  async createOverride(
     principal: SessionPrincipal,
-    query: { userId?: string; roleId?: string; branchId?: string; active?: boolean } = {},
-  ) {
-    this.authorize(principal);
-    const users = await this.db.user.findMany({
-      where: {
-        ...(query.userId ? { id: query.userId } : {}),
-        ...(query.roleId ? { role: query.roleId as any } : {}),
-        status: query.active === false ? 'INACTIVE' : 'ACTIVE',
-      },
-      take: 50,
-    });
-
-    const items = users.map((u) => ({
-      id: u.id,
-      userId: u.id,
-      roleId: u.role,
-      branchId: u.preferredBranchId ?? null,
-      status: u.status === 'ACTIVE' ? 'ACTIVE' : 'REVOKED',
-      user: { id: u.id, displayName: u.displayName, email: u.email },
-      role: { id: u.role, code: u.role, displayName: u.role },
-      createdAt: u.createdAt,
-    }));
-
-    return { items, summary: { total: items.length, active: items.length, revoked: 0 } };
-  }
-
-  async assignRole(
-    principal: SessionPrincipal,
-    body: {
-      userId: string;
-      roleId: string;
-      branchId?: string | null;
-      reasonCode: string;
-      note?: string;
-    },
-    key: string,
+    _userId: string,
+    _body: unknown,
+    _key: string,
     _correlationId: string,
   ) {
     this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:assign-role:${body.userId}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async (tx) => {
-        const user = await tx.user.findUnique({ where: { id: body.userId } });
-        if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-        const updated = await tx.user.update({
-          where: { id: body.userId },
-          data: {
-            role: body.roleId.toUpperCase() as any,
-            preferredBranchId: body.branchId ?? user.preferredBranchId,
-          },
-        });
-
-        const item = {
-          id: updated.id,
-          userId: updated.id,
-          roleId: updated.role,
-          branchId: updated.preferredBranchId,
-          status: 'ACTIVE',
-        };
-        return { status: HttpStatus.OK, body: item as unknown as Prisma.InputJsonValue };
-      },
-    );
+    return notImplemented();
   }
 
-  async revokeAssignment(
+  async revokeOverride(
     principal: SessionPrincipal,
-    id: string,
-    body: { expectedVersion?: number; reasonCode: string; note?: string },
-    key: string,
+    _userId: string,
+    _overrideId: string,
+    _body: unknown,
+    _key: string,
     _correlationId: string,
   ) {
     this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:revoke-assignment:${id}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async (tx) => {
-        const updated = await tx.user.update({
-          where: { id },
-          data: { role: 'MEMBER' },
-        });
-        return {
-          status: HttpStatus.OK,
-          body: { id: updated.id, status: 'REVOKED' } as unknown as Prisma.InputJsonValue,
-        };
-      },
-    );
+    return notImplemented();
   }
+
+  // --- Nyata ------------------------------------------------------------------------------------
 
   async getUserAccess(principal: SessionPrincipal, userId: string) {
     this.authorize(principal);
     const user = await this.db.user.findUnique({
       where: { id: userId },
+      include: { ownedBranches: true },
     });
     if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const role = user.role as ApplicationRole;
-    const capabilities = ROLE_CAPABILITIES[role] || [];
+    const effectiveRoles = mapUserToEffectiveRoles(user);
+    const access = this.policy.resolveAccess(user.id, effectiveRoles);
+    const branchIds = [...new Set(effectiveRoles.flatMap(({ branchId }) => (branchId ? [branchId] : [])))];
+    const branches = branchIds.length
+      ? await this.db.cabang.findMany({
+          where: { id: { in: branchIds } },
+          select: { id: true, code: true, name: true },
+        })
+      : [];
+    const role = (ROLE_ALIASES[user.role] ?? user.role) as ApplicationRole;
+    const catalogEntry = this.policy.roleCatalog().find((item) => item.role === role);
+
     return {
-      userId: user.id,
-      roles: [
-        {
-          id: user.id,
-          roleId: role,
-          role: { code: role, displayName: role, scope: role === 'SUPERADMIN' ? 'GLOBAL' : 'BRANCH' },
-          branchId: user.preferredBranchId,
-          status: 'ACTIVE',
-        },
-      ],
-      effectiveCapabilities: capabilities,
+      user: {
+        id: user.id,
+        displayName: user.displayName,
+        status: user.status,
+        version: 1,
+      },
+      roleAssignments: (effectiveRoles.length ? effectiveRoles : [{ role, branchId: null }])
+        .filter(({ role: item }) => !ROLE_ALIASES[item])
+        .map(({ role: item, branchId }) => ({
+          id: `${user.id}:${item}:${branchId ?? 'all'}`,
+          roleId: item,
+          roleCode: item,
+          displayName: ROLE_LABELS[item] ?? item,
+          scope: catalogEntry?.scope ?? 'BRANCH',
+          branchId,
+          branch: branches.find((branch) => branch.id === branchId) ?? null,
+          source: 'DIRECT' as const,
+        })),
       overrides: [],
+      effective: {
+        capabilities: access.capabilities,
+        branches: access.branchIds,
+        grants: access.grants,
+        denials: access.denials,
+      },
     };
   }
 
@@ -380,6 +272,45 @@ export class AccessManagementService {
     _correlationId: string,
   ) {
     this.authorize(principal);
+    // Mencegah terkunci: akun sendiri dan akun Super Owner tidak boleh diubah lewat jalur ini.
+    if (userId === principal.userId)
+      throw new ApiProblem('CANNOT_MODIFY_OWN_ACCESS', HttpStatus.FORBIDDEN);
+
+    const roles = Array.isArray(body?.roles) ? body.roles : [];
+    // Saat ini satu peran langsung per pengguna (kolom `user.role`); jangan diam-diam membuang sisanya.
+    if (roles.length !== 1)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'roles', issue: 'EXACTLY_ONE_ROLE_SUPPORTED' },
+      ]);
+    const requested = String(roles[0]?.roleId ?? '').toUpperCase();
+    const assignable = new Set<string>(
+      this.policy
+        .roleCatalog()
+        .filter(({ assignable: allowed }) => allowed)
+        .map(({ role }) => role),
+    );
+    if (!assignable.has(requested))
+      throw new ApiProblem('ROLE_NOT_ASSIGNABLE', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'roles.0.roleId', issue: 'ROLE_NOT_ASSIGNABLE' },
+      ]);
+
+    const scope = this.policy.roleCatalog().find(({ role }) => role === requested)?.scope;
+    const requestedBranchId = roles[0]?.branchId ?? null;
+    if (scope === 'BRANCH' && !requestedBranchId) {
+      const existing = await this.db.user.findUnique({
+        where: { id: userId },
+        select: { preferredBranchId: true },
+      });
+      if (!existing?.preferredBranchId)
+        throw new ApiProblem('BRANCH_REQUIRED', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'roles.0.branchId', issue: 'BRANCH_REQUIRED' },
+        ]);
+    }
+    if (requestedBranchId) {
+      const branch = await this.db.cabang.findUnique({ where: { id: requestedBranchId } });
+      if (!branch) throw new ApiProblem('BRANCH_NOT_FOUND', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     return this.idempotency.execute(
       {
         scope: `access:replace-user-roles:${userId}`,
@@ -391,16 +322,20 @@ export class AccessManagementService {
       async (tx) => {
         const user = await tx.user.findUnique({ where: { id: userId } });
         if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-        const primaryRole = (body.roles?.[0]?.roleId?.toUpperCase() as any) || 'MEMBER';
-        const primaryBranch = body.roles?.[0]?.branchId ?? user.preferredBranchId;
+        if (PROTECTED_ROLES.has(user.role))
+          throw new ApiProblem('PROTECTED_ACCOUNT', HttpStatus.FORBIDDEN);
 
         const updated = await tx.user.update({
           where: { id: userId },
           data: {
-            role: primaryRole,
-            preferredBranchId: primaryBranch,
+            role: requested as Role,
+            preferredBranchId: scope === 'BRANCH' ? (requestedBranchId ?? user.preferredBranchId) : user.preferredBranchId,
           },
+        });
+        // Sesi lama membawa izin lama; cabut agar pengguna wajib login ulang (sesuai keterangan di UI).
+        await tx.userSession.updateMany({
+          where: { userId, revokedAt: null },
+          data: { revokedAt: new Date(), revocationReason: 'ROLE_CHANGED' },
         });
 
         return {
@@ -410,75 +345,6 @@ export class AccessManagementService {
             role: updated.role,
             status: 'UPDATED',
           } as unknown as Prisma.InputJsonValue,
-        };
-      },
-    );
-  }
-
-  async listOverrides(
-    principal: SessionPrincipal,
-    _query: { userId?: string; capabilityKey?: string; branchId?: string; active?: boolean } = {},
-  ) {
-    this.authorize(principal);
-    return { items: [], summary: { total: 0, active: 0, revoked: 0 } };
-  }
-
-  async createOverride(
-    principal: SessionPrincipal,
-    userId: string,
-    body: {
-      capabilityKey: string;
-      effect: 'GRANT' | 'DENY';
-      branchId?: string | null;
-      reasonCode: string;
-      note?: string;
-    },
-    key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:create-override:${userId}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        const item = {
-          id: newId(),
-          userId,
-          ...body,
-          status: 'ACTIVE',
-          version: 1,
-        };
-        return { status: HttpStatus.OK, body: item as unknown as Prisma.InputJsonValue };
-      },
-    );
-  }
-
-  async revokeOverride(
-    principal: SessionPrincipal,
-    userId: string,
-    overrideId: string,
-    body: { expectedVersion?: number; reasonCode: string; note?: string },
-    key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return this.idempotency.execute(
-      {
-        scope: `access:revoke-override:${overrideId}`,
-        key,
-        payload: body,
-        ttlMs: 86400000,
-        leaseMs: 30000,
-      },
-      async () => {
-        return {
-          status: HttpStatus.OK,
-          body: { id: overrideId, userId, status: 'REVOKED' } as unknown as Prisma.InputJsonValue,
         };
       },
     );
