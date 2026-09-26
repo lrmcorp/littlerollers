@@ -709,11 +709,7 @@ export function PurchaseReviewView({
         pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(nextCursor)}
-        totalLabel={
-          cursorHistory.length > 0
-            ? `Halaman ${cursorHistory.length + 1} · ${items.length} transaksi pada halaman ini`
-            : `${items.length} transaksi pada halaman ini`
-        }
+        totalLabel={`${items.length.toLocaleString('id-ID')} transaksi pada halaman ini`}
         onPrevious={onPrevious}
         onNext={onNext}
       />

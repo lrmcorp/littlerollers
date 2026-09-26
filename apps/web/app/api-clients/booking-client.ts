@@ -340,10 +340,18 @@ export const browserBookingClient: BookingClient = {
         startAt: new Date(value.slot.startAt),
         endAt: new Date(value.slot.endAt),
       },
-      packages: value.packages.map((item) => ({ ...item, expiryAt: new Date(item.expiryAt) })),
+      packages: (value.packages ?? []).map((item) => ({
+        ...item,
+        name: item.name ?? (item as any).packageName,
+        available: item.available ?? (item as any).remainingSessions ?? 0,
+        projectedAvailable:
+          item.projectedAvailable ??
+          Math.max(0, (item.available ?? (item as any).remainingSessions ?? 1) - 1),
+        expiryAt: new Date(item.expiryAt ?? (item as any).expiresAt),
+      })),
       eligibility: {
         ...value.eligibility,
-        cutoffAt: new Date(value.eligibility.cutoffAt),
+        cutoffAt: new Date(value.eligibility?.cutoffAt ?? Date.now()),
       },
     };
   },

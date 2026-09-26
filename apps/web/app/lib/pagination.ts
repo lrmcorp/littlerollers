@@ -5,4 +5,5 @@
 export const ADMIN_PAGE_SIZE = 20;
 
 /** Nomor baris awal (offset) untuk halaman ke-n pada penelusuran berbasis cursor. */
-export const pageOffset = (previousPages: number) => previousPages * ADMIN_PAGE_SIZE;
+export const pageOffset = (previousPages: number, pageSize: number = ADMIN_PAGE_SIZE) =>
+  previousPages * pageSize;

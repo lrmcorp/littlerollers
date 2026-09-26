@@ -35,6 +35,13 @@ export class PackageAccessService {
       this.policy.requireCapability(principal.capabilities, current);
   }
 
+  /** Mencatat penjualan manual di meja: izin `purchase:record` pada cabang penjualan. */
+  record(principal: SessionPrincipal, branchId: string) {
+    this.policy.requireCapability(principal.capabilities, 'purchase:record');
+    if (!this.policy.hasCapability(principal, 'purchase:record', branchId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
   scope(principal: SessionPrincipal, branchId: string, capabilities: string[]) {
     if (
       !this.policy.hasCapability(principal, 'branch:all', branchId) &&

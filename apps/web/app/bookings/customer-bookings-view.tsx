@@ -116,7 +116,7 @@ export function CustomerBookingsView({
       ) : (
         <>
           <div className="customer-booking-list space-y-4">
-            {items.map((item) => {
+            {items.map((item, index) => {
               const availablePlaces =
                 item.classSlot?.capacity !== undefined && item.classSlot?.bookedCount !== undefined
                   ? Math.max(0, item.classSlot.capacity - item.classSlot.bookedCount)
@@ -128,15 +128,20 @@ export function CustomerBookingsView({
                   key={item.id}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <strong className="block text-lg font-semibold text-dd-ink">
-                        {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
-                      </strong>
-                      <span className="mt-1 block text-xs text-dd-muted">
-                        {item.classSlot?.studio?.name
-                          ? `${item.classSlot.studio.name} · ${item.branch?.name}`
-                          : (item.branch?.name ?? 'Studio Daily Dose')}
+                    <div className="flex items-start gap-2.5">
+                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted mt-0.5">
+                        #{cursorHistory.length * 20 + index + 1}
                       </span>
+                      <div>
+                        <strong className="block text-lg font-semibold text-dd-ink">
+                          {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+                        </strong>
+                        <span className="mt-1 block text-xs text-dd-muted">
+                          {item.classSlot?.studio?.name
+                            ? `${item.classSlot.studio.name} · ${item.branch?.name}`
+                            : (item.branch?.name ?? 'Studio Daily Dose')}
+                        </span>
+                      </div>
                     </div>
                     <StatusBadge
                       tone={statusTones[item.status as keyof typeof statusTones] ?? 'neutral'}

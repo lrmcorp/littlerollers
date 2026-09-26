@@ -425,6 +425,23 @@ export class PackagesController {
   ) {
     return this.paymentReview.get(r.principal, id, usageCursor);
   }
+  // Penjualan manual di meja (staf mencatat atas nama pelanggan; disetujui penyetuju lain).
+  @Post('purchases/assisted') async recordAssistedSale(
+    @Req() r: AuthenticatedRequest,
+    @Headers('idempotency-key') key: string,
+    @Body() b: any,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.customerOrders.recordAssistedSale(
+      r.principal,
+      b,
+      key,
+      r.correlationId ?? 'unknown',
+    );
+    response.status(result.status);
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return result.body;
+  }
   @SelfService()
   @Post('purchases') async submit(
     @Req() r: AuthenticatedRequest,

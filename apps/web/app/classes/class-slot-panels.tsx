@@ -334,7 +334,7 @@ export function DetailPanel({
               </Feedback>
             )}
             <DataTable
-              rowNumberOffset={pageOffset(rosterCursorHistory.length)}
+              rowNumberOffset={pageOffset(rosterCursorHistory.length, 10)}
               items={roster}
               loading={rosterLoading}
               rowKey={(item) => item.id}

@@ -159,6 +159,7 @@ export class PaymentReviewService {
     const pageRows = rows.slice(0, limit);
     const counts = new Map(grouped.map((item) => [item.status, item._count._all]));
     const generatedAt = new Date();
+    const recorders = await this.recorderNames(pageRows.map((row) => row.recordedById));
 
     return {
       items: pageRows.map(
@@ -172,6 +173,9 @@ export class PaymentReviewService {
         }) => {
           return {
             ...item,
+            recordedBy: item.recordedById
+              ? { id: item.recordedById, displayName: recorders.get(item.recordedById) ?? 'Staf' }
+              : null,
             packageNameSnapshot: pkg?.name ?? null,
             sessionCountSnapshot: pkg?.sessionCount ?? null,
             durationDaysSnapshot: pkg?.validityDays ?? null,
@@ -221,6 +225,17 @@ export class PaymentReviewService {
         hasMore,
       },
     };
+  }
+
+  /** Nama staf pencatat penjualan manual untuk ditampilkan di antrean (tanpa relasi FK tambahan). */
+  private async recorderNames(ids: Array<string | null | undefined>) {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    if (unique.length === 0) return new Map<string, string>();
+    const users = await this.db.user.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, displayName: true },
+    });
+    return new Map(users.map((user) => [user.id, user.displayName]));
   }
 
   private parseDate(value?: string) {
@@ -564,7 +579,8 @@ export class PaymentReviewService {
           });
           if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           this.access.scope(principal, purchase.branchId, ['payment:decide', 'purchase:decide']);
-          if (purchase.userId === principal.userId)
+          // Pembeli dan pencatat penjualan manual tidak boleh menyetujui transaksinya sendiri.
+          if (purchase.userId === principal.userId || purchase.recordedById === principal.userId)
             throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
           if (purchase.status !== 'PENDING' && purchase.status !== 'WAITING_VERIFICATION')
             throw new ApiProblem('PURCHASE_ALREADY_DECIDED', HttpStatus.CONFLICT);

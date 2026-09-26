@@ -219,7 +219,7 @@ export function BranchesView() {
         pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman cabang ${cursorHistory.length + 1} · ${page.items.length} dari ${page.summary.total} cabang`}
+        totalLabel={`${page.items.length.toLocaleString('id-ID')} dari ${page.summary.total.toLocaleString('id-ID')} cabang`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />

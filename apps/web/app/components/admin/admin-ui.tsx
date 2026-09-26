@@ -424,7 +424,7 @@ export function Pagination({
     totalItems != null && pageSize != null ? Math.max(1, Math.ceil(totalItems / pageSize)) : undefined;
   const effectiveTotalPages = totalPages ?? computedTotalPages;
   const pageItems =
-    showPageNumbers && effectiveTotalPages && currentPage
+    showPageNumbers && effectiveTotalPages && currentPage && Boolean(onPageChange)
       ? getPageWindow(currentPage, effectiveTotalPages)
       : [];
 
@@ -443,13 +443,21 @@ export function Pagination({
     }
   }
 
+  const showPagePrefix =
+    Boolean(totalLabel) &&
+    currentPage != null &&
+    !displayLabel.toLowerCase().includes('halaman');
+
   return (
     <nav
       aria-label="Paginasi data"
       className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 shadow-dd-card backdrop-blur-sm"
     >
       <div className="text-xs sm:text-sm font-medium text-dd-muted">
-        {displayLabel}
+        {showPagePrefix && (
+          <span>Halaman {currentPage.toLocaleString('id-ID')} · </span>
+        )}
+        <span>{displayLabel}</span>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
         <Button

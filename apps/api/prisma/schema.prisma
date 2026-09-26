@@ -358,6 +358,9 @@ model Pembelian {
   verifiedById     String?        @db.Char(36)
   verifiedAt       DateTime?
   rejectionReason  String?        @db.Text
+  // Penjualan manual di meja: staf pencatat (tidak boleh menyetujui catatannya sendiri) dan catatannya.
+  recordedById     String?        @db.Char(36)
+  recordNote       String?        @db.VarChar(255)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 

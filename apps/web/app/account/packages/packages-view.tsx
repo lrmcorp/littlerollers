@@ -59,22 +59,27 @@ export function CustomerPackagesView() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <article
                 className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
                 key={item.id}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-                      {item.branchName ?? 'Daily Dose'}
-                    </p>
-                    <h2 className="mt-2 text-xl font-semibold">
-                      {item.packageName ?? 'Paket kelas'}
-                    </h2>
-                    <p className="mt-1 text-sm text-dd-muted">
-                      {item.classTypeName ?? 'Kelas Daily Dose'}
-                    </p>
+                  <div className="flex items-start gap-2.5">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted mt-0.5">
+                      #{cursorHistory.length * 20 + index + 1}
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                        {item.branchName ?? 'Daily Dose'}
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        {item.packageName ?? 'Paket kelas'}
+                      </h2>
+                      <p className="mt-1 text-sm text-dd-muted">
+                        {item.classTypeName ?? 'Kelas Daily Dose'}
+                      </p>
+                    </div>
                   </div>
                   <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
                     {item.status === 'ACTIVE' ? 'Aktif' : 'Tidak aktif'}

@@ -307,7 +307,7 @@ export function PackagesManagementView() {
         pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={cursorHistory.length > 0}
         hasNext={Boolean(page.page.nextCursor)}
-        totalLabel={`Halaman paket ${cursorHistory.length + 1} · ${page.items.length} dari ${totalPackages} paket`}
+        totalLabel={`${page.items.length.toLocaleString('id-ID')} dari ${totalPackages.toLocaleString('id-ID')} paket`}
         onPrevious={() => movePage('previous')}
         onNext={() => movePage('next')}
       />

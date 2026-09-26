@@ -27,7 +27,8 @@ export type CancelBookingCommand = {
   reason?: string;
 };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const ENTITY_ID_REGEX = /^[0-9a-zA-Z_-]{8,40}$/;
+const UUID = ENTITY_ID_REGEX;
 const PAGE_SIZE = 20;
 
 export function isCancellationEntitled(
@@ -348,17 +349,34 @@ export class BookingsService {
       include: {
         classType: true,
         branch: true,
+        instructor: true,
+        studio: true,
+        room: true,
       },
     });
     if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const now = new Date();
+    const cutoffHours = this.config.value?.booking?.cutoffHours ?? 2;
+    const cutoffAt = new Date(slot.startAt.getTime() - cutoffHours * 3_600_000);
+
+    // Ambil paket aktif pelanggan yang sesuai dengan cabang dan jenis kelas
     const packages = await this.db.paketPelanggan.findMany({
       where: {
         userId: principal.userId,
         status: 'ACTIVE',
         remainingSessions: { gt: 0 },
         validUntil: { gt: now },
+        package: {
+          AND: [
+            {
+              OR: [{ branchId: null }, { branchId: slot.branchId }],
+            },
+            {
+              OR: [{ classTypeId: null }, { classTypeId: slot.classTypeId }],
+            },
+          ],
+        },
       },
       include: {
         package: true,
@@ -378,20 +396,106 @@ export class BookingsService {
           id: pkg.id,
           customerPackageId: pkg.id,
           packageId: pkg.packageId,
+          name: pkg.package.name,
           packageName: pkg.package.name,
+          available: availableSessions,
           remainingSessions: availableSessions,
+          projectedAvailable: Math.max(0, availableSessions - 1),
           totalSessions: pkg.totalSessions,
+          expiryAt: pkg.validUntil,
           expiresAt: pkg.validUntil,
           isEligible: availableSessions > 0,
         };
       }),
     );
 
+    const eligiblePackages = items.filter((item) => item.available > 0);
+
+    let canBook = true;
+    let reasonCode:
+      | 'IDENTITY_VERIFICATION_REQUIRED'
+      | 'MATCHING_PACKAGE_REQUIRED'
+      | 'INSUFFICIENT_AVAILABLE_SESSION'
+      | 'SLOT_FULL'
+      | 'SLOT_UNAVAILABLE'
+      | 'BOOKING_CUTOFF_PASSED'
+      | null = null;
+    let requiredAction:
+      | 'COMPLETE_IDENTITY_VERIFICATION'
+      | 'BUY_MATCHING_PACKAGE'
+      | 'CONTACT_STUDIO'
+      | null = null;
+
+    if (!['PUBLISHED', 'CONFIRMED'].includes(slot.status)) {
+      canBook = false;
+      reasonCode = 'SLOT_UNAVAILABLE';
+      requiredAction = 'CONTACT_STUDIO';
+    } else if (slot.startAt <= now || now >= cutoffAt) {
+      canBook = false;
+      reasonCode = 'BOOKING_CUTOFF_PASSED';
+      requiredAction = 'CONTACT_STUDIO';
+    } else if (slot.bookedCount >= slot.capacity) {
+      canBook = false;
+      reasonCode = 'SLOT_FULL';
+      requiredAction = 'CONTACT_STUDIO';
+    } else if (eligiblePackages.length === 0) {
+      canBook = false;
+      if (items.length > 0) {
+        reasonCode = 'INSUFFICIENT_AVAILABLE_SESSION';
+        requiredAction = 'BUY_MATCHING_PACKAGE';
+      } else {
+        reasonCode = 'MATCHING_PACKAGE_REQUIRED';
+        requiredAction = 'BUY_MATCHING_PACKAGE';
+      }
+    }
+
+    if (canBook) {
+      try {
+        const unverifiedDoc = await (this.db as any).dokumenVerifikasiIdentitas?.findFirst?.({
+          where: {
+            userId: principal.userId,
+            kind: { in: ['KTP_FRONT', 'SELFIE'] },
+            status: { not: 'APPROVED' },
+          },
+        });
+        if (unverifiedDoc) {
+          canBook = false;
+          reasonCode = 'IDENTITY_VERIFICATION_REQUIRED';
+          requiredAction = 'COMPLETE_IDENTITY_VERIFICATION';
+        }
+      } catch {
+        // Abaikan jika tabel tidak aktif
+      }
+    }
+
     return {
+      slot: {
+        id: slot.id,
+        branchId: slot.branchId,
+        classTypeId: slot.classTypeId,
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        timezone: slot.branch?.timezone ?? 'Asia/Jakarta',
+        status: slot.status,
+        capacity: slot.capacity,
+        bookedCount: slot.bookedCount,
+        available: Math.max(0, slot.capacity - slot.bookedCount),
+        branch: slot.branch,
+        classType: slot.classType,
+        instructor: slot.instructor ? { displayName: slot.instructor.displayName } : null,
+        studio: slot.studio ? { name: slot.studio.name } : null,
+        room: slot.room ? { name: slot.room.name } : null,
+      },
+      packages: eligiblePackages,
+      eligibility: {
+        canBook,
+        reasonCode,
+        requiredAction,
+        cutoffAt,
+      },
       classSlotId: slot.id,
       classType: slot.classType,
       branch: slot.branch,
-      packages: items,
     };
   }
 

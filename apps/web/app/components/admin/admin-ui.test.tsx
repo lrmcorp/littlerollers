@@ -110,5 +110,28 @@ describe('admin UI primitives', () => {
 
     expect((await axe(container)).violations).toHaveLength(0);
   });
+
+  it('omits page buttons and formats displayLabel cleanly for cursor-based pagination', async () => {
+    const { getByText, queryByRole } = render(
+      <Pagination
+        currentPage={3}
+        totalPages={10}
+        totalLabel="50 data pelanggan"
+        hasPrevious={true}
+        hasNext={true}
+        onPrevious={() => undefined}
+        onNext={() => undefined}
+      />,
+    );
+
+    // Numbered buttons should NOT be rendered when onPageChange is omitted
+    expect(queryByRole('button', { name: 'Halaman 1' })).toBeNull();
+    expect(queryByRole('button', { name: 'Halaman 2' })).toBeNull();
+    expect(queryByRole('button', { name: 'Halaman 3' })).toBeNull();
+
+    // displayLabel should automatically include active page and totalLabel
+    expect(getByText(/Halaman 3/)).toBeTruthy();
+    expect(getByText('50 data pelanggan')).toBeTruthy();
+  });
 });
 

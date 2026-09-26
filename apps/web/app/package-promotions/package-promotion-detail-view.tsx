@@ -463,7 +463,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             currentPage={promotionHistory.length + 1}
             hasPrevious={promotionHistory.length > 0}
             hasNext={Boolean(promotionPage?.page?.hasMore && promotionPage.page.nextCursor)}
-            totalLabel={`Halaman promo ${promotionHistory.length + 1}`}
+            totalLabel={`${(promotionPage?.items.length ?? 0).toLocaleString('id-ID')} promo`}
             onPrevious={() => {
               const previous = promotionHistory.at(-1);
               setPromotionHistory((current) => current.slice(0, -1));
@@ -535,7 +535,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                 orders[selectedOrderPromotionId]?.page?.hasMore &&
                 orders[selectedOrderPromotionId]?.page?.nextCursor,
               )}
-              totalLabel={`Halaman pesanan ${(orderHistory[selectedOrderPromotionId]?.length ?? 0) + 1}`}
+              totalLabel={`${(orders[selectedOrderPromotionId]?.items.length ?? 0).toLocaleString('id-ID')} pesanan`}
               onPrevious={() => {
                 const history = orderHistory[selectedOrderPromotionId] ?? [];
                 const previous = history.at(-1);

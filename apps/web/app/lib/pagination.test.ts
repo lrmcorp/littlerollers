@@ -10,5 +10,6 @@ describe('pagination helpers', () => {
     expect(pageOffset(0)).toBe(0);
     expect(pageOffset(1)).toBe(ADMIN_PAGE_SIZE);
     expect(pageOffset(3)).toBe(3 * ADMIN_PAGE_SIZE);
+    expect(pageOffset(2, 10)).toBe(20);
   });
 });

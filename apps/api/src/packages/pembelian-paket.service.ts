@@ -12,6 +12,12 @@ import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import { VoucherService, calculateVoucherDiscount, normalizeVoucherCode } from './voucher.service';
 
 const PAGE_SIZE = 20;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ASSISTED_PAYMENT_METHODS = ['CASH', 'QRIS', 'CARD', 'BANK_TRANSFER', 'MANUAL_STAFF'] as const;
+export type AssistedPaymentMethod = (typeof ASSISTED_PAYMENT_METHODS)[number];
+
+const newInvoiceNumber = () =>
+  `INV-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
 
 @Injectable()
 export class CustomerOrderService {
@@ -196,31 +202,12 @@ export class CustomerOrderService {
         if (!branch || !branch.active)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-        let voucher = null;
-        let discountRp = 0;
-        if (input.voucherCode?.trim()) {
-          const code = normalizeVoucherCode(input.voucherCode);
-          const v = await tx.voucher.findFirst({
-            where: {
-              code,
-              active: true,
-              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-            },
-          });
-          if (v && pkg.priceRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
-            voucher = v;
-            discountRp = calculateVoucherDiscount({
-              priceRp: pkg.priceRp,
-              discountType: v.discountType,
-              discountValue: v.discountValue,
-              maxDiscountRp: v.maxDiscountRp,
-            });
-          }
-        }
-
-        const subtotalRp = pkg.priceRp;
-        const totalAmountRp = Math.max(0, subtotalRp - discountRp);
-        const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
+        const { voucher, discountRp, subtotalRp, totalAmountRp } = await this.priceOrder(
+          tx,
+          pkg,
+          input.voucherCode,
+        );
+        const invoiceNumber = newInvoiceNumber();
         const paymentExpiresAt = new Date(Date.now() + 24 * 3_600_000);
 
         const order = await tx.pembelian.create({
@@ -418,6 +405,172 @@ export class CustomerOrderService {
     });
 
     return this.orderView(updated);
+  }
+
+  /** Harga pesanan: harga paket dikurangi voucher (bila valid). Dipakai pesanan pelanggan dan penjualan manual. */
+  private async priceOrder(
+    tx: Prisma.TransactionClient,
+    pkg: { priceRp: number },
+    voucherCode?: string,
+  ) {
+    let voucher = null;
+    let discountRp = 0;
+    if (voucherCode?.trim()) {
+      const code = normalizeVoucherCode(voucherCode);
+      const v = await tx.voucher.findFirst({
+        where: {
+          code,
+          active: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        },
+      });
+      if (v && pkg.priceRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
+        voucher = v;
+        discountRp = calculateVoucherDiscount({
+          priceRp: pkg.priceRp,
+          discountType: v.discountType,
+          discountValue: v.discountValue,
+          maxDiscountRp: v.maxDiscountRp,
+        });
+      }
+    }
+    const subtotalRp = pkg.priceRp;
+    return { voucher, discountRp, subtotalRp, totalAmountRp: Math.max(0, subtotalRp - discountRp) };
+  }
+
+  /**
+   * Penjualan manual di meja (tunai/QRIS/kartu). Dicatat staf dengan status PENDING; paket baru aktif
+   * ketika penyetuju LAIN menyetujuinya di antrean Pembayaran (pencatat tidak boleh menyetujui sendiri).
+   */
+  async recordAssistedSale(
+    principal: SessionPrincipal,
+    input: {
+      customerUserId?: string;
+      packageId?: string;
+      branchId?: string;
+      paymentMethod?: string;
+      voucherCode?: string;
+      note?: string;
+    },
+    key: string,
+    correlationId: string,
+  ) {
+    const branchId = input?.branchId ?? '';
+    if (!UUID.test(branchId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'branchId', issue: 'INVALID' },
+      ]);
+    this.access.record(principal, branchId);
+    if (!key || key.length < 8)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (!input.customerUserId || !UUID.test(input.customerUserId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'customerUserId', issue: 'INVALID' },
+      ]);
+    if (!input.packageId || !UUID.test(input.packageId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'packageId', issue: 'INVALID' },
+      ]);
+    const paymentMethod = input.paymentMethod as AssistedPaymentMethod;
+    if (!ASSISTED_PAYMENT_METHODS.includes(paymentMethod))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'paymentMethod', issue: 'INVALID' },
+      ]);
+    const note = input.note?.trim() || null;
+    if (note && note.length > 200)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'note', issue: 'TOO_LONG' },
+      ]);
+    const customerUserId = input.customerUserId;
+    const packageId = input.packageId;
+
+    return this.idempotency.execute(
+      {
+        scope: `purchase-assisted:${principal.userId}:${customerUserId}:${packageId}`,
+        key,
+        payload: { ...input, note },
+        ttlMs: 86_400_000,
+        leaseMs: 30_000,
+      },
+      async (tx) => {
+        const customer = await tx.user.findUnique({ where: { id: customerUserId } });
+        if (!customer || !['CUSTOMER', 'MEMBER'].includes(customer.role))
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (customer.status !== 'ACTIVE')
+          throw new ApiProblem('CUSTOMER_NOT_ACTIVE', HttpStatus.CONFLICT);
+
+        const branch = await tx.cabang.findUnique({ where: { id: branchId } });
+        if (!branch || !branch.active)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const pkg = await tx.paket.findUnique({ where: { id: packageId } });
+        if (!pkg || pkg.status !== 'ACTIVE')
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (pkg.branchId && pkg.branchId !== branchId)
+          throw new ApiProblem('PACKAGE_BRANCH_MISMATCH', HttpStatus.UNPROCESSABLE_ENTITY);
+
+        const { voucher, discountRp, subtotalRp, totalAmountRp } = await this.priceOrder(
+          tx,
+          pkg,
+          input.voucherCode,
+        );
+        if (input.voucherCode?.trim() && !voucher)
+          throw new ApiProblem('VOUCHER_NOT_APPLICABLE', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+            { field: 'voucherCode', issue: 'NOT_APPLICABLE' },
+          ]);
+
+        const order = await tx.pembelian.create({
+          data: {
+            id: randomUUID(),
+            invoiceNumber: newInvoiceNumber(),
+            userId: customer.id,
+            branchId,
+            packageId: pkg.id,
+            voucherId: voucher?.id ?? null,
+            subtotalRp,
+            discountRp,
+            totalAmountRp,
+            status: 'PENDING',
+            paymentMethod,
+            paymentExpiresAt: null,
+            recordedById: principal.userId,
+            recordNote: note,
+          },
+          include: {
+            package: true,
+            branch: true,
+            voucher: true,
+            paymentProof: true,
+            customerPackage: true,
+          },
+        });
+        if (voucher) {
+          await tx.voucher.update({
+            where: { id: voucher.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+
+        this.auditService.record({
+          action: 'PURCHASE_RECORDED_BY_STAFF',
+          resourceType: 'Purchase',
+          resourceId: order.id,
+          branchId,
+          actorUserId: principal.userId,
+          correlationId,
+          details: { paymentMethod, totalAmountRp, customerUserId },
+        });
+
+        return {
+          status: HttpStatus.CREATED,
+          body: {
+            ...this.orderView(order),
+            paymentMethod,
+            recordedById: principal.userId,
+            recordNote: note,
+          } as unknown as Prisma.InputJsonValue,
+        };
+      },
+    );
   }
 
   async submit(
