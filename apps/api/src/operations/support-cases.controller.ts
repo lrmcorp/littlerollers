@@ -36,7 +36,7 @@ export class SupportCasesController {
   }
 
   @Get(':id')
-  detail(@Param('id') id: string) {
-    return this.supportCases.detail(id);
+  detail(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.supportCases.detail(req.principal, id);
   }
 }

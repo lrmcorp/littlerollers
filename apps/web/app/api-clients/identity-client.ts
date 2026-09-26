@@ -17,7 +17,8 @@ export type UiFailure =
   | 'FORBIDDEN'
   | 'IDENTITY_CONFLICT'
   | 'STALE_VERSION'
-  | 'SESSION_REVOKED';
+  | 'SESSION_REVOKED'
+  | 'NOT_IMPLEMENTED';
 
 export type ApplicationRole =
   'CUSTOMER' | 'INSTRUCTOR' | 'ADMIN' | 'MANAGER' | 'OWNER' | 'SUPER_OWNER' | 'FINANCE' | 'OPS';
@@ -493,6 +494,7 @@ export const failureCode = (error: unknown): UiFailure => {
   if (code === 'AUTHENTICATION_REQUIRED') return 'AUTHENTICATION_REQUIRED';
   if (code === 'CONFIGURATION_REQUIRED') return 'CONFIGURATION_REQUIRED';
   if (code === 'INTERNAL_ERROR') return 'INTERNAL_ERROR';
+  if (code === 'NOT_IMPLEMENTED' || status === 501) return 'NOT_IMPLEMENTED';
   if (status === 403) return 'FORBIDDEN';
   if (status === 409) return 'IDENTITY_CONFLICT';
   if (status === 429) return 'RATE_LIMITED';

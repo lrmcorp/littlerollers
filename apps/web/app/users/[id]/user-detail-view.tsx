@@ -39,6 +39,7 @@ const failureCopy: Record<UiFailure, string> = {
   IDENTITY_CONFLICT: 'Data pengguna berubah atau tindakan tidak dapat diterapkan.',
   STALE_VERSION: 'Data pengguna telah berubah. Muat ulang detail sebelum mencoba kembali.',
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
+  NOT_IMPLEMENTED: 'Pengiriman tautan setup password belum tersedia. Minta pengguna memakai "Lupa kata sandi" di halaman masuk.',
 };
 
 function initialAction(): DetailAction {

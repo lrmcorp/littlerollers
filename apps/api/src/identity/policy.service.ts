@@ -113,6 +113,11 @@ export class PolicyService {
     if (!capabilities.includes(required)) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }
 
+  requireAnyCapability(capabilities: readonly string[], anyOf: readonly string[]): void {
+    if (!anyOf.some((required) => capabilities.includes(required)))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+  }
+
   hasCapability(principal: PrincipalAccess, required: string, branchId?: string | null): boolean {
     if (!branchId) return principal.capabilities.includes(required);
     const denials = principal.denials ?? principal.capabilityDenials ?? [];

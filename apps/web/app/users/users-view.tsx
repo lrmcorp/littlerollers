@@ -39,6 +39,7 @@ const failureCopy: Record<UiFailure, string> = {
   IDENTITY_CONFLICT: 'Data pengguna berubah atau tindakan tidak dapat diterapkan.',
   STALE_VERSION: 'Data pengguna telah berubah. Muat ulang sebelum mencoba kembali.',
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
+  NOT_IMPLEMENTED: 'Fitur ini belum tersedia.',
 };
 
 const emptySummary: UserListSummary = { total: 0, active: 0, pendingActivation: 0, inactive: 0 };

@@ -38,8 +38,9 @@ export class LedgerController {
   getPackageLedger(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
+    @Query('cursor') cursor?: string,
   ) {
-    return this.ledger.getPackageLedger(req.principal, id);
+    return this.ledger.getPackageLedger(req.principal, id, cursor);
   }
 
   @Get('session-adjustments')
@@ -49,12 +50,20 @@ export class LedgerController {
     @Query('status') status?: string,
     @Query('cursor') cursor?: string,
     @Query('q') q?: string,
+    @Query('customerUserId') customerUserId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.ledger.listAdjustments(req.principal, {
       branchId,
       status,
       cursor,
       q,
+      customerUserId,
+      from,
+      until,
+      limit,
     });
   }
 
@@ -63,13 +72,13 @@ export class LedgerController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.ledger.getAdjustment(id);
+    return this.ledger.getAdjustment(req.principal, id);
   }
 
   @Post('session-adjustments')
   requestAdjustment(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { customerPackageId: string; quantity: number; reasonCode: string },
+    @Body() body: { customerPackageId?: string; quantity?: number; reasonCode?: string },
   ) {
     return this.ledger.requestAdjustment(req.principal, body);
   }
@@ -78,8 +87,8 @@ export class LedgerController {
   decideAdjustment(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Query('decision') decision: 'approve' | 'reject',
-    @Body() body: { reasonCode: string; note?: string; expectedVersion: number },
+    @Query('decision') decision: string | undefined,
+    @Body() body: { reasonCode?: string; note?: string; expectedVersion?: number },
   ) {
     return this.ledger.decideAdjustment(req.principal, id, decision, body);
   }

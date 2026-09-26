@@ -25,6 +25,7 @@ const messages: Record<UiFailure, string> = {
   IDENTITY_CONFLICT: 'Identitas memerlukan tinjauan dukungan.',
   STALE_VERSION: 'Data telah berubah. Muat ulang lalu coba kembali.',
   SESSION_REVOKED: 'Sesi telah berakhir. Silakan masuk kembali.',
+  NOT_IMPLEMENTED: 'Fitur ini belum tersedia.',
 };
 
 type AuthState = 'idle' | 'loading' | 'success' | 'invalid' | UiFailure;

@@ -734,6 +734,12 @@ model SessionAdjustRequest {
   requestedById     String              @db.Char(36)
   approvedById      String?             @db.Char(36)
   decisionReason    String?             @db.Text
+  // Kode terkontrol untuk kontrak /session-adjustments; `reason`/`decisionReason` tetap teks bebas.
+  reasonCode        String?             @db.VarChar(40)
+  decisionCode      String?             @db.VarChar(40)
+  decisionNote      String?             @db.Text
+  // Penjaga konkurensi optimistis: dinaikkan tiap keputusan, dicocokkan dengan expectedVersion.
+  version           Int                 @default(1)
   createdAt         DateTime            @default(now())
   decidedAt         DateTime?
 

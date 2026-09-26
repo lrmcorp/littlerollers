@@ -530,6 +530,7 @@ export class ClassSlotService {
     _correlationId: string,
     now = new Date(),
   ) {
+    this.manage(principal);
     this.validateKey(key);
     if (!UUID.test(id))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -552,6 +553,7 @@ export class ClassSlotService {
           },
         });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.scope(principal, slot.branchId, 'class-slot:manage');
 
         // Jika slot sudah pernah COMPLETED, return view (idempotent guard)
         if (slot.status === ClassSlotStatus.COMPLETED) {
@@ -659,9 +661,11 @@ export class ClassSlotService {
   }
 
   async completionControl(principal: SessionPrincipal, id: string) {
+    this.manage(principal);
     if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const slot = await this.db.slotKelas.findUnique({ where: { id } });
     if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.scope(principal, slot.branchId, 'class-slot:manage');
 
     const bookings = await this.db.pemesananKelas.findMany({
       where: { classSlotId: id },

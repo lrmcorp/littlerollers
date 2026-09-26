@@ -8,6 +8,20 @@ import { RateLimitService } from './rate-limit.service';
 import { ApiProblem, newId } from './security';
 import type { ApplicationRole } from './role-capabilities';
 
+/** Halaman staf yang memakai pemilih user: penugasan, master, hak akses, audit. */
+const USER_LOOKUP_CAPABILITIES = [
+  'assignment:manage',
+  'master:manage',
+  'user:admin',
+  'audit:read',
+  'role-permission:manage',
+] as const;
+const INSTRUCTOR_LOOKUP_CAPABILITIES = [
+  'class-slot:manage',
+  'assignment:manage',
+  'master:manage',
+] as const;
+
 function normalizePhone(value: string): string {
   const compact = value.replace(/[\s().-]/g, '');
   const normalized = compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
@@ -135,6 +149,12 @@ export class UserAdministrationService {
       instructorsOnly?: boolean;
     },
   ) {
+    // Pemilih user hanya untuk halaman staf yang benar-benar membutuhkannya (penugasan, master,
+    // hak akses, audit); pelanggan dan role tanpa halaman tersebut tidak boleh menyisir direktori.
+    this.policy.requireAnyCapability(
+      principal.capabilities,
+      filters.instructorsOnly ? INSTRUCTOR_LOOKUP_CAPABILITIES : USER_LOOKUP_CAPABILITIES,
+    );
     const limit = Math.min(50, Math.max(1, filters.limit ?? 20));
 
     const where: Prisma.UserWhereInput = {
@@ -166,7 +186,7 @@ export class UserAdministrationService {
       items: page.map((user) => ({
         id: user.id,
         label: user.displayName,
-        description: `${user.role}${user.phone ? ` · ${user.phone}` : ''}`,
+        description: user.role,
         metadata: {
           roles: [user.role],
           branchIds: user.preferredBranchId ? [user.preferredBranchId] : [],
@@ -396,11 +416,12 @@ export class UserAdministrationService {
   }
 
   async listUserAudit(
-    _principal: SessionPrincipal,
+    principal: SessionPrincipal,
     _targetId: string,
     _cursor?: string | { cursor?: string; limit?: number },
     _includeHistorical?: boolean,
   ) {
+    this.policy.requireCapability(principal.capabilities, 'audit:read');
     return { items: [], page: { hasMore: false, nextCursor: null } };
   }
 

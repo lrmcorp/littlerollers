@@ -1,45 +1,112 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { AdjustRequestStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, newId } from '../identity/security';
+import { ApiProblem } from '../identity/security';
 
-export interface InMemoryAdjustment {
-  id: string;
-  customerPackageId: string;
-  quantity: number;
-  reasonCode: string;
-  status: 'PENDING' | 'POSTED' | 'REJECTED';
-  version: number;
-  createdAt: string;
-  decidedAt?: string | null;
-  ledgerBalanceAtRequest?: number | null;
-  reservedAtRequest?: number | null;
-  customer?: { id: string; displayName: string; phoneMasked: string | null };
-  branch?: { id: string; name: string };
-  package?: { id: string; name: string };
-  classType?: { id: string; name: string };
-  requestedBy?: { id: string; displayName: string };
-  decidedBy?: { id: string; displayName: string } | null;
-  currentBalance?: number;
-  currentReserved?: number;
-  currentAvailable?: number;
-  projectedLedgerBalance?: number;
-  projectedAvailable?: number;
-  eligibleForApproval?: boolean;
-  eligibilityReason?: string | null;
-  decisionCode?: string | null;
-  decisionNote?: string | null;
-}
+export const ADJUSTMENT_REASON_CODES = [
+  'MIGRATION_CORRECTION',
+  'ATTENDANCE_CORRECTION',
+  'PACKAGE_COMPENSATION',
+  'SUPPORT_RECONCILIATION',
+] as const;
+export const ADJUSTMENT_APPROVE_CODE = 'CORRECTION_VERIFIED';
+export const ADJUSTMENT_REJECT_CODES = [
+  'INVALID_EVIDENCE',
+  'DUPLICATE_REQUEST',
+  'OUT_OF_SCOPE',
+] as const;
+export const MAX_ADJUSTMENT_SESSIONS = 50;
 
-const inMemoryAdjustments: InMemoryAdjustment[] = [];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PAGE_SIZE = 20;
+const SOON_DAYS = 14;
+
+const packageInclude = {
+  user: true,
+  package: { include: { classType: true } },
+  purchase: { include: { branch: true } },
+} satisfies Prisma.PaketPelangganInclude;
+
+const adjustmentInclude = {
+  requestedBy: { select: { id: true, displayName: true } },
+  approvedBy: { select: { id: true, displayName: true } },
+  customerPackage: { include: packageInclude },
+} satisfies Prisma.SessionAdjustRequestInclude;
+
+type PackageRow = Prisma.PaketPelangganGetPayload<{ include: typeof packageInclude }>;
+type AdjustmentRow = Prisma.SessionAdjustRequestGetPayload<{
+  include: typeof adjustmentInclude;
+}>;
+
+const maskPhone = (phone?: string | null) => (phone ? `${phone.slice(0, 4)}****` : null);
+
+const problem = (code: string, status: HttpStatus, field?: string) =>
+  new ApiProblem(code, status, false, field ? [{ field, issue: code }] : []);
 
 @Injectable()
 export class LedgerService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly audit: AuditService,
   ) {}
+
+  // ---------------------------------------------------------------------------
+  // Otorisasi & cakupan cabang. Cabang sebuah paket = cabang pembelian asalnya;
+  // paket tanpa pembelian (mis. hasil migrasi) hanya terlihat oleh pemegang `branch:all`.
+  // ---------------------------------------------------------------------------
+
+  private packageScopeWhere(
+    principal: SessionPrincipal,
+    capability: string,
+    requestedBranchId?: string,
+  ): Prisma.PaketPelangganWhereInput {
+    this.policy.requireCapability(principal.capabilities, capability);
+    const scope = this.policy.capabilityBranchScope(principal, capability);
+    if (!scope.all && scope.included.length === 0)
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    if (requestedBranchId) {
+      const allowed = scope.all
+        ? !scope.excluded.includes(requestedBranchId)
+        : scope.included.includes(requestedBranchId);
+      if (!allowed) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      return { purchase: { is: { branchId: requestedBranchId } } };
+    }
+    if (scope.all) {
+      return scope.excluded.length > 0
+        ? {
+            OR: [
+              { purchaseId: null },
+              { purchase: { is: { branchId: { notIn: scope.excluded } } } },
+            ],
+          }
+        : {};
+    }
+    return { purchase: { is: { branchId: { in: scope.included } } } };
+  }
+
+  private canAccessPackage(
+    principal: SessionPrincipal,
+    capability: string,
+    branchId: string | null | undefined,
+  ) {
+    if (!principal.capabilities.includes(capability)) return false;
+    return branchId
+      ? this.policy.hasCapability(principal, capability, branchId)
+      : this.policy.capabilityBranchScope(principal, capability).all;
+  }
+
+  private assertPackageAccess(principal: SessionPrincipal, capability: string, pkg: PackageRow) {
+    if (!this.canAccessPackage(principal, capability, pkg.purchase?.branchId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Saldo paket
+  // ---------------------------------------------------------------------------
 
   async listCustomerPackages(
     principal: SessionPrincipal,
@@ -51,167 +118,235 @@ export class LedgerService {
       customerUserId?: string;
     },
   ) {
-    const where: any = {};
-    if (filters.status && filters.status !== 'ALL') {
-      where.status = filters.status;
-    }
-    if (filters.customerUserId) {
-      where.userId = filters.customerUserId;
-    }
-    if (filters.search) {
-      where.OR = [
-        { user: { displayName: { contains: filters.search } } },
-        { user: { email: { contains: filters.search } } },
-        { user: { phone: { contains: filters.search } } },
-        { package: { name: { contains: filters.search } } },
-      ];
-    }
-    if (filters.cursor) {
-      where.id = { gt: filters.cursor };
-    }
+    const scopeWhere = this.packageScopeWhere(principal, 'ledger:read', filters.branchId);
+    const search = filters.search?.trim();
+    const base: Prisma.PaketPelangganWhereInput = {
+      AND: [
+        scopeWhere,
+        ...(filters.customerUserId ? [{ userId: filters.customerUserId }] : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { user: { displayName: { contains: search } } },
+                  { user: { email: { contains: search } } },
+                  { user: { phone: { contains: search } } },
+                  { package: { name: { contains: search } } },
+                ],
+              },
+            ]
+          : []),
+      ],
+    };
+    const where: Prisma.PaketPelangganWhereInput =
+      filters.status && filters.status !== 'ALL'
+        ? { AND: [base, { status: filters.status as never }] }
+        : base;
 
-    const branch = filters.branchId
-      ? await this.db.cabang.findUnique({ where: { id: filters.branchId } })
-      : await this.db.cabang.findFirst();
-
-    const items = await this.db.paketPelanggan.findMany({
+    const rows = await this.db.paketPelanggan.findMany({
       where,
       include: {
-        user: { include: { profile: true } },
-        package: { include: { classType: true } },
-        bookings: { where: { status: 'BOOKED' } },
+        ...packageInclude,
+        bookings: { where: { status: 'BOOKED' }, select: { id: true } },
       },
-      take: 21,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+      ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
     });
+    const hasMore = rows.length > PAGE_SIZE;
+    const pageRows = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
-    const hasMore = items.length > 20;
-    const pageItems = hasMore ? items.slice(0, 20) : items;
+    const movements = pageRows.length
+      ? await this.db.sessionLedger.groupBy({
+          by: ['customerPackageId', 'type'],
+          where: {
+            customerPackageId: { in: pageRows.map((row) => row.id) },
+            type: { in: ['ADJUST_MANUAL', 'REFUND_AUTOCANCEL'] },
+          },
+          _sum: { amount: true },
+        })
+      : [];
+    const movementOf = (id: string, type: SessionMutationType) =>
+      movements.find((m) => m.customerPackageId === id && m.type === type)?._sum.amount ?? 0;
 
-    const mapped = pageItems.map((cp) => {
-      const reserved = cp.bookings.length;
-      const ledgerBalance = cp.remainingSessions;
-      const available = Math.max(0, ledgerBalance - reserved);
-
+    const items = pageRows.map((row) => {
+      const reserved = row.bookings.length;
       return {
-        id: cp.id,
-        branchId: branch?.id ?? 'global',
-        status: cp.status,
-        activationDate: cp.validFrom.toISOString(),
-        expiryAt: cp.validUntil.toISOString(),
-        ledgerBalance,
-        reserved,
-        available,
-        sessionCountSnapshot: cp.totalSessions,
-        packageName: cp.package?.name ?? 'Paket',
-        branchName: branch?.name ?? 'Cabang',
-        classTypeName: cp.package?.classType?.name ?? 'Pilates',
-        customer: {
-          id: cp.user.id,
-          displayName: cp.user.displayName,
-          phoneMasked: cp.user.phone ? cp.user.phone.slice(0, 4) + '****' : null,
-        },
+        ...this.balanceView(row, reserved),
+        sessionCountSnapshot: row.totalSessions,
         usage: {
-          initialSessions: cp.totalSessions,
-          usedSessions: cp.usedSessions,
-          reversedSessions: 0,
-          adjustmentDelta: 0,
+          initialSessions: row.totalSessions,
+          usedSessions: row.usedSessions,
+          reversedSessions: movementOf(row.id, 'REFUND_AUTOCANCEL'),
+          adjustmentDelta: movementOf(row.id, 'ADJUST_MANUAL'),
         },
       };
     });
 
     return {
-      items: mapped,
-      summary: {
-        packageCount: mapped.length,
-        activePackageCount: mapped.filter((x) => x.status === 'ACTIVE').length,
-        ledgerBalance: mapped.reduce((acc, x) => acc + x.ledgerBalance, 0),
-        reserved: mapped.reduce((acc, x) => acc + x.reserved, 0),
-        available: mapped.reduce((acc, x) => acc + x.available, 0),
-        usedSessions: mapped.reduce((acc, x) => acc + (x.usage?.usedSessions ?? 0), 0),
-        reversedSessions: 0,
-        adjustmentDelta: 0,
-        expiringSoon: 0,
-      },
+      items,
+      summary: await this.packageSummary(base),
       page: {
         hasMore,
-        nextCursor: hasMore ? pageItems[pageItems.length - 1]?.id ?? null : null,
+        nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+        previousCursor: null,
       },
     };
   }
 
-  async getPackageLedger(principal: SessionPrincipal, id: string) {
-    const cp = await this.db.paketPelanggan.findUnique({
+  private async packageSummary(base: Prisma.PaketPelangganWhereInput) {
+    const soon = new Date(Date.now() + SOON_DAYS * 86_400_000);
+    const [packageCount, activePackageCount, totals, reserved, deltas, expiringSoon] =
+      await Promise.all([
+        this.db.paketPelanggan.count({ where: base }),
+        this.db.paketPelanggan.count({ where: { AND: [base, { status: 'ACTIVE' }] } }),
+        this.db.paketPelanggan.aggregate({
+          where: base,
+          _sum: { remainingSessions: true, usedSessions: true },
+        }),
+        this.db.pemesananKelas.count({
+          where: { status: 'BOOKED', customerPackage: { is: base } },
+        }),
+        this.db.sessionLedger.groupBy({
+          by: ['type'],
+          where: {
+            type: { in: ['ADJUST_MANUAL', 'REFUND_AUTOCANCEL'] },
+            customerPackage: { is: base },
+          },
+          _sum: { amount: true },
+        }),
+        this.db.paketPelanggan.count({
+          where: {
+            AND: [base, { status: 'ACTIVE' }, { validUntil: { gte: new Date(), lte: soon } }],
+          },
+        }),
+      ]);
+    const ledgerBalance = totals._sum.remainingSessions ?? 0;
+    return {
+      packageCount,
+      activePackageCount,
+      ledgerBalance,
+      reserved,
+      available: Math.max(0, ledgerBalance - reserved),
+      usedSessions: totals._sum.usedSessions ?? 0,
+      reversedSessions: deltas.find((d) => d.type === 'REFUND_AUTOCANCEL')?._sum.amount ?? 0,
+      adjustmentDelta: deltas.find((d) => d.type === 'ADJUST_MANUAL')?._sum.amount ?? 0,
+      expiringSoon,
+    };
+  }
+
+  private balanceView(row: PackageRow, reserved: number) {
+    const ledgerBalance = row.remainingSessions;
+    return {
+      id: row.id,
+      branchId: row.purchase?.branchId ?? 'global',
+      status: row.status,
+      activationDate: row.validFrom.toISOString(),
+      expiryAt: row.validUntil.toISOString(),
+      ledgerBalance,
+      reserved,
+      available: Math.max(0, ledgerBalance - reserved),
+      packageName: row.package?.name ?? 'Paket',
+      branchName: row.purchase?.branch?.name ?? 'Semua cabang',
+      classTypeName: row.package?.classType?.name ?? 'Pilates',
+      customer: {
+        id: row.user.id,
+        displayName: row.user.displayName,
+        phoneMasked: maskPhone(row.user.phone),
+      },
+    };
+  }
+
+  async getPackageLedger(principal: SessionPrincipal, id: string, cursor?: string) {
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const pkg = await this.db.paketPelanggan.findUnique({
       where: { id },
       include: {
-        user: true,
-        package: { include: { classType: true } },
+        ...packageInclude,
         bookings: {
-          include: {
-            classSlot: { include: { classType: true, branch: true } },
-          },
+          where: { status: 'BOOKED' },
+          include: { classSlot: { include: { classType: true, branch: true } } },
           orderBy: { bookedAt: 'desc' },
         },
       },
     });
+    if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    // Pemilik paket boleh melihat saldonya sendiri; selain itu wajib hak staf + cakupan cabang.
+    if (pkg.userId !== principal.userId) this.assertPackageAccess(principal, 'ledger:read', pkg);
 
-    if (!cp) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    const activeReservations = cp.bookings.filter((b) => b.status === 'BOOKED');
-    const branch = await this.db.cabang.findFirst();
-
-    const balance = {
-      id: cp.id,
-      branchId: branch?.id ?? 'global',
-      status: cp.status,
-      activationDate: cp.validFrom.toISOString(),
-      expiryAt: cp.validUntil.toISOString(),
-      ledgerBalance: cp.remainingSessions,
-      reserved: activeReservations.length,
-      available: Math.max(0, cp.remainingSessions - activeReservations.length),
-      packageName: cp.package?.name ?? 'Paket',
-      branchName: branch?.name ?? 'Cabang',
-      classTypeName: cp.package?.classType?.name ?? 'Pilates',
-      customer: {
-        id: cp.user.id,
-        displayName: cp.user.displayName,
-        phoneMasked: cp.user.phone ? cp.user.phone.slice(0, 4) + '****' : null,
-      },
-    };
-
-    const reservations = {
-      activeQuantity: activeReservations.length,
-      items: activeReservations.map((b) => ({
-        id: b.id,
-        quantity: 1,
-        createdAt: b.bookedAt.toISOString(),
-        bookingId: b.id,
-        bookingStatus: b.status,
-        className: b.classSlot?.classType?.name ?? 'Kelas',
-        branchName: b.classSlot?.branch?.name ?? 'Cabang',
-        startsAt: b.classSlot?.startAt.toISOString(),
-      })),
-    };
-
-    const entries = cp.bookings.map((b) => ({
-      id: b.id,
-      type: 'BOOKING_RESERVED',
-      quantity: -1,
-      occurredAt: b.bookedAt.toISOString(),
-      referenceType: 'BOOKING',
-      referenceId: b.id,
-      referenceLabel: b.classSlot?.classType?.name ?? 'Kelas',
-      bookingId: b.id,
-      balanceAfter: cp.remainingSessions,
-    }));
+    const rows = await this.db.sessionLedger.findMany({
+      where: { customerPackageId: id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > PAGE_SIZE;
+    const pageRows = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
     return {
-      balance,
-      reservations,
-      entries,
-      nextCursor: null,
-      previousCursor: null,
+      balance: this.balanceView(pkg, pkg.bookings.length),
+      reservations: {
+        activeQuantity: pkg.bookings.length,
+        items: pkg.bookings.map((booking) => ({
+          id: booking.id,
+          quantity: 1,
+          createdAt: booking.bookedAt.toISOString(),
+          bookingId: booking.id,
+          bookingStatus: booking.status,
+          className: booking.classSlot?.classType?.name ?? 'Kelas',
+          branchName: booking.classSlot?.branch?.name ?? null,
+          startsAt: booking.classSlot?.startAt.toISOString() ?? null,
+        })),
+      },
+      entries: pageRows.map((entry) => this.ledgerEntryView(entry)),
+      page: {
+        hasMore,
+        nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+        previousCursor: null,
+      },
     };
+  }
+
+  private ledgerEntryView(entry: {
+    id: string;
+    customerPackageId: string;
+    type: SessionMutationType;
+    amount: number;
+    balanceAfter: number;
+    referenceId: string | null;
+    notes: string | null;
+    createdAt: Date;
+  }) {
+    const isBooking = entry.type === 'ATTEND' || entry.type === 'REFUND_AUTOCANCEL';
+    return {
+      id: entry.id,
+      customerPackageId: entry.customerPackageId,
+      type: entry.type === 'REFUND_AUTOCANCEL' ? 'REVERSAL' : entry.type,
+      quantity: entry.amount,
+      occurredAt: entry.createdAt.toISOString(),
+      referenceType: isBooking
+        ? 'BOOKING'
+        : entry.type === 'ADJUST_MANUAL'
+          ? 'ADJUSTMENT'
+          : 'PURCHASE',
+      referenceId: entry.referenceId ?? entry.id,
+      referenceLabel: entry.notes,
+      bookingId: isBooking ? entry.referenceId : null,
+      balanceAfter: entry.balanceAfter,
+      reason: entry.notes,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Penyesuaian sesi (dua langkah: ajukan lalu putuskan oleh orang lain)
+  // ---------------------------------------------------------------------------
+
+  private adjustmentScopeWhere(
+    principal: SessionPrincipal,
+    branchId?: string,
+  ): Prisma.SessionAdjustRequestWhereInput {
+    const packageWhere = this.packageScopeWhere(principal, 'ledger:adjust:read', branchId);
+    return { customerPackage: { is: packageWhere } };
   }
 
   async listAdjustments(
@@ -221,107 +356,363 @@ export class LedgerService {
       status?: string;
       cursor?: string;
       q?: string;
+      customerUserId?: string;
+      from?: string;
+      until?: string;
+      limit?: string | number;
     },
   ) {
-    let filtered = [...inMemoryAdjustments];
-    if (filters.status && filters.status !== 'HISTORY') {
-      filtered = filtered.filter((x) => x.status === filters.status);
-    }
-    if (filters.q) {
-      const qLower = filters.q.toLowerCase();
-      filtered = filtered.filter(
-        (x) =>
-          x.customer?.displayName.toLowerCase().includes(qLower) ||
-          x.reasonCode.toLowerCase().includes(qLower),
-      );
-    }
+    const limit = Math.min(100, Math.max(1, Number(filters.limit) || PAGE_SIZE));
+    const q = filters.q?.trim();
+    const from = filters.from ? new Date(filters.from) : undefined;
+    const until = filters.until ? new Date(filters.until) : undefined;
+    if ((from && Number.isNaN(from.getTime())) || (until && Number.isNaN(until.getTime())))
+      throw problem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST, 'from');
+
+    const base: Prisma.SessionAdjustRequestWhereInput = {
+      AND: [
+        this.adjustmentScopeWhere(principal, filters.branchId),
+        ...(filters.customerUserId
+          ? [{ customerPackage: { is: { userId: filters.customerUserId } } }]
+          : []),
+        ...(q
+          ? [
+              {
+                OR: [
+                  { reasonCode: { contains: q } },
+                  { customerPackage: { is: { user: { displayName: { contains: q } } } } },
+                  { customerPackage: { is: { user: { email: { contains: q } } } } },
+                  { customerPackage: { is: { package: { name: { contains: q } } } } },
+                ],
+              },
+            ]
+          : []),
+        ...(from || until
+          ? [{ createdAt: { ...(from ? { gte: from } : {}), ...(until ? { lte: until } : {}) } }]
+          : []),
+      ],
+    };
+    const statusFilter = this.statusFilter(filters.status);
+    const where: Prisma.SessionAdjustRequestWhereInput = statusFilter
+      ? { AND: [base, { status: statusFilter }] }
+      : base;
+
+    const [rows, counts] = await Promise.all([
+      this.db.sessionAdjustRequest.findMany({
+        where,
+        include: adjustmentInclude,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+        ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
+      }),
+      this.db.sessionAdjustRequest.groupBy({
+        by: ['status'],
+        where: base,
+        _count: { _all: true },
+      }),
+    ]);
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const countOf = (status: AdjustRequestStatus) =>
+      counts.find((c) => c.status === status)?._count._all ?? 0;
+
+    const reservedByPackage = await this.reservedByPackage(
+      pageRows.map((row) => row.customerPackageId),
+    );
 
     return {
-      items: filtered,
+      items: pageRows.map((row) =>
+        this.adjustmentView(row, reservedByPackage.get(row.customerPackageId) ?? 0),
+      ),
       summary: {
-        total: inMemoryAdjustments.length,
-        pending: inMemoryAdjustments.filter((x) => x.status === 'PENDING').length,
-        posted: inMemoryAdjustments.filter((x) => x.status === 'POSTED').length,
-        rejected: inMemoryAdjustments.filter((x) => x.status === 'REJECTED').length,
+        total: counts.reduce((sum, c) => sum + c._count._all, 0),
+        pending: countOf('PENDING'),
+        posted: countOf('APPROVED'),
+        rejected: countOf('REJECTED'),
       },
       page: {
-        hasMore: false,
-        nextCursor: null,
+        hasMore,
+        nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+        previousCursor: null,
       },
     };
   }
 
-  async getAdjustment(id: string) {
-    const item = inMemoryAdjustments.find((x) => x.id === id);
-    if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    return item;
+  private statusFilter(status?: string): AdjustRequestStatus | { in: AdjustRequestStatus[] } | undefined {
+    switch (status) {
+      case 'PENDING':
+        return 'PENDING';
+      case 'POSTED':
+      case 'APPROVED':
+        return 'APPROVED';
+      case 'REJECTED':
+        return 'REJECTED';
+      case 'HISTORY':
+        return { in: ['APPROVED', 'REJECTED'] };
+      default:
+        return undefined;
+    }
+  }
+
+  private async reservedByPackage(packageIds: string[]) {
+    const result = new Map<string, number>();
+    if (packageIds.length === 0) return result;
+    const grouped = await this.db.pemesananKelas.groupBy({
+      by: ['customerPackageId'],
+      where: { customerPackageId: { in: packageIds }, status: 'BOOKED' },
+      _count: { _all: true },
+    });
+    for (const g of grouped) {
+      if (g.customerPackageId) result.set(g.customerPackageId, g._count._all);
+    }
+    return result;
+  }
+
+  async getAdjustment(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:read');
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const row = await this.db.sessionAdjustRequest.findUnique({
+      where: { id },
+      include: adjustmentInclude,
+    });
+    if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.assertPackageAccess(principal, 'ledger:adjust:read', row.customerPackage);
+    const reserved = (await this.reservedByPackage([row.customerPackageId])).get(
+      row.customerPackageId,
+    );
+    return this.adjustmentView(row, reserved ?? 0);
   }
 
   async requestAdjustment(
     principal: SessionPrincipal,
-    body: { customerPackageId: string; quantity: number; reasonCode: string },
+    body: { customerPackageId?: string; quantity?: number; reasonCode?: string },
   ) {
-    const cp = await this.db.paketPelanggan.findUnique({
-      where: { id: body.customerPackageId },
-      include: { user: true, package: true },
-    });
-    if (!cp) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:request');
+    const quantity = body?.quantity;
+    if (!body?.customerPackageId || !UUID.test(body.customerPackageId))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'customerPackageId');
+    if (
+      typeof quantity !== 'number' ||
+      !Number.isInteger(quantity) ||
+      quantity === 0 ||
+      Math.abs(quantity) > MAX_ADJUSTMENT_SESSIONS
+    )
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'quantity');
+    const reasonCode = body.reasonCode as (typeof ADJUSTMENT_REASON_CODES)[number];
+    if (!ADJUSTMENT_REASON_CODES.includes(reasonCode))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reasonCode');
 
-    const branch = await this.db.cabang.findFirst();
+    const created = await this.db.$transaction(
+      async (tx) => {
+        const pkg = await tx.paketPelanggan.findUnique({
+          where: { id: body.customerPackageId },
+          include: packageInclude,
+        });
+        if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.assertPackageAccess(principal, 'ledger:adjust:request', pkg);
 
-    const adj: InMemoryAdjustment = {
-      id: newId(),
-      customerPackageId: cp.id,
-      quantity: body.quantity,
-      reasonCode: body.reasonCode,
-      status: 'PENDING',
-      version: 1,
-      createdAt: new Date().toISOString(),
-      customer: {
-        id: cp.user.id,
-        displayName: cp.user.displayName,
-        phoneMasked: cp.user.phone ? cp.user.phone.slice(0, 4) + '****' : null,
+        const reserved = await tx.pemesananKelas.count({
+          where: { customerPackageId: pkg.id, status: 'BOOKED' },
+        });
+        this.assertBalanceAllows(pkg.remainingSessions, reserved, quantity);
+
+        const pending = await tx.sessionAdjustRequest.count({
+          where: { customerPackageId: pkg.id, status: 'PENDING' },
+        });
+        if (pending > 0) throw problem('ADJUSTMENT_ALREADY_PENDING', HttpStatus.CONFLICT);
+
+        return tx.sessionAdjustRequest.create({
+          data: {
+            customerPackageId: pkg.id,
+            requestedById: principal.userId,
+            sessionCount: quantity,
+            reason: reasonCode,
+            reasonCode,
+          },
+          include: adjustmentInclude,
+        });
       },
-      branch: { id: branch?.id ?? 'global', name: branch?.name ?? 'Cabang' },
-      package: { id: cp.package.id, name: cp.package.name },
-      requestedBy: { id: principal.userId, displayName: 'Staff' },
-      currentBalance: cp.remainingSessions,
-      currentReserved: 0,
-      currentAvailable: cp.remainingSessions,
-      projectedLedgerBalance: cp.remainingSessions + body.quantity,
-      projectedAvailable: cp.remainingSessions + body.quantity,
-      eligibleForApproval: true,
-    };
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
 
-    inMemoryAdjustments.unshift(adj);
-    return adj;
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: created.customerPackage.purchase?.branchId ?? null,
+      action: 'SESSION_ADJUSTMENT_REQUESTED',
+      objectType: 'SessionAdjustRequest',
+      objectId: created.id,
+      afterMasked: { quantity, reasonCode, customerPackageId: created.customerPackageId },
+    });
+    const reserved = (await this.reservedByPackage([created.customerPackageId])).get(
+      created.customerPackageId,
+    );
+    return this.adjustmentView(created, reserved ?? 0);
   }
 
   async decideAdjustment(
     principal: SessionPrincipal,
     id: string,
-    decision: 'approve' | 'reject',
-    body: { reasonCode: string; note?: string; expectedVersion: number },
+    decision: string | undefined,
+    body: { reasonCode?: string; note?: string; expectedVersion?: number },
   ) {
-    const adj = inMemoryAdjustments.find((x) => x.id === id);
-    if (!adj) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
+    if (decision !== 'approve' && decision !== 'reject')
+      throw problem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST, 'decision');
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const code = body?.reasonCode ?? '';
+    const validCode =
+      decision === 'approve'
+        ? code === ADJUSTMENT_APPROVE_CODE
+        : (ADJUSTMENT_REJECT_CODES as readonly string[]).includes(code);
+    if (!validCode) throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reasonCode');
+    if (!Number.isInteger(body?.expectedVersion))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'expectedVersion');
+    const note = body.note?.trim() ? body.note.trim().slice(0, 500) : null;
 
-    adj.status = decision === 'approve' ? 'POSTED' : 'REJECTED';
-    adj.decidedAt = new Date().toISOString();
-    adj.decidedBy = { id: principal.userId, displayName: 'Manager' };
-    adj.decisionCode = body.reasonCode;
-    adj.decisionNote = body.note;
-    adj.version += 1;
+    const outcome = await this.db.$transaction(
+      async (tx) => {
+        const row = await tx.sessionAdjustRequest.findUnique({
+          where: { id },
+          include: adjustmentInclude,
+        });
+        if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.assertPackageAccess(principal, 'ledger:adjust:decide', row.customerPackage);
+        // Pemisahan tugas: pengaju tidak boleh memutus permintaannya sendiri.
+        if (row.requestedById === principal.userId)
+          throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
+        if (row.status !== 'PENDING') throw problem('ADJUSTMENT_ALREADY_DECIDED', HttpStatus.CONFLICT);
+        if (row.version !== body.expectedVersion)
+          throw problem('ADJUSTMENT_VERSION_CONFLICT', HttpStatus.CONFLICT);
 
-    if (decision === 'approve') {
-      await this.db.paketPelanggan.update({
-        where: { id: adj.customerPackageId },
-        data: {
-          remainingSessions: { increment: adj.quantity },
-        },
-      });
-    }
+        const now = new Date();
+        const claimed = await tx.sessionAdjustRequest.updateMany({
+          where: { id, status: 'PENDING', version: row.version },
+          data: {
+            status: decision === 'approve' ? 'APPROVED' : 'REJECTED',
+            approvedById: principal.userId,
+            decisionCode: code,
+            decisionNote: note,
+            decisionReason: note ?? code,
+            decidedAt: now,
+            version: { increment: 1 },
+          },
+        });
+        if (claimed.count !== 1) throw problem('ADJUSTMENT_VERSION_CONFLICT', HttpStatus.CONFLICT);
 
-    return adj;
+        let ledgerEntry: ReturnType<LedgerService['ledgerEntryView']> | null = null;
+        let resultingBalance: number | null = null;
+        if (decision === 'approve') {
+          const pkg = await tx.paketPelanggan.findUniqueOrThrow({
+            where: { id: row.customerPackageId },
+          });
+          const reserved = await tx.pemesananKelas.count({
+            where: { customerPackageId: pkg.id, status: 'BOOKED' },
+          });
+          this.assertBalanceAllows(pkg.remainingSessions, reserved, row.sessionCount);
+
+          const balanceAfter = pkg.remainingSessions + row.sessionCount;
+          const nextStatus =
+            balanceAfter <= 0 && pkg.status === 'ACTIVE'
+              ? 'DEPLETED'
+              : balanceAfter > 0 && pkg.status === 'DEPLETED' && pkg.validUntil > now
+                ? 'ACTIVE'
+                : pkg.status;
+          await tx.paketPelanggan.update({
+            where: { id: pkg.id },
+            data: { remainingSessions: balanceAfter, status: nextStatus },
+          });
+          const entry = await tx.sessionLedger.create({
+            data: {
+              customerPackageId: pkg.id,
+              type: SessionMutationType.ADJUST_MANUAL,
+              amount: row.sessionCount,
+              balanceAfter,
+              referenceId: row.id,
+              notes: `Penyesuaian manual (${row.reasonCode ?? row.reason})${note ? `: ${note}` : ''}`,
+              createdById: principal.userId,
+            },
+          });
+          ledgerEntry = this.ledgerEntryView(entry);
+          resultingBalance = balanceAfter;
+        }
+
+        const updated = await tx.sessionAdjustRequest.findUniqueOrThrow({
+          where: { id },
+          include: adjustmentInclude,
+        });
+        return { updated, ledgerEntry, resultingBalance };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: outcome.updated.customerPackage.purchase?.branchId ?? null,
+      action: decision === 'approve' ? 'SESSION_ADJUSTMENT_APPROVED' : 'SESSION_ADJUSTMENT_REJECTED',
+      objectType: 'SessionAdjustRequest',
+      objectId: id,
+      afterMasked: { decisionCode: code, resultingBalance: outcome.resultingBalance },
+    });
+    const reserved = (await this.reservedByPackage([outcome.updated.customerPackageId])).get(
+      outcome.updated.customerPackageId,
+    );
+    return {
+      adjustment: this.adjustmentView(outcome.updated, reserved ?? 0),
+      ledgerEntry: outcome.ledgerEntry,
+      resultingBalance: outcome.resultingBalance,
+      auditReference: null,
+      idempotentReplay: false,
+    };
+  }
+
+  /** Pengurangan tidak boleh membuat saldo negatif atau lebih kecil dari sesi yang sudah dipesan. */
+  private assertBalanceAllows(balance: number, reserved: number, delta: number) {
+    if (delta < 0 && (balance + delta < 0 || balance + delta < reserved))
+      throw problem('INSUFFICIENT_SESSION_BALANCE', HttpStatus.CONFLICT, 'quantity');
+  }
+
+  private adjustmentView(row: AdjustmentRow, reserved: number) {
+    const pkg = row.customerPackage;
+    const balance = pkg.remainingSessions;
+    const projected = balance + row.sessionCount;
+    const decided = row.status !== 'PENDING';
+    const insufficient = row.sessionCount < 0 && (projected < 0 || projected < reserved);
+    return {
+      id: row.id,
+      customerPackageId: row.customerPackageId,
+      quantity: row.sessionCount,
+      reasonCode: row.reasonCode ?? 'SUPPORT_RECONCILIATION',
+      requestedById: row.requestedById,
+      requestedBy: row.requestedBy,
+      decidedById: row.approvedById,
+      decidedBy: row.approvedBy,
+      decisionCode: row.decisionCode,
+      decisionNote: row.decisionNote,
+      status: row.status === 'APPROVED' ? 'POSTED' : row.status,
+      ledgerBalanceAtRequest: null,
+      reservedAtRequest: null,
+      customer: {
+        id: pkg.user.id,
+        displayName: pkg.user.displayName,
+        phoneMasked: maskPhone(pkg.user.phone),
+      },
+      branch: pkg.purchase?.branch
+        ? { id: pkg.purchase.branch.id, name: pkg.purchase.branch.name }
+        : { id: 'global', name: 'Semua cabang' },
+      package: { id: pkg.package.id, name: pkg.package.name },
+      classType: pkg.package.classType
+        ? { id: pkg.package.classType.id, name: pkg.package.classType.name }
+        : undefined,
+      currentBalance: balance,
+      currentReserved: reserved,
+      currentAvailable: Math.max(0, balance - reserved),
+      projectedLedgerBalance: projected,
+      projectedAvailable: projected - reserved,
+      eligibleForApproval: !decided && !insufficient,
+      eligibilityReason: !decided && insufficient ? 'INSUFFICIENT_SESSION_BALANCE' : null,
+      version: row.version,
+      createdAt: row.createdAt.toISOString(),
+      decidedAt: row.decidedAt?.toISOString() ?? null,
+    };
   }
 }

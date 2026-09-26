@@ -70,3 +70,67 @@ describe('ClassSlotService contract boundaries', () => {
     );
   });
 });
+
+describe('ClassSlotService completion authorization', () => {
+  const slotId = '00000000-0000-4000-8000-000000000010';
+  const foreignBranch = '00000000-0000-4000-8000-000000000099';
+  const customer = {
+    ...principal,
+    roles: [{ role: 'CUSTOMER' as const, branchId: null }],
+    capabilities: ['class-slot:read'],
+    branchIds: [],
+  };
+  const execute = jest.fn();
+  const db = {
+    slotKelas: { findUnique: jest.fn() },
+    pemesananKelas: { findMany: jest.fn().mockResolvedValue([]) },
+  };
+  const service = new ClassSlotService(
+    db as never,
+    new PolicyService(),
+    { execute } as never,
+    { value: {} } as never,
+  );
+
+  beforeEach(() => {
+    execute.mockReset();
+    db.slotKelas.findUnique.mockReset();
+  });
+
+  it('denies a customer before any completion side effect', async () => {
+    await expect(
+      service.complete(customer, slotId, {}, '1234567890123456', 'test'),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('denies completion-control without class-slot:manage', async () => {
+    await expect(service.completionControl(customer, slotId)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(db.slotKelas.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('hides completion-control of a slot in a foreign branch', async () => {
+    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId: foreignBranch });
+    await expect(service.completionControl(principal, slotId)).rejects.toMatchObject({
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  });
+
+  it('allows completion-control for staff with manage inside their branch', async () => {
+    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId });
+    await expect(service.completionControl(principal, slotId)).resolves.toMatchObject({
+      classSlotId: slotId,
+    });
+  });
+
+  it('rejects completion of a foreign-branch slot inside the transaction', async () => {
+    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
+      action({ slotKelas: { findUnique: async () => ({ id: slotId, branchId: foreignBranch }) } }),
+    );
+    await expect(
+      service.complete(principal, slotId, {}, '1234567890123456', 'test'),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+  });
+});

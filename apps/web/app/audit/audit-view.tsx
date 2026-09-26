@@ -28,6 +28,7 @@ const failureCopy: Record<UiFailure, string> = {
   IDENTITY_CONFLICT: 'Filter audit tidak dapat diterapkan.',
   STALE_VERSION: 'Data audit berubah. Muat ulang.',
   SESSION_REVOKED: 'Sesi berakhir. Silakan masuk kembali.',
+  NOT_IMPLEMENTED: 'Fitur ini belum tersedia.',
 };
 
 const exportStatusLabels: Record<string, string> = {

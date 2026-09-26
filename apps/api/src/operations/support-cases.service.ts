@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
+import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, newId } from '../identity/security';
 
 export interface SupportCaseItem {
@@ -19,48 +20,32 @@ export interface SupportCaseItem {
   notes: Array<{ id: string; content: string; authorName: string; createdAt: string }>;
 }
 
+// Penyimpanan sementara (hilang saat API restart). Halaman Bantuan diberi label Pratinjau di web
+// sampai kasus dipindahkan ke tabel database.
 export const inMemorySupportCases: SupportCaseItem[] = [];
 
 @Injectable()
 export class SupportCasesService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly policy: PolicyService,
+  ) {}
+
+  /** Kasus berlabel cabang mengikuti cakupan cabang; kasus tanpa cabang hanya untuk `branch:all`. */
+  private canSee(principal: SessionPrincipal, item: SupportCaseItem) {
+    return item.branchId
+      ? this.policy.hasCapability(principal, 'support:read', item.branchId)
+      : this.policy.capabilityBranchScope(principal, 'support:read').all;
+  }
 
   async list(principal: SessionPrincipal) {
-    if (inMemorySupportCases.length === 0) {
-      // Seed an initial sample case if database has customer and branch
-      const customer = await this.db.user.findFirst({ where: { role: 'MEMBER' } });
-      const branch = await this.db.cabang.findFirst();
-      if (customer) {
-        inMemorySupportCases.push({
-          id: newId(),
-          subject: 'Pertanyaan Jadwal & Reschedule Kelas',
-          customerUserId: customer.id,
-          customer: { id: customer.id, displayName: customer.displayName, email: customer.email },
-          branchId: branch?.id ?? null,
-          branch: branch ? { id: branch.id, name: branch.name } : null,
-          priority: 'NORMAL',
-          status: 'OPEN',
-          tags: ['reschedule', 'general'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          _count: { notes: 1 },
-          notes: [
-            {
-              id: newId(),
-              content: 'Customer menanyakan ketentuan batas reschedule H-2 jam.',
-              authorName: 'Customer Service',
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        });
-      }
-    }
-
+    this.policy.requireCapability(principal.capabilities, 'support:read');
+    const items = inMemorySupportCases.filter((item) => this.canSee(principal, item));
     return {
-      items: inMemorySupportCases,
+      items,
       summary: {
-        total: inMemorySupportCases.length,
-        open: inMemorySupportCases.filter((x) => x.status === 'OPEN').length,
+        total: items.length,
+        open: items.filter((x) => x.status === 'OPEN').length,
       },
     };
   }
@@ -75,6 +60,17 @@ export class SupportCasesService {
       tags?: string[];
     },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'support:manage');
+    const subject = body?.subject?.trim();
+    if (!subject || subject.length > 200)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (body.branchId) {
+      if (!this.policy.hasCapability(principal, 'support:manage', body.branchId))
+        throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    } else if (!this.policy.capabilityBranchScope(principal, 'support:manage').all) {
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    }
+
     const customer = await this.db.user.findUnique({
       where: { id: body.customerUserId },
     });
@@ -85,10 +81,11 @@ export class SupportCasesService {
     const branch = body.branchId
       ? await this.db.cabang.findUnique({ where: { id: body.branchId } })
       : null;
+    if (body.branchId && !branch) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const item: SupportCaseItem = {
       id: newId(),
-      subject: body.subject,
+      subject,
       customerUserId: customer.id,
       customer: { id: customer.id, displayName: customer.displayName, email: customer.email },
       branchId: branch?.id ?? null,
@@ -106,9 +103,11 @@ export class SupportCasesService {
     return item;
   }
 
-  async detail(id: string) {
+  async detail(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'support:read');
     const item = inMemorySupportCases.find((x) => x.id === id);
-    if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!item || !this.canSee(principal, item))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     return item;
   }
 }

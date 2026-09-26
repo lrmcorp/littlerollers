@@ -720,12 +720,14 @@ export class IdentityService {
   }
 
   async requestPasswordSetup(
-    _principal: SessionPrincipal,
+    principal: SessionPrincipal,
     _targetId: string,
     _body: { email: string; reason: string },
     _correlationId: string,
   ) {
-    return { status: 'SENT' };
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    // Belum ada pengiriman tautan setup password; jangan melaporkan "SENT" untuk sesuatu yang tidak terkirim.
+    throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
   }
 
   // --- Indonesian Domain Aliases ---

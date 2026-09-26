@@ -703,23 +703,6 @@ export type CustomerLinkConfirmResult = {
   message: string;
 };
 
-export type SessionAdjustRequestItem = {
-  id: string;
-  customerPackageId: string;
-  bookingId?: string | null;
-  reason: string;
-  sessionCount: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  requestedById: string;
-  approvedById?: string | null;
-  decisionReason?: string | null;
-  createdAt: string;
-  decidedAt?: string | null;
-  customerPackage?: any;
-  requestedBy?: any;
-  approvedBy?: any;
-};
-
 export async function getCustomerLinkInfo(token: string): Promise<CustomerLinkInfo> {
   return apiFetch<CustomerLinkInfo>(`/api/v1/check-ins/customer-link-info?token=${encodeURIComponent(token)}`);
 }
@@ -728,38 +711,6 @@ export async function confirmCustomerLink(token: string): Promise<CustomerLinkCo
   return apiFetch<CustomerLinkConfirmResult>('/api/v1/check-ins/customers/confirm-link', {
     method: 'POST',
     body: JSON.stringify({ token }),
-  });
-}
-
-export async function createSessionAdjustRequest(input: {
-  customerPackageId: string;
-  bookingId?: string;
-  reason: string;
-  sessionCount?: number;
-}): Promise<any> {
-  return apiFetch('/api/v1/session-adjust-requests', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export async function listSessionAdjustRequests(query: {
-  status?: string;
-  customerPackageId?: string;
-} = {}): Promise<{ items: SessionAdjustRequestItem[]; count: number }> {
-  const sp = new URLSearchParams();
-  if (query.status) sp.set('status', query.status);
-  if (query.customerPackageId) sp.set('customerPackageId', query.customerPackageId);
-  return apiFetch<{ items: SessionAdjustRequestItem[]; count: number }>(`/api/v1/session-adjust-requests?${sp.toString()}`);
-}
-
-export async function decideSessionAdjustRequest(
-  id: string,
-  input: { decision: 'APPROVED' | 'REJECTED'; decisionReason?: string },
-): Promise<any> {
-  return apiFetch(`/api/v1/session-adjust-requests/${id}/decision`, {
-    method: 'POST',
-    body: JSON.stringify(input),
   });
 }
 

@@ -1,11 +1,15 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
+import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly policy: PolicyService,
+  ) {}
 
   private ensureBranchAccess(principal: SessionPrincipal, targetBranchId?: string) {
     const isGlobal =
@@ -39,6 +43,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
     const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
 
@@ -107,6 +112,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
     const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
 
@@ -236,6 +242,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
     const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
 
@@ -326,6 +333,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
     const period = input.period ?? new Date().toISOString().slice(0, 7);
 
@@ -391,6 +399,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
     const period = input.period ?? new Date().toISOString().slice(0, 7);
 
@@ -462,6 +471,7 @@ export class FinanceService {
       amountRp: number;
     },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
     this.ensureBranchAccess(principal, input.branchId);
 
     if (
@@ -506,6 +516,7 @@ export class FinanceService {
   }
 
   async deleteOtherCost(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
     const existing = await this.db.otherCost.findUnique({ where: { id } });
     if (!existing) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -532,6 +543,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId: string; period: string; reason?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
     const canClose = principal.roles.some((r) =>
       ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
     );
@@ -608,6 +620,7 @@ export class FinanceService {
       reason: string;
     },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
     this.ensureBranchAccess(principal, input.branchId);
 
     return await this.db.correctionJournal.create({
@@ -629,6 +642,7 @@ export class FinanceService {
     decision: 'APPROVE' | 'REJECT',
     note?: string,
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
     const isSuperOwner = principal.roles.some((r) =>
       ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
     );
@@ -657,6 +671,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     filters: { branchId?: string; period?: string; status?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     const where: any = {};
     if (filters.branchId) {
       this.ensureBranchAccess(principal, filters.branchId);
@@ -697,6 +712,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; from?: string; until?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     const branch = input.branchId
       ? await this.db.cabang.findUnique({ where: { id: input.branchId } })
       : await this.db.cabang.findFirst();
@@ -747,6 +763,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; from?: string; until?: string; limit?: number; cursor?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     return {
       items: [],
       total: 0,
@@ -761,6 +778,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; from?: string; until?: string; limit?: number; cursor?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     return {
       items: [],
       total: 0,
@@ -866,14 +884,26 @@ export class FinanceService {
     principal: SessionPrincipal,
     filters: { branchId?: string; cursor?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
+    // Tanpa cabang dipilih: pemegang akses global melihat semua cabang, selain itu cabangnya sendiri.
+    if (filters.branchId) this.ensureBranchAccess(principal, filters.branchId);
+    const isGlobal =
+      principal.capabilities.includes('branch:all') ||
+      principal.roles.some((r) =>
+        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+      );
     const branch = filters.branchId
       ? await this.db.cabang.findUnique({ where: { id: filters.branchId } })
-      : await this.db.cabang.findFirst();
+      : null;
 
     const currentYearMonth = new Date().toISOString().slice(0, 7);
 
     const closes = await this.db.monthlyClose.findMany({
-      where: branch?.id ? { branchId: branch.id } : {},
+      where: filters.branchId
+        ? { branchId: filters.branchId }
+        : isGlobal
+          ? {}
+          : { branchId: { in: principal.branchIds } },
       orderBy: { period: 'desc' },
     });
 
@@ -937,6 +967,7 @@ export class FinanceService {
     principal: SessionPrincipal,
     input: { branchId?: string; period?: string },
   ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:read');
     const isOwnerOrSuper = principal.roles.some((r) =>
       ['SUPER_OWNER', 'SUPERADMIN', 'OWNER', 'FINANCE'].includes(r.role as string),
     );

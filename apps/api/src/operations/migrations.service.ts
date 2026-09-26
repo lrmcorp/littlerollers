@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import type { SessionPrincipal } from '../identity/identity.service';
+import { PolicyService } from '../identity/policy.service';
+import { ApiProblem } from '../identity/security';
 
 export interface MigrationBatchSummary {
   id: string;
@@ -109,7 +111,16 @@ const sampleControls: MigrationControlTotal[] = [
 
 @Injectable()
 export class MigrationsService {
+  constructor(private readonly policy: PolicyService) {}
+
+  // Seluruh data di layanan ini masih contoh (belum terhubung ke pipeline migrasi), tetapi
+  // tetap hanya boleh dibaca role yang berhak melihat hasil migrasi.
+  private read(principal: SessionPrincipal) {
+    this.policy.requireCapability(principal.capabilities, 'migration:read');
+  }
+
   async cdc(principal: SessionPrincipal): Promise<MigrationCdcOverview> {
+    this.read(principal);
     return {
       lagSeconds: 0,
       events: { INSERT: 420, UPDATE: 180, DELETE: 0 },
@@ -128,26 +139,30 @@ export class MigrationsService {
   }
 
   async listBatches(principal: SessionPrincipal, cursor?: string) {
+    this.read(principal);
     return {
       items: sampleBatches,
       nextCursor: null,
     };
   }
 
-  async controlTotals(batchId: string) {
+  async controlTotals(principal: SessionPrincipal, batchId: string) {
+    this.read(principal);
     return {
       items: sampleControls,
     };
   }
 
-  async rejects(batchId: string, cursor?: string) {
+  async rejects(principal: SessionPrincipal, batchId: string, cursor?: string) {
+    this.read(principal);
     return {
       items: [],
       nextCursor: null,
     };
   }
 
-  async resolutions(batchId: string, cursor?: string) {
+  async resolutions(principal: SessionPrincipal, batchId: string, cursor?: string) {
+    this.read(principal);
     return {
       items: [],
       nextCursor: null,
@@ -155,15 +170,12 @@ export class MigrationsService {
   }
 
   async decideResolution(
-    resolutionId: string,
-    body: { approve: boolean; reason: string; decision: Record<string, unknown> },
+    principal: SessionPrincipal,
+    _resolutionId: string,
+    _body: { approve: boolean; reason: string; decision: Record<string, unknown> },
   ) {
-    return {
-      id: resolutionId,
-      resolutionKey: 'RESOLVE_DEFAULT',
-      reasonCode: body.reason,
-      decision: body.decision,
-      status: body.approve ? 'APPROVED' : 'REJECTED',
-    };
+    this.policy.requireCapability(principal.capabilities, 'migration:resolve');
+    // Belum ada penyimpanan resolusi migrasi: jangan mengaku sukses untuk keputusan yang tidak tersimpan.
+    throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
   }
 }

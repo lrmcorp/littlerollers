@@ -7,6 +7,8 @@ import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-st
 import { ApiProblem, newId } from './security';
 
 interface ActiveAuthorization {
+  /** Pengguna yang diberi otorisasi; berkas hanya dapat dibaca oleh pengguna yang sama. */
+  principalId: string;
   objectKey: string | null;
   mimeType: string;
   expiresAt: number;
@@ -75,6 +77,7 @@ export class IdentityDocumentAccessService {
     const expiresAt = Date.now() + 300_000; // 5 menit
 
     this.authorizations.set(authId, {
+      principalId: principal.userId,
       objectKey: objectKey || null,
       mimeType: 'image/jpeg',
       expiresAt,
@@ -129,6 +132,7 @@ export class IdentityDocumentAccessService {
     const expiresAt = Date.now() + 300_000;
 
     this.authorizations.set(authId, {
+      principalId: principal.userId,
       objectKey: objectKey || null,
       mimeType: 'image/jpeg',
       expiresAt,
@@ -142,12 +146,17 @@ export class IdentityDocumentAccessService {
   }
 
   async read(
-    _principal: SessionPrincipal,
+    principal: SessionPrincipal,
     authorizationId: string,
     _correlationId = 'unknown',
   ): Promise<{ mimeType: string; stream: Readable }> {
     const auth = this.authorizations.get(authorizationId);
-    if (!auth || auth.expiresAt <= Date.now() || authorizationId === 'authorization-expired') {
+    if (
+      !auth ||
+      auth.principalId !== principal.userId ||
+      auth.expiresAt <= Date.now() ||
+      authorizationId === 'authorization-expired'
+    ) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
 

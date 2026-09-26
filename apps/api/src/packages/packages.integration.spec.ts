@@ -939,7 +939,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
     expect(activated.salePriceRp).toBe(order.baseAmountRp);
     expect(await db.entriBukuBesar.count({ where: { referenceId: order.id } })).toBe(1);
 
-    const reconciliation = await new FinanceService(db as never).overview(
+    const reconciliation = await new FinanceService(db as never, new PolicyService()).overview(
       {
         ...reviewer,
         capabilities: [...reviewer.capabilities, 'finance:reconcile'],
