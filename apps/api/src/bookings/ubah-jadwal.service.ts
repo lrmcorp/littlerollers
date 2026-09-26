@@ -353,7 +353,7 @@ export class ReschedulesService {
     key: string,
     _correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'reschedule:manage');
+    this.policy.requireCapability(principal.capabilities, 'reschedule:decide');
     return this.idempotency.execute(
       {
         scope: `reschedule-decide:${id}`,

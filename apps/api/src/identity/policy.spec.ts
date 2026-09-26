@@ -31,7 +31,7 @@ describe('PolicyService role catalog', () => {
     }
   });
 
-  it('grants Super Owner the administrative matrix without customer or requester duties', () => {
+  it('grants Super Owner the administrative matrix (including requesting adjustments) without customer duties', () => {
     const superOwner = ROLE_CAPABILITIES.SUPER_OWNER;
     expect(superOwner).toEqual(
       expect.arrayContaining([
@@ -44,7 +44,10 @@ describe('PolicyService role catalog', () => {
         'payment-account:manage',
         'payment:decide',
         'finance:manage',
+        // Super Owner mengelola semuanya: boleh mengajukan sekaligus memutus (SoD di LedgerService).
+        'ledger:adjust:request',
         'ledger:adjust:decide',
+        'customer:write',
         'class-slot:manage',
         'operations:recover',
         'booking:create:assisted',
@@ -54,7 +57,6 @@ describe('PolicyService role catalog', () => {
       ]),
     );
     expect(superOwner).not.toContain('customer:self');
-    expect(superOwner).not.toContain('ledger:adjust:request');
   });
 
   it('keeps capability and branch bound together and applies matching deny first', () => {

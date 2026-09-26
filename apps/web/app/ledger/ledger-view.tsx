@@ -160,6 +160,9 @@ export function LedgerView({
   const feedback = useAppFeedback();
   const [workspaceTab, setWorkspaceTab] = useState<'balances' | 'adjustments'>(initialWorkspaceTab);
   const injectedAccess = process.env.NODE_ENV === 'test' ? access : undefined;
+  const currentUserId = sessionContext?.session?.id;
+  const isOwnRequest = (item: { requestedBy?: { id: string } | null }) =>
+    Boolean(currentUserId && item.requestedBy?.id === currentUserId);
   const canRequest =
     injectedAccess?.canRequest ?? Boolean(sessionContext?.hasCapability('ledger:adjust:request'));
   const canDecide =
@@ -736,6 +739,16 @@ export function LedgerView({
             </div>
           )}
 
+          {canRequest && canDecide && (
+            <div className={adjustmentsOnly ? '' : 'mt-3'}>
+              <Feedback kind="status">
+                Anda dapat mengajukan sekaligus memutus penyesuaian. Pengajuan Anda sendiri tidak
+                dapat Anda setujui; pengajuan itu harus diputuskan oleh penyetuju lain agar
+                pemisahan tugas tetap terjaga.
+              </Feedback>
+            </div>
+          )}
+
           {!canRequest && canDecide && (
             <div className={adjustmentsOnly ? '' : 'mt-5'}>
               <Feedback kind="status">
@@ -898,9 +911,9 @@ export function LedgerView({
                         </ButtonLink>
                       </div>
                       {item.status === 'PENDING' && canDecide && (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
                           <Button
-                            disabled={item.eligibleForApproval === false}
+                            disabled={item.eligibleForApproval === false || isOwnRequest(item)}
                             onClick={() => {
                               setDecisionReason('CORRECTION_VERIFIED');
                               setDecisionNote('');
@@ -911,6 +924,7 @@ export function LedgerView({
                           </Button>
                           <Button
                             variant="secondary"
+                            disabled={isOwnRequest(item)}
                             onClick={() => {
                               setDecisionReason('INVALID_EVIDENCE');
                               setDecisionNote('');
@@ -919,6 +933,11 @@ export function LedgerView({
                           >
                             Tolak
                           </Button>
+                          {isOwnRequest(item) && (
+                            <span className="text-xs text-dd-muted">
+                              Diajukan oleh Anda — perlu penyetuju lain.
+                            </span>
+                          )}
                         </div>
                       )}
                     </li>

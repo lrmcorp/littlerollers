@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { canMutatePage, canReadPage, frontendPages, pageForPath } from './frontend-pages';
 import { pageIcons } from './page-icons';
+import { canAccessSessionPath } from '../session-context';
+import type { WebSession } from '@/api-clients/session-client';
 
 const page = (href: string) => frontendPages.find((item) => item.href === href)!;
 
@@ -65,5 +67,24 @@ describe('frontend page registry', () => {
     // Catatan tanpa penanda tidak boleh ada, dan halaman biasa tidak boleh berlabel pratinjau.
     for (const item of frontendPages.filter((entry) => entry.maturity !== 'preview'))
       expect(item.previewNote).toBeUndefined();
+  });
+
+  it('every staff page can actually be opened by a session holding its read capabilities', () => {
+    // Menangkap halaman yang ada di registry tetapi tidak punya aturan rute (ditolak untuk semua orang).
+    const staff = frontendPages.filter(
+      (item) => item.capabilities.length > 0 && !item.capabilities.includes('customer:self'),
+    );
+    for (const item of staff) {
+      const session = {
+        id: 'staff-1',
+        displayName: 'Staf',
+        roles: ['SUPER_OWNER'],
+        branchIds: [],
+        capabilities: [item.capabilities[0]!],
+        sessionExpiresAt: new Date(Date.now() + 60_000),
+        branches: [],
+      } as unknown as WebSession;
+      expect([item.href, canAccessSessionPath(session, item.href)]).toEqual([item.href, true]);
+    }
   });
 });

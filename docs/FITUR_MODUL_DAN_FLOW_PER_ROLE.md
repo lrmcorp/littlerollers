@@ -140,7 +140,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
 | **10. Backfill Presensi ($\le$ H+2 Jam)** | ✅ | ❌ | ✅ Cabang | ❌ | ✅ Cabang | ❌ | ❌ |
 | **11. Backfill Presensi ($>$ H+2 Jam)** | ❌ (Dicekal) | ❌ | ❌ (Dicekal) | ❌ | ❌ (Dicekal) | ❌ | ❌ |
 | **12. Reschedule Mandiri ($\ge$ H-24 Jam)** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Instan |
-| **13. Pengajuan Adjust Sesi Medis ($<$ H-24)**| ❌ | ❌ | ❌ (SoD) | ❌ | ✅ Ajukan Bukti | ❌ | 🔼 Minta ke Admin |
+| **13. Pengajuan Adjust Sesi Medis ($<$ H-24)**| ✅ Ajukan (SoD: tidak boleh memutus pengajuannya sendiri) | ❌ | ❌ (SoD) | ❌ | ✅ Ajukan Bukti | ❌ | 🔼 Minta ke Admin |
 | **14. Keputusan Adjust Sesi Medis** | ✅ Approve/Reject | ❌ | ✅ Approve/Reject | ❌ | ❌ (SoD) | ❌ | ❌ |
 | **15. Verifikasi Bukti Bayar Paket** | ✅ | ❌ | ✅ Approve/Reject | ✅ Approve/Reject | ❌ Review Saja | ❌ | 🔼 Unggah Bukti |
 | **16. Input Beban Lain (*Other Cost*)** | ✅ | ❌ | ❌ | ✅ Input/Edit | ❌ | ❌ | ❌ |
@@ -168,7 +168,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
   2. Meninjau, memverifikasi (*Approve*), dan menolak dokumen identitas KYC (KTP & Selfie) di `/customers/[id]` dan `/identity-verifications`.
   3. Menyetujui atau menolak permohonan Jurnal Koreksi finansial pasca Tutup Buku Bulanan.
   4. Mengakses ringkasan dan 5 laporan finansial komparatif seluruh cabang (`/finance`).
-  5. Mengatur konfigurasi tarif dasar instruktur dan laju proyeksi kelas (`/master/rates` & `/master`).
+  5. Mengatur konfigurasi tarif dasar instruktur dan laju proyeksi kelas (`/master`, tab Honor & Proyeksi; URL lama `/master/rates` dialihkan ke sana).
   6. Mengelola akun staf, penetapan hak akses, audit log, dan trigger darurat job latar belakang.
 * **Apa Saja yang DILARANG / BATASAN:**
   1. Dilarang melakukan backfill presensi kelas yang telah lewat lebih dari batas toleransi H+2 jam (aturan sistem terkunci di database).
@@ -559,7 +559,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
         ▼
 [Pengawasan Finansial Konsolidasi di /finance]
   - Perbandingan Laba Rugi Lintas Seluruh Cabang
-  - Pengaturan Tarif Global Instruktur & Rasio Proyeksi di /master/rates
+  - Pengaturan Tarif Global Instruktur & Rasio Proyeksi di /master (tab Honor & Proyeksi)
         │
         ▼ (Koreksi Finansial Bulanan)
 [Tinjau Permohonan Jurnal Koreksi dari Finance Pasca Tutup Buku]
@@ -575,7 +575,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
    - Memeriksa foto KTP dan foto selfie pelanggan baru.
    - Menekan tombol **APPROVE** $\rightarrow$ dokumen identitas berstatus sah dan otomatis dikunci secara permanen (tidak dapat disunting kembali untuk mencegah manipulasi data identitas).
 3. **Tata Kelola Master Tarif Global**:
-   - Super Owner mengatur besaran tarif dasar honor instruktur per jam, skema bonus kuota peserta, dan rasio biaya proyeksi di `/master/rates`.
+   - Super Owner mengatur besaran tarif dasar honor instruktur per jam, skema bonus kuota peserta, dan rasio biaya proyeksi di `/master` (tab Honor & Proyeksi; `/master/rates` dialihkan ke sana).
 4. **Persetujuan Jurnal Koreksi Finansial Pasca-Lock**:
    - Ketika Finance mengajukan koreksi penyesuaian transaksi untuk periode yang telah ditutup buku, permohonan masuk ke antrean Super Owner.
    - Super Owner memeriksa justifikasi audit koreksi tersebut dan menekan tombol **APPROVE** untuk meresmikan jurnal koreksi pada buku berjalan (**Aturan Bisnis #8**).

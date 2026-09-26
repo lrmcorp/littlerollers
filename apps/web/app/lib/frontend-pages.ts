@@ -133,7 +133,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     group: 'Member & Pelanggan',
     capabilities: ['customer:read'],
     mutationCapabilities: [
-      'customer:manage',
+      'customer:write',
       'customer:credential:initialize',
       'customer:security:manage',
     ],
@@ -252,7 +252,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     shortLabel: 'Performa Cabang',
     description: 'Omset cabang, estimasi profit, dan detail breakdown fee instruktur.',
     group: 'Penjualan & Keuangan',
-    capabilities: ['branch:own', 'dashboard:read'],
+    capabilities: ['finance:read'],
     priority: 24,
     branchScope: 'topbar',
     accent: 'brand',

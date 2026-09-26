@@ -130,7 +130,10 @@ function CustomerDocumentCard({
 }
 
 export function CustomerDetailView({ id }: { id: string }) {
-  const session = useSessionContext()?.session;
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
+  // Ubah profil, nonaktifkan, dan tandai berhenti dicek API dengan `customer:write`.
+  const canWrite = Boolean(sessionContext?.hasCapability('customer:write'));
   const [customer, setCustomer] = useState<CustomerDetail>();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -725,6 +728,12 @@ export function CustomerDetailView({ id }: { id: string }) {
       </div>
 
       {/* Forms Section: Profil, Status, & Keaktifan */}
+      {!canWrite && (
+        <Feedback kind="info">
+          Akun Anda hanya dapat melihat data pelanggan. Mengubah profil, status akun, dan status
+          berhenti memerlukan izin pengelolaan pelanggan.
+        </Feedback>
+      )}
       <div className="grid gap-5 lg:grid-cols-2">
         <form
           onSubmit={updateProfile}
@@ -768,7 +777,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             label="Kode verifikasi tindakan"
             name="stepUpToken"
           />
-          <Button type="submit" loading={busy}>
+          <Button type="submit" loading={busy} disabled={!canWrite}>
             Simpan profil
           </Button>
         </form>
@@ -803,6 +812,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 type="submit"
                 variant={customer.status === 'ACTIVE' ? 'danger' : 'primary'}
                 loading={busy}
+                disabled={!canWrite}
               >
                 {customer.status === 'ACTIVE' ? 'Nonaktifkan pelanggan' : 'Aktifkan pelanggan'}
               </Button>
@@ -828,6 +838,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 type="button"
                 variant={customer.stoppedAt ? 'primary' : 'danger'}
                 loading={busy}
+                disabled={!canWrite}
                 onClick={toggleStopped}
               >
                 {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Pelanggan Berhenti'}
