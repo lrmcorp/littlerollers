@@ -23,13 +23,13 @@ export class PublicPackageQueryService {
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
 
-    const branches = rawBranches.map((b) => ({
+    const branches = rawBranches.map((b: any) => ({
       id: b.id,
       code: b.code,
       name: b.name,
       timezone: b.timezone,
       supportWhatsappE164: b.supportWhatsappE164,
-      publicProfile: {
+      publicProfile: b.publicProfile ?? {
         slug: b.code.toLowerCase(),
         area: b.name,
         city: 'Jakarta',
@@ -41,8 +41,11 @@ export class PublicPackageQueryService {
     if (branchId && !branches.some((branch) => branch.id === branchId))
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const packages = await this.db.paket.findMany({
+    if (!branchId) return { branches, items: [] };
+
+    const rawPackages = await this.db.paket.findMany({
       where: {
+        branchId,
         status: 'ACTIVE',
       },
       include: {
@@ -56,8 +59,20 @@ export class PublicPackageQueryService {
 
     const branch = branches.find(({ id }) => id === branchId) ?? branches[0] ?? null;
 
-    const items = packages.map((pkg) => {
-      const classTypes = pkg.classType ? [pkg.classType] : [];
+    const seen = new Set<string>();
+    const packages: typeof rawPackages = [];
+    for (const pkg of rawPackages) {
+      const key = (pkg as any).businessKey || pkg.id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        packages.push(pkg);
+      }
+    }
+
+    const items = packages.map((pkg: any) => {
+      const classTypes =
+        pkg.classTypeScopes?.map((s: any) => s.classType) ||
+        (pkg.classType ? [pkg.classType] : []);
       return {
         id: pkg.id,
         name: pkg.name,
@@ -65,7 +80,7 @@ export class PublicPackageQueryService {
         durationDays: pkg.validityDays,
         priceRp: pkg.priceRp,
         branchId: branch?.id ?? branchId ?? '',
-        classType: pkg.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
+        classType: classTypes[0] ?? pkg.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
         classTypes,
         isDiscounted: false,
         discountedPriceRp: pkg.priceRp,

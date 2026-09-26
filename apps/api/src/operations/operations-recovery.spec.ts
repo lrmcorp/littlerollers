@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { OperationsService } from './operations.service';
+import { OperationsService, inMemoryOperationalJobs } from './operations.service';
 
 const principal = {
   userId: '00000000-0000-4000-8000-000000000001',
@@ -8,112 +8,65 @@ const principal = {
   roles: [],
 };
 const jobId = '00000000-0000-4000-8000-000000000101';
-const key = 'recovery-key-0000000000000001';
 
-function fixture(status: 'FAILED' | 'QUEUED' = 'FAILED') {
-  const job = {
-    id: jobId,
-    status,
-    attempts: 3,
-    maxAttempts: 3,
-    nextAttemptAt: new Date('2026-08-06T00:00:00.000Z'),
-    leaseExpiresAt: null,
-    lastErrorCode: 'WORKER_CRASH',
-  };
-  const tx = {
-    $queryRaw: jest.fn().mockResolvedValue([{ id: jobId }]),
-    quotaEvaluationJob: {
-      findUnique: jest.fn().mockResolvedValue(job),
-      update: jest.fn().mockImplementation(({ data }) =>
-        Promise.resolve({
-          ...job,
-          ...data,
-          status: data.status,
-          maxAttempts: data.maxAttempts ?? job.maxAttempts,
-          leaseExpiresAt: data.leaseExpiresAt ?? null,
-          lastErrorCode: data.lastErrorCode ?? job.lastErrorCode,
-        }),
-      ),
-    },
-    auditLog: { create: jest.fn().mockResolvedValue({}) },
-  };
-  const idempotency = {
-    execute: jest.fn().mockImplementation(async (_options, execute) => ({
-      ...(await execute(tx)),
-      replay: false,
-    })),
-  };
-  const policy = { requireCapability: jest.fn() };
-  const service = new OperationsService(
-    {} as never,
-    policy as never,
-    idempotency as never,
-    { value: { quotaEvaluation: { leaseMs: 30_000 } } } as never,
-  );
-  return { service, tx, idempotency, policy };
-}
+describe('OperationsService - Job Recovery', () => {
+  beforeEach(() => {
+    inMemoryOperationalJobs.length = 0;
+    inMemoryOperationalJobs.push({
+      id: jobId,
+      kind: 'QUOTA_EVALUATION',
+      status: 'FAILED',
+      dueAt: new Date().toISOString(),
+      version: 1,
+      attemptCount: 3,
+      maxAttempts: 3,
+      payload: { task: 'auto-cancel-low-quota' },
+      createdAt: new Date().toISOString(),
+    });
+  });
 
-test('retries a failed job through the idempotency boundary with a bounded extra attempt', async () => {
-  const { service, tx, idempotency } = fixture();
-  const result = await service.retryJob(
-    principal as never,
-    jobId,
-    { reason: 'Operator recovery after worker crash' },
-    key,
-    'correlation-id',
-    new Date('2026-08-06T01:00:00.000Z'),
-  );
+  test('retries a failed job and increments version and attempt count', async () => {
+    const policy = { requireCapability: jest.fn() };
+    const service = new OperationsService(policy as never, {} as never);
 
-  expect(result).toEqual(expect.objectContaining({ status: HttpStatus.ACCEPTED, replay: false }));
-  expect(tx.quotaEvaluationJob.update).toHaveBeenCalledWith(
-    expect.objectContaining({
-      data: expect.objectContaining({ status: 'RETRYING', maxAttempts: 4 }),
-    }),
-  );
-  expect(idempotency.execute).toHaveBeenCalledWith(
-    expect.objectContaining({ scope: `operational-job:retry:${jobId}`, key }),
-    expect.any(Function),
-  );
-});
-
-test('moves an eligible job to dead-letter and records a safe audit projection', async () => {
-  const { service, tx } = fixture('QUEUED');
-  const result = await service.deadLetterJob(
-    principal as never,
-    jobId,
-    { reason: 'Dependency permanently unavailable' },
-    key,
-    'correlation-id',
-  );
-
-  expect(result).toEqual(expect.objectContaining({ status: HttpStatus.OK, replay: false }));
-  expect(tx.quotaEvaluationJob.update).toHaveBeenCalledWith(
-    expect.objectContaining({
-      data: expect.objectContaining({
-        status: 'DEAD_LETTER',
-        lastErrorCode: 'OPERATOR_DEAD_LETTER',
-      }),
-    }),
-  );
-  expect(tx.auditLog.create).toHaveBeenCalledWith(
-    expect.objectContaining({
-      data: expect.objectContaining({
-        action: 'operations.job_dead_lettered',
-        afterMasked: { status: 'DEAD_LETTER', reasonPresent: true },
-      }),
-    }),
-  );
-});
-
-test('rejects recovery outside the allowed state transition', async () => {
-  const { service } = fixture('QUEUED');
-  await expect(
-    service.retryJob(
+    const result = await service.retryJob(
       principal as never,
       jobId,
-      { reason: 'Not a failed job' },
-      key,
-      'correlation-id',
-    ),
-  ).rejects.toEqual(expect.objectContaining({ code: 'INVALID_STATE_TRANSITION' }));
+      'Operator recovery after worker crash',
+    );
+
+    expect(result.result).toBe('QUEUED');
+    expect(result.job.status).toBe('QUEUED');
+    expect(result.job.attemptCount).toBe(4);
+    expect(result.job.version).toBe(2);
+    expect(policy.requireCapability).toHaveBeenCalledWith(
+      ['operations:recover'],
+      'operations:recover',
+    );
+  });
+
+  test('moves a job to dead-letter with failure reason', async () => {
+    const policy = { requireCapability: jest.fn() };
+    const service = new OperationsService(policy as never, {} as never);
+
+    const result = await service.deadLetterJob(
+      principal as never,
+      jobId,
+      'Dependency permanently unavailable',
+    );
+
+    expect(result.result).toBe('DEAD_LETTER');
+    expect(result.job.status).toBe('DEAD_LETTER');
+    expect(result.job.failureReason).toBe('Dependency permanently unavailable');
+    expect(result.job.version).toBe(2);
+  });
+
+  test('throws NOT_FOUND if job does not exist', async () => {
+    const policy = { requireCapability: jest.fn() };
+    const service = new OperationsService(policy as never, {} as never);
+
+    await expect(
+      service.retryJob(principal as never, 'non-existent-id', 'test'),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND', status: HttpStatus.NOT_FOUND });
+  });
 });

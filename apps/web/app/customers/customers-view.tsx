@@ -241,7 +241,7 @@ export function CustomersView() {
           {
             id: 'packages',
             header: 'Paket',
-            cell: (item) => `${item.activePackageCount} aktif · ${item.purchasedSessions} sesi pembelian`,
+            cell: (item) => `${item.activePackageCount} paket aktif · ${item._count?.purchases ?? 0} order`,
           },
           {
             id: 'activity',

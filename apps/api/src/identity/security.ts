@@ -4,6 +4,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 export const digest = (value: string): string => createHash('sha256').update(value).digest('hex');
 export const opaqueToken = (): string => randomBytes(32).toString('base64url');
 export const newId = (): string => randomUUID();
+export const ENTITY_ID_REGEX = /^[0-9a-zA-Z_-]{8,40}$/;
 
 export const safeEqual = (left: string, right: string): boolean => {
   const a = Buffer.from(digest(left));

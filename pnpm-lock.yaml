@@ -103,9 +103,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@dailydose/api-client-ts':
-        specifier: workspace:*
-        version: link:../../packages/api-client-ts
       '@zxing/browser':
         specifier: ^0.2.1
         version: 0.2.1(@zxing/library@0.23.0)
@@ -225,15 +222,6 @@ importers:
       ts-jest:
         specifier: ^29.4.1
         version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@24.13.3))(typescript@5.9.3)
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
-  packages/api-client-ts:
-    devDependencies:
-      '@types/node':
-        specifier: ^24.3.0
-        version: 24.13.3
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

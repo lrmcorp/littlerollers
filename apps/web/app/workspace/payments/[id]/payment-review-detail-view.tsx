@@ -45,6 +45,18 @@ export function safePaymentReturnTo(value?: string) {
   }
 }
 
+function formatDateTime(val?: Date | string | null): string {
+  if (!val) return 'Belum terjadi';
+  const d = val instanceof Date ? val : new Date(val);
+  return isNaN(d.getTime()) ? 'Tidak valid' : d.toLocaleString('id-ID');
+}
+
+function formatDate(val?: Date | string | null): string {
+  if (!val) return '-';
+  const d = val instanceof Date ? val : new Date(val);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID');
+}
+
 export function PaymentReviewDetailView({
   id,
   returnTo,
@@ -427,7 +439,7 @@ export function PaymentReviewDetailView({
                   <div>
                     <strong className="block text-sm">{label}</strong>
                     <span className="text-sm text-dd-muted">
-                      {value ? value.toLocaleString('id-ID') : 'Belum terjadi'}
+                      {formatDateTime(value)}
                     </span>
                   </div>
                 </li>
@@ -520,8 +532,8 @@ export function PaymentReviewDetailView({
                 <div>
                   <dt className="text-dd-muted">Aktif / kedaluwarsa</dt>
                   <dd className="mt-1 font-semibold">
-                    {detail.activation.activationDate.toLocaleDateString('id-ID')} –{' '}
-                    {detail.activation.expiryAt.toLocaleDateString('id-ID')}
+                    {formatDate(detail.activation.activationDate)} –{' '}
+                    {formatDate(detail.activation.expiryAt)}
                   </dd>
                 </div>
                 <div>
@@ -623,7 +635,7 @@ export function PaymentReviewDetailView({
                         </span>
                         <span className="font-semibold">{entry.balanceAfter} sesi</span>
                         <time className="text-dd-muted">
-                          {entry.occurredAt.toLocaleString('id-ID')}
+                          {formatDateTime(entry.occurredAt)}
                         </time>
                       </div>
                     ))

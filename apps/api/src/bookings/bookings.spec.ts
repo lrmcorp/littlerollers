@@ -59,7 +59,7 @@ describe('BookingsService.customerOptions', () => {
   const slotPastCutoffDate = new Date(Date.now() + 1 * 3_600_000); // within 2 hours cutoff
 
   const baseSlot = {
-    id: 'f1000000-ddsby0-4000-8000-0000060001',
+    id: 'f1000000-0000-4000-8000-000000060001',
     branchId: 'ddsby0-surabaya-barat',
     classTypeId: 'ct-reformer-pilates-1',
     startAt: slotFutureDate,
@@ -118,7 +118,7 @@ describe('BookingsService.customerOptions', () => {
 
     const result = await service.customerOptions(
       mockPrincipal as any,
-      'f1000000-ddsby0-4000-8000-0000060001',
+      'f1000000-0000-4000-8000-000000060001',
     );
 
     expect(result.slot).toBeDefined();
@@ -166,7 +166,7 @@ describe('BookingsService.customerOptions', () => {
 
     const result = await service.customerOptions(
       mockPrincipal as any,
-      'f1000000-ddsby0-4000-8000-0000060001',
+      'f1000000-0000-4000-8000-000000060001',
     );
 
     expect(result.packages).toHaveLength(0);
@@ -206,7 +206,7 @@ describe('BookingsService.customerOptions', () => {
 
     const result = await service.customerOptions(
       mockPrincipal as any,
-      'f1000000-ddsby0-4000-8000-0000060001',
+      'f1000000-0000-4000-8000-000000060001',
     );
 
     expect(result.eligibility.canBook).toBe(false);
@@ -246,7 +246,7 @@ describe('BookingsService.customerOptions', () => {
 
     const result = await service.customerOptions(
       mockPrincipal as any,
-      'f1000000-ddsby0-4000-8000-0000060001',
+      'f1000000-0000-4000-8000-000000060001',
     );
 
     expect(result.eligibility.canBook).toBe(false);

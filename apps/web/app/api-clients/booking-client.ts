@@ -1,21 +1,85 @@
-import {
-  BookingsApi,
-  ClassesApi,
-  Configuration,
-  IdentityApi,
-  LedgerApi,
-  type Booking,
-  type BookingCommand,
-  type ClassSlot,
-  type CustomerPackageBalance,
-  type Reschedule,
-  type RescheduleDecisionCommand,
-  type RescheduleRequestCommand,
-} from '@dailydose/api-client-ts/generated';
+import { apiFetch } from '../lib/api-client';
 import { foregroundFetch } from '../components/app-loading';
 import { notifySessionFailure } from './session-client';
+import type { ClassSlot } from './class-slot-client';
 
-export type { Booking, ClassSlot, CustomerPackageBalance, Reschedule };
+export type { ClassSlot };
+
+export interface BookingCommand {
+  classSlotId: string;
+  customerPackageId: string;
+  customerUserId?: string;
+  source: 'SELF' | 'ADMIN_ASSISTED';
+}
+
+export interface Booking {
+  id: string;
+  bookingNumber?: string;
+  branchId: string;
+  classSlotId: string;
+  customerUserId: string;
+  customerPackageId: string;
+  status: 'BOOKED' | 'ATTENDED' | 'CANCELLED' | 'NO_SHOW' | string;
+  reservedQuantity: number;
+  source: 'SELF' | 'ADMIN_ASSISTED' | string;
+  cancellationReasonCode?: string | null;
+  cancelledAt?: Date | null;
+  cancelledById?: string | null;
+  createdAt: Date;
+  version: number;
+  idempotentReplay?: boolean;
+  branch?: { id: string; name: string; timezone: string } | null;
+  classSlot?: any;
+  package?: any;
+  attendance?: any;
+  customer?: { id: string; displayName: string; phoneMasked: string | null } | null;
+}
+
+export interface CustomerPackageBalance {
+  id: string;
+  packageId?: string;
+  customerUserId?: string;
+  branchId?: string | null;
+  classTypeId?: string | null;
+  status: string;
+  totalSessions?: number;
+  remainingSessions?: number;
+  available: number;
+  reserved?: number;
+  expiryAt: Date;
+  packageName?: string;
+  name?: string;
+}
+
+export interface Reschedule {
+  id: string;
+  bookingId: string;
+  sourceClassSlotId: string;
+  targetClassSlotId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  requestReasonCode: string;
+  decisionReasonCode?: string | null;
+  decisionNote?: string | null;
+  requestedAt: Date;
+  decidedAt?: Date | null;
+  decidedById?: string | null;
+  version: number;
+  sourceClassSlot?: any;
+  targetClassSlot?: any;
+}
+
+export interface RescheduleRequestCommand {
+  bookingId: string;
+  targetClassSlotId: string;
+  reasonCode: 'MEDICAL_EMERGENCY' | 'FAMILY_EMERGENCY' | 'SCHEDULE_CONFLICT' | 'CUSTOMER_REQUEST' | string;
+  expectedBookingVersion: number;
+}
+
+export interface RescheduleDecisionCommand {
+  reasonCode: 'ELIGIBILITY_VERIFIED' | 'TARGET_UNAVAILABLE' | 'OUTSIDE_POLICY' | 'OUT_OF_SCOPE' | string;
+  expectedVersion: number;
+  note?: string;
+}
 
 export type BookingCustomer = {
   id: string;
@@ -309,12 +373,6 @@ export interface BookingClient {
   }>;
 }
 
-const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
-const bookings = new BookingsApi(configuration);
-const classes = new ClassesApi(configuration);
-const identity = new IdentityApi(configuration);
-const ledger = new LedgerApi(configuration);
-
 export const browserBookingClient: BookingClient = {
   async options(classSlotId) {
     const response = await foregroundFetch(
@@ -357,27 +415,57 @@ export const browserBookingClient: BookingClient = {
   },
   async discover(branchId) {
     const [customerLookup, packages, published, confirmed] = await Promise.all([
-      identity.lookupCustomers({ branchId, limit: 50 }),
-      ledger.listCustomerPackages({ branchId }),
-      classes.listClassSlots({ branchId, status: 'PUBLISHED' }),
-      classes.listClassSlots({ branchId, status: 'CONFIRMED' }),
+      apiFetch<{ items: Array<{ id: string; label?: string; description?: string; metadata?: { eligiblePackageCount?: number } }> }>(
+        `/lookups/customers?branchId=${encodeURIComponent(branchId)}&limit=50`,
+        { label: 'Memuat data pelanggan…' },
+      ),
+      apiFetch<{ items: Array<{ id: string; branchId?: string | null; status: string; available: number; remainingSessions?: number; expiryAt: string; packageName?: string; name?: string }> }>(
+        `/customer-packages?branchId=${encodeURIComponent(branchId)}`,
+        { label: 'Memuat saldo paket…' },
+      ),
+      apiFetch<{ items: Array<any> }>(
+        `/class-slots?branchId=${encodeURIComponent(branchId)}&status=PUBLISHED`,
+        { label: 'Memuat jadwal kelas…' },
+      ),
+      apiFetch<{ items: Array<any> }>(
+        `/class-slots?branchId=${encodeURIComponent(branchId)}&status=CONFIRMED`,
+        { label: 'Memuat jadwal kelas…' },
+      ),
     ]);
     const now = Date.now();
     return {
-      customers: customerLookup.items.map((user) => ({
+      customers: (customerLookup.items ?? []).map((user) => ({
         id: user.id,
         displayName: user.label || 'Pelanggan',
         phoneMasked: user.description,
-        eligiblePackageCount: user.metadata.eligiblePackageCount,
+        eligiblePackageCount: user.metadata?.eligiblePackageCount,
       })),
-      packages: packages.items.filter(
-        (item) =>
-          item.branchId === branchId &&
-          item.status === 'ACTIVE' &&
-          item.available >= 1 &&
-          item.expiryAt.getTime() > now,
-      ),
-      slots: [...published.items, ...confirmed.items]
+      packages: (packages.items ?? [])
+        .map((item) => {
+          const expiryAt = item.expiryAt ? new Date(item.expiryAt) : new Date(0);
+          return {
+            ...item,
+            available: item.available ?? item.remainingSessions ?? 0,
+            expiryAt: Number.isFinite(expiryAt.getTime()) ? expiryAt : new Date(0),
+          };
+        })
+        .filter(
+          (item) =>
+            item.branchId === branchId &&
+            item.status === 'ACTIVE' &&
+            item.available >= 1 &&
+            new Date(item.expiryAt).getTime() > now,
+        ),
+      slots: [...(published.items ?? []), ...(confirmed.items ?? [])]
+        .map((slot: any) => {
+          const startAt = slot.startAt ? new Date(slot.startAt) : new Date(0);
+          const endAt = slot.endAt ? new Date(slot.endAt) : new Date(0);
+          return {
+            ...slot,
+            startAt: Number.isFinite(startAt.getTime()) ? startAt : new Date(0),
+            endAt: Number.isFinite(endAt.getTime()) ? endAt : new Date(0),
+          };
+        })
         .filter(
           (slot) =>
             slot.branchId === branchId &&
@@ -513,8 +601,19 @@ export const browserBookingClient: BookingClient = {
       })),
     };
   },
-  create(input, idempotencyKey) {
-    return bookings.createBooking({ idempotencyKey, bookingCommand: input });
+  async create(input, idempotencyKey) {
+    const result = await apiFetch<any>('/bookings', {
+      method: 'POST',
+      idempotent: true,
+      headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : undefined,
+      body: JSON.stringify(input),
+      label: 'Membuat booking…',
+    });
+    return {
+      ...result,
+      createdAt: new Date(result.createdAt),
+      cancelledAt: result.cancelledAt ? new Date(result.cancelledAt) : null,
+    };
   },
   async cancelAsStaff(bookingId, reason, idempotencyKey) {
     const response = await foregroundFetch(
@@ -539,12 +638,19 @@ export const browserBookingClient: BookingClient = {
     return response.json();
   },
   async listReschedules(input) {
-    const result = await bookings.listReschedules(input);
+    const query = new URLSearchParams();
+    if (input.branchId) query.set('branchId', input.branchId);
+    if (input.status) query.set('status', input.status);
+    if (input.cursor) query.set('cursor', input.cursor);
+    const result = await apiFetch<{
+      items: any[];
+      page?: { nextCursor?: string | null };
+    }>(`/reschedules?${query.toString()}`, { label: 'Memuat permohonan reschedule…' });
     return {
-      items: result.items.map((item: any) => ({
+      items: (result.items ?? []).map((item: any) => ({
         ...item,
         requestedAt: new Date(item.requestedAt),
-        entitlementCutoffAt: new Date(item.entitlementCutoffAt),
+        entitlementCutoffAt: new Date(item.entitlementCutoffAt ?? item.cutoffAt ?? item.requestedAt),
         decidedAt: item.decidedAt ? new Date(item.decidedAt) : null,
         sourceClassSlot: item.sourceClassSlot
           ? {
@@ -561,19 +667,36 @@ export const browserBookingClient: BookingClient = {
             }
           : undefined,
       })),
-      nextCursor: result.page.nextCursor,
+      nextCursor: result.page?.nextCursor ?? (result as any).nextCursor ?? null,
     };
   },
-  requestReschedule(input, idempotencyKey) {
-    return bookings.requestReschedule({ idempotencyKey, rescheduleRequestCommand: input });
-  },
-  decideReschedule(id, decision, input, idempotencyKey) {
-    return bookings.decideReschedule({
-      id,
-      decision,
-      idempotencyKey,
-      rescheduleDecisionCommand: input,
+  async requestReschedule(input, idempotencyKey) {
+    const result = await apiFetch<any>('/reschedules', {
+      method: 'POST',
+      idempotent: true,
+      headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : undefined,
+      body: JSON.stringify(input),
+      label: 'Mengajukan reschedule…',
     });
+    return {
+      ...result,
+      requestedAt: new Date(result.requestedAt),
+      decidedAt: result.decidedAt ? new Date(result.decidedAt) : null,
+    };
+  },
+  async decideReschedule(id, decision, input, idempotencyKey) {
+    const result = await apiFetch<any>(`/reschedules/${encodeURIComponent(id)}/${encodeURIComponent(decision)}`, {
+      method: 'POST',
+      idempotent: true,
+      headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : undefined,
+      body: JSON.stringify(input),
+      label: 'Memproses keputusan reschedule…',
+    });
+    return {
+      ...result,
+      requestedAt: new Date(result.requestedAt),
+      decidedAt: result.decidedAt ? new Date(result.decidedAt) : null,
+    };
   },
   async issueCheckIn(bookingId, expectedVersion, idempotencyKey) {
     const response = await foregroundFetch(
@@ -714,8 +837,6 @@ export async function bookingFailure(error: unknown): Promise<string> {
 // ============================================================================
 // SPESIFIKASI V1.0 (FASE 1): CUSTOMER LINK CHECK-IN & SESSION ADJUST REQUESTS
 // ============================================================================
-
-import { apiFetch } from '../lib/api-client';
 
 export type CustomerLinkInfo = {
   bookingId: string;

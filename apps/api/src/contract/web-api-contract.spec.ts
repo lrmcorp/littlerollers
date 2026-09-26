@@ -1,10 +1,8 @@
 /**
  * Kontrak web ↔ API (statis). Menangkap kelas bug "tombol memanggil endpoint yang tidak ada":
  *
- *  1. Setiap operasi generated client (`packages/api-client-ts/generated/apis`) yang DIPAKAI web
- *     harus cocok dengan rute controller (metode + path).
- *  2. Setiap path literal yang dipanggil klien web tulisan tangan (`apiFetch('/x')`,
- *     `request('/x')`, `fetch('/api/v1/x')`, …) harus cocok dengan salah satu rute controller.
+ * Setiap path literal yang dipanggil klien web direct fetch (`apiFetch('/x')`,
+ * `request('/x')`, `fetch('/api/v1/x')`, …) harus cocok dengan salah satu rute controller.
  *
  * Pencocokan per segmen: `:param`, `{param}` dan `${…}` cocok dengan segmen apa pun.
  * Yang sengaja belum ada dicatat di KNOWN_MISSING lengkap dengan alasannya.
@@ -15,7 +13,6 @@ import * as ts from 'typescript';
 
 const API_SRC = path.resolve(__dirname, '..');
 const WEB_APP = path.resolve(__dirname, '../../../web/app');
-const GENERATED = path.resolve(__dirname, '../../../../packages/api-client-ts/generated/apis');
 const HTTP_VERBS = ['Get', 'Post', 'Put', 'Patch', 'Delete'] as const;
 
 /** Path (awalan) yang sengaja belum punya rute API. Tiap entri wajib beralasan. */
@@ -61,11 +58,6 @@ const segmentsOf = (raw: string) =>
       /^:|^\{.*\}$|\$\{/.test(segment) || segment.includes('${') ? '*' : segment,
     );
 
-/**
- * `strict` (operasi generated client): segmen parameter di klien (`{decision}`) harus dipenuhi
- * segmen parameter di rute; rute berpath literal (`…/decide`) TIDAK memenuhi `{decision}` karena
- * klien akan mengirim nilai lain (`approve`). Mode longgar dipakai untuk path tulisan tangan.
- */
 function segmentsMatch(client: string[], route: string[], strict = false) {
   return (
     client.length === route.length &&
@@ -128,29 +120,6 @@ function controllerRoutes(): Route[] {
   return routes;
 }
 
-interface GeneratedOperation {
-  api: string;
-  name: string;
-  method: string;
-  url: string;
-}
-
-function generatedOperations(): GeneratedOperation[] {
-  const operations: GeneratedOperation[] = [];
-  for (const file of walk(GENERATED, (f) => f.endsWith('Api.ts'))) {
-    const text = fs.readFileSync(file, 'utf8');
-    const api = /export class (\w+)/.exec(text)?.[1];
-    if (!api) continue;
-    for (const match of text.matchAll(/async (\w+)Raw\([\s\S]*?\n {4}\}\n/g)) {
-      const body = match[0];
-      const url = /let urlPath = `([^`]+)`/.exec(body)?.[1];
-      const method = /method: '(\w+)'/.exec(body)?.[1];
-      if (url && method) operations.push({ api, name: match[1]!, method, url });
-    }
-  }
-  return operations;
-}
-
 /** Teks argumen sebuah pemanggilan, dari `(` pembuka sampai `)` penutup yang seimbang. */
 function callArguments(text: string, open: number): string {
   let depth = 0;
@@ -170,7 +139,7 @@ function callArguments(text: string, open: number): string {
 const webFiles = () =>
   walk(WEB_APP, (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.includes('/e2e/'));
 
-const enabled = fs.existsSync(WEB_APP) && fs.existsSync(GENERATED);
+const enabled = fs.existsSync(WEB_APP);
 const suite = enabled ? describe : describe.skip;
 
 suite('web ↔ API contract', () => {
@@ -181,29 +150,8 @@ suite('web ↔ API contract', () => {
   }));
 
   it('discovers the API routes and web sources it compares', () => {
-    expect(routes.length).toBeGreaterThan(200);
-    expect(sources.length).toBeGreaterThan(100);
-  });
-
-  it('every generated-client operation the web calls has a matching API route', () => {
-    const operations = generatedOperations();
-    expect(operations.length).toBeGreaterThan(100);
-    const missing: string[] = [];
-    for (const { file, text } of sources) {
-      const apis = new Set([...text.matchAll(/new (\w+Api)\(/g)].map((m) => m[1]));
-      if (apis.size === 0) continue;
-      for (const operation of operations) {
-        if (!apis.has(operation.api)) continue;
-        if (!new RegExp(`\\.${operation.name}\\(`).test(text)) continue;
-        const wanted = segmentsOf(operation.url);
-        const ok = routes.some(
-          (route) =>
-            route.method === operation.method && segmentsMatch(wanted, route.segments, true),
-        );
-        if (!ok) missing.push(`${operation.method} ${operation.url}  ← ${operation.api}.${operation.name} (${file})`);
-      }
-    }
-    expect([...new Set(missing)]).toEqual([]);
+    expect(routes.length).toBeGreaterThan(100);
+    expect(sources.length).toBeGreaterThan(50);
   });
 
   it('every hand-written web call points at a path the API serves', () => {

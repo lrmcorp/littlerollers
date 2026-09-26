@@ -1,26 +1,66 @@
-import {
-  ClassesApi,
-  Configuration,
-  AttendanceApi,
-  IdentityApi,
-  MasterApi,
-  type ClassSlot,
-  type CompletionResult,
-} from '@dailydose/api-client-ts/generated';
+import { apiFetch } from '../lib/api-client';
 import { appLoading } from '../components/app-loading';
 import { notifySessionFailure } from './session-client';
-export type { ClassSlot };
+
+export type ClassSlotStatus =
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'CONFIRMED'
+  | 'AUTO_CANCELLED'
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | string;
+
+export type ClassSlotCancellationReason =
+  | 'STUDIO_UNAVAILABLE'
+  | 'INSTRUCTOR_UNAVAILABLE'
+  | 'SAFETY_ISSUE'
+  | 'OTHER_REVIEW_REQUIRED'
+  | string;
+
+export interface ClassSlot {
+  id: string;
+  branchId: string;
+  classTypeId: string;
+  studioId: string;
+  roomId?: string | null;
+  instructorUserId?: string | null;
+  startAt: Date;
+  endAt: Date;
+  timezone: string;
+  status: ClassSlotStatus;
+  minimumQuota: number;
+  capacity: number;
+  bookedCount: number;
+  cancellationReasonCode?: ClassSlotCancellationReason | null;
+  version: number;
+  idempotentReplay?: boolean;
+}
+
+export interface CompletionResult {
+  classSlotId: string;
+  status: any;
+  attendanceCount: number;
+  noShowCount?: number;
+  releasedReservationIds?: Array<string>;
+  ledgerEntryIds: Array<string>;
+  idempotentReplay?: boolean;
+  [key: string]: any;
+}
+
 export interface ClassTypeOption {
   id: string;
   code: string;
   name: string;
   branchId?: string;
 }
+
 export interface InstructorOption {
   id: string;
   displayName: string;
   branchId?: string;
 }
+
 export interface RoomOption {
   id: string;
   studioId: string;
@@ -28,6 +68,7 @@ export interface RoomOption {
   name: string;
   capacity?: number | null;
 }
+
 export interface StudioOption {
   id: string;
   branchId: string;
@@ -35,6 +76,7 @@ export interface StudioOption {
   name: string;
   rooms: RoomOption[];
 }
+
 export interface ClassWorkspace {
   slots: ClassSlot[];
   classTypes: ClassTypeOption[];
@@ -42,6 +84,7 @@ export interface ClassWorkspace {
   studios: StudioOption[];
   nextCursor?: string | null;
 }
+
 export interface ClassSlotClient {
   discover(input: {
     branchId?: string;
@@ -76,7 +119,10 @@ export interface ClassSlotClient {
   cancel(
     id: string,
     reasonCode:
-      'STUDIO_UNAVAILABLE' | 'INSTRUCTOR_UNAVAILABLE' | 'SAFETY_ISSUE' | 'OTHER_REVIEW_REQUIRED',
+      | 'STUDIO_UNAVAILABLE'
+      | 'INSTRUCTOR_UNAVAILABLE'
+      | 'SAFETY_ISSUE'
+      | 'OTHER_REVIEW_REQUIRED',
     expectedVersion: number,
   ): Promise<ClassSlot>;
   completionControl(id: string): Promise<{
@@ -94,32 +140,64 @@ export interface ClassSlotClient {
     reason: string,
   ): Promise<CompletionResult>;
 }
-const api = new ClassesApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
-const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
-const attendance = new AttendanceApi(configuration);
-const identity = new IdentityApi(configuration);
-const master = new MasterApi(configuration);
+
 const key = () => crypto.randomUUID();
+
 export const browserClassSlotClient: ClassSlotClient = {
   async discover(input) {
     const scopedBranches = input.branchId
       ? [{ id: input.branchId, timezone: input.timezone }]
       : (input.branches ?? []);
+
+    const params = new URLSearchParams();
+    if (input.branchId) params.set('branchId', input.branchId);
+    if (input.from) params.set('from', input.from.toISOString());
+    if (input.until) params.set('until', input.until.toISOString());
+    if (input.status) params.set('status', input.status);
+    params.set('limit', '500');
+
     const [slots, branchWorkspaces] = await appLoading.track(
       Promise.all([
-        api.listClassSlots({
-          branchId: input.branchId,
-          from: input.from,
-          until: input.until,
-          status: input.status,
-        }),
+        apiFetch<{ items: ClassSlot[]; page: { nextCursor?: string | null } }>(
+          `/class-slots?${params.toString()}`,
+          { label: 'Memuat jadwal kelas…' },
+        ),
         Promise.all(
           scopedBranches.map(async (branch) => {
             const [classTypes, users, assignments, studios] = await Promise.all([
-              master.listClassTypes({ branchId: branch.id }),
-              identity.listUsers({ branchId: branch.id }),
-              identity.listAssignments({ branchId: branch.id }),
-              master.listBranchStudios({ id: branch.id }),
+              apiFetch<{ items: Array<{ id: string; code: string; name: string; active?: boolean }> }>(
+                `/class-types?branchId=${encodeURIComponent(branch.id)}`,
+              ),
+              apiFetch<{ items: Array<{ id: string; displayName: string; status: string }> }>(
+                `/users?branchId=${encodeURIComponent(branch.id)}`,
+              ),
+              apiFetch<{
+                items: Array<{
+                  id: string;
+                  userId: string;
+                  branchId: string;
+                  assignmentType: string;
+                  activeFrom: string | Date;
+                  activeUntil?: string | Date | null;
+                }>;
+              }>(`/assignments?branchId=${encodeURIComponent(branch.id)}`),
+              apiFetch<{
+                items: Array<{
+                  id: string;
+                  branchId: string;
+                  code: string;
+                  name: string;
+                  active?: boolean;
+                  rooms?: Array<{
+                    id: string;
+                    studioId: string;
+                    code: string;
+                    name: string;
+                    capacity?: number | null;
+                    active?: boolean;
+                  }>;
+                }>;
+              }>(`/branches/${encodeURIComponent(branch.id)}/studios`),
             ]);
             return { branch, classTypes, users, assignments, studios };
           }),
@@ -127,6 +205,7 @@ export const browserClassSlotClient: ClassSlotClient = {
       ]),
       { label: 'Memuat jadwal kelas…' },
     );
+
     const branchDate = (value: Date) =>
       new Intl.DateTimeFormat('en-CA', {
         timeZone: input.timezone,
@@ -134,27 +213,31 @@ export const browserClassSlotClient: ClassSlotClient = {
         month: '2-digit',
         day: '2-digit',
       }).format(value);
+
     const weekStart = branchDate(input.from);
     const weekEnd = branchDate(input.until);
+
     const classTypeOptions = branchWorkspaces.flatMap(({ branch, classTypes }) =>
-      classTypes.items
-        .filter((item) => item.active)
+      (classTypes.items ?? [])
+        .filter((item) => item.active !== false)
         .map(({ id, code, name }) => ({ id, code, name, branchId: branch.id })),
     );
+
     const instructorOptions = branchWorkspaces.flatMap(({ branch, users, assignments }) => {
       const instructorIds = new Set(
-        assignments.items
+        (assignments.items ?? [])
           .filter(
             (assignment) =>
               assignment.assignmentType === 'INSTRUCTOR' &&
               assignment.branchId === branch.id &&
-              assignment.activeFrom.toISOString().slice(0, 10) < weekEnd &&
+              new Date(assignment.activeFrom).toISOString().slice(0, 10) < weekEnd &&
               (!assignment.activeUntil ||
-                assignment.activeUntil.toISOString().slice(0, 10) > weekStart),
+                new Date(assignment.activeUntil).toISOString().slice(0, 10) > weekStart),
           )
           .map((assignment) => assignment.userId),
       );
-      return users.items
+
+      return (users.items ?? [])
         .filter((user) => user.status === 'ACTIVE' && instructorIds.has(user.id))
         .map((user) => ({
           id: user.id,
@@ -162,21 +245,28 @@ export const browserClassSlotClient: ClassSlotClient = {
           displayName: user.displayName || `Instructor ${user.id.slice(0, 8)}`,
         }));
     });
+
+    const parsedSlots = (slots.items ?? []).map((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
+
     return {
-      slots: slots.items,
-      nextCursor: slots.page.nextCursor,
+      slots: parsedSlots,
+      nextCursor: slots.page?.nextCursor ?? null,
       classTypes: classTypeOptions,
       instructors: [...new Map(instructorOptions.map((item) => [item.id, item])).values()],
       studios: branchWorkspaces.flatMap(({ branch, studios }) =>
-        studios.items
-          .filter((studio) => studio.active)
+        (studios.items ?? [])
+          .filter((studio) => studio.active !== false)
           .map((studio) => ({
             id: studio.id,
             branchId: branch.id,
             code: studio.code,
             name: studio.name,
             rooms: (studio.rooms ?? [])
-              .filter((room) => room.active)
+              .filter((room) => room.active !== false)
               .map(({ id, studioId, code, name, capacity }) => ({
                 id,
                 studioId,
@@ -188,73 +278,121 @@ export const browserClassSlotClient: ClassSlotClient = {
       ),
     };
   },
+
   create(input) {
-    return appLoading.track(
-      api.createClassSlot({ idempotencyKey: key(), classSlotCommand: input }),
-      { label: 'Membuat kelas…' },
-    );
+    return apiFetch<ClassSlot>('/class-slots', {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({
+        branchId: input.branchId,
+        classTypeId: input.classTypeId,
+        studioId: input.studioId,
+        roomId: input.roomId,
+        instructorUserId: input.instructorUserId,
+        startAt: input.startAt.toISOString(),
+        endAt: input.endAt.toISOString(),
+      }),
+      label: 'Membuat kelas…',
+    }).then((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
   },
+
   update(id, input) {
-    return appLoading.track(
-      api.updateDraftClassSlot({
-        id,
-        idempotencyKey: key(),
-        classSlotUpdateCommand: input,
+    return apiFetch<ClassSlot>(`/class-slots/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({
+        classTypeId: input.classTypeId,
+        instructorUserId: input.instructorUserId,
+        startAt: input.startAt.toISOString(),
+        endAt: input.endAt.toISOString(),
+        expectedVersion: input.expectedVersion,
+        reason: input.reason,
       }),
-      { label: 'Menyimpan perubahan kelas…' },
-    );
+      label: 'Menyimpan perubahan kelas…',
+    }).then((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
   },
+
   assign(id, instructorUserId, expectedVersion) {
-    return appLoading.track(
-      api.assignClassSlotInstructor({
-        id,
-        idempotencyKey: key(),
-        assignInstructorCommand: { instructorUserId, expectedVersion },
-      }),
-      { label: 'Menetapkan instruktur…' },
-    );
+    return apiFetch<ClassSlot>(`/class-slots/${encodeURIComponent(id)}/assign-instructor`, {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({ instructorUserId, expectedVersion }),
+      label: 'Menetapkan instruktur…',
+    }).then((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
   },
+
   publish(id, expectedVersion) {
-    return appLoading.track(
-      api.publishClassSlot({
-        id,
-        idempotencyKey: key(),
-        classSlotVersionCommand: { expectedVersion },
-      }),
-      { label: 'Menerbitkan kelas…' },
-    );
+    return apiFetch<ClassSlot>(`/class-slots/${encodeURIComponent(id)}/publish`, {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({ expectedVersion }),
+      label: 'Menerbitkan kelas…',
+    }).then((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
   },
+
   cancel(id, reasonCode, expectedVersion) {
-    return appLoading.track(
-      api.cancelClassSlot({
-        id,
-        idempotencyKey: key(),
-        classSlotCancellationCommand: { reasonCode, expectedVersion },
-      }),
-      { label: 'Membatalkan kelas…' },
-    );
+    return apiFetch<ClassSlot>(`/class-slots/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({ reasonCode, expectedVersion }),
+      label: 'Membatalkan kelas…',
+    }).then((slot) => ({
+      ...slot,
+      startAt: new Date(slot.startAt),
+      endAt: new Date(slot.endAt),
+    }));
   },
-  async completionControl(id) {
-    return appLoading.track(attendance.getClassCompletionControl({ id }), {
+
+  completionControl(id) {
+    return apiFetch<{
+      classSlotId: string;
+      expectedVersion: number;
+      controlHash: string;
+      attendanceCount: number;
+      noShowCount: number;
+      activeReservationCount: number;
+    }>(`/class-slots/${encodeURIComponent(id)}/completion-control`, {
       label: 'Memverifikasi roster kelas…',
     });
   },
+
   complete(id, expectedVersion, controlHash, reason) {
-    return appLoading.track(
-      attendance.completeClassSlot({
-        id,
-        idempotencyKey: key(),
-        completeClassCommand: { expectedVersion, controlHash, reason },
-      }),
-      { label: 'Menyelesaikan kelas…' },
-    );
+    return apiFetch<CompletionResult>(`/class-slots/${encodeURIComponent(id)}/complete`, {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key() },
+      body: JSON.stringify({ expectedVersion, controlHash, reason }),
+      label: 'Menyelesaikan kelas…',
+    });
   },
 };
+
 export function classSlotFailure(error: unknown) {
   notifySessionFailure(error);
-  const status = (error as { response?: { status?: number } })?.response?.status;
-  const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data
-    ?.error?.code;
+  const status = (error as { response?: { status?: number }; status?: number })?.response?.status ?? (error as { status?: number })?.status;
+  const code = (error as { response?: { data?: { error?: { code?: string } } }; data?: { error?: { code?: string } } })?.response?.data
+    ?.error?.code ?? (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
   const messages: Record<string, string> = {
     CONFIGURATION_REQUIRED: 'Konfigurasi quota atau capacity belum tersedia untuk waktu tersebut.',
     AVAILABILITY_REQUIRED: 'Availability instructor belum mencakup seluruh waktu kelas.',

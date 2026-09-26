@@ -64,12 +64,16 @@ export class IdentityDocumentAccessService {
       const doc = await (this.db as any).dokumenVerifikasiIdentitas.findUnique({
         where: { id: documentId },
       });
-      if (doc && (doc.scanStatus !== 'CLEAN' || doc.uploadStatus !== 'FINALIZED')) {
+      if (
+        !doc ||
+        doc.scanStatus !== 'CLEAN' ||
+        doc.uploadStatus !== 'FINALIZED' ||
+        doc.status === 'DELETED' ||
+        doc.replacedById
+      ) {
         throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       }
-      if (doc) {
-        profile = { ktpUrl: doc.objectKey, selfieUrl: doc.objectKey };
-      }
+      profile = { ktpUrl: doc.objectKey, selfieUrl: doc.objectKey };
     }
 
     const objectKey = kind === 'selfie' ? profile?.selfieUrl : profile?.ktpUrl;

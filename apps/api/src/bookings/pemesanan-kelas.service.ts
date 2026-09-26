@@ -6,7 +6,7 @@ import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 
 export type BookingCancellationReasonCode =
   | 'PERSONAL_UNAVAILABLE'
@@ -27,8 +27,8 @@ export type CancelBookingCommand = {
   reason?: string;
 };
 
-export const ENTITY_ID_REGEX = /^[0-9a-zA-Z_-]{8,40}$/;
-const UUID = ENTITY_ID_REGEX;
+export { ENTITY_ID_REGEX };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PAGE_SIZE = 20;
 
 export function isCancellationEntitled(

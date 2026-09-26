@@ -1,10 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
-import { ApiProblem, newId } from './security';
+import { ApiProblem, ENTITY_ID_REGEX, newId } from './security';
 import { Role } from '@prisma/client';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX = ENTITY_ID_REGEX;
 
 @Injectable()
 export class OwnerBranchService {

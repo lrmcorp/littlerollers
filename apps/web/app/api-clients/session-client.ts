@@ -1,4 +1,3 @@
-import { AuthApi, Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
 
 export type SessionStatus =
@@ -34,29 +33,50 @@ export interface SessionClient {
   logout(): Promise<void>;
 }
 
-const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
-const identity = new IdentityApi(configuration);
-const auth = new AuthApi(configuration);
+async function sessionFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+    ...init,
+  });
+  if (!response.ok) {
+    const error = new Error(`Session request failed: ${response.status}`);
+    (error as any).response = { status: response.status };
+    throw error;
+  }
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+  return response.json() as Promise<T>;
+}
 
 export const browserSessionClient: SessionClient = {
   async me() {
     let value: Omit<WebSession, 'sessionExpiresAt'> & { sessionExpiresAt: Date | string };
     try {
-      value = (await appLoading.track(identity.getMe(), {
+      value = (await appLoading.track(sessionFetch<any>('/me'), {
         label: 'Memuat sesi…',
       })) as unknown as typeof value;
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status !== 401) throw error;
-      await appLoading.track(auth.refreshSession(), { label: 'Memperbarui sesi…' });
-      value = (await appLoading.track(identity.getMe(), {
+      await appLoading.track(sessionFetch<void>('/auth/refresh', { method: 'POST' }), {
+        label: 'Memperbarui sesi…',
+      });
+      value = (await appLoading.track(sessionFetch<any>('/me'), {
         label: 'Memuat sesi…',
       })) as unknown as typeof value;
     }
     return { ...value, sessionExpiresAt: new Date(value.sessionExpiresAt) };
   },
   async logout() {
-    await appLoading.track(auth.logout(), { label: 'Keluar dari akun…' });
+    await appLoading.track(sessionFetch<void>('/auth/logout', { method: 'POST' }), {
+      label: 'Keluar dari akun…',
+    });
   },
 };
 

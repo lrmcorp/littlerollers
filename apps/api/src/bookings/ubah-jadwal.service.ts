@@ -6,7 +6,7 @@ import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 
 export type RescheduleRequestReasonCode =
   | 'CUSTOMER_SCHEDULE_CONFLICT'
@@ -33,7 +33,7 @@ export type RescheduleDecisionCommand = {
   expectedVersion?: number;
 };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = ENTITY_ID_REGEX;
 const REQUEST_CODES: RescheduleRequestReasonCode[] = [
   'CUSTOMER_SCHEDULE_CONFLICT',
   'WRONG_CLASS_SELECTED',

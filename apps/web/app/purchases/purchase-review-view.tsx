@@ -67,6 +67,17 @@ const dateInput = (value?: Date) =>
     ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
     : '';
 
+const safeDate = (val?: Date | string | null): Date | null => {
+  if (!val) return null;
+  const d = val instanceof Date ? val : new Date(val);
+  return Number.isFinite(d.getTime()) ? d : null;
+};
+
+const safeFormatDateTime = (val?: Date | string | null, fallback = '-'): string => {
+  const d = safeDate(val);
+  return d ? d.toLocaleString('id-ID') : fallback;
+};
+
 export const paymentStatusTone = (status: string): 'neutral' | 'success' | 'warning' | 'danger' =>
   status === 'APPROVED'
     ? 'success'
@@ -80,11 +91,12 @@ export type PaymentRowState = 'danger' | 'success' | 'warning' | 'neutral' | 'de
 
 export function paymentRowState(item: ReviewPurchase, now = new Date()): PaymentRowState {
   const activation = item.activationSummary;
+  const expiryTime = activation?.expiryAt ? new Date(activation.expiryAt).getTime() : 0;
   if (
     item.status === 'REJECTED' ||
     item.status === 'EXPIRED' ||
     activation?.status === 'EXPIRED' ||
-    Boolean(activation && activation.expiryAt.getTime() <= now.getTime())
+    Boolean(activation && expiryTime > 0 && expiryTime <= now.getTime())
   )
     return 'danger';
   if (item.status === 'APPROVED' && activation?.status === 'ACTIVE') return 'success';
@@ -105,6 +117,11 @@ const rowClasses: Record<PaymentRowState, string> = {
 const sessionSummary = (item: ReviewPurchase) => {
   const activation = item.activationSummary;
   if (!activation) return <span className="text-xs text-dd-muted">Paket belum diaktifkan</span>;
+  const expiryDate = activation.expiryAt ? new Date(activation.expiryAt) : null;
+  const expiryFormatted =
+    expiryDate && Number.isFinite(expiryDate.getTime())
+      ? expiryDate.toLocaleDateString('id-ID')
+      : 'Tanggal tidak valid';
   return (
     <div className="text-xs leading-5">
       <strong className="block text-sm text-dd-ink">
@@ -117,14 +134,18 @@ const sessionSummary = (item: ReviewPurchase) => {
       <span className="block text-dd-muted">
         {activation.status === 'EXPIRED'
           ? '0 sesi dapat digunakan'
-          : `Berlaku hingga ${activation.expiryAt.toLocaleDateString('id-ID')}`}
+          : `Berlaku hingga ${expiryFormatted}`}
       </span>
     </div>
   );
 };
 
-const ageLabel = (submittedAt: Date) => {
-  const hours = Math.max(0, Math.floor((Date.now() - submittedAt.getTime()) / 3_600_000));
+const ageLabel = (submittedAt: Date | string) => {
+  const time = new Date(submittedAt).getTime();
+  const hours = Math.max(
+    0,
+    Math.floor((Date.now() - (Number.isNaN(time) ? Date.now() : time)) / 3_600_000),
+  );
   if (hours < 1) return 'Kurang dari 1 jam';
   if (hours < 24) return `${hours} jam`;
   return `${Math.floor(hours / 24)} hari`;
@@ -413,7 +434,7 @@ export function PurchaseReviewView({
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs text-dd-muted">
-              {generatedAt ? `Diperbarui ${generatedAt.toLocaleString('id-ID')}` : 'Belum dimuat'}
+              {generatedAt ? `Diperbarui ${safeFormatDateTime(generatedAt)}` : 'Belum dimuat'}
             </span>
             <Button
               variant="secondary"
@@ -644,7 +665,7 @@ export function PurchaseReviewView({
                       : item.paymentProof.scanStatus}
                   </Badge>
                   <p className="mt-1 text-xs text-dd-muted">
-                    Dikirim {item.submittedAt.toLocaleString('id-ID')}
+                    Dikirim {safeFormatDateTime(item.submittedAt)}
                   </p>
                 </div>
               ) : (
@@ -659,7 +680,7 @@ export function PurchaseReviewView({
                 {ageLabel(item.submittedAt)}
                 <p className="text-xs text-dd-muted">
                   {item.paymentExpiresAt
-                    ? `Berakhir ${item.paymentExpiresAt.toLocaleString('id-ID')}`
+                    ? `Berakhir ${safeFormatDateTime(item.paymentExpiresAt)}`
                     : 'Tanpa batas pembayaran'}
                 </p>
               </div>
@@ -693,7 +714,7 @@ export function PurchaseReviewView({
               <p className="text-xs text-dd-muted">Nominal transfer</p>
               <strong>{formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}</strong>
               <p className="mt-1 text-xs text-dd-muted">
-                Bukti dikirim {item.submittedAt.toLocaleString('id-ID')}
+                Bukti dikirim {safeFormatDateTime(item.submittedAt)}
               </p>
             </div>
             <div>{sessionSummary(item)}</div>

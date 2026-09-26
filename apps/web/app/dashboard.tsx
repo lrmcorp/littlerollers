@@ -249,7 +249,10 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   const showRisk = Boolean(overview?.sections.risk);
 
   return (
-    <div className="space-y-6 font-sans text-dd-ink">
+    <div className="space-y-8 font-sans text-dd-ink">
+      {/* ========================================================================= */}
+      {/* ZONE 1: EXECUTIVE CONTEXT & HEADER                                       */}
+      {/* ========================================================================= */}
       <AdminPageHeader
         eyebrow={copy.eyebrow}
         title={`Selamat datang, ${session.displayName}`}
@@ -259,42 +262,30 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </>
         }
         actions={
-          <>
-            <DateInput
-              label="Dari"
-              value={from}
-              max={until}
-              compact
-              onChange={(event) => setFrom(event.target.value)}
-              wrapperClassName="min-w-36"
-            />
-            <DateInput
-              label="Sampai"
-              value={until}
-              min={from}
-              compact
-              onChange={(event) => setUntil(event.target.value)}
-              wrapperClassName="min-w-36"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone={activeBranch ? 'success' : 'neutral'}>
+              {activeBranch ? `Cabang: ${activeBranch.name}` : 'Semua Cabang'}
+            </Badge>
             <Button
               variant="secondary"
+              size="sm"
               onClick={() => void load()}
               disabled={loading}
               leadingIcon={
                 <RefreshCw
-                  className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                  className={`size-3.5 ${loading ? 'animate-spin' : ''}`}
                   aria-hidden="true"
                 />
               }
             >
-              Segarkan
+              Segarkan data
             </Button>
-          </>
+          </div>
         }
       />
 
-      {/* Satu baris cakupan: cabang, periode, dan kesegaran data. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs font-medium text-dd-muted">
+      {/* Satu baris cakupan: cabang, periode, dan kesegaran data */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-dd-lg border border-dd-line/70 bg-white/70 px-4 py-2.5 text-xs font-medium text-dd-muted">
         <span>
           {activeBranch ? (
             <>
@@ -302,9 +293,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               {activeBranch.code} · {activeBranch.timezone})
             </>
           ) : (
-            <strong className="text-dd-ink">Semua cabang yang diizinkan</strong>
-          )}{' '}
-          · Periode {shortDate(from)} – {shortDate(until)}
+            <strong className="text-dd-ink">Mode Lintas Cabang (Semua Cabang yang Diizinkan)</strong>
+          )}
         </span>
         {overview && (
           <time dateTime={String(overview.generatedAt)} className="flex items-center gap-1.5">
@@ -315,7 +305,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
               timeStyle: 'short',
             })}
             {' · '}
-            Sumber data s.d.{' '}
+            Sumber s.d.{' '}
             {new Date(overview.financial.sourceCutoffAt).toLocaleString('id-ID', {
               dateStyle: 'medium',
               timeStyle: 'short',
@@ -342,152 +332,119 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {overview?.financial.completeness === 'INCOMPLETE' && (
         <Feedback kind="warning">
           Laporan keuangan belum lengkap ({overview.financial.anomalyCount} anomali). Angka ini
-          belum boleh digunakan untuk tutup buku atau persetujuan Finance.
+          belum boleh digunakan untuk monthly close atau sign-off Finance.
         </Feedback>
       )}
 
-      {/* Prioritas: pekerjaan yang menunggu keputusan dan kelas berisiko. */}
+      {/* ========================================================================= */}
+      {/* ZONE 2: ACTION CENTER (URGENT FIRST)                                     */}
+      {/* ========================================================================= */}
       {overview && (showQueue || showRisk) && (
-        <div className={`grid gap-6 ${showQueue && showRisk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
-          {showQueue && (
-            <Panel className="p-6" aria-labelledby="dashboard-queue-title">
-              <div className="flex items-center justify-between gap-3 border-b border-dd-line/60 pb-4">
-                <div>
+        <section aria-label="Pusat Tindakan & Antrean" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+              Pusat Tindakan & Antrean
+            </span>
+            {queueTotal > 0 && (
+              <span className="text-xs font-semibold text-dd-brass">
+                {queueTotal} pekerjaan menunggu tindakan
+              </span>
+            )}
+          </div>
+          <div className={`grid gap-6 ${showQueue && showRisk ? 'xl:grid-cols-[1.5fr_1fr]' : ''}`}>
+            {showQueue && (
+              <Panel className="p-6" aria-labelledby="dashboard-queue-title">
+                <div className="flex items-center justify-between gap-3 border-b border-dd-line/60 pb-4">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                      Antrean kerja
+                    </span>
+                    <h2
+                      id="dashboard-queue-title"
+                      className="mt-1 font-sans text-xl font-bold text-dd-ink"
+                    >
+                      Perlu perhatian Anda
+                    </h2>
+                  </div>
+                  <Badge tone={queueTotal > 0 ? 'warning' : 'success'}>{queueTotal} item</Badge>
+                </div>
+                <div className="mt-2 divide-y divide-dd-line/60">
+                  {overview.queues.length ? (
+                    overview.queues.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        className="group flex items-center gap-4 rounded-dd-md px-2 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30"
+                      >
+                        <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
+                          {item.count}
+                        </span>
+                        <span className="text-sm font-semibold sm:text-base">{item.label}</span>
+                        <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="py-10 text-center text-sm text-dd-muted">
+                      <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
+                      Tidak ada antrean yang membutuhkan tindakan.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {showRisk && (
+              <Panel className="p-6" aria-labelledby="dashboard-risk-title">
+                <div className="border-b border-dd-line/60 pb-4">
                   <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                    Antrean kerja
+                    Pantauan H-24
                   </span>
                   <h2
-                    id="dashboard-queue-title"
+                    id="dashboard-risk-title"
                     className="mt-1 font-sans text-xl font-bold text-dd-ink"
                   >
-                    Perlu perhatian Anda
+                    Kelas berisiko
                   </h2>
                 </div>
-                <Badge tone={queueTotal > 0 ? 'warning' : 'success'}>{queueTotal} item</Badge>
-              </div>
-              <div className="mt-2 divide-y divide-dd-line/60">
-                {overview.queues.length ? (
-                  overview.queues.map((item) => (
-                    <Link
-                      key={item.key}
-                      href={item.href}
-                      className="group flex items-center gap-4 rounded-dd-md px-2 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30"
-                    >
-                      <span className="grid size-10 place-items-center rounded-dd-md bg-dd-brass-soft font-bold text-dd-brass-dark shadow-sm">
-                        {item.count}
-                      </span>
-                      <span className="text-sm font-semibold sm:text-base">{item.label}</span>
-                      <ArrowRight className="ml-auto size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest" />
-                    </Link>
-                  ))
-                ) : (
-                  <div className="py-10 text-center text-sm text-dd-muted">
-                    <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
-                    Tidak ada antrean yang membutuhkan tindakan.
-                  </div>
-                )}
-              </div>
-            </Panel>
-          )}
-
-          {showRisk && (
-            <Panel className="p-6" aria-labelledby="dashboard-risk-title">
-              <div className="border-b border-dd-line/60 pb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                  Pantauan H-24
-                </span>
-                <h2
-                  id="dashboard-risk-title"
-                  className="mt-1 font-sans text-xl font-bold text-dd-ink"
-                >
-                  Kelas berisiko
-                </h2>
-              </div>
-              <div className="mt-4 space-y-3">
-                {overview.risks.length ? (
-                  overview.risks.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      className="flex gap-3.5 rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
-                    >
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
-                      <span className="min-w-0 flex-1">
-                        <strong className="block truncate text-sm font-bold text-dd-ink">
-                          {item.className}
-                        </strong>
-                        <span className="mt-1 block text-xs text-dd-muted">
-                          {item.bookedCount}/{item.minimumQuota} kuota minimum ·{' '}
-                          {new Date(item.startAt).toLocaleString('id-ID', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
-                        </span>
-                      </span>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="py-10 text-center text-sm text-dd-muted">
-                    <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
-                    Tidak ada kelas berisiko dalam 24 jam.
-                  </div>
-                )}
-              </div>
-            </Panel>
-          )}
-        </div>
-      )}
-
-      {/* Pintasan sesuai peran dan hak akses akun (dari registry halaman). */}
-      {shortcuts.length > 0 && (
-        <section aria-labelledby="dashboard-shortcuts-title" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2
-              id="dashboard-shortcuts-title"
-              className="text-xs font-bold uppercase tracking-wider text-dd-forest"
-            >
-              Pintasan
-            </h2>
-            <span className="text-xs text-dd-muted">Pekerjaan harian sesuai peran Anda</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            {shortcuts.map((page) => {
-              const Icon = iconForPage(page.href);
-              const count = page.queueBadgeSource ? (queueCounts[page.queueBadgeSource] ?? 0) : 0;
-              return (
-                <Link
-                  key={page.href}
-                  href={page.href}
-                  className="group flex flex-col justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white p-4 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-dd-forest hover:shadow-dd-card"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
-                      <Icon className="size-5" aria-hidden="true" />
-                    </span>
-                    {count > 0 && (
-                      <span
-                        aria-label={`${count} antrean`}
-                        className="rounded-full bg-dd-brass px-2 py-0.5 text-[11px] font-bold text-white"
+                <div className="mt-4 space-y-3">
+                  {overview.risks.length ? (
+                    overview.risks.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className="flex gap-3.5 rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/30 p-3.5 text-dd-ink no-underline transition hover:border-dd-forest/60 hover:bg-white"
                       >
-                        {count}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <strong className="block text-sm font-bold text-dd-ink">
-                      {page.shortLabel}
-                    </strong>
-                    <span className="mt-0.5 line-clamp-2 text-xs text-dd-muted">
-                      {page.description}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dd-warning" />
+                        <span className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm font-bold text-dd-ink">
+                            {item.className}
+                          </strong>
+                          <span className="mt-1 block text-xs text-dd-muted">
+                            {item.bookedCount}/{item.minimumQuota} kuota minimum ·{' '}
+                            {new Date(item.startAt).toLocaleString('id-ID', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </span>
+                        </span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="py-10 text-center text-sm text-dd-muted">
+                      <CheckCircle2 className="mx-auto mb-2 size-8 text-dd-success/60" />
+                      Tidak ada kelas berisiko dalam 24 jam.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
           </div>
         </section>
       )}
 
+      {/* ========================================================================= */}
+      {/* ZONE 3: EXECUTIVE HERO KPIS & PERFORMANCE METRICS                        */}
+      {/* ========================================================================= */}
       {overview &&
         (() => {
           const metrics = overview.metrics ?? [];
@@ -528,33 +485,35 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           };
 
           return (
-            <div className="space-y-8">
+            <div className="space-y-6">
+              {operationalMetrics.length > 0 && (
+                <section aria-label="Kinerja operasional dan member" className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                      Indikator Utama Operasional & Member
+                    </span>
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                    {operationalMetrics.map(renderCard)}
+                  </div>
+                </section>
+              )}
+
               {financialMetrics.length > 0 && (
                 <section aria-label="Performa finansial" className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                      Performa Finansial
+                      Rincian Finansial & Transaksi
                     </span>
                     {overview.financial.completeness === 'INCOMPLETE' && (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 shadow-sm">
                         <span className="size-1.5 rounded-full bg-amber-500" />
-                        {overview.financial.anomalyCount} anomali data migrasi
+                        {overview.financial.anomalyCount} anomali data migrasi tercatat
                       </span>
                     )}
                   </div>
                   <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                     {financialMetrics.map(renderCard)}
-                  </div>
-                </section>
-              )}
-
-              {operationalMetrics.length > 0 && (
-                <section aria-label="Kinerja operasional dan member" className="space-y-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                    Kinerja Operasional & Member
-                  </span>
-                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                    {operationalMetrics.map(renderCard)}
                   </div>
                 </section>
               )}
@@ -573,129 +532,227 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         </div>
       )}
 
-      {overview?.sections.trend && (
-        <Panel className="p-6 sm:p-8">
-          <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-                Tren periode
-              </span>
-              <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
-                {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
-                  ? 'Omzet dan profit operasional'
-                  : 'Pergerakan booking'}
-              </h2>
-            </div>
-            <TrendingUp className="size-5 text-dd-forest opacity-80" />
-          </div>
-          <TrendChart
-            points={overview.trend}
-            finance={focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'}
-          />
-        </Panel>
-      )}
-
-      {overview?.branches.length ? (
-        <section aria-labelledby="dashboard-branches-title" className="space-y-3">
+      {/* ========================================================================= */}
+      {/* ZONE 4: ANALYTICS & TRENDS (WITH INTEGRATED DATE RANGE TOOLBAR)           */}
+      {/* ========================================================================= */}
+      <section aria-label="Analisis tren dan portofolio" className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-dd-line/60 pb-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              Portofolio cabang
+              Analisis Tren & Portofolio
             </span>
-            <h2
-              id="dashboard-branches-title"
-              className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl"
-            >
-              Performa per cabang
+            <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
+              Performa Periode Historis
             </h2>
           </div>
-          <DataTable
-            items={overview.branches}
-            rowKey={(branch) => branch.id}
-            showRowNumbers={false}
-            columns={[
-              {
-                id: 'branch',
-                header: 'Cabang',
-                cell: (branch) => (
-                  <>
-                    <strong className="font-bold text-dd-ink">{branch.name}</strong>
-                    <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+          <div className="flex flex-wrap items-center gap-3">
+            <DateInput
+              label="Dari"
+              value={from}
+              max={until}
+              compact
+              onChange={(event) => setFrom(event.target.value)}
+              wrapperClassName="min-w-36"
+            />
+            <DateInput
+              label="Sampai"
+              value={until}
+              min={from}
+              compact
+              onChange={(event) => setUntil(event.target.value)}
+              wrapperClassName="min-w-36"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void load()}
+              disabled={loading}
+              leadingIcon={
+                <RefreshCw
+                  className={`size-3.5 ${loading ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+              }
+            >
+              Terapkan
+            </Button>
+          </div>
+        </div>
+
+        {overview?.sections.trend && (
+          <Panel className="p-6 sm:p-8">
+            <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
+              <div>
+                <h3 className="font-sans text-lg font-bold text-dd-ink">
+                  {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
+                    ? 'Omzet dan profit operasional'
+                    : 'Pergerakan booking'}
+                </h3>
+                <p className="text-xs text-dd-muted">Grafik fluktuasi harian dalam periode terpilih</p>
+              </div>
+              <TrendingUp className="size-5 text-dd-forest opacity-80" />
+            </div>
+            <TrendChart
+              points={overview.trend}
+              finance={focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'}
+            />
+          </Panel>
+        )}
+
+        {overview?.branches.length ? (
+          <div className="space-y-3 pt-2">
+            <div>
+              <h3 className="font-sans text-lg font-bold text-dd-ink">
+                Performa per cabang
+              </h3>
+              <p className="text-xs text-dd-muted">Perbandingan omzet, okupansi, dan efisiensi operasional</p>
+            </div>
+            <DataTable
+              items={overview.branches}
+              rowKey={(branch) => branch.id}
+              showRowNumbers={false}
+              columns={[
+                {
+                  id: 'branch',
+                  header: 'Cabang',
+                  cell: (branch) => (
+                    <>
+                      <strong className="font-bold text-dd-ink">{branch.name}</strong>
+                      <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
+                        {branch.code}
+                      </span>
+                    </>
+                  ),
+                },
+                { id: 'revenue', header: 'Omzet', cell: (branch) => formatRupiah(branch.revenueRp) },
+                {
+                  id: 'projection',
+                  header: 'Proyeksi',
+                  cell: (branch) => formatRupiah(branch.projectionRp),
+                },
+                {
+                  id: 'instructor',
+                  header: 'Instruktur',
+                  cell: (branch) => formatRupiah(branch.instructorRealtimeRp),
+                },
+                {
+                  id: 'cost',
+                  header: 'Pengeluaran',
+                  cell: (branch) => formatRupiah(branch.otherCostRp),
+                },
+                {
+                  id: 'profit',
+                  header: 'Profit',
+                  cell: (branch) => (
+                    <span className="font-bold text-dd-forest">{formatRupiah(branch.profitRp)}</span>
+                  ),
+                },
+                {
+                  id: 'bookings',
+                  header: 'Booking',
+                  cell: (branch) => (
+                    <span className="font-semibold">{number.format(branch.bookings)}</span>
+                  ),
+                },
+                {
+                  id: 'occupancy',
+                  header: 'Okupansi',
+                  cell: (branch) => (
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-dd-surface-muted">
+                        <span
+                          className="block h-full rounded-full bg-dd-forest"
+                          style={{ width: `${Math.min(100, branch.occupancyPercent)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold">{branch.occupancyPercent}%</span>
+                    </div>
+                  ),
+                },
+              ]}
+              mobileCard={(branch) => (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="text-dd-ink">{branch.name}</strong>
+                    <span className="rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
                       {branch.code}
                     </span>
-                  </>
-                ),
-              },
-              { id: 'revenue', header: 'Omzet', cell: (branch) => formatRupiah(branch.revenueRp) },
-              {
-                id: 'projection',
-                header: 'Proyeksi',
-                cell: (branch) => formatRupiah(branch.projectionRp),
-              },
-              {
-                id: 'instructor',
-                header: 'Instruktur',
-                cell: (branch) => formatRupiah(branch.instructorRealtimeRp),
-              },
-              {
-                id: 'cost',
-                header: 'Pengeluaran',
-                cell: (branch) => formatRupiah(branch.otherCostRp),
-              },
-              {
-                id: 'profit',
-                header: 'Profit',
-                cell: (branch) => (
-                  <span className="font-bold text-dd-forest">{formatRupiah(branch.profitRp)}</span>
-                ),
-              },
-              {
-                id: 'bookings',
-                header: 'Booking',
-                cell: (branch) => (
-                  <span className="font-semibold">{number.format(branch.bookings)}</span>
-                ),
-              },
-              {
-                id: 'occupancy',
-                header: 'Okupansi',
-                cell: (branch) => (
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-dd-surface-muted">
-                      <span
-                        className="block h-full rounded-full bg-dd-forest"
-                        style={{ width: `${Math.min(100, branch.occupancyPercent)}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold">{branch.occupancyPercent}%</span>
                   </div>
-                ),
-              },
-            ]}
-            mobileCard={(branch) => (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <strong className="text-dd-ink">{branch.name}</strong>
-                  <span className="rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
-                    {branch.code}
-                  </span>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <dt className="text-dd-muted">Omzet</dt>
+                    <dd className="text-right font-medium">{formatRupiah(branch.revenueRp)}</dd>
+                    <dt className="text-dd-muted">Profit</dt>
+                    <dd className="text-right font-bold text-dd-forest">
+                      {formatRupiah(branch.profitRp)}
+                    </dd>
+                    <dt className="text-dd-muted">Booking</dt>
+                    <dd className="text-right font-semibold">{number.format(branch.bookings)}</dd>
+                    <dt className="text-dd-muted">Okupansi</dt>
+                    <dd className="text-right font-bold">{branch.occupancyPercent}%</dd>
+                  </dl>
                 </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <dt className="text-dd-muted">Omzet</dt>
-                  <dd className="text-right font-medium">{formatRupiah(branch.revenueRp)}</dd>
-                  <dt className="text-dd-muted">Profit</dt>
-                  <dd className="text-right font-bold text-dd-forest">
-                    {formatRupiah(branch.profitRp)}
-                  </dd>
-                  <dt className="text-dd-muted">Booking</dt>
-                  <dd className="text-right font-semibold">{number.format(branch.bookings)}</dd>
-                  <dt className="text-dd-muted">Okupansi</dt>
-                  <dd className="text-right font-bold">{branch.occupancyPercent}%</dd>
-                </dl>
-              </div>
-            )}
-          />
+              )}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* ZONE 5: QUICK WORKFLOWS & SYSTEM HEALTH (BOTTOM)                          */}
+      {/* ========================================================================= */}
+      {shortcuts.length > 0 && (
+        <section aria-label="Pintasan" className="space-y-3 pt-2">
+          <div className="flex items-center justify-between border-t border-dd-line/60 pt-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                Akses Cepat
+              </span>
+              <h2
+                id="dashboard-shortcuts-title"
+                className="mt-1 font-sans text-xl font-bold text-dd-ink"
+              >
+                Pintasan Alur Kerja
+              </h2>
+            </div>
+            <span className="text-xs text-dd-muted">Pekerjaan harian sesuai peran Anda</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {shortcuts.map((page) => {
+              const Icon = iconForPage(page.href);
+              const count = page.queueBadgeSource ? (queueCounts[page.queueBadgeSource] ?? 0) : 0;
+              return (
+                <Link
+                  key={page.href}
+                  href={page.href}
+                  className="group flex flex-col justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white p-4 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-dd-forest hover:shadow-dd-card"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    {count > 0 && (
+                      <span
+                        aria-label={`${count} antrean`}
+                        className="rounded-full bg-dd-brass px-2 py-0.5 text-[11px] font-bold text-white"
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <strong className="block text-sm font-bold text-dd-ink">
+                      {page.shortLabel}
+                    </strong>
+                    <span className="mt-0.5 line-clamp-2 text-xs text-dd-muted">
+                      {page.description}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </section>
-      ) : null}
+      )}
 
       {overview?.sections.jobHealth && (
         <Panel className="overflow-hidden">

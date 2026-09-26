@@ -1,13 +1,13 @@
-import type {
-  PublicBranch as GeneratedPublicBranch,
-  PublicClassTypeRef,
-  PublicScheduleSummary,
-} from '@dailydose/api-client-ts/generated';
+import {
+  publicApiStatus,
+  publicGeneratedApi,
+  type PublicBranch,
+  type PublicClassTypeRef,
+  type PublicScheduleSummary,
+} from './public-api-client';
 import { appLoading } from '../components/app-loading';
-import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
-export type PublicBranch = Pick<GeneratedPublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
-  Partial<Pick<GeneratedPublicBranch, 'publicProfile'>>;
+export type { PublicBranch };
 
 export type PublicClassSlot = Omit<
   PublicScheduleSummary,
@@ -42,12 +42,12 @@ export const browserPublicClassCatalogClient: PublicClassCatalogClient = {
         ...item,
         branchId: input.branchId ?? item.branch?.id ?? '',
         classType: item.classType as PublicClassTypeRef,
-        startAt: item.startAt.toISOString(),
-        endAt: item.endAt.toISOString(),
+        startAt: typeof item.startAt === 'string' ? item.startAt : (item.startAt as any).toISOString(),
+        endAt: typeof item.endAt === 'string' ? item.endAt : (item.endAt as any).toISOString(),
       })),
       range: {
-        from: result.range.from.toISOString(),
-        until: result.range.until.toISOString(),
+        from: typeof result.range.from === 'string' ? result.range.from : (result.range.from as any).toISOString(),
+        until: typeof result.range.until === 'string' ? result.range.until : (result.range.until as any).toISOString(),
       },
     };
   },

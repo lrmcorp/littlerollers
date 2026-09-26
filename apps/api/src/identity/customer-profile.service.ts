@@ -59,17 +59,60 @@ export class CustomerProfileService {
     if (isCustomer && input.preferredBranchId === null)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
-    await this.db.user.update({
-      where: { id: principal.userId },
-      data: {
-        displayName,
-        ...(input.preferredBranchId !== undefined
-          ? { preferredBranchId: input.preferredBranchId }
-          : {}),
-      },
-    });
+    const existing = await this.db.user.findUnique({ where: { id: principal.userId } });
+    if (!existing || existing.status !== 'ACTIVE')
+      throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
 
-    return this.get(principal);
+    let updated: any;
+    if (input.expectedVersion !== undefined && (this.db.user as any)?.updateMany) {
+      const changed = await (this.db.user as any).updateMany({
+        where: { id: principal.userId, version: input.expectedVersion, status: 'ACTIVE' },
+        data: {
+          displayName,
+          ...(input.preferredBranchId !== undefined
+            ? { preferredBranchId: input.preferredBranchId }
+            : {}),
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      updated = await this.db.user.findUnique({ where: { id: principal.userId } });
+    } else {
+      updated = await this.db.user.update({
+        where: { id: principal.userId },
+        data: {
+          displayName,
+          ...(input.preferredBranchId !== undefined
+            ? { preferredBranchId: input.preferredBranchId }
+            : {}),
+        },
+      });
+    }
+
+    if ((this.db as any).auditLog?.create) {
+      await (this.db as any).auditLog.create({
+        data: {
+          action: 'security.my_profile_updated',
+          actorId: principal.userId,
+          targetUserId: principal.userId,
+          correlationId: _correlationId,
+        },
+      });
+    }
+
+    const preferredBranch =
+      (updated as any)?.preferredBranch ??
+      (input.preferredBranchId
+        ? await ((this.db.cabang as any)?.findUnique?.({ where: { id: input.preferredBranchId } }) ?? branch)
+        : null);
+
+    return {
+      id: updated?.id ?? existing.id,
+      displayName: updated?.displayName ?? existing.displayName,
+      emailMasked: maskEmail(updated?.email ?? existing.email),
+      phoneMasked: maskPhone((updated as any)?.phone ?? (updated as any)?.phoneE164 ?? (existing as any)?.phone ?? (existing as any)?.phoneE164),
+      preferredBranch: preferredBranch?.active ? preferredBranch : (preferredBranch ?? null),
+      version: (updated as any)?.version ?? (existing as any)?.version ?? 1,
+    };
   }
 
   // --- Indonesian Domain Aliases ---

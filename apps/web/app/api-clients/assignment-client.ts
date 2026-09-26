@@ -1,4 +1,3 @@
-import { Configuration, IdentityApi } from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
 import { notifySessionFailure } from './session-client';
 
@@ -64,23 +63,60 @@ export interface AssignmentClient {
   end(id: string, effectiveAt: string, expectedVersion: number, reason: string): Promise<void>;
 }
 
-const identity = new IdentityApi(
-  new Configuration({ basePath: '/api/v1', credentials: 'include' }),
-);
+async function assignmentFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+    ...init,
+  });
+  if (!response.ok) {
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      data = undefined;
+    }
+    const error = new Error(`Assignment request failed: ${response.status}`);
+    (error as any).response = { status: response.status, data };
+    throw error;
+  }
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+  return response.json() as Promise<T>;
+}
 
 export const browserAssignmentClient: AssignmentClient = {
   async list(filters = {}) {
-    const page = await appLoading.track(identity.listAssignments(filters), {
-      label: 'Memuat assignment…',
-    });
+    const params = new URLSearchParams();
+    if (filters.branchId) params.set('branchId', filters.branchId);
+    if (filters.q) params.set('q', filters.q);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.cursor) params.set('cursor', filters.cursor);
+    if (filters.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const page = await appLoading.track(
+      assignmentFetch<{ items: any[]; summary: AssignmentManagementSummary; page: { nextCursor: string | null; hasMore: boolean } }>(
+        `/assignments${qs}`,
+      ),
+      {
+        label: 'Memuat assignment…',
+      },
+    );
     return {
-      items: page.items.map((item) => ({
+      items: (page.items || []).map((item) => ({
         ...item,
-        activeFrom: item.activeFrom.toISOString().slice(0, 10),
-        activeUntil: item.activeUntil?.toISOString().slice(0, 10) ?? null,
+        activeFrom: typeof item.activeFrom === 'string' ? item.activeFrom.slice(0, 10) : new Date(item.activeFrom).toISOString().slice(0, 10),
+        activeUntil: item.activeUntil ? (typeof item.activeUntil === 'string' ? item.activeUntil.slice(0, 10) : new Date(item.activeUntil).toISOString().slice(0, 10)) : null,
         user: {
           ...item.user,
-          phoneMasked: item.user.phoneMasked ?? null,
+          phoneMasked: item.user?.phoneMasked ?? null,
         },
       })),
       summary: page.summary,
@@ -88,36 +124,48 @@ export const browserAssignmentClient: AssignmentClient = {
     };
   },
   async listUsers(branchId, query) {
-    const page = await appLoading.track(identity.lookupUsers({ branchId, q: query, limit: 20 }), {
-      label: 'Mencari pengguna…',
-    });
-    return page.items.map(({ id, label, description }) => ({
+    const params = new URLSearchParams({ branchId, limit: '20' });
+    if (query) params.set('q', query);
+    const page = await appLoading.track(
+      assignmentFetch<{ items: Array<{ id: string; label: string; description?: string | null }> }>(
+        `/lookups/users?${params.toString()}`,
+      ),
+      {
+        label: 'Mencari pengguna…',
+      },
+    );
+    return (page.items || []).map(({ id, label, description }) => ({
       id,
       displayName: label,
-      phoneMasked: description,
+      phoneMasked: description ?? null,
     }));
   },
   async create(input) {
     await appLoading.track(
-      identity.createAssignment({
-        assignmentCommand: {
+      assignmentFetch<void>('/assignments', {
+        method: 'POST',
+        body: JSON.stringify({
           userId: input.userId,
           branchId: input.branchId,
           assignmentType: input.assignmentType,
-          activeFrom: new Date(`${input.activeFrom}T00:00:00Z`),
-          activeUntil: input.activeUntil ? new Date(`${input.activeUntil}T00:00:00Z`) : null,
+          activeFrom: `${input.activeFrom}T00:00:00.000Z`,
+          activeUntil: input.activeUntil ? `${input.activeUntil}T00:00:00.000Z` : null,
           reason: input.reason,
-        },
+        }),
       }),
       { label: 'Menyimpan assignment…' },
     );
   },
   async end(id, effectiveAt, expectedVersion, reason) {
     await appLoading.track(
-      identity.endAssignment({
-        id,
-        idempotencyKey: crypto.randomUUID(),
-        endAssignmentCommand: { effectiveAt: new Date(effectiveAt), expectedVersion, reason },
+      assignmentFetch<void>(`/assignments/${id}/end`, {
+        method: 'POST',
+        headers: { 'idempotency-key': crypto.randomUUID() },
+        body: JSON.stringify({
+          effectiveAt: new Date(effectiveAt).toISOString(),
+          expectedVersion,
+          reason,
+        }),
       }),
       { label: 'Mengakhiri assignment…' },
     );

@@ -33,7 +33,6 @@ const config: NextConfig = {
     ],
   },
   devIndicators: false,
-  transpilePackages: ['@dailydose/api-client-ts'],
   async rewrites() {
     return [
       {

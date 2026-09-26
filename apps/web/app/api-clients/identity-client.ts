@@ -1,9 +1,4 @@
-import {
-  AuthApi,
-  Configuration,
-  IdentityApi,
-  type UserSummary as GeneratedUserSummary,
-} from '@dailydose/api-client-ts/generated';
+
 import { notifySessionFailure } from './session-client';
 import { appLoading, foregroundFetch } from '../components/app-loading';
 import type { IdentityVerificationReviewCase } from './identity-verification-client';
@@ -193,9 +188,7 @@ export interface IdentityClient {
   reactivate(id: string, expectedVersion: number, reason: string): Promise<void>;
 }
 
-const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
-const auth = new AuthApi(configuration);
-const identity = new IdentityApi(configuration);
+
 
 async function request(path: string, init: RequestInit = {}) {
   const response = await foregroundFetch(
@@ -247,9 +240,9 @@ function toIsoString(date: Date | string | null | undefined): string {
   return date.toISOString();
 }
 
-function mapUser(user: GeneratedUserSummary): UserSummary {
-  const mapped = user as GeneratedUserSummary & Partial<UserSummary>;
-  const roles = user.roles as UserRoleSummary[];
+function mapUser(user: any): UserSummary {
+  const mapped = user as any & Partial<UserSummary>;
+  const roles = (user.roles ?? []) as UserRoleSummary[];
   return {
     ...user,
     phoneE164: mapped.phoneE164 ?? null,
@@ -268,7 +261,7 @@ function mapUser(user: GeneratedUserSummary): UserSummary {
     identityVerification: user.identityVerification
       ? {
           status: user.identityVerification.status,
-          documents: user.identityVerification.documents.map((document) => ({
+          documents: (user.identityVerification.documents ?? []).map((document: any) => ({
             ...document,
             uploadedAt: document.uploadedAt ? toIsoString(document.uploadedAt) : null,
             reviewedAt: document.reviewedAt ? toIsoString(document.reviewedAt) : null,
@@ -288,16 +281,14 @@ export const browserIdentityClient: IdentityClient = {
       throw { response: { status: 503 } };
     const identity = syntheticEmail?.trim().toLowerCase();
     if (!identity) throw { response: { status: 503 } };
-    await appLoading.track(
-      auth.authenticateGoogle({
-        googleAuthRequest: {
-          idToken: identity,
-          nonce: crypto.randomUUID(),
-          channel: 'WEB',
-        },
+    await request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({
+        idToken: identity,
+        nonce: crypto.randomUUID(),
+        channel: 'WEB',
       }),
-      { label: 'Memproses masuk…' },
-    );
+    });
   },
   async signInWithPassword(email, password) {
     await request('/auth/password/sessions', {
@@ -306,12 +297,10 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async signInWithGoogleToken(idToken, nonce) {
-    await appLoading.track(
-      auth.authenticateGoogle({
-        googleAuthRequest: { idToken, nonce, channel: 'WEB' },
-      }),
-      { label: 'Memproses masuk…' },
-    );
+    await request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, nonce, channel: 'WEB' }),
+    });
   },
   async lookupUsers(filters) {
     const params = new URLSearchParams();
@@ -365,52 +354,60 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async listUsers(filters) {
-    const result = (await appLoading.track(
-      identity.listUsers({
-        ...filters,
-        role: filters.role as never,
-        status: filters.status as never,
-      }),
-      { label: 'Memuat pengguna…' },
-    )) as Awaited<ReturnType<typeof identity.listUsers>> & { summary?: UserListSummary };
+    const params = new URLSearchParams();
+    if (filters.branchId) params.set('branchId', filters.branchId);
+    if (filters.cursor) params.set('cursor', filters.cursor);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.role) params.set('role', filters.role);
+    if (filters.audience) params.set('audience', filters.audience);
+    if (filters.verificationStatus) params.set('verificationStatus', filters.verificationStatus);
+
+    const result = (await request(`/users?${params.toString()}`)) as {
+      items: any[];
+      page: { nextCursor: string | null; hasMore: boolean };
+      summary?: UserListSummary;
+    };
     return {
-      items: result.items.map(mapUser),
+      items: (result.items ?? []).map(mapUser),
       page: {
-        nextCursor: result.page.nextCursor ?? null,
-        hasMore: result.page.hasMore,
+        nextCursor: result.page?.nextCursor ?? null,
+        hasMore: Boolean(result.page?.hasMore),
       },
       summary: result.summary ?? {
-        total: result.items.length,
-        active: result.items.filter((item) => item.status === 'ACTIVE').length,
-        pendingActivation: result.items.filter((item) => item.status === 'PENDING_ACTIVATION')
-          .length,
-        inactive: result.items.filter((item) => item.status === 'INACTIVE').length,
+        total: (result.items ?? []).length,
+        active: (result.items ?? []).filter((item: any) => item.status === 'ACTIVE').length,
+        pendingActivation: (result.items ?? []).filter(
+          (item: any) => item.status === 'PENDING_ACTIVATION',
+        ).length,
+        inactive: (result.items ?? []).filter((item: any) => item.status === 'INACTIVE').length,
       },
     };
   },
   async getUser(id) {
-    return mapUser(await appLoading.track(identity.getUser({ id }), { label: 'Memuat pengguna…' }));
+    const user = await request(`/users/${encodeURIComponent(id)}`);
+    return mapUser(user);
   },
   async getUserIdentityVerification(id) {
     return request(`/users/${id}/identity-verification`);
   },
   async updateProfile(id, input) {
     return mapUser(
-      (await request(`/users/${encodeURIComponent(id)}/profile`, {
+      await request(`/users/${encodeURIComponent(id)}/profile`, {
         method: 'PATCH',
         body: JSON.stringify(input),
-      })) as GeneratedUserSummary,
+      }),
     );
   },
   async roleCatalog() {
-    const result = await identity.getRoleCatalog();
-    return result.items as RoleCatalogItem[];
+    const result = (await request('/users/role-catalog')) as { items: RoleCatalogItem[] };
+    return result.items ?? [];
   },
   async listAudit(id) {
-    const result = await identity.listUserAudit({ id });
-    return result.items.map((item) => ({
+    const result = (await request(`/users/${encodeURIComponent(id)}/audit`)) as { items: any[] };
+    return (result.items ?? []).map((item: any) => ({
       id: item.id,
-      occurredAt: item.occurredAt.toISOString(),
+      occurredAt: item.occurredAt ? new Date(item.occurredAt).toISOString() : '',
       action: item.action,
       actorId: item.actorId ?? null,
       correlationId: item.correlationId,
@@ -446,17 +443,16 @@ export const browserIdentityClient: IdentityClient = {
   },
   async updateRoles(id, roles, expectedVersion, reason) {
     try {
-      return mapUser(
-        await identity.updateUserRoles({
-          id,
-          idempotencyKey: crypto.randomUUID(),
-          updateUserRolesCommand: {
-            roles: roles.map((item) => ({ ...item, role: item.role as never })),
-            expectedVersion,
-            reason,
-          },
+      const user = await request(`/users/${encodeURIComponent(id)}/roles`, {
+        method: 'POST',
+        headers: { 'idempotency-key': crypto.randomUUID() },
+        body: JSON.stringify({
+          roles: roles.map((item) => ({ ...item, role: item.role })),
+          expectedVersion,
+          reason,
         }),
-      );
+      });
+      return mapUser(user);
     } catch (error) {
       const response = (error as { response?: Response }).response;
       if (response?.status === 409) {

@@ -34,18 +34,19 @@ type PrincipalAccess = {
   capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
 };
 
-const GLOBAL_STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
-  'SUPERADMIN',
-  'SUPER_OWNER',
-  'FINANCE',
+const NON_STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
+  'CUSTOMER',
+  'MEMBER',
 ]);
+
+const isStaffRole = (role: ApplicationRole): boolean => !NON_STAFF_ROLES.has(role);
 
 @Injectable()
 export class PolicyService {
   capabilities(roles: readonly EffectiveRole[]): string[] {
     const caps = roles.flatMap(({ role, branchId }) => {
       const roleCaps = [...(ROLE_CAPABILITIES[role] || [])];
-      if (branchId === null && GLOBAL_STAFF_ROLES.has(role)) {
+      if (branchId === null && isStaffRole(role)) {
         roleCaps.push('branch:all');
       }
       return roleCaps;
@@ -56,7 +57,7 @@ export class PolicyService {
   private staticAccess(roles: readonly EffectiveRole[]): EffectiveAccess {
     const grants = roles.flatMap(({ role, branchId }) => {
       const caps = [...(ROLE_CAPABILITIES[role] || [])];
-      if (branchId === null && GLOBAL_STAFF_ROLES.has(role)) {
+      if (branchId === null && isStaffRole(role)) {
         caps.push('branch:all');
       }
       return caps.map((capability) => ({

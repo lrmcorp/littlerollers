@@ -100,7 +100,7 @@ export function CustomerPackagesView() {
                   </div>
                 </dl>
                 <p className="mt-4 text-sm text-dd-muted">
-                  Berlaku sampai {item.expiryAt.toLocaleDateString('id-ID')}
+                  Berlaku sampai {new Date(item.expiryAt).toLocaleDateString('id-ID')}
                 </p>
                 <ButtonLink
                   className="mt-5"

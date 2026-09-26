@@ -28,6 +28,7 @@ export class ClassSlotController {
     @Query('from') from?: string,
     @Query('until') until?: string,
     @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
     @Query('includeHistorical') includeHistorical?: string,
   ) {
     return this.slots.list(req.principal, {
@@ -36,6 +37,7 @@ export class ClassSlotController {
       from,
       until,
       cursor,
+      limit: limit ? Number(limit) : undefined,
       includeHistorical: includeHistorical === 'true',
     });
   }

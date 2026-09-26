@@ -49,7 +49,7 @@ describe('PublicPackageQueryService', () => {
       expect.objectContaining({
         select: expect.objectContaining({
           supportWhatsappE164: true,
-          publicProfile: true,
+          address: true,
         }),
       }),
     );
@@ -72,9 +72,7 @@ describe('PublicPackageQueryService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'ACTIVE',
-          branchScopes: {
-            some: expect.objectContaining({ branchId, active: true }),
-          },
+          branchId,
         }),
       }),
     );

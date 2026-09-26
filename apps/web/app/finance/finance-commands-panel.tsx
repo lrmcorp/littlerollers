@@ -6,8 +6,7 @@ import { Panel } from '../components/admin/admin-ui';
 import { controlClassName, TextInput } from '../components/forms';
 import { Feedback } from '../ui';
 import { useAppFeedback } from '../components/app-feedback';
-import type { FinanceClient } from './finance-client';
-import type { Correction } from '@dailydose/api-client-ts/generated';
+import type { Correction, FinanceClient } from './finance-client';
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7);
 const currentDate = () => new Date().toISOString().slice(0, 10);

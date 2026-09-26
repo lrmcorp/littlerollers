@@ -4,7 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 
 export const ADJUSTMENT_REASON_CODES = [
   'MIGRATION_CORRECTION',

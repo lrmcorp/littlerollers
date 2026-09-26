@@ -1,20 +1,132 @@
-import {
-  Configuration,
-  FinanceApi,
-  type FinanceAnomaly,
-  type FinanceReconciliationOverview,
-  type LegacyFinancialEntryPage,
-  type BranchPeriodPage,
-  type CloseResult,
-  type Correction,
-  type CorrectionDecisionResult,
-  type FinancialReportPage,
-  type FinanceExportResult,
-  type OtherCost,
-  type OtherCostCommand,
-  type OtherCostPage,
-} from '@dailydose/api-client-ts/generated';
 import { appLoading } from '../components/app-loading';
+
+export interface Money {
+  amountMinor: number;
+  currency: string;
+}
+
+export interface Correction {
+  id: string;
+  branchId: string;
+  currentPeriod: string;
+  referencePeriod: string;
+  amount: Money;
+  reason: string;
+  requestedBy: string;
+  decidedBy?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED' | string;
+  version: number;
+}
+
+export interface CorrectionDecisionResult {
+  id: string;
+  status: string;
+  decidedAt: Date;
+  decision: 'APPROVE' | 'REJECT' | string;
+}
+
+export interface FinanceAnomaly {
+  purchaseId: string;
+  branchId: string;
+  branchCode: string;
+  amountRp: number;
+  submittedAt: Date;
+  code: string;
+  message?: string;
+}
+
+export interface FinanceReconciliationOverview {
+  generatedAt: Date;
+  period: { from: string; until: string };
+  financial: {
+    collectedRp: number;
+    recognizedRp: number;
+    unearnedRp: number;
+    discrepancyRp: number;
+  };
+  metrics?: any;
+  branches?: any[];
+}
+
+export interface LegacyFinancialEntryPage {
+  items: any[];
+  total: number;
+  page: { hasMore: boolean; nextCursor: string | null };
+}
+
+export interface BranchPeriodPage {
+  items: Array<{
+    id: string;
+    branchId: string;
+    period: string;
+    status: string;
+    closedAt?: Date | null;
+    controlHash?: string | null;
+    version: number;
+  }>;
+  page: { hasMore: boolean; nextCursor: string | null };
+}
+
+export interface CloseResult {
+  period: string;
+  branchId: string;
+  status: string;
+  closedAt: Date;
+  controlHash?: string;
+}
+
+export interface FinancialReportPage {
+  report: {
+    period: string;
+    controlHash: string;
+    netProfitRp?: number;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+export interface FinanceExportResult {
+  fileName: string;
+  mimeType: any;
+  content: string;
+  controlHash: string;
+  sourceCutoffAt: Date;
+  completeness: string;
+  exportId?: string;
+  downloadUrl?: string;
+  expiresAt?: Date;
+}
+
+export interface OtherCost {
+  id: string;
+  branchId: string;
+  period: string;
+  costDate: string;
+  category: string;
+  amountRp: number;
+  description: string;
+  receiptKey?: string | null;
+  version: number;
+}
+
+export interface OtherCostCommand {
+  branchId: string;
+  period: string;
+  amountRp: number;
+  description: string;
+  occurredOn?: Date;
+  categoryCode?: string;
+  reason?: string;
+  costDate?: string;
+  category?: string;
+  receiptKey?: string | null;
+}
+
+export interface OtherCostPage {
+  items: OtherCost[];
+  total: number;
+  page: { hasMore: boolean; nextCursor: string | null };
+}
 
 export type FinanceAnomalyPage = {
   items: FinanceAnomaly[];
@@ -187,103 +299,162 @@ export interface FinanceClient {
   deleteOtherCost?(id: string): Promise<{ id: string; deleted: boolean }>;
 }
 
-const api = new FinanceApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
+async function financeFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+    ...init,
+  });
+  if (!response.ok) {
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      data = undefined;
+    }
+    const error = new Error(`Finance request failed: ${response.status}`);
+    (error as any).response = { status: response.status, data };
+    throw error;
+  }
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+  return response.json() as Promise<T>;
+}
 
 export const browserFinanceClient: FinanceClient = {
   async overview(input) {
-    const request = {
-      branchId: input.branchId,
-      from: new Date(`${input.from}T00:00:00.000Z`),
-      until: new Date(`${input.until}T00:00:00.000Z`),
-    };
-    return appLoading.track(api.getFinanceReconciliationOverview(request), {
-      label: 'Memuat rekonsiliasi…',
+    const params = new URLSearchParams({
+      from: `${input.from}T00:00:00.000Z`,
+      until: `${input.until}T00:00:00.000Z`,
     });
+    if (input.branchId) params.set('branchId', input.branchId);
+
+    return appLoading.track(
+      financeFetch<FinanceReconciliationOverview>(
+        `/finance/reconciliation/overview?${params.toString()}`,
+      ),
+      { label: 'Memuat rekonsiliasi…' },
+    );
   },
   async anomalies(input, cursor) {
+    const params = new URLSearchParams({
+      from: `${input.from}T00:00:00.000Z`,
+      until: `${input.until}T00:00:00.000Z`,
+      limit: '20',
+    });
+    if (input.branchId) params.set('branchId', input.branchId);
+    if (cursor) params.set('cursor', cursor);
+
     const result = await appLoading.track(
-      api.getFinanceReconciliationAnomalies({
-        branchId: input.branchId,
-        from: new Date(`${input.from}T00:00:00.000Z`),
-        until: new Date(`${input.until}T00:00:00.000Z`),
-        cursor,
-        limit: 20,
-      }),
+      financeFetch<any>(`/finance/reconciliation/anomalies?${params.toString()}`),
       { label: 'Memuat anomali rekonsiliasi…' },
     );
     return {
-      items: result.items,
-      total: result.total,
+      items: result.items || [],
+      total: result.total || 0,
       page: {
-        hasMore: result.page.hasMore,
-        nextCursor: result.page.nextCursor ?? null,
+        hasMore: result.page?.hasMore || false,
+        nextCursor: result.page?.nextCursor ?? null,
       },
     };
   },
   legacyCashflow(input, cursor) {
+    const params = new URLSearchParams({
+      from: `${input.from}T00:00:00.000Z`,
+      until: `${input.until}T00:00:00.000Z`,
+      limit: '20',
+    });
+    if (input.branchId) params.set('branchId', input.branchId);
+    if (cursor) params.set('cursor', cursor);
+
     return appLoading.track(
-      api.listLegacyFinancialEntries({
-        branchId: input.branchId,
-        from: new Date(`${input.from}T00:00:00.000Z`),
-        until: new Date(`${input.until}T00:00:00.000Z`),
-        cursor,
-        limit: 20,
-      }),
+      financeFetch<LegacyFinancialEntryPage>(`/finance/legacy-cashflow?${params.toString()}`),
       { label: 'Memuat legacy cashflow…' },
     );
   },
   financialReport(branchId, period) {
-    return appLoading.track(api.getFinancialReport({ reportType: 'profit', branchId, period }), {
-      label: 'Memuat kontrol periode…',
-    });
+    const params = new URLSearchParams({ reportType: 'profit', branchId, period });
+    return appLoading.track(
+      financeFetch<FinancialReportPage>(`/reports/financial?${params.toString()}`),
+      { label: 'Memuat kontrol periode…' },
+    );
   },
   exportReport(input) {
     return appLoading.track(
-      api.exportAuthoritativeFinanceReport({
-        exportAuthoritativeFinanceReportRequest: {
+      financeFetch<FinanceExportResult>('/finance-exports', {
+        method: 'POST',
+        body: JSON.stringify({
           branchId: input.branchId,
-          from: new Date(`${input.from}T00:00:00.000Z`),
-          until: new Date(`${input.until}T00:00:00.000Z`),
-        },
+          from: `${input.from}T00:00:00.000Z`,
+          until: `${input.until}T00:00:00.000Z`,
+        }),
       }),
       { label: 'Membuat export Finance…' },
     );
   },
   otherCosts(branchId, period, cursor) {
-    return appLoading.track(api.listOtherCosts({ branchId, period, cursor }), {
-      label: 'Memuat biaya lain…',
-    });
+    const params = new URLSearchParams({ branchId, period });
+    if (cursor) params.set('cursor', cursor);
+    return appLoading.track(
+      financeFetch<OtherCostPage>(`/other-costs?${params.toString()}`),
+      { label: 'Memuat biaya lain…' },
+    );
   },
   createOtherCost(command) {
     return appLoading.track(
-      api.createOtherCost({ idempotencyKey: crypto.randomUUID(), otherCostCommand: command }),
+      financeFetch<OtherCost>('/other-costs', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify(command),
+      }),
       { label: 'Mencatat biaya lain…' },
     );
   },
   periods(branchId, cursor) {
-    return appLoading.track(api.listPeriods({ branchId, cursor }), {
-      label: 'Memuat periode Finance…',
-    });
+    const params = new URLSearchParams({ branchId });
+    if (cursor) params.set('cursor', cursor);
+    return appLoading.track(
+      financeFetch<BranchPeriodPage>(`/periods?${params.toString()}`),
+      { label: 'Memuat periode Finance…' },
+    );
   },
   closeMonth(command) {
     return appLoading.track(
-      api.closeMonth({ idempotencyKey: crypto.randomUUID(), closeMonthRequest: command }),
+      financeFetch<CloseResult>('/monthly-closes', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify(command),
+      }),
       { label: 'Menutup periode…' },
     );
   },
   requestCorrection(command) {
     return appLoading.track(
-      api.requestCorrection({ idempotencyKey: crypto.randomUUID(), correctionCommand: command }),
+      financeFetch<Correction>('/corrections', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify({
+          branchId: command.branchId,
+          currentPeriod: command.currentPeriod,
+          referencePeriod: command.referencePeriod,
+          amount: { amountMinor: Math.round(command.amountRp * 100), currency: 'IDR' },
+          reason: command.reason,
+        }),
+      }),
       { label: 'Membuat permintaan koreksi…' },
     );
   },
   decideCorrection(id, decision, reason) {
     return appLoading.track(
-      api.decideCorrection({
-        id,
-        decision,
-        idempotencyKey: crypto.randomUUID(),
-        reasonCommand: { reason },
+      financeFetch<CorrectionDecisionResult>(`/corrections/${id}/decision`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify({ decision: decision.toUpperCase(), reason }),
       }),
       { label: 'Memutuskan koreksi…' },
     );
@@ -293,11 +464,10 @@ export const browserFinanceClient: FinanceClient = {
     if (branchId) params.set('branchId', branchId);
     if (status) params.set('status', status);
     if (period) params.set('period', period);
-    const response = await fetch(`/api/v1/finance/correction-journals?${params}`, {
-      credentials: 'include',
-    });
-    if (!response.ok) throw new Error('CORRECTION_QUEUE_UNAVAILABLE');
-    return response.json();
+    return financeFetch<{
+      items: Correction[];
+      page: { hasMore: boolean; nextCursor: string | null };
+    }>(`/finance/correction-journals?${params.toString()}`);
   },
 
   // ============================================================================
@@ -308,69 +478,57 @@ export const browserFinanceClient: FinanceClient = {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (period) params.set('period', period);
-    const res = await fetch(`/api/v1/finance/reports/omset?${params}`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Gagal memuat laporan omset');
-    return res.json();
+    return financeFetch<OmsetReportData>(`/finance/reports/omset?${params.toString()}`);
   },
 
-  async getInstructorCostRealtime(branchId?: string, period?: string): Promise<InstructorCostRealtimeData> {
+  async getInstructorCostRealtime(
+    branchId?: string,
+    period?: string,
+  ): Promise<InstructorCostRealtimeData> {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (period) params.set('period', period);
-    const res = await fetch(`/api/v1/finance/reports/instructor-cost-realtime?${params}`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Gagal memuat laporan cost instruktur realtime');
-    return res.json();
+    return financeFetch<InstructorCostRealtimeData>(
+      `/finance/reports/instructor-cost-realtime?${params.toString()}`,
+    );
   },
 
-  async getInstructorCostProjection(branchId?: string, period?: string): Promise<InstructorCostProjectionData> {
+  async getInstructorCostProjection(
+    branchId?: string,
+    period?: string,
+  ): Promise<InstructorCostProjectionData> {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (period) params.set('period', period);
-    const res = await fetch(`/api/v1/finance/reports/instructor-cost-projection?${params}`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Gagal memuat laporan cost instruktur projeksi');
-    return res.json();
+    return financeFetch<InstructorCostProjectionData>(
+      `/finance/reports/instructor-cost-projection?${params.toString()}`,
+    );
   },
 
   async getOtherCostReport(branchId?: string, period?: string): Promise<OtherCostReportData> {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (period) params.set('period', period);
-    const res = await fetch(`/api/v1/finance/reports/other-costs?${params}`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Gagal memuat laporan biaya operasional');
-    return res.json();
+    return financeFetch<OtherCostReportData>(`/finance/reports/other-costs?${params.toString()}`);
   },
 
   async getMonthlyProfit(branchId?: string, period?: string): Promise<MonthlyProfitData> {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (period) params.set('period', period);
-    const res = await fetch(`/api/v1/finance/reports/profit-summary?${params}`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Gagal memuat ringkasan laba bersih');
-    return res.json();
+    return financeFetch<MonthlyProfitData>(`/finance/reports/profit-summary?${params.toString()}`);
   },
 
   async executeMonthlyClose(branchId: string, period: string, reason?: string) {
-    const res = await fetch('/api/v1/finance/monthly-closes/execute', {
+    return financeFetch<any>('/finance/monthly-closes/execute', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ branchId, period, reason }),
     });
-    if (!res.ok) throw new Error('Gagal mengeksekusi tutup buku');
-    return res.json();
   },
 
   async deleteOtherCost(id: string) {
-    const res = await fetch(`/api/v1/finance/other-costs/${id}`, {
+    return financeFetch<{ id: string; deleted: boolean }>(`/finance/other-costs/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
     });
-    if (!res.ok) {
-      if (res.status === 409) {
-        throw new Error('Periode telah ditutup (LOCKED). Biaya tidak dapat dihapus.');
-      }
-      throw new Error('Gagal menghapus biaya');
-    }
-    return res.json();
   },
 };

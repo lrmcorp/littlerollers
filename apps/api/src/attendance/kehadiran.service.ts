@@ -5,9 +5,9 @@ import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const UUID = ENTITY_ID_REGEX;
 const RAW_TOKEN = /^[A-Za-z0-9_-]{43}$/u;
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 

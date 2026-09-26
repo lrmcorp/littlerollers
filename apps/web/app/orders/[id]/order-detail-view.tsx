@@ -120,8 +120,8 @@ export function OrderDetailView({ id }: { id: string }) {
               <h2 className="mt-1 text-xl font-semibold">{order.packageName}</h2>
               <p className="mt-2 text-sm text-dd-muted">
                 {order.activation.sessionCount} sesi · aktif sejak{' '}
-                {order.activation.activationDate.toLocaleDateString('id-ID')} · berlaku sampai{' '}
-                {order.activation.expiryAt.toLocaleDateString('id-ID')}
+                {new Date(order.activation.activationDate).toLocaleDateString('id-ID')} · berlaku sampai{' '}
+                {new Date(order.activation.expiryAt).toLocaleDateString('id-ID')}
               </p>
               <ButtonLink href="/account/packages" size="sm" className="mt-4">
                 Lihat Paket Saya

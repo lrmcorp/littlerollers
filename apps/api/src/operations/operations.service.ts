@@ -1,10 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = ENTITY_ID_REGEX;
 const PAGE_SIZE = 20;
 
 export interface EmailDeliveryRecord {

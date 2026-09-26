@@ -1,10 +1,11 @@
-import type {
-  PublicBranch,
-  PublicClassTypeRef,
-  PublicPackageSummary,
-} from '@dailydose/api-client-ts/generated';
+import {
+  publicApiStatus,
+  publicGeneratedApi,
+  type PublicBranch,
+  type PublicClassTypeRef,
+  type PublicPackageSummary,
+} from './public-api-client';
 import { appLoading } from '../components/app-loading';
-import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 
 export type PublicPackageBranch = Pick<PublicBranch, 'id' | 'code' | 'name' | 'timezone'> &
   Partial<Pick<PublicBranch, 'publicProfile'>>;

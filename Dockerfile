@@ -15,7 +15,6 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
 COPY apps/web/package.json ./apps/web/
-COPY packages/api-client-ts/package.json ./packages/api-client-ts/
 COPY packages/config/package.json ./packages/config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/notification-core/package.json ./packages/notification-core/

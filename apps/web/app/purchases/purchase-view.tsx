@@ -5,12 +5,13 @@ import {
   browserPurchaseClient,
   purchaseFailure,
   sha256File,
+  type PaymentProof,
+  type Purchase,
   type PurchaseClient,
   type PurchasePackage,
 } from '@/api-clients/purchase-client';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { useSessionContext } from '../session-context';
-import type { PaymentProof, Purchase } from '@dailydose/api-client-ts/generated';
 import { controlClassName } from '../components/forms';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';

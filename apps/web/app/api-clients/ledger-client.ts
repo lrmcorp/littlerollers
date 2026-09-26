@@ -1,4 +1,4 @@
-import { Configuration, LedgerApi } from '@dailydose/api-client-ts/generated';
+import { apiFetch } from '../lib/api-client';
 import { appLoading } from '../components/app-loading';
 import { notifySessionFailure } from './session-client';
 
@@ -141,7 +141,6 @@ export interface LedgerClient {
   ): Promise<Adjustment>;
 }
 
-const api = new LedgerApi(new Configuration({ basePath: '/api/v1', credentials: 'include' }));
 const mapLedgerBalance = (
   value: Omit<LedgerBalance, 'activationDate' | 'expiryAt'> & {
     activationDate: Date | string;
@@ -160,19 +159,25 @@ const mapAdjustment = (value: Adjustment): Adjustment => ({
 
 export const browserLedgerClient: LedgerClient = {
   async list(branchId, cursor, search, status, customerUserId) {
-    const response = await appLoading.track(
-      api.listCustomerPackages({
-        branchId,
-        cursor,
-        search,
-        status: status as never,
-        customerUserId,
-      }),
-      { label: 'Memuat ledger…' },
-    );
-    const items = response.items.map((item) =>
+    const params = new URLSearchParams();
+    if (branchId) params.set('branchId', branchId);
+    if (cursor) params.set('cursor', cursor);
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (customerUserId) params.set('customerUserId', customerUserId);
+
+    const response = await apiFetch<{
+      items: any[];
+      summary?: LedgerSummary;
+      page: { nextCursor?: string | null; previousCursor?: string | null };
+    }>(`/customer-packages?${params.toString()}`, {
+      label: 'Memuat ledger…',
+    });
+
+    const items = (response.items ?? []).map((item) =>
       mapLedgerBalance(item as unknown as Parameters<typeof mapLedgerBalance>[0]),
     );
+
     return {
       items,
       summary: response.summary ?? {
@@ -181,78 +186,107 @@ export const browserLedgerClient: LedgerClient = {
         reserved: items.reduce((sum, item) => sum + item.reserved, 0),
         available: items.reduce((sum, item) => sum + item.available, 0),
       },
-      nextCursor: response.page.nextCursor,
-      previousCursor: response.page.previousCursor,
+      nextCursor: response.page?.nextCursor ?? null,
+      previousCursor: response.page?.previousCursor ?? null,
     };
   },
+
   async detail(id, cursor) {
-    const result = await appLoading.track(api.getPackageLedger({ id, cursor }), {
+    const params = new URLSearchParams();
+    if (cursor) params.set('cursor', cursor);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const result = await apiFetch<{
+      balance: any;
+      reservations: {
+        activeQuantity: number;
+        items: Array<any>;
+      };
+      entries: Array<any>;
+      page: { nextCursor?: string | null; previousCursor?: string | null };
+    }>(`/customer-packages/${encodeURIComponent(id)}/ledger${query}`, {
       label: 'Memuat histori sesi…',
     });
+
     return {
       balance: mapLedgerBalance(result.balance as Parameters<typeof mapLedgerBalance>[0]),
       reservations: {
-        activeQuantity: result.reservations.activeQuantity,
-        items: result.reservations.items.map((reservation) => ({
+        activeQuantity: result.reservations?.activeQuantity ?? 0,
+        items: (result.reservations?.items ?? []).map((reservation) => ({
           ...reservation,
           createdAt: new Date(reservation.createdAt),
           startsAt: reservation.startsAt ? new Date(reservation.startsAt) : null,
         })),
       },
-      entries: result.entries.map((entry) => ({
+      entries: (result.entries ?? []).map((entry) => ({
         ...entry,
         occurredAt: new Date(entry.occurredAt),
       })),
-      nextCursor: result.page.nextCursor,
-      previousCursor: result.page.previousCursor,
+      nextCursor: result.page?.nextCursor ?? null,
+      previousCursor: result.page?.previousCursor ?? null,
     };
   },
+
   async listAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit) {
-    const result = await appLoading.track(
-      api.listSessionAdjustments({
-        branchId,
-        status: status as never,
-        cursor,
-        q,
-        customerUserId,
-        from: from ? new Date(from) : undefined,
-        until: until ? new Date(until) : undefined,
-        limit,
-      }),
-      { label: 'Memuat adjustment…' },
-    );
+    const params = new URLSearchParams();
+    if (branchId) params.set('branchId', branchId);
+    if (status) params.set('status', status);
+    if (cursor) params.set('cursor', cursor);
+    if (q) params.set('q', q);
+    if (customerUserId) params.set('customerUserId', customerUserId);
+    if (from) params.set('from', from);
+    if (until) params.set('until', until);
+    if (limit) params.set('limit', String(limit));
+
+    const result = await apiFetch<{
+      items: any[];
+      summary?: AdjustmentSummary;
+      page: { nextCursor?: string | null; previousCursor?: string | null };
+    }>(`/session-adjustments?${params.toString()}`, {
+      label: 'Memuat adjustment…',
+    });
+
     return {
-      items: result.items.map((item) => mapAdjustment(item as unknown as Adjustment)),
+      items: (result.items ?? []).map((item) => mapAdjustment(item as unknown as Adjustment)),
       summary: result.summary as AdjustmentSummary,
-      nextCursor: result.page.nextCursor,
-      previousCursor: result.page.previousCursor,
+      nextCursor: result.page?.nextCursor ?? null,
+      previousCursor: result.page?.previousCursor ?? null,
     };
   },
+
   async getAdjustment(id) {
-    const response = await appLoading.track(api.getSessionAdjustment({ id }), {
-      label: 'Memuat detail penyesuaian…',
-    });
-    return mapAdjustment(response as unknown as Adjustment);
+    const response = await apiFetch<Adjustment>(
+      `/session-adjustments/${encodeURIComponent(id)}`,
+      { label: 'Memuat detail penyesuaian…' },
+    );
+    return mapAdjustment(response);
   },
+
   async requestAdjustment(input, key) {
-    return appLoading.track(
-      api.requestSessionAdjustment({
-        idempotencyKey: key,
-        adjustmentCommand: input as never,
-      }) as unknown as Promise<Adjustment>,
-      { label: 'Mengajukan adjustment…' },
-    );
+    const result = await apiFetch<Adjustment>('/session-adjustments', {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key },
+      body: JSON.stringify(input),
+      label: 'Mengajukan adjustment…',
+    });
+    return mapAdjustment(result);
   },
+
   async decideAdjustment(id, decision, input, key) {
-    const result = await appLoading.track(
-      api.decideSessionAdjustment({
-        id,
-        decision,
-        idempotencyKey: key,
-        sessionAdjustmentDecisionCommand: input as never,
-      }),
-      { label: 'Memproses keputusan adjustment…' },
-    );
+    const result = await apiFetch<{
+      adjustment: Adjustment;
+      ledgerEntry?: { id: string };
+      resultingBalance?: number;
+      auditReference?: string | null;
+    }>(`/session-adjustments/${encodeURIComponent(id)}/${encodeURIComponent(decision)}`, {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key },
+      body: JSON.stringify(input),
+      label: 'Memproses keputusan adjustment…',
+    });
+
     return {
       ...(result.adjustment as unknown as Adjustment),
       ledgerEntryId: result.ledgerEntry?.id ?? null,

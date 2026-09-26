@@ -6,13 +6,13 @@ import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
-import { ApiProblem } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
 import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import { VoucherService, calculateVoucherDiscount, normalizeVoucherCode } from './voucher.service';
 
 const PAGE_SIZE = 20;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = ENTITY_ID_REGEX;
 const ASSISTED_PAYMENT_METHODS = ['CASH', 'QRIS', 'CARD', 'BANK_TRANSFER', 'MANUAL_STAFF'] as const;
 export type AssistedPaymentMethod = (typeof ASSISTED_PAYMENT_METHODS)[number];
 

@@ -235,11 +235,16 @@ describe('identity security foundation', () => {
       AUTH_SYNTHETIC_ENABLED: 'true',
     };
     const tx = {
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
       identitas: { findUnique: jest.fn().mockResolvedValue(null) },
       userInvitation: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     const service = new IdentityService(
-      { $transaction: (callback: (client: typeof tx) => unknown) => callback(tx) } as never,
+      {
+        user: tx.user,
+        userInvitation: tx.userInvitation,
+        $transaction: (callback: (client: typeof tx) => unknown) => callback(tx),
+      } as never,
       new PolicyService(),
       new ConfigGatedGoogleProvider(),
       new ConfigGatedOtpProvider(),
@@ -283,6 +288,7 @@ describe('identity security foundation', () => {
       user: {
         findUnique: jest.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue(after),
       },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
       userSession: { updateMany: jest.fn() },
@@ -354,6 +360,7 @@ describe('identity security foundation', () => {
       user: {
         findUnique: jest.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue(after),
       },
       cabang: { findFirst: jest.fn().mockResolvedValue({ id: 'branch-jkt' }) },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
@@ -407,7 +414,7 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn().mockResolvedValue({}) },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
-    const service = new IdentityDocumentAccessService(new PolicyService());
+    const service = new IdentityDocumentAccessService(new PolicyService(), db as never);
     const principal = {
       sessionId: 'session-1',
       userId: 'customer-1',
@@ -447,7 +454,7 @@ describe('identity security foundation', () => {
       auditLog: { create: jest.fn() },
     };
     const storage = { exists: jest.fn().mockResolvedValue(true) };
-    const service = new IdentityDocumentAccessService(new PolicyService());
+    const service = new IdentityDocumentAccessService(new PolicyService(), db as never);
     const principal = {
       sessionId: 'review-session',
       userId: 'reviewer-1',

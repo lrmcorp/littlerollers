@@ -6,7 +6,7 @@ import { PublicScheduleQueryService } from './public-schedule-query.service';
 import { PublicStudioQueryService } from './public-studio-query.service';
 
 @Public()
-@Controller('public/package-catalog')
+@Controller(['public/package-catalog', 'public/packages'])
 export class PublicPackageCatalogController {
   constructor(private readonly packages: PublicPackageQueryService) {}
 
@@ -24,7 +24,7 @@ export class PublicPackageCatalogController {
 }
 
 @Public()
-@Controller('public/class-catalog')
+@Controller(['public/class-catalog', 'public/classes/schedule'])
 export class PublicScheduleCatalogController {
   constructor(private readonly schedules: PublicScheduleQueryService) {}
 
@@ -53,13 +53,13 @@ export class PublicProfileController {
     private readonly studios: PublicStudioQueryService,
   ) {}
 
-  @Get('class-types/:slug')
+  @Get(['class-types/:slug', 'classes/:slug'])
   @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60')
   classDetail(@Param('slug') slug: string) {
     return this.classes.detail(slug);
   }
 
-  @Get('studios/:slug')
+  @Get(['studios/:slug', 'branches/:slug'])
   @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60')
   studioDetail(@Param('slug') slug: string) {
     return this.studios.detail(slug);

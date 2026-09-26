@@ -140,14 +140,11 @@ export class MasterCatalogService {
 
   async branchDetail(principal: SessionPrincipal, idOrCode: string) {
     this.access.authorize(principal);
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrCode);
-    const branch = isUuid
-      ? await this.db.cabang.findUnique({ where: { id: idOrCode } })
-      : await this.db.cabang.findFirst({
-          where: {
-            OR: [{ code: idOrCode.toUpperCase() }, { code: idOrCode }],
-          },
-        });
+    const branch = await this.db.cabang.findFirst({
+      where: {
+        OR: [{ id: idOrCode }, { code: idOrCode.toUpperCase() }, { code: idOrCode }],
+      },
+    });
     if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const id = branch.id;
@@ -382,12 +379,9 @@ export class MasterCatalogService {
 
   async listStudios(principal: SessionPrincipal, branchIdOrCode: string) {
     this.access.authorize(principal);
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(branchIdOrCode);
-    const branch = isUuid
-      ? await this.db.cabang.findUnique({ where: { id: branchIdOrCode } })
-      : await this.db.cabang.findFirst({
-          where: { OR: [{ code: branchIdOrCode.toUpperCase() }, { code: branchIdOrCode }] },
-        });
+    const branch = await this.db.cabang.findFirst({
+      where: { OR: [{ id: branchIdOrCode }, { code: branchIdOrCode.toUpperCase() }, { code: branchIdOrCode }] },
+    });
     const branchId = branch?.id ?? branchIdOrCode;
     this.access.ensureBranchScope(principal, branchId);
     const items = await this.db.studio.findMany({

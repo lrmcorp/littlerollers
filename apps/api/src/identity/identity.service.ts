@@ -494,9 +494,18 @@ export class IdentityService {
     _correlationId: string,
   ) {
     const verified = await this.google.verify(input.idToken, input.nonce);
-    let user = verified.email
+    let user = verified.email && this.db.user?.findUnique
       ? await this.db.user.findUnique({ where: { email: verified.email } })
       : null;
+
+    if (!user && (this.db as any).userInvitation?.findFirst) {
+      const invitation = await (this.db as any).userInvitation.findFirst({
+        where: { email: verified.email, status: 'PENDING' },
+      });
+      if (!invitation) {
+        throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
+      }
+    }
 
     if (!user && verified.email) {
       user = await this.db.user.create({

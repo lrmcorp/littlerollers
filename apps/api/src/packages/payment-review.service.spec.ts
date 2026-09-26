@@ -34,7 +34,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
     await expect(
       service.authorizeOwnOrderProof(customer, 'order-1', 'correlation-1'),
     ).resolves.toMatchObject({
-      url: proof.fileUrl,
+      url: `/api/v1/uploads/payment-proofs/view-authorizations/${proof.id}/content`,
     });
     expect(db.pembelian.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -51,6 +51,7 @@ describe('PaymentReviewService customer-owned proof preview', () => {
       buktiPembayaran: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'proof-1',
+          purchase: { userId: 'customer-1', branchId: 'branch-1' },
           fileUrl: 'data:image/png;base64,' + Buffer.from('proof').toString('base64'),
         }),
       },

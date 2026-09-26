@@ -424,7 +424,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                                 {' · '}
                                 <span>
                                   Berlaku s/d{' '}
-                                  {item.expiryAt.toLocaleDateString('id-ID', {
+                                  {new Date(item.expiryAt).toLocaleDateString('id-ID', {
                                     day: 'numeric',
                                     month: 'long',
                                     year: 'numeric',

@@ -1,16 +1,12 @@
 import type {
   PublicBranch,
-  PublicClassDetail as GeneratedPublicClassDetail,
   PublicClassProfile,
   PublicClassTypeRef,
-  PublicPackageDetail as GeneratedPublicPackageDetail,
   PublicPackageProfile,
   PublicPackageSummary,
-  PublicScheduleDetail as GeneratedPublicScheduleDetail,
   PublicScheduleSummary,
-  PublicStudioDetail as GeneratedPublicStudioDetail,
   PublicStudioDetailAllOfClasses,
-} from '@dailydose/api-client-ts/generated';
+} from './public-api-client';
 import { appLoading } from '../components/app-loading';
 import { publicApiStatus, publicGeneratedApi } from './public-api-client';
 import type { PublicPromotionPrice } from '../components/public/package-price';
@@ -24,11 +20,65 @@ export type PublicProfileBranch = PublicBranch;
 
 export type RelatedSchedule = Pick<
   PublicScheduleSummary,
-  'id' | 'branchId' | 'timezone' | 'status' | 'capacity' | 'available' | 'branch' | 'classType'
+  'id' | 'branchId' | 'timezone' | 'status' | 'capacity' | 'available' | 'classType'
 > & {
   startAt: string;
   endAt: string;
+  branch?: PublicBranch;
 };
+
+export interface GeneratedPublicPackageDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  priceRp: number;
+  effectivePriceRp?: number;
+  pricePerSessionRp: number;
+  sessionCount: number;
+  validityDays?: number;
+  durationDays?: number;
+  branch: PublicBranch;
+  classType: PublicClassTypeRef;
+  publicProfile: PublicPackageProfile;
+  effectiveFrom: Date;
+  effectiveUntil?: Date | null;
+  schedules: PublicScheduleSummary[];
+}
+
+export interface GeneratedPublicScheduleDetail {
+  id: string;
+  branchId: string;
+  branch: PublicBranch;
+  classType: PublicClassTypeRef;
+  classProfile: PublicClassProfile;
+  instructor?: { id?: string; displayName: string } | null;
+  room?: { id: string; name: string } | null;
+  timezone: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  capacity: number;
+  available: number;
+  status: string;
+}
+
+export interface GeneratedPublicClassDetail {
+  profile: PublicClassProfile;
+  studios: PublicBranch[];
+  packages: Array<PublicPackageSummary>;
+  schedules: PublicScheduleSummary[];
+}
+
+export interface GeneratedPublicStudioDetail {
+  id: string;
+  code: string;
+  name: string;
+  timezone: string;
+  supportWhatsappE164?: string | null;
+  publicProfile: PublicBranch['publicProfile'];
+  classes: Array<PublicStudioDetailAllOfClasses>;
+  packages: Array<PublicPackageSummary>;
+  schedules: PublicScheduleSummary[];
+}
 
 export type PublicPackageDetail = Omit<
   GeneratedPublicPackageDetail,
@@ -73,8 +123,9 @@ export interface PublicStudioDetail extends Pick<
 function scheduleView(item: PublicScheduleSummary): RelatedSchedule {
   return {
     ...item,
-    startAt: item.startAt.toISOString(),
-    endAt: item.endAt.toISOString(),
+    startAt: typeof item.startAt === 'string' ? item.startAt : (item.startAt as any).toISOString(),
+    endAt: typeof item.endAt === 'string' ? item.endAt : (item.endAt as any).toISOString(),
+    branch: item.branch ?? undefined,
   };
 }
 

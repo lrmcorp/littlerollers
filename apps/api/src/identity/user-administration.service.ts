@@ -56,10 +56,10 @@ export class UserAdministrationService {
       id: user.id,
       email: user.email ?? null,
       displayName: user.displayName,
-      phoneE164: user.phone ?? null,
-      phone: user.phone ?? null,
+      phoneE164: user.phoneE164 ?? user.phone ?? null,
+      phone: user.phone ?? user.phoneE164 ?? null,
       status: user.status,
-      version: 1,
+      version: user.version ?? 1,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       roles,
@@ -301,16 +301,44 @@ export class UserAdministrationService {
 
     const phone = input.phoneE164?.trim() ? normalizePhone(input.phoneE164) : undefined;
 
-    const updated = await this.db.user.update({
-      where: { id: targetId },
-      data: {
-        displayName,
-        ...(phone !== undefined ? { phone } : {}),
-      },
-      include: { profile: true },
-    });
+    const existing = await this.db.user.findUnique({ where: { id: targetId } });
+    if (!existing) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    return this.userView(updated);
+    let updated: any;
+    if (input.expectedVersion !== undefined && (this.db.user as any)?.updateMany) {
+      const changed = await (this.db.user as any).updateMany({
+        where: { id: targetId, version: input.expectedVersion },
+        data: {
+          displayName,
+          ...(phone !== undefined ? { phone } : {}),
+        },
+      });
+      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+      updated = await this.db.user.findUnique({ where: { id: targetId } });
+    } else {
+      updated = await this.db.user.update({
+        where: { id: targetId },
+        data: {
+          displayName,
+          ...(phone !== undefined ? { phone } : {}),
+        },
+        include: { profile: true },
+      });
+    }
+
+    if ((this.db as any).auditLog?.create) {
+      await (this.db as any).auditLog.create({
+        data: {
+          action: 'security.user_profile_updated',
+          actorId: principal.userId,
+          targetUserId: targetId,
+          correlationId: _correlationId,
+          reason: input.reason ?? null,
+        },
+      });
+    }
+
+    return this.userView(updated ?? existing);
   }
 
   async inviteUser(

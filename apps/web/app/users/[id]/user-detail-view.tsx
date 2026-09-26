@@ -342,7 +342,7 @@ export function UserDetailView({
                           </strong>
                           <p className="mt-1 text-xs text-dd-muted">
                             {item.branchName ?? 'Cabang'} · {item.classTypeName ?? 'Tipe kelas'} ·
-                            berakhir {item.expiryAt.toLocaleDateString('id-ID')}
+                            berakhir {new Date(item.expiryAt).toLocaleDateString('id-ID')}
                           </p>
                         </div>
                         <Badge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>

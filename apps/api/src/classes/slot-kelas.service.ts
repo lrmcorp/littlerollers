@@ -6,9 +6,9 @@ import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, newId } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX, newId } from '../identity/security';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = ENTITY_ID_REGEX;
 const OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 const PAGE_SIZE = 20;
 
@@ -120,6 +120,7 @@ export class ClassSlotService {
       from?: string;
       until?: string;
       cursor?: string;
+      limit?: number;
       includeHistorical?: boolean;
     },
   ) {
@@ -134,6 +135,7 @@ export class ClassSlotService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     const cursor = decodeCursor(input.cursor);
+    const limit = Math.min(Math.max(1, Number(input.limit ?? PAGE_SIZE)), 500);
 
     const where: Prisma.SlotKelasWhereInput = {
       ...(input.branchId ? { branchId: input.branchId } : {}),
@@ -154,6 +156,11 @@ export class ClassSlotService {
         : {}),
     };
 
+    const isCalendarWindow = Boolean(from && until && !cursor);
+    const orderBy: Prisma.SlotKelasOrderByWithRelationInput[] = isCalendarWindow
+      ? [{ startAt: 'asc' }, { id: 'asc' }]
+      : [{ startAt: 'desc' }, { id: 'desc' }];
+
     const slots = await this.db.slotKelas.findMany({
       where,
       include: {
@@ -163,12 +170,12 @@ export class ClassSlotService {
         classType: true,
         instructor: { include: { profile: true } },
       },
-      orderBy: [{ startAt: 'desc' }, { id: 'desc' }],
-      take: PAGE_SIZE + 1,
+      orderBy,
+      take: limit + 1,
     });
 
-    const hasMore = slots.length > PAGE_SIZE;
-    const items = slots.slice(0, PAGE_SIZE);
+    const hasMore = slots.length > limit;
+    const items = slots.slice(0, limit);
     const last = items.at(-1);
 
     return {
