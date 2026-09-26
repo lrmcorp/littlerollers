@@ -19,6 +19,7 @@ import { useSessionContext } from './session-context';
 import { routes } from '@/lib/routes';
 import { roleLabel } from './lib/role-labels';
 import { canReadPage, frontendPages, pageForPath } from '@/lib/frontend-pages';
+import { PreviewTag } from './components/admin/preview-tag';
 import { PageMetaProvider } from './components/admin/page-meta';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
@@ -692,7 +693,10 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setCommandOpen(false)}
                 className="block rounded-dd-md px-4 py-3 text-dd-ink no-underline hover:bg-dd-surface-muted"
               >
-                <strong className="block text-sm">{page.label}</strong>
+                <strong className="flex items-center gap-2 text-sm">
+                  {page.label}
+                  {page.maturity === 'preview' && <PreviewTag />}
+                </strong>
                 <span className="mt-1 block text-xs text-dd-muted">{page.description}</span>
               </Link>
             ))

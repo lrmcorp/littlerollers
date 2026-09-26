@@ -47,4 +47,25 @@ describe('AdminPageHeader', () => {
     expect(header.className).toMatch(/flex-col/);
     expect(header.className).toMatch(/xl:flex-row/);
   });
+
+  it('flags preview pages with a badge and the explanation of what is not persisted', () => {
+    const support = frontendPages.find((page) => page.href === '/support-cases')!;
+    const { container } = render(
+      <PageMetaProvider value={support}>
+        <AdminPageHeader title="Bantuan Pelanggan" />
+      </PageMetaProvider>,
+    );
+    expect(container.querySelector('[data-preview-badge]')).toHaveTextContent('Pratinjau');
+    expect(screen.getByRole('note')).toHaveTextContent(/hilang saat API dimulai ulang/);
+  });
+
+  it('shows no preview markers on regular pages', () => {
+    const { container } = render(
+      <PageMetaProvider value={payments}>
+        <AdminPageHeader title="Antrean Pembayaran" />
+      </PageMetaProvider>,
+    );
+    expect(container.querySelector('[data-preview-badge]')).toBeNull();
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
 });

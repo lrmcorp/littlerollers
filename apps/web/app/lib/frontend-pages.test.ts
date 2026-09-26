@@ -55,4 +55,15 @@ describe('frontend page registry', () => {
       expect(page(href).branchScope).toBe('topbar');
     }
   });
+
+  it('marks pages backed by sample or in-memory data as preview, each with an explanation', () => {
+    const preview = frontendPages.filter((item) => item.maturity === 'preview');
+    expect(preview.map((item) => item.href).sort()).toEqual(
+      ['/audit', '/migrations', '/operations', '/support-cases'].sort(),
+    );
+    for (const item of preview) expect(item.previewNote?.trim().length).toBeGreaterThan(20);
+    // Catatan tanpa penanda tidak boleh ada, dan halaman biasa tidak boleh berlabel pratinjau.
+    for (const item of frontendPages.filter((entry) => entry.maturity !== 'preview'))
+      expect(item.previewNote).toBeUndefined();
+  });
 });

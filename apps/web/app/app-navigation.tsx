@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
+import { PreviewTag } from './components/admin/preview-tag';
 import { isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
@@ -237,6 +238,7 @@ export function AppNavigation({
                               )}
                           </div>
                           {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                          {!collapsed && item.maturity === 'preview' && <PreviewTag tone="dark" />}
                           {!collapsed &&
                             item.queueBadgeSource &&
                             (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
@@ -302,6 +304,7 @@ export function AppNavigation({
                                 )}
                             </div>
                             {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                            {!collapsed && item.maturity === 'preview' && <PreviewTag tone="dark" />}
                             {!collapsed &&
                               item.queueBadgeSource &&
                               (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (

@@ -946,13 +946,17 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           {/* Anomali Table */}
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Deteksi Anomali Rekonsiliasi</h3>
+            <Feedback kind="info">
+              Pratinjau — deteksi anomali belum aktif, jadi daftar ini selalu kosong. Kosong bukan
+              berarti seluruh transaksi sudah sinkron; cek manual di laporan Penjualan.
+            </Feedback>
             <DataTable
               rowNumberOffset={pageOffset(anomalyCursorHistory.length)}
               items={reconData?.anomalies.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.purchaseId}
-              emptyTitle="Tidak ada anomali"
-              emptyDescription="Seluruh mutasi dan pembayaran pada periode ini sinkron."
+              emptyTitle="Deteksi anomali belum aktif"
+              emptyDescription="Belum ada hasil pemeriksaan otomatis untuk periode ini."
               columns={[
                 {
                   id: 'branch',
@@ -1028,13 +1032,16 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           {/* Legacy Cashflow Table */}
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Entri arus kas lama (v1)</h3>
+            <Feedback kind="info">
+              Pratinjau — impor arus kas lama (v1) belum terhubung, jadi daftar ini selalu kosong.
+            </Feedback>
             <DataTable
               rowNumberOffset={pageOffset(legacyCursorHistory.length)}
               items={reconData?.legacyCashflow.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.id}
-              emptyTitle="Belum ada legacy cashflow"
-              emptyDescription="Tidak ada jurnal v1 pada periode dan cakupan ini."
+              emptyTitle="Arus kas lama (v1) belum terhubung"
+              emptyDescription="Belum ada data v1 yang dapat ditampilkan."
               columns={[
                 {
                   id: 'date',

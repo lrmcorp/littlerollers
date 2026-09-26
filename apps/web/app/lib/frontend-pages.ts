@@ -25,6 +25,12 @@ export interface FrontendPageDefinition {
   dashboardDeepLink?: string;
   isAdvanced?: boolean;
   isDormant?: boolean;
+  /**
+   * `preview`: halaman belum memakai penyimpanan/sumber data permanen. Diberi tag "Pratinjau" di
+   * navigasi dan banner `previewNote` di header agar staf tidak menganggapnya catatan resmi.
+   */
+  maturity?: 'preview';
+  previewNote?: string;
 }
 
 export const frontendPages: FrontendPageDefinition[] = [
@@ -97,6 +103,9 @@ export const frontendPages: FrontendPageDefinition[] = [
     branchScope: 'global',
     accent: 'warning',
     roleRelevance: ['SUPER_OWNER', 'ADMIN', 'MANAGER'],
+    maturity: 'preview',
+    previewNote:
+      'Kasus bantuan disimpan sementara di memori server dan hilang saat API dimulai ulang. Jangan dijadikan satu-satunya catatan.',
   },
   {
     href: '/workspace/reminders',
@@ -361,6 +370,9 @@ export const frontendPages: FrontendPageDefinition[] = [
     icon: 'database',
     roleRelevance: ['SUPER_OWNER'],
     isDormant: true,
+    maturity: 'preview',
+    previewNote:
+      'Data batch migrasi di halaman ini adalah contoh, dan keputusan resolusi belum dapat disimpan.',
   },
   {
     href: '/audit',
@@ -373,6 +385,9 @@ export const frontendPages: FrontendPageDefinition[] = [
     branchScope: 'topbar',
     accent: 'info',
     isAdvanced: true,
+    maturity: 'preview',
+    previewNote:
+      'Riwayat audit belum disimpan di database, sehingga daftar ini selalu kosong. Aktivitas saat ini hanya tercatat di log server.',
   },
   {
     href: '/notification-management',
@@ -415,6 +430,9 @@ export const frontendPages: FrontendPageDefinition[] = [
     queueBadgeSource: 'jobs',
     dashboardDeepLink: '/operations?status=FAILED',
     isAdvanced: true,
+    maturity: 'preview',
+    previewNote:
+      'Sebagian data di halaman ini masih contoh dan belum terhubung ke job produksi; lihat keterangan pada tiap bagian.',
   },
   {
     href: '/health',
