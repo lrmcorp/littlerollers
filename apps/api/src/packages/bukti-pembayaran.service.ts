@@ -90,28 +90,28 @@ export class PaymentProofService {
   ) {
     const targetPurchaseId = input.purchaseId ?? input.orderId;
     if (targetPurchaseId) {
-      const purchase = await this.db.pembelian.findUnique({
-        where: { id: targetPurchaseId },
+      // Hanya pemilik pesanan yang boleh melampirkan/mengganti bukti bayarnya.
+      const purchase = await this.db.pembelian.findFirst({
+        where: { id: targetPurchaseId, userId: principal.userId },
       });
-      if (purchase) {
-        await this.db.buktiPembayaran.upsert({
-          where: { purchaseId: purchase.id },
-          create: {
-            id,
-            purchaseId: purchase.id,
-            fileUrl: `/uploads/payment-proofs/${id}`,
-            bankName: input.bankName ?? null,
-            accountHolder: input.accountHolder ?? null,
-            notes: 'Uploaded by customer',
-          },
-          update: {
-            fileUrl: `/uploads/payment-proofs/${id}`,
-            bankName: input.bankName ?? undefined,
-            accountHolder: input.accountHolder ?? undefined,
-            uploadedAt: new Date(),
-          },
-        });
-      }
+      if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+      await this.db.buktiPembayaran.upsert({
+        where: { purchaseId: purchase.id },
+        create: {
+          id,
+          purchaseId: purchase.id,
+          fileUrl: `/uploads/payment-proofs/${id}`,
+          bankName: input.bankName ?? null,
+          accountHolder: input.accountHolder ?? null,
+          notes: 'Uploaded by customer',
+        },
+        update: {
+          fileUrl: `/uploads/payment-proofs/${id}`,
+          bankName: input.bankName ?? undefined,
+          accountHolder: input.accountHolder ?? undefined,
+          uploadedAt: new Date(),
+        },
+      });
     }
 
     this.auditService.record({
@@ -139,7 +139,8 @@ export class PaymentProofService {
       where: { id },
       include: { purchase: true },
     });
-    if (!proof) {
+    // Bukti milik pelanggan lain diperlakukan seperti tidak ada (tanpa membocorkan detailnya).
+    if (!proof || proof.purchase?.userId !== principal.userId) {
       return {
         id,
         uploadStatus: 'FINALIZED',

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from '../database/database.module';
+import { AccessGuard } from './access.guard';
 import { AuthGuard } from './auth.guard';
 import { IdentityController } from './identity.controller';
 import { IdentityService } from './identity.service';
@@ -48,6 +50,8 @@ import { RolesGuard } from './roles.guard';
     AssignmentService,
     OwnerBranchService,
     RolesGuard,
+    // Default-deny: semua rute wajib login kecuali ditandai @Public().
+    { provide: APP_GUARD, useClass: AccessGuard },
     IdentityDocumentWorkflowService,
     UserAdministrationService,
     AccessManagementService,

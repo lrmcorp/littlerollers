@@ -14,6 +14,8 @@ export class AuthGuard implements CanActivate {
   constructor(private readonly identities: IdentityService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    // AccessGuard global sudah mengautentikasi; hindari pencarian sesi kedua per permintaan.
+    if (request.principal) return true;
     const authorization = request.header('authorization') ?? '';
     const bearer = /^Bearer ([A-Za-z0-9_-]+)$/.exec(authorization)?.[1];
     const cookie = /(?:^|;\s*)dd_session=([A-Za-z0-9_-]+)/.exec(

@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { SelfService } from '../identity/route-access';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { CustomerOrderService } from './pembelian-paket.service';
 import { PackageCatalogService } from './katalog-paket.service';
@@ -103,6 +104,7 @@ export class PackagesController {
       r.correlationId ?? 'unknown',
     );
   }
+  @SelfService()
   @Post('checkout/voucher-preview') previewVoucher(
     @Req() r: AuthenticatedRequest,
     @Body() body: { packageId: string; branchId: string; classTypeId: string; code: string },
@@ -299,6 +301,7 @@ export class PackagesController {
       r.correlationId ?? 'unknown',
     );
   }
+  @SelfService()
   @Get('checkout/options') checkout(
     @Req() r: AuthenticatedRequest,
     @Query('packageId') packageId: string,
@@ -306,6 +309,7 @@ export class PackagesController {
   ) {
     return this.customerOrders.checkoutOptions(r.principal, packageId, branchId);
   }
+  @SelfService()
   @Post('orders') async createOrder(
     @Req() r: AuthenticatedRequest,
     @Headers('idempotency-key') key: string,
@@ -322,6 +326,7 @@ export class PackagesController {
     response.setHeader('Idempotency-Replayed', String(result.replay));
     return result.body;
   }
+  @SelfService()
   @Get('orders') orders(
     @Req() r: AuthenticatedRequest,
     @Query('status') status?: string,
@@ -342,9 +347,11 @@ export class PackagesController {
       includeHistorical: includeHistorical === 'true',
     });
   }
+  @SelfService()
   @Get('orders/:id') order(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.customerOrders.orderDetail(r.principal, id);
   }
+  @SelfService()
   @Post('orders/:id/payment-proof') @HttpCode(200) attachOrderProof(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
@@ -373,6 +380,7 @@ export class PackagesController {
   ) {
     return this.paymentProof.uploadContent(r.principal, id, body);
   }
+  @SelfService()
   @Post('uploads/payment-proofs/:id/finalize') @HttpCode(202) finalize(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
@@ -417,6 +425,7 @@ export class PackagesController {
   ) {
     return this.paymentReview.get(r.principal, id, usageCursor);
   }
+  @SelfService()
   @Post('purchases') async submit(
     @Req() r: AuthenticatedRequest,
     @Headers('idempotency-key') key: string,

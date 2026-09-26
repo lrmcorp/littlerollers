@@ -9,10 +9,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SelfService } from '../identity/route-access';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { ApiProblem } from '../identity/security';
 import { NotificationsService } from './notifications.service';
 
+@SelfService()
 @Controller('me/notifications')
 @UseGuards(AuthGuard)
 export class NotificationsController {

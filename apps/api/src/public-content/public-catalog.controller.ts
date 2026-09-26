@@ -1,9 +1,11 @@
+import { Public } from '../identity/route-access';
 import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { PublicClassQueryService } from './public-class-query.service';
 import { PublicPackageQueryService } from './public-package-query.service';
 import { PublicScheduleQueryService } from './public-schedule-query.service';
 import { PublicStudioQueryService } from './public-studio-query.service';
 
+@Public()
 @Controller('public/package-catalog')
 export class PublicPackageCatalogController {
   constructor(private readonly packages: PublicPackageQueryService) {}
@@ -21,6 +23,7 @@ export class PublicPackageCatalogController {
   }
 }
 
+@Public()
 @Controller('public/class-catalog')
 export class PublicScheduleCatalogController {
   constructor(private readonly schedules: PublicScheduleQueryService) {}
@@ -42,6 +45,7 @@ export class PublicScheduleCatalogController {
   }
 }
 
+@Public()
 @Controller('public')
 export class PublicProfileController {
   constructor(

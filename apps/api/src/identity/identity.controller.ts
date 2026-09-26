@@ -23,6 +23,7 @@ import type { AssignmentType } from './assignment.service';
 
 export type SessionChannel = 'WEB' | 'MOBILE' | string;
 export type IdentityDocumentKind = 'SELFIE' | 'KTP_FRONT';
+import { Public, SelfService } from './route-access';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { IdentityService } from './identity.service';
 import { ApiProblem } from './security';
@@ -76,6 +77,7 @@ export class IdentityController {
     return body;
   }
 
+  @Public()
   @Post('auth/google')
   async authenticateGoogle(
     @Req() request: AuthenticatedRequest,
@@ -88,6 +90,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/password/sessions')
   @HttpCode(200)
   async authenticatePassword(
@@ -105,6 +108,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/customer-registrations')
   @UseInterceptors(
     FileFieldsInterceptor(
@@ -157,18 +161,21 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Get('identity-verification/me')
   myVerification(@Req() request: AuthenticatedRequest) {
     return this.identities.myVerification(request.principal);
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Get('me/profile')
   myProfile(@Req() request: AuthenticatedRequest) {
     return this.customerProfiles.get(request.principal);
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Patch('me/profile')
   updateMyProfile(
@@ -196,6 +203,7 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Post('identity-verification/me/documents/:kind/replacements')
   @UseInterceptors(FileInterceptor('replacement', { limits: { fileSize: 8_000_000, files: 1 } }))
@@ -262,6 +270,7 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Get('identity-verification-files/:authorizationId/content')
   async readIdentityDocument(
@@ -320,6 +329,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/password/activations')
   @HttpCode(200)
   async activatePassword(
@@ -337,6 +347,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/password/reset-requests')
   @HttpCode(202)
   requestPasswordReset(@Req() request: AuthenticatedRequest, @Body() body: { email: string }) {
@@ -347,6 +358,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/password/resets')
   @HttpCode(200)
   resetPassword(
@@ -360,12 +372,14 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/otp/requests')
   @HttpCode(202)
   requestOtp(@Req() request: AuthenticatedRequest, @Body() body: { phoneE164: string }) {
     return this.identities.requestOtp(body.phoneE164, request.correlationId ?? 'unknown');
   }
 
+  @Public()
   @Post('auth/otp/verifications')
   async verifyOtp(
     @Req() request: AuthenticatedRequest,
@@ -383,6 +397,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/refresh')
   async refresh(
     @Req() request: AuthenticatedRequest,
@@ -401,6 +416,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/recovery-requests')
   requestRecovery(
     @Req() request: AuthenticatedRequest,
@@ -417,6 +433,7 @@ export class IdentityController {
     );
   }
 
+  @Public()
   @Post('auth/recoveries/:id/verify')
   async verifyRecovery(
     @Req() request: AuthenticatedRequest,
@@ -430,6 +447,7 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
   @Post('auth/account-links')
   @UseGuards(AuthGuard)
   linkIdentity(
@@ -454,6 +472,7 @@ export class IdentityController {
     return this.identities.meForSession(request.principal);
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Post('auth/logout')
   @HttpCode(204)
@@ -466,6 +485,7 @@ export class IdentityController {
     response.clearCookie('dd_refresh', { path: '/api/v1/auth' });
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Post('auth/sessions/revoke-all')
   @HttpCode(204)
@@ -481,12 +501,14 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Get('auth/security')
   securityStatus(@Req() request: AuthenticatedRequest) {
     return this.identities.passwordSecurityStatus(request.principal);
   }
 
+  @SelfService()
   @UseGuards(AuthGuard)
   @Post('auth/password/change')
   @HttpCode(200)

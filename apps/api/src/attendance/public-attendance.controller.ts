@@ -1,6 +1,8 @@
+import { Public } from '../identity/route-access';
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AttendanceService } from './kehadiran.service';
 
+@Public()
 @Controller('check-ins')
 export class PublicAttendanceController {
   constructor(private readonly attendance: AttendanceService) {}

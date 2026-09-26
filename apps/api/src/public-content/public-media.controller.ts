@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { Public } from '../identity/route-access';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { PolicyService } from '../identity/policy.service';
 import { PublicMediaService } from './public-media.service';
@@ -44,6 +45,7 @@ export class PublicMediaController {
     return this.mediaService.savePublicImage(body);
   }
 
+  @Public()
   @Get('public-media/:filename')
   @Header('Cache-Control', 'public, max-age=31536000, immutable')
   async serveMedia(@Param('filename') filename: string, @Res() res: Response) {

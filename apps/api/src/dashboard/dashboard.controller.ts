@@ -1,4 +1,5 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { SelfService } from '../identity/route-access';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { DashboardService } from './dashboard.service';
 
@@ -23,6 +24,7 @@ export class DashboardController {
 export class CustomerDashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
+  @SelfService()
   @Get('dashboard')
   overview(@Req() request: AuthenticatedRequest) {
     return this.dashboard.customerOverview(request.principal);

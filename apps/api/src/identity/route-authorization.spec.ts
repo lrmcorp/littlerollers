@@ -1,3 +1,4 @@
+import { PaymentProofService } from '../packages/bukti-pembayaran.service';
 import { FinanceService } from '../packages/finance.service';
 import { MigrationsService } from '../operations/migrations.service';
 import { SupportCasesService, inMemorySupportCases } from '../operations/support-cases.service';
@@ -222,5 +223,55 @@ describe('IdentityService.requestPasswordSetup', () => {
     await expect(
       service.requestPasswordSetup(principal(['user:admin']), 'u', body, 'c'),
     ).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
+  });
+});
+
+describe('PaymentProofService ownership', () => {
+  const owner = principal(['customer:self'], [{ role: 'CUSTOMER', branchId: null }], [], 'owner-1');
+  const other = { ...owner, userId: 'other-1' };
+  const build = () => {
+    const db = {
+      pembelian: {
+        findFirst: jest.fn(async ({ where }: { where: { userId: string } }) =>
+          where.userId === 'owner-1' ? { id: 'purchase-1', userId: 'owner-1' } : null,
+        ),
+      },
+      buktiPembayaran: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'proof-1',
+          fileUrl: '/uploads/payment-proofs/proof-1',
+          bankName: 'BCA',
+          accountHolder: 'Maya',
+          uploadedAt: new Date(),
+          purchase: { userId: 'owner-1' },
+        }),
+      },
+    };
+    const service = new PaymentProofService(
+      db as never,
+      { catalog: jest.fn() } as never,
+      {} as never,
+      { record: jest.fn() } as never,
+    );
+    return { db, service };
+  };
+
+  it('does not let another user attach or replace the proof of a purchase', async () => {
+    const { db, service } = build();
+    await expect(
+      service.finalize(other, 'proof-2', { purchaseId: 'purchase-1' }, 'c'),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    expect(db.buktiPembayaran.upsert).not.toHaveBeenCalled();
+    await service.finalize(owner, 'proof-2', { purchaseId: 'purchase-1' }, 'c');
+    expect(db.buktiPembayaran.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not disclose proof details to another user', async () => {
+    const { service } = build();
+    const foreign = await service.status(other, 'proof-1');
+    expect(JSON.stringify(foreign)).not.toContain('BCA');
+    const own = await service.status(owner, 'proof-1');
+    expect(own).toMatchObject({ bankName: 'BCA' });
   });
 });

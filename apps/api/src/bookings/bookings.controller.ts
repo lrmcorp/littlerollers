@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { SelfService } from '../identity/route-access';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import {
   BookingsService,
@@ -27,6 +28,7 @@ export class BookingsController {
     private readonly reschedules: ReschedulesService,
   ) {}
 
+  @SelfService()
   @Get('options/:classSlotId')
   options(@Req() request: AuthenticatedRequest, @Param('classSlotId') classSlotId: string) {
     return this.bookings.customerOptions(request.principal, classSlotId);
