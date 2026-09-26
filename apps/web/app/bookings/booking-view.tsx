@@ -19,6 +19,7 @@ import { useActiveBranchState, useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
 import { Button, actionClasses } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { ReasonDialog } from '../components/admin/reason-dialog';
 import {
   Badge,
   DataTable,
@@ -48,7 +49,13 @@ export function BookingView({
 }: {
   client?: BookingClient;
   activeBranchId?: string;
-  access?: { canRead: boolean; canCreate: boolean; canReview: boolean; canDecide: boolean };
+  access?: {
+    canRead: boolean;
+    canCreate: boolean;
+    canReview: boolean;
+    canDecide: boolean;
+    canCancel?: boolean;
+  };
   initialTab?: 'bookings' | 'reschedules' | 'attendance';
   onTabChange?(value: 'bookings' | 'reschedules' | 'attendance'): void;
   initialFilters?: {
@@ -96,6 +103,13 @@ export function BookingView({
     injectedAccess?.canDecide ??
     (sessionContext?.status === 'authenticated' &&
       sessionContext.hasCapability('reschedule:decide'));
+  // Pembatalan atas nama pelanggan (izin API `booking:cancel:assisted`; batas H-24 berlaku).
+  const canCancelBookings =
+    injectedAccess?.canCancel ??
+    Boolean(
+      sessionContext?.status === 'authenticated' &&
+        sessionContext.hasCapability('booking:cancel:assisted'),
+    );
   const canManageAttendance =
     injectedAccess?.canCreate ??
     (sessionContext?.status === 'authenticated' &&
@@ -134,6 +148,8 @@ export function BookingView({
     'TARGET_UNAVAILABLE' | 'OUTSIDE_POLICY' | 'OUT_OF_SCOPE'
   >('TARGET_UNAVAILABLE');
   const [busy, setBusy] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<CustomerBookingRecord | null>(null);
+  const [cancelError, setCancelError] = useState('');
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const createDirty = Boolean(customerId || packageId || slotId);
@@ -423,6 +439,22 @@ export function BookingView({
     }
   };
 
+  const cancelBooking = async (reason: string) => {
+    if (!cancelTarget || !client.cancelAsStaff) return;
+    setBusy(true);
+    setCancelError('');
+    try {
+      await client.cancelAsStaff(cancelTarget.id, reason, crypto.randomUUID());
+      setCancelTarget(null);
+      await loadWorkspace();
+      setMessage('Booking dibatalkan. Kursi kembali tersedia dan sesi pelanggan tidak terpotong.');
+    } catch (error) {
+      setCancelError(await bookingFailure(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const issueCheckIn = async (booking: CustomerBookingRecord) => {
     if (!canManageAttendance || !branchId || booking.status !== 'BOOKED') return;
     setBusy(true);
@@ -629,6 +661,22 @@ export function BookingView({
         </FilterBar>
       )}
 
+      <ReasonDialog
+        open={Boolean(cancelTarget)}
+        title="Batalkan booking pelanggan?"
+        description={
+          cancelTarget
+            ? `${cancelTarget.customer?.displayName ?? 'Pelanggan'} · ${cancelTarget.classSlot?.classType.name ?? 'Kelas'}. Kursi kembali tersedia dan sesi tidak terpotong. Pembatalan kurang dari H-24 tidak diizinkan; gunakan Penyesuaian Sesi.`
+            : undefined
+        }
+        label="Alasan pembatalan"
+        confirmLabel="Batalkan booking"
+        tone="danger"
+        busy={busy}
+        error={cancelError}
+        onCancel={() => setCancelTarget(null)}
+        onConfirm={(reason) => void cancelBooking(reason)}
+      />
       <Drawer
         open={createOpen && canCreate && Boolean(branchId)}
         title="Buat booking manual"
@@ -1096,6 +1144,19 @@ export function BookingView({
                         Buat/Kirim QR
                       </Button>
                     )}
+                    {booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setCancelError('');
+                          setCancelTarget(booking);
+                        }}
+                      >
+                        Batalkan
+                      </Button>
+                    )}
                     {activeTab === 'attendance' &&
                       booking.checkInToken?.status === 'ACTIVE' &&
                       canManageAttendance &&
@@ -1198,6 +1259,19 @@ export function BookingView({
                 >
                   Lihat detail
                 </Link>
+                {booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setCancelError('');
+                      setCancelTarget(booking);
+                    }}
+                  >
+                    Batalkan booking
+                  </Button>
+                )}
               </div>
             )}
           />

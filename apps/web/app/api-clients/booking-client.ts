@@ -299,6 +299,14 @@ export interface BookingClient {
     items: Array<{ bookingId: string; ok: boolean; result?: CheckInIssue; errorCode?: string }>;
   }>;
   consumeCheckIn?(token: string, idempotencyKey: string): Promise<CheckInResult>;
+  /** Pembatalan atas nama pelanggan oleh staf (Aturan Bisnis #6: batas H-24, alasan wajib). */
+  cancelAsStaff?(bookingId: string, reason: string, idempotencyKey: string): Promise<void>;
+  cancellationOptions?(bookingId: string): Promise<{
+    canCancel: boolean;
+    unavailableReason: string | null;
+    supportAction: string | null;
+    cutoffAt: string;
+  }>;
 }
 
 const configuration = new Configuration({ basePath: '/api/v1', credentials: 'include' });
@@ -500,6 +508,28 @@ export const browserBookingClient: BookingClient = {
   create(input, idempotencyKey) {
     return bookings.createBooking({ idempotencyKey, bookingCommand: input });
   },
+  async cancelAsStaff(bookingId, reason, idempotencyKey) {
+    const response = await foregroundFetch(
+      `/api/v1/bookings/${encodeURIComponent(bookingId)}/cancel`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ reasonCode: 'OTHER', reason }),
+      },
+      'Membatalkan booking…',
+    );
+    if (!response.ok) throw { response };
+  },
+  async cancellationOptions(bookingId) {
+    const response = await foregroundFetch(
+      `/api/v1/bookings/${encodeURIComponent(bookingId)}/cancellation-options`,
+      { credentials: 'include' },
+      'Memeriksa batas pembatalan…',
+    );
+    if (!response.ok) throw { response };
+    return response.json();
+  },
   async listReschedules(input) {
     const result = await bookings.listReschedules(input);
     return {
@@ -622,6 +652,9 @@ const messages: Record<string, string> = {
   PACKAGE_BRANCH_MISMATCH: 'Paket ini hanya berlaku untuk cabang studio tertentu. Silakan pilih jadwal di cabang yang sesuai.',
   PACKAGE_EXHAUSTED: 'Sisa sesi paket Anda sudah habis. Silakan beli paket baru untuk melanjutkan booking.',
   DUPLICATE_BOOKING: 'Anda sudah memiliki booking aktif untuk kelas ini.',
+  CANCELLATION_CUTOFF_PASSED:
+    'Batas pembatalan H-24 sudah terlewati. Untuk kondisi darurat medis, ajukan Penyesuaian Sesi.',
+  ATTENDANCE_RECORDED: 'Kehadiran sudah tercatat, booking tidak dapat dibatalkan.',
 };
 
 export type BookingProblem = {

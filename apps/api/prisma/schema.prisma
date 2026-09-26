@@ -494,6 +494,8 @@ model PemesananKelas {
   bookedAt           DateTime      @default(now())
   cancelledAt        DateTime?
   cancellationReason String?       @db.Text
+  // Pengguna yang membatalkan (pelanggan sendiri atau staf); jejak karena audit belum permanen.
+  cancelledById      String?       @db.Char(36)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 

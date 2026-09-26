@@ -132,6 +132,7 @@ export class BookingsService {
       status: booking.status,
       cancellationReasonCode: booking.cancellationReason ?? null,
       cancelledAt: booking.cancelledAt ?? null,
+      cancelledById: booking.cancelledById ?? null,
       createdAt: booking.createdAt,
       reservedQuantity: 1,
       source: booking.source ?? 'SELF',
@@ -190,11 +191,15 @@ export class BookingsService {
   }
 
   async cancellationOptions(principal: SessionPrincipal, bookingId: string) {
-    this.policy.requireCapability(principal.capabilities, 'booking:self:cancel');
+    const customerFlow = this.isCustomer(principal);
+    this.policy.requireCapability(
+      principal.capabilities,
+      customerFlow ? 'booking:self:cancel' : 'booking:cancel:assisted',
+    );
     if (!UUID.test(bookingId)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const policy = this.cancellationPolicy();
     const booking = await this.db.pemesananKelas.findFirst({
-      where: { id: bookingId, userId: principal.userId },
+      where: customerFlow ? { id: bookingId, userId: principal.userId } : { id: bookingId },
       include: {
         classSlot: {
           include: { branch: true },
@@ -203,6 +208,8 @@ export class BookingsService {
       },
     });
     if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!customerFlow)
+      this.requireBranch(principal, booking.classSlot.branchId, 'booking:cancel:assisted');
 
     const now = new Date();
     const cutoffAt = new Date(booking.classSlot.startAt.getTime() - policy.cutoffHours * 3_600_000);
@@ -223,7 +230,15 @@ export class BookingsService {
       cutoffAt,
       canCancel: unavailableReason === null,
       unavailableReason,
-      supportAction: unavailableReason === null ? null : 'CONTACT_STUDIO',
+      // Staf yang terhalang batas H-24 diarahkan ke Penyesuaian Sesi (Aturan Bisnis #6).
+      supportAction:
+        unavailableReason === null
+          ? null
+          : customerFlow
+            ? 'CONTACT_STUDIO'
+            : unavailableReason === 'CANCELLATION_CUTOFF_PASSED'
+              ? 'USE_SESSION_ADJUSTMENT'
+              : 'CONTACT_STUDIO',
     };
   }
 
@@ -240,6 +255,12 @@ export class BookingsService {
       principal.capabilities,
       customerFlow ? 'booking:self:cancel' : 'booking:cancel:assisted',
     );
+    // Staf wajib menyebut alasan (jejak pembatalan atas nama pelanggan).
+    const staffReason = input.reason?.trim() ?? '';
+    if (!customerFlow && (staffReason.length < 3 || staffReason.length > 200))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reason', issue: 'REASON_REQUIRED' },
+      ]);
 
     return this.idempotency.execute(
       {
@@ -264,6 +285,8 @@ export class BookingsService {
         if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (customerFlow && booking.userId !== principal.userId)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (!customerFlow)
+          this.requireBranch(principal, booking.classSlot.branchId, 'booking:cancel:assisted');
         if (booking.status !== 'BOOKED')
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         if (booking.attendance)
@@ -271,20 +294,26 @@ export class BookingsService {
 
         const now = new Date();
         const policy = this.cancellationPolicy();
-        if (
-          customerFlow &&
-          !isCancellationEntitled(booking.classSlot.startAt, now, policy.cutoffHours)
-        ) {
-          throw new ApiProblem('CANCELLATION_CUTOFF_PASSED', HttpStatus.CONFLICT);
+        // Batas H-24 berlaku sama untuk pelanggan dan staf; di bawah itu jalurnya Penyesuaian Sesi.
+        if (!isCancellationEntitled(booking.classSlot.startAt, now, policy.cutoffHours)) {
+          throw new ApiProblem(
+            'CANCELLATION_CUTOFF_PASSED',
+            HttpStatus.CONFLICT,
+            false,
+            customerFlow ? [] : [{ field: 'booking', issue: 'USE_SESSION_ADJUSTMENT' }],
+          );
         }
 
-        const reason = input.reason ?? input.reasonCode ?? 'CANCELLED_BY_USER';
+        const reason = customerFlow
+          ? (input.reason ?? input.reasonCode ?? 'CANCELLED_BY_USER')
+          : `Dibatalkan staf: ${staffReason}`;
         const updated = await tx.pemesananKelas.update({
           where: { id: booking.id },
           data: {
             status: 'CANCELLED',
             cancelledAt: now,
             cancellationReason: reason,
+            cancelledById: principal.userId,
           },
           include: {
             classSlot: {

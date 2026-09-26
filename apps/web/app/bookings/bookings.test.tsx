@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -155,6 +155,67 @@ describe('BookingView', () => {
     await user.click(screen.getByRole('button', { name: 'Buat booking' }));
     expect(await screen.findByText(/tidak ada reservasi ganda/)).toBeInTheDocument();
     expect(create.mock.calls[0]?.[1]).toBe(create.mock.calls[1]?.[1]);
+  });
+
+  it('lets authorised staff cancel a booking with a mandatory reason and maps the H-24 rule', async () => {
+    const withCustomer = {
+      ...booking,
+      customer: { id: customerId, displayName: 'Customer Synthetic' },
+    };
+    const cancelAsStaff = vi
+      .fn()
+      .mockRejectedValueOnce({
+        response: new Response(JSON.stringify({ error: { code: 'CANCELLATION_CUTOFF_PASSED' } }), {
+          status: 409,
+        }),
+      })
+      .mockResolvedValue(undefined);
+    const list = vi.fn().mockResolvedValue({ items: [withCustomer], nextCursor: null });
+    render(
+      <BookingView
+        client={client({ list, cancelAsStaff })}
+        activeBranchId={branchId}
+        access={{
+          canRead: true,
+          canCreate: true,
+          canReview: false,
+          canDecide: false,
+          canCancel: true,
+        }}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole('button', { name: 'Batalkan' }))[0]!);
+    const dialog = await screen.findByRole('dialog', { name: /Batalkan booking pelanggan/ });
+    const confirm = within(dialog).getByRole('button', { name: 'Batalkan booking' });
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByLabelText('Alasan pembatalan'), 'Pelanggan sakit');
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+    expect(await screen.findByText(/Batas pembatalan H-24 sudah terlewati/)).toBeVisible();
+    expect(cancelAsStaff).toHaveBeenCalledWith(booking.id, 'Pelanggan sakit', expect.any(String));
+    await user.click(confirm);
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(await screen.findByText(/sesi pelanggan tidak terpotong/)).toBeVisible();
+  });
+
+  it('does not offer cancellation without the capability', async () => {
+    const list = vi.fn().mockResolvedValue({ items: [booking], nextCursor: null });
+    render(
+      <BookingView
+        client={client({ list, cancelAsStaff: vi.fn() })}
+        activeBranchId={branchId}
+        access={{
+          canRead: true,
+          canCreate: true,
+          canReview: false,
+          canDecide: false,
+          canCancel: false,
+        }}
+      />,
+    );
+    await screen.findAllByRole('link', { name: 'Lihat detail' });
+    expect(screen.queryByRole('button', { name: 'Batalkan' })).not.toBeInTheDocument();
   });
 
   it('navigates stable booking pages forward and backward without accumulating rows', async () => {

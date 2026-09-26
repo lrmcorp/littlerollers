@@ -15,10 +15,7 @@ const API_SRC = path.resolve(__dirname, '..');
 const REGISTRY = path.resolve(__dirname, '../../../web/app/lib/frontend-pages.ts');
 
 /** Izin yang sengaja belum dipegang siapa pun. Tiap entri wajib beralasan. */
-const UNGRANTED_ON_PURPOSE: Record<string, string> = {
-  'booking:cancel:assisted':
-    'Pembatalan booking oleh staf belum punya UI dan aturan bisnis (Aturan #6: <H-24 lewat Penyesuaian Sesi); tetap tertutup sampai urutan 2.',
-};
+const UNGRANTED_ON_PURPOSE: Record<string, string> = {};
 
 const SELF_SERVICE = /(^|:)self(:|$)|^customer:self$|^class:assigned:read$|^voucher:redeem$/;
 const CAPABILITY = /^[a-z][a-z-]*(?::[a-z][a-z-]*)+$/;
