@@ -714,6 +714,9 @@ model CorrectionJournal {
   requestedById String           @db.Char(36)
   approvedById  String?          @db.Char(36)
   approvedAt    DateTime?
+  // Alasan keputusan (kontrak `ReasonCommand`) dan penjaga konkurensi optimistis.
+  decisionReason String?         @db.Text
+  version       Int              @default(1)
   createdAt     DateTime         @default(now())
 
   branch      Cabang @relation(fields: [branchId], references: [id], onDelete: Restrict)

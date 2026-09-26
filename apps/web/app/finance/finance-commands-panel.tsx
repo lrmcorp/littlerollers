@@ -218,7 +218,7 @@ export function FinanceCommandsPanel({
               <option value="">Pilih koreksi menunggu keputusan</option>
               {correctionQueue.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.referencePeriod} · Rp{item.amount.amountMinor.toLocaleString('id-ID')} ·{' '}
+                  {item.referencePeriod} · Rp{(item.amount.amountMinor / 100).toLocaleString('id-ID')} ·{' '}
                   {item.reason}
                 </option>
               ))}

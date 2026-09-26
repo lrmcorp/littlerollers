@@ -169,6 +169,12 @@ export function OperationsView({
           placeholder="Minimal 3 karakter"
         />
       </FilterBar>
+      {!canRecover && (
+        <Feedback kind="info">
+          Tombol pemulihan (jalankan, coba lagi, dead-letter, kirim ulang email) dinonaktifkan
+          selama daftar ini masih data contoh.
+        </Feedback>
+      )}
       {busy && <Skeleton label="Memuat antrean job" />}
       {failure && <Feedback kind="error">{failure}</Feedback>}
       {message && !busy && <Feedback kind="status">{message}</Feedback>}

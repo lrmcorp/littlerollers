@@ -68,7 +68,8 @@ export class OperationsController {
     return this.operations.deadLetterJob(req.principal, id, reason);
   }
 
-  @Post('quota-evaluations/:id')
+  // Kontrak generated client: POST /operations/quota-evaluations/{id}/run.
+  @Post('quota-evaluations/:id/run')
   runQuotaEvaluation(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,

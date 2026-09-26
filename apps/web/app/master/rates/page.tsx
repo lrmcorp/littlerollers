@@ -1,10 +1,9 @@
-import { RatesView } from './rates-view';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Konfigurasi Tarif Efektif | Daily Dose Pilates',
-  description: 'Manajemen tarif honor instruktur dan projection rate sesi ber-effective-date.',
-};
-
+/**
+ * Halaman "Tarif" lama memanggil endpoint yang tidak ada. Honor instruktur dan proyeksi kini dikelola
+ * di Data Master (tab Honor dan Proyeksi); URL lama tetap berlaku dengan pengalihan.
+ */
 export default function RatesPage() {
-  return <RatesView />;
+  redirect('/master?tab=fees');
 }

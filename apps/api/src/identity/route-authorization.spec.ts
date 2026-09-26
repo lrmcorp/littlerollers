@@ -137,7 +137,7 @@ describe('FinanceService capability gates', () => {
     monthlyClose: { findMany: jest.fn().mockResolvedValue([]) },
     cabang: { findUnique: jest.fn().mockResolvedValue({ id: branchA }) },
   };
-  const service = new FinanceService(db as never, new PolicyService());
+  const service = new FinanceService(db as never, new PolicyService(), { catat: jest.fn() } as never);
   const branchManager = principal(['booking:read'], [{ role: 'MANAGER', branchId: branchA }]);
 
   it('denies reports, stubs and periods without finance:read even to a branch member', async () => {

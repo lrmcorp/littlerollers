@@ -83,11 +83,12 @@ export class LedgerController {
     return this.ledger.requestAdjustment(req.principal, body);
   }
 
-  @Post('session-adjustments/:id/decide')
+  // Kontrak generated client (`decideSessionAdjustment`): POST /session-adjustments/{id}/{approve|reject}.
+  @Post('session-adjustments/:id/:decision')
   decideAdjustment(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Query('decision') decision: string | undefined,
+    @Param('decision') decision: string | undefined,
     @Body() body: { reasonCode?: string; note?: string; expectedVersion?: number },
   ) {
     return this.ledger.decideAdjustment(req.principal, id, decision, body);

@@ -1,14 +1,33 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+
+const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+const EXPORT_MAX_DAYS = 366;
+const EXPORT_MAX_ROWS = 50_000;
+
+/** Uang pada kontrak API memakai satuan minor (sen). */
+const toMoney = (rupiah: number) => ({ amountMinor: rupiah * 100, currency: 'IDR' });
+
+const problem = (code: string, status: HttpStatus, field?: string) =>
+  new ApiProblem(code, status, false, field ? [{ field, issue: code }] : []);
+
+/** Sel teks CSV: dikutip bila perlu dan dinetralkan dari injeksi rumus spreadsheet. */
+function csvText(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
 
 @Injectable()
 export class FinanceService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    private readonly audit: AuditService,
   ) {}
 
   private ensureBranchAccess(principal: SessionPrincipal, targetBranchId?: string) {
@@ -610,37 +629,94 @@ export class FinanceService {
   // JURNAL KOREKSI PASCA-LOCK (RULE #8)
   // ============================================================================
 
+  private correctionView(row: {
+    id: string;
+    branchId: string;
+    period: string;
+    targetPeriod: string;
+    amountRp: number;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    requestedById: string;
+    approvedById: string | null;
+    decisionReason?: string | null;
+    version?: number;
+  }) {
+    return {
+      id: row.id,
+      branchId: row.branchId,
+      currentPeriod: row.period,
+      referencePeriod: row.targetPeriod,
+      amount: toMoney(row.amountRp),
+      reason: row.reason,
+      requestedBy: row.requestedById,
+      decidedBy: row.approvedById,
+      decisionReason: row.decisionReason ?? null,
+      status: row.status,
+      version: row.version ?? 1,
+    };
+  }
+
   async createCorrection(
     principal: SessionPrincipal,
     input: {
       branchId: string;
-      targetPeriod: string;
-      period: string;
+      currentPeriod?: string;
+      referencePeriod?: string;
+      /** Nama lama (`period`/`targetPeriod`) tetap diterima. */
+      period?: string;
+      targetPeriod?: string;
       amountRp: number;
       reason: string;
     },
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:manage');
+    const currentPeriod = input?.currentPeriod ?? input?.period ?? '';
+    const referencePeriod = input?.referencePeriod ?? input?.targetPeriod ?? '';
+    const reason = typeof input?.reason === 'string' ? input.reason.trim() : '';
+    if (!input?.branchId) throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'branchId');
+    if (!PERIOD.test(currentPeriod))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'currentPeriod');
+    // Koreksi dicatat pada bulan berjalan dan mengacu ke bulan sebelumnya (Aturan Bisnis #8).
+    if (!PERIOD.test(referencePeriod) || referencePeriod >= currentPeriod)
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'referencePeriod');
+    if (
+      !Number.isInteger(input.amountRp) ||
+      input.amountRp === 0 ||
+      Math.abs(input.amountRp) > 1_000_000_000
+    )
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'amountRp');
+    if (reason.length < 3 || reason.length > 500)
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reason');
     this.ensureBranchAccess(principal, input.branchId);
 
-    return await this.db.correctionJournal.create({
+    const created = await this.db.correctionJournal.create({
       data: {
         branchId: input.branchId,
-        targetPeriod: input.targetPeriod,
-        period: input.period,
+        period: currentPeriod,
+        targetPeriod: referencePeriod,
         amountRp: input.amountRp,
-        reason: input.reason,
+        reason,
         status: 'PENDING',
         requestedById: principal.userId,
       },
     });
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: created.branchId,
+      action: 'FINANCE_CORRECTION_REQUESTED',
+      objectType: 'CorrectionJournal',
+      objectId: created.id,
+      afterMasked: { currentPeriod, referencePeriod, amountRp: created.amountRp },
+    });
+    return this.correctionView(created);
   }
 
   async decideCorrection(
     principal: SessionPrincipal,
     id: string,
-    decision: 'APPROVE' | 'REJECT',
-    note?: string,
+    decision: string | undefined,
+    body: { reason?: string },
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:manage');
     const isSuperOwner = principal.roles.some((r) =>
@@ -649,22 +725,50 @@ export class FinanceService {
     if (!isSuperOwner) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
+    const normalized = decision?.toLowerCase();
+    if (normalized !== 'approve' && normalized !== 'reject')
+      throw problem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST, 'decision');
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 3 || reason.length > 500)
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reason');
 
     const correction = await this.db.correctionJournal.findUnique({ where: { id } });
     if (!correction) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
+    // Pemisahan tugas: pengaju koreksi tidak boleh memutus koreksinya sendiri.
+    if (correction.requestedById === principal.userId)
+      throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
+    if (correction.status !== 'PENDING')
+      throw problem('CORRECTION_ALREADY_DECIDED', HttpStatus.CONFLICT);
 
-    const updated = await this.db.correctionJournal.update({
-      where: { id },
+    const claimed = await this.db.correctionJournal.updateMany({
+      where: { id, status: 'PENDING', version: correction.version },
       data: {
-        status: decision === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+        status: normalized === 'approve' ? 'APPROVED' : 'REJECTED',
         approvedById: principal.userId,
         approvedAt: new Date(),
+        decisionReason: reason,
+        version: { increment: 1 },
       },
     });
+    if (claimed.count !== 1) throw problem('CORRECTION_ALREADY_DECIDED', HttpStatus.CONFLICT);
 
-    return updated;
+    const updated = await this.db.correctionJournal.findUniqueOrThrow({ where: { id } });
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: updated.branchId,
+      action: normalized === 'approve' ? 'FINANCE_CORRECTION_APPROVED' : 'FINANCE_CORRECTION_REJECTED',
+      objectType: 'CorrectionJournal',
+      objectId: id,
+    });
+    return {
+      correction: this.correctionView(updated),
+      journalReferenceId: null,
+      // Audit belum disimpan permanen (AuditService hanya mencatat ke log), jadi tidak ada id audit.
+      auditLogId: null,
+      idempotentReplay: false,
+    };
   }
 
   async listCorrections(
@@ -682,15 +786,11 @@ export class FinanceService {
     if (filters.period) where.period = filters.period;
     if (filters.status) where.status = filters.status;
 
-    const items = await this.db.correctionJournal.findMany({
+    const rows = await this.db.correctionJournal.findMany({
       where,
-      include: {
-        branch: { select: { id: true, code: true, name: true } },
-        requestedBy: { select: { id: true, displayName: true } },
-        approvedBy: { select: { id: true, displayName: true } },
-      },
       orderBy: { createdAt: 'desc' },
     });
+    const items = rows.map((row) => this.correctionView(row));
 
     return {
       items,
@@ -701,6 +801,123 @@ export class FinanceService {
         rejected: items.filter((i) => i.status === 'REJECTED').length,
       },
       page: { hasMore: false, nextCursor: null },
+    };
+  }
+
+  // ============================================================================
+  // EKSPOR FINANCE (CSV)
+  // ============================================================================
+
+  async exportReport(
+    principal: SessionPrincipal,
+    input: { branchId?: string; from?: string | Date; until?: string | Date },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:export');
+    const from = input?.from ? new Date(input.from) : null;
+    const until = input?.until ? new Date(input.until) : null;
+    if (!from || !until || Number.isNaN(from.getTime()) || Number.isNaN(until.getTime()))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'from');
+    if (from > until) throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'until');
+    if ((until.getTime() - from.getTime()) / 86_400_000 > EXPORT_MAX_DAYS)
+      throw problem('EXPORT_RANGE_TOO_LARGE', HttpStatus.UNPROCESSABLE_ENTITY, 'until');
+    this.ensureBranchAccess(principal, input.branchId);
+
+    const isGlobal =
+      principal.capabilities.includes('branch:all') ||
+      principal.roles.some((r) =>
+        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+      );
+    const branchFilter = input.branchId
+      ? { branchId: input.branchId }
+      : isGlobal
+        ? {}
+        : { branchId: { in: principal.branchIds } };
+
+    // `until` adalah tanggal (inklusif), sehingga batas atas query = hari berikutnya.
+    const endExclusive = new Date(until.getTime() + 86_400_000);
+    const months = new Set<string>();
+    for (
+      const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
+      cursor <= until;
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1)
+    )
+      months.add(cursor.toISOString().slice(0, 7));
+
+    const [purchases, costs, branch] = await Promise.all([
+      this.db.pembelian.findMany({
+        where: { ...branchFilter, status: 'PAID', paidAt: { gte: from, lt: endExclusive } },
+        include: {
+          branch: { select: { code: true } },
+          package: { select: { name: true } },
+        },
+        orderBy: [{ paidAt: 'asc' }, { id: 'asc' }],
+        take: EXPORT_MAX_ROWS + 1,
+      }),
+      this.db.otherCost.findMany({
+        where: { ...branchFilter, period: { in: [...months] } },
+        include: { branch: { select: { code: true } } },
+        orderBy: [{ period: 'asc' }, { id: 'asc' }],
+        take: EXPORT_MAX_ROWS + 1,
+      }),
+      input.branchId
+        ? this.db.cabang.findUnique({ where: { id: input.branchId }, select: { code: true } })
+        : Promise.resolve(null),
+    ]);
+    const truncated = purchases.length > EXPORT_MAX_ROWS || costs.length > EXPORT_MAX_ROWS;
+    const salesRows = purchases.slice(0, EXPORT_MAX_ROWS);
+    const costRows = costs.slice(0, EXPORT_MAX_ROWS);
+
+    const day = (date: Date | null | undefined) => (date ?? new Date(0)).toISOString().slice(0, 10);
+    const lines = ['tanggal,cabang,jenis,referensi,keterangan,jumlah_rp'];
+    let salesTotal = 0;
+    for (const p of salesRows) {
+      salesTotal += p.totalAmountRp;
+      lines.push(
+        [
+          day(p.paidAt ?? p.createdAt),
+          csvText(p.branch.code),
+          'PENJUALAN_PAKET',
+          csvText(p.invoiceNumber ?? p.id),
+          csvText(p.package.name),
+          String(p.totalAmountRp),
+        ].join(','),
+      );
+    }
+    let costTotal = 0;
+    for (const c of costRows) {
+      costTotal += c.amountRp;
+      lines.push(
+        [
+          `${c.period}-01`,
+          csvText(c.branch.code),
+          'BIAYA_LAIN',
+          csvText(c.id),
+          csvText(`${c.category}: ${c.description}`),
+          String(c.amountRp),
+        ].join(','),
+      );
+    }
+    lines.push(`,,TOTAL_PENJUALAN,,Penjualan paket lunas,${salesTotal}`);
+    lines.push(`,,TOTAL_BIAYA_LAIN,,Biaya lain dihitung per bulan periode,${costTotal}`);
+    lines.push(`,,SELISIH,,Penjualan dikurangi biaya lain,${salesTotal - costTotal}`);
+
+    const content = `\uFEFF${lines.join('\r\n')}\r\n`;
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: input.branchId ?? null,
+      action: 'FINANCE_EXPORT',
+      objectType: 'FinanceExport',
+      objectId: `${day(from)}..${day(until)}`,
+      afterMasked: { rows: salesRows.length + costRows.length, truncated },
+    });
+    return {
+      fileName: `finance-${branch?.code ?? 'semua-cabang'}-${day(from)}-${day(until)}.csv`,
+      mimeType: 'text/csv;charset=utf-8',
+      content,
+      controlHash: createHash('sha256').update(content).digest('hex'),
+      sourceCutoffAt: new Date().toISOString(),
+      completeness: truncated ? 'INCOMPLETE' : 'COMPLETE',
+      auditLogId: null,
     };
   }
 

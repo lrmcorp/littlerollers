@@ -50,7 +50,14 @@ const humanizeAction = (action: string) =>
   actionLabels[action] ??
   action.replace(/[._-]+/gu, ' ').replace(/\b\w/gu, (character) => character.toUpperCase());
 
-export function AuditView({ client = browserIdentityClient }: { client?: IdentityClient }) {
+export function AuditView({
+  client = browserIdentityClient,
+  exportEnabled = true,
+}: {
+  client?: IdentityClient;
+  /** Ekspor audit butuh API `/audit-exports` yang belum ada; halaman produksi mematikannya. */
+  exportEnabled?: boolean;
+}) {
   const context = useSessionContext();
   // Cakupan cabang mengikuti pemilih "Cabang aktif" di topbar.
   const branchId = context?.activeBranchId ?? '';
@@ -258,116 +265,124 @@ export function AuditView({ client = browserIdentityClient }: { client?: Identit
           void load(nextCursor);
         }}
       />
-      <Panel className="p-5">
-        <h2 className="text-lg font-semibold text-dd-ink">Export audit privat</h2>
-        <p className="mt-1 text-sm text-dd-muted">
-          Export berjalan asynchronous, kedaluwarsa dalam 24 jam, dan setiap unduhan memerlukan
-          otorisasi singkat.
-        </p>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <SelectInput
-            label="Format"
-            value={exportFormat}
-            onChange={(event) => setExportFormat(event.target.value as 'CSV' | 'JSONL')}
-          >
-            <option>CSV</option>
-            <option>JSONL</option>
-          </SelectInput>
-          <TextInput
-            label="Alasan"
-            wrapperClassName="min-w-72 flex-1"
-            value={exportReason}
-            minLength={3}
-            onChange={(event) => setExportReason(event.target.value)}
-          />
-          <Button
-            type="button"
-            disabled={loading || exportReason.trim().length < 3 || Boolean(exportPeriodError)}
-            onClick={() =>
-              void (async () => {
-                setLoading(true);
-                try {
-                  const branchIds = branchId
-                    ? [branchId]
-                    : (context?.session?.branches ?? []).map(({ id }) => id);
-                  setExportJob(
-                    await client.createAuditExport(
-                      {
-                        branchIds,
-                        from: new Date(`${filters.from}T00:00:00`).toISOString(),
-                        to: new Date(`${filters.until}T23:59:59.999`).toISOString(),
-                        actorId: actor?.id,
-                        format: exportFormat,
-                        reason: exportReason,
-                      },
-                      crypto.randomUUID(),
-                    ),
-                  );
-                } catch (error) {
-                  setFailure(failureCode(error));
-                } finally {
-                  setLoading(false);
-                }
-              })()
-            }
-          >
-            Buat export
-          </Button>
-        </div>
-        {exportPeriodError && (
-          <p className="mt-3 text-sm text-dd-warning" role="status">
-            {exportPeriodError}
+      {!exportEnabled && (
+        <Feedback kind="info">
+          Ekspor audit belum tersedia. Ekspor akan diaktifkan setelah audit disimpan permanen di
+          database.
+        </Feedback>
+      )}
+      {exportEnabled && (
+        <Panel className="p-5">
+          <h2 className="text-lg font-semibold text-dd-ink">Export audit privat</h2>
+          <p className="mt-1 text-sm text-dd-muted">
+            Export berjalan asynchronous, kedaluwarsa dalam 24 jam, dan setiap unduhan memerlukan
+            otorisasi singkat.
           </p>
-        )}
-        {exportJob && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md bg-dd-surface-muted p-4">
-            <div>
-              <Badge
-                tone={
-                  exportJob.status === 'READY'
-                    ? 'success'
-                    : exportJob.status === 'FAILED'
-                      ? 'danger'
-                      : 'warning'
-                }
-              >
-                {exportStatusLabels[exportJob.status] ?? exportJob.status}
-              </Badge>
-              <p className="mt-2 text-sm text-dd-muted">
-                {exportJob.rowCount.toLocaleString('id-ID')} baris · kedaluwarsa{' '}
-                {new Date(exportJob.expiresAt).toLocaleString('id-ID')}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {exportJob.status !== 'READY' && exportJob.status !== 'FAILED' && (
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    void client
-                      .getAuditExport(exportJob.id)
-                      .then(setExportJob)
-                      .catch((error) => setFailure(failureCode(error)))
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <SelectInput
+              label="Format"
+              value={exportFormat}
+              onChange={(event) => setExportFormat(event.target.value as 'CSV' | 'JSONL')}
+            >
+              <option>CSV</option>
+              <option>JSONL</option>
+            </SelectInput>
+            <TextInput
+              label="Alasan"
+              wrapperClassName="min-w-72 flex-1"
+              value={exportReason}
+              minLength={3}
+              onChange={(event) => setExportReason(event.target.value)}
+            />
+            <Button
+              type="button"
+              disabled={loading || exportReason.trim().length < 3 || Boolean(exportPeriodError)}
+              onClick={() =>
+                void (async () => {
+                  setLoading(true);
+                  try {
+                    const branchIds = branchId
+                      ? [branchId]
+                      : (context?.session?.branches ?? []).map(({ id }) => id);
+                    setExportJob(
+                      await client.createAuditExport(
+                        {
+                          branchIds,
+                          from: new Date(`${filters.from}T00:00:00`).toISOString(),
+                          to: new Date(`${filters.until}T23:59:59.999`).toISOString(),
+                          actorId: actor?.id,
+                          format: exportFormat,
+                          reason: exportReason,
+                        },
+                        crypto.randomUUID(),
+                      ),
+                    );
+                  } catch (error) {
+                    setFailure(failureCode(error));
+                  } finally {
+                    setLoading(false);
                   }
-                >
-                  Periksa status
-                </Button>
-              )}
-              {exportJob.status === 'READY' && (
-                <Button
-                  onClick={() =>
-                    void client
-                      .authorizeAuditExport(exportJob.id)
-                      .then(({ url }) => window.open(url, '_blank', 'noopener,noreferrer'))
-                      .catch((error) => setFailure(failureCode(error)))
-                  }
-                >
-                  Unduh file ekspor
-                </Button>
-              )}
-            </div>
+                })()
+              }
+            >
+              Buat export
+            </Button>
           </div>
-        )}
-      </Panel>
+          {exportPeriodError && (
+            <p className="mt-3 text-sm text-dd-warning" role="status">
+              {exportPeriodError}
+            </p>
+          )}
+          {exportJob && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md bg-dd-surface-muted p-4">
+              <div>
+                <Badge
+                  tone={
+                    exportJob.status === 'READY'
+                      ? 'success'
+                      : exportJob.status === 'FAILED'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                >
+                  {exportStatusLabels[exportJob.status] ?? exportJob.status}
+                </Badge>
+                <p className="mt-2 text-sm text-dd-muted">
+                  {exportJob.rowCount.toLocaleString('id-ID')} baris · kedaluwarsa{' '}
+                  {new Date(exportJob.expiresAt).toLocaleString('id-ID')}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {exportJob.status !== 'READY' && exportJob.status !== 'FAILED' && (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      void client
+                        .getAuditExport(exportJob.id)
+                        .then(setExportJob)
+                        .catch((error) => setFailure(failureCode(error)))
+                    }
+                  >
+                    Periksa status
+                  </Button>
+                )}
+                {exportJob.status === 'READY' && (
+                  <Button
+                    onClick={() =>
+                      void client
+                        .authorizeAuditExport(exportJob.id)
+                        .then(({ url }) => window.open(url, '_blank', 'noopener,noreferrer'))
+                        .catch((error) => setFailure(failureCode(error)))
+                    }
+                  >
+                    Unduh file ekspor
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </Panel>
+      )}
     </section>
   );
 }

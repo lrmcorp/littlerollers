@@ -140,6 +140,14 @@ export class FinanceController {
     return this.finance.periods(req.principal, { branchId, cursor });
   }
 
+  @Post('finance-exports')
+  exportReport(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { branchId?: string; from?: string; until?: string },
+  ) {
+    return this.finance.exportReport(req.principal, body);
+  }
+
   // ============================================================================
   // JURNAL KOREKSI PASCA-LOCK (RULE #8)
   // ============================================================================
@@ -150,8 +158,10 @@ export class FinanceController {
     @Body()
     body: {
       branchId: string;
-      targetPeriod: string;
-      period: string;
+      currentPeriod?: string;
+      referencePeriod?: string;
+      period?: string;
+      targetPeriod?: string;
       amountRp: number;
       reason: string;
     },
@@ -159,13 +169,15 @@ export class FinanceController {
     return this.finance.createCorrection(req.principal, body);
   }
 
-  @Post(['correction-journals/:id/decide', 'finance/correction-journals/:id/decide'])
+  // Kontrak generated client (`decideCorrection`): POST /correction-journals/{id}/{approve|reject} + { reason }.
+  @Post(['correction-journals/:id/:decision', 'finance/correction-journals/:id/:decision'])
   decideCorrection(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { decision: 'APPROVE' | 'REJECT'; note?: string },
+    @Param('decision') decision: string,
+    @Body() body: { reason?: string },
   ) {
-    return this.finance.decideCorrection(req.principal, id, body.decision, body.note);
+    return this.finance.decideCorrection(req.principal, id, decision, body);
   }
 
   @Get(['correction-journals', 'finance/correction-journals'])

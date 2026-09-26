@@ -36,6 +36,9 @@ async function request(path: string, init?: RequestInit) {
   return response.json();
 }
 
+/** API `PATCH /support-cases/:id` dan `POST …/internal-notes` belum ada; lihat web-api-contract.spec.ts. */
+const EDITING_AVAILABLE = false;
+
 export function SupportCaseDetailView({ id }: { id: string }) {
   const [item, setItem] = useState<CaseDetail>();
   const [error, setError] = useState('');
@@ -126,6 +129,11 @@ export function SupportCaseDetailView({ id }: { id: string }) {
           </>
         }
       />
+      {!EDITING_AVAILABLE && (
+        <Feedback kind="info">
+          Mengubah status, prioritas, dan menambah catatan internal belum tersedia (Pratinjau).
+        </Feedback>
+      )}
       {error && <Feedback kind="error">{error}</Feedback>}
       {success && <Feedback kind="status">{success}</Feedback>}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -160,7 +168,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
             defaultValue={item.tags.join(', ')}
             placeholder="Tag dipisahkan koma, misal: voucher, follow-up"
           />
-          <Button type="submit" loading={busy}>
+          <Button type="submit" loading={busy} disabled={!EDITING_AVAILABLE}>
             Simpan perubahan
           </Button>
           <p className="text-xs text-dd-muted">
@@ -180,7 +188,7 @@ export function SupportCaseDetailView({ id }: { id: string }) {
             name="body"
             placeholder="Hanya terlihat oleh staf berwenang"
           />
-          <Button type="submit" loading={busy}>
+          <Button type="submit" loading={busy} disabled={!EDITING_AVAILABLE}>
             Tambah catatan internal
           </Button>
         </form>

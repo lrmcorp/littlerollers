@@ -197,14 +197,11 @@ export class OperationsService {
     return { job, result: 'DEAD_LETTER' };
   }
 
-  async runQuotaEvaluation(principal: SessionPrincipal, id: string) {
+  async runQuotaEvaluation(principal: SessionPrincipal, _id: string) {
     this.policy.requireCapability(principal.capabilities, 'operations:recover');
-    return {
-      id,
-      evaluatedAt: new Date().toISOString(),
-      actionTaken: 'NO_ACTION_REQUIRED',
-      success: true,
-    };
+    // Evaluasi kuota H-24 sungguhan dijalankan otomatis oleh AutoCancelService; job di daftar ini
+    // masih contoh, jadi jangan melaporkan sukses untuk sesuatu yang tidak dijalankan.
+    throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
   }
 }
 
