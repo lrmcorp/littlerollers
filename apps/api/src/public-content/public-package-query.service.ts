@@ -93,34 +93,11 @@ export class PublicPackageQueryService {
     return { branches, items };
   }
 
-  async detail(id: string, branchId: string) {
+  async detail(id: string, branchId?: string) {
     assertPublicUuid(id);
-    assertPublicUuid(branchId);
+    const hasBranchFilter = Boolean(branchId && branchId.trim() !== '');
+    if (hasBranchFilter) assertPublicUuid(branchId!);
     const now = new Date();
-
-    const branchData = await this.db.cabang.findFirst({
-      where: { id: branchId, active: true },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        timezone: true,
-        address: true,
-        supportWhatsappE164: true,
-      },
-    });
-    if (!branchData) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    const branch = {
-      ...branchData,
-      publicProfile: {
-        slug: branchData.code.toLowerCase(),
-        area: branchData.name,
-        city: 'Jakarta',
-        address: branchData.address ?? '',
-        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
-      },
-    };
 
     const item = await this.db.paket.findFirst({
       where: {
@@ -131,10 +108,62 @@ export class PublicPackageQueryService {
         classType: {
           select: { id: true, code: true, name: true },
         },
+        branch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            timezone: true,
+            address: true,
+            supportWhatsappE164: true,
+          },
+        },
       },
     });
 
     if (!item) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    let branchData = item.branch;
+    if (hasBranchFilter) {
+      branchData = await this.db.cabang.findFirst({
+        where: { id: branchId, active: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          timezone: true,
+          address: true,
+          supportWhatsappE164: true,
+        },
+      });
+      if (!branchData) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    } else if (!branchData) {
+      branchData = await this.db.cabang.findFirst({
+        where: { active: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          timezone: true,
+          address: true,
+          supportWhatsappE164: true,
+        },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      });
+      if (!branchData) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+
+    const branch = {
+      ...branchData,
+      publicProfile: {
+        slug: branchData.code.toLowerCase(),
+        area: branchData.name,
+        city: 'Jakarta',
+        address: branchData.address ?? '',
+        heroImageKey: null,
+        openingHours: ['Senin - Minggu: 06:00 - 21:00'],
+      },
+    };
 
     const schedules = await this.db.slotKelas.findMany({
       where: {
@@ -155,7 +184,8 @@ export class PublicPackageQueryService {
       take: 4,
     });
 
-    const classTypes = item.classType ? [item.classType] : [];
+    const classType = item.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' };
+    const classTypes = [classType];
 
     return {
       id: item.id,
@@ -170,9 +200,14 @@ export class PublicPackageQueryService {
         description: `Paket latihan pilates ${item.name} dengan total ${item.sessionCount} sesi kelas.`,
         highlights: ['Akses instruktur bersertifikat', 'Fasilitas studio lengkap', 'Jadwal fleksibel'],
         usageGuidance: 'Pemesanan kelas dapat dilakukan melalui aplikasi kapan saja.',
-        terms: 'Paket tidak dapat diuangkan kembali.',
+        terms: [
+          'Paket tidak dapat diuangkan kembali.',
+          'Masa berlaku dihitung sejak tanggal aktivasi atau pembelian pertama.',
+          'Pemesanan dan pembatalan kelas mengikuti ketentuan cutoff yang berlaku.',
+        ],
       },
       branch,
+      classType,
       classTypes,
       isDiscounted: false,
       discountedPriceRp: item.priceRp,

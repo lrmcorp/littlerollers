@@ -59,10 +59,10 @@ export function PackageDetailView({
       {item && (
         <>
           <DetailHero
-            eyebrow={`${item.classType.name} · ${item.branch.publicProfile.area}`}
+            eyebrow={`${item.classType?.name ?? 'Pilates'} · ${item.branch?.publicProfile?.area ?? item.branch?.name ?? ''}`}
             title={item.name}
-            summary={item.publicProfile.summary}
-            imageKey={item.branch.publicProfile.heroImageKey}
+            summary={item.publicProfile?.summary ?? ''}
+            imageKey={item.branch?.publicProfile?.heroImageKey ?? ''}
             facts={
               <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
@@ -80,10 +80,10 @@ export function PackageDetailView({
             }
             actions={
               <>
-                <AudienceAction kind="package" id={item.id} branchId={item.branch.id} />
+                <AudienceAction kind="package" id={item.id} branchId={item.branch?.id} />
                 <Link
                   className={publicSecondaryButton}
-                  href={`/locations/${item.branch.publicProfile.slug}`}
+                  href={`/locations/${item.branch?.publicProfile?.slug ?? ''}`}
                 >
                   <MapPin className="size-4" /> Detail studio
                 </Link>
@@ -123,15 +123,17 @@ export function PackageDetailView({
                 <h2 className="mt-2 text-3xl font-semibold">Ritme latihan yang lebih konsisten</h2>
                 <p className="mt-4 leading-7 text-dd-muted">{item.publicProfile.description}</p>
                 <ul className="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2">
-                  {item.publicProfile.highlights.map((highlight) => (
-                    <li
-                      className="flex items-start gap-3 rounded-dd-md border border-dd-line bg-white p-4"
-                      key={highlight}
-                    >
-                      <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" />
-                      {highlight}
-                    </li>
-                  ))}
+                  {(Array.isArray(item.publicProfile?.highlights) ? item.publicProfile.highlights : []).map(
+                    (highlight) => (
+                      <li
+                        className="flex items-start gap-3 rounded-dd-md border border-dd-line bg-white p-4"
+                        key={highlight}
+                      >
+                        <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" />
+                        {highlight}
+                      </li>
+                    ),
+                  )}
                 </ul>
               </article>
               <article>
@@ -148,13 +150,13 @@ export function PackageDetailView({
                 <Clock3 className="size-6 text-dd-forest" />
                 <h2 className="mt-4 text-xl font-semibold">Cara menggunakan</h2>
                 <p className="mt-3 text-sm leading-6 text-dd-muted">
-                  {item.publicProfile.usageGuidance}
+                  {item.publicProfile?.usageGuidance ?? ''}
                 </p>
               </div>
               <div className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
                 <h2 className="text-xl font-semibold">Ketentuan paket</h2>
                 <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-muted">
-                  {item.publicProfile.terms.map((term) => (
+                  {(Array.isArray(item.publicProfile?.terms) ? item.publicProfile.terms : []).map((term) => (
                     <li key={term}>{term}</li>
                   ))}
                 </ul>
