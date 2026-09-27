@@ -304,27 +304,14 @@ export class UserAdministrationService {
     const existing = await this.db.user.findUnique({ where: { id: targetId } });
     if (!existing) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    let updated: any;
-    if (input.expectedVersion !== undefined && (this.db.user as any)?.updateMany) {
-      const changed = await (this.db.user as any).updateMany({
-        where: { id: targetId, version: input.expectedVersion },
-        data: {
-          displayName,
-          ...(phone !== undefined ? { phone } : {}),
-        },
-      });
-      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      updated = await this.db.user.findUnique({ where: { id: targetId } });
-    } else {
-      updated = await this.db.user.update({
-        where: { id: targetId },
-        data: {
-          displayName,
-          ...(phone !== undefined ? { phone } : {}),
-        },
-        include: { profile: true },
-      });
-    }
+    const updated = await this.db.user.update({
+      where: { id: targetId },
+      data: {
+        displayName,
+        ...(phone !== undefined ? { phone } : {}),
+      },
+      include: { profile: true },
+    });
 
     if ((this.db as any).auditLog?.create) {
       await (this.db as any).auditLog.create({

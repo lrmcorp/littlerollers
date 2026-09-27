@@ -120,10 +120,17 @@ export class LedgerService {
   ) {
     const scopeWhere = this.packageScopeWhere(principal, 'ledger:read', filters.branchId);
     const search = filters.search?.trim();
+    const isCustomer = principal.roles.some((r) => r.role === 'CUSTOMER' || r.role === 'MEMBER');
+    const customerFilter: Prisma.PaketPelangganWhereInput = isCustomer
+      ? { userId: principal.userId }
+      : filters.customerUserId
+        ? { userId: filters.customerUserId }
+        : {};
+
     const base: Prisma.PaketPelangganWhereInput = {
       AND: [
         scopeWhere,
-        ...(filters.customerUserId ? [{ userId: filters.customerUserId }] : []),
+        customerFilter,
         ...(search
           ? [
               {

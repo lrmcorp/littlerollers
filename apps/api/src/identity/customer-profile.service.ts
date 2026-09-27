@@ -63,30 +63,15 @@ export class CustomerProfileService {
     if (!existing || existing.status !== 'ACTIVE')
       throw new ApiProblem('SESSION_REVOKED', HttpStatus.UNAUTHORIZED);
 
-    let updated: any;
-    if (input.expectedVersion !== undefined && (this.db.user as any)?.updateMany) {
-      const changed = await (this.db.user as any).updateMany({
-        where: { id: principal.userId, version: input.expectedVersion, status: 'ACTIVE' },
-        data: {
-          displayName,
-          ...(input.preferredBranchId !== undefined
-            ? { preferredBranchId: input.preferredBranchId }
-            : {}),
-        },
-      });
-      if (changed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
-      updated = await this.db.user.findUnique({ where: { id: principal.userId } });
-    } else {
-      updated = await this.db.user.update({
-        where: { id: principal.userId },
-        data: {
-          displayName,
-          ...(input.preferredBranchId !== undefined
-            ? { preferredBranchId: input.preferredBranchId }
-            : {}),
-        },
-      });
-    }
+    const updated = await this.db.user.update({
+      where: { id: principal.userId },
+      data: {
+        displayName,
+        ...(input.preferredBranchId !== undefined
+          ? { preferredBranchId: input.preferredBranchId }
+          : {}),
+      },
+    });
 
     if ((this.db as any).auditLog?.create) {
       await (this.db as any).auditLog.create({

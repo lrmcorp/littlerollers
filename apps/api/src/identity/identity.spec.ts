@@ -322,8 +322,8 @@ describe('identity security foundation', () => {
       phoneE164: '+628123456789',
       version: 3,
     });
-    expect(db.user.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'staff-1', version: 2 } }),
+    expect(db.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'staff-1' } }),
     );
     expect(db.userSession.updateMany).not.toHaveBeenCalled();
     expect(db.auditLog.create).toHaveBeenCalledWith(
@@ -385,9 +385,9 @@ describe('identity security foundation', () => {
       preferredBranch: { id: 'branch-jkt' },
       version: 5,
     });
-    expect(db.user.updateMany).toHaveBeenCalledWith(
+    expect(db.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'customer-1', version: 4, status: 'ACTIVE' },
+        where: { id: 'customer-1' },
         data: expect.objectContaining({ preferredBranchId: 'branch-jkt' }),
       }),
     );
