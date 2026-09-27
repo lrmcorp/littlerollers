@@ -28,7 +28,7 @@ export type CancelBookingCommand = {
 };
 
 export { ENTITY_ID_REGEX };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = ENTITY_ID_REGEX;
 const PAGE_SIZE = 20;
 
 export function isCancellationEntitled(
