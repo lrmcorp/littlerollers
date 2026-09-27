@@ -31,6 +31,7 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'migration:read',
     'migration:resolve',
     'audit:read',
+    'dashboard:read',
     'user:read',
     'user:admin',
     'branch:all',

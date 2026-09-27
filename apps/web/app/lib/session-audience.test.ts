@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isCustomerCatalogPath,
+  isInstructorOnlySession,
   isPublicExperiencePath,
   packageAudienceState,
 } from './session-audience';
@@ -48,5 +49,17 @@ describe('public detail routing and audience', () => {
     expect(packageAudienceState(session(['CUSTOMER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
     expect(packageAudienceState(session(['CUSTOMER', 'MEMBER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
     expect(packageAudienceState(session(['MEMBER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
+  });
+
+  it('treats INSTRUCTOR/COACH-only accounts as instructor-only', () => {
+    expect(isInstructorOnlySession(session(['INSTRUCTOR'], 'NOT_REQUIRED'))).toBe(true);
+    expect(isInstructorOnlySession(session(['COACH'], 'NOT_REQUIRED'))).toBe(true);
+    expect(isInstructorOnlySession(session(['INSTRUCTOR', 'COACH'], 'NOT_REQUIRED'))).toBe(true);
+  });
+
+  it('keeps dual-role accounts (e.g. INSTRUCTOR + ADMIN) out of instructor-only scope', () => {
+    expect(isInstructorOnlySession(session(['INSTRUCTOR', 'ADMIN'], 'NOT_REQUIRED'))).toBe(false);
+    expect(isInstructorOnlySession(session(['ADMIN'], 'NOT_REQUIRED'))).toBe(false);
+    expect(isInstructorOnlySession(null)).toBe(false);
   });
 });

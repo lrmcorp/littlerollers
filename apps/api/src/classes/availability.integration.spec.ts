@@ -4,7 +4,9 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import { PolicyService } from '../identity/policy.service';
 import { AvailabilityService } from './ketersediaan-instruktur.service';
 
-const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
+// Integration test berjalan dengan koneksi MySQL nyata.
+// DATABASE_URL dimuat otomatis dari root .env oleh jest.setup.cjs.
+const databaseDescribe = describe;
 
 databaseDescribe('synthetic instructor availability MySQL integration', () => {
   const db = new PrismaClient();
@@ -81,7 +83,15 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
       '2026-08-01T00:00:00Z',
       '2026-08-02T00:00:00Z',
     );
-    expect(page.items).toBeDefined();
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0]).toMatchObject({
+      instructorUserId: instructorId,
+      branchId,
+      timezone: 'Asia/Jakarta',
+      status: 'ENDED',
+    });
+    expect(page.items[0]!.startAt.toISOString()).toBe('2026-08-01T02:00:00.000Z');
+    expect(page.items[0]!.endAt.toISOString()).toBe('2026-08-01T04:00:00.000Z');
   });
 
   it('rejects offset-less, reversed and hidden branch inputs', async () => {

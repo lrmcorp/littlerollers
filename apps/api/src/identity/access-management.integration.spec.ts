@@ -5,7 +5,9 @@ import { AccessManagementService } from './access-management.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 
-const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
+// Integration test berjalan dengan koneksi MySQL nyata.
+// DATABASE_URL dimuat otomatis dari root .env oleh jest.setup.cjs.
+const databaseDescribe = describe;
 
 databaseDescribe('access management integration', () => {
   const db = new PrismaClient();

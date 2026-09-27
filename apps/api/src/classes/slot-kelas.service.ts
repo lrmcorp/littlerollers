@@ -84,6 +84,20 @@ export class ClassSlotService {
     this.policy.requireCapability(principal.capabilities, 'class-slot:manage');
   }
 
+  /**
+   * Selesaikan kelas: staf dengan `class-slot:manage` (dan branch scope), ATAU instruktur pemilik
+   * slot ini dengan `attendance:self` (Aturan #1 — instruktur menandai kelasnya sendiri selesai).
+   */
+  private authorizeCompletion(principal: SessionPrincipal, slot: { instructorId: string | null; branchId: string }) {
+    const isOwningInstructor =
+      principal.capabilities.includes('attendance:self') &&
+      slot.instructorId !== null &&
+      slot.instructorId === principal.userId;
+    if (isOwningInstructor) return;
+    this.manage(principal);
+    this.scope(principal, slot.branchId, 'class-slot:manage');
+  }
+
   private view(slot: any) {
     return {
       id: slot.id,
@@ -137,11 +151,16 @@ export class ClassSlotService {
     const cursor = decodeCursor(input.cursor);
     const limit = Math.min(Math.max(1, Number(input.limit ?? PAGE_SIZE)), 500);
 
+    // Instruktur/coach (`class:assigned:read`) tetap harus melihat kelasnya sendiri di status apa
+    // pun (CONFIRMED untuk diselesaikan, dsb) — hanya customer murni yang dibatasi ke PUBLISHED.
+    const canSeeAllStatuses =
+      principal.capabilities.includes('class-slot:manage') ||
+      principal.capabilities.includes('class:assigned:read');
     const where: Prisma.SlotKelasWhereInput = {
       ...(input.branchId ? { branchId: input.branchId } : {}),
       ...(input.status
         ? { status: input.status as ClassSlotStatus }
-        : !principal.capabilities.includes('class-slot:manage')
+        : !canSeeAllStatuses
           ? { status: ClassSlotStatus.PUBLISHED }
           : {}),
       ...(from ? { endAt: { gt: from } } : {}),
@@ -537,7 +556,6 @@ export class ClassSlotService {
     _correlationId: string,
     now = new Date(),
   ) {
-    this.manage(principal);
     this.validateKey(key);
     if (!UUID.test(id))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -560,11 +578,21 @@ export class ClassSlotService {
           },
         });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.scope(principal, slot.branchId, 'class-slot:manage');
+        this.authorizeCompletion(principal, slot);
+
+        const tally = (bookings: Array<{ status: string }>) =>
+          bookings.reduce(
+            (acc, booking) => {
+              if (booking.status === 'ATTENDED') acc.attendanceCount += 1;
+              else if (booking.status === 'NO_SHOW') acc.noShowCount += 1;
+              return acc;
+            },
+            { attendanceCount: 0, noShowCount: 0 },
+          );
 
         // Jika slot sudah pernah COMPLETED, return view (idempotent guard)
         if (slot.status === ClassSlotStatus.COMPLETED) {
-          return this.view(slot);
+          return { ...this.view(slot), ...tally(slot.bookings) };
         }
 
         // Atomic lock guard: update status ke COMPLETED terlebih dahulu untuk mengunci baris secara eksklusif di MySQL
@@ -583,15 +611,20 @@ export class ClassSlotService {
               room: true,
               classType: true,
               instructor: { include: { profile: true } },
+              bookings: true,
             },
           });
-          return this.view(currentSlot);
+          return { ...this.view(currentSlot), ...tally(currentSlot.bookings) };
         }
 
         // Evaluasi kehadiran & potong sesi bagi customer yang ATTENDED (Rule #1)
+        let attendanceCount = 0;
+        let noShowCount = 0;
         for (const booking of slot.bookings) {
           const wasAttended = booking.status === 'ATTENDED' || Boolean(booking.attendance);
           const newStatus = wasAttended ? 'ATTENDED' : 'NO_SHOW';
+          if (wasAttended) attendanceCount += 1;
+          else noShowCount += 1;
 
           if (booking.status !== newStatus) {
             await tx.pemesananKelas.update({
@@ -662,17 +695,16 @@ export class ClassSlotService {
           },
         });
 
-        return this.view(updated);
+        return { ...this.view(updated), attendanceCount, noShowCount };
       },
     );
   }
 
   async completionControl(principal: SessionPrincipal, id: string) {
-    this.manage(principal);
     if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const slot = await this.db.slotKelas.findUnique({ where: { id } });
     if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-    this.scope(principal, slot.branchId, 'class-slot:manage');
+    this.authorizeCompletion(principal, slot);
 
     const bookings = await this.db.pemesananKelas.findMany({
       where: { classSlotId: id },

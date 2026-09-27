@@ -230,7 +230,9 @@ export class DashboardService {
     principal: SessionPrincipal,
     query: { branchId?: string; from?: string; until?: string },
   ) {
-    if (principal.roles.every(({ role }) => role === 'CUSTOMER')) {
+    const nonOperationalRoles = new Set(['INSTRUCTOR', 'COACH', 'CUSTOMER', 'MEMBER']);
+    const lacksOperationalRole = principal.roles.every(({ role }) => nonOperationalRoles.has(role));
+    if (lacksOperationalRole && !principal.capabilities.includes('dashboard:read')) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
     const global =
@@ -243,8 +245,8 @@ export class DashboardService {
     }
     const now = new Date();
     const today = dateInTimeZone(now, 'Asia/Jakarta');
-    const untilDate = query.until ?? today;
-    const fromDate = query.from ?? dateShift(untilDate, -29);
+    const untilDate = query.until ? query.until.slice(0, 10) : today;
+    const fromDate = query.from ? query.from.slice(0, 10) : dateShift(untilDate, -29);
     if (
       !/^\d{4}-\d{2}-\d{2}$/u.test(fromDate) ||
       !/^\d{4}-\d{2}-\d{2}$/u.test(untilDate) ||

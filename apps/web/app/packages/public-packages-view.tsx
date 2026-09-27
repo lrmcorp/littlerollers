@@ -2,7 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, Check, Clock, Layers, MapPin, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Check,
+  Clock,
+  Layers,
+  MapPin,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import {
   browserPublicPackageCatalogClient,
   publicPackageFailure,
@@ -28,6 +40,20 @@ import {
 } from '@/lib/session-audience';
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
+
+export const PRICE_RANGES = [
+  { id: 'under-2m', label: '< Rp 2.000.000', min: 0, max: 1_999_999 },
+  { id: '2m-5m', label: 'Rp 2.000.000 – Rp 5.000.000', min: 2_000_000, max: 5_000_000 },
+  { id: '5m-10m', label: 'Rp 5.000.000 – Rp 10.000.000', min: 5_000_001, max: 10_000_000 },
+  { id: 'above-10m', label: '> Rp 10.000.000', min: 10_000_001, max: Infinity },
+] as const;
+
+export const SESSION_RANGES = [
+  { id: '1-5', label: '1 – 5 sesi', min: 1, max: 5 },
+  { id: '6-10', label: '6 – 10 sesi', min: 6, max: 10 },
+  { id: '11-20', label: '11 – 20 sesi', min: 11, max: 20 },
+  { id: 'above-20', label: '> 20 sesi', min: 21, max: Infinity },
+] as const;
 
 const packageBenefits = [
   'Harga terbaru dan transparan',
@@ -91,12 +117,24 @@ export function packageCtaHref(audience: PackageAudienceState, purchase: string)
   return purchase;
 }
 
-function syncCatalogQuery(branchId: string, classTypeId: string) {
+function syncCatalogQuery(
+  branchId: string,
+  classTypeId: string,
+  searchQuery = '',
+  priceRange = '',
+  sessionRange = '',
+) {
   const query = new URLSearchParams(window.location.search);
   if (branchId) query.set('branch', branchId);
   else query.delete('branch');
   if (classTypeId) query.set('classType', classTypeId);
   else query.delete('classType');
+  if (searchQuery.trim()) query.set('q', searchQuery.trim());
+  else query.delete('q');
+  if (priceRange) query.set('price', priceRange);
+  else query.delete('price');
+  if (sessionRange) query.set('sessions', sessionRange);
+  else query.delete('sessions');
   const search = query.toString();
   window.history.replaceState(
     window.history.state,
@@ -117,6 +155,9 @@ export function PublicPackagesView({
   const [items, setItems] = useState<PublicPackage[]>([]);
   const [branchId, setBranchId] = useState('');
   const [classTypeId, setClassTypeId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState('');
+  const [sessionRange, setSessionRange] = useState('');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [continuationSlot, setContinuationSlot] = useState('');
@@ -169,8 +210,14 @@ export function PublicPackagesView({
         const query = new URLSearchParams(window.location.search);
         const requestedBranch = query.get('branch');
         const requestedClassType = query.get('classType');
+        const requestedQ = query.get('q') ?? '';
+        const requestedPrice = query.get('price') ?? '';
+        const requestedSessions = query.get('sessions') ?? '';
         setContinuationSlot(query.get('slot') ?? '');
         if (requestedClassType) setClassTypeId(requestedClassType);
+        if (requestedQ) setSearchQuery(requestedQ);
+        if (requestedPrice) setPriceRange(requestedPrice);
+        if (requestedSessions) setSessionRange(requestedSessions);
         const initialBranch =
           requestedBranch && result.branches.some(({ id }) => id === requestedBranch)
             ? requestedBranch
@@ -205,7 +252,10 @@ export function PublicPackagesView({
   const selectBranch = async (selected: string) => {
     setBranchId(selected);
     setClassTypeId('');
-    syncCatalogQuery(selected, '');
+    setSearchQuery('');
+    setPriceRange('');
+    setSessionRange('');
+    syncCatalogQuery(selected, '', '', '', '');
     await loadBranch(selected);
   };
 
@@ -219,7 +269,60 @@ export function PublicPackagesView({
     ],
     [items],
   );
-  const visible = items.filter((item) => !classTypeId || item.classType?.id === classTypeId);
+
+  const visible = useMemo(() => {
+    return items.filter((item) => {
+      // 1. Tipe Kelas
+      if (classTypeId && item.classType?.id !== classTypeId) {
+        return false;
+      }
+
+      // 2. Pencarian Nama Paket / Deskripsi / Tipe Kelas
+      if (searchQuery.trim()) {
+        const queryLower = searchQuery.toLowerCase().trim();
+        const nameMatch = item.name.toLowerCase().includes(queryLower);
+        const descMatch = (item.description ?? '').toLowerCase().includes(queryLower);
+        const classTypeMatch = (item.classType?.name ?? '').toLowerCase().includes(queryLower);
+        if (!nameMatch && !descMatch && !classTypeMatch) {
+          return false;
+        }
+      }
+
+      // 3. Rentang Harga
+      if (priceRange) {
+        const range = PRICE_RANGES.find((r) => r.id === priceRange);
+        if (range) {
+          const effectivePrice = item.effectivePriceRp ?? item.priceRp;
+          if (effectivePrice < range.min || effectivePrice > range.max) {
+            return false;
+          }
+        }
+      }
+
+      // 4. Jumlah Sesi
+      if (sessionRange) {
+        const range = SESSION_RANGES.find((r) => r.id === sessionRange);
+        if (range) {
+          if (item.sessionCount < range.min || item.sessionCount > range.max) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [items, classTypeId, searchQuery, priceRange, sessionRange]);
+
+  const hasActiveFilters = Boolean(classTypeId || searchQuery || priceRange || sessionRange);
+
+  const resetAllFilters = () => {
+    setClassTypeId('');
+    setSearchQuery('');
+    setPriceRange('');
+    setSessionRange('');
+    syncCatalogQuery(branchId, '', '', '', '');
+  };
+
   const recommendedId = recommendedPackageId(visible);
   const orderedVisible = recommendedFirst(visible, recommendedId);
   const ctaLabel = packageCtaLabel(session ?? null);
@@ -314,33 +417,132 @@ export function PublicPackagesView({
               </div>
             )}
 
-            <div className="mt-4 grid gap-3 rounded-2xl border border-dd-line/80 bg-white/95 p-4 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div className="min-w-0">
-                <SearchSelect
-                  label="Tipe kelas"
-                  compact
-                  value={classTypeId}
-                  disabled={!branchId}
-                  placeholder="Semua tipe kelas"
-                  options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
-                  onChange={(selected) => {
-                    setClassTypeId(selected);
-                    syncCatalogQuery(branchId, selected);
-                  }}
-                />
+            {/* Filter & Search Bar */}
+            <div className="mt-5 rounded-2xl border border-dd-line/80 bg-white/95 p-4 sm:p-5 shadow-dd-card">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-dd-forest">
+                  <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+                  02 — Filter &amp; Pencarian Paket
+                </span>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-dd-line bg-dd-surface-muted px-2.5 py-1 text-xs font-bold text-dd-forest transition hover:bg-dd-surface-muted/80 cursor-pointer"
+                    onClick={resetAllFilters}
+                  >
+                    <RotateCcw className="size-3" aria-hidden="true" />
+                    Reset filter
+                  </button>
+                )}
               </div>
-              {classTypeId && (
-                <button
-                  type="button"
-                  className="min-h-11 rounded-xl border border-dd-line bg-dd-surface-muted px-4 text-xs font-bold text-dd-forest transition hover:bg-dd-surface-muted/80"
-                  onClick={() => {
-                    setClassTypeId('');
-                    syncCatalogQuery(branchId, '');
-                  }}
-                >
-                  Reset filter
-                </button>
-              )}
+
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4 items-end">
+                {/* 1. Nama Paket */}
+                <div className="grid min-w-0 gap-1.5">
+                  <label htmlFor="package-search-input" className="text-sm font-semibold text-dd-ink">
+                    Nama paket
+                  </label>
+                  <div className="relative min-w-0">
+                    <Search
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="package-search-input"
+                      type="search"
+                      value={searchQuery}
+                      disabled={!branchId}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSearchQuery(val);
+                        syncCatalogQuery(branchId, classTypeId, val, priceRange, sessionRange);
+                      }}
+                      placeholder="Cari nama paket…"
+                      className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-8 font-sans text-sm text-dd-ink shadow-sm transition placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-dd-muted"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        aria-label="Hapus kata kunci pencarian"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-dd-muted transition hover:bg-dd-surface-muted hover:text-dd-ink cursor-pointer"
+                        onClick={() => {
+                          setSearchQuery('');
+                          syncCatalogQuery(branchId, classTypeId, '', priceRange, sessionRange);
+                        }}
+                      >
+                        <X className="size-3.5" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Tipe Kelas */}
+                <div className="min-w-0">
+                  <SearchSelect
+                    label="Tipe kelas"
+                    compact
+                    value={classTypeId}
+                    disabled={!branchId}
+                    placeholder="Semua tipe kelas"
+                    options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+                    onChange={(selected) => {
+                      setClassTypeId(selected);
+                      syncCatalogQuery(branchId, selected, searchQuery, priceRange, sessionRange);
+                    }}
+                  />
+                </div>
+
+                {/* 3. Rentang Harga */}
+                <div className="min-w-0">
+                  <SearchSelect
+                    label="Rentang harga"
+                    compact
+                    value={priceRange}
+                    disabled={!branchId}
+                    placeholder="Semua harga"
+                    options={PRICE_RANGES.map((item) => ({ id: item.id, label: item.label }))}
+                    onChange={(selected) => {
+                      setPriceRange(selected);
+                      syncCatalogQuery(branchId, classTypeId, searchQuery, selected, sessionRange);
+                    }}
+                  />
+                </div>
+
+                {/* 4. Jumlah Sesi */}
+                <div className="min-w-0">
+                  <SearchSelect
+                    label="Jumlah sesi"
+                    compact
+                    value={sessionRange}
+                    disabled={!branchId}
+                    placeholder="Semua sesi"
+                    options={SESSION_RANGES.map((item) => ({ id: item.id, label: item.label }))}
+                    onChange={(selected) => {
+                      setSessionRange(selected);
+                      syncCatalogQuery(branchId, classTypeId, searchQuery, priceRange, selected);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Bar */}
+              <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-dd-line/60 pt-3 text-xs text-dd-muted">
+                <p>
+                  {branchId ? (
+                    <>
+                      Menampilkan <strong className="font-semibold text-dd-ink">{visible.length}</strong> dari{' '}
+                      <strong className="font-semibold text-dd-ink">{items.length}</strong> paket tersedia
+                    </>
+                  ) : (
+                    'Pilih salah satu studio di atas untuk melihat paket yang tersedia.'
+                  )}
+                </p>
+                {hasActiveFilters && (
+                  <span className="font-medium text-dd-forest">
+                    Filter aktif diterapkan
+                  </span>
+                )}
+              </div>
             </div>
 
             {showCatalogState && (
@@ -374,8 +576,23 @@ export function PublicPackagesView({
                   </PublicStatePanel>
                 )}
                 {status === 'ready' && branchId && visible.length === 0 && (
-                  <PublicStatePanel title="Belum ada paket aktif">
-                    Coba tipe kelas lain atau pilih studio berbeda.
+                  <PublicStatePanel
+                    title={items.length > 0 ? 'Tidak ada paket yang sesuai' : 'Belum ada paket aktif'}
+                  >
+                    <p>
+                      {items.length > 0
+                        ? 'Coba ubah kata kunci pencarian, longgarkan filter harga atau jumlah sesi untuk menemukan paket yang sesuai.'
+                        : 'Coba tipe kelas lain atau pilih studio berbeda.'}
+                    </p>
+                    {items.length > 0 && hasActiveFilters && (
+                      <button
+                        type="button"
+                        className="mt-4 min-h-11 rounded-xl border border-dd-forest/30 bg-white px-5 font-bold text-sm text-dd-forest shadow-sm transition hover:bg-dd-surface-muted cursor-pointer"
+                        onClick={resetAllFilters}
+                      >
+                        Reset semua filter
+                      </button>
+                    )}
                   </PublicStatePanel>
                 )}
               </div>

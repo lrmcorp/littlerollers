@@ -13,6 +13,7 @@ import { Feedback, Skeleton } from './ui';
 import {
   internalStaffRoles,
   isCustomerOnlySession,
+  isInstructorOnlySession,
   isPublicExperiencePath,
 } from '@/lib/session-audience';
 import { useOptionalAppFeedback } from './components/app-feedback';
@@ -107,6 +108,7 @@ export function safeReturnTo(value: string | null): string {
 
 export function defaultSessionDestination(session: WebSession): string {
   if (session.passwordChangeRequired) return '/account/security?required=true';
+  if (isInstructorOnlySession(session)) return '/workspace/classes';
   if (session.roles.some((role) => internalStaffRoles.has(role))) return '/workspace';
   if (session.roles.some((role) => role === 'CUSTOMER' || role === 'MEMBER'))
     return '/classes#schedule';
@@ -136,7 +138,10 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
     return false;
   if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
-  if (path === '/workspace') return session.roles.some((role) => internalStaffRoles.has(role));
+  if (path === '/workspace')
+    return (
+      !isInstructorOnlySession(session) && session.roles.some((role) => internalStaffRoles.has(role))
+    );
   const rule = routeCapabilities.find(([route]) => path === route || path.startsWith(`${route}/`));
   if (!rule) return false;
   return rule[1].length === 0 || rule[1].some((cap) => session.capabilities.includes(cap));

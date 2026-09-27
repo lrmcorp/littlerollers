@@ -219,4 +219,57 @@ describe('public package catalog', () => {
     expect(await screen.findByText('Pilih studio untuk melihat paket')).toBeVisible();
     expect(client.list).toHaveBeenCalledTimes(2);
   });
+
+  it('filters packages by name keyword, price range, and session count', async () => {
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: packages }),
+    };
+    const { container } = render(<PublicPackagesView client={client} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+    expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Pilates Routine' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Pilates Commitment' })).toBeVisible();
+
+    // 1. Filter by search input
+    const searchInput = screen.getByLabelText(/Nama paket/i);
+    await userEvent.type(searchInput, 'Starter');
+    expect(screen.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Pilates Routine' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Pilates Commitment' })).not.toBeInTheDocument();
+
+    // Clear search
+    await userEvent.clear(searchInput);
+    expect(screen.getByRole('heading', { name: 'Pilates Routine' })).toBeVisible();
+
+    // 2. Filter by price range: < Rp 2.000.000 (only Starter at 1.200.000)
+    await userEvent.click(screen.getByRole('combobox', { name: /Rentang harga/i }));
+    await userEvent.click(await screen.findByRole('option', { name: '< Rp 2.000.000' }));
+    expect(screen.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Pilates Routine' })).not.toBeInTheDocument();
+
+    // 3. Reset filters
+    await userEvent.click(screen.getByRole('button', { name: /Reset filter/i }));
+    expect(screen.getByRole('heading', { name: 'Pilates Routine' })).toBeVisible();
+
+    // 4. Filter by session count: 11 - 20 sesi (only Commitment at 12 sessions)
+    await userEvent.click(screen.getByRole('combobox', { name: /Jumlah sesi/i }));
+    await userEvent.click(await screen.findByRole('option', { name: '11 – 20 sesi' }));
+    expect(screen.getByRole('heading', { name: 'Pilates Commitment' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Pilates Starter' })).not.toBeInTheDocument();
+
+    // 5. Empty state when combination has no results
+    await userEvent.type(searchInput, 'NonExistentPackage');
+    expect(await screen.findByText('Tidak ada paket yang sesuai')).toBeVisible();
+    expect(screen.getByText(/Reset semua filter/i)).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: /Reset semua filter/i }));
+    expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+
+    // 6. a11y check
+    expect((await axe(container)).violations).toHaveLength(0);
+  });
 });

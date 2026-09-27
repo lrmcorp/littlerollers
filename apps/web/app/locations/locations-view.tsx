@@ -151,7 +151,7 @@ export function LocationsView() {
           aria-label="Cari dan filter studio"
         >
           <div
-            className={`${container} grid grid-cols-[1fr_1fr_1fr_auto] gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1`}
+            className={`${container} grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1`}
           >
             <SearchSelect
               label="Wilayah"
@@ -160,25 +160,38 @@ export function LocationsView() {
               options={regions.map((item) => ({ id: item, label: item }))}
               onChange={(value) => setRegion(value || 'Semua lokasi')}
             />
-            <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
-              <Search className="size-4 text-dd-muted shrink-0" aria-hidden="true" />
-              <span className="sr-only">Cari studio</span>
-              <input
-                className="min-h-11 w-full border-0 bg-transparent text-sm focus:outline-none"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari nama atau area"
-              />
-            </label>
-            <div className="flex min-h-[50px] items-center gap-2.5 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted">
-              <Layers className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
-              <span>Private · Semi Private · Group</span>
+            <div className="grid min-w-0 gap-1.5">
+              <label htmlFor="studio-search-input" className="text-sm font-semibold text-dd-ink">
+                Cari studio
+              </label>
+              <div className="relative min-w-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted" aria-hidden="true" />
+                <input
+                  id="studio-search-input"
+                  className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-4 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Cari nama atau area"
+                />
+              </div>
             </div>
-            <Link className={`${primary} inline-flex items-center gap-1.5 justify-center`} href="/classes#schedule">
-              <span>Lihat Jadwal</span>
-              <Calendar className="size-4" />
-            </Link>
+            <div className="grid min-w-0 gap-1.5">
+              <span className="text-sm font-semibold text-dd-ink">Format latihan</span>
+              <div className="flex min-h-11 items-center gap-2.5 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted shadow-sm">
+                <Layers className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
+                <span className="truncate">Private · Semi Private · Group</span>
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Link
+                className={`${primary} min-h-11 inline-flex items-center gap-1.5 justify-center`}
+                href="/classes#schedule"
+              >
+                <span>Lihat Jadwal</span>
+                <Calendar className="size-4" />
+              </Link>
+            </div>
           </div>
         </section>
 

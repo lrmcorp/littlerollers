@@ -336,7 +336,7 @@ export function PurchaseReviewView({
       feedback?.showToast({
         tone: 'success',
         title: 'Pembayaran disetujui',
-        message: `${result.customerPackage.packageName ?? item.packageNameSnapshot} aktif dengan ${result.customerPackage.available} sesi. Ledger ${result.ledgerEntry.id}.`,
+        message: `${result.customerPackage?.packageName ?? item.packageNameSnapshot} aktif dengan ${result.customerPackage?.available ?? 0} sesi.${result.ledgerEntry?.id ? ` Ledger ${result.ledgerEntry.id}.` : ''}`,
         correlationReference: result.purchase.auditReference ?? undefined,
       });
       await load();
@@ -593,6 +593,7 @@ export function PurchaseReviewView({
               <div>
                 <strong>{item.customer.displayName}</strong>
                 <p className="text-xs text-dd-muted">
+                  {item.customer.email ? `${item.customer.email} · ` : ''}
                   {item.customer.phoneMasked ?? 'Kontak termasking tidak tersedia'}
                 </p>
               </div>

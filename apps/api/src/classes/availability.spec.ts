@@ -10,8 +10,16 @@ const principal = {
 };
 
 describe('AvailabilityService boundary', () => {
-  const db = { slotKelas: { findMany: jest.fn().mockResolvedValue([]) } };
+  const db = {
+    slotKelas: { findMany: jest.fn().mockResolvedValue([]) },
+    instructorAvailability: { findMany: jest.fn().mockResolvedValue([]) },
+  };
   const service = new AvailabilityService(db as never, new PolicyService(), {} as never);
+
+  beforeEach(() => {
+    db.slotKelas.findMany.mockClear();
+    db.instructorAvailability.findMany.mockClear().mockResolvedValue([]);
+  });
 
   it('rejects offset-less and non-positive intervals before persistence', async () => {
     await expect(
@@ -48,5 +56,38 @@ describe('AvailabilityService boundary', () => {
       items: [],
       page: { hasMore: false, nextCursor: null },
     });
+  });
+
+  it('reads submitted availability from instructor_availability, not the instructor\'s assigned class slots', async () => {
+    db.instructorAvailability.findMany.mockResolvedValueOnce([
+      {
+        id: 'avail-1',
+        instructorId: principal.userId,
+        branchId: principal.branchIds[0],
+        date: new Date('2026-11-21T00:00:00.000Z'),
+        startTime: '08:00:00',
+        endTime: '09:00:00',
+        branch: { timezone: 'Asia/Jakarta' },
+      },
+    ]);
+
+    const result = await service.list(principal, principal.branchIds[0]);
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'avail-1',
+          instructorUserId: principal.userId,
+          branchId: principal.branchIds[0],
+          startAt: new Date('2026-11-21T08:00:00.000Z'),
+          endAt: new Date('2026-11-21T09:00:00.000Z'),
+          timezone: 'Asia/Jakarta',
+          version: 1,
+          status: 'ACTIVE',
+        },
+      ],
+      page: { hasMore: false, nextCursor: null },
+    });
+    expect(db.slotKelas.findMany).not.toHaveBeenCalled();
   });
 });

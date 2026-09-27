@@ -721,10 +721,17 @@ export class IdentityService {
     return { id: principal.userId, status: 'LINKED' };
   }
 
-  async passwordSecurityStatus(_principal: SessionPrincipal) {
+  async passwordSecurityStatus(principal: SessionPrincipal) {
+    const user = await this.db.user.findUnique({
+      where: { id: principal.userId },
+      select: { passwordHash: true, updatedAt: true },
+    });
+    const hasPassword = Boolean(user?.passwordHash);
     return {
-      hasPassword: true,
+      hasPassword,
+      passwordEnabled: hasPassword,
       mustChangePassword: false,
+      passwordChangedAt: user?.updatedAt?.toISOString() ?? null,
     };
   }
 

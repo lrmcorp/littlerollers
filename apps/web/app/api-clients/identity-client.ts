@@ -120,6 +120,7 @@ export interface IdentityClient {
   resetPassword(token: string, password: string): Promise<void>;
   securityStatus(): Promise<{
     passwordEnabled: boolean;
+    hasPassword?: boolean;
     passwordChangedAt: string | null;
   }>;
   changePassword(currentPassword: string, newPassword: string): Promise<void>;
@@ -342,10 +343,17 @@ export const browserIdentityClient: IdentityClient = {
     });
   },
   async securityStatus() {
-    return request('/auth/security') as Promise<{
-      passwordEnabled: boolean;
-      passwordChangedAt: string | null;
-    }>;
+    const res = (await request('/auth/security')) as {
+      passwordEnabled?: boolean;
+      hasPassword?: boolean;
+      passwordChangedAt?: string | null;
+    };
+    const passwordEnabled = Boolean(res.passwordEnabled ?? res.hasPassword);
+    return {
+      passwordEnabled,
+      hasPassword: passwordEnabled,
+      passwordChangedAt: res.passwordChangedAt ?? null,
+    };
   },
   async changePassword(currentPassword, newPassword) {
     await request('/auth/password/change', {

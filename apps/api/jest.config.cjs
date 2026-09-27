@@ -7,4 +7,6 @@ module.exports = {
     '^@dailydose/config$': '<rootDir>/../../../packages/config/src/index.ts',
   },
   testEnvironment: 'node',
+  // Load root .env so DATABASE_URL is available for integration tests without manual export
+  setupFiles: ['<rootDir>/../jest.setup.cjs'],
 };

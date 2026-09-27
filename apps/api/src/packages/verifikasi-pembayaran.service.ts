@@ -47,7 +47,7 @@ export class PaymentReviewService {
 
     const statusParam = query.status?.trim().toUpperCase();
     let statusFilter: PurchaseStatus | undefined = undefined;
-    if (statusParam) {
+    if (statusParam && statusParam !== 'ALL') {
       if (statusParam === 'APPROVED' || statusParam === 'VERIFIED' || statusParam === 'PAID') {
         statusFilter = PurchaseStatus.PAID;
       } else if (statusParam === 'REJECTED') {
@@ -96,7 +96,9 @@ export class PaymentReviewService {
               { invoiceNumber: { contains: search } },
               { userId: search },
               { user: { displayName: { contains: search } } },
+              { user: { email: { contains: search } } },
               { user: { phone: { contains: search } } },
+              { package: { name: { contains: search } } },
             ],
           }
         : {}),
@@ -127,7 +129,7 @@ export class PaymentReviewService {
       this.db.pembelian.findMany({
         where: itemWhere,
         include: {
-          user: { select: { id: true, displayName: true, phone: true } },
+          user: { select: { id: true, displayName: true, email: true, phone: true } },
           branch: { select: { id: true, code: true, name: true, timezone: true } },
           package: true,
           paymentProof: true,
@@ -188,6 +190,7 @@ export class PaymentReviewService {
             customer: {
               id: user.id,
               displayName: user.displayName,
+              email: user.email,
               phoneMasked: this.maskPhone(user.phone),
             },
             branch,
@@ -296,7 +299,7 @@ export class PaymentReviewService {
         ...(scopedBranchIds ? { branchId: { in: scopedBranchIds } } : {}),
       },
       include: {
-        user: { select: { id: true, displayName: true, phone: true } },
+        user: { select: { id: true, displayName: true, email: true, phone: true } },
         branch: { select: { id: true, code: true, name: true, timezone: true } },
         package: true,
         voucher: true,
@@ -347,6 +350,7 @@ export class PaymentReviewService {
         customer: {
           id: user.id,
           displayName: user.displayName,
+          email: user.email,
           phoneMasked: this.maskPhone(user.phone),
         },
         branch,

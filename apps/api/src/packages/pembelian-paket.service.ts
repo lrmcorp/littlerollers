@@ -41,15 +41,24 @@ export class CustomerOrderService {
     const legacyStatus =
       order.status === 'PENDING'
         ? proof
-          ? 'PAYMENT_SUBMITTED'
+          ? 'PENDING'
           : 'AWAITING_PAYMENT'
         : order.status === 'WAITING_VERIFICATION'
-          ? 'PAYMENT_SUBMITTED'
+          ? 'PENDING'
           : order.status === 'PAID'
             ? 'APPROVED'
             : order.status === 'CANCELLED'
-              ? 'CANCELLED'
+              ? 'EXPIRED'
               : 'REJECTED';
+
+    const firstAccount = branch?.paymentAccounts?.[0];
+    const paymentAccount = firstAccount
+      ? {
+          bankName: firstAccount.bankName,
+          accountNumber: firstAccount.accountNumber,
+          accountHolderName: firstAccount.accountHolder,
+        }
+      : null;
 
     return {
       id: order.id,
@@ -115,7 +124,7 @@ export class CustomerOrderService {
             sessionCount: customerPkg.totalSessions,
           }
         : null,
-      paymentAccount: null,
+      paymentAccount,
     };
   }
 
@@ -143,30 +152,38 @@ export class CustomerOrderService {
       ? branches.find((b) => b.id === branchId)
       : branches[0];
 
-    const paymentAccounts = (targetBranch?.paymentAccounts ?? []).map((acc) => ({
-      id: acc.id,
-      bankName: acc.bankName,
-      accountNumber: acc.accountNumber,
-      accountHolderName: acc.accountHolder,
-    }));
+    // Pick the first active payment account for this branch (required by frontend)
+    const firstAccount = (targetBranch?.paymentAccounts ?? [])[0];
+
+    // Build classTypes array from the single classType relation so the frontend
+    // CheckoutOptions interface (which expects an array) is satisfied.
+    const classTypes = pkg.classType
+      ? [{ id: pkg.classType.id, name: pkg.classType.name }]
+      : [];
 
     return {
       package: {
         id: pkg.id,
         name: pkg.name,
-        code: pkg.code,
         priceRp: pkg.priceRp,
+        effectivePriceRp: pkg.priceRp, // no active promotion logic yet
+        version: 1,
+        promotion: null,
         sessionCount: pkg.sessionCount,
-        validityDays: pkg.validityDays,
-        classType: pkg.classType,
+        durationDays: pkg.validityDays,
+        branchId: targetBranch?.id ?? null,
+        branchName: targetBranch?.name ?? null,
+        classTypes,
       },
-      branches: branches.map((b) => ({
-        id: b.id,
-        code: b.code,
-        name: b.name,
-      })),
-      selectedBranchId: targetBranch?.id ?? null,
-      paymentAccounts,
+      paymentAccount: firstAccount
+        ? {
+            id: firstAccount.id,
+            bankName: firstAccount.bankName,
+            accountNumber: firstAccount.accountNumber,
+            accountHolderName: firstAccount.accountHolder,
+            paymentWindowHours: 24,
+          }
+        : null,
     };
   }
 
@@ -226,7 +243,11 @@ export class CustomerOrderService {
           },
           include: {
             package: true,
-            branch: true,
+            branch: {
+              include: {
+                paymentAccounts: { where: { active: true } },
+              },
+            },
             voucher: true,
             paymentProof: true,
             customerPackage: true,
@@ -312,7 +333,11 @@ export class CustomerOrderService {
       where,
       include: {
         package: true,
-        branch: true,
+        branch: {
+          include: {
+            paymentAccounts: { where: { active: true } },
+          },
+        },
         voucher: true,
         paymentProof: true,
         customerPackage: true,
@@ -339,7 +364,11 @@ export class CustomerOrderService {
       where: { id },
       include: {
         package: true,
-        branch: true,
+        branch: {
+          include: {
+            paymentAccounts: { where: { active: true } },
+          },
+        },
         voucher: true,
         paymentProof: true,
         customerPackage: true,
@@ -397,7 +426,11 @@ export class CustomerOrderService {
       where: { id: orderId },
       include: {
         package: true,
-        branch: true,
+        branch: {
+          include: {
+            paymentAccounts: { where: { active: true } },
+          },
+        },
         voucher: true,
         paymentProof: true,
         customerPackage: true,
@@ -537,7 +570,11 @@ export class CustomerOrderService {
           },
           include: {
             package: true,
-            branch: true,
+            branch: {
+              include: {
+                paymentAccounts: { where: { active: true } },
+              },
+            },
             voucher: true,
             paymentProof: true,
             customerPackage: true,

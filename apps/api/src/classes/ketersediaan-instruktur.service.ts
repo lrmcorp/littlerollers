@@ -48,36 +48,41 @@ export class AvailabilityService {
     if (from && until && from >= until)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-    const slots = await this.db.slotKelas.findMany({
+    const records = await this.db.instructorAvailability.findMany({
       where: {
         instructorId: principal.userId,
         ...(branchId ? { branchId } : { branchId: { in: principal.branchIds } }),
-        ...(from ? { endAt: { gt: from } } : {}),
-        ...(until ? { startAt: { lt: until } } : {}),
-        status: { in: ['PUBLISHED', 'CONFIRMED'] },
+        ...(from ? { date: { gte: new Date(from.toISOString().slice(0, 10)) } } : {}),
+        ...(until ? { date: { lte: new Date(until.toISOString().slice(0, 10)) } } : {}),
       },
-      orderBy: [{ startAt: 'desc' }, { id: 'desc' }],
+      include: { branch: { select: { timezone: true } } },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
       take: PAGE_SIZE + 1,
     });
 
-    const hasMore = slots.length > PAGE_SIZE;
-    const page = slots.slice(0, PAGE_SIZE);
+    const hasMore = records.length > PAGE_SIZE;
+    const page = records.slice(0, PAGE_SIZE);
     const last = page.at(-1);
 
-    const items = page.map((slot) => ({
-      id: slot.id,
-      instructorUserId: slot.instructorId ?? principal.userId,
-      branchId: slot.branchId,
-      startAt: slot.startAt,
-      endAt: slot.endAt,
-      timezone: 'Asia/Jakarta',
-      version: 1,
-      status: slot.endAt.getTime() <= Date.now() ? 'ENDED' : 'ACTIVE',
-    }));
+    const items = page.map((record) => {
+      const dateIso = record.date.toISOString().slice(0, 10);
+      const startAt = new Date(`${dateIso}T${record.startTime}.000Z`);
+      const endAt = new Date(`${dateIso}T${record.endTime}.000Z`);
+      return {
+        id: record.id,
+        instructorUserId: record.instructorId,
+        branchId: record.branchId,
+        startAt,
+        endAt,
+        timezone: record.branch.timezone,
+        version: 1,
+        status: endAt.getTime() <= Date.now() ? 'ENDED' : 'ACTIVE',
+      };
+    });
 
     return {
       items,
-      page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.startAt, last.id) : null },
+      page: { hasMore, nextCursor: hasMore && last ? encodeCursor(last.date, last.id) : null },
     };
   }
 
@@ -141,18 +146,16 @@ export class AvailabilityService {
         const startTimeStr = startAt.toISOString().slice(11, 19);
         const endTimeStr = endAt.toISOString().slice(11, 19);
 
-        if ((tx as any).instructorAvailability?.create) {
-          await (tx as any).instructorAvailability.create({
-            data: {
-              id: recordId,
-              instructorId: principal.userId,
-              branchId: branch.id,
-              date: dateOnly,
-              startTime: startTimeStr,
-              endTime: endTimeStr,
-            },
-          });
-        }
+        await tx.instructorAvailability.create({
+          data: {
+            id: recordId,
+            instructorId: principal.userId,
+            branchId: branch.id,
+            date: dateOnly,
+            startTime: startTimeStr,
+            endTime: endTimeStr,
+          },
+        });
 
         const item = {
           id: recordId,

@@ -11,9 +11,10 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { shortcutPagesFor } from '@/lib/frontend-pages';
+import { isInstructorOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
-import { Button } from './components/actions';
+import { Button, ButtonLink } from './components/actions';
 import { AdminPageHeader } from './components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from './components/admin/admin-ui';
 import { DateInput } from './components/forms';
@@ -229,6 +230,24 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
     void load();
   }, [load]);
   if (!session) return null;
+  if (isInstructorOnlySession(session)) {
+    return (
+      <div className="space-y-6 font-sans text-dd-ink">
+        <AdminPageHeader
+          eyebrow="Area Instruktur"
+          title={`Selamat datang, ${session.displayName}`}
+          description="Dashboard operasional tidak tersedia untuk peran instruktur. Gunakan pintasan di bawah untuk melihat jadwal kelas Anda."
+        />
+        <Feedback kind="info">
+          Sebagai instruktur, gunakan menu <strong>Kelas</strong> untuk melihat jadwal yang
+          ditugaskan kepada Anda.
+        </Feedback>
+        <ButtonLink href="/workspace/classes" variant="primary">
+          Lihat Jadwal Kelas Saya →
+        </ButtonLink>
+      </div>
+    );
+  }
   const focus =
     overview?.roleFocus ??
     (session.roles.includes('SUPER_OWNER') || session.roles.includes('OWNER')

@@ -16,6 +16,7 @@ apps/web/tsconfig.playwright.*.json
 coverage/
 apps/web/test-results/
 apps/web/playwright-report/
+apps/web/playwright-report-real/
 .generated/
 .cache/
 packages/api-client-ts/generated/**/*.d.ts

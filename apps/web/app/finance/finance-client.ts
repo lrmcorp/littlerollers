@@ -373,7 +373,9 @@ export const browserFinanceClient: FinanceClient = {
     if (cursor) params.set('cursor', cursor);
 
     return appLoading.track(
-      financeFetch<LegacyFinancialEntryPage>(`/finance/legacy-cashflow?${params.toString()}`),
+      financeFetch<LegacyFinancialEntryPage>(
+        `/finance/reconciliation/legacy-cashflow?${params.toString()}`,
+      ),
       { label: 'Memuat legacy cashflow…' },
     );
   },

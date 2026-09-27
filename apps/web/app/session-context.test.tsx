@@ -36,6 +36,16 @@ const adminSession: WebSession = {
   ],
 };
 
+const instructorSession: WebSession = {
+  id: 'instructor-1',
+  displayName: 'Coach Sarah',
+  roles: ['INSTRUCTOR'],
+  branchIds: ['branch-1'],
+  capabilities: ['class:assigned:read', 'attendance:self', 'class-slot:read'],
+  sessionExpiresAt: new Date(Date.now() + 60_000),
+  branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' }],
+};
+
 const customerSession: WebSession = {
   id: 'customer-1',
   displayName: 'Nadia Customer',
@@ -310,6 +320,60 @@ describe('capability-aware session shell', () => {
       'text-white',
     );
     await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/identity-verifications'));
+  });
+
+  it('routes instructor/coach-only accounts to their class schedule instead of the operational workspace', () => {
+    expect(defaultSessionDestination(instructorSession)).toBe('/workspace/classes');
+    expect(defaultSessionDestination({ ...instructorSession, roles: ['COACH'] })).toBe(
+      '/workspace/classes',
+    );
+    expect(canAccessSessionPath(instructorSession, '/workspace')).toBe(false);
+    expect(canAccessSessionPath(instructorSession, '/workspace/classes')).toBe(true);
+    expect(canAccessSessionPath(instructorSession, '/workspace/payments')).toBe(false);
+  });
+
+  it('keeps dual-role instructor+admin accounts on the full operational workspace', () => {
+    const dualRole = { ...instructorSession, roles: ['INSTRUCTOR', 'ADMIN'] };
+    expect(defaultSessionDestination(dualRole)).toBe('/workspace');
+    expect(canAccessSessionPath(dualRole, '/workspace')).toBe(true);
+  });
+
+  it("shows only the instructor's class schedule in the sidebar, not the blocked operational overview", async () => {
+    navigation.pathname = '/workspace/classes';
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(instructorSession), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Jadwal kelas instruktur</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    const navigationRegion = await screen.findByRole('navigation', { name: 'Navigasi utama' });
+    expect(within(navigationRegion).getByText('Area instruktur')).toBeVisible();
+    expect(within(navigationRegion).getByRole('link', { name: 'Kelas' })).toHaveAttribute(
+      'href',
+      '/workspace/classes',
+    );
+    expect(within(navigationRegion).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(within(navigationRegion).queryByText('Penjualan & Keuangan')).not.toBeInTheDocument();
+    expect(within(navigationRegion).queryByText('Member & Pelanggan')).not.toBeInTheDocument();
+  });
+
+  it('renders the instructor-only fallback view instead of branch operational data', async () => {
+    navigation.pathname = '/workspace/classes';
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(instructorSession), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <Dashboard />
+      </SessionProvider>,
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Selamat datang, Coach Sarah' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: /Lihat Jadwal Kelas Saya/ }),
+    ).toHaveAttribute('href', '/workspace/classes');
+    expect(screen.queryByText('Pilih cabang aktif di bagian atas', { exact: false })).not.toBeInTheDocument();
   });
 
   it('accepts only same-origin relative return targets', () => {

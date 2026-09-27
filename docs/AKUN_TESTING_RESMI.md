@@ -47,8 +47,11 @@ Dokumen ini adalah **sumber tunggal kebenaran (*Single Source of Truth*)** untuk
 | **Studio Manager** | `http://localhost:32120/workspace/payments` | Antrean verifikasi bukti transfer pembayaran paket |
 | | `http://localhost:32120/ledger/adjustments` | Antrean approval penyesuaian sesi darurat medis |
 | **Finance** | `http://localhost:32120/finance` | Laporan laba rugi, biaya operasional, & tombol Tutup Buku |
-| **Admin Frontdesk** | `http://localhost:32120/schedule` | Kalender jadwal studio & penugasan instruktur |
-| | `http://localhost:32120/classes` | Monitoring status kelas, daftar hadir, & tombol Backfill $H+2$ |
+| **Admin Frontdesk** | `http://localhost:32120/workspace/classes` | Timetable kelas studio, buat slot, monitoring kehadiran & Backfill $H+2$ |
+| | `http://localhost:32120/workspace/bookings` | Manajemen booking bantuan (assisted booking) & antrean reschedule |
+| | `http://localhost:32120/ledger/adjustments` | Pengajuan kompensasi penyesuaian sesi darurat medis |
+| **Coach / Instruktur** | `http://localhost:32120/schedule` | Jadwal ketersediaan jam mengajar instruktur |
+| | `http://localhost:32120/check-in-scanner` | Presensi instruktur via Scan QR Tablet Studio |
 | **Customer** | `http://localhost:32120/account/verification` | Unggah/preview KTP & Selfie, status verifikasi identitas |
 | | `http://localhost:32120/packages` | Katalog paket sesi studio & checkout transfer bank |
 | | `http://localhost:32120/classes` | Timetable jadwal kelas studio untuk self-booking |

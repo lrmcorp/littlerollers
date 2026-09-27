@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
 import { PreviewTag } from './components/admin/preview-tag';
-import { isCustomerOnlySession } from '@/lib/session-audience';
+import { isCustomerOnlySession, isInstructorOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
@@ -68,6 +68,7 @@ export function AppNavigation({
   const showAdvanced = advancedOpen || isCurrentInAdvanced;
 
   const customerOnly = isCustomerOnlySession(session);
+  const instructorOnly = !customerOnly && isInstructorOnlySession(session);
   const customerLinks = [
     { href: '/classes', label: 'Jadwal', icon: CalendarDays },
     ...(session?.identityVerificationStatus === 'APPROVED'
@@ -137,12 +138,12 @@ export function AppNavigation({
             <BrandMark
               ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
               className="h-auto w-[166px] brightness-0 invert"
-              href={customerOnly ? '/account' : '/workspace'}
+              href={customerOnly ? '/account' : instructorOnly ? '/workspace/classes' : '/workspace'}
               priority
             />
             {!collapsed && !customerOnly && (
               <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-white/48">
-                Studio operations
+                {instructorOnly ? 'Area instruktur' : 'Studio operations'}
               </span>
             )}
           </div>
@@ -191,6 +192,7 @@ export function AppNavigation({
                 const pagesInGroup = frontendPages
                   .filter((item) => item.group === group)
                   .filter((item) => !item.isDormant && !item.isAdvanced)
+                  .filter((item) => !(instructorOnly && item.href === '/workspace'))
                   .filter(
                     (item) =>
                       item.capabilities.length === 0 ||

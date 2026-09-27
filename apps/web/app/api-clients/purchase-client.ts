@@ -111,6 +111,7 @@ export interface PaymentReviewCustomer {
   id: string;
   displayName: string;
   phoneMasked: string | null;
+  email?: string | null;
 }
 
 export interface PaymentReviewBranch {
@@ -211,6 +212,8 @@ export interface PaymentReviewItem {
   branch: PaymentReviewBranch;
   paymentProof: PaymentReviewProof | null;
   activationSummary: PaymentActivationSummary | null;
+  recordedById?: string | null;
+  recordedBy?: { id: string; displayName: string } | null;
 }
 
 export interface PaymentReviewSummary {

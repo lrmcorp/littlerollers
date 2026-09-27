@@ -161,7 +161,19 @@ export function PaymentReviewDetailView({
 
   const decide = async (action: 'APPROVE' | 'ACTION_REQUIRED' | 'DUPLICATE') => {
     const purchase = detail?.purchase;
-    if (!purchase || !canDecide || purchase.status !== 'PENDING') return;
+    const isRecorder = Boolean(
+      (purchase?.recordedById || purchase?.recordedBy?.id) &&
+        sessionContext?.session?.id &&
+        (purchase.recordedById === sessionContext.session.id ||
+          purchase.recordedBy?.id === sessionContext.session.id),
+    );
+    const isSelfCustomer = Boolean(
+      purchase?.customer?.id &&
+        sessionContext?.session?.id &&
+        purchase.customer.id === sessionContext.session.id,
+    );
+    const separationOfDutiesBlocked = isRecorder || isSelfCustomer;
+    if (!purchase || !canDecide || purchase.status !== 'PENDING' || separationOfDutiesBlocked) return;
     if (
       action === 'ACTION_REQUIRED' &&
       reasonCode === 'OTHER_REVIEW_REQUIRED' &&
@@ -208,7 +220,7 @@ export function PaymentReviewDetailView({
         feedback?.showToast({
           tone: 'success',
           title: 'Pembayaran disetujui',
-          message: `${result.customerPackage.packageName ?? purchase.packageNameSnapshot} aktif dengan ${result.customerPackage.available} sesi. Ledger ${result.ledgerEntry.id}.`,
+          message: `${result.customerPackage?.packageName ?? purchase.packageNameSnapshot} aktif dengan ${result.customerPackage?.available ?? 0} sesi.${result.ledgerEntry?.id ? ` Ledger ${result.ledgerEntry.id}.` : ''}`,
           correlationReference: result.purchase.auditReference ?? undefined,
         });
       } else {
@@ -709,51 +721,73 @@ export function PaymentReviewDetailView({
             <p className="mt-1 text-sm leading-6 text-dd-muted">
               Setiap tindakan mencatat cakupan cabang, versi data, idempotency key, dan audit.
             </p>
-            {canDecide && purchase.status === 'PENDING' ? (
-              <div className="mt-5 space-y-4">
-                <Button
-                  className="w-full"
-                  disabled={mutating}
-                  onClick={() => void decide('APPROVE')}
-                >
-                  <CheckCircle2 className="size-4" /> Setujui pembayaran
-                </Button>
-                <SelectInput
-                  label="Alasan perbaikan"
-                  value={reasonCode}
-                  onChange={(event) => setReasonCode(event.target.value as RejectReason)}
-                >
-                  {Object.entries(reasonLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </SelectInput>
-                <Textarea
-                  label={`Catatan ${reasonCode === 'OTHER_REVIEW_REQUIRED' ? '(wajib)' : '(opsional)'}`}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  maxLength={500}
-                  placeholder="Jelaskan alasan keputusan"
-                />
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  disabled={mutating}
-                  onClick={() => void decide('ACTION_REQUIRED')}
-                >
-                  Minta perbaikan bukti
-                </Button>
-                <Button
-                  className="w-full"
-                  variant="danger"
-                  disabled={mutating}
-                  onClick={() => void decide('DUPLICATE')}
-                >
-                  Tolak sebagai duplikat
-                </Button>
-              </div>
-            ) : (
+            {canDecide && purchase.status === 'PENDING' ? (() => {
+              const isRecorder = Boolean(
+                (purchase.recordedById || purchase.recordedBy?.id) &&
+                  sessionContext?.session?.id &&
+                  (purchase.recordedById === sessionContext.session.id ||
+                    purchase.recordedBy?.id === sessionContext.session.id),
+              );
+              const isSelfCustomer = Boolean(
+                purchase.customer?.id &&
+                  sessionContext?.session?.id &&
+                  purchase.customer.id === sessionContext.session.id,
+              );
+              const separationOfDutiesBlocked = isRecorder || isSelfCustomer;
+              return (
+                <div className="mt-5 space-y-4">
+                  {separationOfDutiesBlocked && (
+                    <div className="rounded-dd-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 leading-relaxed">
+                      <strong className="block font-semibold">Pemisahan Tugas (Maker-Checker):</strong>
+                      {isRecorder
+                        ? 'Anda mencatat transaksi ini. Sesuai prinsip pemisahan tugas, persetujuan pembayaran harus dilakukan oleh staf/manager lain.'
+                        : 'Anda tidak dapat menyetujui transaksi milik akun Anda sendiri.'}
+                    </div>
+                  )}
+                  <Button
+                    className="w-full"
+                    disabled={mutating || separationOfDutiesBlocked}
+                    onClick={() => void decide('APPROVE')}
+                  >
+                    <CheckCircle2 className="size-4" /> Setujui pembayaran
+                  </Button>
+                  <SelectInput
+                    label="Alasan perbaikan"
+                    value={reasonCode}
+                    onChange={(event) => setReasonCode(event.target.value as RejectReason)}
+                  >
+                    {Object.entries(reasonLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                  <Textarea
+                    label={`Catatan ${reasonCode === 'OTHER_REVIEW_REQUIRED' ? '(wajib)' : '(opsional)'}`}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    maxLength={500}
+                    placeholder="Jelaskan alasan keputusan"
+                  />
+                  <Button
+                    className="w-full"
+                    variant="secondary"
+                    disabled={mutating || separationOfDutiesBlocked}
+                    onClick={() => void decide('ACTION_REQUIRED')}
+                  >
+                    Minta perbaikan bukti
+                  </Button>
+                  <Button
+                    className="w-full"
+                    variant="danger"
+                    disabled={mutating || separationOfDutiesBlocked}
+                    onClick={() => void decide('DUPLICATE')}
+                  >
+                    Tolak sebagai duplikat
+                  </Button>
+                </div>
+              );
+            })() : (
               <AlertBanner
                 tone={purchase.status === 'APPROVED' ? 'success' : 'info'}
                 title={purchase.status === 'PENDING' ? 'Mode hanya baca' : 'Keputusan telah dibuat'}

@@ -51,6 +51,19 @@ describe('DashboardService', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 
+  it('rejects instructor/coach-only sessions', async () => {
+    const service = new DashboardService(database() as never);
+    await expect(
+      service.overview(
+        principal({
+          roles: [{ role: 'INSTRUCTOR', branchId: 'branch-1' }],
+          capabilities: ['class:assigned:read', 'attendance:self', 'class-slot:read'],
+        }),
+        {},
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
   it('rejects a branch outside the principal scope', async () => {
     const service = new DashboardService(database() as never);
     await expect(service.overview(principal(), { branchId: 'branch-2' })).rejects.toMatchObject({

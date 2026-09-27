@@ -144,8 +144,8 @@ export const browserDashboardClient: DashboardClient = {
   async overview(input) {
     const params = new URLSearchParams();
     if (input.branchId) params.set('branchId', input.branchId);
-    if (input.from) params.set('from', `${input.from}T00:00:00.000Z`);
-    if (input.until) params.set('until', `${input.until}T00:00:00.000Z`);
+    if (input.from) params.set('from', input.from.slice(0, 10));
+    if (input.until) params.set('until', input.until.slice(0, 10));
     const qs = params.toString() ? `?${params.toString()}` : '';
 
     const data = await appLoading.track(

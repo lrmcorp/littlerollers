@@ -42,6 +42,8 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
 
   if (loading) return <Skeleton label="Memuat keamanan akun" />;
 
+  const isPasswordActive = Boolean(status?.passwordEnabled ?? (status as any)?.hasPassword);
+
   const requirements = [
     { label: 'Minimal 8 karakter', met: nextPassword.length >= 8 },
     {
@@ -60,7 +62,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
           Keamanan akun
         </h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Perbarui password dan lindungi sesi aktif pada perangkat Anda.
+          Perbarui password untuk melindungi akses akun dan seluruh transaksi Anda.
         </p>
       </header>
 
@@ -90,18 +92,23 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
           <div>
             <h2 className="text-lg font-semibold">Status password</h2>
             <p className="mt-1 text-sm font-semibold text-dd-ink">
-              {status?.passwordEnabled ? 'Password aktif' : 'Password belum aktif'}
+              {isPasswordActive ? 'Password aktif' : 'Password belum aktif'}
             </p>
             <p className="mt-1 text-sm text-dd-muted">
-              {status?.passwordEnabled
-                ? 'Password dapat diperbarui kapan saja.'
+              {isPasswordActive
+                ? 'Password akun Anda aktif dan dapat diperbarui kapan saja.'
                 : 'Aktifkan password untuk melindungi akun ini.'}
             </p>
+            {isPasswordActive && (
+              <p className="mt-2 text-xs text-dd-muted">
+                Catatan: Mengubah password akan otomatis mencabut sesi login pada peramban dan perangkat lain demi keamanan akun Anda.
+              </p>
+            )}
           </div>
         </div>
       </section>
 
-      {status?.passwordEnabled && (
+      {isPasswordActive && (
         <form
           className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
           aria-label="Ubah password"

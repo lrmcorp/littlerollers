@@ -216,7 +216,7 @@ export class FinanceController {
     });
   }
 
-  @Get('finance/reconciliation/legacy-cashflow')
+  @Get(['finance/reconciliation/legacy-cashflow', 'finance/legacy-cashflow'])
   legacyCashflow(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,

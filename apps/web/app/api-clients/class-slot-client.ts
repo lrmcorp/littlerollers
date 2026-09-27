@@ -143,6 +143,19 @@ export interface ClassSlotClient {
 
 const key = () => crypto.randomUUID();
 
+/**
+ * Beberapa akun (mis. INSTRUCTOR/COACH) hanya punya `class-slot:read` dan tidak punya
+ * `master:read`/`user:read`/`assignment:read`. Panggilan pelengkap ini hanya untuk opsi filter dan
+ * form buat kelas, jadi 403 di sini tidak boleh menggagalkan jadwal utama yang sudah berhasil dimuat.
+ */
+const safeItems = async <T>(promise: Promise<{ items: T[] }>): Promise<{ items: T[] }> => {
+  try {
+    return await promise;
+  } catch {
+    return { items: [] };
+  }
+};
+
 export const browserClassSlotClient: ClassSlotClient = {
   async discover(input) {
     const scopedBranches = input.branchId
@@ -165,39 +178,47 @@ export const browserClassSlotClient: ClassSlotClient = {
         Promise.all(
           scopedBranches.map(async (branch) => {
             const [classTypes, users, assignments, studios] = await Promise.all([
-              apiFetch<{ items: Array<{ id: string; code: string; name: string; active?: boolean }> }>(
-                `/class-types?branchId=${encodeURIComponent(branch.id)}`,
+              safeItems(
+                apiFetch<{ items: Array<{ id: string; code: string; name: string; active?: boolean }> }>(
+                  `/class-types?branchId=${encodeURIComponent(branch.id)}`,
+                ),
               ),
-              apiFetch<{ items: Array<{ id: string; displayName: string; status: string }> }>(
-                `/users?branchId=${encodeURIComponent(branch.id)}`,
+              safeItems(
+                apiFetch<{ items: Array<{ id: string; displayName: string; status: string }> }>(
+                  `/users?branchId=${encodeURIComponent(branch.id)}`,
+                ),
               ),
-              apiFetch<{
-                items: Array<{
-                  id: string;
-                  userId: string;
-                  branchId: string;
-                  assignmentType: string;
-                  activeFrom: string | Date;
-                  activeUntil?: string | Date | null;
-                }>;
-              }>(`/assignments?branchId=${encodeURIComponent(branch.id)}`),
-              apiFetch<{
-                items: Array<{
-                  id: string;
-                  branchId: string;
-                  code: string;
-                  name: string;
-                  active?: boolean;
-                  rooms?: Array<{
+              safeItems(
+                apiFetch<{
+                  items: Array<{
                     id: string;
-                    studioId: string;
+                    userId: string;
+                    branchId: string;
+                    assignmentType: string;
+                    activeFrom: string | Date;
+                    activeUntil?: string | Date | null;
+                  }>;
+                }>(`/assignments?branchId=${encodeURIComponent(branch.id)}`),
+              ),
+              safeItems(
+                apiFetch<{
+                  items: Array<{
+                    id: string;
+                    branchId: string;
                     code: string;
                     name: string;
-                    capacity?: number | null;
                     active?: boolean;
+                    rooms?: Array<{
+                      id: string;
+                      studioId: string;
+                      code: string;
+                      name: string;
+                      capacity?: number | null;
+                      active?: boolean;
+                    }>;
                   }>;
-                }>;
-              }>(`/branches/${encodeURIComponent(branch.id)}/studios`),
+                }>(`/branches/${encodeURIComponent(branch.id)}/studios`),
+              ),
             ]);
             return { branch, classTypes, users, assignments, studios };
           }),
