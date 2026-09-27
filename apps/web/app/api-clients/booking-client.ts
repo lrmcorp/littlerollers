@@ -197,8 +197,22 @@ export type CustomerBookingOptions = {
     capacity: number;
     bookedCount: number;
     available: number;
-    branch: { id: string; code: string; name: string; timezone: string };
-    classType: { id: string; code: string; name: string };
+    branch: {
+      id: string;
+      code: string;
+      name: string;
+      timezone: string;
+      address?: string | null;
+      supportWhatsappE164?: string | null;
+    };
+    classType: {
+      id: string;
+      code: string;
+      name: string;
+      modality?: string | null;
+      description?: string | null;
+      durationMinutes?: number | null;
+    };
     instructor?: { displayName: string } | null;
     studio?: { name: string } | null;
     room?: { name: string } | null;

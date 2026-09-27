@@ -3,16 +3,20 @@
 import Link from 'next/link';
 import {
   ArrowLeft,
+  Building2,
   CalendarCheck2,
   Check,
   CheckCircle2,
   Clock,
+  Info,
   MapPin,
   MessageCircle,
   QrCode,
   ShieldCheck,
+  Sparkles,
   Timer,
   User,
+  Users,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -62,6 +66,166 @@ const eligibilityCopy = {
 } as const;
 
 const createIntent = () => ({ signature: '', key: crypto.randomUUID() });
+
+function ClassSessionDetailCard({
+  slot,
+  eligibility,
+  durationMinutes,
+}: {
+  slot: CustomerBookingOptions['slot'];
+  eligibility: CustomerBookingOptions['eligibility'];
+  durationMinutes: number;
+}) {
+  const roomName = slot.room?.name || slot.studio?.name || 'Studio Utama';
+  const modalityLabel =
+    slot.classType.modality === 'GROUP'
+      ? 'Group Reformer'
+      : slot.classType.modality === 'PRIVATE'
+        ? 'Private Studio'
+        : 'Pilates Reformer';
+
+  return (
+    <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-5">
+      {/* Top Header: Modality + Badges */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-dd-forest border border-emerald-200">
+              {modalityLabel}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-dd-muted">
+              <Building2 className="size-3 text-dd-muted" />
+              {roomName}
+            </span>
+          </div>
+          <h2 className="mt-2.5 text-2xl font-semibold sm:text-3xl text-dd-ink">
+            {slot.classType.name}
+          </h2>
+          <p className="mt-1 text-sm text-dd-muted flex items-center gap-1.5">
+            <MapPin className="size-4 shrink-0 text-dd-forest" />
+            <span className="font-medium text-dd-ink">{slot.branch.name}</span>
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {slot.available <= 0 ? (
+            <StatusBadge tone="danger">Penuh</StatusBadge>
+          ) : slot.available <= 2 ? (
+            <StatusBadge tone="warning">Sisa {slot.available} Kuota</StatusBadge>
+          ) : (
+            <StatusBadge tone="success">{slot.available} Kuota Tersedia</StatusBadge>
+          )}
+        </div>
+      </div>
+
+      {/* Grid of Key Session Metrics */}
+      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Waktu & Tanggal */}
+        <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+            <Clock className="size-3.5 text-dd-forest" />
+            Waktu Sesi
+          </dt>
+          <dd className="mt-1 font-semibold text-dd-ink text-sm sm:text-base">
+            {new Intl.DateTimeFormat('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: slot.timezone,
+            }).format(slot.startAt)}{' '}
+            –{' '}
+            {new Intl.DateTimeFormat('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: slot.timezone,
+            }).format(slot.endAt)}{' '}
+            WIB
+          </dd>
+          <p className="mt-1 text-xs text-dd-muted">
+            {new Intl.DateTimeFormat('id-ID', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              timeZone: slot.timezone,
+            }).format(slot.startAt)}
+          </p>
+        </div>
+
+        {/* Durasi */}
+        <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+            <Timer className="size-3.5 text-dd-forest" />
+            Durasi Latihan
+          </dt>
+          <dd className="mt-1 font-semibold text-dd-ink text-sm sm:text-base">{durationMinutes} menit</dd>
+          <p className="mt-1 text-xs text-dd-muted">Sesi terpandu</p>
+        </div>
+
+        {/* Instruktur */}
+        <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+            <User className="size-3.5 text-dd-forest" />
+            Instruktur
+          </dt>
+          <dd className="mt-1 font-semibold text-dd-ink text-sm sm:text-base truncate">
+            {slot.instructor?.displayName ?? 'Tim Daily Dose'}
+          </dd>
+          <p className="mt-1 text-xs text-dd-muted">Instruktur Bersertifikat</p>
+        </div>
+
+        {/* Kapasitas & Kuota */}
+        <div className="rounded-dd-lg bg-dd-surface-muted p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
+            <Users className="size-3.5 text-dd-forest" />
+            Kapasitas Kelas
+          </dt>
+          <dd className="mt-1 font-semibold text-dd-ink text-sm sm:text-base">
+            {slot.available} dari {slot.capacity} slot
+          </dd>
+          <p className="mt-1 text-xs text-dd-muted">
+            {slot.bookedCount > 0 ? `${slot.bookedCount} peserta terdaftar` : 'Belum ada reservasi'}
+          </p>
+        </div>
+      </dl>
+
+      {/* Alamat Lengkap & Batas Cutoff */}
+      <div className="grid gap-3 pt-1 sm:grid-cols-2 text-xs">
+        {slot.branch.address && (
+          <div className="flex items-start gap-2 rounded-dd-lg border border-dd-line/60 bg-white p-3 text-dd-muted">
+            <MapPin className="size-4 shrink-0 text-dd-forest mt-0.5" />
+            <div>
+              <strong className="block text-dd-ink font-semibold">Alamat Studio:</strong>
+              <span>{slot.branch.address}</span>
+            </div>
+          </div>
+        )}
+        <div className="flex items-start gap-2 rounded-dd-lg border border-dd-line/60 bg-white p-3 text-dd-muted">
+          <Clock className="size-4 shrink-0 text-dd-forest mt-0.5" />
+          <div>
+            <strong className="block text-dd-ink font-semibold">Batas Reservasi:</strong>
+            <span>
+              Ditutup{' '}
+              {new Intl.DateTimeFormat('id-ID', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: slot.timezone,
+              }).format(eligibility.cutoffAt)}{' '}
+              WIB
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Deskripsi Kelas jika ada */}
+      {slot.classType.description && (
+        <div className="rounded-dd-lg bg-dd-surface-muted/60 p-3.5 text-xs text-dd-muted leading-relaxed flex items-start gap-2 border border-dd-line/40">
+          <Info className="size-4 shrink-0 text-dd-forest mt-0.5" />
+          <span>{slot.classType.description}</span>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function CustomerBookingFlow({ client = browserBookingClient }: { client?: BookingClient }) {
   const feedback = useAppFeedback();
@@ -136,6 +300,12 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
     Math.round((slot.endAt.getTime() - slot.startAt.getTime()) / 60_000),
   );
 
+  const cleanPhone = slot.branch?.supportWhatsappE164?.replace(/[^0-9]/g, '');
+  const waText = encodeURIComponent(
+    `Halo ${slot.branch.name}, saya ingin menanyakan sesi ${slot.classType.name} pada ${dateTime(slot.startAt, slot.timezone)}.`,
+  );
+  const whatsappUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${waText}` : null;
+
   return (
     <main className="space-y-6 pt-2" aria-labelledby="customer-booking-title">
       {/* Header */}
@@ -162,8 +332,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
         <AlertBanner tone="danger" title="Booking belum dapat diproses" message={message} />
       )}
 
-      {/* Step Tracker (Identical to Checkout) */}
-      {!booking && (
+      {/* Step Tracker (Identical to Checkout) - shown when booking not done and eligible */}
+      {!booking && eligibility.canBook && (
         <ol
           aria-label="Tahapan booking"
           className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3"
@@ -247,30 +417,93 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           </div>
         </section>
       ) : !eligibility.canBook && eligibilityMessage ? (
-        /* Ineligible State */
-        <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card space-y-4">
-          <AlertBanner
-            tone="warning"
-            title={eligibilityMessage.title}
-            message={eligibilityMessage.description}
+        /* Ineligible State with Full Session Detail Card */
+        <div className="space-y-6">
+          <ClassSessionDetailCard
+            slot={slot}
+            eligibility={eligibility}
+            durationMinutes={durationMinutes}
           />
-          <div className="flex flex-wrap gap-3">
-            {eligibility.requiredAction === 'COMPLETE_IDENTITY_VERIFICATION' && (
-              <ButtonLink href="/account/verification">Selesaikan verifikasi identitas</ButtonLink>
-            )}
-            {eligibility.requiredAction === 'BUY_MATCHING_PACKAGE' && (
-              <ButtonLink href={purchaseUrl}>Beli paket yang sesuai</ButtonLink>
-            )}
-            {eligibility.requiredAction === 'CONTACT_STUDIO' && (
-              <ButtonLink variant="secondary" href="/contact">
-                Hubungi studio
+
+          <section className="rounded-dd-xl border border-amber-200 bg-amber-50/40 p-6 shadow-dd-card space-y-4">
+            <AlertBanner
+              tone="warning"
+              title={eligibilityMessage.title}
+              message={eligibilityMessage.description}
+            />
+
+            <div className="rounded-dd-lg bg-white/90 p-4 border border-amber-200/60 text-xs sm:text-sm text-dd-muted leading-relaxed">
+              {eligibility.reasonCode === 'MATCHING_PACKAGE_REQUIRED' && (
+                <p>
+                  Untuk mengikuti sesi <strong>{slot.classType.name}</strong> di{' '}
+                  <strong>{slot.branch.name}</strong>, Anda memerlukan paket aktif yang berlaku untuk
+                  cabang dan jenis kelas ini. Silakan beli paket yang sesuai melalui tautan di bawah,
+                  atau hubungi tim studio kami jika Anda memiliki pertanyaan.
+                </p>
+              )}
+              {eligibility.reasonCode === 'INSUFFICIENT_AVAILABLE_SESSION' && (
+                <p>
+                  Seluruh saldo kuota sesi pada paket Anda telah direservasi atau terpakai. Anda dapat
+                  membeli paket tambahan untuk melanjutkan booking sesi ini.
+                </p>
+              )}
+              {eligibility.reasonCode === 'IDENTITY_VERIFICATION_REQUIRED' && (
+                <p>
+                  Sesuai kebijakan keselamatan Daily Dose Pilates, akun Anda perlu menyelesaikan
+                  verifikasi identitas terlebih dahulu sebelum melakukan reservasi mandiri.
+                </p>
+              )}
+              {eligibility.reasonCode === 'SLOT_FULL' && (
+                <p>
+                  Seluruh kapasitas ({slot.capacity} slot) pada jadwal ini sudah terisi penuh. Silakan
+                  pilih jadwal sesi lain yang masih memiliki kuota tersedia.
+                </p>
+              )}
+              {eligibility.reasonCode === 'BOOKING_CUTOFF_PASSED' && (
+                <p>
+                  Batas waktu booking mandiri untuk jadwal ini telah ditutup. Silakan hubungi studio
+                  secara langsung jika Anda memerlukan bantuan khusus.
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {eligibility.requiredAction === 'COMPLETE_IDENTITY_VERIFICATION' && (
+                <ButtonLink href="/account/verification">
+                  Selesaikan verifikasi identitas
+                </ButtonLink>
+              )}
+              {eligibility.requiredAction === 'BUY_MATCHING_PACKAGE' && (
+                <ButtonLink href={purchaseUrl} leadingIcon={<Sparkles className="size-4" />}>
+                  Beli paket yang sesuai
+                </ButtonLink>
+              )}
+              {whatsappUrl && (
+                <ButtonLink
+                  variant="secondary"
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  leadingIcon={<MessageCircle className="size-4 text-emerald-600" />}
+                >
+                  Tanya admin studio via WhatsApp
+                </ButtonLink>
+              )}
+              {eligibility.requiredAction === 'CONTACT_STUDIO' && !whatsappUrl && (
+                <ButtonLink variant="secondary" href="/contact">
+                  Hubungi studio
+                </ButtonLink>
+              )}
+              <ButtonLink
+                variant="secondary"
+                href="/classes#schedule"
+                leadingIcon={<ArrowLeft className="size-4" />}
+              >
+                Pilih jadwal lain
               </ButtonLink>
-            )}
-            <ButtonLink variant="secondary" href="/classes#schedule">
-              Pilih jadwal lain
-            </ButtonLink>
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       ) : (
         /* Two-Column Booking Layout */
         <form
@@ -315,63 +548,11 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
             {/* Left Column: Class Detail & Package / Review Form */}
             <div className="space-y-5">
               {/* Selected Class Summary Card */}
-              <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-                      Jadwal dipilih
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-dd-ink">{slot.classType.name}</h2>
-                    <p className="mt-1 text-sm text-dd-muted">
-                      {slot.branch.name} · {dateTime(slot.startAt, slot.timezone)}
-                    </p>
-                  </div>
-                  <StatusBadge tone={slot.status === 'CONFIRMED' ? 'success' : 'info'}>
-                    {slot.status === 'CONFIRMED' ? 'Dikonfirmasi' : 'Tersedia'}
-                  </StatusBadge>
-                </div>
-
-                <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
-                      <Clock className="size-3.5 text-dd-forest" />
-                      Waktu sesi
-                    </dt>
-                    <dd className="mt-1 font-semibold text-dd-ink">
-                      {new Intl.DateTimeFormat('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: slot.timezone,
-                      }).format(slot.startAt)}{' '}
-                      –{' '}
-                      {new Intl.DateTimeFormat('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: slot.timezone,
-                      }).format(slot.endAt)}{' '}
-                      WIB
-                    </dd>
-                  </div>
-
-                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
-                      <Timer className="size-3.5 text-dd-forest" />
-                      Durasi latihan
-                    </dt>
-                    <dd className="mt-1 font-semibold text-dd-ink">{durationMinutes} menit</dd>
-                  </div>
-
-                  <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-                    <dt className="flex items-center gap-1.5 text-xs text-dd-muted">
-                      <User className="size-3.5 text-dd-forest" />
-                      Instruktur
-                    </dt>
-                    <dd className="mt-1 font-semibold text-dd-ink truncate">
-                      {slot.instructor?.displayName ?? 'Tim Daily Dose'}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
+              <ClassSessionDetailCard
+                slot={slot}
+                eligibility={eligibility}
+                durationMinutes={durationMinutes}
+              />
 
               {/* Step 1: Package Selection */}
               {step === 'select' ? (
@@ -548,6 +729,12 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                       QR Code Check-in Pass akan terbit dan siap dipindai di pintu masuk studio.
                     </span>
                   </li>
+                  <li className="flex gap-2">
+                    <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+                    <span>
+                      Harap hadir 10 menit sebelum kelas dimulai untuk persiapan dan pemanasan.
+                    </span>
+                  </li>
                 </ul>
               </div>
 
@@ -556,14 +743,27 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                   <MapPin className="size-3.5 text-dd-forest" />
                   Alamat Studio
                 </p>
-                <p>Studio {slot.branch.name}</p>
-                <Link
-                  href="/contact"
-                  className="mt-3 inline-flex items-center gap-1.5 font-semibold text-dd-forest no-underline hover:underline"
-                >
-                  <MessageCircle className="size-3.5" />
-                  Hubungi customer service studio
-                </Link>
+                <p className="font-semibold text-dd-ink">{slot.branch.name}</p>
+                {slot.branch.address && <p className="mt-1 text-dd-muted">{slot.branch.address}</p>}
+                {whatsappUrl ? (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 font-semibold text-dd-forest no-underline hover:underline"
+                  >
+                    <MessageCircle className="size-3.5" />
+                    Hubungi WhatsApp studio
+                  </a>
+                ) : (
+                  <Link
+                    href="/contact"
+                    className="mt-3 inline-flex items-center gap-1.5 font-semibold text-dd-forest no-underline hover:underline"
+                  >
+                    <MessageCircle className="size-3.5" />
+                    Hubungi customer service studio
+                  </Link>
+                )}
               </div>
             </aside>
           </div>
