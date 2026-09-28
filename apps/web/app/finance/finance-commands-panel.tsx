@@ -6,7 +6,7 @@ import { Panel } from '../components/admin/admin-ui';
 import { controlClassName, TextInput } from '../components/forms';
 import { Feedback } from '../ui';
 import { useAppFeedback } from '../components/app-feedback';
-import type { Correction, FinanceClient } from './finance-client';
+import { financeFailureMessage, type Correction, type FinanceClient } from './finance-client';
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7);
 const currentDate = () => new Date().toISOString().slice(0, 10);
@@ -57,16 +57,18 @@ export function FinanceCommandsPanel({
     void refresh().catch(() => setFailure('Kontrol Finance gagal dimuat.'));
   }, [refresh]);
 
-  const run = async (action: () => Promise<void>, success: string) => {
+  const run = async (action: () => Promise<void>, success: string, context?: 'correction') => {
     setBusy(true);
     setFailure(undefined);
     try {
       await action();
       setMessage(success);
       await refresh();
-    } catch {
+    } catch (error) {
       setFailure(
-        'Permintaan ditolak. Periksa cakupan, periode, versi, dan pemisahan tugas (pemohon berbeda dari penyetuju).',
+        context === 'correction'
+          ? financeFailureMessage(error, 'correction')
+          : 'Permintaan ditolak. Periksa cakupan, periode, versi, dan pemisahan tugas (pemohon berbeda dari penyetuju).',
       );
     } finally {
       setBusy(false);
@@ -199,7 +201,7 @@ export function FinanceCommandsPanel({
                   reason: reason.trim(),
                 });
                 if (result) setCorrectionId(result.id);
-              }, 'Koreksi menunggu approver berbeda.')
+              }, 'Koreksi menunggu approver berbeda.', 'correction')
             }
           >
             Ajukan koreksi
@@ -228,6 +230,9 @@ export function FinanceCommandsPanel({
               Tidak ada koreksi yang menunggu keputusan pada periode ini.
             </p>
           )}
+          <p className="text-xs text-dd-muted">
+            Koreksi hanya dapat diputuskan oleh Super Owner yang berbeda dari pengaju.
+          </p>
           <div className="flex flex-wrap gap-2">
             {(['approve', 'reject'] as const).map((decision) => (
               <Button
@@ -244,7 +249,8 @@ export function FinanceCommandsPanel({
                     async () => {
                       await client.decideCorrection?.(correctionId, decision, reason.trim());
                     },
-                    decision === 'approve' ? 'Koreksi diposting.' : 'Koreksi ditolak.',
+                    decision === 'approve' ? 'Koreksi disetujui.' : 'Koreksi ditolak.',
+                    'correction',
                   )
                 }
               >

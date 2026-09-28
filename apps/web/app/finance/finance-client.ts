@@ -452,29 +452,33 @@ export const browserFinanceClient: FinanceClient = {
   },
   requestCorrection(command) {
     return appLoading.track(
-      financeFetch<Correction>('/corrections', {
+      financeFetch<Correction>('/finance/correction-journals', {
         method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify({
           branchId: command.branchId,
           currentPeriod: command.currentPeriod,
           referencePeriod: command.referencePeriod,
-          amount: { amountMinor: Math.round(command.amountRp * 100), currency: 'IDR' },
+          amountRp: command.amountRp,
           reason: command.reason,
         }),
       }),
       { label: 'Membuat permintaan koreksi…' },
     );
   },
-  decideCorrection(id, decision, reason) {
-    return appLoading.track(
-      financeFetch<CorrectionDecisionResult>(`/corrections/${id}/decision`, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({ decision: decision.toUpperCase(), reason }),
-      }),
+  async decideCorrection(id, decision, reason) {
+    const result = await appLoading.track(
+      financeFetch<{ correction: Correction }>(
+        `/finance/correction-journals/${encodeURIComponent(id)}/${decision}`,
+        { method: 'POST', body: JSON.stringify({ reason }) },
+      ),
       { label: 'Memutuskan koreksi…' },
     );
+    return {
+      id: result.correction.id,
+      status: result.correction.status,
+      decision: decision.toUpperCase(),
+      decidedAt: new Date(),
+    };
   },
   async corrections(branchId, period, status = 'PENDING') {
     const params = new URLSearchParams();
@@ -565,14 +569,25 @@ const financeMessages: Record<string, string> = {
   NOT_FOUND: 'Biaya tidak ditemukan. Muat ulang daftar.',
 };
 
+/** Pesan khusus alur koreksi periode; menggantikan pesan biaya lain untuk kode yang sama. */
+const correctionMessages: Record<string, string> = {
+  SEPARATION_OF_DUTIES: 'Pengaju koreksi tidak boleh memutus koreksinya sendiri. Minta Super Owner lain.',
+  CORRECTION_ALREADY_DECIDED: 'Koreksi ini sudah diputuskan. Muat ulang antrean.',
+  VALIDATION_ERROR:
+    'Data koreksi belum valid. Periode referensi harus sebelum periode berjalan, selisih tidak boleh nol, dan alasan 3–500 karakter.',
+  FORBIDDEN: 'Anda tidak memiliki izin untuk tindakan ini. Memutus koreksi hanya untuk Super Owner.',
+  NOT_FOUND: 'Koreksi tidak ditemukan. Muat ulang antrean.',
+};
+
 /** Pesan Indonesia untuk kegagalan permintaan Finance. */
-export function financeFailureMessage(error: unknown): string {
+export function financeFailureMessage(error: unknown, context?: 'correction'): string {
   const response = (error as { response?: { status?: number; data?: { code?: string; error?: { code?: string } } } })
     ?.response;
   const code = response?.data?.code ?? response?.data?.error?.code;
-  if (code && financeMessages[code]) return financeMessages[code]!;
-  if (response?.status === 403) return financeMessages.FORBIDDEN!;
-  if (response?.status === 404) return financeMessages.NOT_FOUND!;
-  if (response?.status === 400 || response?.status === 422) return financeMessages.VALIDATION_ERROR!;
+  const messages = context === 'correction' ? { ...financeMessages, ...correctionMessages } : financeMessages;
+  if (code && messages[code]) return messages[code]!;
+  if (response?.status === 403) return messages.FORBIDDEN!;
+  if (response?.status === 404) return messages.NOT_FOUND!;
+  if (response?.status === 400 || response?.status === 422) return messages.VALIDATION_ERROR!;
   return 'Permintaan belum berhasil. Periksa koneksi lalu coba lagi.';
 }

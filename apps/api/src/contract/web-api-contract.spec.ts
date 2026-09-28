@@ -24,12 +24,6 @@ const KNOWN_MISSING: Array<{ prefix: string; method?: string; reason: string }> 
       'Tombol "jalankan evaluasi kuota" memanggil /operations/jobs/:id/run-quota-evaluation, sedangkan API menyediakan /operations/quota-evaluations/:id/run; belum diselaraskan.',
   },
   {
-    prefix: '/corrections',
-    method: 'POST',
-    reason:
-      'Koreksi periode keuangan (ajukan dan putuskan) di halaman Keuangan belum punya API; tombolnya akan gagal.',
-  },
-  {
     prefix: '/data-import',
     reason: 'Halaman Import Data dormant (tidak ada di navigasi) dan API impornya belum dibuat.',
   },
