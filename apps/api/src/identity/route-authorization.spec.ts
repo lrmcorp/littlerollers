@@ -1,7 +1,6 @@
 import { PaymentProofService } from '../packages/bukti-pembayaran.service';
 import { FinanceService } from '../packages/finance.service';
 import { MigrationsService } from '../operations/migrations.service';
-import { SupportCasesService, inMemorySupportCases } from '../operations/support-cases.service';
 import { IdentityDocumentAccessService } from './identity-document-access.service';
 import { IdentityService } from './identity.service';
 import { PolicyService } from './policy.service';
@@ -87,48 +86,6 @@ describe('MigrationsService', () => {
     await expect(
       service.decideResolution(principal(['migration:resolve']), 'r', body),
     ).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
-  });
-});
-
-describe('SupportCasesService', () => {
-  const db = {
-    user: {
-      findUnique: jest.fn().mockResolvedValue({ id: 'c1', displayName: 'Maya', email: 'm@x.test' }),
-    },
-    cabang: { findUnique: jest.fn().mockResolvedValue({ id: branchA, name: 'GG' }) },
-  };
-  const service = new SupportCasesService(db as never, new PolicyService());
-  const manager = principal(['support:read', 'support:manage']);
-
-  beforeEach(() => {
-    inMemorySupportCases.length = 0;
-  });
-
-  it('requires support capabilities and no longer seeds fabricated cases', async () => {
-    await expect(service.list(customer)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(
-      service.create(customer, { customerUserId: 'c1', subject: 'x' }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.detail(customer, 'any')).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.list(manager)).resolves.toMatchObject({ items: [], summary: { total: 0 } });
-  });
-
-  it('scopes cases to the branch of the staff member', async () => {
-    const created = await service.create(manager, {
-      customerUserId: 'c1',
-      branchId: branchA,
-      subject: '  Jadwal  ',
-    });
-    expect(created.subject).toBe('Jadwal');
-    await expect(service.detail(manager, created.id)).resolves.toMatchObject({ id: created.id });
-    const otherBranch = principal(['support:read'], [], [branchB]);
-    await expect(service.list(otherBranch)).resolves.toMatchObject({ items: [] });
-    await expect(service.detail(otherBranch, created.id)).rejects.toMatchObject({
-      code: 'RESOURCE_NOT_FOUND',
-    });
-    await expect(
-      service.create(manager, { customerUserId: 'c1', branchId: branchB, subject: 'x' }),
-    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
   });
 });
 

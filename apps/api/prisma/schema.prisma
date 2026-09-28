@@ -82,6 +82,21 @@ enum CustomerPackageStatus {
   FROZEN
 }
 
+enum SupportCasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SupportCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
 enum ClassSlotStatus {
   DRAFT
   PUBLISHED
@@ -140,6 +155,7 @@ model Cabang {
   instructorAssignments PenugasanInstruktur[]
   purchases             Pembelian[]
   paymentAccounts       RekeningPembayaran[]
+  supportCases          SupportCase[]
   ownerAssignments      OwnerCabang[]
   minQuotaSettings      MinQuotaSetting[]
   instructorFees        InstructorFee[]
@@ -244,6 +260,9 @@ model User {
   instructorAttendances KehadiranInstruktur[] @relation("InstructorAttendee")
   recordedInstructorAttendances KehadiranInstruktur[] @relation("InstructorAttendanceRecorder")
   issuedInstructorTokens InstructorCheckInToken[] @relation("InstructorTokenIssuer")
+  supportCasesAsCustomer SupportCase[]         @relation("SupportCaseCustomer")
+  assignedSupportCases  SupportCase[]          @relation("SupportCaseAssignee")
+  supportCaseNotes      SupportCaseNote[]      @relation("SupportCaseNoteAuthor")
   ownedBranches         OwnerCabang[]
   instructorFees        InstructorFee[]
   createdSessionLedgers SessionLedger[]       @relation("LedgerCreator")
@@ -838,4 +857,47 @@ model LaravelMigration {
   batch     Int
 
   @@map("migrations")
+}
+
+/// Kasus bantuan pelanggan yang ditangani staf. `version` dipakai klaim optimistik saat ubah.
+model SupportCase {
+  id             String              @id @default(uuid()) @db.Char(36)
+  subject        String              @db.VarChar(200)
+  customerId     String              @db.Char(36)
+  branchId       String?             @db.Char(36)
+  priority       SupportCasePriority @default(NORMAL)
+  status         SupportCaseStatus   @default(OPEN)
+  tags           Json
+  assignedUserId String?             @db.Char(36)
+  createdById    String?             @db.Char(36)
+  version        Int                 @default(1)
+  resolvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  customer     User              @relation("SupportCaseCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  branch       Cabang?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  assignedUser User?             @relation("SupportCaseAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  notes        SupportCaseNote[]
+
+  @@index([branchId, status, createdAt])
+  @@index([customerId])
+  @@index([assignedUserId, status])
+  @@map("support_case")
+}
+
+/// Catatan pada kasus bantuan. Saat ini seluruhnya internal (tidak terlihat pelanggan).
+model SupportCaseNote {
+  id        String   @id @default(uuid()) @db.Char(36)
+  caseId    String   @db.Char(36)
+  body      String   @db.Text
+  internal  Boolean  @default(true)
+  authorId  String?  @db.Char(36)
+  createdAt DateTime @default(now())
+
+  supportCase SupportCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author      User?       @relation("SupportCaseNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([caseId, createdAt])
+  @@map("support_case_note")
 }

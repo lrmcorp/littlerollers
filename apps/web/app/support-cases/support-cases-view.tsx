@@ -13,16 +13,34 @@ import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { customerClient } from '../customers/customer-client';
-import { supportPriorityLabel, supportPriorityLabels, supportStatusLabel } from './support-labels';
-async function api(path: string, init?: RequestInit) {
-  const r = await fetch(`/api/v1${path}`, {
-    credentials: 'include',
-    ...init,
-    headers: { 'content-type': 'application/json', ...init?.headers },
-  });
-  if (!r.ok) throw new Error('REQUEST_FAILED');
-  return r.json();
-}
+import {
+  supportPriorityLabel,
+  supportPriorityLabels,
+  supportStatusLabel,
+  supportStatusLabels,
+} from './support-labels';
+import { supportApi as api, supportFailure } from './support-api';
+
+type Summary = {
+  total?: number;
+  open?: number;
+  inProgress?: number;
+  waitingCustomer?: number;
+  resolved?: number;
+  closed?: number;
+};
+const statusFilters: Array<[string, string]> = [
+  ['', 'Semua'],
+  ...Object.entries(supportStatusLabels),
+];
+const statusCounts = (summary: Summary): Record<string, number | undefined> => ({
+  '': summary.total,
+  OPEN: summary.open,
+  IN_PROGRESS: summary.inProgress,
+  WAITING_CUSTOMER: summary.waitingCustomer,
+  RESOLVED: summary.resolved,
+  CLOSED: summary.closed,
+});
 async function searchCustomers(query: string, cursor?: string) {
   const result = await customerClient.list({ q: query.trim() || undefined, cursor });
   return {
@@ -38,17 +56,59 @@ async function searchCustomers(query: string, cursor?: string) {
 export function SupportCasesView() {
   const session = useSessionContext()?.session;
   const [items, setItems] = useState<any[]>();
+  const [summary, setSummary] = useState<Summary>({});
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [customer, setCustomer] = useState<SearchSelectOption>();
+  const [statusFilter, setStatusFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const [mineOnly, setMineOnly] = useState(false);
+  const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAppliedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  const query = useCallback(
+    (cursor?: string) => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (priorityFilter) params.set('priority', priorityFilter);
+      if (mineOnly) params.set('assignedUserId', 'me');
+      if (appliedSearch) params.set('q', appliedSearch);
+      if (cursor) params.set('cursor', cursor);
+      const text = params.toString();
+      return `/support-cases${text ? `?${text}` : ''}`;
+    },
+    [appliedSearch, mineOnly, priorityFilter, statusFilter],
+  );
   const load = useCallback(
     () =>
-      api('/support-cases')
-        .then((x) => setItems(x.items))
+      api(query())
+        .then((x) => {
+          setItems(x.items);
+          setSummary(x.summary ?? {});
+          setNextCursor(x.page?.nextCursor ?? null);
+          setError('');
+        })
         .catch(() => setError('Kasus bantuan belum dapat dimuat.')),
-    [],
+    [query],
   );
   useEffect(() => void load(), [load]);
+  async function loadMore() {
+    if (!nextCursor) return;
+    setBusy(true);
+    try {
+      const next = await api(query(nextCursor));
+      setItems((current) => [...(current ?? []), ...next.items]);
+      setNextCursor(next.page?.nextCursor ?? null);
+    } catch {
+      setError('Kasus berikutnya belum dapat dimuat.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = e.currentTarget,
@@ -62,6 +122,7 @@ export function SupportCasesView() {
           branchId: d.get('branchId') || null,
           subject: d.get('subject'),
           priority: d.get('priority'),
+          note: String(d.get('note') || '').trim() || undefined,
           tags: String(d.get('tags') || '')
             .split(',')
             .map((x) => x.trim())
@@ -71,8 +132,13 @@ export function SupportCasesView() {
       f.reset();
       setCustomer(undefined);
       await load();
-    } catch {
-      setError('Kasus bantuan belum dapat dibuat. Pastikan pelanggan dipilih dan sesuai cakupan Studio/Cabang Anda.');
+    } catch (cause) {
+      setError(
+        supportFailure(
+          cause,
+          'Kasus bantuan belum dapat dibuat. Pastikan pelanggan dipilih dan sesuai cakupan Studio/Cabang Anda.',
+        ),
+      );
     } finally {
       setBusy(false);
     }
@@ -132,13 +198,71 @@ export function SupportCasesView() {
           name="tags"
           placeholder="Tag dipisahkan koma, misal: reschedule, vip"
         />
+        <TextInput
+          label="Catatan awal (opsional)"
+          name="note"
+          maxLength={5000}
+          wrapperClassName="sm:col-span-2"
+          placeholder="Ringkasan permintaan pelanggan; hanya terlihat oleh staf"
+        />
         <div className="flex items-end">
           <Button type="submit" loading={busy}>
             Buat kasus bantuan
           </Button>
         </div>
       </form>
-      <div className="rounded-dd-lg border border-dd-line bg-white p-5">
+      <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter status kasus">
+          {statusFilters.map(([value, label]) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              aria-pressed={statusFilter === value}
+              onClick={() => setStatusFilter(value)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                statusFilter === value
+                  ? 'border-dd-forest bg-dd-forest text-white'
+                  : 'border-dd-line bg-white text-dd-muted hover:border-dd-forest'
+              }`}
+            >
+              {label}
+              {statusCounts(summary)[value] !== undefined && ` (${statusCounts(summary)[value]})`}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <TextInput
+            label="Cari kasus"
+            value={search}
+            placeholder="Subjek, nama, atau email pelanggan"
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <SelectInput
+            label="Prioritas"
+            aria-label="Filter prioritas"
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+          >
+            <option value="">Semua prioritas</option>
+            {Object.entries(supportPriorityLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </SelectInput>
+          <label className="flex items-end gap-2 pb-2 text-sm font-semibold text-dd-ink">
+            <input
+              type="checkbox"
+              className="size-4 accent-dd-forest"
+              checked={mineOnly}
+              onChange={(event) => setMineOnly(event.target.checked)}
+            />
+            Ditugaskan ke saya
+          </label>
+        </div>
+        {items.length === 0 && (
+          <p className="text-sm text-dd-muted">Tidak ada kasus yang cocok dengan filter ini.</p>
+        )}
         <ul className="divide-y divide-dd-line">
           {items.map((item) => (
             <li key={item.id} className="flex flex-wrap justify-between gap-3 py-4">
@@ -150,7 +274,7 @@ export function SupportCasesView() {
                   {item.subject}
                 </Link>
                 <p className="text-sm">
-                  Customer:{' '}
+                  Pelanggan:{' '}
                   <Link
                     href={`/customers/${item.customer.id}`}
                     className="text-dd-forest hover:underline"
@@ -159,20 +283,35 @@ export function SupportCasesView() {
                   </Link>
                 </p>
                 <p className="text-xs text-dd-muted">
-                  {item.branch?.name ?? 'Global'} · {item._count.notes} catatan internal
+                  {item.branch?.name ?? 'Global'} · {item._count?.notes ?? 0} catatan internal
+                  {item.assignedUser ? ` · Ditangani ${item.assignedUser.displayName}` : ''}
                 </p>
+                {item.tags?.length > 0 && (
+                  <p className="mt-1 text-xs text-dd-muted">#{item.tags.join(' #')}</p>
+                )}
               </div>
               <div className="flex gap-2">
                 <StatusBadge tone={item.priority === 'URGENT' ? 'danger' : 'neutral'}>
                   {supportPriorityLabel(item.priority)}
                 </StatusBadge>
-                <StatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
+                <StatusBadge
+                  tone={
+                    item.status === 'RESOLVED' || item.status === 'CLOSED' ? 'success' : 'warning'
+                  }
+                >
                   {supportStatusLabel(item.status)}
                 </StatusBadge>
               </div>
             </li>
           ))}
         </ul>
+        {nextCursor && (
+          <div>
+            <Button variant="secondary" loading={busy} onClick={() => void loadMore()}>
+              Muat kasus berikutnya
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );

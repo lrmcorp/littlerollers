@@ -49,14 +49,14 @@ describe('AdminPageHeader', () => {
   });
 
   it('flags preview pages with a badge and the explanation of what is not persisted', () => {
-    const support = frontendPages.find((page) => page.href === '/support-cases')!;
+    const preview = frontendPages.find((page) => page.maturity === 'preview')!;
     const { container } = render(
-      <PageMetaProvider value={support}>
-        <AdminPageHeader title="Bantuan Pelanggan" />
+      <PageMetaProvider value={preview}>
+        <AdminPageHeader title={preview.label} />
       </PageMetaProvider>,
     );
     expect(container.querySelector('[data-preview-badge]')).toHaveTextContent('Pratinjau');
-    expect(screen.getByRole('note')).toHaveTextContent(/hilang saat API dimulai ulang/);
+    expect(screen.getByRole('note')).toHaveTextContent(preview.previewNote!);
   });
 
   it('shows no preview markers on regular pages', () => {

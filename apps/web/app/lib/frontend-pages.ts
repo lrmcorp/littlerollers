@@ -104,9 +104,6 @@ export const frontendPages: FrontendPageDefinition[] = [
     branchScope: 'global',
     accent: 'warning',
     roleRelevance: ['SUPER_OWNER', 'ADMIN', 'MANAGER'],
-    maturity: 'preview',
-    previewNote:
-      'Kasus bantuan disimpan sementara di memori server dan hilang saat API dimulai ulang. Jangan dijadikan satu-satunya catatan.',
   },
   {
     href: '/workspace/availability',
