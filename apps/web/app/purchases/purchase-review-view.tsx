@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Eye, RefreshCw, Search } from 'lucide-react';
 import {
+  assistedPaymentMethodLabels,
   browserPurchaseReviewClient,
   purchaseFailure,
   type PaymentReviewFilters,
@@ -15,6 +16,7 @@ import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useTrackedRouter } from '../components/app-loading';
 import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/admin/admin-ui';
 import { Button, ButtonLink } from '../components/actions';
+import { AssistedSaleDrawer } from './assisted-sale-drawer';
 import { AlertBanner, PreviewModal, useOptionalAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';
@@ -177,7 +179,11 @@ export function PurchaseReviewView({
     testAuthority || Boolean(sessionContext?.hasCapability('payment:review', 'purchase:review'));
   const canDecide =
     testAuthority || Boolean(sessionContext?.hasCapability('payment:decide', 'purchase:decide'));
+  const canRecord =
+    !testAuthority && Boolean(sessionContext?.hasCapability('purchase:record'));
+  const currentUserId = sessionContext?.session?.id;
   const activeBranch = branchOverride ?? sessionContext?.activeBranch ?? null;
+  const [saleOpen, setSaleOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [search, setSearch] = useState(() => readFilters().q ?? '');
   const [items, setItems] = useState<ReviewPurchase[]>([]);
@@ -397,6 +403,9 @@ export function PurchaseReviewView({
     }
   }, [filters.status, summary]);
 
+  const isOwnRecord = (item: ReviewPurchase) =>
+    Boolean(item.recordedById) && item.recordedById === currentUserId;
+
   const actions = (item: ReviewPurchase, compact = false) => (
     <div
       className={`flex flex-wrap gap-2 ${compact ? 'justify-end' : ''}`}
@@ -417,7 +426,12 @@ export function PurchaseReviewView({
       >
         Preview bukti
       </Button>
-      {canDecide && item.status === 'PENDING' && (
+      {canDecide && item.status === 'PENDING' && isOwnRecord(item) && (
+        <span className="self-center text-xs text-dd-muted">
+          Dicatat oleh Anda — disetujui penyetuju lain.
+        </span>
+      )}
+      {canDecide && item.status === 'PENDING' && !isOwnRecord(item) && (
         <Button disabled={mutatingId === item.id} onClick={() => void approve(item)}>
           <CheckCircle2 className="size-4" /> {mutatingId === item.id ? 'Memproses…' : 'Setujui'}
         </Button>
@@ -436,6 +450,9 @@ export function PurchaseReviewView({
             <span className="text-xs text-dd-muted">
               {generatedAt ? `Diperbarui ${safeFormatDateTime(generatedAt)}` : 'Belum dimuat'}
             </span>
+            {canRecord && activeBranch && (
+              <Button onClick={() => setSaleOpen(true)}>Catat penjualan</Button>
+            )}
             <Button
               variant="secondary"
               disabled={loading}
@@ -596,6 +613,14 @@ export function PurchaseReviewView({
                   {item.customer.email ? `${item.customer.email} · ` : ''}
                   {item.customer.phoneMasked ?? 'Kontak termasking tidak tersedia'}
                 </p>
+                {item.recordedBy && (
+                  <p className="mt-1 text-xs font-semibold text-dd-forest">
+                    Dicatat staf · {item.recordedBy.displayName}
+                    {item.paymentMethod && assistedPaymentMethodLabels[item.paymentMethod as keyof typeof assistedPaymentMethodLabels]
+                      ? ` · ${assistedPaymentMethodLabels[item.paymentMethod as keyof typeof assistedPaymentMethodLabels]}`
+                      : ''}
+                  </p>
+                )}
               </div>
             ),
           },
@@ -783,6 +808,14 @@ export function PurchaseReviewView({
           )}
         </div>
       </PreviewModal>
+      {canRecord && activeBranch && (
+        <AssistedSaleDrawer
+          open={saleOpen}
+          branch={activeBranch}
+          onClose={() => setSaleOpen(false)}
+          onRecorded={() => void load()}
+        />
+      )}
     </section>
   );
 }

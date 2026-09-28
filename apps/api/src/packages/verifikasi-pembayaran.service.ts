@@ -334,10 +334,14 @@ export class PaymentReviewService {
 
     const activationSummary = this.activationSummary(customerPackage);
     const bookingItems = customerPackage?.bookings ?? [];
+    const recorders = await this.recorderNames([item.recordedById]);
 
     return {
       purchase: {
         ...item,
+        recordedBy: item.recordedById
+          ? { id: item.recordedById, displayName: recorders.get(item.recordedById) ?? 'Staf' }
+          : null,
         packageNameSnapshot: pkg?.name ?? null,
         sessionCountSnapshot: pkg?.sessionCount ?? null,
         durationDaysSnapshot: pkg?.validityDays ?? null,

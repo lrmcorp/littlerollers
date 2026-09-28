@@ -142,6 +142,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'booking:create:assisted',
     'booking:cancel:assisted',
     'purchase:record',
+    // Baca katalog paket: dibutuhkan untuk memilih paket pada penjualan manual di meja.
+    'package:read',
     'reschedule:read',
     'reschedule:decide',
     'attendance:read',
@@ -168,6 +170,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'booking:create:assisted',
     'booking:cancel:assisted',
     'purchase:record',
+    // Baca katalog paket: dibutuhkan untuk memilih paket pada penjualan manual di meja.
+    'package:read',
     'reschedule:read',
     'reschedule:decide',
     'attendance:read',

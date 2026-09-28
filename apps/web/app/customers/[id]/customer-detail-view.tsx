@@ -25,6 +25,7 @@ import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, Skeleton, StatusBadge } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
+import { AssistedSaleDrawer } from '../../purchases/assisted-sale-drawer';
 import { DataTable } from '../../components/admin/admin-ui';
 import { statusLabel } from '../../lib/status-labels';
 import { customerStatusLabels, verificationStatusLabels } from '../customers-view';
@@ -134,6 +135,9 @@ export function CustomerDetailView({ id }: { id: string }) {
   const session = sessionContext?.session;
   // Ubah profil, nonaktifkan, dan tandai berhenti dicek API dengan `customer:write`.
   const canWrite = Boolean(sessionContext?.hasCapability('customer:write'));
+  const canSell = Boolean(sessionContext?.hasCapability('purchase:record'));
+  const saleBranch = sessionContext?.activeBranch ?? null;
+  const [saleOpen, setSaleOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerDetail>();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -287,6 +291,17 @@ export function CustomerDetailView({ id }: { id: string }) {
       <AdminPageHeader
           title={customer.displayName}
           description={`${customer.email ?? 'Email belum tersedia'} · ${customer.phoneE164 ?? 'Telepon belum tersedia'}`}
+          actions={
+            canSell && customer.status === 'ACTIVE' ? (
+              <Button
+                disabled={!saleBranch}
+                title={saleBranch ? undefined : 'Pilih cabang aktif terlebih dahulu'}
+                onClick={() => setSaleOpen(true)}
+              >
+                Jual paket
+              </Button>
+            ) : undefined
+          }
           badges={
             <>
               <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
@@ -847,6 +862,15 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
         </div>
       </div>
+      {canSell && saleBranch && (
+        <AssistedSaleDrawer
+          open={saleOpen}
+          branch={saleBranch}
+          customer={{ id: customer.id, name: customer.displayName }}
+          onClose={() => setSaleOpen(false)}
+          onRecorded={() => void load()}
+        />
+      )}
     </section>
   );
 }

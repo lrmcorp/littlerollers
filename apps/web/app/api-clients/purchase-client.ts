@@ -24,6 +24,7 @@ export interface Package {
   durationDays: number;
   priceRp: number;
   status: string;
+  branchId?: string | null;
   effectiveState?: string;
   livePromotion?: boolean;
   effectiveFrom: Date;
@@ -214,6 +215,8 @@ export interface PaymentReviewItem {
   activationSummary: PaymentActivationSummary | null;
   recordedById?: string | null;
   recordedBy?: { id: string; displayName: string } | null;
+  recordNote?: string | null;
+  paymentMethod?: string | null;
 }
 
 export interface PaymentReviewSummary {
@@ -606,4 +609,70 @@ export function purchaseFailure(error: unknown): string {
   if (response?.status === 401) return 'Sesi berakhir. Silakan masuk kembali.';
   if (response?.status === 400 || response?.status === 422) return messages.VALIDATION_ERROR!;
   return 'Layanan purchase tidak dapat dijangkau. Periksa koneksi lalu coba lagi.';
+}
+
+export const assistedPaymentMethodLabels = {
+  CASH: 'Tunai',
+  QRIS: 'QRIS',
+  CARD: 'Kartu (EDC)',
+  BANK_TRANSFER: 'Transfer bank',
+  MANUAL_STAFF: 'Lainnya (dicatat staf)',
+} as const;
+export type AssistedPaymentMethod = keyof typeof assistedPaymentMethodLabels;
+
+export interface AssistedSaleInput {
+  customerUserId: string;
+  packageId: string;
+  branchId: string;
+  paymentMethod: AssistedPaymentMethod;
+  voucherCode?: string;
+  note?: string;
+}
+
+export interface AssistedSaleClient {
+  record(input: AssistedSaleInput, idempotencyKey: string): Promise<Purchase>;
+  searchPackages(query: string): Promise<Package[]>;
+}
+
+export const browserAssistedSaleClient: AssistedSaleClient = {
+  async record(input, idempotencyKey) {
+    const raw = await apiFetch<any>('/purchases/assisted', {
+      method: 'POST',
+      headers: { 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(input),
+      label: 'Mencatat penjualan…',
+    });
+    return mapPurchase(raw);
+  },
+  async searchPackages(query) {
+    const params = new URLSearchParams({ status: 'ACTIVE', limit: '50' });
+    if (query.trim()) params.set('q', query.trim());
+    const result = await apiFetch<{ items: any[] }>(`/packages?${params.toString()}`, {
+      label: 'Memuat paket…',
+    });
+    return (result.items ?? []).map(mapPackage);
+  },
+};
+
+const assistedSaleMessages: Record<string, string> = {
+  CUSTOMER_NOT_ACTIVE: 'Akun pelanggan belum aktif, penjualan tidak dapat dicatat.',
+  PACKAGE_BRANCH_MISMATCH: 'Paket ini tidak berlaku di cabang penjualan.',
+  VOUCHER_NOT_APPLICABLE: 'Kode voucher tidak dapat dipakai untuk paket ini.',
+  RESOURCE_NOT_FOUND: 'Pelanggan, paket, atau cabang tidak ditemukan dalam cakupan Anda.',
+  IDEMPOTENCY_IN_PROGRESS: 'Permintaan sebelumnya masih diproses. Coba lagi sebentar.',
+  IDEMPOTENCY_KEY_REUSED: 'Data berubah setelah dikirim. Tutup lalu buka kembali formulir.',
+  VALIDATION_ERROR: 'Data penjualan belum valid. Periksa isian lalu coba lagi.',
+  FORBIDDEN: 'Anda tidak memiliki izin mencatat penjualan di cabang ini.',
+};
+
+export function assistedSaleFailure(error: unknown): string {
+  notifySessionFailure(error);
+  const typed = error as { status?: number; data?: { code?: string; error?: { code?: string } } };
+  const code = typed?.data?.code ?? typed?.data?.error?.code;
+  if (code && assistedSaleMessages[code]) return assistedSaleMessages[code]!;
+  if (typed?.status === 403) return assistedSaleMessages.FORBIDDEN!;
+  if (typed?.status === 404) return assistedSaleMessages.RESOURCE_NOT_FOUND!;
+  if (typed?.status === 400 || typed?.status === 422) return assistedSaleMessages.VALIDATION_ERROR!;
+  if (typed?.status === 401) return 'Sesi berakhir. Silakan masuk kembali.';
+  return 'Penjualan belum dapat dicatat. Periksa koneksi lalu coba lagi.';
 }

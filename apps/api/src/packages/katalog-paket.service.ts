@@ -25,6 +25,7 @@ function packageView(pkg: any) {
     durationDays: pkg.validityDays,
     validityDays: pkg.validityDays,
     status: pkg.status,
+    branchId: pkg.branchId ?? null,
     effectiveState: pkg.status === 'ACTIVE' ? 'LIVE' : pkg.status,
     effectiveFrom: pkg.createdAt,
     effectiveUntil: null,
