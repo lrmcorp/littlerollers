@@ -9,6 +9,7 @@ import { NotificationManagementService } from './notification-management.service
 import { NotificationWriterService } from './notification-writer.service';
 import { WhatsAppGatewayService } from './whatsapp-gateway.service';
 import { ReminderScheduleService } from './reminder-schedule.service';
+import { NotificationTemplateService } from './notification-template.service';
 import { OperationsAutomationController } from './operations-automation.controller';
 
 @Global()
@@ -25,6 +26,7 @@ import { OperationsAutomationController } from './operations-automation.controll
     NotificationWriterService,
     WhatsAppGatewayService,
     ReminderScheduleService,
+    NotificationTemplateService,
   ],
   exports: [
     NotificationWriterService,

@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type NotificationChannel = 'EMAIL' | 'WHATSAPP' | 'IN_APP';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { NotificationManagementService } from './notification-management.service';
+
+export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 @Controller('notification-management')
 @UseGuards(AuthGuard)
@@ -14,20 +14,30 @@ export class NotificationManagementController {
   ) {
     return this.management.overview(req.principal, status);
   }
+  @Post('templates/preview') preview(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { templateKey?: string; body?: unknown },
+  ) {
+    return this.management.preview(req.principal, body);
+  }
   @Post('templates') create(
     @Req() req: AuthenticatedRequest,
-    @Body()
-    body: {
-      templateKey: string;
-      channel: NotificationChannel;
-      eventType: string;
-      audience: unknown;
-      subject?: string;
-      title: string;
-      body: string;
-    },
+    @Body() body: { templateKey?: string; body?: unknown },
   ) {
     return this.management.create(req.principal, body, req.correlationId ?? 'unknown');
+  }
+  @Patch('templates/:id') updateDraft(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { body?: unknown },
+  ) {
+    return this.management.updateDraft(req.principal, id, body, req.correlationId ?? 'unknown');
+  }
+  @Post('templates/:id/duplicate') duplicate(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.management.duplicate(req.principal, id, req.correlationId ?? 'unknown');
   }
   @Post('templates/:id/:status') transition(
     @Req() req: AuthenticatedRequest,

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { WhatsAppGatewayService } from './whatsapp-gateway.service';
+import { NotificationTemplateService } from './notification-template.service';
 
 export interface ReminderBatchSummary {
   evaluatedAt: Date;
@@ -20,6 +21,7 @@ export class ReminderScheduleService {
   constructor(
     private readonly db: PrismaService,
     private readonly whatsapp: WhatsAppGatewayService,
+    private readonly templates: NotificationTemplateService,
   ) {}
 
   /**
@@ -96,12 +98,12 @@ export class ReminderScheduleService {
 
       // Evaluasi H-1 (0 s/d 1 hari lagi)
       if (diffDays <= 1) {
-        const text =
-          `Halo ${customerName},\n\n` +
-          `Masa berlaku *${packageName}* Anda akan berakhir *BESOK* (*${validUntilStr}*) ` +
-          `dengan sisa *${cp.remainingSessions} sesi*.\n\n` +
-          `Jangan sampai sesi Anda hangus! Segera reservasi jadwal kelas Pilates favorit Anda hari ini.\n\n` +
-          `_Daily Dose Pilates_`;
+        const text = await this.templates.whatsappText('WA_REMINDER_EXPIRY_H1', {
+          nama: customerName,
+          paket: packageName,
+          berlaku_sampai: validUntilStr,
+          sisa_sesi: cp.remainingSessions,
+        });
 
         const res = await this.whatsapp.sendMessage({
           to: user.phone,
@@ -116,12 +118,12 @@ export class ReminderScheduleService {
       }
       // Evaluasi H-3 (2 s/d 3 hari lagi)
       else if (diffDays <= 3 && diffDays > 2) {
-        const text =
-          `Halo ${customerName},\n\n` +
-          `Masa berlaku *${packageName}* Anda tersisa *3 hari lagi* (*${validUntilStr}*) ` +
-          `dengan sisa *${cp.remainingSessions} sesi*.\n\n` +
-          `Yuk manfaatkan sisa sesi Anda untuk berolahraga bersama instruktur Daily Dose Pilates.\n\n` +
-          `_Daily Dose Pilates_`;
+        const text = await this.templates.whatsappText('WA_REMINDER_EXPIRY_H3', {
+          nama: customerName,
+          paket: packageName,
+          berlaku_sampai: validUntilStr,
+          sisa_sesi: cp.remainingSessions,
+        });
 
         const res = await this.whatsapp.sendMessage({
           to: user.phone,
@@ -136,12 +138,12 @@ export class ReminderScheduleService {
       }
       // Evaluasi H-7 (6 s/d 7 hari lagi)
       else if (diffDays <= 7 && diffDays > 6) {
-        const text =
-          `Halo ${customerName},\n\n` +
-          `Pengingat ramah: Masa berlaku *${packageName}* Anda tersisa *7 hari lagi* (*${validUntilStr}*) ` +
-          `dengan sisa *${cp.remainingSessions} sesi*.\n\n` +
-          `Pesan jadwal kelas Pilates Anda sekarang agar sesi tidak kedaluwarsa.\n\n` +
-          `_Daily Dose Pilates_`;
+        const text = await this.templates.whatsappText('WA_REMINDER_EXPIRY_H7', {
+          nama: customerName,
+          paket: packageName,
+          berlaku_sampai: validUntilStr,
+          sisa_sesi: cp.remainingSessions,
+        });
 
         const res = await this.whatsapp.sendMessage({
           to: user.phone,
@@ -226,12 +228,10 @@ export class ReminderScheduleService {
 
       const customerName = user.displayName || 'Member';
       const currentCount = sentHistory.length + 1;
-      const text =
-        `Halo ${customerName},\n\n` +
-        `Paket Pilates Anda di Daily Dose telah berakhir. Tetap jaga kebugaran dan rutinitas sehat Anda!\n\n` +
-        `Dapatkan penawaran paket terbaru kami melalui tautan berikut:\n` +
-        `https://dailydosepilates.com/packages\n\n` +
-        `Atau balas pesan ini untuk terhubung langsung dengan tim kami.\n_Daily Dose Pilates_`;
+      const text = await this.templates.whatsappText('WA_REMINDER_EXPIRED_RENEWAL', {
+        nama: customerName,
+        tautan_paket: 'https://dailydosepilates.com/packages',
+      });
 
       const res = await this.whatsapp.sendMessage({
         to: user.phone,
