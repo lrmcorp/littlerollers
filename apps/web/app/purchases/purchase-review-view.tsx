@@ -184,6 +184,10 @@ export function PurchaseReviewView({
   const currentUserId = sessionContext?.session?.id;
   const activeBranch = branchOverride ?? sessionContext?.activeBranch ?? null;
   const [saleOpen, setSaleOpen] = useState(false);
+  const saleBranches = (sessionContext?.session?.branches ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+  }));
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [search, setSearch] = useState(() => readFilters().q ?? '');
   const [items, setItems] = useState<ReviewPurchase[]>([]);
@@ -450,7 +454,7 @@ export function PurchaseReviewView({
             <span className="text-xs text-dd-muted">
               {generatedAt ? `Diperbarui ${safeFormatDateTime(generatedAt)}` : 'Belum dimuat'}
             </span>
-            {canRecord && activeBranch && (
+            {canRecord && saleBranches.length > 0 && (
               <Button onClick={() => setSaleOpen(true)}>Catat penjualan</Button>
             )}
             <Button
@@ -808,10 +812,11 @@ export function PurchaseReviewView({
           )}
         </div>
       </PreviewModal>
-      {canRecord && activeBranch && (
+      {canRecord && saleBranches.length > 0 && (
         <AssistedSaleDrawer
           open={saleOpen}
           branch={activeBranch}
+          branches={saleBranches}
           onClose={() => setSaleOpen(false)}
           onRecorded={() => void load()}
         />

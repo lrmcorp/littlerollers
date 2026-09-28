@@ -137,6 +137,7 @@ export function CustomerDetailView({ id }: { id: string }) {
   const canWrite = Boolean(sessionContext?.hasCapability('customer:write'));
   const canSell = Boolean(sessionContext?.hasCapability('purchase:record'));
   const saleBranch = sessionContext?.activeBranch ?? null;
+  const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
   const [saleOpen, setSaleOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerDetail>();
   const [error, setError] = useState('');
@@ -293,11 +294,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           description={`${customer.email ?? 'Email belum tersedia'} · ${customer.phoneE164 ?? 'Telepon belum tersedia'}`}
           actions={
             canSell && customer.status === 'ACTIVE' ? (
-              <Button
-                disabled={!saleBranch}
-                title={saleBranch ? undefined : 'Pilih cabang aktif terlebih dahulu'}
-                onClick={() => setSaleOpen(true)}
-              >
+              <Button disabled={saleBranches.length === 0} onClick={() => setSaleOpen(true)}>
                 Jual paket
               </Button>
             ) : undefined
@@ -873,10 +870,11 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
         </div>
       </div>
-      {canSell && saleBranch && (
+      {canSell && saleBranches.length > 0 && (
         <AssistedSaleDrawer
           open={saleOpen}
           branch={saleBranch}
+          branches={saleBranches}
           customer={{ id: customer.id, name: customer.displayName }}
           onClose={() => setSaleOpen(false)}
           onRecorded={() => void load()}

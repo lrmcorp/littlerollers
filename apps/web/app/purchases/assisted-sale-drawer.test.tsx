@@ -109,4 +109,33 @@ describe('AssistedSaleDrawer', () => {
     await waitFor(() => expect(record).toHaveBeenCalledTimes(2));
     expect(record.mock.calls[1]![1]).toBe(record.mock.calls[0]![1]);
   });
+
+  it('asks for the sale branch when the page has no active branch, then loads packages for it', async () => {
+    const user = userEvent.setup();
+    const client = fake();
+    rtlRender(
+      <AppFeedbackProvider>
+        <AssistedSaleDrawer
+          open
+          branch={null}
+          branches={[
+            { id: 'branch-1', name: 'Green Garden' },
+            { id: 'branch-2', name: 'Muara Karang' },
+          ]}
+          customer={{ id: 'customer-1', name: 'Maya Pelanggan' }}
+          client={client}
+          onClose={vi.fn()}
+        />
+      </AppFeedbackProvider>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Catat penjualan paket' });
+    expect(within(dialog).getByRole('combobox', { name: /Paket/ })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Catat penjualan' })).toBeDisabled();
+    await user.selectOptions(within(dialog).getByLabelText(/Cabang penjualan/), 'branch-2');
+    await user.click(within(dialog).getByRole('combobox', { name: /Paket/ }));
+    // Paket khusus cabang lain tidak muncul; paket cabang terpilih dan paket umum muncul.
+    expect(await screen.findByRole('option', { name: /Paket 8 Sesi/ })).toBeVisible();
+    expect(screen.queryByRole('option', { name: /Paket Cabang Ini/ })).toBeNull();
+    expect(screen.getByRole('option', { name: /Paket Cabang Lain/ })).toBeVisible();
+  });
 });

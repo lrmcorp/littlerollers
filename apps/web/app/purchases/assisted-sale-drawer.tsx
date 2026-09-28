@@ -17,6 +17,7 @@ import { AsyncSearchSelect, SelectInput, TextInput, type SearchSelectOption } fr
 import { formatRupiah } from '../lib/formatters';
 
 type PackageOption = SearchSelectOption & { priceRp: number };
+const NO_BRANCHES: Array<{ id: string; name: string }> = [];
 
 /**
  * Penjualan manual di meja. Staf mencatat pembayaran yang diterima; paket baru aktif setelah
@@ -25,13 +26,17 @@ type PackageOption = SearchSelectOption & { priceRp: number };
 export function AssistedSaleDrawer({
   open,
   branch,
+  branches = NO_BRANCHES,
   customer,
   client = browserAssistedSaleClient,
   onClose,
   onRecorded,
 }: {
   open: boolean;
-  branch: { id: string; name: string };
+  /** Cabang aktif di topbar; bila kosong, staf memilih cabang penjualan di formulir. */
+  branch?: { id: string; name: string } | null;
+  /** Cabang yang dapat dipilih ketika tidak ada cabang aktif. */
+  branches?: Array<{ id: string; name: string }>;
   /** Bila diisi, pelanggan terkunci (dibuka dari halaman detail pelanggan). */
   customer?: { id: string; name: string };
   client?: AssistedSaleClient;
@@ -48,7 +53,9 @@ export function AssistedSaleDrawer({
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState('');
+  const [chosenBranchId, setChosenBranchId] = useState('');
   const idempotencyKey = useRef<string | undefined>(undefined);
+  const branchKey = branches.map((item) => item.id).join('|');
   const dirty = Boolean(
     (!customer && customerOption) || packageOption || voucherCode.trim() || note.trim(),
   );
@@ -57,12 +64,13 @@ export function AssistedSaleDrawer({
     if (!open) return;
     setCustomerOption(customer ? { id: customer.id, label: customer.name } : undefined);
     setPackageOption(undefined);
+    setChosenBranchId(branch?.id ?? (branches.length === 1 ? branches[0]!.id : ''));
     setMethod('CASH');
     setVoucherCode('');
     setNote('');
     setFailure('');
     idempotencyKey.current = undefined;
-  }, [open, customer]);
+  }, [open, customer?.id, customer?.name, branch?.id, branchKey]);
 
   const searchCustomers = useCallback(async (query: string) => {
     const result = await customerClient.list({ q: query || undefined, status: 'ACTIVE' });
@@ -76,11 +84,13 @@ export function AssistedSaleDrawer({
     };
   }, []);
 
+  const saleBranch = branch ?? branches.find((item) => item.id === chosenBranchId) ?? null;
+  const saleBranchId = saleBranch?.id ?? '';
   const searchPackages = useCallback(
     async (query: string) => {
       const packages = await client.searchPackages(query);
       return packages
-        .filter((pkg) => !pkg.branchId || pkg.branchId === branch.id)
+        .filter((pkg) => !pkg.branchId || pkg.branchId === saleBranchId)
         .map<PackageOption>((pkg) => ({
           id: pkg.id,
           label: pkg.name,
@@ -88,13 +98,13 @@ export function AssistedSaleDrawer({
           priceRp: pkg.priceRp,
         }));
     },
-    [client, branch.id],
+    [client, saleBranchId],
   );
 
-  const ready = Boolean(customerOption && packageOption);
+  const ready = Boolean(customerOption && packageOption && saleBranch);
 
   const submit = async () => {
-    if (!customerOption || !packageOption) return;
+    if (!customerOption || !packageOption || !saleBranch) return;
     const accepted = await feedback.confirm({
       tone: 'warning',
       title: 'Catat penjualan paket?',
@@ -110,7 +120,7 @@ export function AssistedSaleDrawer({
         {
           customerUserId: customerOption.id,
           packageId: packageOption.id,
-          branchId: branch.id,
+          branchId: saleBranch.id,
           paymentMethod: method,
           voucherCode: voucherCode.trim() || undefined,
           note: note.trim() || undefined,
@@ -135,7 +145,9 @@ export function AssistedSaleDrawer({
     <Drawer
       open={open}
       title="Catat penjualan paket"
-      description={`Penjualan di meja untuk cabang ${branch.name}.`}
+      description={
+        saleBranch ? `Penjualan di meja untuk cabang ${saleBranch.name}.` : 'Pilih cabang tempat penjualan terjadi.'
+      }
       busy={busy}
       dirty={dirty}
       onDirtyClose={() =>
@@ -179,9 +191,29 @@ export function AssistedSaleDrawer({
             onChange={(_id, option) => setCustomerOption(option)}
           />
         )}
+        {!branch && (
+          <SelectInput
+            label="Cabang penjualan"
+            required
+            value={chosenBranchId}
+            onChange={(event) => {
+              setChosenBranchId(event.target.value);
+              setPackageOption(undefined);
+            }}
+          >
+            <option value="">Pilih cabang</option>
+            {branches.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </SelectInput>
+        )}
         <AsyncSearchSelect
+          key={saleBranchId || 'no-branch'}
           label="Paket"
           required
+          disabled={!saleBranch}
           value={packageOption?.id ?? ''}
           selectedOption={packageOption}
           placeholder="Pilih paket aktif"
