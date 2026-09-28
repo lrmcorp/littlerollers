@@ -377,7 +377,21 @@ export class MasterCatalogService {
   // STUDIO & RUANGAN (STUDIOS & ROOMS)
   // ============================================================================
 
-  async listStudios(principal: SessionPrincipal, branchIdOrCode: string) {
+  /** Kelas terjadwal (belum selesai/dibatalkan) yang masih memakai studio/ruangan; menghalangi penonaktifan. */
+  private async upcomingSlotCount(
+    tx: Prisma.TransactionClient,
+    where: { studioId?: string; roomId?: string },
+  ) {
+    return tx.slotKelas.count({
+      where: {
+        ...where,
+        status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
+        endAt: { gt: new Date() },
+      },
+    });
+  }
+
+  async listStudios(principal: SessionPrincipal, branchIdOrCode: string, includeInactive = false) {
     this.access.authorizeCatalogRead(principal);
     const branch = await this.db.cabang.findFirst({
       where: { OR: [{ id: branchIdOrCode }, { code: branchIdOrCode.toUpperCase() }, { code: branchIdOrCode }] },
@@ -385,8 +399,10 @@ export class MasterCatalogService {
     const branchId = branch?.id ?? branchIdOrCode;
     this.access.ensureCatalogBranchScope(principal, branchId);
     const items = await this.db.studio.findMany({
-      where: { branchId, active: true },
-      include: { rooms: { where: { active: true }, orderBy: { code: 'asc' } } },
+      where: { branchId, ...(includeInactive ? {} : { active: true }) },
+      include: {
+        rooms: { where: includeInactive ? {} : { active: true }, orderBy: { code: 'asc' } },
+      },
       orderBy: [{ code: 'asc' }, { id: 'asc' }],
     });
     return { items, page: { hasMore: false, nextCursor: null } };
@@ -458,11 +474,20 @@ export class MasterCatalogService {
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, current.branchId, true);
 
+      if (input.name !== undefined && input.name.trim().length < 2)
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      if (input.active === false && current.active) {
+        const upcoming = await this.upcomingSlotCount(tx, { studioId: id });
+        if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
+      }
+
       const dataToUpdate: Record<string, unknown> = {
         name: input.name?.trim(),
-        description: input.equipmentText?.trim() || null,
         active: input.active,
       };
+      if (input.equipmentText !== undefined) {
+        dataToUpdate.description = input.equipmentText?.trim() || null;
+      }
       if (input.imageKey !== undefined) {
         dataToUpdate.imageKey = input.imageKey?.trim() || null;
       }
@@ -485,13 +510,13 @@ export class MasterCatalogService {
     });
   }
 
-  async listRooms(principal: SessionPrincipal, studioId: string) {
+  async listRooms(principal: SessionPrincipal, studioId: string, includeInactive = false) {
     this.access.authorize(principal);
     const studio = await this.db.studio.findUnique({ where: { id: studioId } });
     if (!studio) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     this.access.ensureBranchScope(principal, studio.branchId);
     const items = await this.db.ruangan.findMany({
-      where: { studioId, active: true },
+      where: { studioId, ...(includeInactive ? {} : { active: true }) },
       orderBy: { code: 'asc' },
     });
     return { items };
@@ -552,6 +577,14 @@ export class MasterCatalogService {
       });
       if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, current.studio.branchId, true);
+      if (input.name !== undefined && input.name.trim().length < 1)
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      if (input.capacity !== undefined && input.capacity !== null && (!Number.isInteger(input.capacity) || input.capacity < 1 || input.capacity > 100))
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      if (input.active === false && current.active) {
+        const upcoming = await this.upcomingSlotCount(tx, { roomId: id });
+        if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
+      }
 
       const updated = await tx.ruangan.update({
         where: { id },

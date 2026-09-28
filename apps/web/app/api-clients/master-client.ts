@@ -92,7 +92,7 @@ export interface MasterClient {
     reason?: string;
   }): Promise<void>;
   createClassType(input: { code: string; name: string; branchIds?: string[] }): Promise<void>;
-  listStudios(branchId: string): Promise<Studio[]>;
+  listStudios(branchId: string, options?: { includeInactive?: boolean }): Promise<Studio[]>;
   createStudio(
     branchId: string,
     input: {
@@ -202,12 +202,24 @@ export const browserMasterClient: MasterClient = {
     });
   },
 
-  async listStudios(branchId) {
-    const res = await apiFetch<{ items: Studio[] }>(
-      `/branches/${encodeURIComponent(branchId)}/studios`,
+  async listStudios(branchId, options) {
+    const query = options?.includeInactive ? '?includeInactive=true' : '';
+    const res = await apiFetch<{ items: Array<Record<string, any>> }>(
+      `/branches/${encodeURIComponent(branchId)}/studios${query}`,
       { label: 'Memuat area studio…' },
     );
-    return res.items ?? [];
+    // API memakai `description`/`capacityBed`; tampilan memakai `equipmentText`/`capacity`.
+    return (res.items ?? []).map(
+      (studio) =>
+        ({
+          ...studio,
+          equipmentText: studio.equipmentText ?? studio.description ?? null,
+          rooms: (studio.rooms ?? []).map((room: Record<string, any>) => ({
+            ...room,
+            capacity: room.capacity ?? room.capacityBed ?? null,
+          })),
+        }) as Studio,
+    );
   },
 
   createStudio(branchId, input) {
@@ -373,4 +385,28 @@ export function masterFailure(error: unknown): string {
   if (status === 422 || status === 400) return 'VALIDATION_ERROR';
   if (status === 503) return 'CONFIGURATION_REQUIRED';
   return 'REQUEST_FAILED';
+}
+
+const masterMessages: Record<string, string> = {
+  HAS_UPCOMING_SLOTS:
+    'Masih ada kelas terjadwal yang memakai area atau ruangan ini. Batalkan atau pindahkan kelasnya terlebih dahulu.',
+  RATE_IN_EFFECT:
+    'Tarif yang sedang berlaku tidak dapat dihapus. Koreksi dengan menambahkan tarif baru.',
+  PERIOD_ALREADY_LOCKED: 'Periode keuangan ini sudah dikunci, sehingga biaya tidak dapat diubah.',
+  FORBIDDEN: 'Anda tidak memiliki izin untuk tindakan ini.',
+  RESOURCE_NOT_FOUND: 'Data tidak ditemukan atau berada di luar cakupan Anda.',
+  EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION:
+    'Data berubah atau periode berlaku bertabrakan. Muat ulang lalu coba lagi.',
+  VALIDATION_ERROR: 'Data belum valid. Periksa isian lalu coba lagi.',
+  CONFIGURATION_REQUIRED: 'Fitur ini belum dikonfigurasi di server.',
+  REQUEST_FAILED: 'Permintaan gagal. Periksa koneksi lalu coba lagi.',
+};
+
+/** Pesan Indonesia untuk pengguna; kode spesifik API (mis. HAS_UPCOMING_SLOTS) diprioritaskan. */
+export function masterFailureMessage(error: unknown): string {
+  const data = (error as { data?: { code?: string; error?: { code?: string } } })?.data;
+  const code = data?.code ?? data?.error?.code;
+  if (code && masterMessages[code]) return masterMessages[code]!;
+  const generic = masterFailure(error);
+  return masterMessages[generic] ?? masterMessages.REQUEST_FAILED!;
 }

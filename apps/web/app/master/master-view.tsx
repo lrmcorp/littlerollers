@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   browserMasterClient,
-  masterFailure,
+  masterFailureMessage,
   type MasterClient,
   type MasterKind,
   type MasterSetting,
@@ -16,6 +16,7 @@ import { Pagination, StatCard, Tabs } from '../components/admin/admin-ui';
 import { Button, ButtonLink } from '../components/actions';
 import { PublicProfileEditor } from './public-profile-editor';
 import { PaymentAccountsView } from './payment-accounts-view';
+import { StudioVenueList } from './studio-venue-list';
 import {
   AsyncSearchSelect,
   CheckboxInput,
@@ -153,7 +154,7 @@ export function MasterView({
         setMessage(success);
       }
     } catch (error) {
-      setFailure(masterFailure(error));
+      setFailure(masterFailureMessage(error));
     } finally {
       setLoading(false);
     }
@@ -170,7 +171,7 @@ export function MasterView({
     const [nextClassTypes, nextSettings, nextStudios] = await Promise.all([
       client.listClassTypes(selectedBranchId),
       client.listSettings(selectedKind, selectedBranchId),
-      client.listStudios(selectedBranchId),
+      client.listStudios(selectedBranchId, { includeInactive: true }),
     ]);
     setClassTypes(nextClassTypes);
     setSettings(nextSettings);
@@ -226,7 +227,7 @@ export function MasterView({
         setMessage('Master data berhasil dimuat.');
       }
     } catch (error) {
-      setFailure(masterFailure(error));
+      setFailure(masterFailureMessage(error));
     } finally {
       setLoading(false);
     }
@@ -240,7 +241,7 @@ export function MasterView({
     }
     const timer = window.setTimeout(() => {
       setBranchCursorHistory([]);
-      void loadBranchPage().catch((err) => setFailure(masterFailure(err)));
+      void loadBranchPage().catch((err) => setFailure(masterFailureMessage(err)));
     }, 250);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,7 +256,7 @@ export function MasterView({
 
   useEffect(() => {
     if (sessionContext && branchId) {
-      void loadBranchContent(branchId).catch((err) => setFailure(masterFailure(err)));
+      void loadBranchContent(branchId).catch((err) => setFailure(masterFailureMessage(err)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchId]);
@@ -329,11 +330,11 @@ export function MasterView({
                   void client
                     .listSettings(tab.kind, branchId)
                     .then(setSettings)
-                    .catch((err) => setFailure(masterFailure(err)));
+                    .catch((err) => setFailure(masterFailureMessage(err)));
               } else if (tab.id === 'classTypes') {
                 void Promise.all([client.listClassTypes(), loadAllActiveBranches()])
                   .then(([types]) => setClassTypes(types))
-                  .catch((err) => setFailure(masterFailure(err)));
+                  .catch((err) => setFailure(masterFailureMessage(err)));
               }
             }}
           />
@@ -372,7 +373,7 @@ export function MasterView({
                 }}
                 onChange={(selected) => {
                   setBranchId(selected);
-                  void loadBranchContent(selected).catch((err) => setFailure(masterFailure(err)));
+                  void loadBranchContent(selected).catch((err) => setFailure(masterFailureMessage(err)));
                 }}
               />
             </div>
@@ -599,7 +600,7 @@ export function MasterView({
                     contactPhoneE164: String(data.get('contactPhoneE164')).trim() || undefined,
                   });
                   form.reset();
-                  const next = await client.listStudios(branchId);
+                  const next = await client.listStudios(branchId, { includeInactive: true });
                   setStudios(next);
                   setSelectedStudioId(next.find((item) => item.active)?.id ?? '');
                 }, 'Area Studio berhasil ditambahkan.');
@@ -642,7 +643,7 @@ export function MasterView({
                     capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
                   });
                   form.reset();
-                  setStudios(await client.listStudios(branchId));
+                  setStudios(await client.listStudios(branchId, { includeInactive: true }));
                 }, 'Ruangan berhasil ditambahkan.');
               }}
             >
@@ -682,48 +683,17 @@ export function MasterView({
                 </div>
                 <StatusBadge tone="info">{studios.length} area</StatusBadge>
               </div>
-              {studios.length ? (
-                <ul className="mt-4 grid list-none gap-4 p-0 md:grid-cols-2">
-                  {studios.map((studio) => (
-                    <li className="rounded-dd-sm border border-dd-line p-4" key={studio.id}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <strong className="text-sm font-semibold text-dd-ink">{studio.name}</strong>
-                          <p className="text-sm text-dd-muted">{studio.code}</p>
-                        </div>
-                        <StatusBadge tone={studio.active ? 'success' : 'neutral'}>
-                          {studio.active ? 'Aktif' : 'Nonaktif'}
-                        </StatusBadge>
-                      </div>
-                      <p className="mt-2 text-xs text-dd-muted">
-                        {studio.equipmentText || 'Equipment belum dicatat'}
-                      </p>
-                      <ul className="mt-3 grid list-none gap-2 p-0">
-                        {(studio.rooms ?? []).map((room) => (
-                          <li
-                            className="flex items-center justify-between rounded-dd-sm bg-dd-surface-muted px-3 py-2 text-sm"
-                            key={room.id}
-                          >
-                            <span>
-                              {room.name} · {room.code}
-                            </span>
-                            <span className="text-xs text-dd-muted">
-                              {room.capacity ? `Kapasitas ${room.capacity}` : 'Tanpa batas khusus'}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="mt-4">
-                  <EmptyState
-                    title="Belum ada Area Studio"
-                    description="Tambahkan Area Studio pada Studio/Cabang aktif."
-                  />
-                </div>
-              )}
+              <StudioVenueList
+                studios={studios}
+                canManage={canManage}
+                client={client}
+                onFailure={setFailure}
+                onChanged={async (successMessage) => {
+                  setFailure(undefined);
+                  setMessage(successMessage);
+                  setStudios(await client.listStudios(branchId, { includeInactive: true }));
+                }}
+              />
             </section>
           </div>
         </div>
@@ -780,7 +750,7 @@ export function MasterView({
                   void client
                     .listSettings(selected, branchId)
                     .then(setSettings)
-                    .catch((err) => setFailure(masterFailure(err)));
+                    .catch((err) => setFailure(masterFailureMessage(err)));
                 }}
               >
                 {Object.entries(kindLabels).map(([value, label]) => (

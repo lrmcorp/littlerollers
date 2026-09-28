@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { browserMasterClient, masterFailure } from './master-client';
+import { browserMasterClient, masterFailure, masterFailureMessage } from './master-client';
 
 const mockResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -142,5 +142,19 @@ describe('Direct-Typed master client (Tahap 2)', () => {
     expect(masterFailure({ status: 422 })).toBe('VALIDATION_ERROR');
     expect(masterFailure({ status: 503 })).toBe('CONFIGURATION_REQUIRED');
     expect(masterFailure({ status: 500 })).toBe('REQUEST_FAILED');
+  });
+});
+
+describe('masterFailureMessage', () => {
+  it('prefers the specific API code and always returns Indonesian text', () => {
+    expect(masterFailureMessage({ status: 409, data: { code: 'HAS_UPCOMING_SLOTS' } })).toMatch(
+      /kelas terjadwal/,
+    );
+    expect(masterFailureMessage({ status: 409, data: { error: { code: 'RATE_IN_EFFECT' } } })).toMatch(
+      /tarif baru/,
+    );
+    expect(masterFailureMessage({ status: 409 })).toMatch(/Muat ulang/);
+    expect(masterFailureMessage({ status: 403 })).toMatch(/izin/);
+    expect(masterFailureMessage(new Error('offline'))).toMatch(/Periksa koneksi/);
   });
 });

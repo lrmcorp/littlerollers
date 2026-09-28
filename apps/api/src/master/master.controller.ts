@@ -38,8 +38,9 @@ export class MasterController {
   @Get('branches/:id/studios') listStudios(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
+    @Query('includeInactive') includeInactive?: string,
   ) {
-    return this.catalog.listStudios(req.principal, id);
+    return this.catalog.listStudios(req.principal, id, includeInactive === 'true');
   }
   @Post('branches/:id/studios') createStudio(
     @Req() req: AuthenticatedRequest,
@@ -69,8 +70,12 @@ export class MasterController {
   ) {
     return this.catalog.updateStudio(req.principal, id, body, req.correlationId ?? 'unknown');
   }
-  @Get('studios/:id/rooms') listRooms(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.catalog.listRooms(req.principal, id);
+  @Get('studios/:id/rooms') listRooms(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('includeInactive') includeInactive?: string,
+  ) {
+    return this.catalog.listRooms(req.principal, id, includeInactive === 'true');
   }
   @Post('studios/:id/rooms') createRoom(
     @Req() req: AuthenticatedRequest,
