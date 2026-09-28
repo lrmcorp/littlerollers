@@ -195,7 +195,7 @@ export const browserOperationsClient: OperationsClient = {
     const qs = params.toString() ? `?${params.toString()}` : '';
 
     const page = await appLoading.track(
-      operationsFetch<any>(`/operations/notifications/occurrences${qs}`),
+      operationsFetch<any>(`/operations/email-deliveries${qs}`),
       { label: 'Memuat pengiriman email…' },
     );
 
@@ -223,7 +223,7 @@ export const browserOperationsClient: OperationsClient = {
   },
   async retryEmail(id, reason) {
     const result = await appLoading.track(
-      operationsFetch<any>(`/operations/notifications/occurrences/${id}/retry`, {
+      operationsFetch<any>(`/operations/email-deliveries/${id}/retry`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
       }),
