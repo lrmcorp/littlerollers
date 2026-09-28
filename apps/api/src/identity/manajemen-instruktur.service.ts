@@ -4,6 +4,12 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
+import {
+  calculateSlotFee,
+  periodRange,
+  sortFeesNewestFirst,
+  summarizeInstructorFees,
+} from '../packages/instructor-fee-calculator';
 
 @Injectable()
 export class InstructorManagementService {
@@ -23,7 +29,7 @@ export class InstructorManagementService {
 
     const branchIds = branchId ? [branchId] : principal.branchIds;
     return {
-      role: 'COACH',
+      role: { in: ['COACH', 'INSTRUCTOR'] },
       ...(principal.capabilities.includes('branch:all') && !branchId
         ? {}
         : {
@@ -32,6 +38,29 @@ export class InstructorManagementService {
             },
           }),
     };
+  }
+
+  /** Honor bulan berjalan per instruktur (kelas selesai), dengan rumus yang sama dengan laporan keuangan. */
+  private async monthlyHonor(instructorIds: string[], branchIds: string[] | null) {
+    const { period, fromDate, nextMonth } = periodRange();
+    const [slots, fees] = await Promise.all([
+      this.db.slotKelas.findMany({
+        where: {
+          instructorId: { in: instructorIds },
+          status: 'COMPLETED',
+          startAt: { gte: fromDate, lt: nextMonth },
+          ...(branchIds ? { branchId: { in: branchIds } } : {}),
+        },
+        include: {
+          instructor: { select: { id: true, displayName: true } },
+          classType: { select: { name: true } },
+          instructorAttendance: { select: { id: true } },
+        },
+      }),
+      this.db.instructorFee.findMany({ where: { instructorId: { in: instructorIds } } }),
+    ]);
+    const byInstructor = new Map(summarizeInstructorFees(slots, fees).map((row) => [row.instructorId, row]));
+    return { period, byInstructor, fees };
   }
 
   async list(
@@ -94,6 +123,15 @@ export class InstructorManagementService {
     const hasMore = rows.length > 20;
     const page = rows.slice(0, 20);
 
+    const canSeeFees = principal.capabilities.includes('instructor:fee:read');
+    const honor =
+      canSeeFees && page.length
+        ? await this.monthlyHonor(
+            page.map((row) => row.id),
+            visibleBranchIds,
+          )
+        : null;
+
     return {
       items: page.map((row) => ({
         id: row.id,
@@ -108,7 +146,11 @@ export class InstructorManagementService {
           activeUntil: null,
         })),
         _count: row._count,
-        compensationRp: 0,
+        compensationRp: canSeeFees ? (honor?.byInstructor.get(row.id)?.totalFeeRp ?? 0) : null,
+        unverifiedCompensationRp: canSeeFees
+          ? (honor?.byInstructor.get(row.id)?.unverifiedFeeRp ?? 0)
+          : null,
+        compensationPeriod: periodRange().period,
       })),
       summary: { total },
       page: { hasMore, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null },
@@ -147,6 +189,8 @@ export class InstructorManagementService {
             startAt: true,
             endAt: true,
             status: true,
+            branchId: true,
+            classTypeId: true,
             classType: { select: { code: true, name: true } },
             branch: { select: { id: true, name: true } },
             instructorAttendance: { select: { checkedInAt: true, method: true } },
@@ -157,14 +201,13 @@ export class InstructorManagementService {
 
     if (!instructor) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const completedWithoutCheckIn = await this.db.slotKelas.count({
-      where: {
-        instructorId: id,
-        status: 'COMPLETED',
-        instructorAttendance: null,
-        ...visibleBranches,
-      },
-    });
+    const canSeeFees = principal.capabilities.includes('instructor:fee:read');
+    const { period, byInstructor, fees } = await this.monthlyHonor(
+      [id],
+      principal.capabilities.includes('branch:all') ? null : principal.branchIds,
+    );
+    const honor = byInstructor.get(id);
+    const sortedFees = sortFeesNewestFirst(fees);
 
     return {
       id: instructor.id,
@@ -179,18 +222,36 @@ export class InstructorManagementService {
         activeFrom: a.createdAt,
         activeUntil: null,
       })),
-      instructedClassSlots: instructor.instructedClassSlots.map(({ instructorAttendance, ...slot }) => ({
-        ...slot,
-        instructorAttendances: instructorAttendance ? [instructorAttendance] : [],
-        instructorHourLog: null,
-      })),
+      instructedClassSlots: instructor.instructedClassSlots.map(
+        ({ instructorAttendance, branchId, classTypeId, ...slot }) => ({
+          ...slot,
+          instructorAttendances: instructorAttendance ? [instructorAttendance] : [],
+          instructorHourLog:
+            canSeeFees && slot.status === 'COMPLETED'
+              ? {
+                  amountRp: calculateSlotFee(sortedFees, {
+                    startAt: slot.startAt,
+                    endAt: slot.endAt,
+                    branchId,
+                    classTypeId,
+                    instructorId: id,
+                  }).feeRp,
+                }
+              : null,
+        }),
+      ),
       instructorAvailabilities: [],
       instructorAttendances: instructor.instructedClassSlots.flatMap((slot) =>
         slot.instructorAttendance ? [slot.instructorAttendance] : [],
       ),
       instructorHourLogs: [],
-      compensationRp: 0,
-      blockers: { completedWithoutCheckIn, completedWithoutFee: 0 },
+      compensationRp: canSeeFees ? (honor?.totalFeeRp ?? 0) : null,
+      unverifiedCompensationRp: canSeeFees ? (honor?.unverifiedFeeRp ?? 0) : null,
+      compensationPeriod: period,
+      blockers: {
+        completedWithoutCheckIn: honor?.unverifiedClassCount ?? 0,
+        completedWithoutFee: honor?.unconfiguredFeeClassCount ?? 0,
+      },
     };
   }
 

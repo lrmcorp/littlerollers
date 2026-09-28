@@ -224,20 +224,30 @@ export function InstructorDetailView({ id }: { id: string }) {
 
       {blockers.completedWithoutCheckIn || blockers.completedWithoutFee ? (
         <Feedback kind="warning">
-          Ada {blockers.completedWithoutCheckIn} kelas selesai tanpa presensi instruktur dan{' '}
-          {blockers.completedWithoutFee} kelas tanpa konfigurasi fee yang dapat dibuktikan. Honor
-          kelas tanpa presensi ditandai belum terverifikasi; verifikasi dari detail kelas.
+          {blockers.completedWithoutCheckIn > 0 &&
+            `Bulan ini ada ${blockers.completedWithoutCheckIn} kelas selesai tanpa presensi instruktur; honornya ditandai belum terverifikasi, verifikasi dari detail kelas. `}
+          {blockers.completedWithoutFee > 0 &&
+            `${blockers.completedWithoutFee} kelas memakai fee bawaan karena belum ada konfigurasi fee yang cocok.`}
         </Feedback>
       ) : (
-        <Feedback kind="status">Presensi kelas selesai lengkap.</Feedback>
+        <Feedback kind="status">
+          Presensi dan konfigurasi fee kelas selesai bulan ini sudah lengkap.
+        </Feedback>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Metric label="Penugasan Cabang" value={data.assignments.length} />
         <Metric label="Sesi Kelas Diampu" value={data.instructedClassSlots.length} />
         <Metric
-          label="Kompensasi Matched Class"
-          value={formatRupiah(Number(data.compensationRp))}
+          label="Honor Bulan Ini (kelas selesai)"
+          value={data.compensationRp === null ? '—' : formatRupiah(data.compensationRp)}
+          hint={
+            data.compensationRp === null
+              ? 'Nominal honor hanya untuk peran dengan akses honor.'
+              : data.unverifiedCompensationRp
+                ? `${formatRupiah(data.unverifiedCompensationRp)} belum terverifikasi`
+                : undefined
+          }
         />
       </div>
 
@@ -369,11 +379,20 @@ export function InstructorDetailView({ id }: { id: string }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string | number }) {
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
   return (
     <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-dd-card">
       <div className="text-xs font-bold uppercase text-dd-muted">{label}</div>
       <strong className="mt-2 block text-2xl font-bold text-dd-ink">{value}</strong>
+      {hint && <p className="mt-1 text-xs text-dd-muted">{hint}</p>}
     </div>
   );
 }

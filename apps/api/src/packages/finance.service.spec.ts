@@ -393,3 +393,57 @@ describe('FinanceService.realtimeInstructorCostReport instructor attendance', ()
     expect(report.totalVerifiedFeeRp).toBe(report.totalInstructorCostRp);
   });
 });
+
+describe('instructor honor is computed identically by every finance report', () => {
+  const coach = { id: id(200), displayName: 'Coach Sarah' };
+  const mk = (n: number, attended: boolean, classTypeId = id(400)) => ({
+    id: id(300 + n),
+    branchId: branchA,
+    classTypeId,
+    startAt: new Date('2026-09-10T02:00:00.000Z'),
+    endAt: new Date('2026-09-10T04:00:00.000Z'),
+    instructor: coach,
+    classType: { name: 'Private Class' },
+    branch: { id: branchA },
+    instructorAttendance: attended ? { id: id(500 + n) } : null,
+  });
+  const slots = [mk(1, true), mk(2, false), mk(3, false, id(401))];
+  const fees = [
+    {
+      instructorId: coach.id,
+      branchId: branchA,
+      classTypeId: id(400),
+      effectiveDate: new Date('2026-01-01T00:00:00.000Z'),
+      feePerJamRp: 175_000,
+    },
+  ];
+  const db = {
+    slotKelas: { findMany: jest.fn().mockResolvedValue(slots) },
+    instructorFee: { findMany: jest.fn().mockResolvedValue(fees) },
+    cabang: {
+      findUnique: jest.fn().mockResolvedValue({ id: branchA, code: 'GG', name: 'Green Garden' }),
+      findFirst: jest.fn(),
+    },
+    pembelian: { findMany: jest.fn().mockResolvedValue([]) },
+    otherCost: { findMany: jest.fn().mockResolvedValue([]) },
+  };
+  const service = new FinanceService(db as never, new PolicyService(), { catat: jest.fn() } as never);
+
+  it('returns the same per-instructor breakdown in the realtime and owner branch reports', async () => {
+    const realtime = await service.realtimeInstructorCostReport(finance, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    const owner = await service.ownerBranchPerformance(superOwner, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    expect(owner.instructors).toEqual(realtime.instructors);
+    expect(owner.totalInstructorFeeRp).toBe(realtime.totalInstructorCostRp);
+    expect(owner.totalUnverifiedFeeRp).toBe(realtime.totalUnverifiedFeeRp);
+    // 2 jam x 175.000 (fee cocok) x 2 kelas + 2 jam x 150.000 (fee bawaan)
+    expect(realtime.totalInstructorCostRp).toBe(2 * 350_000 + 300_000);
+    expect(realtime.instructors[0]?.unconfiguredFeeClassCount).toBe(1);
+  });
+});
+

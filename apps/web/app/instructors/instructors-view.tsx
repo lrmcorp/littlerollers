@@ -7,7 +7,7 @@ import { DataTable, type DataTableColumn, Pagination, Badge } from '../component
 import { SearchInput, TextInput } from '../components/forms';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
-import { formatRupiah } from '../lib/formatters';
+import { InstructorHonor } from './instructor-honor';
 import { useSessionContext } from '../session-context';
 import { instructorClient, type InstructorSummary } from './instructor-client';
 import { Button, ButtonLink } from '../components/actions';
@@ -158,11 +158,9 @@ export function InstructorsView() {
     },
     {
       id: 'compensation',
-      header: 'Kompensasi',
+      header: 'Honor Bulan Ini',
       cell: (item) => (
-        <span className="font-semibold text-dd-ink">
-          {formatRupiah(item.compensationRp)}
-        </span>
+        <InstructorHonor total={item.compensationRp} unverified={item.unverifiedCompensationRp ?? null} />
       ),
     },
     {
@@ -237,9 +235,10 @@ export function InstructorsView() {
               <span>·</span>
               <span>{item._count.instructedClassSlots} kelas</span>
               <span>·</span>
-              <span className="font-semibold text-dd-ink">
-                {formatRupiah(item.compensationRp)}
-              </span>
+              <InstructorHonor
+                total={item.compensationRp}
+                unverified={item.unverifiedCompensationRp ?? null}
+              />
             </div>
             <div className="pt-2 border-t border-dd-line/50">
               <ButtonLink

@@ -160,3 +160,45 @@ describe('InstructorsView CRUD Actions', () => {
     });
   });
 });
+
+describe('InstructorsView honor column', () => {
+  const withHonor = (overrides: Partial<InstructorSummary>): InstructorSummary => ({
+    ...mockInstructors[0]!,
+    ...overrides,
+  });
+  const showList = (items: InstructorSummary[]) =>
+    vi.spyOn(instructorClient, 'list').mockResolvedValue({
+      items,
+      summary: { total: items.length },
+      page: { hasMore: false, nextCursor: null },
+    });
+  const renderView = () =>
+    render(
+      <AppFeedbackProvider>
+        <InstructorsView />
+      </AppFeedbackProvider>,
+    );
+
+  it('shows this month\'s honor with the unverified part called out', async () => {
+    showList([withHonor({ compensationRp: 1500000, unverifiedCompensationRp: 300000 })]);
+    renderView();
+    expect((await screen.findAllByText(/1\.500\.000/)).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/300\.000 belum terverifikasi/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Honor Bulan Ini').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows a dash, never Rp 0, when the viewer may not see honor amounts', async () => {
+    showList([withHonor({ compensationRp: null, unverifiedCompensationRp: null })]);
+    renderView();
+    await screen.findAllByText('Coach Devi');
+    expect(screen.queryByText(/Rp\s?0/)).toBeNull();
+    expect(screen.getAllByTitle(/akses honor/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows a genuine zero honor as Rp 0', async () => {
+    showList([withHonor({ compensationRp: 0, unverifiedCompensationRp: 0 })]);
+    renderView();
+    expect((await screen.findAllByText(/Rp\s?0/)).length).toBeGreaterThanOrEqual(1);
+  });
+});
+

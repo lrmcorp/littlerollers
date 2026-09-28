@@ -45,7 +45,10 @@ export interface InstructorSummary {
   phoneE164: string | null;
   status: string;
   assignments: Array<{ id: string; branch: { id: string; code: string; name: string } }>;
-  compensationRp: number;
+  /** Honor kelas selesai bulan berjalan; null bila peran tidak berhak melihat nominal. */
+  compensationRp: number | null;
+  unverifiedCompensationRp?: number | null;
+  compensationPeriod?: string;
   _count: {
     instructedClassSlots: number;
     instructorAttendances: number;
@@ -78,7 +81,9 @@ export interface InstructorDetail {
   instructorAvailabilities: unknown[];
   instructorAttendances: unknown[];
   instructorHourLogs: unknown[];
-  compensationRp: number;
+  compensationRp: number | null;
+  unverifiedCompensationRp?: number | null;
+  compensationPeriod?: string;
   blockers: { completedWithoutCheckIn: number; completedWithoutFee: number };
 }
 

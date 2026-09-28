@@ -136,3 +136,48 @@ describe('InstructorDetailView CRUD Actions', () => {
     });
   });
 });
+
+describe('InstructorDetailView honor and blockers', () => {
+  const renderDetail = (detail: InstructorDetail) => {
+    vi.spyOn(instructorClient, 'detail').mockResolvedValue(detail);
+    return render(
+      <AppFeedbackProvider>
+        <InstructorDetailView id="inst-1" />
+      </AppFeedbackProvider>,
+    );
+  };
+
+  it('shows this month\'s honor, the unverified part and each completed class\'s amount', async () => {
+    renderDetail({
+      ...mockDetail,
+      compensationRp: 2400000,
+      unverifiedCompensationRp: 600000,
+      instructedClassSlots: [{ ...mockDetail.instructedClassSlots[0]!, status: 'COMPLETED' }],
+    });
+    expect(await screen.findByText('Honor Bulan Ini (kelas selesai)')).toBeVisible();
+    expect(screen.getByText(/2\.400\.000/)).toBeVisible();
+    expect(screen.getByText(/600\.000 belum terverifikasi/)).toBeVisible();
+    expect(screen.getByText(/150\.000/)).toBeVisible();
+  });
+
+  it('shows a dash with an explanation instead of Rp 0 without honor access', async () => {
+    renderDetail({ ...mockDetail, compensationRp: null, unverifiedCompensationRp: null });
+    await screen.findByText('Honor Bulan Ini (kelas selesai)');
+    expect(screen.getByText(/hanya untuk peran dengan akses honor/)).toBeVisible();
+    expect(screen.queryByText(/Rp\s?0/)).toBeNull();
+  });
+
+  it('warns about this month\'s missing attendance and unconfigured fees, and confirms when complete', async () => {
+    const { unmount } = renderDetail({
+      ...mockDetail,
+      blockers: { completedWithoutCheckIn: 2, completedWithoutFee: 1 },
+    });
+    expect(await screen.findByText(/Bulan ini ada 2 kelas selesai tanpa presensi instruktur/)).toBeVisible();
+    expect(screen.getByText(/1 kelas memakai fee bawaan/)).toBeVisible();
+    unmount();
+
+    renderDetail(mockDetail);
+    expect(await screen.findByText(/sudah lengkap/)).toBeVisible();
+  });
+});
+

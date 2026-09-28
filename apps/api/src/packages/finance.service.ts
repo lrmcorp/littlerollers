@@ -5,6 +5,7 @@ import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
+import { periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 const EXPORT_MAX_DAYS = 366;
@@ -44,11 +45,7 @@ export class FinanceService {
   }
 
   private parsePeriod(periodStr?: string) {
-    const period = periodStr ?? new Date().toISOString().slice(0, 7);
-    const fromDate = new Date(`${period}-01T00:00:00.000Z`);
-    const nextMonth = new Date(fromDate);
-    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
-    return { period, fromDate, nextMonth };
+    return periodRange(periodStr);
   }
 
   // ============================================================================
@@ -167,92 +164,7 @@ export class FinanceService {
       orderBy: { effectiveDate: 'desc' },
     });
 
-    const instructorMap = new Map<
-      string,
-      {
-        instructorId: string;
-        instructorName: string;
-        groupHours: number;
-        groupFeeRp: number;
-        semiPrivateHours: number;
-        semiPrivateFeeRp: number;
-        privateHours: number;
-        privateFeeRp: number;
-        totalHours: number;
-        totalFeeRp: number;
-        verifiedFeeRp: number;
-        unverifiedFeeRp: number;
-        unverifiedClassCount: number;
-      }
-    >();
-
-    for (const slot of slots) {
-      if (!slot.instructor) continue;
-      const instId = slot.instructor.id;
-      if (!instructorMap.has(instId)) {
-        instructorMap.set(instId, {
-          instructorId: instId,
-          instructorName: slot.instructor.displayName,
-          groupHours: 0,
-          groupFeeRp: 0,
-          semiPrivateHours: 0,
-          semiPrivateFeeRp: 0,
-          privateHours: 0,
-          privateFeeRp: 0,
-          totalHours: 0,
-          totalFeeRp: 0,
-          verifiedFeeRp: 0,
-          unverifiedFeeRp: 0,
-          unverifiedClassCount: 0,
-        });
-      }
-
-      const entry = instructorMap.get(instId)!;
-      const durationMs = slot.endAt.getTime() - slot.startAt.getTime();
-      const hours = Math.max(1, Math.round(durationMs / 3600000));
-
-      const matchedFee =
-        fees.find(
-          (f) =>
-            f.instructorId === instId &&
-            f.branchId === slot.branchId &&
-            f.classTypeId === slot.classTypeId &&
-            f.effectiveDate <= slot.startAt,
-        )?.feePerJamRp ??
-        fees.find(
-          (f) =>
-            f.instructorId === instId &&
-            f.classTypeId === slot.classTypeId &&
-            f.effectiveDate <= slot.startAt,
-        )?.feePerJamRp ??
-        150_000;
-
-      const feeRp = hours * matchedFee;
-      entry.totalHours += hours;
-      entry.totalFeeRp += feeRp;
-      // Honor tetap dihitung; presensi instruktur yang belum tercatat hanya ditandai agar Finance
-      // dapat meninjau sebelum membayar.
-      if (slot.instructorAttendance) {
-        entry.verifiedFeeRp += feeRp;
-      } else {
-        entry.unverifiedFeeRp += feeRp;
-        entry.unverifiedClassCount += 1;
-      }
-
-      const typeName = (slot.classType?.name ?? '').toLowerCase();
-      if (typeName.includes('semi')) {
-        entry.semiPrivateHours += hours;
-        entry.semiPrivateFeeRp += feeRp;
-      } else if (typeName.includes('private')) {
-        entry.privateHours += hours;
-        entry.privateFeeRp += feeRp;
-      } else {
-        entry.groupHours += hours;
-        entry.groupFeeRp += feeRp;
-      }
-    }
-
-    const instructorBreakdown = Array.from(instructorMap.values());
+    const instructorBreakdown = summarizeInstructorFees(slots, fees);
     const totalInstructorCostRp = instructorBreakdown.reduce(
       (sum, item) => sum + item.totalFeeRp,
       0,
@@ -1243,10 +1155,7 @@ export class FinanceService {
     });
     if (!branch) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const period = input.period ?? new Date().toISOString().slice(0, 7);
-    const fromDate = new Date(`${period}-01T00:00:00Z`);
-    const nextMonth = new Date(fromDate);
-    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+    const { period, fromDate, nextMonth } = periodRange(input.period);
 
     const purchases = await this.db.pembelian.findMany({
       where: {
@@ -1283,84 +1192,7 @@ export class FinanceService {
       orderBy: { effectiveDate: 'desc' },
     });
 
-    const instructorMap = new Map<
-      string,
-      {
-        instructorId: string;
-        instructorName: string;
-        groupHours: number;
-        groupFeeRp: number;
-        semiPrivateHours: number;
-        semiPrivateFeeRp: number;
-        privateHours: number;
-        privateFeeRp: number;
-        totalHours: number;
-        totalFeeRp: number;
-        verifiedFeeRp: number;
-        unverifiedFeeRp: number;
-        unverifiedClassCount: number;
-      }
-    >();
-
-    for (const slot of slots) {
-      if (!slot.instructor) continue;
-      const instId = slot.instructor.id;
-      if (!instructorMap.has(instId)) {
-        instructorMap.set(instId, {
-          instructorId: instId,
-          instructorName: slot.instructor.displayName,
-          groupHours: 0,
-          groupFeeRp: 0,
-          semiPrivateHours: 0,
-          semiPrivateFeeRp: 0,
-          privateHours: 0,
-          privateFeeRp: 0,
-          totalHours: 0,
-          totalFeeRp: 0,
-          verifiedFeeRp: 0,
-          unverifiedFeeRp: 0,
-          unverifiedClassCount: 0,
-        });
-      }
-
-      const entry = instructorMap.get(instId)!;
-      const durationMs = slot.endAt.getTime() - slot.startAt.getTime();
-      const hours = Math.max(1, Math.round(durationMs / 3600000));
-
-      const matchedFee =
-        fees.find(
-          (f) =>
-            f.instructorId === instId &&
-            f.classTypeId === slot.classTypeId &&
-            f.effectiveDate <= slot.startAt,
-        )?.feePerJamRp ?? 150_000;
-
-      const feeRp = hours * matchedFee;
-      entry.totalHours += hours;
-      entry.totalFeeRp += feeRp;
-      // Honor tetap dihitung; presensi instruktur yang belum tercatat hanya ditandai agar Finance
-      // dapat meninjau sebelum membayar.
-      if (slot.instructorAttendance) {
-        entry.verifiedFeeRp += feeRp;
-      } else {
-        entry.unverifiedFeeRp += feeRp;
-        entry.unverifiedClassCount += 1;
-      }
-
-      const typeName = (slot.classType?.name ?? '').toLowerCase();
-      if (typeName.includes('semi')) {
-        entry.semiPrivateHours += hours;
-        entry.semiPrivateFeeRp += feeRp;
-      } else if (typeName.includes('private')) {
-        entry.privateHours += hours;
-        entry.privateFeeRp += feeRp;
-      } else {
-        entry.groupHours += hours;
-        entry.groupFeeRp += feeRp;
-      }
-    }
-
-    const instructorBreakdown = Array.from(instructorMap.values());
+    const instructorBreakdown = summarizeInstructorFees(slots, fees);
     const totalInstructorFeeRp = instructorBreakdown.reduce(
       (sum, item) => sum + item.totalFeeRp,
       0,
