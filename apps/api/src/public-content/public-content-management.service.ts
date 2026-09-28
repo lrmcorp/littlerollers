@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { FAQ_CONTENT_KEY, FAQ_KIND, validateFaq } from './faq.validation';
 import { HERO_CONTENT_KEY, HERO_KIND, validateHeroCarousel } from './hero-carousel.validation';
 
 export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -14,6 +15,7 @@ const DEFAULT_LOCALE = 'id-ID';
 /** Jenis konten yang benar-benar dibaca situs publik. Konten tanpa pembaca tidak boleh disimpan. */
 const SUPPORTED_KINDS: Record<string, { contentKey: string; validate(payload: unknown): unknown }> = {
   [HERO_KIND]: { contentKey: HERO_CONTENT_KEY, validate: validateHeroCarousel },
+  [FAQ_KIND]: { contentKey: FAQ_CONTENT_KEY, validate: validateFaq },
 };
 
 const invalid = (field: string, issue = 'INVALID') =>

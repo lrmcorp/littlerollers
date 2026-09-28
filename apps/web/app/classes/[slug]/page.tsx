@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ClassDetailView } from './class-detail-view';
 import { publicMetadataValue } from '@/lib/public-detail-metadata';
 import type { PublicClassDetail } from '@/api-clients/public-detail-client';
+import type { PublicSiteConfig } from '@/api-clients/account-client';
 
 export async function generateMetadata({
   params,
@@ -42,5 +43,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
   const initialData = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
-  return <ClassDetailView slug={slug} initialData={initialData} />;
+  const siteConfig = await publicMetadataValue<PublicSiteConfig>('/public/site-config');
+  return (
+    <ClassDetailView slug={slug} initialData={initialData} initialFaq={siteConfig?.faq ?? null} />
+  );
 }

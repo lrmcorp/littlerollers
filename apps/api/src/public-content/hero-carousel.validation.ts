@@ -1,24 +1,8 @@
-import { HttpStatus } from '@nestjs/common';
-import { ApiProblem } from '../identity/security';
+import { invalid, text } from './content-validation';
 
 export const HERO_CONTENT_KEY = 'HOME_HERO_CAROUSEL';
 export const HERO_KIND = 'HERO_CAROUSEL';
 const MAX_SLIDES = 10;
-
-const invalid = (field: string, issue = 'INVALID') =>
-  new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [{ field, issue }]);
-
-function text(value: unknown, field: string, max: number, required = false): string | undefined {
-  if (value === undefined || value === null || value === '') {
-    if (required) throw invalid(field, 'REQUIRED');
-    return undefined;
-  }
-  if (typeof value !== 'string') throw invalid(field);
-  const trimmed = value.trim();
-  if (required && trimmed.length === 0) throw invalid(field, 'REQUIRED');
-  if (trimmed.length > max) throw invalid(field, 'TOO_LONG');
-  return trimmed || undefined;
-}
 
 /** Tautan hanya relatif ke situs ("/paket") atau https; bukan javascript:, data:, atau "//host". */
 function link(value: unknown, field: string, max = 500, required = false): string | undefined {

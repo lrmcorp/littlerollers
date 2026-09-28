@@ -142,7 +142,7 @@ describe('PublicContentManagementService', () => {
   it('refuses kinds the public site does not read and branch-scoped hero content', async () => {
     const { service, db } = setup();
     await expect(
-      service.create(owner, { kind: 'FAQ', payload: { items: [] } }, 'c'),
+      service.create(owner, { kind: 'BANNER', payload: { items: [] } }, 'c'),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     await expect(
       service.create(owner, { kind: 'HERO_CAROUSEL', contentKey: 'FOOTER_NOTICE', payload: hero() }, 'c'),

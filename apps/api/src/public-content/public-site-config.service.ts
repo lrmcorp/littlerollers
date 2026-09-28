@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
+import { FAQ_CONTENT_KEY } from './faq.validation';
 import { HERO_CONTENT_KEY } from './hero-carousel.validation';
 
 @Injectable()
@@ -107,21 +108,22 @@ export class PublicSiteConfigService {
         (ct.code.includes('MAT') ? 'classes/mat-pilates.png' : 'classes/reformer-pilates.png'),
     }));
 
-    const publishedHero = await this.db.publicContent.findFirst({
-      where: {
-        contentKey: HERO_CONTENT_KEY,
-        scopeKey: 'GLOBAL',
-        locale: 'id-ID',
-        status: 'PUBLISHED',
-      },
-      orderBy: { version: 'desc' },
-      select: { payload: true },
-    });
+    const published = (contentKey: string) =>
+      this.db.publicContent.findFirst({
+        where: { contentKey, scopeKey: 'GLOBAL', locale: 'id-ID', status: 'PUBLISHED' },
+        orderBy: { version: 'desc' },
+        select: { payload: true },
+      });
+    const [publishedHero, publishedFaq] = await Promise.all([
+      published(HERO_CONTENT_KEY),
+      published(FAQ_CONTENT_KEY),
+    ]);
 
     return {
       branches,
       classes,
       heroCarousel: publishedHero?.payload ?? null,
+      faq: publishedFaq?.payload ?? null,
       fallbackWhatsappE164: this.runtimeConfig.value.publicSupportWhatsappE164 ?? null,
       mobileFeatures: {
         accountRecovery: this.runtimeConfig.value.mobileFeatures.accountRecovery,

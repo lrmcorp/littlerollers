@@ -66,6 +66,7 @@ describe('PublicSiteConfigService', () => {
         },
       ],
       heroCarousel: null,
+      faq: null,
       fallbackWhatsappE164: '+622100000000',
     });
     expect(db.cabang.findMany).toHaveBeenCalledWith(
@@ -80,12 +81,18 @@ describe('PublicSiteConfigService', () => {
     );
   });
 
-  it('serves the published hero carousel from managed content, and null when none is published', async () => {
-    const published = { autoplay: true, intervalMs: 6000, slides: [{ id: 's1', title: 'Halo' }] };
+  it('serves the published hero carousel and FAQ from managed content, each null when none is published', async () => {
+    const hero = { autoplay: true, intervalMs: 6000, slides: [{ id: 's1', title: 'Halo' }] };
+    const faq = { items: [{ id: 'faq-1', question: 'Apakah cocok untuk pemula?', answer: 'Ya, cocok.', order: 1 }] };
+    const byKey: Record<string, unknown> = { HOME_HERO_CAROUSEL: hero, CLASS_DETAIL_FAQ: faq };
     const db = {
       cabang: { findMany: jest.fn().mockResolvedValue([]) },
       jenisKelas: { findMany: jest.fn().mockResolvedValue([]) },
-      publicContent: { findFirst: jest.fn().mockResolvedValue({ payload: published }) },
+      publicContent: {
+        findFirst: jest.fn(async ({ where }: { where: { contentKey: string } }) =>
+          byKey[where.contentKey] ? { payload: byKey[where.contentKey] } : null,
+        ),
+      },
     };
     const config = {
       value: {
@@ -96,18 +103,17 @@ describe('PublicSiteConfigService', () => {
       },
     };
     const service = new PublicSiteConfigService(db as never, config as never);
-    await expect(service.get()).resolves.toMatchObject({ heroCarousel: published });
-    expect(db.publicContent.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          contentKey: 'HOME_HERO_CAROUSEL',
-          scopeKey: 'GLOBAL',
-          status: 'PUBLISHED',
+    await expect(service.get()).resolves.toMatchObject({ heroCarousel: hero, faq });
+    for (const contentKey of ['HOME_HERO_CAROUSEL', 'CLASS_DETAIL_FAQ'])
+      expect(db.publicContent.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ contentKey, scopeKey: 'GLOBAL', status: 'PUBLISHED' }),
+          orderBy: { version: 'desc' },
         }),
-        orderBy: { version: 'desc' },
-      }),
-    );
-    db.publicContent.findFirst.mockResolvedValue(null);
-    await expect(service.get()).resolves.toMatchObject({ heroCarousel: null });
+      );
+    delete byKey.CLASS_DETAIL_FAQ;
+    await expect(service.get()).resolves.toMatchObject({ heroCarousel: hero, faq: null });
+    delete byKey.HOME_HERO_CAROUSEL;
+    await expect(service.get()).resolves.toMatchObject({ heroCarousel: null, faq: null });
   });
 });

@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Eye,
   FileImage,
+  HelpCircle,
   ImageIcon,
   Layers,
   LayoutTemplate,
@@ -26,6 +27,8 @@ import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import type { HeroCarouselPayload, HeroSlideItem } from '@/api-clients/account-client';
+import { contentFailure, request } from './content-api';
+import { FaqEditor } from './faq-editor';
 
 const field =
   'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2 text-sm text-dd-ink focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest transition';
@@ -39,52 +42,11 @@ const PRESET_IMAGES = [
   { label: 'Chair Pilates Equipment', value: '/images/public/classes/chair-pilates.png' },
 ];
 
-class ContentApiError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code?: string,
-    readonly details: Array<{ field?: string; issue?: string }> = [],
-  ) {
-    super(code ?? `HTTP_${status}`);
-  }
-}
-
-async function request(path: string, init?: RequestInit) {
-  const r = await fetch(`/api/v1${path}`, {
-    credentials: 'include',
-    ...init,
-    headers: { 'content-type': 'application/json', ...init?.headers },
-  });
-  if (!r.ok) {
-    const body = (await r.json().catch(() => ({}))) as {
-      error?: { code?: string; details?: Array<{ field?: string; issue?: string }> };
-    };
-    throw new ContentApiError(r.status, body.error?.code, body.error?.details ?? []);
-  }
-  return r.json();
-}
-
-/** Pesan Indonesia untuk kegagalan simpan/terbit konten. */
-export function contentFailure(error: unknown, fallback: string): string {
-  const failure = error as ContentApiError;
-  const issues = failure?.details?.map((detail) => detail.issue) ?? [];
-  if (failure?.code === 'VALIDATION_ERROR') {
-    if (issues.includes('UNSAFE_URL'))
-      return 'Alamat gambar atau tautan tombol tidak aman. Gunakan alamat relatif (mis. /packages) atau https.';
-    if (issues.includes('REQUIRED')) return 'Judul, deskripsi, dan gambar setiap slide wajib diisi.';
-    if (issues.includes('TOO_LONG')) return 'Ada teks slide yang terlalu panjang. Persingkat lalu coba lagi.';
-    return 'Isi slider belum valid. Periksa jumlah slide (maks. 10), durasi, dan isian setiap slide.';
-  }
-  if (failure?.code === 'INVALID_STATE')
-    return 'Konten ini sudah tidak berstatus draf. Muat ulang halaman lalu coba lagi.';
-  if (failure?.status === 403 || failure?.status === 404)
-    return 'Anda tidak memiliki izin mengelola konten beranda.';
-  return fallback;
-}
+export { contentFailure };
 
 export function PublicContentManagementView() {
   const session = useSessionContext()?.session;
-  const [activeTab, setActiveTab] = useState<'slider' | 'all'>('slider');
+  const [activeTab, setActiveTab] = useState<'slider' | 'faq' | 'all'>('slider');
   const [items, setItems] = useState<any[]>();
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -314,13 +276,13 @@ export function PublicContentManagementView() {
   }
 
   // Salin versi mana pun menjadi draf baru, lalu muat ke editor.
-  async function duplicate(id: string) {
+  async function duplicate(id: string, contentKey?: string) {
     setBusy(true);
     setError('');
     try {
       await request(`/public-content-management/${id}/duplicate`, { method: 'POST' });
       await load();
-      setActiveTab('slider');
+      setActiveTab(contentKey === 'CLASS_DETAIL_FAQ' ? 'faq' : 'slider');
       setSuccessMessage('Draf baru dibuat dari versi tersebut dan dimuat ke editor.');
     } catch (cause) {
       setError(contentFailure(cause, 'Draf belum dapat dibuat.'));
@@ -381,6 +343,18 @@ export function PublicContentManagementView() {
           >
             <Sliders className="size-4" />
             Hero Carousel Beranda ({sliderConfig.slides.length} Slide)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('faq')}
+            className={`flex items-center gap-2 rounded-dd-md px-4 py-2 text-xs font-bold transition ${
+              activeTab === 'faq'
+                ? 'bg-dd-forest text-white shadow-sm'
+                : 'bg-dd-surface-muted text-dd-ink hover:bg-dd-line/50'
+            }`}
+          >
+            <HelpCircle className="size-4" />
+            FAQ Halaman Kelas
           </button>
           <button
             type="button"
@@ -872,6 +846,21 @@ export function PublicContentManagementView() {
         </section>
       )}
 
+      {activeTab === 'faq' && (
+        <FaqEditor
+          items={items}
+          onChanged={load}
+          onMessage={(message) => {
+            setError('');
+            setSuccessMessage(message);
+          }}
+          onError={(message) => {
+            setSuccessMessage('');
+            setError(message);
+          }}
+        />
+      )}
+
       {/* TAB 2: RAW / ADVANCED ALL CONTENT ENTRIES */}
       {activeTab === 'all' && (
         <section className="space-y-6">
@@ -889,10 +878,14 @@ export function PublicContentManagementView() {
                 <li key={item.id} className="flex flex-wrap justify-between gap-3 py-3.5 text-sm">
                   <div>
                     <strong className="text-dd-ink">
-                      Slider beranda · versi {item.version}
+                      {item.contentKey === 'CLASS_DETAIL_FAQ' ? 'FAQ halaman kelas' : 'Slider beranda'} ·
+                      versi {item.version}
                     </strong>
                     <div className="text-xs text-dd-muted mt-0.5">
-                      {item.payload?.slides?.length ?? 0} slide · diperbarui{' '}
+                      {item.contentKey === 'CLASS_DETAIL_FAQ'
+                        ? `${item.payload?.items?.length ?? 0} pertanyaan`
+                        : `${item.payload?.slides?.length ?? 0} slide`}{' '}
+                      · diperbarui{' '}
                       {new Date(item.updatedAt).toLocaleString('id-ID')}
                     </div>
                   </div>
@@ -925,7 +918,7 @@ export function PublicContentManagementView() {
                       size="sm"
                       variant="secondary"
                       disabled={busy}
-                      onClick={() => void duplicate(item.id)}
+                      onClick={() => void duplicate(item.id, item.contentKey)}
                     >
                       Salin jadi draf
                     </Button>

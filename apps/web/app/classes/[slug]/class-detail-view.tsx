@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Gauge,
   HeartPulse,
-  HelpCircle,
   Info,
   MapPin,
   Sparkles,
@@ -32,17 +31,35 @@ import {
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
+import { accountClient, type PublicFaqPayload } from '@/api-clients/account-client';
+import { ClassFaqSection } from './class-faq-section';
 
 export function ClassDetailView({
   slug,
   initialData = null,
+  initialFaq = null,
 }: {
   slug: string;
   initialData?: PublicClassDetail | null;
+  initialFaq?: PublicFaqPayload | null;
 }) {
   const [item, setItem] = useState<PublicClassDetail | null>(initialData);
+  const [faq, setFaq] = useState<PublicFaqPayload | null>(initialFaq);
   const [failure, setFailure] = useState('');
   const [attempt, setAttempt] = useState(0);
+
+  // FAQ dikelola staf; bila gagal dimuat, bagian FAQ memakai pertanyaan bawaan.
+  useEffect(() => {
+    if (initialFaq) return;
+    let active = true;
+    accountClient
+      .siteConfig()
+      .then((config) => active && setFaq(config.faq ?? null))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [initialFaq]);
 
   useEffect(() => {
     let active = true;
@@ -376,51 +393,8 @@ export function ClassDetailView({
             </section>
           )}
 
-          {/* Section 4: Panduan & FAQ */}
-          <section className="border-t border-dd-line bg-dd-paper py-12">
-            <div className={`${publicContainer} max-w-4xl`}>
-              <div className="text-center">
-                <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
-                  Panduan Kelas
-                </p>
-                <h2 className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
-                  Pertanyaan Seputar Kelas Ini
-                </h2>
-              </div>
-              <div className="mt-8 space-y-4">
-                <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <h3 className="flex items-center gap-2 text-base font-bold text-dd-ink">
-                    <HelpCircle className="size-4 text-dd-forest" />
-                    Apakah kelas ini cocok untuk pemula yang belum pernah mencoba?
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Ya, instruktur kami akan memberikan panduan penyesuaian gerakan (modifikasi)
-                    sesuai tingkat fleksibilitas dan kenyamanan tubuh Anda.
-                  </p>
-                </div>
-                <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <h3 className="flex items-center gap-2 text-base font-bold text-dd-ink">
-                    <HelpCircle className="size-4 text-dd-forest" />
-                    Apa yang harus saya siapkan sebelum kelas dimulai?
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Kenakan pakaian olahraga yang nyaman dan grip socks (kaos kaki antiselip).
-                    Datang 15 menit lebih awal untuk persiapan check-in dan pengenalan studio.
-                  </p>
-                </div>
-                <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <h3 className="flex items-center gap-2 text-base font-bold text-dd-ink">
-                    <HelpCircle className="size-4 text-dd-forest" />
-                    Bagaimana jika saya perlu membatalkan atau mengubah jadwal?
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-dd-muted">
-                    Pembatalan dan permohonan reschedule dapat dilakukan secara mandiri melalui menu
-                    Dashboard akun Anda sebelum batas waktu yang ditentukan pada paket Anda.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* Section 4: Panduan & FAQ (dikelola di Konten Publik; bawaan bila belum ada yang terbit) */}
+          <ClassFaqSection items={faq?.items} />
         </>
       )}
     </PublicDetailFrame>

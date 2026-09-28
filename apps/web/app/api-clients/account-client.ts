@@ -71,10 +71,22 @@ export interface HeroCarouselPayload {
   slides: HeroSlideItem[];
 }
 
+export interface PublicFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+}
+
+export interface PublicFaqPayload {
+  items: PublicFaqItem[];
+}
+
 export interface PublicSiteConfig {
   branches: PreferredStudio[];
   classes: PublicClassMarketingProfile[];
   heroCarousel?: HeroCarouselPayload | null;
+  faq?: PublicFaqPayload | null;
   fallbackWhatsappE164: string | null;
 }
 
