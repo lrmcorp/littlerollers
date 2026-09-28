@@ -65,6 +65,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/ledger', ['ledger:read']],
   ['/health', ['operations:read']],
   ['/workspace/classes', ['class-slot:read']],
+  ['/workspace/availability', ['availability:self:read']],
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:self:read']],
   ['/check-in-scanner', ['attendance:manage']],

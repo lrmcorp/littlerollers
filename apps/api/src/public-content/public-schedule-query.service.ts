@@ -1,11 +1,22 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid, publicScheduleRange } from './public-query.validation';
 
 @Injectable()
 export class PublicScheduleQueryService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly config: RuntimeConfigService,
+  ) {}
+
+  /** Slot dapat di-booking bila fitur aktif, masih ada tempat, dan belum melewati batas cutoff. */
+  private canBook(startAt: Date, available: number, now: Date): boolean {
+    const { enabled, cutoffHours } = this.config.value.booking;
+    if (!enabled || cutoffHours === null || available < 1) return false;
+    return now < new Date(startAt.getTime() - cutoffHours * 3_600_000);
+  }
 
   async list(input: { branchId?: string; from?: string; until?: string }) {
     if (input.branchId) assertPublicUuid(input.branchId, 'VALIDATION_ERROR');
@@ -67,14 +78,19 @@ export class PublicScheduleQueryService {
         })
       : [];
 
+    const now = new Date();
     return {
       branches,
-      items: slots.map(({ bookedCount, ...slot }) => ({
-        ...slot,
-        timezone: branch?.timezone ?? 'Asia/Jakarta',
-        branch,
-        available: Math.max(0, slot.capacity - bookedCount),
-      })),
+      items: slots.map(({ bookedCount, ...slot }) => {
+        const available = Math.max(0, slot.capacity - bookedCount);
+        return {
+          ...slot,
+          timezone: branch?.timezone ?? 'Asia/Jakarta',
+          branch,
+          available,
+          canBook: this.canBook(slot.startAt, available, now),
+        };
+      }),
       range: { from, until },
     };
   }
@@ -118,11 +134,13 @@ export class PublicScheduleQueryService {
     };
 
     const { bookedCount, ...safeSlot } = slot;
+    const available = Math.max(0, slot.capacity - bookedCount);
 
     return {
       ...safeSlot,
       timezone: slot.branch.timezone,
-      available: Math.max(0, slot.capacity - bookedCount),
+      available,
+      canBook: this.canBook(slot.startAt, available, new Date()),
       branch: {
         ...slot.branch,
         publicProfile,

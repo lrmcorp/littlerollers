@@ -31,7 +31,8 @@ describe('PublicScheduleQueryService', () => {
       ]),
     },
   };
-  const service = new PublicScheduleQueryService(db as never);
+  const config = { value: { booking: { enabled: true, cutoffHours: 2 } } };
+  const service = new PublicScheduleQueryService(db as never, config as never);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -59,6 +60,8 @@ describe('PublicScheduleQueryService', () => {
       expect.objectContaining({
         branchId,
         available: 2,
+        // Slot fixture ini sudah lewat waktunya, jadi tidak boleh bisa di-booking meski kapasitas tersisa.
+        canBook: false,
         classType: expect.objectContaining({ name: 'Private Class' }),
       }),
     ]);

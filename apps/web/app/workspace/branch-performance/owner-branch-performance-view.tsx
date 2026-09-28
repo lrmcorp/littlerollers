@@ -19,6 +19,7 @@ interface InstructorBreakdown {
   privateFeeRp: number;
   totalHours: number;
   totalFeeRp: number;
+  unverifiedClassCount: number;
 }
 
 interface PerformanceData {
@@ -31,6 +32,8 @@ interface PerformanceData {
   omsetRp: number;
   otherCostRp: number;
   totalInstructorFeeRp: number;
+  totalUnverifiedFeeRp: number;
+  unverifiedClassCount: number;
   estimatedProfitRp: number;
   instructorCount: number;
   totalClassHours: number;
@@ -141,7 +144,12 @@ export function OwnerBranchPerformanceView() {
         <StatCard
           label="Biaya Instruktur (Realtime)"
           value={formatRupiah(data?.totalInstructorFeeRp ?? 0)}
-          tone="neutral"
+          helper={
+            data && data.unverifiedClassCount > 0
+              ? `${data.unverifiedClassCount} kelas (${formatRupiah(data.totalUnverifiedFeeRp)}) belum terverifikasi presensi`
+              : undefined
+          }
+          tone={data && data.unverifiedClassCount > 0 ? 'warning' : 'neutral'}
         />
         <StatCard
           label="Biaya Operasional (Other Cost)"
@@ -223,7 +231,14 @@ export function OwnerBranchPerformanceView() {
               id: 'totalFee',
               header: 'Total Honor (Rp)',
               cell: (item: InstructorBreakdown) => (
-                <div className="font-bold text-dd-brand">{formatRupiah(item.totalFeeRp)}</div>
+                <div>
+                  <div className="font-bold text-dd-brand">{formatRupiah(item.totalFeeRp)}</div>
+                  {item.unverifiedClassCount > 0 && (
+                    <div className="text-xs font-semibold text-dd-warning">
+                      {item.unverifiedClassCount} kelas belum terverifikasi
+                    </div>
+                  )}
+                </div>
               ),
             },
           ]}

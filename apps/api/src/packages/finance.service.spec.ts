@@ -318,3 +318,78 @@ describe('FinanceService.exportReport', () => {
     expect(result.completeness).toBe('INCOMPLETE');
   });
 });
+
+describe('FinanceService.realtimeInstructorCostReport instructor attendance', () => {
+  const instructor = { id: id(200), displayName: 'Coach Sarah' };
+  const slot = (n: number, attended: boolean) => ({
+    id: id(300 + n),
+    branchId: branchA,
+    classTypeId: id(400),
+    startAt: new Date('2026-09-10T02:00:00.000Z'),
+    endAt: new Date('2026-09-10T03:00:00.000Z'),
+    instructor,
+    classType: { name: 'Group Class' },
+    branch: { id: branchA },
+    instructorAttendance: attended ? { id: id(500 + n) } : null,
+  });
+
+  function build(slots: unknown[]) {
+    const db = {
+      slotKelas: { findMany: jest.fn().mockResolvedValue(slots) },
+      instructorFee: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            instructorId: instructor.id,
+            branchId: branchA,
+            classTypeId: id(400),
+            effectiveDate: new Date('2026-01-01T00:00:00.000Z'),
+            feePerJamRp: 200_000,
+          },
+        ]),
+      },
+    };
+    return {
+      db,
+      service: new FinanceService(db as never, new PolicyService(), { catat: jest.fn() } as never),
+    };
+  }
+
+  it('keeps unverified classes in the total but reports them separately', async () => {
+    const { service } = build([slot(1, true), slot(2, false)]);
+    const report = await service.realtimeInstructorCostReport(finance, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    expect(report.totalInstructorCostRp).toBe(400_000);
+    expect(report.totalVerifiedFeeRp).toBe(200_000);
+    expect(report.totalUnverifiedFeeRp).toBe(200_000);
+    expect(report.unverifiedClassCount).toBe(1);
+    expect(report.instructors[0]).toMatchObject({
+      totalFeeRp: 400_000,
+      verifiedFeeRp: 200_000,
+      unverifiedFeeRp: 200_000,
+      unverifiedClassCount: 1,
+    });
+  });
+
+  it('asks the database for the attendance relation so the split is real', async () => {
+    const { db, service } = build([]);
+    await service.realtimeInstructorCostReport(finance, { branchId: branchA, period: '2026-09' });
+    expect(db.slotKelas.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({ instructorAttendance: expect.anything() }),
+      }),
+    );
+  });
+
+  it('reports zero unverified when every completed class has recorded attendance', async () => {
+    const { service } = build([slot(1, true), slot(2, true)]);
+    const report = await service.realtimeInstructorCostReport(finance, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    expect(report.totalUnverifiedFeeRp).toBe(0);
+    expect(report.unverifiedClassCount).toBe(0);
+    expect(report.totalVerifiedFeeRp).toBe(report.totalInstructorCostRp);
+  });
+});

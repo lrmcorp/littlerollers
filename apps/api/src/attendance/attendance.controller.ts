@@ -53,6 +53,15 @@ export class AttendanceController {
     );
   }
 
+  @Post('class-slots/:id/instructor-attendance')
+  verifyInstructorAttendance(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { notes?: string },
+  ) {
+    return this.attendance.verifyInstructorAttendance(request.principal, id, body);
+  }
+
   @Get('check-in-tokens/:id')
   status(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.attendance.status(request.principal, id);

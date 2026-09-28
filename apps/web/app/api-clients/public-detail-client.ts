@@ -58,6 +58,7 @@ export interface GeneratedPublicScheduleDetail {
   endAt: Date | string;
   capacity: number;
   available: number;
+  canBook: boolean;
   status: string;
 }
 

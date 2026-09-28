@@ -35,6 +35,15 @@ export interface ClassSlot {
   cancellationReasonCode?: ClassSlotCancellationReason | null;
   version: number;
   idempotentReplay?: boolean;
+  /** Presensi instruktur yang sudah tercatat (QR atau verifikasi manual); null bila belum. */
+  instructorAttendance?: { checkedInAt: Date | string; method: string } | null;
+}
+
+export interface InstructorAttendanceResult {
+  classSlotId: string;
+  checkedInAt: string;
+  method: string;
+  alreadyRecorded: boolean;
 }
 
 export interface CompletionResult {
@@ -139,6 +148,7 @@ export interface ClassSlotClient {
     controlHash: string,
     reason: string,
   ): Promise<CompletionResult>;
+  verifyInstructorAttendance?(id: string, notes?: string): Promise<InstructorAttendanceResult>;
 }
 
 const key = () => crypto.randomUUID();
@@ -407,6 +417,17 @@ export const browserClassSlotClient: ClassSlotClient = {
       label: 'Menyelesaikan kelas…',
     });
   },
+
+  verifyInstructorAttendance(id, notes) {
+    return apiFetch<InstructorAttendanceResult>(
+      `/class-slots/${encodeURIComponent(id)}/instructor-attendance`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ notes: notes?.trim() || undefined }),
+        label: 'Mencatat presensi instruktur…',
+      },
+    );
+  },
 };
 
 export function classSlotFailure(error: unknown) {
@@ -422,6 +443,7 @@ export function classSlotFailure(error: unknown) {
     RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
     INVALID_STATE_TRANSITION: 'Status kelas tidak mendukung tindakan tersebut.',
     VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid.',
+    CHECK_IN_TOO_EARLY: 'Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.',
   };
   if (code && messages[code]) return messages[code];
   if (status === 403) return 'Permission yang sesuai diperlukan.';

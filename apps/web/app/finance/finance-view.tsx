@@ -472,7 +472,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                       <span className="font-semibold">{formatRupiah(profitData.omsetRp)}</span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Instruktur Realtime (QR Check-in):</span>
+                      <span className="text-dd-muted">Beban Instruktur Realtime (jam kelas selesai):</span>
                       <span className="font-semibold text-amber-600">
                         - {formatRupiah(profitData.costRealtimeRp)}
                       </span>
@@ -627,11 +627,17 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           {/* TAB 3: COST INSTRUKTUR REALTIME */}
           {reportTab === 'INSTRUCTOR_REALTIME' && instructorRealtimeData && (
             <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                   label="Total Beban Instruktur Realtime"
                   value={formatRupiah(instructorRealtimeData.totalInstructorCostRp)}
                   tone="success"
+                />
+                <StatCard
+                  label="Belum Terverifikasi Presensi"
+                  value={formatRupiah(instructorRealtimeData.totalUnverifiedFeeRp)}
+                  helper={`${instructorRealtimeData.unverifiedClassCount} kelas`}
+                  tone={instructorRealtimeData.unverifiedClassCount > 0 ? 'warning' : 'neutral'}
                 />
                 <StatCard
                   label="Total Jam Mengajar Aktual"
@@ -650,8 +656,17 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   Rincian Biaya Mengajar Instruktur (Rule #10)
                 </h3>
                 <p className="text-xs text-dd-muted">
-                  Dihitung dari jam mengajar riil via QR Check-in dikalikan tarif efektif per jenis kelas.
+                  Dihitung dari jam kelas yang selesai dikalikan tarif efektif per jenis kelas. Kelas
+                  yang presensi instrukturnya belum tercatat (QR atau verifikasi manual admin) tetap
+                  dihitung tetapi ditandai agar dapat ditinjau sebelum honor dibayar.
                 </p>
+                {instructorRealtimeData.unverifiedClassCount > 0 && (
+                  <Feedback kind="warning">
+                    {instructorRealtimeData.unverifiedClassCount} kelas senilai{' '}
+                    {formatRupiah(instructorRealtimeData.totalUnverifiedFeeRp)} belum punya presensi
+                    instruktur. Verifikasi dari detail kelas di menu Kelas sebelum honor dibayarkan.
+                  </Feedback>
+                )}
 
                 {instructorRealtimeData.instructors.length === 0 ? (
                   <AdminEmptyState
@@ -713,6 +728,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                             <span className="block text-xs font-semibold text-dd-muted">
                               {r.totalHours} jam total
                             </span>
+                            {r.unverifiedClassCount > 0 && (
+                              <span className="mt-1 block">
+                                <Badge tone="warning">
+                                  {r.unverifiedClassCount} kelas belum terverifikasi
+                                </Badge>
+                              </span>
+                            )}
                           </div>
                         ),
                       },

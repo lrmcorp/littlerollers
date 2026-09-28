@@ -65,6 +65,8 @@ export function PublicClassesView({
   const session = useSessionContext()?.session;
   const inCustomerShell = isCustomerOnlySession(session);
   const isStaff = Boolean(session && !isCustomerOnlySession(session));
+  // Staf hanya diarahkan ke workspace (cutoff booking tidak relevan); customer/tamu mengikuti canBook.
+  const isActionable = (slot: PublicClassSlot) => (isStaff ? slot.available > 0 : slot.canBook);
   const [branches, setBranches] = useState<PublicBranch[]>([]);
   const [branchId, setBranchId] = useState('');
   const [slots, setSlots] = useState<PublicClassSlot[]>([]);
@@ -434,10 +436,10 @@ export function PublicClassesView({
                             </strong>
                           </div>
                           <a
-                            className={`${slot.available > 0 ? publicPrimaryButton : `${publicSecondaryButton} pointer-events-none opacity-50`} w-full sm:w-auto`}
-                            aria-disabled={slot.available < 1}
+                            className={`${isActionable(slot) ? publicPrimaryButton : `${publicSecondaryButton} pointer-events-none opacity-50`} w-full sm:w-auto`}
+                            aria-disabled={!isActionable(slot)}
                             href={
-                              slot.available > 0
+                              isActionable(slot)
                                 ? isStaff
                                   ? '/workspace/classes'
                                   : session
@@ -448,7 +450,9 @@ export function PublicClassesView({
                           >
                             {slot.available < 1
                               ? 'Penuh'
-                              : isStaff
+                              : !isActionable(slot)
+                                ? 'Pemesanan ditutup'
+                                : isStaff
                                 ? 'Buka workspace kelas'
                                 : 'Lanjutkan booking'}
                           </a>

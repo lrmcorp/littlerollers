@@ -159,7 +159,12 @@ export function ScheduleDetailView({
             }
             actions={
               <>
-                <AudienceAction kind="schedule" id={item.id} disabled={item.available < 1} />
+                <AudienceAction
+                  kind="schedule"
+                  id={item.id}
+                  disabled={!item.canBook}
+                  disabledLabel={isFull ? 'Tempat tidak tersedia' : 'Pemesanan sudah ditutup'}
+                />
                 <Link className={publicSecondaryButton} href={`/classes/${item.classProfile.slug}`}>
                   Detail kelas
                 </Link>

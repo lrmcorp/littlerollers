@@ -530,8 +530,26 @@ export function ClassSlotView({
             canComplete={canCompleteClass}
             canManageAttendance={canOperateAttendance}
             canReadBookings={canReadBookings}
+            canVerifyInstructor={canOperateAttendance && Boolean(client.verifyInstructorAttendance)}
             bookingClient={bookingClient}
             busy={busy}
+            onVerifyInstructor={async (notes) => {
+              const accepted = await feedback.confirm({
+                tone: 'warning',
+                title: 'Verifikasi presensi instruktur?',
+                message:
+                  'Instruktur dicatat hadir pada kelas ini dan honornya dihitung sebagai terverifikasi. Tindakan ini tercatat atas nama Anda.',
+                confirmLabel: 'Verifikasi',
+              });
+              if (!accepted) return;
+              await run(async () => {
+                const result = await client.verifyInstructorAttendance!(panel.slot.id, notes);
+                return {
+                  ...panel.slot,
+                  instructorAttendance: { checkedInAt: result.checkedInAt, method: result.method },
+                };
+              }, 'Presensi instruktur berhasil dicatat.');
+            }}
             onAssign={async (instructorId) => {
               const accepted = await feedback.confirm({
                 tone: 'warning',

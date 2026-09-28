@@ -241,6 +241,8 @@ model User {
   bookings              PemesananKelas[]
   verifiedPurchases     Pembelian[]           @relation("PurchaseVerifier")
   recordedAttendances   KehadiranPelanggan[]  @relation("AttendanceRecorder")
+  instructorAttendances KehadiranInstruktur[] @relation("InstructorAttendee")
+  recordedInstructorAttendances KehadiranInstruktur[] @relation("InstructorAttendanceRecorder")
   ownedBranches         OwnerCabang[]
   instructorFees        InstructorFee[]
   createdSessionLedgers SessionLedger[]       @relation("LedgerCreator")
@@ -479,6 +481,7 @@ model SlotKelas {
   classType             JenisKelas       @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   instructor            User?            @relation("InstructorSlot", fields: [instructorId], references: [id], onDelete: SetNull)
   bookings              PemesananKelas[]
+  instructorAttendance  KehadiranInstruktur?
   rescheduleSourceSlots UbahJadwal[]     @relation("SourceSlot")
   rescheduleTargetSlots UbahJadwal[]     @relation("TargetSlot")
 
@@ -536,6 +539,24 @@ model UbahJadwal {
 // ============================================================================
 // PILAR 5: PRESENSI & OPERASIONAL HARIAN
 // ============================================================================
+
+/// Presensi instruktur per kelas (satu baris per slot). Dasar validasi honor instruktur di laporan finansial.
+model KehadiranInstruktur {
+  id           String        @id @default(uuid()) @db.Char(36)
+  classSlotId  String        @unique @db.Char(36)
+  instructorId String        @db.Char(36)
+  method       CheckInMethod @default(QR_SCAN)
+  checkedInAt  DateTime      @default(now())
+  recordedById String?       @db.Char(36)
+  notes        String?       @db.VarChar(255)
+
+  classSlot  SlotKelas @relation(fields: [classSlotId], references: [id], onDelete: Cascade)
+  instructor User      @relation("InstructorAttendee", fields: [instructorId], references: [id], onDelete: Cascade)
+  recordedBy User?     @relation("InstructorAttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([instructorId, checkedInAt])
+  @@map("kehadiran_instruktur")
+}
 
 model KehadiranPelanggan {
   id           String        @id @default(uuid()) @db.Char(36)

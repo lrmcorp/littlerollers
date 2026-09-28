@@ -64,10 +64,13 @@ export class AvailabilityService {
     const page = records.slice(0, PAGE_SIZE);
     const last = page.at(-1);
 
+    // Baris lama (mis. hasil seed) menyimpan "HH:MM" tanpa detik; normalisasi ke "HH:MM:SS"
+    // sebelum dirangkai jadi ISO instant, jika tidak Date jadi Invalid dan diserialisasi null.
+    const withSeconds = (time: string) => (time.length === 5 ? `${time}:00` : time);
     const items = page.map((record) => {
       const dateIso = record.date.toISOString().slice(0, 10);
-      const startAt = new Date(`${dateIso}T${record.startTime}.000Z`);
-      const endAt = new Date(`${dateIso}T${record.endTime}.000Z`);
+      const startAt = new Date(`${dateIso}T${withSeconds(record.startTime)}.000Z`);
+      const endAt = new Date(`${dateIso}T${withSeconds(record.endTime)}.000Z`);
       return {
         id: record.id,
         instructorUserId: record.instructorId,

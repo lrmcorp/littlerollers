@@ -157,6 +157,7 @@ export class FinanceService {
         instructor: true,
         classType: true,
         branch: true,
+        instructorAttendance: { select: { id: true } },
       },
       orderBy: { startAt: 'asc' },
     });
@@ -179,6 +180,9 @@ export class FinanceService {
         privateFeeRp: number;
         totalHours: number;
         totalFeeRp: number;
+        verifiedFeeRp: number;
+        unverifiedFeeRp: number;
+        unverifiedClassCount: number;
       }
     >();
 
@@ -197,6 +201,9 @@ export class FinanceService {
           privateFeeRp: 0,
           totalHours: 0,
           totalFeeRp: 0,
+          verifiedFeeRp: 0,
+          unverifiedFeeRp: 0,
+          unverifiedClassCount: 0,
         });
       }
 
@@ -223,6 +230,14 @@ export class FinanceService {
       const feeRp = hours * matchedFee;
       entry.totalHours += hours;
       entry.totalFeeRp += feeRp;
+      // Honor tetap dihitung; presensi instruktur yang belum tercatat hanya ditandai agar Finance
+      // dapat meninjau sebelum membayar.
+      if (slot.instructorAttendance) {
+        entry.verifiedFeeRp += feeRp;
+      } else {
+        entry.unverifiedFeeRp += feeRp;
+        entry.unverifiedClassCount += 1;
+      }
 
       const typeName = (slot.classType?.name ?? '').toLowerCase();
       if (typeName.includes('semi')) {
@@ -243,11 +258,22 @@ export class FinanceService {
       0,
     );
     const totalTeachingHours = instructorBreakdown.reduce((sum, item) => sum + item.totalHours, 0);
+    const totalUnverifiedFeeRp = instructorBreakdown.reduce(
+      (sum, item) => sum + item.unverifiedFeeRp,
+      0,
+    );
+    const unverifiedClassCount = instructorBreakdown.reduce(
+      (sum, item) => sum + item.unverifiedClassCount,
+      0,
+    );
 
     return {
       period,
       branchId: input.branchId ?? 'ALL',
       totalInstructorCostRp,
+      totalVerifiedFeeRp: totalInstructorCostRp - totalUnverifiedFeeRp,
+      totalUnverifiedFeeRp,
+      unverifiedClassCount,
       totalTeachingHours,
       instructorCount: instructorBreakdown.length,
       instructors: instructorBreakdown,
@@ -1248,6 +1274,7 @@ export class FinanceService {
       include: {
         instructor: true,
         classType: true,
+        instructorAttendance: { select: { id: true } },
       },
     });
 
@@ -1269,6 +1296,9 @@ export class FinanceService {
         privateFeeRp: number;
         totalHours: number;
         totalFeeRp: number;
+        verifiedFeeRp: number;
+        unverifiedFeeRp: number;
+        unverifiedClassCount: number;
       }
     >();
 
@@ -1287,6 +1317,9 @@ export class FinanceService {
           privateFeeRp: 0,
           totalHours: 0,
           totalFeeRp: 0,
+          verifiedFeeRp: 0,
+          unverifiedFeeRp: 0,
+          unverifiedClassCount: 0,
         });
       }
 
@@ -1305,6 +1338,14 @@ export class FinanceService {
       const feeRp = hours * matchedFee;
       entry.totalHours += hours;
       entry.totalFeeRp += feeRp;
+      // Honor tetap dihitung; presensi instruktur yang belum tercatat hanya ditandai agar Finance
+      // dapat meninjau sebelum membayar.
+      if (slot.instructorAttendance) {
+        entry.verifiedFeeRp += feeRp;
+      } else {
+        entry.unverifiedFeeRp += feeRp;
+        entry.unverifiedClassCount += 1;
+      }
 
       const typeName = (slot.classType?.name ?? '').toLowerCase();
       if (typeName.includes('semi')) {
@@ -1325,6 +1366,10 @@ export class FinanceService {
       0,
     );
     const estimatedProfitRp = omsetRp - totalInstructorFeeRp - otherCostRp;
+    const totalUnverifiedFeeRp = instructorBreakdown.reduce(
+      (sum, item) => sum + item.unverifiedFeeRp,
+      0,
+    );
 
     return {
       branch: {
@@ -1336,6 +1381,11 @@ export class FinanceService {
       omsetRp,
       otherCostRp,
       totalInstructorFeeRp,
+      totalUnverifiedFeeRp,
+      unverifiedClassCount: instructorBreakdown.reduce(
+        (sum, item) => sum + item.unverifiedClassCount,
+        0,
+      ),
       estimatedProfitRp,
       instructorCount: instructorBreakdown.length,
       totalClassHours: instructorBreakdown.reduce((sum, item) => sum + item.totalHours, 0),

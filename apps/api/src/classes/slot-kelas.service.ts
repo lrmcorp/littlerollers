@@ -123,6 +123,7 @@ export class ClassSlotService {
       room: slot.room,
       classType: slot.classType,
       instructor: slot.instructor,
+      instructorAttendance: slot.instructorAttendance ?? null,
     };
   }
 
@@ -188,6 +189,7 @@ export class ClassSlotService {
         room: true,
         classType: true,
         instructor: { include: { profile: true } },
+        instructorAttendance: { select: { checkedInAt: true, method: true } },
       },
       orderBy,
       take: limit + 1,
@@ -572,6 +574,7 @@ export class ClassSlotService {
           include: {
             branch: true,
             classType: true,
+            instructorAttendance: { select: { checkedInAt: true, method: true } },
             bookings: {
               include: { attendance: true, customerPackage: true },
             },
@@ -611,6 +614,7 @@ export class ClassSlotService {
               room: true,
               classType: true,
               instructor: { include: { profile: true } },
+              instructorAttendance: { select: { checkedInAt: true, method: true } },
               bookings: true,
             },
           });
@@ -692,6 +696,7 @@ export class ClassSlotService {
             room: true,
             classType: true,
             instructor: { include: { profile: true } },
+            instructorAttendance: { select: { checkedInAt: true, method: true } },
           },
         });
 

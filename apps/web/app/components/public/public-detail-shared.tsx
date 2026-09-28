@@ -151,12 +151,14 @@ export function AudienceAction({
   branchId,
   classType,
   disabled,
+  disabledLabel = 'Tempat tidak tersedia',
 }: {
   kind: 'package' | 'schedule' | 'class' | 'studio';
   id: string;
   branchId?: string;
   classType?: string;
   disabled?: boolean;
+  disabledLabel?: string;
 }) {
   const session = useSessionContext()?.session;
   const audience = packageAudienceState(session);
@@ -166,7 +168,7 @@ export function AudienceAction({
         className="inline-flex min-h-11 items-center rounded-dd-sm bg-dd-line px-5 text-sm font-bold text-dd-muted"
         aria-disabled="true"
       >
-        Tempat tidak tersedia
+        {disabledLabel}
       </span>
     );
   if (audience === 'STAFF')

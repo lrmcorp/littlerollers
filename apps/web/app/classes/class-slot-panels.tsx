@@ -160,8 +160,10 @@ export function DetailPanel({
   canComplete,
   canManageAttendance,
   canReadBookings,
+  canVerifyInstructor = false,
   bookingClient = browserBookingClient,
   busy,
+  onVerifyInstructor,
   onAssign,
   onUpdate,
   onPublish,
@@ -177,8 +179,10 @@ export function DetailPanel({
   canComplete: boolean;
   canManageAttendance: boolean;
   canReadBookings: boolean;
+  canVerifyInstructor?: boolean;
   bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
   busy: boolean;
+  onVerifyInstructor?(notes: string): Promise<void>;
   onAssign(id: string): Promise<void>;
   onUpdate(input: {
     classTypeId: string;
@@ -195,6 +199,7 @@ export function DetailPanel({
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
   const [reason, setReason] = useState<CancellationReason>('OTHER_REVIEW_REQUIRED');
   const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai roster');
+  const [attendanceNote, setAttendanceNote] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [issues, setIssues] = useState<CheckInIssue[]>([]);
@@ -450,6 +455,45 @@ export function DetailPanel({
           </>
         )}
       </section>
+      {slot.instructorUserId && ['CONFIRMED', 'COMPLETED'].includes(slot.status) && (
+        <section aria-labelledby="instructor-attendance-title" className="grid gap-3">
+          <h3 id="instructor-attendance-title">Presensi instruktur</h3>
+          {slot.instructorAttendance ? (
+            <Feedback kind="status">
+              Tercatat {formatBranchTime(new Date(slot.instructorAttendance.checkedInAt), slot.timezone)}{' '}
+              melalui{' '}
+              {slot.instructorAttendance.method === 'QR_SCAN' ? 'scan QR' : 'verifikasi manual admin'}.
+            </Feedback>
+          ) : (
+            <>
+              <p className="text-sm text-dd-muted">
+                Belum tercatat. Honor kelas ini ditandai &quot;belum terverifikasi&quot; di laporan
+                keuangan sampai presensi instruktur dicatat.
+              </p>
+              {canVerifyInstructor && onVerifyInstructor && (
+                <>
+                  <TextInput
+                    label="Catatan (opsional)"
+                    value={attendanceNote}
+                    maxLength={255}
+                    placeholder="Contoh: instruktur lupa scan, hadir sesuai roster"
+                    onChange={(event) => setAttendanceNote(event.target.value)}
+                  />
+                  <div>
+                    <Button
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => void onVerifyInstructor(attendanceNote.trim())}
+                    >
+                      Verifikasi presensi instruktur
+                    </Button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </section>
+      )}
       {slot.status === 'CONFIRMED' && (
         <section>
           <h3>QR check-in roster</h3>

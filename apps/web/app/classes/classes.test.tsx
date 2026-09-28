@@ -352,3 +352,85 @@ describe('ClassSlotView', () => {
     expect(await screen.findByText('Kelas berhasil dibatalkan.')).toBeVisible();
   });
 });
+
+describe('ClassSlotView instructor attendance verification', () => {
+  const confirmedSlot = { ...slot, status: 'CONFIRMED' as const };
+  const openDetail = async (client: ClassSlotClient, capabilities: readonly string[]) => {
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={capabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
+    await within(calendar).findByText('Reformer');
+    await user.click(within(calendar).getByRole('button', { name: /Reformer/ }));
+    return { user, dialog: screen.getByRole('dialog', { name: 'Reformer' }) };
+  };
+  const withSlot = (over: Record<string, unknown>, extra: Partial<ClassSlotClient> = {}) =>
+    fake({
+      discover: vi.fn().mockResolvedValue({ ...workspace, slots: [{ ...confirmedSlot, ...over }] }),
+      ...extra,
+    });
+
+  it('lets staff with attendance:manage verify a missing instructor attendance after confirming', async () => {
+    const verify = vi.fn().mockResolvedValue({
+      classSlotId: slot.id,
+      checkedInAt: new Date().toISOString(),
+      method: 'MANUAL_FRONTDESK',
+      alreadyRecorded: false,
+    });
+    const client = withSlot({}, { verifyInstructorAttendance: verify });
+    const { user, dialog } = await openDetail(client, manageCapabilities);
+
+    expect(within(dialog).getByText(/Belum tercatat/)).toBeVisible();
+    await user.type(within(dialog).getByLabelText('Catatan (opsional)'), 'lupa scan');
+    await user.click(within(dialog).getByRole('button', { name: 'Verifikasi presensi instruktur' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Verifikasi presensi instruktur?' })).getByRole(
+        'button',
+        { name: 'Verifikasi' },
+      ),
+    );
+
+    expect(verify).toHaveBeenCalledWith('slot-1', 'lupa scan');
+    expect(await screen.findByText('Presensi instruktur berhasil dicatat.')).toBeVisible();
+    expect(await within(dialog).findByText(/verifikasi manual admin/)).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Verifikasi presensi instruktur' })).toBeNull();
+  });
+
+  it('shows already recorded attendance without offering to verify again', async () => {
+    const client = withSlot(
+      { instructorAttendance: { checkedInAt: new Date().toISOString(), method: 'QR_SCAN' } },
+      { verifyInstructorAttendance: vi.fn() },
+    );
+    const { dialog } = await openDetail(client, manageCapabilities);
+    expect(within(dialog).getByText(/melalui scan QR/)).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Verifikasi presensi instruktur' })).toBeNull();
+  });
+
+  it('shows the status but hides the verify action without attendance:manage', async () => {
+    const client = withSlot({}, { verifyInstructorAttendance: vi.fn() });
+    const { dialog } = await openDetail(client, ['class-slot:read', 'class-slot:manage']);
+    expect(within(dialog).getByText(/Belum tercatat/)).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Verifikasi presensi instruktur' })).toBeNull();
+  });
+
+  it('surfaces a clear message when attendance is recorded before the check-in window opens', async () => {
+    const verify = vi.fn().mockRejectedValue({ status: 409, data: { error: { code: 'CHECK_IN_TOO_EARLY' } } });
+    const client = withSlot({}, { verifyInstructorAttendance: verify });
+    const { user, dialog } = await openDetail(client, manageCapabilities);
+    await user.click(within(dialog).getByRole('button', { name: 'Verifikasi presensi instruktur' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Verifikasi presensi instruktur?' })).getByRole(
+        'button',
+        { name: 'Verifikasi' },
+      ),
+    );
+    expect(
+      await screen.findByText('Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.'),
+    ).toBeVisible();
+  });
+});

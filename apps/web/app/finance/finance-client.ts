@@ -176,12 +176,20 @@ export interface InstructorCostBreakdown {
   privateFeeRp: number;
   totalHours: number;
   totalFeeRp: number;
+  verifiedFeeRp: number;
+  unverifiedFeeRp: number;
+  unverifiedClassCount: number;
 }
 
 export interface InstructorCostRealtimeData {
   period: string;
   branchId: string;
   totalInstructorCostRp: number;
+  /** Honor kelas yang presensi instrukturnya sudah tercatat (QR atau verifikasi manual). */
+  totalVerifiedFeeRp: number;
+  /** Honor kelas selesai yang presensi instrukturnya belum tercatat; tetap ada di total. */
+  totalUnverifiedFeeRp: number;
+  unverifiedClassCount: number;
   totalTeachingHours: number;
   instructorCount: number;
   instructors: InstructorCostBreakdown[];

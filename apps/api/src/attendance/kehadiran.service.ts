@@ -639,14 +639,42 @@ export class AttendanceService {
 
     const token = await this.db.checkInToken.findFirst({
       where: { token: tokenHash },
+      include: {
+        booking: {
+          select: {
+            classSlot: {
+              select: { id: true, instructorId: true, status: true, startAt: true, endAt: true },
+            },
+          },
+        },
+      },
     });
     if (!token) throw new ApiProblem('INVALID_TOKEN', HttpStatus.UNPROCESSABLE_ENTITY);
     if (token.isUsed) throw new ApiProblem('TOKEN_ALREADY_USED', HttpStatus.CONFLICT);
     if (token.expiresAt < now) throw new ApiProblem('TOKEN_EXPIRED', HttpStatus.GONE);
 
-    await this.db.checkInToken.update({
-      where: { id: token.id },
-      data: { isUsed: true },
+    // Hanya instruktur pemilik kelas yang boleh mencatat presensinya, dan hanya di jendela check-in.
+    const slot = token.booking.classSlot;
+    if (slot.instructorId !== principal.userId)
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (slot.status !== 'CONFIRMED')
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    const window = checkInWindowState(slot.startAt, slot.endAt, now);
+    if (window === 'TOO_EARLY') throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
+    if (window === 'EXPIRED') throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
+
+    await this.db.$transaction(async (tx) => {
+      await tx.checkInToken.update({ where: { id: token.id }, data: { isUsed: true } });
+      await tx.kehadiranInstruktur.upsert({
+        where: { classSlotId: slot.id },
+        create: {
+          classSlotId: slot.id,
+          instructorId: principal.userId,
+          method: CheckInMethod.QR_SCAN,
+          checkedInAt: now,
+        },
+        update: {},
+      });
     });
 
     return {
@@ -654,8 +682,76 @@ export class AttendanceService {
       body: {
         success: true,
         type: 'INSTRUCTOR',
+        classSlotId: slot.id,
         checkedInAt: now.toISOString(),
       },
+    };
+  }
+
+  /**
+   * Verifikasi manual presensi instruktur oleh staf (mis. instruktur lupa scan atau kelas tanpa
+   * booking sehingga token QR tidak dapat diterbitkan). Idempotent: presensi yang sudah tercatat
+   * tidak ditimpa.
+   */
+  async verifyInstructorAttendance(
+    principal: SessionPrincipal,
+    classSlotId: string,
+    body: { notes?: string },
+    now = new Date(),
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
+    if (!UUID.test(classSlotId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const notes = body?.notes?.trim() || null;
+    if (notes && notes.length > 255)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    const slot = await this.db.slotKelas.findUnique({
+      where: { id: classSlotId },
+      select: {
+        id: true,
+        branchId: true,
+        instructorId: true,
+        status: true,
+        startAt: true,
+        endAt: true,
+        instructorAttendance: { select: { checkedInAt: true, method: true } },
+      },
+    });
+    if (!slot || !this.policy.hasCapability(principal, 'attendance:manage', slot.branchId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (!slot.instructorId || !['CONFIRMED', 'COMPLETED'].includes(slot.status))
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    if (checkInWindowState(slot.startAt, slot.endAt, now) === 'TOO_EARLY')
+      throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
+
+    if (slot.instructorAttendance) {
+      return {
+        classSlotId: slot.id,
+        checkedInAt: slot.instructorAttendance.checkedInAt.toISOString(),
+        method: slot.instructorAttendance.method,
+        alreadyRecorded: true,
+      };
+    }
+
+    // upsert (bukan create) agar klik ganda serentak tidak melanggar unique classSlotId.
+    const created = await this.db.kehadiranInstruktur.upsert({
+      where: { classSlotId: slot.id },
+      create: {
+        classSlotId: slot.id,
+        instructorId: slot.instructorId,
+        method: CheckInMethod.MANUAL_FRONTDESK,
+        checkedInAt: now,
+        recordedById: principal.userId,
+        notes,
+      },
+      update: {},
+    });
+    return {
+      classSlotId: slot.id,
+      checkedInAt: created.checkedInAt.toISOString(),
+      method: created.method,
+      alreadyRecorded: false,
     };
   }
 

@@ -3,6 +3,7 @@ import {
   Bell,
   BookOpenCheck,
   Building2,
+  CalendarClock,
   CalendarDays,
   ChartColumn,
   CircleDollarSign,
@@ -35,6 +36,7 @@ import {
 export const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
   '/workspace/classes': CalendarDays,
+  '/workspace/availability': CalendarClock,
   '/workspace/bookings': BookOpenCheck,
   '/check-in-scanner': QrCode,
   '/support-cases': LifeBuoy,

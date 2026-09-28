@@ -90,4 +90,24 @@ describe('AvailabilityService boundary', () => {
     });
     expect(db.slotKelas.findMany).not.toHaveBeenCalled();
   });
+
+  it('parses legacy "HH:MM" (no seconds) rows instead of producing an Invalid Date', async () => {
+    db.instructorAvailability.findMany.mockResolvedValueOnce([
+      {
+        id: 'avail-legacy',
+        instructorId: principal.userId,
+        branchId: principal.branchIds[0],
+        date: new Date('2026-11-20T00:00:00.000Z'),
+        startTime: '08:00',
+        endTime: '12:00',
+        branch: { timezone: 'Asia/Jakarta' },
+      },
+    ]);
+
+    const result = await service.list(principal, principal.branchIds[0]);
+
+    expect(result.items[0]!.startAt.toISOString()).toBe('2026-11-20T08:00:00.000Z');
+    expect(result.items[0]!.endAt.toISOString()).toBe('2026-11-20T12:00:00.000Z');
+    expect(Number.isNaN(result.items[0]!.startAt.getTime())).toBe(false);
+  });
 });

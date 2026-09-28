@@ -79,6 +79,8 @@ export interface PublicScheduleSummary {
   status: string;
   capacity: number;
   available: number;
+  /** Server-side: fitur booking aktif, masih ada tempat, dan belum lewat cutoff. */
+  canBook: boolean;
   startAt: string | Date;
   endAt: string | Date;
   branch?: PublicBranch | null;
