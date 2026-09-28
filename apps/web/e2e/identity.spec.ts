@@ -20,6 +20,8 @@ const webCapabilities = [
   'class-slot:manage',
   'operations:read',
   'operations:recover',
+  'automation:read',
+  'automation:run',
   'booking:read',
   'booking:create:assisted',
   'reschedule:read',
@@ -903,28 +905,7 @@ test('class-slot configuration and hidden failures never show optimistic success
   await expect(page.getByText('Draft kelas berhasil dibuat.')).toHaveCount(0);
 });
 
-test('operations H-24 queue and recovery are keyboard operable', async ({ page }) => {
-  const job = {
-    id: '00000000-0000-4000-8000-000000000101',
-    type: 'H24_QUOTA_EVALUATION',
-    status: 'RETRYING',
-    attemptCount: 1,
-    maxAttempts: 5,
-    progress: 0,
-    dueAt: '2026-07-22T00:00:00Z',
-    nextAttemptAt: '2026-07-22T00:01:00Z',
-    leaseExpiresAt: null,
-    lastErrorCode: 'DEPENDENCY_UNAVAILABLE',
-    createdAt: '2026-07-21T00:00:00Z',
-    version: 1,
-  };
-  await page.route('**/api/v1/operations/jobs**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ items: [job], page: { hasMore: false, nextCursor: null } }),
-    }),
-  );
+test('operations H-24 evaluation is keyboard operable', async ({ page }) => {
   await page.route('**/api/v1/operations/email-deliveries**', (route) =>
     route.fulfill({
       status: 200,
@@ -942,29 +923,26 @@ test('operations H-24 queue and recovery are keyboard operable', async ({ page }
       }),
     }),
   );
-  await page.route('**/api/v1/operations/quota-evaluations/*/run', (route) =>
+  await page.route('**/api/v1/operations/auto-cancel/evaluate', (route) =>
     route.fulfill({
-      status: 200,
+      status: 201,
       contentType: 'application/json',
       body: JSON.stringify({
-        classSlotId: '00000000-0000-4000-8000-000000000102',
-        previousStatus: 'PUBLISHED',
-        status: 'CONFIRMED',
-        bookingCount: 2,
-        minimumQuota: 2,
-        releasedReservationIds: [],
-        outboxEventIds: ['00000000-0000-4000-8000-000000000103'],
-        evaluatedAt: '2026-07-22T00:02:00Z',
-        idempotentReplay: false,
+        success: true,
+        data: {
+          evaluatedAt: '2026-07-22T00:02:00Z',
+          evaluatedSlotsCount: 2,
+          confirmedSlotsCount: 2,
+          cancelledSlotsCount: 0,
+          cancelledSlots: [],
+        },
       }),
     }),
   );
   await page.goto('/operations');
-  await expect(
-    page.getByRole('row', { name: /Mencoba kembali.*Memerlukan pemeriksaan operasional/ }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Jalankan pemulihan' }).press('Enter');
-  await expect(page.getByText('Evaluasi selesai.')).toBeVisible();
+  await page.getByRole('button', { name: 'Jalankan evaluasi sekarang' }).press('Enter');
+  await page.getByRole('button', { name: 'Jalankan evaluasi', exact: true }).press('Enter');
+  await expect(page.getByText('Tidak ada kelas yang dibatalkan pada evaluasi ini.')).toBeVisible();
 });
 
 test('assisted booking reserves one session with keyboard confirmation', async ({ page }) => {

@@ -1,5 +1,22 @@
 import { appLoading } from '../components/app-loading';
-import type { OperationalJob } from './operations-client';
+
+export type OperationalJobStatus = 'QUEUED' | 'RUNNING' | 'RETRYING' | 'SUCCEEDED' | 'FAILED' | 'DEAD_LETTER';
+
+export interface OperationalJob {
+  id: string;
+  type: string;
+  status: OperationalJobStatus;
+  attemptCount: number;
+  maxAttempts: number;
+  progress: number;
+  dueAt: Date;
+  nextAttemptAt: Date;
+  leaseExpiresAt?: Date | null;
+  lastErrorCode?: string | null;
+  createdAt: Date;
+  version: number;
+}
+
 
 export type DashboardFocus = 'EXECUTIVE' | 'OWNER' | 'BRANCH_OPERATIONS' | 'FINANCE' | 'OPERATIONS';
 

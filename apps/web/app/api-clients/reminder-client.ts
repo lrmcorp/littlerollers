@@ -19,6 +19,9 @@ export interface RemindersSummary {
 }
 
 export interface AutoCancelResult {
+  /** `true` bila evaluasi dinonaktifkan di lingkungan ini; bedakan dari "tidak ada kelas". */
+  skipped?: boolean;
+  skippedReason?: string;
   evaluatedAt: string;
   evaluatedSlotsCount: number;
   cancelledSlotsCount: number;

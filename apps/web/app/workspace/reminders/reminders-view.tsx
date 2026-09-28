@@ -98,6 +98,15 @@ export function RemindersView() {
     try {
       setExecutingAutoCancel(true);
       const result = await reminderClient.triggerAutoCancel();
+      if (result.skipped) {
+        feedback.showToast({
+          tone: 'warning',
+          title: 'Evaluasi Auto-Cancel Dinonaktifkan',
+          message:
+            'Evaluasi otomatis dinonaktifkan di lingkungan ini, jadi tidak ada kelas yang diperiksa.',
+        });
+        return;
+      }
       feedback.showToast({
         tone: result.cancelledSlotsCount > 0 ? 'warning' : 'success',
         title: 'Evaluasi Auto-Cancel Selesai',

@@ -4,6 +4,9 @@ import { PrismaService } from '../database/prisma.service';
 import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 
 export interface AutoCancelEvaluationResult {
+  /** `true` bila evaluasi tidak dijalankan karena dinonaktifkan di lingkungan ini (bukan "tidak ada kelas"). */
+  skipped?: boolean;
+  skippedReason?: 'AUTO_CANCEL_DISABLED';
   evaluatedAt: Date;
   evaluatedSlotsCount: number;
   cancelledSlotsCount: number;
@@ -37,6 +40,8 @@ export class AutoCancelService {
     if (process.env.ENABLE_AUTO_CANCEL !== 'true' && process.env.NODE_ENV !== 'production') {
       this.logger.log('AutoCancel evaluation skipped in development/testing environment');
       return {
+        skipped: true,
+        skippedReason: 'AUTO_CANCEL_DISABLED',
         evaluatedAt: now,
         evaluatedSlotsCount: 0,
         cancelledSlotsCount: 0,

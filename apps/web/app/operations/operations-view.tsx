@@ -5,13 +5,14 @@ import {
   operationsFailure,
   type NotificationOccurrence,
   type NotificationOccurrencePage,
-  type OperationalJobPage,
   type OperationsClient,
 } from '@/api-clients/operations-client';
+import { reminderClient, type AutoCancelResult } from '@/api-clients/reminder-client';
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
+import { useAppFeedback } from '../components/app-feedback';
 import {
   Badge,
   DataTable,
@@ -24,12 +25,6 @@ import { SelectInput, TextInput } from '../components/forms';
 import { pageOffset } from '../lib/pagination';
 
 const statusLabel: Record<string, string> = {
-  QUEUED: 'Menunggu',
-  RETRYING: 'Mencoba kembali',
-  RUNNING: 'Sedang berjalan',
-  SUCCEEDED: 'Berhasil',
-  FAILED: 'Gagal',
-  DEAD_LETTER: 'Dead-letter',
   PENDING: 'Menunggu',
   SENDING: 'Sedang dikirim',
   ACCEPTED_BY_SMTP: 'Diterima server email',
@@ -39,34 +34,36 @@ const statusLabel: Record<string, string> = {
   FALLBACK_IN_APP: 'Dialihkan ke notifikasi aplikasi',
 };
 
-const safeFailureLabel = (code?: string | null) =>
-  code ? 'Memerlukan pemeriksaan operasional' : '—';
+const formatStart = (value: string) =>
+  new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
 export function OperationsView({
   client = browserOperationsClient,
+  evaluator = reminderClient,
   access,
 }: {
   client?: OperationsClient;
-  access?: { canRecover: boolean };
+  evaluator?: { triggerAutoCancel(): Promise<AutoCancelResult> };
+  /** Menimpa izin dari sesi (dipakai tes): pemulihan email dan menjalankan evaluasi kuota. */
+  access?: { canRecover?: boolean; canRunEvaluation?: boolean };
 }) {
-  const [jobPage, setJobPage] = useState<OperationalJobPage>();
+  const feedback = useAppFeedback();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
-  const [statusFilter, setStatusFilter] = useState('');
-  const [jobCursor, setJobCursor] = useState<string>();
-  const [jobCursorHistory, setJobCursorHistory] = useState<(string | undefined)[]>([]);
-  const [jobRecoveryReason, setJobRecoveryReason] = useState('');
   const [emailPage, setEmailPage] = useState<NotificationOccurrencePage>();
   const [emailStatusFilter, setEmailStatusFilter] = useState('');
   const [emailCursor, setEmailCursor] = useState<string>();
   const [emailCursorHistory, setEmailCursorHistory] = useState<(string | undefined)[]>([]);
   const [emailRetryReason, setEmailRetryReason] = useState('');
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState<AutoCancelResult>();
+  const [evaluationFailure, setEvaluationFailure] = useState<string>();
   const sessionContext = useSessionContext();
-  const canRecover =
-    access?.canRecover ??
-    (sessionContext?.status === 'authenticated' &&
-      sessionContext.hasCapability('operations:recover'));
+  const session = sessionContext?.status === 'authenticated' ? sessionContext : undefined;
+  const canRecover = access?.canRecover ?? session?.hasCapability('operations:recover') ?? false;
+  const canRunEvaluation =
+    access?.canRunEvaluation ?? session?.hasCapability('automation:run') ?? false;
   const run = async (action: () => Promise<void>, success: string) => {
     setBusy(true);
     setFailure(undefined);
@@ -79,20 +76,35 @@ export function OperationsView({
       setBusy(false);
     }
   };
+  const runEvaluation = async () => {
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Jalankan evaluasi kuota H-24?',
+      message:
+        'Kelas yang kuotanya belum terpenuhi akan dibatalkan, reservasi pesertanya dilepas, dan peserta serta instruktur diberi tahu lewat WhatsApp. Tindakan ini tidak dapat dibatalkan.',
+      confirmLabel: 'Jalankan evaluasi',
+    });
+    if (!accepted) return;
+    setEvaluating(true);
+    setEvaluationFailure(undefined);
+    try {
+      setEvaluation(await evaluator.triggerAutoCancel());
+    } catch (error) {
+      setEvaluation(undefined);
+      setEvaluationFailure(operationsFailure(error));
+    } finally {
+      setEvaluating(false);
+    }
+  };
   useEffect(() => {
+    if (!client.listEmails) return;
     let active = true;
     setBusy(true);
     setFailure(undefined);
-    Promise.all([
-      client.list(statusFilter || undefined, jobCursor),
-      client.listEmails
-        ? client.listEmails(emailStatusFilter || undefined, emailCursor)
-        : Promise.resolve(undefined),
-    ])
-      .then(([jobs, email]) => {
-        if (!active) return;
-        setJobPage(jobs);
-        if (email) setEmailPage(email);
+    client
+      .listEmails(emailStatusFilter || undefined, emailCursor)
+      .then((email) => {
+        if (active) setEmailPage(email);
       })
       .catch((error) => {
         if (active) setFailure(operationsFailure(error));
@@ -103,286 +115,83 @@ export function OperationsView({
     return () => {
       active = false;
     };
-  }, [client, emailCursor, emailStatusFilter, jobCursor, statusFilter]);
-  const items = jobPage?.items ?? [];
+  }, [client, emailCursor, emailStatusFilter]);
   return (
     <section className="space-y-6" aria-labelledby="operations-title">
-      <div className="space-y-4">
-        <AdminPageHeader
-          title="Evaluasi kuota H-24"
-          titleId="operations-title"
-          description="Antrean evaluasi otomatis berjalan oleh sistem. Pemulihan manual memerlukan izin operasional."
-          badges={
-            <>
-              <StatusBadge tone="info">Ops / Super Admin</StatusBadge>
-              <StatusBadge tone="warning">Pemulihan terbatas</StatusBadge>
-            </>
-          }
-        />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <StatCard
-            label="Job ditampilkan"
-            value={String(items.length)}
-            helper="Sesuai filter aktif"
-          />
-          <StatCard
-            label="Perlu pemulihan"
-            value={String(
-              items.filter((item) => item.status === 'FAILED' || item.status === 'RETRYING').length,
-            )}
-            tone="warning"
-          />
-          <StatCard
-            label="Selesai"
-            value={String(items.filter((item) => item.status === 'SUCCEEDED').length)}
-            tone="success"
-          />
+      <AdminPageHeader
+        title="Operasional"
+        titleId="operations-title"
+        description="Jalankan evaluasi kuota H-24 dan pantau pengiriman email transaksional."
+        badges={<StatusBadge tone="info">Ops / Super Admin</StatusBadge>}
+      />
+      <Panel className="space-y-4 p-6 sm:p-8">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-dd-muted">Kelas</p>
+          <h2 className="mt-2 text-2xl font-semibold text-dd-ink">Evaluasi kuota H-24</h2>
+          <p className="mt-2 text-sm text-dd-muted">
+            Kelas yang sudah masuk batas konfirmasi diperiksa: kuota terpenuhi → dikonfirmasi; kurang
+            dari minimum → dibatalkan otomatis, reservasi dilepas, dan peserta serta instruktur
+            diberi tahu lewat WhatsApp. Evaluasi dijalankan manual dari sini atau dari halaman
+            Reminder.
+          </p>
         </div>
-      </div>
-      <Feedback kind="info">
-        Data contoh — daftar job di bagian ini belum terhubung ke evaluasi kuota H-24 yang berjalan
-        sungguhan, jadi jangan dipakai untuk memantau atau memulihkan job produksi.
-      </Feedback>
-      <FilterBar>
-        <SelectInput
-          label="Filter status job"
-          aria-label="Filter status job"
-          value={statusFilter}
-          onChange={(event) => {
-            setStatusFilter(event.target.value);
-            setJobCursor(undefined);
-            setJobCursorHistory([]);
-          }}
-        >
-          <option value="">Semua status</option>
-          {['QUEUED', 'RETRYING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'DEAD_LETTER'].map((status) => (
-            <option key={status} value={status}>
-              {statusLabel[status]}
-            </option>
-          ))}
-        </SelectInput>
-        <TextInput
-          label="Alasan pemulihan job"
-          aria-label="Alasan pemulihan job"
-          value={jobRecoveryReason}
-          onChange={(event) => setJobRecoveryReason(event.target.value)}
-          placeholder="Minimal 3 karakter"
-        />
-      </FilterBar>
-      {!canRecover && (
-        <Feedback kind="info">
-          Tombol pemulihan (jalankan, coba lagi, dead-letter, kirim ulang email) dinonaktifkan
-          selama daftar ini masih data contoh.
-        </Feedback>
-      )}
-      {busy && <Skeleton label="Memuat antrean job" />}
+        {canRunEvaluation ? (
+          <div>
+            <Button loading={evaluating} disabled={evaluating} onClick={() => void runEvaluation()}>
+              Jalankan evaluasi sekarang
+            </Button>
+          </div>
+        ) : (
+          <Feedback kind="info">
+            Anda dapat melihat halaman ini, tetapi menjalankan evaluasi memerlukan izin otomasi.
+          </Feedback>
+        )}
+        {evaluationFailure && <Feedback kind="error">{evaluationFailure}</Feedback>}
+        {evaluation?.skipped && (
+          <Feedback kind="warning">
+            Evaluasi otomatis dinonaktifkan di lingkungan ini, jadi tidak ada kelas yang diperiksa.
+            Hubungi administrator sistem bila ini tidak diharapkan.
+          </Feedback>
+        )}
+        {evaluation && !evaluation.skipped && (
+          <div className="space-y-3" role="status" aria-live="polite">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatCard label="Kelas diperiksa" value={String(evaluation.evaluatedSlotsCount)} />
+              <StatCard
+                label="Dikonfirmasi"
+                value={String(evaluation.confirmedSlotsCount)}
+                tone="success"
+              />
+              <StatCard
+                label="Dibatalkan"
+                value={String(evaluation.cancelledSlotsCount)}
+                tone={evaluation.cancelledSlotsCount > 0 ? 'warning' : undefined}
+              />
+            </div>
+            {evaluation.cancelledSlots.length === 0 ? (
+              <p className="m-0 text-sm text-dd-muted">Tidak ada kelas yang dibatalkan pada evaluasi ini.</p>
+            ) : (
+              <ul className="m-0 grid list-none gap-2 p-0">
+                {evaluation.cancelledSlots.map((item) => (
+                  <li
+                    key={item.slotId}
+                    className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-3 text-sm"
+                  >
+                    <strong>{item.className}</strong> · {item.branchName} · {formatStart(item.startAt)}
+                    <span className="block text-xs text-dd-muted">
+                      {item.bookedCount} dari minimum {item.minQuota} peserta ·{' '}
+                      {item.refundedBookingsCount} reservasi dilepas
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </Panel>
+      {busy && <Skeleton label="Memuat pengiriman email" />}
       {failure && <Feedback kind="error">{failure}</Feedback>}
       {message && !busy && <Feedback kind="status">{message}</Feedback>}
-      {items.length === 0 ? (
-        <EmptyState
-          title="Belum ada job quota"
-          description="Muat ulang antrean atau ubah filter status."
-        />
-      ) : (
-        <DataTable
-          rowNumberOffset={pageOffset(jobCursorHistory.length)}
-          items={items}
-          rowKey={(job) => job.id}
-          columns={[
-            {
-              id: 'status',
-              header: 'Status',
-              cell: (job) => (
-                <Badge
-                  tone={
-                    job.status === 'SUCCEEDED'
-                      ? 'success'
-                      : job.status === 'FAILED'
-                        ? 'danger'
-                        : 'warning'
-                  }
-                >
-                  {statusLabel[job.status] ?? 'Status tidak dikenal'}
-                </Badge>
-              ),
-            },
-            { id: 'due', header: 'Jadwal', cell: (job) => job.dueAt.toLocaleString('id-ID') },
-            {
-              id: 'attempt',
-              header: 'Percobaan',
-              cell: (job) => `${job.attemptCount}/${job.maxAttempts ?? '—'}`,
-            },
-            {
-              id: 'failure',
-              header: 'Kendala',
-              cell: (job) => safeFailureLabel(job.lastErrorCode),
-            },
-            {
-              id: 'action',
-              header: 'Pemulihan',
-              cell: (job) => (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    disabled={busy || job.status === 'SUCCEEDED' || !canRecover}
-                    onClick={() =>
-                      void run(async () => {
-                        const result = await client.run(job);
-                        setJobPage((current) =>
-                          current
-                            ? {
-                                ...current,
-                                items: current.items.map((item) =>
-                                  item.id === job.id
-                                    ? { ...item, status: 'SUCCEEDED', progress: 100 }
-                                    : item,
-                                ),
-                              }
-                            : current,
-                        );
-                        setMessage(
-                          `${result.status}: ${result.bookingCount}/${result.minimumQuota}`,
-                        );
-                      }, 'Evaluasi selesai.')
-                    }
-                  >
-                    Jalankan pemulihan
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={
-                      busy ||
-                      !canRecover ||
-                      !client.retryJob ||
-                      job.status !== 'FAILED' ||
-                      jobRecoveryReason.trim().length < 3
-                    }
-                    onClick={() =>
-                      void run(async () => {
-                        if (!client.retryJob) return;
-                        const result = await client.retryJob(job.id, jobRecoveryReason.trim());
-                        setJobPage((current) =>
-                          current
-                            ? {
-                                ...current,
-                                items: current.items.map((item) =>
-                                  item.id === job.id
-                                    ? {
-                                        ...item,
-                                        status: result.status as typeof item.status,
-                                        attemptCount: result.attemptCount,
-                                        maxAttempts: result.maxAttempts,
-                                      }
-                                    : item,
-                                ),
-                              }
-                            : current,
-                        );
-                      }, 'Penjadwalan ulang job berhasil.')
-                    }
-                  >
-                    Coba lagi
-                  </Button>
-                  <Button
-                    variant="danger"
-                    disabled={
-                      busy ||
-                      !canRecover ||
-                      !client.deadLetterJob ||
-                      !['QUEUED', 'RETRYING', 'FAILED'].includes(job.status) ||
-                      jobRecoveryReason.trim().length < 3
-                    }
-                    onClick={() =>
-                      void run(async () => {
-                        if (!client.deadLetterJob) return;
-                        const result = await client.deadLetterJob(job.id, jobRecoveryReason.trim());
-                        setJobPage((current) =>
-                          current
-                            ? {
-                                ...current,
-                                items: current.items.map((item) =>
-                                  item.id === job.id
-                                    ? { ...item, status: result.status as typeof item.status }
-                                    : item,
-                                ),
-                              }
-                            : current,
-                        );
-                      }, 'Job ditandai gagal permanen (antrean gagal).')
-                    }
-                  >
-                    Tandai gagal
-                  </Button>
-                </div>
-              ),
-            },
-          ]}
-          mobileCard={(job) => (
-            <div>
-              <div className="flex items-center justify-between">
-                <Badge
-                  tone={
-                    job.status === 'SUCCEEDED'
-                      ? 'success'
-                      : job.status === 'FAILED'
-                        ? 'danger'
-                        : 'warning'
-                  }
-                >
-                  {statusLabel[job.status] ?? 'Status tidak dikenal'}
-                </Badge>
-                <span className="text-xs text-dd-muted">
-                  {job.attemptCount}/{job.maxAttempts ?? '—'} percobaan
-                </span>
-              </div>
-              <p className="mt-3 text-sm">Due {job.dueAt.toLocaleString('id-ID')}</p>
-              {job.lastErrorCode && (
-                <p className="mt-1 text-xs text-dd-danger">{safeFailureLabel(job.lastErrorCode)}</p>
-              )}
-              <Button
-                className="mt-4 w-full"
-                variant="secondary"
-                disabled={busy || job.status === 'SUCCEEDED' || !canRecover}
-                onClick={() =>
-                  void run(async () => {
-                    await client.run(job);
-                    setJobPage((current) =>
-                      current
-                        ? {
-                            ...current,
-                            items: current.items.map((item) =>
-                              item.id === job.id
-                                ? { ...item, status: 'SUCCEEDED', progress: 100 }
-                                : item,
-                            ),
-                          }
-                        : current,
-                    );
-                  }, 'Evaluasi selesai.')
-                }
-              >
-                Jalankan pemulihan
-              </Button>
-            </div>
-          )}
-        />
-      )}
-      <Pagination
-        hasPrevious={jobCursorHistory.length > 0}
-        hasNext={Boolean(jobPage?.page.nextCursor)}
-        currentPage={jobCursorHistory.length + 1}
-        onPrevious={() => {
-          const history = [...jobCursorHistory];
-          setJobCursor(history.pop());
-          setJobCursorHistory(history);
-        }}
-        onNext={() => {
-          const next = jobPage?.page.nextCursor;
-          if (!next) return;
-          setJobCursorHistory((current) => [...current, jobCursor]);
-          setJobCursor(next);
-        }}
-      />
       <Panel className="p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

@@ -18,12 +18,6 @@ const HTTP_VERBS = ['Get', 'Post', 'Put', 'Patch', 'Delete'] as const;
 /** Path (awalan) yang sengaja belum punya rute API. Tiap entri wajib beralasan. */
 const KNOWN_MISSING: Array<{ prefix: string; method?: string; reason: string }> = [
   {
-    prefix: '/operations/jobs/${job.id}/run-quota-evaluation',
-    method: 'POST',
-    reason:
-      'Tombol "jalankan evaluasi kuota" memanggil /operations/jobs/:id/run-quota-evaluation, sedangkan API menyediakan /operations/quota-evaluations/:id/run; belum diselaraskan.',
-  },
-  {
     prefix: '/data-import',
     reason: 'Halaman Import Data dormant (tidak ada di navigasi) dan API impornya belum dibuat.',
   },

@@ -1,37 +1,6 @@
 import { appLoading } from '../components/app-loading';
 import { notifySessionFailure } from './session-client';
 
-export type OperationalJobStatus = 'QUEUED' | 'RUNNING' | 'RETRYING' | 'SUCCEEDED' | 'FAILED' | 'DEAD_LETTER';
-
-export interface OperationalJob {
-  id: string;
-  type: string;
-  status: OperationalJobStatus;
-  attemptCount: number;
-  maxAttempts: number;
-  progress: number;
-  dueAt: Date;
-  nextAttemptAt: Date;
-  leaseExpiresAt?: Date | null;
-  lastErrorCode?: string | null;
-  createdAt: Date;
-  version: number;
-}
-
-export interface OperationalJobPage {
-  items: OperationalJob[];
-  page: { nextCursor?: string | null; hasMore: boolean };
-}
-
-export interface OperationalJobResult {
-  id: string;
-  jobId?: string;
-  status: string;
-  attemptCount: number;
-  maxAttempts: number;
-  nextAttemptAt?: Date | null;
-}
-
 export interface NotificationDeliveryMetrics {
   totalCount: number;
   pendingCount: number;
@@ -76,23 +45,7 @@ export interface NotificationRetryResult {
   nextAttemptAt?: Date | null;
 }
 
-export interface QuotaEvaluationResult {
-  classSlotId: string;
-  previousStatus: string;
-  status: 'CONFIRMED' | 'AUTO_CANCELLED' | string;
-  bookingCount: number;
-  minimumQuota: number;
-  releasedReservationIds?: string[];
-  outboxEventIds?: string[];
-  evaluatedAt: Date;
-  idempotentReplay: boolean;
-}
-
 export interface OperationsClient {
-  list(status?: string, cursor?: string): Promise<OperationalJobPage>;
-  run(job: OperationalJob): Promise<QuotaEvaluationResult>;
-  retryJob?(id: string, reason: string): Promise<OperationalJobResult>;
-  deadLetterJob?(id: string, reason: string): Promise<OperationalJobResult>;
   listEmails?(status?: string, cursor?: string): Promise<NotificationOccurrencePage>;
   retryEmail?(id: string, reason: string): Promise<NotificationRetryResult>;
 }
@@ -125,69 +78,6 @@ async function operationsFetch<T>(path: string, init?: RequestInit): Promise<T> 
 }
 
 export const browserOperationsClient: OperationsClient = {
-  async list(status, cursor) {
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    if (cursor) params.set('cursor', cursor);
-    const qs = params.toString() ? `?${params.toString()}` : '';
-
-    const page = await appLoading.track(
-      operationsFetch<any>(`/operations/jobs${qs}`),
-      { label: 'Memuat operasional…' },
-    );
-
-    return {
-      items: (page.items || []).map((job: any) => ({
-        ...job,
-        dueAt: new Date(job.dueAt),
-        nextAttemptAt: new Date(job.nextAttemptAt),
-        leaseExpiresAt: job.leaseExpiresAt ? new Date(job.leaseExpiresAt) : null,
-        createdAt: new Date(job.createdAt),
-      })),
-      page: page.page || { nextCursor: null, hasMore: false },
-    };
-  },
-  async run(job) {
-    const result = await appLoading.track(
-      operationsFetch<any>(`/operations/jobs/${job.id}/run-quota-evaluation`, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({
-          expectedDueAt: job.dueAt instanceof Date ? job.dueAt.toISOString() : job.dueAt,
-          expectedVersion: job.version,
-        }),
-      }),
-      { label: 'Menjalankan pemulihan…' },
-    );
-    return {
-      ...result,
-      evaluatedAt: new Date(result.evaluatedAt),
-    };
-  },
-  async retryJob(id, reason) {
-    const result = await appLoading.track(
-      operationsFetch<any>(`/operations/jobs/${id}/retry`, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({ reason }),
-      }),
-      { label: 'Menjadwalkan ulang job…' },
-    );
-    return {
-      ...result,
-      nextAttemptAt: result.nextAttemptAt ? new Date(result.nextAttemptAt) : null,
-    };
-  },
-  async deadLetterJob(id, reason) {
-    return appLoading.track(
-      operationsFetch<OperationalJobResult>(`/operations/jobs/${id}/dead-letter`, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({ reason }),
-      }),
-      { label: 'Memindahkan job ke dead-letter…' },
-    );
-  },
   async listEmails(status, cursor) {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
@@ -236,13 +126,13 @@ export const browserOperationsClient: OperationsClient = {
   },
 };
 
+/** Pesan Indonesia untuk kegagalan permintaan Operasi. */
 export function operationsFailure(error: unknown) {
   notifySessionFailure(error);
   const status = (error as { response?: { status?: number } })?.response?.status;
-  if (status === 403) return 'FORBIDDEN';
-  if (status === 404) return 'RESOURCE_NOT_FOUND';
-  if (status === 409) return 'NOT_DUE_STARTED_OR_STALE';
-  if (status === 423) return 'JOB_LOCKED';
-  if (status === 503) return 'CONFIGURATION_REQUIRED';
-  return 'OFFLINE_OR_REQUEST_FAILED';
+  if (status === 403) return 'Anda tidak memiliki izin untuk tindakan ini.';
+  if (status === 404) return 'Data tidak ditemukan. Muat ulang halaman.';
+  if (status === 409) return 'Data sudah berubah atau belum waktunya. Muat ulang lalu coba lagi.';
+  if (status === 503) return 'Layanan belum dikonfigurasi. Hubungi administrator sistem.';
+  return 'Permintaan belum berhasil. Periksa koneksi lalu coba lagi.';
 }
