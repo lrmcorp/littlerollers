@@ -2,9 +2,39 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid } from './public-query.validation';
+import { PackagePricingService } from '../packages/kalkulasi-harga-paket.service';
+
+type Priced = ReturnType<PackagePricingService['calculate']>;
+
+/** Bentuk harga yang dibaca katalog publik; sama untuk daftar dan detail. */
+function publicPricing(priceRp: number, priced: Priced) {
+  const promotion = priced.promotion
+    ? {
+        id: priced.promotion.id,
+        name: priced.promotion.name,
+        label: priced.promotion.label,
+        discountType: priced.promotion.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+        discountValue: priced.promotion.discountValue,
+        discountRp: priced.promotion.discountRp,
+        promotionalPriceRp: priced.promotion.promotionalPriceRp,
+        activeFrom: priced.promotion.activeFrom.toISOString(),
+        activeUntil: priced.promotion.activeUntil.toISOString(),
+        version: priced.promotion.version,
+      }
+    : null;
+  return {
+    isDiscounted: Boolean(promotion),
+    discountedPriceRp: priced.effectivePriceRp,
+    discountPercent: promotion ? Math.round((promotion.discountRp / priceRp) * 100) : 0,
+    effectivePriceRp: priced.effectivePriceRp,
+    promotion,
+  };
+}
 
 @Injectable()
 export class PublicPackageQueryService {
+  private readonly pricing = new PackagePricingService();
+
   constructor(private readonly db: PrismaService) {}
 
   async list(branchId?: string) {
@@ -69,6 +99,10 @@ export class PublicPackageQueryService {
       }
     }
 
+    const promotions = await this.pricing.activePromotions(
+      this.db,
+      packages.map((pkg) => pkg.id),
+    );
     const items = packages.map((pkg: any) => {
       const classTypes =
         pkg.classTypeScopes?.map((s: any) => s.classType) ||
@@ -82,10 +116,7 @@ export class PublicPackageQueryService {
         branchId: branch?.id ?? branchId ?? '',
         classType: classTypes[0] ?? pkg.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' },
         classTypes,
-        isDiscounted: false,
-        discountedPriceRp: pkg.priceRp,
-        discountPercent: 0,
-        effectivePriceRp: pkg.priceRp,
+        ...publicPricing(pkg.priceRp, this.pricing.calculate(pkg.priceRp, promotions.get(pkg.id))),
         branch,
       };
     });
@@ -186,6 +217,11 @@ export class PublicPackageQueryService {
 
     const classType = item.classType ?? { id: 'all', code: 'ALL', name: 'Semua Kelas' };
     const classTypes = [classType];
+    const priced = this.pricing.calculate(
+      item.priceRp,
+      await this.pricing.activePromotion(this.db, item.id, now),
+      now,
+    );
 
     return {
       id: item.id,
@@ -209,11 +245,8 @@ export class PublicPackageQueryService {
       branch,
       classType,
       classTypes,
-      isDiscounted: false,
-      discountedPriceRp: item.priceRp,
-      discountPercent: 0,
-      effectivePriceRp: item.priceRp,
-      pricePerSessionRp: Math.round(item.priceRp / item.sessionCount),
+      ...publicPricing(item.priceRp, priced),
+      pricePerSessionRp: Math.round(priced.effectivePriceRp / item.sessionCount),
       schedules: schedules.map(({ bookedCount, ...schedule }) => ({
         ...schedule,
         timezone: branch.timezone,

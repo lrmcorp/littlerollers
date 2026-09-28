@@ -208,3 +208,37 @@ export const browserPackagePromotionClient = {
     return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
 };
+
+const promotionMessages: Record<string, string> = {
+  PROMOTION_OVERLAP:
+    'Sudah ada promo aktif pada paket ini di periode yang sama. Ubah periode atau jeda promo yang lain terlebih dahulu.',
+  PROMOTION_EXPIRED: 'Periode promo ini sudah berakhir dan tidak dapat diaktifkan lagi.',
+  STALE_VERSION: 'Promo ini diubah orang lain. Muat ulang halaman lalu ulangi perubahan Anda.',
+  INVALID_STATE: 'Status promo tidak mengizinkan perubahan ini (mis. sudah diarsipkan).',
+  FORBIDDEN: 'Anda tidak memiliki izin mengelola promo paket.',
+  RESOURCE_NOT_FOUND: 'Promo atau paket tidak ditemukan.',
+};
+
+/** Pesan Indonesia untuk kegagalan promo; membaca kode dari respons problem-details. */
+export async function promotionFailure(error: unknown, fallback: string): Promise<string> {
+  const response = (error as { response?: Response })?.response;
+  if (!response) return fallback;
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => ({}))) as {
+    error?: { code?: string; details?: Array<{ field?: string; issue?: string }> };
+  };
+  const code = body.error?.code;
+  const issue = body.error?.details?.[0]?.issue;
+  if (code === 'VALIDATION_ERROR') {
+    if (issue === 'TOO_LARGE') return 'Nilai diskon terlalu besar (persen maks. 90; nominal harus di bawah harga paket).';
+    if (issue === 'BEFORE_START') return 'Tanggal berakhir harus setelah tanggal mulai.';
+    if (issue === 'IN_THE_PAST') return 'Tanggal berakhir promo sudah lewat.';
+    return 'Isian promo belum valid. Periksa nama, nilai diskon, dan periode.';
+  }
+  if (code && promotionMessages[code]) return promotionMessages[code]!;
+  if (response.status === 403) return promotionMessages.FORBIDDEN!;
+  if (response.status === 404) return promotionMessages.RESOURCE_NOT_FOUND!;
+  return fallback;
+}

@@ -11,6 +11,7 @@ describe('PublicPackageQueryService', () => {
           { id: branchId, code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' },
         ]),
     },
+    packagePromotion: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn().mockResolvedValue(null) },
     paket: {
       findMany: jest.fn().mockResolvedValue([
         {
@@ -132,5 +133,43 @@ describe('PublicPackageQueryService', () => {
     await expect(service.list('00000000-0000-4000-8000-000000000099')).rejects.toMatchObject({
       code: 'RESOURCE_NOT_FOUND',
     });
+  });
+
+  it('shows the promotional price when a promotion is live for the package', async () => {
+    const now = Date.now();
+    db.packagePromotion.findMany.mockResolvedValueOnce([
+      {
+        id: 'promo-1',
+        packageId: '00000000-0000-4000-8000-000000000004',
+        name: 'Promo Akhir Tahun',
+        label: 'Hemat 20%',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        activeFrom: new Date(now - 3_600_000),
+        activeUntil: new Date(now + 3_600_000),
+        version: 2,
+      },
+    ]);
+    const result = await service.list(branchId);
+    expect(result.items[0]).toMatchObject({
+      priceRp: 1200000,
+      effectivePriceRp: 960000,
+      discountedPriceRp: 960000,
+      isDiscounted: true,
+      discountPercent: 20,
+      promotion: {
+        id: 'promo-1',
+        label: 'Hemat 20%',
+        discountType: 'PERCENTAGE',
+        discountRp: 240000,
+        promotionalPriceRp: 960000,
+        version: 2,
+      },
+    });
+    expect(db.packagePromotion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'ACTIVE', packageId: { in: expect.any(Array) } }),
+      }),
+    );
   });
 });

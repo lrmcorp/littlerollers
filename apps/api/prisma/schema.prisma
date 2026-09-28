@@ -82,6 +82,17 @@ enum CustomerPackageStatus {
   FROZEN
 }
 
+enum PromotionDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum PromotionStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum NotificationTemplateStatus {
   DRAFT
   PUBLISHED
@@ -369,6 +380,7 @@ model Paket {
   classType        JenisKelas?      @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
   purchases        Pembelian[]
   customerPackages PaketPelanggan[]
+  promotions       PackagePromotion[]
 
   @@index([status, classTypeId])
   @@index([branchId])
@@ -395,6 +407,10 @@ model Pembelian {
   // Penjualan manual di meja: staf pencatat (tidak boleh menyetujui catatannya sendiri) dan catatannya.
   recordedById     String?        @db.Char(36)
   recordNote       String?        @db.VarChar(255)
+  /// Promosi paket yang berlaku saat pesanan dibuat (snapshot; diskonnya sudah termasuk dalam discountRp).
+  promotionId         String?     @db.Char(36)
+  promotionName       String?     @db.VarChar(80)
+  promotionDiscountRp Int         @default(0)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -408,6 +424,7 @@ model Pembelian {
 
   @@index([userId, status])
   @@index([branchId, status, createdAt])
+  @@index([promotionId])
   @@map("pembelian")
 }
 
@@ -959,4 +976,27 @@ model NotificationTemplate {
   @@unique([templateKey, channel, version])
   @@index([templateKey, channel, status])
   @@map("notification_template")
+}
+
+/// Promosi harga sebuah paket dalam rentang waktu. Hanya satu promosi ACTIVE yang boleh berlaku pada
+/// satu paket di waktu yang sama; `version` dipakai klaim optimistik saat ubah atau ganti status.
+model PackagePromotion {
+  id            String                @id @default(uuid()) @db.Char(36)
+  packageId     String                @db.Char(36)
+  name          String                @db.VarChar(80)
+  label         String                @db.VarChar(40)
+  discountType  PromotionDiscountType
+  discountValue Int
+  activeFrom    DateTime
+  activeUntil   DateTime
+  status        PromotionStatus       @default(ACTIVE)
+  version       Int                   @default(1)
+  createdById   String?               @db.Char(36)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  package Paket @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId, status, activeFrom, activeUntil])
+  @@map("package_promotion")
 }

@@ -103,8 +103,23 @@ export class PackageCatalogService {
     const hasNext = items.length > limit;
     const pageItems = hasNext ? items.slice(0, limit) : items;
 
+    const now = new Date();
+    const live = await this.db.packagePromotion.findMany({
+      where: {
+        packageId: { in: pageItems.map((item) => item.id) },
+        status: 'ACTIVE',
+        activeFrom: { lte: now },
+        activeUntil: { gt: now },
+      },
+      select: { packageId: true },
+    });
+    const livePackageIds = new Set(live.map((item) => item.packageId));
+
     return {
-      items: pageItems.map(packageView),
+      items: pageItems.map((item) => ({
+        ...packageView(item),
+        livePromotion: livePackageIds.has(item.id),
+      })),
       summary: {
         ACTIVE: pageItems.filter((i) => i.status === 'ACTIVE').length,
         SCHEDULED: 0,

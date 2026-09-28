@@ -78,11 +78,17 @@ export class CustomerOrderService {
             code: voucher.code,
             discountType: voucher.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
             discountValue: voucher.discountValue,
-            discountRp: order.discountRp,
+            discountRp: Math.max(0, order.discountRp - (order.promotionDiscountRp ?? 0)),
           }
         : null,
-      promotion: null,
-      promotionalPriceRp: order.subtotalRp,
+      promotion: order.promotionId
+        ? {
+            id: order.promotionId,
+            name: order.promotionName ?? 'Promo paket',
+            discountRp: order.promotionDiscountRp ?? 0,
+          }
+        : null,
+      promotionalPriceRp: order.subtotalRp - (order.promotionDiscountRp ?? 0),
       priceAfterDiscountRp: order.totalAmountRp,
       paymentUniqueCode: 0,
       payableAmountRp: order.totalAmountRp,
@@ -160,15 +166,26 @@ export class CustomerOrderService {
     const classTypes = pkg.classType
       ? [{ id: pkg.classType.id, name: pkg.classType.name }]
       : [];
+    const priced = this.pricing.calculate(
+      pkg.priceRp,
+      await this.pricing.activePromotion(this.db, pkg.id),
+    );
 
     return {
       package: {
         id: pkg.id,
         name: pkg.name,
         priceRp: pkg.priceRp,
-        effectivePriceRp: pkg.priceRp, // no active promotion logic yet
+        effectivePriceRp: priced.effectivePriceRp,
         version: 1,
-        promotion: null,
+        promotion: priced.promotion
+          ? {
+              ...priced.promotion,
+              discountType: priced.promotion.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+              activeFrom: priced.promotion.activeFrom.toISOString(),
+              activeUntil: priced.promotion.activeUntil.toISOString(),
+            }
+          : null,
         sessionCount: pkg.sessionCount,
         durationDays: pkg.validityDays,
         branchId: targetBranch?.id ?? null,
@@ -194,6 +211,8 @@ export class CustomerOrderService {
       branchId: string;
       voucherCode?: string;
       paymentProofId?: string;
+      expectedPromotionId?: string | null;
+      expectedPromotionVersion?: number;
     },
     key: string,
     correlationId: string,
@@ -219,11 +238,24 @@ export class CustomerOrderService {
         if (!branch || !branch.active)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-        const { voucher, discountRp, subtotalRp, totalAmountRp } = await this.priceOrder(
+        const { voucher, discountRp, subtotalRp, totalAmountRp, promotion } = await this.priceOrder(
           tx,
           pkg,
           input.voucherCode,
         );
+        // Harga yang dilihat pelanggan harus sama dengan harga yang ditagih: bila promo berubah sejak
+        // halaman checkout dimuat, minta pelanggan memuat ulang alih-alih menagih harga lain.
+        if (
+          input.expectedPromotionId !== undefined &&
+          (input.expectedPromotionId ?? null) !== (promotion?.id ?? null)
+        )
+          throw new ApiProblem('PROMOTION_CHANGED', HttpStatus.CONFLICT);
+        if (
+          promotion &&
+          input.expectedPromotionVersion !== undefined &&
+          input.expectedPromotionVersion !== promotion.version
+        )
+          throw new ApiProblem('PROMOTION_CHANGED', HttpStatus.CONFLICT);
         const invoiceNumber = newInvoiceNumber();
         const paymentExpiresAt = new Date(Date.now() + 24 * 3_600_000);
 
@@ -240,6 +272,9 @@ export class CustomerOrderService {
             totalAmountRp,
             status: 'PENDING',
             paymentExpiresAt,
+            promotionId: promotion?.id ?? null,
+            promotionName: promotion?.name ?? null,
+            promotionDiscountRp: promotion?.discountRp ?? 0,
           },
           include: {
             package: true,
@@ -440,14 +475,23 @@ export class CustomerOrderService {
     return this.orderView(updated);
   }
 
-  /** Harga pesanan: harga paket dikurangi voucher (bila valid). Dipakai pesanan pelanggan dan penjualan manual. */
+  /**
+   * Harga pesanan: harga daftar dikurangi promosi paket yang sedang berlaku, lalu voucher (bila valid).
+   * Voucher dihitung dari harga setelah promosi, termasuk syarat belanja minimumnya.
+   * Dipakai pesanan pelanggan dan penjualan manual.
+   */
   private async priceOrder(
     tx: Prisma.TransactionClient,
-    pkg: { priceRp: number },
+    pkg: { id: string; priceRp: number },
     voucherCode?: string,
   ) {
+    const promoted = this.pricing.calculate(pkg.priceRp, await this.pricing.activePromotion(tx, pkg.id));
+    const promotion = promoted.promotion;
+    const promotionDiscountRp = promotion?.discountRp ?? 0;
+    const basisRp = promoted.effectivePriceRp;
+
     let voucher = null;
-    let discountRp = 0;
+    let voucherDiscountRp = 0;
     if (voucherCode?.trim()) {
       const code = normalizeVoucherCode(voucherCode);
       const v = await tx.voucher.findFirst({
@@ -457,10 +501,10 @@ export class CustomerOrderService {
           OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
         },
       });
-      if (v && pkg.priceRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
+      if (v && basisRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
         voucher = v;
-        discountRp = calculateVoucherDiscount({
-          priceRp: pkg.priceRp,
+        voucherDiscountRp = calculateVoucherDiscount({
+          priceRp: basisRp,
           discountType: v.discountType,
           discountValue: v.discountValue,
           maxDiscountRp: v.maxDiscountRp,
@@ -468,7 +512,16 @@ export class CustomerOrderService {
       }
     }
     const subtotalRp = pkg.priceRp;
-    return { voucher, discountRp, subtotalRp, totalAmountRp: Math.max(0, subtotalRp - discountRp) };
+    const discountRp = promotionDiscountRp + voucherDiscountRp;
+    return {
+      voucher,
+      discountRp,
+      subtotalRp,
+      totalAmountRp: Math.max(0, subtotalRp - discountRp),
+      promotion: promotion
+        ? { id: promotion.id, name: promotion.name, version: promotion.version, discountRp: promotionDiscountRp }
+        : null,
+    };
   }
 
   /**
@@ -541,7 +594,7 @@ export class CustomerOrderService {
         if (pkg.branchId && pkg.branchId !== branchId)
           throw new ApiProblem('PACKAGE_BRANCH_MISMATCH', HttpStatus.UNPROCESSABLE_ENTITY);
 
-        const { voucher, discountRp, subtotalRp, totalAmountRp } = await this.priceOrder(
+        const { voucher, discountRp, subtotalRp, totalAmountRp, promotion } = await this.priceOrder(
           tx,
           pkg,
           input.voucherCode,
@@ -567,6 +620,9 @@ export class CustomerOrderService {
             paymentExpiresAt: null,
             recordedById: principal.userId,
             recordNote: note,
+            promotionId: promotion?.id ?? null,
+            promotionName: promotion?.name ?? null,
+            promotionDiscountRp: promotion?.discountRp ?? 0,
           },
           include: {
             package: true,

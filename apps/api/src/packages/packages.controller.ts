@@ -149,33 +149,42 @@ export class PackagesController {
   ) {
     return this.promotions.list(r.principal, id, cursor, limit);
   }
-  @Post('packages/:id/promotions') createPackagePromotion(
+  @Post('packages/:id/promotions') async createPackagePromotion(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
     @Body() body: any,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.promotions.create(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    const result = await this.promotions.create(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    response.status(result.status);
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return result.body;
   }
-  @Patch('package-promotions/:id') updatePackagePromotion(
+  @Patch('package-promotions/:id') async updatePackagePromotion(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
     @Body() body: any,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.promotions.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    const result = await this.promotions.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    response.status(result.status);
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return result.body;
   }
-  @Post('package-promotions/:id/:action') transitionPackagePromotion(
+  @Post('package-promotions/:id/:action') @HttpCode(200) async transitionPackagePromotion(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('action') action: 'activate' | 'pause' | 'archive',
     @Headers('idempotency-key') key: string,
     @Body() body: { expectedVersion: number; reason: string },
+    @Res({ passthrough: true }) response: Response,
   ) {
     const statuses = { activate: 'ACTIVE', pause: 'PAUSED', archive: 'ARCHIVED' } as const;
     const status = statuses[action];
     if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    return this.promotions.transition(
+    const result = await this.promotions.transition(
       r.principal,
       id,
       status,
@@ -183,6 +192,9 @@ export class PackagesController {
       key,
       r.correlationId ?? 'unknown',
     );
+    response.status(result.status);
+    response.setHeader('Idempotency-Replayed', String(result.replay));
+    return result.body;
   }
   @Get('package-promotions/:id/orders') packagePromotionOrders(
     @Req() r: AuthenticatedRequest,

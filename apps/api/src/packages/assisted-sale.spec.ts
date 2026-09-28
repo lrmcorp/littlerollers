@@ -1,5 +1,6 @@
 import { PolicyService } from '../identity/policy.service';
 import { PackageAccessService } from './package-access.service';
+import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import { CustomerOrderService } from './pembelian-paket.service';
 import { PaymentReviewService } from './verifikasi-pembayaran.service';
 
@@ -31,7 +32,12 @@ const packageRow = (overrides: Record<string, unknown> = {}) => ({
 });
 
 function setup(
-  options: { customer?: Record<string, unknown> | null; pkg?: Record<string, unknown> | null; voucher?: Record<string, unknown> | null } = {},
+  options: {
+    customer?: Record<string, unknown> | null;
+    pkg?: Record<string, unknown> | null;
+    voucher?: Record<string, unknown> | null;
+    promotion?: Record<string, unknown> | null;
+  } = {},
 ) {
   const created: Array<Record<string, any>> = [];
   const tx = {
@@ -50,6 +56,7 @@ function setup(
         .fn()
         .mockResolvedValue(options.pkg === undefined ? packageRow() : options.pkg),
     },
+    packagePromotion: { findFirst: jest.fn().mockResolvedValue(options.promotion ?? null) },
     voucher: {
       findFirst: jest.fn().mockResolvedValue(options.voucher ?? null),
       update: jest.fn().mockResolvedValue({}),
@@ -73,7 +80,7 @@ function setup(
   const service = new CustomerOrderService(
     {} as never,
     access,
-    {} as never,
+    new PackagePricingService(),
     {} as never,
     idempotency as never,
     {} as never,
@@ -287,5 +294,57 @@ describe('approving a purchase: separation of duties', () => {
         data: expect.objectContaining({ type: 'PURCHASE', amount: 8, createdById: id(200) }),
       }),
     );
+  });
+});
+
+describe('assisted sale with a live package promotion', () => {
+  const promotion = {
+    id: id(80),
+    name: 'Promo Kemerdekaan',
+    label: 'Hemat 10%',
+    discountType: 'PERCENTAGE',
+    discountValue: 10,
+    activeFrom: new Date(Date.now() - 86_400_000),
+    activeUntil: new Date(Date.now() + 86_400_000),
+    version: 3,
+  };
+
+  it('bills the promotional price and snapshots the promotion on the purchase', async () => {
+    const { service, created } = setup({ promotion });
+    await service.recordAssistedSale(admin, input(), 'key-12345', 'c');
+    expect(created[0]).toMatchObject({
+      subtotalRp: 1_000_000,
+      discountRp: 100_000,
+      totalAmountRp: 900_000,
+      promotionId: promotion.id,
+      promotionName: 'Promo Kemerdekaan',
+      promotionDiscountRp: 100_000,
+    });
+  });
+
+  it('applies the voucher on the promotional price, and the minimum spend is checked against it', async () => {
+    const voucher = {
+      id: id(50),
+      code: 'HEMAT',
+      active: true,
+      discountType: 'PERCENTAGE',
+      discountValue: 10,
+      maxDiscountRp: null,
+      minSpendRp: 0,
+      quota: null,
+      usedCount: 0,
+    };
+    const stacked = setup({ promotion, voucher });
+    await stacked.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c');
+    // 10% promo = 100.000 -> 900.000; voucher 10% of 900.000 = 90.000
+    expect(stacked.created[0]).toMatchObject({
+      discountRp: 190_000,
+      totalAmountRp: 810_000,
+      promotionDiscountRp: 100_000,
+    });
+    const minimum = setup({ promotion, voucher: { ...voucher, minSpendRp: 950_000 } });
+    await expect(
+      minimum.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c'),
+    ).rejects.toMatchObject({ code: 'VOUCHER_NOT_APPLICABLE' });
   });
 });

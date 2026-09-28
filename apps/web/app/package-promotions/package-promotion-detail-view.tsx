@@ -11,6 +11,7 @@ import { Skeleton } from '../ui';
 import { useSessionContext } from '../session-context';
 import {
   browserPackagePromotionClient,
+  promotionFailure,
   type InternalPackageRecord,
   type PackagePromotionRecord,
   type PackagePromotionPage,
@@ -118,11 +119,11 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
         title: 'Status promo diperbarui',
         message: 'Perubahan tercatat pada audit trail.',
       });
-    } catch {
+    } catch (cause) {
       feedback.showAlert({
         tone: 'danger',
         title: 'Perubahan belum tersimpan',
-        message: 'Muat ulang detail promo lalu coba kembali.',
+        message: await promotionFailure(cause, 'Muat ulang detail promo lalu coba kembali.'),
       });
     } finally {
       setBusy(false);
@@ -1055,8 +1056,13 @@ function PromotionEditor({
             else await browserPackagePromotionClient.create(pkg.id, command);
             setDirty(false);
             await onSaved();
-          } catch {
-            setFailure('Konfigurasi promo tidak dapat disimpan. Periksa periode dan coba kembali.');
+          } catch (cause) {
+            setFailure(
+              await promotionFailure(
+                cause,
+                'Konfigurasi promo tidak dapat disimpan. Periksa periode dan coba kembali.',
+              ),
+            );
           } finally {
             setBusy(false);
           }

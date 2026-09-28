@@ -59,14 +59,57 @@ export function calculatePackagePromotion(input: {
   };
 }
 
+type PricingClient = Pick<Prisma.TransactionClient, 'packagePromotion'>;
+
+const toSource = (row: {
+  id: string;
+  name: string;
+  label: string;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  activeFrom: Date;
+  activeUntil: Date;
+  version: number;
+}): PromotionPricingSource => ({ ...row, status: 'ACTIVE' });
+
 @Injectable()
 export class PackagePricingService {
+  /** Promosi ACTIVE yang sedang berlaku pada paket (paling akhir dimulai bila ada lebih dari satu). */
   async activePromotion(
-    _client: Prisma.TransactionClient,
-    _packageId: string,
-    _now = new Date(),
+    client: PricingClient,
+    packageId: string,
+    now = new Date(),
   ): Promise<PromotionPricingSource | null> {
-    return null;
+    const row = await client.packagePromotion.findFirst({
+      where: {
+        packageId,
+        status: 'ACTIVE',
+        activeFrom: { lte: now },
+        activeUntil: { gt: now },
+      },
+      orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+    });
+    return row ? toSource(row) : null;
+  }
+
+  /** Sama seperti `activePromotion` untuk banyak paket sekaligus (satu query). */
+  async activePromotions(
+    client: PricingClient,
+    packageIds: string[],
+    now = new Date(),
+  ): Promise<Map<string, PromotionPricingSource>> {
+    if (packageIds.length === 0) return new Map();
+    const rows = await client.packagePromotion.findMany({
+      where: {
+        packageId: { in: packageIds },
+        status: 'ACTIVE',
+        activeFrom: { lte: now },
+        activeUntil: { gt: now },
+      },
+      orderBy: [{ activeFrom: 'asc' }, { id: 'asc' }],
+    });
+    // Urutan menaik: yang paling akhir dimulai menimpa yang lebih awal.
+    return new Map(rows.map((row) => [row.packageId, toSource(row)]));
   }
 
   calculate(priceRp: number, promotion?: PromotionPricingSource | null, now = new Date()) {
@@ -74,7 +117,7 @@ export class PackagePricingService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async promosiAktif(client: Prisma.TransactionClient, packageId: string, now = new Date()) {
+  async promosiAktif(client: PricingClient, packageId: string, now = new Date()) {
     return this.activePromotion(client, packageId, now);
   }
 }

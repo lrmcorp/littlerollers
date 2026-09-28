@@ -501,6 +501,8 @@ export function orderErrorDetails(error: unknown) {
     RESOURCE_NOT_FOUND: 'Data pesanan atau paket tidak ditemukan.',
     CONFLICT: 'Data berubah. Muat ulang halaman lalu coba kembali.',
     VERSION_CONFLICT: 'Pesanan telah berubah. Muat ulang halaman lalu coba kembali.',
+    PROMOTION_CHANGED:
+      'Harga promo paket berubah sejak halaman ini dimuat. Muat ulang halaman untuk melihat harga terbaru.',
   };
   return {
     code,

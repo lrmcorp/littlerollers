@@ -474,13 +474,16 @@ export class VoucherService {
     });
 
     if (!voucher) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (pkg.priceRp < voucher.minSpendRp)
+    // Voucher dihitung dari harga setelah promosi paket, sama seperti saat pesanan dibuat.
+    const promoted = this.pricing.calculate(pkg.priceRp, await this.pricing.activePromotion(this.db, pkg.id));
+    const baseRp = promoted.effectivePriceRp;
+    if (baseRp < voucher.minSpendRp)
       throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
     if (voucher.quota !== null && voucher.usedCount >= voucher.quota)
       throw new ApiProblem('VOUCHER_EXHAUSTED', HttpStatus.UNPROCESSABLE_ENTITY);
 
     const discountRp = calculateVoucherDiscount({
-      priceRp: pkg.priceRp,
+      priceRp: baseRp,
       discountType: voucher.discountType,
       discountValue: voucher.discountValue,
       maxDiscountRp: voucher.maxDiscountRp,
@@ -494,7 +497,9 @@ export class VoucherService {
       discountType: voucher.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
       discountValue: voucher.discountValue,
       discountRp,
-      finalPriceRp: pkg.priceRp - discountRp,
+      packagePriceRp: pkg.priceRp,
+      baseAmountRp: baseRp,
+      finalPriceRp: baseRp - discountRp,
       packageId: pkg.id,
       voucher: this.view(voucher),
     };

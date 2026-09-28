@@ -4,24 +4,85 @@ import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
-import { ApiProblem, newId } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
-import {
-  calculatePackagePromotion,
-  promotionEffectiveState,
-  type PromotionPricingSource,
-} from './kalkulasi-harga-paket.service';
+import { calculatePackagePromotion, promotionEffectiveState } from './kalkulasi-harga-paket.service';
 
 export type PackagePromotionStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
-export type VoucherDiscountType = 'PERCENTAGE' | 'FIXED' | 'FIXED_AMOUNT';
+export type PromotionDiscountKind = 'PERCENTAGE' | 'FIXED' | 'FIXED_AMOUNT';
 
 type PromotionCommand = {
   name: string;
-  label: string;
-  discountType: VoucherDiscountType;
+  label?: string;
+  discountType: PromotionDiscountKind;
   discountValue: number;
   activeFrom: string;
   activeUntil: string;
+};
+
+type Fields = {
+  name: string;
+  label: string;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  activeFrom: Date;
+  activeUntil: Date;
+};
+
+const PAGE_SIZE = 20;
+const MAX_PERCENT = 90;
+
+const invalid = (field: string, issue = 'INVALID') =>
+  new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [{ field, issue }]);
+
+function parseDate(value: unknown, field: string) {
+  const date = typeof value === 'string' || value instanceof Date ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime())) throw invalid(field, 'INVALID_DATE');
+  return date;
+}
+
+/** Validasi + normalisasi isi promosi terhadap harga paket; `current` melengkapi field yang tidak dikirim. */
+function resolveFields(
+  input: Partial<PromotionCommand>,
+  priceRp: number,
+  current?: Fields,
+  now = new Date(),
+): Fields {
+  const name = (input.name ?? current?.name ?? '').toString().trim();
+  if (name.length < 2 || name.length > 80) throw invalid('name');
+  const label = (input.label ?? current?.label ?? name).toString().trim().slice(0, 40) || name.slice(0, 40);
+
+  const rawType = input.discountType ?? current?.discountType;
+  const discountType =
+    rawType === 'PERCENTAGE' ? 'PERCENTAGE' : rawType === 'FIXED' || rawType === 'FIXED_AMOUNT' ? 'FIXED_AMOUNT' : null;
+  if (!discountType) throw invalid('discountType');
+  const discountValue = input.discountValue ?? current?.discountValue;
+  if (!Number.isInteger(discountValue) || discountValue! < 1) throw invalid('discountValue');
+  if (discountType === 'PERCENTAGE' && discountValue! > MAX_PERCENT) throw invalid('discountValue', 'TOO_LARGE');
+  if (discountType === 'FIXED_AMOUNT' && discountValue! >= priceRp) throw invalid('discountValue', 'TOO_LARGE');
+
+  const activeFrom = input.activeFrom !== undefined ? parseDate(input.activeFrom, 'activeFrom') : current?.activeFrom;
+  const activeUntil =
+    input.activeUntil !== undefined ? parseDate(input.activeUntil, 'activeUntil') : current?.activeUntil;
+  if (!activeFrom) throw invalid('activeFrom', 'REQUIRED');
+  if (!activeUntil) throw invalid('activeUntil', 'REQUIRED');
+  if (activeFrom >= activeUntil) throw invalid('activeUntil', 'BEFORE_START');
+  if (activeUntil <= now) throw invalid('activeUntil', 'IN_THE_PAST');
+
+  return { name, label, discountType, discountValue: discountValue!, activeFrom, activeUntil };
+}
+
+type PromotionRow = {
+  id: string;
+  packageId: string;
+  name: string;
+  label: string;
+  status: PackagePromotionStatus;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  activeFrom: Date;
+  activeUntil: Date;
+  version: number;
 };
 
 @Injectable()
@@ -46,9 +107,46 @@ export class PackagePromotionService {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }
 
+  private view(row: PromotionRow, priceRp: number, usageCount = 0) {
+    const calculated = calculatePackagePromotion({
+      priceRp,
+      promotion: { ...row, status: 'ACTIVE' },
+      now: row.activeFrom, // hitung nilai diskon terlepas dari status waktu
+    });
+    const discountRp = calculated.promotion?.discountRp ?? 0;
+    return {
+      id: row.id,
+      packageId: row.packageId,
+      name: row.name,
+      label: row.label,
+      status: row.status,
+      effectiveState: promotionEffectiveState(row),
+      discountType: row.discountType,
+      discountValue: row.discountValue,
+      discountRp,
+      promotionalPriceRp: priceRp - discountRp,
+      activeFrom: row.activeFrom.toISOString(),
+      activeUntil: row.activeUntil.toISOString(),
+      version: row.version,
+      usageCount,
+    };
+  }
+
+  private async usageCounts(ids: string[]) {
+    if (ids.length === 0) return new Map<string, number>();
+    const grouped = await this.db.pembelian.groupBy({
+      by: ['promotionId'],
+      where: { promotionId: { in: ids } },
+      _count: { _all: true },
+    });
+    return new Map(grouped.map((entry) => [entry.promotionId as string, entry._count._all]));
+  }
+
   private async packageOrThrow(principal: SessionPrincipal, packageId: string, manage = false) {
     if (manage) this.requireManage(principal);
     else this.requireRead(principal);
+    if (!ENTITY_ID_REGEX.test(packageId))
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const pkg = await this.db.paket.findUnique({
       where: { id: packageId },
@@ -61,8 +159,46 @@ export class PackagePromotionService {
     return pkg;
   }
 
+  private async promotionOrThrow(id: string) {
+    if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const row = await this.db.packagePromotion.findUnique({
+      where: { id },
+      include: { package: { select: { priceRp: true } } },
+    });
+    if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    return row;
+  }
+
+  /** Tidak boleh ada dua promosi ACTIVE yang jendela waktunya saling tumpang tindih pada paket yang sama. */
+  private async assertNoOverlap(
+    client: Pick<Prisma.TransactionClient, 'packagePromotion'>,
+    packageId: string,
+    from: Date,
+    until: Date,
+    excludeId?: string,
+  ) {
+    const clash = await client.packagePromotion.findFirst({
+      where: {
+        packageId,
+        status: 'ACTIVE',
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+        activeFrom: { lt: until },
+        activeUntil: { gt: from },
+      },
+      select: { id: true },
+    });
+    if (clash) throw new ApiProblem('PROMOTION_OVERLAP', HttpStatus.CONFLICT);
+  }
+
   async packageDetail(principal: SessionPrincipal, packageId: string) {
     const pkg = await this.packageOrThrow(principal, packageId);
+    const rows = await this.db.packagePromotion.findMany({
+      where: { packageId },
+      orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+      take: 50,
+    });
+    const usage = await this.usageCounts(rows.map((row) => row.id));
+    const promotions = rows.map((row) => this.view(row, pkg.priceRp, usage.get(row.id) ?? 0));
     const detail = {
       id: pkg.id,
       code: pkg.code,
@@ -99,25 +235,23 @@ export class PackagePromotionService {
     return {
       ...detail,
       package: detail,
-      promotions: [],
+      promotions,
       auditActivity: [],
     };
   }
 
-  async list(
-    principal: SessionPrincipal,
-    packageId: string,
-    _cursor?: string,
-    _limit?: string,
-  ) {
-    await this.packageOrThrow(principal, packageId);
+  async list(principal: SessionPrincipal, packageId: string, _cursor?: string, _limit?: string) {
+    const pkg = await this.packageOrThrow(principal, packageId);
+    const rows = await this.db.packagePromotion.findMany({
+      where: { packageId },
+      orderBy: [{ activeFrom: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+    const usage = await this.usageCounts(rows.map((row) => row.id));
     return {
-      items: [],
+      items: rows.map((row) => this.view(row, pkg.priceRp, usage.get(row.id) ?? 0)),
       nextCursor: null,
-      page: {
-        hasMore: false,
-        nextCursor: null,
-      },
+      page: { hasMore: false, nextCursor: null },
     };
   }
 
@@ -129,6 +263,7 @@ export class PackagePromotionService {
     correlationId: string,
   ) {
     const pkg = await this.packageOrThrow(principal, packageId, true);
+    const fields = resolveFields(body ?? {}, pkg.priceRp);
     return this.idempotency.execute(
       {
         scope: `package-promotions:create:${packageId}`,
@@ -137,32 +272,21 @@ export class PackagePromotionService {
         ttlMs: 86400000,
         leaseMs: 30000,
       },
-      async () => {
-        const item = {
-          id: newId(),
-          packageId,
-          name: body.name,
-          label: body.label,
-          discountType: body.discountType,
-          discountValue: body.discountValue,
-          status: 'ACTIVE' as PackagePromotionStatus,
-          activeFrom: new Date(body.activeFrom),
-          activeUntil: new Date(body.activeUntil),
-          version: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          package: pkg,
-        };
+      async (tx) => {
+        await this.assertNoOverlap(tx, packageId, fields.activeFrom, fields.activeUntil);
+        const created = await tx.packagePromotion.create({
+          data: { ...fields, packageId, status: 'ACTIVE', createdById: principal.userId },
+        });
         this.auditService.record({
           action: 'package-promotion.create',
           resourceType: 'PackagePromotion',
-          resourceId: item.id,
+          resourceId: created.id,
           actorUserId: principal.userId,
           correlationId,
         });
         return {
           status: HttpStatus.CREATED,
-          body: item as unknown as Prisma.InputJsonValue,
+          body: this.view(created, pkg.priceRp) as unknown as Prisma.InputJsonValue,
         };
       },
     );
@@ -176,6 +300,17 @@ export class PackagePromotionService {
     correlationId: string,
   ) {
     this.requireManage(principal);
+    if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
+    const current = await this.promotionOrThrow(id);
+    if (current.status === 'ARCHIVED') throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+    const fields = resolveFields(body, current.package.priceRp, {
+      name: current.name,
+      label: current.label,
+      discountType: current.discountType,
+      discountValue: current.discountValue,
+      activeFrom: current.activeFrom,
+      activeUntil: current.activeUntil,
+    });
     return this.idempotency.execute(
       {
         scope: `package-promotions:update:${id}`,
@@ -184,7 +319,15 @@ export class PackagePromotionService {
         ttlMs: 86400000,
         leaseMs: 30000,
       },
-      async () => {
+      async (tx) => {
+        if (current.status === 'ACTIVE')
+          await this.assertNoOverlap(tx, current.packageId, fields.activeFrom, fields.activeUntil, id);
+        const claimed = await tx.packagePromotion.updateMany({
+          where: { id, version: body.expectedVersion, status: { not: 'ARCHIVED' } },
+          data: { ...fields, version: { increment: 1 } },
+        });
+        if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        const updated = await tx.packagePromotion.findUniqueOrThrow({ where: { id } });
         this.auditService.record({
           action: 'package-promotion.update',
           resourceType: 'PackagePromotion',
@@ -194,11 +337,7 @@ export class PackagePromotionService {
         });
         return {
           status: HttpStatus.OK,
-          body: {
-            id,
-            status: 'UPDATED',
-            ...body,
-          } as unknown as Prisma.InputJsonValue,
+          body: this.view(updated, current.package.priceRp) as unknown as Prisma.InputJsonValue,
         };
       },
     );
@@ -213,6 +352,20 @@ export class PackagePromotionService {
     correlationId: string,
   ) {
     this.requireManage(principal);
+    if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
+    const current = await this.promotionOrThrow(id);
+    const allowed: Record<PackagePromotionStatus, PackagePromotionStatus[]> = {
+      ACTIVE: ['PAUSED'],
+      PAUSED: ['ACTIVE'],
+      ARCHIVED: [],
+    };
+    const from = current.status as PackagePromotionStatus;
+    const canArchive = from !== 'ARCHIVED' && status === 'ARCHIVED';
+    if (!canArchive && !allowed[from].includes(status))
+      throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+    if (status === 'ACTIVE' && current.activeUntil <= new Date())
+      throw new ApiProblem('PROMOTION_EXPIRED', HttpStatus.CONFLICT);
+
     return this.idempotency.execute(
       {
         scope: `package-promotions:transition:${id}`,
@@ -221,35 +374,62 @@ export class PackagePromotionService {
         ttlMs: 86400000,
         leaseMs: 30000,
       },
-      async () => {
+      async (tx) => {
+        if (status === 'ACTIVE')
+          await this.assertNoOverlap(tx, current.packageId, current.activeFrom, current.activeUntil, id);
+        const claimed = await tx.packagePromotion.updateMany({
+          where: { id, version: body.expectedVersion, status: from },
+          data: { status, version: { increment: 1 } },
+        });
+        if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+        const updated = await tx.packagePromotion.findUniqueOrThrow({ where: { id } });
         this.auditService.record({
           action: `package-promotion.${status.toLowerCase()}`,
           resourceType: 'PackagePromotion',
           resourceId: id,
           actorUserId: principal.userId,
           correlationId,
+          details: { reason: body.reason?.slice(0, 200) },
         });
         return {
           status: HttpStatus.OK,
-          body: {
-            id,
-            status,
-          } as unknown as Prisma.InputJsonValue,
+          body: this.view(updated, current.package.priceRp) as unknown as Prisma.InputJsonValue,
         };
       },
     );
   }
 
-  async orders(
-    principal: SessionPrincipal,
-    _id: string,
-    _cursor?: string,
-    _limit?: string,
-  ) {
+  async orders(principal: SessionPrincipal, id: string, cursor?: string, limit?: string) {
     this.requireRead(principal);
+    await this.promotionOrThrow(id);
+    const take = Math.min(Math.max(Number(limit) || PAGE_SIZE, 1), 100);
+    const rows = await this.db.pembelian.findMany({
+      where: { promotionId: id },
+      include: {
+        user: { select: { displayName: true } },
+        branch: { select: { id: true, name: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > take;
+    const page = hasMore ? rows.slice(0, take) : rows;
+    const nextCursor = hasMore ? (page.at(-1)?.id ?? null) : null;
     return {
-      items: [],
-      nextCursor: null,
+      items: page.map((row) => ({
+        id: row.id,
+        status: row.status,
+        packagePromotionDiscountRpSnapshot: row.promotionDiscountRp,
+        promotionalPriceRpSnapshot: row.subtotalRp - row.promotionDiscountRp,
+        voucherDiscountRpSnapshot: Math.max(0, row.discountRp - row.promotionDiscountRp),
+        priceAfterDiscountRpSnapshot: row.totalAmountRp,
+        submittedAt: row.createdAt.toISOString(),
+        user: { displayName: row.user.displayName },
+        branch: row.branch,
+      })),
+      nextCursor,
+      page: { hasMore, nextCursor },
     };
   }
 }
