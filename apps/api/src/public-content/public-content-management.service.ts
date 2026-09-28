@@ -1,57 +1,94 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { Prisma, type PublicContent } from '@prisma/client';
+import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, newId } from '../identity/security';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { HERO_CONTENT_KEY, HERO_KIND, validateHeroCarousel } from './hero-carousel.validation';
 
-export interface PublicContentItem {
-  id: string;
-  contentKey: string;
-  branchId: string | null;
-  scopeKey: string;
-  kind: string;
-  locale: string;
-  version: number;
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-  payload: any;
-  createdById: string;
-  createdAt: Date;
-  updatedAt: Date;
-  publishedAt: Date | null;
-  archivedAt: Date | null;
-}
+export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+const GLOBAL_SCOPE = 'GLOBAL';
+const DEFAULT_LOCALE = 'id-ID';
+
+/** Jenis konten yang benar-benar dibaca situs publik. Konten tanpa pembaca tidak boleh disimpan. */
+const SUPPORTED_KINDS: Record<string, { contentKey: string; validate(payload: unknown): unknown }> = {
+  [HERO_KIND]: { contentKey: HERO_CONTENT_KEY, validate: validateHeroCarousel },
+};
+
+const invalid = (field: string, issue = 'INVALID') =>
+  new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [{ field, issue }]);
 
 @Injectable()
 export class PublicContentManagementService {
-  private contentStore: PublicContentItem[] = [];
+  constructor(
+    private readonly db: PrismaService,
+    private readonly policy: PolicyService,
+  ) {}
 
-  constructor(private readonly policy: PolicyService) {}
+  private view(row: PublicContent) {
+    return {
+      id: row.id,
+      contentKey: row.contentKey,
+      branchId: row.branchId,
+      scopeKey: row.scopeKey,
+      kind: row.kind,
+      locale: row.locale,
+      version: row.version,
+      status: row.status,
+      payload: row.payload,
+      createdById: row.createdById,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+      publishedAt: row.publishedAt?.toISOString() ?? null,
+      archivedAt: row.archivedAt?.toISOString() ?? null,
+    };
+  }
+
+  /** Konten global memengaruhi seluruh situs, jadi hanya pemegang `branch:all` yang boleh mengubahnya. */
+  private assertManage(principal: SessionPrincipal, branchId: string | null) {
+    this.policy.requireCapability(principal.capabilities, 'public-content:manage');
+    const allowed = branchId
+      ? this.policy.hasCapability(principal, 'public-content:manage', branchId)
+      : this.policy.capabilityBranchScope(principal, 'public-content:manage').all;
+    if (!allowed) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+  }
+
+  private async load(id: string) {
+    if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const row = await this.db.publicContent.findUnique({ where: { id } });
+    if (!row) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return row;
+  }
 
   async list(
     principal: SessionPrincipal,
-    input: { branchId?: string; kind?: string; status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' },
+    input: { branchId?: string; kind?: string; status?: ManagedContentStatus },
   ) {
     this.policy.requireCapability(principal.capabilities, 'public-content:read');
-    if (
-      input.branchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(input.branchId)
-    )
-      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    return this.contentStore
-      .filter((item) => {
-        if (input.branchId && item.branchId !== input.branchId) return false;
-        if (input.kind && item.kind !== input.kind) return false;
-        if (input.status && item.status !== input.status) return false;
-        return true;
-      })
-      .slice(0, 100);
+    if (input.status && !['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(input.status))
+      throw invalid('status');
+    const scope = this.policy.capabilityBranchScope(principal, 'public-content:read');
+    const rows = await this.db.publicContent.findMany({
+      where: {
+        AND: [
+          input.kind ? { kind: input.kind.toUpperCase() } : {},
+          input.status ? { status: input.status } : {},
+          input.branchId ? { branchId: input.branchId } : {},
+          // Konten global hanya terlihat pemegang cakupan semua cabang; konten cabang mengikuti cakupan.
+          scope.all ? {} : { branchId: { in: scope.included } },
+        ],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+    return rows.map((row) => this.view(row));
   }
 
   async create(
     principal: SessionPrincipal,
     input: {
-      contentKey: string;
+      contentKey?: string;
       branchId?: string | null;
       kind: string;
       locale?: string;
@@ -59,44 +96,81 @@ export class PublicContentManagementService {
     },
     _correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'public-content:manage');
-    if (
-      input.branchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(input.branchId)
-    )
-      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    const contentKey = input.contentKey?.trim().toUpperCase();
     const kind = input.kind?.trim().toUpperCase();
-    const scopeKey = input.branchId || 'GLOBAL';
-    if (!contentKey || !kind || !input.payload || typeof input.payload !== 'object')
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const supported = SUPPORTED_KINDS[kind];
+    if (!supported) throw invalid('kind', 'UNSUPPORTED');
+    const contentKey = (input.contentKey?.trim() || supported.contentKey).toUpperCase();
+    if (contentKey !== supported.contentKey) throw invalid('contentKey', 'UNSUPPORTED');
+    if (input.branchId) throw invalid('branchId', 'GLOBAL_ONLY');
+    this.assertManage(principal, null);
+    const locale = input.locale?.trim() || DEFAULT_LOCALE;
+    if (locale.length > 10) throw invalid('locale');
+    const payload = supported.validate(input.payload) as Prisma.InputJsonValue;
 
-    const existing = this.contentStore.filter(
-      (c) => c.contentKey === contentKey && c.scopeKey === scopeKey,
-    );
-    const maxVersion = existing.reduce((max, c) => Math.max(max, c.version), 0);
+    return this.nextDraft(principal.userId, { contentKey, kind, locale, payload });
+  }
 
-    const item: PublicContentItem = {
-      id: newId(),
-      contentKey,
-      branchId: input.branchId || null,
-      scopeKey,
-      kind,
-      locale: input.locale || 'id-ID',
-      version: maxVersion + 1,
-      status: 'DRAFT',
-      payload: input.payload,
-      createdById: principal.userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      publishedAt: null,
-      archivedAt: null,
-    };
+  private async nextDraft(
+    createdById: string,
+    data: { contentKey: string; kind: string; locale: string; payload: Prisma.InputJsonValue },
+  ) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const latest = await this.db.publicContent.aggregate({
+        where: { contentKey: data.contentKey, scopeKey: GLOBAL_SCOPE, locale: data.locale },
+        _max: { version: true },
+      });
+      try {
+        const created = await this.db.publicContent.create({
+          data: {
+            ...data,
+            scopeKey: GLOBAL_SCOPE,
+            branchId: null,
+            version: (latest._max.version ?? 0) + 1,
+            status: 'DRAFT',
+            createdById,
+          },
+        });
+        return this.view(created);
+      } catch (error) {
+        // Dua draf dibuat bersamaan mendapat nomor versi yang sama; ulangi dengan nomor berikutnya.
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'))
+          throw error;
+      }
+    }
+    throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
+  }
 
-    this.contentStore.unshift(item);
-    return item;
+  /** Ubah isi draf. Konten yang sudah terbit atau diarsipkan tidak diubah; buat draf baru dari salinannya. */
+  async updateDraft(
+    principal: SessionPrincipal,
+    id: string,
+    input: { payload: unknown },
+    _correlationId: string,
+  ) {
+    const current = await this.load(id);
+    this.assertManage(principal, current.branchId);
+    const supported = SUPPORTED_KINDS[current.kind];
+    if (!supported) throw invalid('kind', 'UNSUPPORTED');
+    const payload = supported.validate(input?.payload) as Prisma.InputJsonValue;
+
+    const claimed = await this.db.publicContent.updateMany({
+      where: { id, status: 'DRAFT' },
+      data: { payload },
+    });
+    if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+    return this.view(await this.load(id));
+  }
+
+  /** Salin konten (status apa pun) menjadi draf versi berikutnya. */
+  async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
+    const current = await this.load(id);
+    this.assertManage(principal, current.branchId);
+    return this.nextDraft(principal.userId, {
+      contentKey: current.contentKey,
+      kind: current.kind,
+      locale: current.locale,
+      payload: current.payload as Prisma.InputJsonValue,
+    });
   }
 
   async transition(
@@ -105,41 +179,36 @@ export class PublicContentManagementService {
     status: 'PUBLISHED' | 'ARCHIVED',
     _correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'public-content:manage');
-    const current = this.contentStore.find((c) => c.id === id);
-    if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    if (
-      current.branchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(current.branchId)
-    )
-      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    if (status === 'PUBLISHED' && current.status !== 'DRAFT')
-      throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+    if (status !== 'PUBLISHED' && status !== 'ARCHIVED') throw invalid('status');
+    const current = await this.load(id);
+    this.assertManage(principal, current.branchId);
+    const now = new Date();
 
     if (status === 'PUBLISHED') {
-      for (const item of this.contentStore) {
-        if (
-          item.contentKey === current.contentKey &&
-          item.scopeKey === current.scopeKey &&
-          item.locale === current.locale &&
-          item.status === 'PUBLISHED' &&
-          item.id !== current.id
-        ) {
-          item.status = 'ARCHIVED';
-          item.archivedAt = new Date();
-          item.updatedAt = new Date();
-        }
-      }
+      await this.db.$transaction(async (tx) => {
+        const claimed = await tx.publicContent.updateMany({
+          where: { id, status: 'DRAFT' },
+          data: { status: 'PUBLISHED', publishedAt: now },
+        });
+        if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
+        await tx.publicContent.updateMany({
+          where: {
+            contentKey: current.contentKey,
+            scopeKey: current.scopeKey,
+            locale: current.locale,
+            status: 'PUBLISHED',
+            id: { not: id },
+          },
+          data: { status: 'ARCHIVED', archivedAt: now },
+        });
+      });
+    } else {
+      const claimed = await this.db.publicContent.updateMany({
+        where: { id, status: { not: 'ARCHIVED' } },
+        data: { status: 'ARCHIVED', archivedAt: now },
+      });
+      if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
     }
-
-    current.status = status;
-    current.updatedAt = new Date();
-    if (status === 'PUBLISHED') current.publishedAt = new Date();
-    if (status === 'ARCHIVED') current.archivedAt = new Date();
-
-    return current;
+    return this.view(await this.load(id));
   }
 }

@@ -39,14 +39,47 @@ const PRESET_IMAGES = [
   { label: 'Chair Pilates Equipment', value: '/images/public/classes/chair-pilates.png' },
 ];
 
+class ContentApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: string,
+    readonly details: Array<{ field?: string; issue?: string }> = [],
+  ) {
+    super(code ?? `HTTP_${status}`);
+  }
+}
+
 async function request(path: string, init?: RequestInit) {
   const r = await fetch(`/api/v1${path}`, {
     credentials: 'include',
     ...init,
     headers: { 'content-type': 'application/json', ...init?.headers },
   });
-  if (!r.ok) throw new Error('REQUEST_FAILED');
+  if (!r.ok) {
+    const body = (await r.json().catch(() => ({}))) as {
+      error?: { code?: string; details?: Array<{ field?: string; issue?: string }> };
+    };
+    throw new ContentApiError(r.status, body.error?.code, body.error?.details ?? []);
+  }
   return r.json();
+}
+
+/** Pesan Indonesia untuk kegagalan simpan/terbit konten. */
+export function contentFailure(error: unknown, fallback: string): string {
+  const failure = error as ContentApiError;
+  const issues = failure?.details?.map((detail) => detail.issue) ?? [];
+  if (failure?.code === 'VALIDATION_ERROR') {
+    if (issues.includes('UNSAFE_URL'))
+      return 'Alamat gambar atau tautan tombol tidak aman. Gunakan alamat relatif (mis. /packages) atau https.';
+    if (issues.includes('REQUIRED')) return 'Judul, deskripsi, dan gambar setiap slide wajib diisi.';
+    if (issues.includes('TOO_LONG')) return 'Ada teks slide yang terlalu panjang. Persingkat lalu coba lagi.';
+    return 'Isi slider belum valid. Periksa jumlah slide (maks. 10), durasi, dan isian setiap slide.';
+  }
+  if (failure?.code === 'INVALID_STATE')
+    return 'Konten ini sudah tidak berstatus draf. Muat ulang halaman lalu coba lagi.';
+  if (failure?.status === 403 || failure?.status === 404)
+    return 'Anda tidak memiliki izin mengelola konten beranda.';
+  return fallback;
 }
 
 export function PublicContentManagementView() {
@@ -68,6 +101,7 @@ export function PublicContentManagementView() {
 
   // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,12 +110,12 @@ export function PublicContentManagementView() {
     return request('/public-content-management')
       .then((data: any[]) => {
         setItems(data);
-        // Find published or latest HERO_CAROUSEL
-        const publishedHero = data.find(
-          (item) => item.contentKey === 'HOME_HERO_CAROUSEL' && item.status === 'PUBLISHED',
-        );
+        // Editor memuat draf terbaru bila ada, kalau tidak versi yang sedang terbit.
+        const heroItems = data.filter((item) => item.contentKey === 'HOME_HERO_CAROUSEL');
+        const draftHero = heroItems.find((item) => item.status === 'DRAFT');
         const latestHero =
-          publishedHero || data.find((item) => item.contentKey === 'HOME_HERO_CAROUSEL');
+          draftHero || heroItems.find((item) => item.status === 'PUBLISHED') || heroItems[0];
+        setDraftId(draftHero?.id ?? null);
 
         if (latestHero && latestHero.payload?.slides) {
           setSliderConfig({
@@ -162,26 +196,33 @@ export function PublicContentManagementView() {
     setError('');
     setSuccessMessage('');
     try {
-      const created = await request('/public-content-management', {
-        method: 'POST',
-        body: JSON.stringify({
-          contentKey: 'HOME_HERO_CAROUSEL',
-          kind: 'HERO_CAROUSEL',
-          branchId: null,
-          payload: sliderConfig,
-        }),
-      });
+      // Draf yang sudah ada diperbarui; bila belum ada (atau sudah terbit) dibuat draf versi baru.
+      const saved = draftId
+        ? await request(`/public-content-management/${draftId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ payload: sliderConfig }),
+          })
+        : await request('/public-content-management', {
+            method: 'POST',
+            body: JSON.stringify({
+              contentKey: 'HOME_HERO_CAROUSEL',
+              kind: 'HERO_CAROUSEL',
+              payload: sliderConfig,
+            }),
+          });
 
-      if (shouldPublish && created?.id) {
-        await request(`/public-content-management/${created.id}/PUBLISHED`, { method: 'POST' });
-        setSuccessMessage('Slider beranda berhasil dipublikasikan dan langsung aktif di halaman utama!');
+      if (shouldPublish && saved?.id) {
+        await request(`/public-content-management/${saved.id}/PUBLISHED`, { method: 'POST' });
+        setSuccessMessage(
+          'Slider beranda berhasil dipublikasikan. Halaman utama memperbarui tampilannya dalam beberapa menit (cache situs).',
+        );
       } else {
-        setSuccessMessage('Draft slider baru berhasil disimpan.');
+        setSuccessMessage('Draft slider berhasil disimpan.');
       }
 
       await load();
-    } catch {
-      setError('Gagal menyimpan konfigurasi slider.');
+    } catch (cause) {
+      setError(contentFailure(cause, 'Gagal menyimpan konfigurasi slider.'));
     } finally {
       setBusy(false);
     }
@@ -272,34 +313,17 @@ export function PublicContentManagementView() {
     setShowSlideForm(false);
   }
 
-  // Advanced Raw Content Creation
-  async function createRaw(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = e.currentTarget;
-    const d = new FormData(f);
-    let payload;
-    try {
-      payload = JSON.parse(String(d.get('payload')));
-    } catch {
-      setError('Payload harus berupa JSON valid.');
-      return;
-    }
+  // Salin versi mana pun menjadi draf baru, lalu muat ke editor.
+  async function duplicate(id: string) {
     setBusy(true);
+    setError('');
     try {
-      await request('/public-content-management', {
-        method: 'POST',
-        body: JSON.stringify({
-          contentKey: d.get('contentKey'),
-          kind: d.get('kind'),
-          branchId: d.get('branchId') || null,
-          payload,
-        }),
-      });
-      f.reset();
+      await request(`/public-content-management/${id}/duplicate`, { method: 'POST' });
       await load();
-      setSuccessMessage('Draft konten baru berhasil disimpan.');
-    } catch {
-      setError('Draft belum dapat disimpan.');
+      setActiveTab('slider');
+      setSuccessMessage('Draf baru dibuat dari versi tersebut dan dimuat ke editor.');
+    } catch (cause) {
+      setError(contentFailure(cause, 'Draf belum dapat dibuat.'));
     } finally {
       setBusy(false);
     }
@@ -311,9 +335,11 @@ export function PublicContentManagementView() {
     try {
       await request(`/public-content-management/${id}/${status}`, { method: 'POST' });
       await load();
-      setSuccessMessage(`Status konten berhasil diubah menjadi ${status}.`);
-    } catch {
-      setError('Status konten belum dapat diubah.');
+      setSuccessMessage(
+        status === 'PUBLISHED' ? 'Versi konten dipublikasikan.' : 'Versi konten diarsipkan.',
+      );
+    } catch (cause) {
+      setError(contentFailure(cause, 'Status konten belum dapat diubah.'));
     } finally {
       setBusy(false);
     }
@@ -332,7 +358,7 @@ export function PublicContentManagementView() {
       <div className="space-y-4">
         <AdminPageHeader
           title="Manajemen Konten Publik"
-          description="Kelola banner carousel beranda, unggah gambar promosi, FAQ, dan informasi publik Daily Dose Pilates."
+          description="Kelola banner carousel beranda dan gambar promosi Daily Dose Pilates. Setiap perubahan disimpan sebagai versi dan tampil di situs setelah dipublikasikan."
           titleId="content-mgmt-title"
           actions={
             <ButtonLink href="/" target="_blank" variant="secondary" className="inline-flex items-center gap-1.5">
@@ -366,7 +392,7 @@ export function PublicContentManagementView() {
             }`}
           >
             <Layers className="size-4" />
-            Semua Entri Konten & Versi ({items.length})
+            Riwayat Versi Konten ({items.length})
           </button>
         </div>
       </div>
@@ -849,69 +875,42 @@ export function PublicContentManagementView() {
       {/* TAB 2: RAW / ADVANCED ALL CONTENT ENTRIES */}
       {activeTab === 'all' && (
         <section className="space-y-6">
-          <form
-            onSubmit={createRaw}
-            className="grid gap-3 rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:grid-cols-2"
-          >
-            <div className="sm:col-span-2 border-b border-dd-line/60 pb-2">
-              <h3 className="text-sm font-bold text-dd-ink">Tambah Entri Konten Baru (Tingkat Lanjut)</h3>
-            </div>
-            <input required name="contentKey" className={field} placeholder="Content Key (cth: FOOTER_NOTICE)" />
-            <select name="kind" className={field}>
-              <option>HERO_CAROUSEL</option>
-              <option>LANDING_SECTION</option>
-              <option>BANNER</option>
-              <option>FAQ</option>
-              <option>CONTACT</option>
-              <option>BRANCH_CONTENT</option>
-            </select>
-            <SearchSelect
-              label="Cakupan Studio/Cabang"
-              name="branchId"
-              placeholder="Global"
-              options={(session?.branches ?? []).map((branch) => ({
-                id: branch.id,
-                label: branch.name,
-              }))}
-            />
-            <textarea
-              required
-              name="payload"
-              className={`${field} min-h-28 sm:col-span-2 font-mono text-xs`}
-              defaultValue={'{"title":"","body":""}'}
-            />
-            <div className="sm:col-span-2">
-              <Button type="submit" loading={busy}>
-                Simpan Draft Konten
-              </Button>
-            </div>
-          </form>
-
           <div className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-            <h3 className="text-sm font-bold text-dd-ink mb-3">Histori & Status Semua Konten</h3>
+            <h3 className="text-sm font-bold text-dd-ink mb-1">Riwayat & Status Versi</h3>
+            <p className="mb-3 text-xs text-dd-muted">
+              Hanya versi berstatus Terbit yang tampil di situs. Versi lama dapat disalin menjadi
+              draf baru untuk diedit; versi terbit tidak diubah langsung.
+            </p>
+            {items.length === 0 && (
+              <p className="text-sm text-dd-muted">Belum ada versi konten tersimpan.</p>
+            )}
             <ul className="divide-y divide-dd-line">
               {items.map((item) => (
                 <li key={item.id} className="flex flex-wrap justify-between gap-3 py-3.5 text-sm">
                   <div>
                     <strong className="text-dd-ink">
-                      {item.contentKey} (v{item.version})
+                      Slider beranda · versi {item.version}
                     </strong>
                     <div className="text-xs text-dd-muted mt-0.5">
-                      {item.kind} · {item.branchId ? 'Per Cabang' : 'Global'} · Diperbarui{' '}
+                      {item.payload?.slides?.length ?? 0} slide · diperbarui{' '}
                       {new Date(item.updatedAt).toLocaleString('id-ID')}
                     </div>
-                    <details className="mt-2">
-                      <summary className="cursor-pointer text-xs font-semibold text-dd-forest">
-                        Lihat Data JSON
-                      </summary>
-                      <pre className="mt-2 max-w-xl overflow-auto rounded-dd-md bg-dd-surface-muted p-3 text-[11px] font-mono">
-                        {JSON.stringify(item.payload, null, 2)}
-                      </pre>
-                    </details>
                   </div>
                   <div className="flex items-start gap-2">
-                    <StatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>
-                      {item.status}
+                    <StatusBadge
+                      tone={
+                        item.status === 'PUBLISHED'
+                          ? 'success'
+                          : item.status === 'DRAFT'
+                            ? 'warning'
+                            : 'neutral'
+                      }
+                    >
+                      {item.status === 'PUBLISHED'
+                        ? 'Terbit'
+                        : item.status === 'DRAFT'
+                          ? 'Draf'
+                          : 'Diarsipkan'}
                     </StatusBadge>
                     {item.status === 'DRAFT' && (
                       <Button
@@ -919,17 +918,25 @@ export function PublicContentManagementView() {
                         disabled={busy}
                         onClick={() => void transition(item.id, 'PUBLISHED')}
                       >
-                        Publish
+                        Terbitkan
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => void duplicate(item.id)}
+                    >
+                      Salin jadi draf
+                    </Button>
                     {item.status !== 'ARCHIVED' && (
                       <Button
                         size="sm"
-                        variant="secondary"
+                        variant="ghost"
                         disabled={busy}
                         onClick={() => void transition(item.id, 'ARCHIVED')}
                       >
-                        Archive
+                        Arsipkan
                       </Button>
                     )}
                   </div>

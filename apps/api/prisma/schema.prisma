@@ -82,6 +82,12 @@ enum CustomerPackageStatus {
   FROZEN
 }
 
+enum PublicContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum SupportCasePriority {
   LOW
   NORMAL
@@ -900,4 +906,27 @@ model SupportCaseNote {
 
   @@index([caseId, createdAt])
   @@map("support_case_note")
+}
+
+/// Konten situs publik yang dikelola staf (mis. slider beranda). Versi baru selalu DRAFT; terbit
+/// mengarsipkan versi terbit sebelumnya untuk kunci + cakupan + bahasa yang sama.
+model PublicContent {
+  id          String              @id @default(uuid()) @db.Char(36)
+  contentKey  String              @db.VarChar(64)
+  scopeKey    String              @db.VarChar(40)
+  branchId    String?             @db.Char(36)
+  kind        String              @db.VarChar(32)
+  locale      String              @default("id-ID") @db.VarChar(10)
+  version     Int
+  status      PublicContentStatus @default(DRAFT)
+  payload     Json
+  createdById String?             @db.Char(36)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([contentKey, scopeKey, locale, version])
+  @@index([kind, status, scopeKey])
+  @@map("public_content")
 }

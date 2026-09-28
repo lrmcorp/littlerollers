@@ -16,6 +16,7 @@ describe('PublicSiteConfigService', () => {
           },
         ]),
       },
+      publicContent: { findFirst: jest.fn().mockResolvedValue(null) },
       jenisKelas: {
         findMany: jest.fn().mockResolvedValue([
           {
@@ -64,6 +65,7 @@ describe('PublicSiteConfigService', () => {
           heroImageKey: 'classes/reformer-pilates.png',
         },
       ],
+      heroCarousel: null,
       fallbackWhatsappE164: '+622100000000',
     });
     expect(db.cabang.findMany).toHaveBeenCalledWith(
@@ -77,5 +79,35 @@ describe('PublicSiteConfigService', () => {
       }),
     );
   });
-});
 
+  it('serves the published hero carousel from managed content, and null when none is published', async () => {
+    const published = { autoplay: true, intervalMs: 6000, slides: [{ id: 's1', title: 'Halo' }] };
+    const db = {
+      cabang: { findMany: jest.fn().mockResolvedValue([]) },
+      jenisKelas: { findMany: jest.fn().mockResolvedValue([]) },
+      publicContent: { findFirst: jest.fn().mockResolvedValue({ payload: published }) },
+    };
+    const config = {
+      value: {
+        publicSupportWhatsappE164: null,
+        bookingCancellation: { enabled: false },
+        reschedule: { enabled: false },
+        mobileFeatures: {},
+      },
+    };
+    const service = new PublicSiteConfigService(db as never, config as never);
+    await expect(service.get()).resolves.toMatchObject({ heroCarousel: published });
+    expect(db.publicContent.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          contentKey: 'HOME_HERO_CAROUSEL',
+          scopeKey: 'GLOBAL',
+          status: 'PUBLISHED',
+        }),
+        orderBy: { version: 'desc' },
+      }),
+    );
+    db.publicContent.findFirst.mockResolvedValue(null);
+    await expect(service.get()).resolves.toMatchObject({ heroCarousel: null });
+  });
+});
