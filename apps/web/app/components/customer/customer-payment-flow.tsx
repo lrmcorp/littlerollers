@@ -204,7 +204,7 @@ export function CustomerPaymentFlow({
         <AlertBanner
           tone="info"
           title="Pembayaran sedang diperiksa"
-          message="Bukti sudah diterima. Anda akan memperoleh notifikasi setelah Finance mengambil keputusan."
+          message="Bukti sudah diterima. Pemeriksaan bukti pembayaran biasanya memakan waktu 15–30 menit pada jam kerja studio (07.00 – 21.00 WIB). Anda akan menerima notifikasi begitu paket aktif."
         />
       )}
       {order.status === 'APPROVED' && (
@@ -423,6 +423,18 @@ export function CustomerPaymentFlow({
               </Button>
             </div>
           </div>
+
+          {order.status === 'PENDING' && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-dd-lg border border-sky-200 bg-sky-50/70 p-3.5 text-xs text-sky-900 sm:text-sm">
+              <Clock3 className="size-4 shrink-0 text-sky-700 mt-0.5" />
+              <div>
+                <p className="font-semibold">Estimasi verifikasi: 15–30 menit</p>
+                <p className="mt-0.5 text-sky-800">
+                  Tim Finance memverifikasi transaksi setiap hari pukul 07.00 – 21.00 WIB. Begitu diverifikasi, saldo paket Anda otomatis bertambah dan siap dipakai untuk memesan kelas.
+                </p>
+              </div>
+            </div>
+          )}
 
           {proofPreviewError && (
             <div className="mt-5">

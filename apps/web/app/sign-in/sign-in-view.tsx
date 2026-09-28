@@ -117,9 +117,9 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
   const complete = useCallback(async () => {
     if (sessionContext) {
-      const completed = await sessionContext.completeSignIn(
-        new URLSearchParams(window.location.search).get('returnTo') ?? '/workspace',
-      );
+      const searchParams = new URLSearchParams(window.location.search);
+      const destination = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/workspace';
+      const completed = await sessionContext.completeSignIn(destination);
       if (!completed) throw { response: { status: 401 } };
     }
     setState('success');

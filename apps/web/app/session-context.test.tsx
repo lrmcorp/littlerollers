@@ -332,6 +332,12 @@ describe('capability-aware session shell', () => {
     expect(canAccessSessionPath(instructorSession, '/workspace/payments')).toBe(false);
   });
 
+  it('lets an instructor open the QR scanner for their own attendance but not the staff-only pages', () => {
+    expect(canAccessSessionPath(instructorSession, '/check-in-scanner')).toBe(true);
+    expect(canAccessSessionPath(instructorSession, '/workspace/bookings')).toBe(false);
+    expect(canAccessSessionPath(customerSession, '/check-in-scanner')).toBe(false);
+  });
+
   it('keeps dual-role instructor+admin accounts on the full operational workspace', () => {
     const dualRole = { ...instructorSession, roles: ['INSTRUCTOR', 'ADMIN'] };
     expect(defaultSessionDestination(dualRole)).toBe('/workspace');

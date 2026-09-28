@@ -58,7 +58,8 @@ export function ClassSlotView({
   branchOverride?: BranchOption;
   branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
-  bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
+  bookingClient?: Pick<BookingClient, 'list'> &
+    Partial<Pick<BookingClient, 'issueBulkCheckIns' | 'issueInstructorCheckIn'>>;
 }) {
   const sessionContext = useSessionContext();
   const feedback = useAppFeedback();
@@ -181,6 +182,33 @@ export function ClassSlotView({
     (slot as SlotNames | undefined)?.branch?.name ??
     branches.find((item) => item.id === id)?.name ??
     'Cabang';
+  // Role baca-saja (Owner/instruktur) tidak punya akses katalog; opsi filter diambil dari slot yang tampil.
+  const classTypeOptions = classTypes.length
+    ? classTypes.map((item) => ({
+        id: item.id,
+        label: item.name,
+        description: `${globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}${item.code}`,
+      }))
+    : [...new Map(slots.map((slot) => [slot.classTypeId, slot])).values()].map((slot) => ({
+        id: slot.classTypeId,
+        label: classTypeName(slot.classTypeId, slot),
+        description: undefined,
+      }));
+  const instructorOptions = instructors.length
+    ? instructors.map((item) => ({
+        id: item.id,
+        label: item.displayName,
+        description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
+      }))
+    : [
+        ...new Map(
+          slots.filter((slot) => slot.instructorUserId).map((slot) => [slot.instructorUserId!, slot]),
+        ).values(),
+      ].map((slot) => ({
+        id: slot.instructorUserId!,
+        label: instructorName(slot.instructorUserId, slot),
+        description: undefined,
+      }));
   const visible = slots
     .filter((slot) => !classTypeFilter || slot.classTypeId === classTypeFilter)
     .filter((slot) => !instructorFilter || slot.instructorUserId === instructorFilter)
@@ -345,22 +373,14 @@ export function ClassSlotView({
             label="Tipe kelas"
             value={classTypeFilter}
             placeholder="Semua tipe kelas"
-            options={classTypes.map((item) => ({
-              id: item.id,
-              label: item.name,
-              description: `${globalMode && item.branchId ? `${branchName(item.branchId)} · ` : ''}${item.code}`,
-            }))}
+            options={classTypeOptions}
             onChange={setClassTypeFilter}
           />
           <SearchSelect
             label="Instruktur"
             value={instructorFilter}
             placeholder="Semua instruktur"
-            options={instructors.map((item) => ({
-              id: item.id,
-              label: item.displayName,
-              description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
-            }))}
+            options={instructorOptions}
             onChange={setInstructorFilter}
           />
         </div>

@@ -227,19 +227,29 @@ export function BookingDetailView({
       {rescheduleUnavailable && (
         <section className="space-y-3" aria-label="Ketersediaan perubahan jadwal">
           <AlertBanner
-            tone="info"
-            title="Perubahan jadwal sedang tidak tersedia"
-            message="Booking Anda tetap aktif. Coba kembali atau hubungi studio jika Anda memerlukan bantuan untuk mengganti jadwal."
+            tone={rescheduleUnavailable.code === 'RESCHEDULE_CUTOFF_PASSED' ? 'warning' : 'info'}
+            title={
+              rescheduleUnavailable.code === 'RESCHEDULE_CUTOFF_PASSED'
+                ? 'Batas reschedule telah lewat'
+                : 'Perubahan jadwal sedang tidak tersedia'
+            }
+            message={
+              rescheduleUnavailable.code === 'RESCHEDULE_CUTOFF_PASSED'
+                ? 'Batas perubahan jadwal mandiri (H-24 sebelum kelas) telah berakhir. Kursi kelas Anda saat ini tetap aman. Silakan hubungi admin studio untuk asistensi darurat.'
+                : 'Booking Anda tetap aktif. Coba kembali atau hubungi studio jika Anda memerlukan bantuan untuk mengganti jadwal.'
+            }
           />
           <div className="flex flex-wrap gap-3">
-            <Button
-              variant="secondary"
-              loading={rescheduleLoading}
-              loadingLabel="Memuat pilihan jadwal…"
-              onClick={() => void loadRescheduleOptions()}
-            >
-              Coba lagi
-            </Button>
+            {rescheduleUnavailable.code !== 'RESCHEDULE_CUTOFF_PASSED' && (
+              <Button
+                variant="secondary"
+                loading={rescheduleLoading}
+                loadingLabel="Memuat pilihan jadwal…"
+                onClick={() => void loadRescheduleOptions()}
+              >
+                Coba lagi
+              </Button>
+            )}
             <ButtonLink href="/contact" variant="secondary">
               Hubungi studio
             </ButtonLink>
@@ -264,7 +274,7 @@ export function BookingDetailView({
           }
           message={
             options.latestRequest.status === 'PENDING'
-              ? 'Reservation tetap berada di kelas semula sampai tim studio memberikan keputusan.'
+              ? 'Kursi Anda pada jadwal kelas awal tetap aman sampai tim studio memberikan keputusan.'
               : options.latestRequest.status === 'APPROVED'
                 ? 'Booking Anda sudah dipindahkan ke jadwal baru.'
                 : 'Booking tetap berada di jadwal semula. Hubungi studio bila Anda memerlukan bantuan.'
@@ -276,7 +286,7 @@ export function BookingDetailView({
           <AlertBanner
             tone="warning"
             title="Batas reschedule telah lewat"
-            message={`Pengajuan ditutup pada ${dateTime(options.cutoffAt, booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Hubungi studio untuk bantuan atau adjustment manual.`}
+            message={`Batas perubahan jadwal mandiri (H-24) ditutup pada ${dateTime(options.cutoffAt, booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Kursi Anda pada jadwal ini tetap aman. Hubungi studio untuk bantuan atau adjustment manual.`}
           />
           <ButtonLink href="/contact" variant="secondary">
             Hubungi studio

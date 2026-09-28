@@ -43,6 +43,17 @@ export class LedgerController {
     return this.ledger.getPackageLedger(req.principal, id, cursor);
   }
 
+  // Perpanjang masa berlaku, bekukan, atau buka kembali paket pelanggan (izin `customer-package:manage`).
+  @Post('customer-packages/:id/:action')
+  manageCustomerPackage(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('action') action: string | undefined,
+    @Body() body: { days?: number; reason?: string; expectedValidUntil?: string },
+  ) {
+    return this.ledger.manageCustomerPackage(req.principal, id, action, body);
+  }
+
   @Get('session-adjustments')
   listAdjustments(
     @Req() req: AuthenticatedRequest,

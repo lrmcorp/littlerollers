@@ -81,4 +81,19 @@ describe('customer payment proof preview', () => {
       screen.getByText('Preview tersedia setelah pemeriksaan keamanan selesai.'),
     ).toBeVisible();
   });
+
+  it('renders payment verification SLA and operational hours when payment is pending', () => {
+    render(
+      <AppFeedbackProvider>
+        <CustomerPaymentFlow order={order} onUpdated={vi.fn()} />
+      </AppFeedbackProvider>,
+    );
+
+    expect(screen.getByText('Pembayaran sedang diperiksa')).toBeVisible();
+    expect(
+      screen.getByText(/Pemeriksaan bukti pembayaran biasanya memakan waktu 15–30 menit/),
+    ).toBeVisible();
+    expect(screen.getByText('Estimasi verifikasi: 15–30 menit')).toBeVisible();
+  });
 });
+

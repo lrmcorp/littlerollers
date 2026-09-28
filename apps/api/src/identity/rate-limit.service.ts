@@ -8,8 +8,8 @@ const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
 export class RateLimitService {
   constructor(private readonly db: PrismaService) {}
 
-  async consume(scope: string, subjectHash: string, limit = process.env.NODE_ENV === 'production' ? 5 : 1000, windowSeconds = 900): Promise<void> {
-    if (process.env.NODE_ENV !== 'production' || process.env.RATE_LIMIT_DISABLED === 'true') {
+  async consume(scope: string, subjectHash: string, limit = 5, windowSeconds = 900): Promise<void> {
+    if (process.env.RATE_LIMIT_DISABLED === 'true') {
       return;
     }
     if ((this.db as any)?.rateLimitCounter?.upsert) {

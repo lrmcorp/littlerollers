@@ -378,12 +378,12 @@ export class MasterCatalogService {
   // ============================================================================
 
   async listStudios(principal: SessionPrincipal, branchIdOrCode: string) {
-    this.access.authorize(principal);
+    this.access.authorizeCatalogRead(principal);
     const branch = await this.db.cabang.findFirst({
       where: { OR: [{ id: branchIdOrCode }, { code: branchIdOrCode.toUpperCase() }, { code: branchIdOrCode }] },
     });
     const branchId = branch?.id ?? branchIdOrCode;
-    this.access.ensureBranchScope(principal, branchId);
+    this.access.ensureCatalogBranchScope(principal, branchId);
     const items = await this.db.studio.findMany({
       where: { branchId, active: true },
       include: { rooms: { where: { active: true }, orderBy: { code: 'asc' } } },
@@ -580,8 +580,8 @@ export class MasterCatalogService {
   // ============================================================================
 
   async listClassTypes(principal: SessionPrincipal, branchId?: string) {
-    this.access.authorize(principal);
-    if (branchId) this.access.ensureBranchScope(principal, branchId);
+    this.access.authorizeCatalogRead(principal);
+    if (branchId) this.access.ensureCatalogBranchScope(principal, branchId);
 
     const branches = await this.db.cabang.findMany({
       where: { active: true },

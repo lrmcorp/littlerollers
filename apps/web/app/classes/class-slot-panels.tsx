@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import {
   browserBookingClient,
   bookingFailure,
   type BookingClient,
   type CheckInIssue,
+  type InstructorCheckInIssue,
 } from '@/api-clients/booking-client';
 import type {
   ClassSlot,
@@ -186,7 +188,8 @@ export function DetailPanel({
   canManageAttendance: boolean;
   canReadBookings: boolean;
   canVerifyInstructor?: boolean;
-  bookingClient?: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueBulkCheckIns'>>;
+  bookingClient?: Pick<BookingClient, 'list'> &
+    Partial<Pick<BookingClient, 'issueBulkCheckIns' | 'issueInstructorCheckIn'>>;
   busy: boolean;
   onVerifyInstructor?(notes: string): Promise<void>;
   onAssign(id: string): Promise<void>;
@@ -206,6 +209,23 @@ export function DetailPanel({
   const [reason, setReason] = useState<CancellationReason | ''>('');
   const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai daftar peserta');
   const [attendanceNote, setAttendanceNote] = useState('');
+  const [instructorQr, setInstructorQr] = useState<InstructorCheckInIssue | null>(null);
+  const [instructorQrBusy, setInstructorQrBusy] = useState(false);
+  const [instructorQrError, setInstructorQrError] = useState('');
+  const issueInstructorQr = async () => {
+    const issue = bookingClient.issueInstructorCheckIn;
+    if (!issue) return;
+    setInstructorQrBusy(true);
+    setInstructorQrError('');
+    try {
+      setInstructorQr(await issue(slot.id, crypto.randomUUID()));
+    } catch (error) {
+      setInstructorQr(null);
+      setInstructorQrError(await bookingFailure(error));
+    } finally {
+      setInstructorQrBusy(false);
+    }
+  };
   const [editOpen, setEditOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [issues, setIssues] = useState<CheckInIssue[]>([]);
@@ -358,6 +378,27 @@ export function DetailPanel({
                 Belum tercatat. Honor kelas ini ditandai &quot;belum terverifikasi&quot; di laporan
                 keuangan sampai presensi instruktur dicatat.
               </p>
+              {isConfirmed && canManageAttendance && bookingClient.issueInstructorCheckIn && (
+                <div className="grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-4">
+                  <p className="m-0 text-sm">
+                    Tampilkan QR di layar studio agar dipindai instruktur dari menu Scan QR (tersedia
+                    30 menit sebelum kelas). Menampilkan ulang mengganti QR sebelumnya.
+                  </p>
+                  <div>
+                    <Button
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                      loading={instructorQrBusy}
+                      disabled={busy}
+                      onClick={() => void issueInstructorQr()}
+                    >
+                      {instructorQr ? 'Ganti QR presensi' : 'Tampilkan QR presensi instruktur'}
+                    </Button>
+                  </div>
+                  {instructorQrError && <Feedback kind="warning">{instructorQrError}</Feedback>}
+                  {instructorQr && <InstructorQrCanvas payload={instructorQr.qrPayload} />}
+                </div>
+              )}
               {canVerifyInstructor && onVerifyInstructor && (
                 <>
                   <TextInput
@@ -538,6 +579,22 @@ export function DetailPanel({
         </DetailSection>
       )}
     </div>
+  );
+}
+
+function InstructorQrCanvas({ payload }: { payload: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (canvasRef.current)
+      void QRCode.toCanvas(canvasRef.current, payload, { width: 240, margin: 2, errorCorrectionLevel: 'M' });
+  }, [payload]);
+  return (
+    <canvas
+      ref={canvasRef}
+      role="img"
+      aria-label="QR presensi instruktur"
+      className="justify-self-start rounded-dd-md border border-dd-line bg-white"
+    />
   );
 }
 

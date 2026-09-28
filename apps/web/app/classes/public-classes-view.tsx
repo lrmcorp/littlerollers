@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { AlertCircle, Check, Sparkles } from 'lucide-react';
 import {
   browserPublicClassCatalogClient,
   publicCatalogFailure,
@@ -9,6 +10,11 @@ import {
   type PublicClassCatalogClient,
   type PublicClassSlot,
 } from '@/api-clients/public-class-catalog-client';
+import {
+  browserLedgerClient,
+  type LedgerBalance,
+  type LedgerClient,
+} from '@/api-clients/ledger-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
@@ -59,11 +65,15 @@ function durationLabel(startAt: string, endAt: string) {
 
 export function PublicClassesView({
   client = browserPublicClassCatalogClient,
+  ledgerClient = browserLedgerClient,
 }: {
   client?: PublicClassCatalogClient;
+  ledgerClient?: LedgerClient;
 }) {
-  const session = useSessionContext()?.session;
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
   const inCustomerShell = isCustomerOnlySession(session);
+  const isCustomer = Boolean(session && inCustomerShell);
   const isStaff = Boolean(session && !isCustomerOnlySession(session));
   // Staf hanya diarahkan ke workspace (cutoff booking tidak relevan); customer/tamu mengikuti canBook.
   const isActionable = (slot: PublicClassSlot) => (isStaff ? slot.available > 0 : slot.canBook);
@@ -74,6 +84,45 @@ export function PublicClassesView({
   const [classType, setClassType] = useState('');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [customerPackages, setCustomerPackages] = useState<LedgerBalance[]>([]);
+  const [onlyEligible, setOnlyEligible] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (session && inCustomerShell) {
+      ledgerClient
+        .list(undefined, undefined, undefined, 'ACTIVE')
+        .then((res) => {
+          if (!active) return;
+          setCustomerPackages(
+            res.items.filter((item) => item.status === 'ACTIVE' && item.available > 0),
+          );
+        })
+        .catch(() => {
+          if (!active) return;
+          setCustomerPackages([]);
+        });
+    } else {
+      setCustomerPackages([]);
+    }
+    return () => {
+      active = false;
+    };
+  }, [session, inCustomerShell, ledgerClient]);
+
+  const findMatchingPackage = (slot: PublicClassSlot) => {
+    if (!customerPackages.length) return null;
+    return customerPackages.find((pkg) => {
+      const branchMatches =
+        !pkg.packageBranchId ||
+        pkg.packageBranchId === 'global' ||
+        pkg.packageBranchId === slot.branchId;
+      const classTypeMatches = !pkg.classTypeId || pkg.classTypeId === slot.classType.id;
+      const hasAvailable = pkg.available > 0;
+      const notExpired = new Date(pkg.expiryAt) > new Date();
+      return branchMatches && classTypeMatches && hasAvailable && notExpired;
+    });
+  };
 
   useEffect(() => {
     let active = true;
@@ -110,6 +159,19 @@ export function PublicClassesView({
       active = false;
     };
   }, [client, session?.preferredBranch?.id]);
+
+  useEffect(() => {
+    if (!branchId && branches.length > 0 && customerPackages.length > 0) {
+      const query = new URLSearchParams(window.location.search);
+      if (query.get('branch') || query.get('studio')) return;
+      const pkgBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+      const matchingBranch = branches.find((b) => b.id === pkgBranchId);
+      if (matchingBranch) {
+        setBranchId(matchingBranch.id);
+        void load(matchingBranch.id);
+      }
+    }
+  }, [branches, branchId, customerPackages]);
 
   const load = async (selectedBranch = branchId) => {
     if (!selectedBranch) return;
@@ -166,11 +228,12 @@ export function PublicClassesView({
     () => [...new Map(slots.map((slot) => [slot.classType.id, slot.classType])).values()],
     [slots],
   );
-  const visible = slots.filter(
-    (slot) =>
-      (!day || dayKey(slot.startAt, slot.timezone) === day) &&
-      (!classType || slot.classType.id === classType),
-  );
+  const visible = slots.filter((slot) => {
+    if (day && dayKey(slot.startAt, slot.timezone) !== day) return false;
+    if (classType && slot.classType.id !== classType) return false;
+    if (onlyEligible && (!isActionable(slot) || !findMatchingPackage(slot))) return false;
+    return true;
+  });
   const grouped = visible.reduce<Record<string, PublicClassSlot[]>>((groups, slot) => {
     const key = dayKey(slot.startAt, slot.timezone);
     groups[key] = [...(groups[key] ?? []), slot];
@@ -228,6 +291,53 @@ export function PublicClassesView({
                 )
               }
             />
+
+            {isCustomer && session?.identityVerificationStatus && session.identityVerificationStatus !== 'APPROVED' && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-amber-200 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="size-4 text-amber-700 shrink-0" />
+                  <span>
+                    Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu dilengkapi sebelum sesi dapat direservasi mandiri.
+                  </span>
+                </div>
+                <Link href="/account/verification" className="font-semibold text-amber-800 underline shrink-0 hover:text-amber-950">
+                  Cek Status Verifikasi →
+                </Link>
+              </div>
+            )}
+
+            {isCustomer && customerPackages.length > 0 && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs sm:text-sm shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="size-4 text-dd-forest shrink-0" />
+                  <div>
+                    <span className="font-semibold text-dd-forest">Paket Aktif: </span>
+                    <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
+                    <span className="text-dd-muted"> · {customerPackages[0]!.branchName}</span>
+                    <span className="text-dd-muted"> · Sisa </span>
+                    <strong className="text-emerald-800 font-semibold">{customerPackages[0]!.available} sesi</strong>
+                    <span className="text-dd-muted">
+                      {' '}(Berlaku s/d{' '}
+                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(customerPackages[0]!.expiryAt))})
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="inline-flex items-center gap-2 font-medium text-dd-forest cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={onlyEligible}
+                      onChange={(e) => setOnlyEligible(e.target.checked)}
+                      className="size-4 accent-dd-forest rounded"
+                    />
+                    <span>Hanya kelas sesuai paket saya</span>
+                  </label>
+                  <Link href="/account/packages" className="font-semibold text-dd-forest hover:underline">
+                    Kelola paket →
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {branchId && availableDays.length > 0 && (
               <div
@@ -434,17 +544,37 @@ export function PublicClassesView({
                                 ? `${slot.available}/${slot.capacity} tempat`
                                 : `Penuh · 0/${slot.capacity}`}
                             </strong>
+                            {isCustomer && slot.canBook && findMatchingPackage(slot) && (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200">
+                                <Check className="size-3" /> Paket Sesuai ({findMatchingPackage(slot)!.available} sesi)
+                              </span>
+                            )}
+                            {isCustomer && slot.canBook && !findMatchingPackage(slot) && customerPackages.length > 0 && (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
+                                Perlu paket studio/kelas ini
+                              </span>
+                            )}
                           </div>
                           <a
-                            className={`${isActionable(slot) ? publicPrimaryButton : `${publicSecondaryButton} pointer-events-none opacity-50`} w-full sm:w-auto`}
+                            className={`${
+                              isActionable(slot)
+                                ? isCustomer && !findMatchingPackage(slot)
+                                  ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-emerald-50`
+                                  : publicPrimaryButton
+                                : `${publicSecondaryButton} pointer-events-none opacity-50`
+                            } w-full sm:w-auto`}
                             aria-disabled={!isActionable(slot)}
                             href={
                               isActionable(slot)
                                 ? isStaff
                                   ? '/workspace/classes'
-                                  : session
-                                    ? `/bookings/new?slot=${slot.id}`
-                                    : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
+                                  : isCustomer
+                                    ? findMatchingPackage(slot)
+                                      ? `/bookings/new?slot=${slot.id}`
+                                      : `/packages?branch=${encodeURIComponent(slot.branchId)}&classType=${encodeURIComponent(slot.classType.id)}&slot=${encodeURIComponent(slot.id)}`
+                                    : session
+                                      ? `/bookings/new?slot=${slot.id}`
+                                      : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
                                 : undefined
                             }
                           >
@@ -454,6 +584,8 @@ export function PublicClassesView({
                                 ? 'Pemesanan ditutup'
                                 : isStaff
                                 ? 'Buka workspace kelas'
+                                : isCustomer && !findMatchingPackage(slot)
+                                ? 'Beli paket untuk kelas ini'
                                 : 'Lanjutkan booking'}
                           </a>
                         </article>

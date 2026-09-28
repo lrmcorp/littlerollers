@@ -224,11 +224,12 @@ export function InstructorDetailView({ id }: { id: string }) {
 
       {blockers.completedWithoutCheckIn || blockers.completedWithoutFee ? (
         <Feedback kind="warning">
-          Ada {blockers.completedWithoutCheckIn} kelas selesai tanpa check-in cocok dan{' '}
-          {blockers.completedWithoutFee} kelas tanpa konfigurasi fee yang dapat dibuktikan.
+          Ada {blockers.completedWithoutCheckIn} kelas selesai tanpa presensi instruktur dan{' '}
+          {blockers.completedWithoutFee} kelas tanpa konfigurasi fee yang dapat dibuktikan. Honor
+          kelas tanpa presensi ditandai belum terverifikasi; verifikasi dari detail kelas.
         </Feedback>
       ) : (
-        <Feedback kind="status">Check-in dan kompensasi kelas selesai lengkap.</Feedback>
+        <Feedback kind="status">Presensi kelas selesai lengkap.</Feedback>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">

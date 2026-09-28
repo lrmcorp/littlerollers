@@ -220,7 +220,12 @@ export class AttendanceService {
     return { classSlotId, items };
   }
 
-  /** Issue a QR check-in token for an instructor for a specific class slot. */
+  /**
+   * Terbitkan QR presensi instruktur untuk satu kelas. Diterbitkan staf studio (`attendance:manage`) dan
+   * dipindai instruktur pemilik kelas dengan sesinya sendiri, jadi instruktur tidak dapat menerbitkan
+   * bukti kehadirannya sendiri. Token terikat ke kelas (bukan booking) sehingga kelas tanpa booking
+   * tetap bisa dipakai; menerbitkan ulang mencabut token lama yang belum terpakai.
+   */
   async issueInstructor(
     principal: SessionPrincipal,
     classSlotId: string,
@@ -228,7 +233,7 @@ export class AttendanceService {
     _correlationId: string,
     now = new Date(),
   ) {
-    this.policy.requireCapability(principal.capabilities, 'attendance:self');
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
     if (!UUID.test(classSlotId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.db.$transaction(
@@ -241,44 +246,36 @@ export class AttendanceService {
             branch: { select: { id: true, code: true, name: true, timezone: true } },
           },
         });
-        if (!slot || slot.instructorId !== principal.userId)
+        if (!slot || !this.policy.hasCapability(principal, 'attendance:manage', slot.branchId))
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        if (slot.status !== 'CONFIRMED')
+        if (!slot.instructorId || slot.status !== 'CONFIRMED')
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
-        if (checkInWindowState(slot.startAt, slot.endAt, now) === 'TOO_EARLY')
-          throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
-        if (checkInWindowState(slot.startAt, slot.endAt, now) === 'EXPIRED')
-          throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
+        const window = checkInWindowState(slot.startAt, slot.endAt, now);
+        if (window === 'TOO_EARLY') throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
+        if (window === 'EXPIRED') throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
 
+        await tx.instructorCheckInToken.updateMany({
+          where: { classSlotId, usedAt: null },
+          data: { usedAt: now },
+        });
         const rawToken = randomBytes(32).toString('base64url');
-        const targetBooking = await tx.pemesananKelas.findFirst({ where: { classSlotId } });
-        let tokenId: string = randomUUID();
-        let tokenExpiresAt = slot.endAt;
-        if (targetBooking) {
-          const token = await tx.checkInToken.create({
-            data: {
-              id: randomUUID(),
-              bookingId: targetBooking.id,
-              token: sha256(rawToken),
-              expiresAt: slot.endAt,
-            },
-          });
-          tokenId = token.id;
-          tokenExpiresAt = token.expiresAt;
-        }
+        const token = await tx.instructorCheckInToken.create({
+          data: {
+            classSlotId,
+            token: sha256(rawToken),
+            expiresAt: slot.endAt,
+            issuedById: principal.userId,
+          },
+        });
 
-        const payload = `dd-checkin:v1:${rawToken}`;
-        const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
-        const passUrl = `${base}/check-in-pass#token=${encodeURIComponent(payload)}`;
         return {
-          id: tokenId,
+          id: token.id,
           purpose: 'INSTRUCTOR_CHECK_IN' as const,
           resourceType: 'CLASS_SLOT' as const,
           resourceId: classSlotId,
-          expiresAt: tokenExpiresAt.toISOString(),
+          expiresAt: token.expiresAt.toISOString(),
           token: rawToken,
-          qrPayload: payload,
-          passUrl,
+          qrPayload: `dd-checkin:v1:${rawToken}`,
           className: slot.classType.name,
           branch: slot.branch,
           startAt: slot.startAt.toISOString(),
@@ -637,24 +634,20 @@ export class AttendanceService {
     const tokenStr = (body.token ?? '').trim();
     const tokenHash = sha256(tokenStr.replace(/^dd-checkin:v1:/u, ''));
 
-    const token = await this.db.checkInToken.findFirst({
+    const token = await this.db.instructorCheckInToken.findUnique({
       where: { token: tokenHash },
       include: {
-        booking: {
-          select: {
-            classSlot: {
-              select: { id: true, instructorId: true, status: true, startAt: true, endAt: true },
-            },
-          },
+        classSlot: {
+          select: { id: true, instructorId: true, status: true, startAt: true, endAt: true },
         },
       },
     });
     if (!token) throw new ApiProblem('INVALID_TOKEN', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (token.isUsed) throw new ApiProblem('TOKEN_ALREADY_USED', HttpStatus.CONFLICT);
+    if (token.usedAt) throw new ApiProblem('TOKEN_ALREADY_USED', HttpStatus.CONFLICT);
     if (token.expiresAt < now) throw new ApiProblem('TOKEN_EXPIRED', HttpStatus.GONE);
 
     // Hanya instruktur pemilik kelas yang boleh mencatat presensinya, dan hanya di jendela check-in.
-    const slot = token.booking.classSlot;
+    const slot = token.classSlot;
     if (slot.instructorId !== principal.userId)
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (slot.status !== 'CONFIRMED')
@@ -664,7 +657,7 @@ export class AttendanceService {
     if (window === 'EXPIRED') throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
 
     await this.db.$transaction(async (tx) => {
-      await tx.checkInToken.update({ where: { id: token.id }, data: { isUsed: true } });
+      await tx.instructorCheckInToken.update({ where: { id: token.id }, data: { usedAt: now } });
       await tx.kehadiranInstruktur.upsert({
         where: { classSlotId: slot.id },
         create: {

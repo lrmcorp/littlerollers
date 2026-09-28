@@ -83,6 +83,7 @@ export class InstructorManagementService {
           _count: {
             select: {
               instructedClassSlots: true,
+              instructorAttendances: true,
             },
           },
         },
@@ -148,12 +149,22 @@ export class InstructorManagementService {
             status: true,
             classType: { select: { code: true, name: true } },
             branch: { select: { id: true, name: true } },
+            instructorAttendance: { select: { checkedInAt: true, method: true } },
           },
         },
       },
     });
 
     if (!instructor) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const completedWithoutCheckIn = await this.db.slotKelas.count({
+      where: {
+        instructorId: id,
+        status: 'COMPLETED',
+        instructorAttendance: null,
+        ...visibleBranches,
+      },
+    });
 
     return {
       id: instructor.id,
@@ -168,16 +179,18 @@ export class InstructorManagementService {
         activeFrom: a.createdAt,
         activeUntil: null,
       })),
-      instructedClassSlots: instructor.instructedClassSlots.map((slot) => ({
+      instructedClassSlots: instructor.instructedClassSlots.map(({ instructorAttendance, ...slot }) => ({
         ...slot,
-        instructorAttendances: [{ checkedInAt: slot.startAt }],
+        instructorAttendances: instructorAttendance ? [instructorAttendance] : [],
         instructorHourLog: null,
       })),
       instructorAvailabilities: [],
-      instructorAttendances: [],
+      instructorAttendances: instructor.instructedClassSlots.flatMap((slot) =>
+        slot.instructorAttendance ? [slot.instructorAttendance] : [],
+      ),
       instructorHourLogs: [],
       compensationRp: 0,
-      blockers: { completedWithoutCheckIn: 0, completedWithoutFee: 0 },
+      blockers: { completedWithoutCheckIn, completedWithoutFee: 0 },
     };
   }
 

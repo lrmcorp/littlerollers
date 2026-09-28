@@ -105,9 +105,8 @@ export function CheckoutView() {
       session?.status === 'unauthenticated';
 
     if (isAuthError && packageId) {
-      const returnUrl = encodeURIComponent(
-        `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}`,
-      );
+      const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
+      const returnTo = encodeURIComponent(checkoutDestination);
       return (
         <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-forest/10 text-dd-forest">
@@ -122,10 +121,10 @@ export function CheckoutView() {
             silakan masuk atau buat akun baru terlebih dahulu.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <ButtonLink href={`/sign-in?returnUrl=${returnUrl}`} className="w-full sm:w-auto">
+            <ButtonLink href={`/sign-in?returnTo=${returnTo}`} className="w-full sm:w-auto">
               Masuk ke Akun
             </ButtonLink>
-            <ButtonLink variant="secondary" href={`/register?returnUrl=${returnUrl}`} className="w-full sm:w-auto">
+            <ButtonLink variant="secondary" href={`/register?returnTo=${returnTo}`} className="w-full sm:w-auto">
               Daftar Akun Baru
             </ButtonLink>
           </div>

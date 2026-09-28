@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
+import path from 'node:path';
 import { prisma } from './db-helper';
-import { hash, argon2id } from 'argon2';
 import { randomBytes } from 'node:crypto';
+
+// Load argon2 from apps/api
+const apiArgon2Path = path.resolve(__dirname, '../../../../apps/api/node_modules/argon2');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { hash, argon2id } = require(apiArgon2Path);
 
 async function resetAmandaPasswordInDb() {
   const newHash = await hash('Customer123!', {

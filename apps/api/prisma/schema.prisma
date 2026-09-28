@@ -243,6 +243,7 @@ model User {
   recordedAttendances   KehadiranPelanggan[]  @relation("AttendanceRecorder")
   instructorAttendances KehadiranInstruktur[] @relation("InstructorAttendee")
   recordedInstructorAttendances KehadiranInstruktur[] @relation("InstructorAttendanceRecorder")
+  issuedInstructorTokens InstructorCheckInToken[] @relation("InstructorTokenIssuer")
   ownedBranches         OwnerCabang[]
   instructorFees        InstructorFee[]
   createdSessionLedgers SessionLedger[]       @relation("LedgerCreator")
@@ -404,6 +405,8 @@ model PaketPelanggan {
   validFrom         DateTime              @default(now())
   validUntil        DateTime
   status            CustomerPackageStatus @default(ACTIVE)
+  /// Saat paket dibekukan staf; dipakai menambah masa berlaku ketika dibuka kembali.
+  frozenAt          DateTime?
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
@@ -482,6 +485,7 @@ model SlotKelas {
   instructor            User?            @relation("InstructorSlot", fields: [instructorId], references: [id], onDelete: SetNull)
   bookings              PemesananKelas[]
   instructorAttendance  KehadiranInstruktur?
+  instructorCheckInTokens InstructorCheckInToken[]
   rescheduleSourceSlots UbahJadwal[]     @relation("SourceSlot")
   rescheduleTargetSlots UbahJadwal[]     @relation("TargetSlot")
 
@@ -539,6 +543,24 @@ model UbahJadwal {
 // ============================================================================
 // PILAR 5: PRESENSI & OPERASIONAL HARIAN
 // ============================================================================
+
+/// Token QR presensi instruktur: terikat ke kelas (bukan booking), sehingga kelas tanpa booking pun
+/// dapat memakainya. Disimpan sebagai hash; diterbitkan staf studio dan dipindai instruktur pemilik kelas.
+model InstructorCheckInToken {
+  id          String    @id @default(uuid()) @db.Char(36)
+  classSlotId String    @db.Char(36)
+  token       String    @unique @db.VarChar(128)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  issuedById  String?   @db.Char(36)
+  createdAt   DateTime  @default(now())
+
+  classSlot SlotKelas @relation(fields: [classSlotId], references: [id], onDelete: Cascade)
+  issuedBy  User?     @relation("InstructorTokenIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  @@index([classSlotId, expiresAt])
+  @@map("instructor_check_in_token")
+}
 
 /// Presensi instruktur per kelas (satu baris per slot). Dasar validasi honor instruktur di laporan finansial.
 model KehadiranInstruktur {

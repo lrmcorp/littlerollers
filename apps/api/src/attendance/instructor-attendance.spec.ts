@@ -37,11 +37,17 @@ const admin = {
 
 function build() {
   const tx = {
-    checkInToken: { update: jest.fn().mockResolvedValue({}) },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    slotKelas: { findUnique: jest.fn() },
+    instructorCheckInToken: {
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      create: jest.fn().mockImplementation(async ({ data }) => ({ id: 'token-new', ...data })),
+    },
     kehadiranInstruktur: { upsert: jest.fn().mockResolvedValue({}) },
   };
   const db = {
-    checkInToken: { findFirst: jest.fn() },
+    instructorCheckInToken: { findUnique: jest.fn() },
     slotKelas: { findUnique: jest.fn() },
     kehadiranInstruktur: { upsert: jest.fn() },
     $transaction: jest.fn(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx)),
@@ -53,16 +59,16 @@ function build() {
 const tokenFor = (slot: Partial<typeof inWindowSlot>, over: Record<string, unknown> = {}) => ({
   id: 'token-1',
   token: sha256(rawToken),
-  isUsed: false,
+  usedAt: null,
   expiresAt: new Date('2026-10-07T05:30:00.000Z'),
-  booking: { classSlot: { ...inWindowSlot, ...slot } },
+  classSlot: { ...inWindowSlot, ...slot },
   ...over,
 });
 
 describe('AttendanceService.consumeInstructor persistence', () => {
   it('records QR attendance for the owning instructor inside the check-in window', async () => {
     const { db, tx, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(tokenFor({}));
+    db.instructorCheckInToken.findUnique.mockResolvedValue(tokenFor({}));
     const result = await service.consumeInstructor(
       instructor,
       { token: `dd-checkin:v1:${rawToken}` },
@@ -71,9 +77,9 @@ describe('AttendanceService.consumeInstructor persistence', () => {
       NOW,
     );
     expect(result.body).toMatchObject({ success: true, classSlotId: slotId });
-    expect(tx.checkInToken.update).toHaveBeenCalledWith({
+    expect(tx.instructorCheckInToken.update).toHaveBeenCalledWith({
       where: { id: 'token-1' },
-      data: { isUsed: true },
+      data: { usedAt: NOW },
     });
     expect(tx.kehadiranInstruktur.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -85,17 +91,17 @@ describe('AttendanceService.consumeInstructor persistence', () => {
 
   it('refuses an instructor who is not assigned to the slot without consuming the token', async () => {
     const { db, tx, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(tokenFor({ instructorId: otherInstructorId }));
+    db.instructorCheckInToken.findUnique.mockResolvedValue(tokenFor({ instructorId: otherInstructorId }));
     await expect(
       service.consumeInstructor(instructor, { token: rawToken }, 'k', 'c', NOW),
     ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
     expect(tx.kehadiranInstruktur.upsert).not.toHaveBeenCalled();
-    expect(tx.checkInToken.update).not.toHaveBeenCalled();
+    expect(tx.instructorCheckInToken.update).not.toHaveBeenCalled();
   });
 
   it('refuses a scan before the check-in window opens', async () => {
     const { db, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(
+    db.instructorCheckInToken.findUnique.mockResolvedValue(
       tokenFor({ startAt: new Date('2026-10-07T09:00:00.000Z'), endAt: new Date('2026-10-07T10:00:00.000Z') }),
     );
     await expect(
@@ -105,7 +111,7 @@ describe('AttendanceService.consumeInstructor persistence', () => {
 
   it('refuses a scan after the class has ended', async () => {
     const { db, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(
+    db.instructorCheckInToken.findUnique.mockResolvedValue(
       tokenFor({ startAt: new Date('2026-10-07T01:00:00.000Z'), endAt: new Date('2026-10-07T02:00:00.000Z') }),
     );
     await expect(
@@ -115,7 +121,7 @@ describe('AttendanceService.consumeInstructor persistence', () => {
 
   it('refuses a scan for a slot that is not CONFIRMED', async () => {
     const { db, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(tokenFor({ status: 'PUBLISHED' }));
+    db.instructorCheckInToken.findUnique.mockResolvedValue(tokenFor({ status: 'PUBLISHED' }));
     await expect(
       service.consumeInstructor(instructor, { token: rawToken }, 'k', 'c', NOW),
     ).rejects.toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
@@ -123,7 +129,7 @@ describe('AttendanceService.consumeInstructor persistence', () => {
 
   it('keeps rejecting a token that was already used', async () => {
     const { db, service } = build();
-    db.checkInToken.findFirst.mockResolvedValue(tokenFor({}, { isUsed: true }));
+    db.instructorCheckInToken.findUnique.mockResolvedValue(tokenFor({}, { usedAt: NOW }));
     await expect(
       service.consumeInstructor(instructor, { token: rawToken }, 'k', 'c', NOW),
     ).rejects.toMatchObject({ code: 'TOKEN_ALREADY_USED' });
@@ -215,5 +221,84 @@ describe('AttendanceService.verifyInstructorAttendance (manual)', () => {
     await expect(
       service.verifyInstructorAttendance(admin, slotId, {}, NOW),
     ).rejects.toMatchObject({ code: 'CHECK_IN_TOO_EARLY' });
+  });
+});
+
+describe('AttendanceService.issueInstructor (studio-issued, slot-bound token)', () => {
+  const slotWithNames = (over: Record<string, unknown> = {}) => ({
+    ...inWindowSlot,
+    classType: { name: 'Group Class' },
+    branch: { id: branchId, code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' },
+    ...over,
+  });
+
+  it('issues a persisted token without needing any booking on the class', async () => {
+    const { tx, service } = build();
+    tx.slotKelas.findUnique.mockResolvedValue(slotWithNames());
+    const result = await service.issueInstructor(admin, slotId, 'k', 'c', NOW);
+    expect(tx.instructorCheckInToken.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        classSlotId: slotId,
+        issuedById: admin.userId,
+        token: sha256(result.token),
+      }),
+    });
+    expect(result).toMatchObject({
+      purpose: 'INSTRUCTOR_CHECK_IN',
+      resourceId: slotId,
+      qrPayload: `dd-checkin:v1:${result.token}`,
+    });
+  });
+
+  it('revokes earlier unused tokens for the slot when issuing a new one', async () => {
+    const { tx, service } = build();
+    tx.slotKelas.findUnique.mockResolvedValue(slotWithNames());
+    await service.issueInstructor(admin, slotId, 'k', 'c', NOW);
+    expect(tx.instructorCheckInToken.updateMany).toHaveBeenCalledWith({
+      where: { classSlotId: slotId, usedAt: null },
+      data: { usedAt: NOW },
+    });
+  });
+
+  it('does not let an instructor issue their own proof of presence', async () => {
+    const { db, service } = build();
+    await expect(service.issueInstructor(instructor, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('hides slots of a foreign branch and refuses slots with no instructor or wrong state', async () => {
+    const { tx, service } = build();
+    tx.slotKelas.findUnique.mockResolvedValue(
+      slotWithNames({ branchId: '00000000-0000-4000-8000-000000000099' }),
+    );
+    await expect(service.issueInstructor(admin, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'RESOURCE_NOT_FOUND',
+    });
+    tx.slotKelas.findUnique.mockResolvedValue(slotWithNames({ instructorId: null }));
+    await expect(service.issueInstructor(admin, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'INVALID_STATE_TRANSITION',
+    });
+    tx.slotKelas.findUnique.mockResolvedValue(slotWithNames({ status: 'PUBLISHED' }));
+    await expect(service.issueInstructor(admin, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'INVALID_STATE_TRANSITION',
+    });
+  });
+
+  it('respects the check-in window on issuance', async () => {
+    const { tx, service } = build();
+    tx.slotKelas.findUnique.mockResolvedValue(
+      slotWithNames({ startAt: new Date('2026-10-07T09:00:00.000Z'), endAt: new Date('2026-10-07T10:00:00.000Z') }),
+    );
+    await expect(service.issueInstructor(admin, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'CHECK_IN_TOO_EARLY',
+    });
+    tx.slotKelas.findUnique.mockResolvedValue(
+      slotWithNames({ startAt: new Date('2026-10-07T01:00:00.000Z'), endAt: new Date('2026-10-07T02:00:00.000Z') }),
+    );
+    await expect(service.issueInstructor(admin, slotId, 'k', 'c', NOW)).rejects.toMatchObject({
+      code: 'CHECK_IN_WINDOW_CLOSED',
+    });
   });
 });

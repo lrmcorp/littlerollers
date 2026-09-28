@@ -118,9 +118,16 @@ export class LedgerService {
       customerUserId?: string;
     },
   ) {
-    const scopeWhere = this.packageScopeWhere(principal, 'ledger:read', filters.branchId);
-    const search = filters.search?.trim();
     const isCustomer = principal.roles.some((r) => r.role === 'CUSTOMER' || r.role === 'MEMBER');
+    if (isCustomer) {
+      this.policy.requireCapability(principal.capabilities, 'ledger:read');
+    }
+    const scopeWhere: Prisma.PaketPelangganWhereInput = isCustomer
+      ? filters.branchId
+        ? { purchase: { is: { branchId: filters.branchId } } }
+        : {}
+      : this.packageScopeWhere(principal, 'ledger:read', filters.branchId);
+    const search = filters.search?.trim();
     const customerFilter: Prisma.PaketPelangganWhereInput = isCustomer
       ? { userId: principal.userId }
       : filters.customerUserId
@@ -252,10 +259,12 @@ export class LedgerService {
       expiryAt: row.validUntil.toISOString(),
       ledgerBalance,
       reserved,
-      available: Math.max(0, ledgerBalance - reserved),
+      available: row.status === 'FROZEN' ? 0 : Math.max(0, ledgerBalance - reserved),
       packageName: row.package?.name ?? 'Paket',
       branchName: row.purchase?.branch?.name ?? 'Semua cabang',
       classTypeName: row.package?.classType?.name ?? 'Pilates',
+      classTypeId: row.package?.classTypeId ?? null,
+      packageBranchId: row.package?.branchId ?? row.purchase?.branchId ?? null,
       customer: {
         id: row.user.id,
         displayName: row.user.displayName,
@@ -669,6 +678,128 @@ export class LedgerService {
       resultingBalance: outcome.resultingBalance,
       auditReference: null,
       idempotentReplay: false,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Aksi staf pada paket pelanggan: perpanjang masa berlaku, bekukan, buka kembali.
+  // Tidak mengubah saldo sesi; tiap aksi meninggalkan entri buku sesi berjumlah 0 sebagai jejak.
+  // ---------------------------------------------------------------------------
+
+  async manageCustomerPackage(
+    principal: SessionPrincipal,
+    id: string,
+    action: string | undefined,
+    body: { days?: number; reason?: string; expectedValidUntil?: string },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'customer-package:manage');
+    if (action !== 'extend' && action !== 'freeze' && action !== 'unfreeze')
+      throw problem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST, 'action');
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 3 || reason.length > 500)
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reason');
+    const days = body?.days;
+    if (action === 'extend' && (!Number.isInteger(days) || days! < 1 || days! > 180))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'days');
+    let expectedValidUntil: number | undefined;
+    if (body?.expectedValidUntil !== undefined) {
+      expectedValidUntil = new Date(body.expectedValidUntil).getTime();
+      if (!Number.isFinite(expectedValidUntil))
+        throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'expectedValidUntil');
+    }
+
+    const outcome = await this.db.$transaction(
+      async (tx) => {
+        const pkg = await tx.paketPelanggan.findUnique({ where: { id }, include: packageInclude });
+        if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.assertPackageAccess(principal, 'customer-package:manage', pkg);
+        if (expectedValidUntil !== undefined && pkg.validUntil.getTime() !== expectedValidUntil)
+          throw problem('PACKAGE_CHANGED', HttpStatus.CONFLICT);
+
+        const now = new Date();
+        const DAY = 86_400_000;
+        let data: Prisma.PaketPelangganUpdateManyMutationInput;
+        let note: string;
+
+        if (action === 'extend') {
+          if (pkg.status === 'FROZEN') throw problem('PACKAGE_FROZEN', HttpStatus.CONFLICT);
+          if (pkg.remainingSessions <= 0)
+            throw problem('NO_REMAINING_SESSIONS', HttpStatus.CONFLICT);
+          const from = Math.max(pkg.validUntil.getTime(), now.getTime());
+          data = { validUntil: new Date(from + days! * DAY), status: 'ACTIVE' };
+          note = `Perpanjang masa berlaku ${days} hari`;
+        } else if (action === 'freeze') {
+          if (pkg.status !== 'ACTIVE' || pkg.validUntil <= now)
+            throw problem('PACKAGE_NOT_ACTIVE', HttpStatus.CONFLICT);
+          const upcoming = await tx.pemesananKelas.count({
+            where: {
+              customerPackageId: id,
+              status: 'BOOKED',
+              classSlot: { is: { startAt: { gte: now } } },
+            },
+          });
+          if (upcoming > 0) throw problem('HAS_UPCOMING_BOOKINGS', HttpStatus.CONFLICT);
+          data = { status: 'FROZEN', frozenAt: now };
+          note = 'Paket dibekukan';
+        } else {
+          if (pkg.status !== 'FROZEN') throw problem('PACKAGE_NOT_FROZEN', HttpStatus.CONFLICT);
+          const frozenMs = pkg.frozenAt ? Math.max(0, now.getTime() - pkg.frozenAt.getTime()) : 0;
+          data = {
+            status: pkg.remainingSessions > 0 ? 'ACTIVE' : 'DEPLETED',
+            validUntil: new Date(pkg.validUntil.getTime() + frozenMs),
+            frozenAt: null,
+          };
+          note = `Paket dibuka kembali; masa berlaku bertambah ${Math.floor(frozenMs / DAY)} hari selama dibekukan`;
+        }
+
+        const claimed = await tx.paketPelanggan.updateMany({
+          where: {
+            id,
+            status: pkg.status,
+            validUntil: pkg.validUntil,
+            remainingSessions: pkg.remainingSessions,
+          },
+          data,
+        });
+        if (claimed.count !== 1) throw problem('PACKAGE_CHANGED', HttpStatus.CONFLICT);
+
+        const entry = await tx.sessionLedger.create({
+          data: {
+            customerPackageId: id,
+            type: SessionMutationType.ADJUST_MANUAL,
+            amount: 0,
+            balanceAfter: pkg.remainingSessions,
+            referenceId: id,
+            notes: `${note}: ${reason}`.slice(0, 255),
+            createdById: principal.userId,
+          },
+        });
+        const updated = await tx.paketPelanggan.findUniqueOrThrow({
+          where: { id },
+          include: packageInclude,
+        });
+        return { updated, entry, previousStatus: pkg.status };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: outcome.updated.purchase?.branchId ?? null,
+      action: `CUSTOMER_PACKAGE_${action.toUpperCase()}`,
+      objectType: 'PaketPelanggan',
+      objectId: id,
+      afterMasked: {
+        previousStatus: outcome.previousStatus,
+        status: outcome.updated.status,
+        validUntil: outcome.updated.validUntil.toISOString(),
+      },
+    });
+    const reserved = (await this.reservedByPackage([id])).get(id) ?? 0;
+    return {
+      balance: this.balanceView(outcome.updated, reserved),
+      ledgerEntry: this.ledgerEntryView(outcome.entry),
     };
   }
 

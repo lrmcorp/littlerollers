@@ -6,6 +6,9 @@ import { ClassSlotView } from '@/classes/class-slot-view';
 import type { ClassSlotClient } from '@/api-clients/class-slot-client';
 import type { BookingClient, BookingPage } from '@/api-clients/booking-client';
 import { AppFeedbackProvider } from '@/components/app-feedback';
+import QRCode from 'qrcode';
+
+vi.mock('qrcode', () => ({ default: { toCanvas: vi.fn().mockResolvedValue(undefined) } }));
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
 const now = new Date();
@@ -435,6 +438,79 @@ describe('ClassSlotView instructor attendance verification', () => {
   });
 });
 
+describe('ClassSlotView instructor check-in QR for studio staff', () => {
+  const confirmedSlot = { ...slot, status: 'CONFIRMED' as const };
+  const issue = {
+    id: 'tok-1',
+    resourceId: slot.id,
+    expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+    qrPayload: 'dd-checkin:v1:raw-token',
+    className: 'Reformer',
+    branch: { code: 'JKT', name: 'Jakarta' },
+    startAt: confirmedSlot.startAt,
+    endAt: confirmedSlot.endAt,
+  };
+  const open = async (
+    over: Record<string, unknown>,
+    bookingClient: Pick<BookingClient, 'list'> & Partial<Pick<BookingClient, 'issueInstructorCheckIn'>>,
+    capabilities: readonly string[] = manageCapabilities,
+  ) => {
+    const client = fake({
+      discover: vi.fn().mockResolvedValue({ ...workspace, slots: [{ ...confirmedSlot, ...over }] }),
+    });
+    render(
+      <ClassSlotView
+        client={client}
+        bookingClient={bookingClient}
+        branchOverride={branch}
+        capabilitiesOverride={capabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
+    await within(calendar).findByText('Reformer');
+    await user.click(within(calendar).getByRole('button', { name: /Reformer/ }));
+    return { user, dialog: screen.getByRole('dialog', { name: 'Reformer' }) };
+  };
+
+  it('issues and renders the QR the instructor scans, with an idempotency key', async () => {
+    const issueInstructorCheckIn = vi.fn().mockResolvedValue(issue);
+    const { user, dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
+    await user.click(within(dialog).getByRole('button', { name: 'Tampilkan QR presensi instruktur' }));
+    expect(issueInstructorCheckIn).toHaveBeenCalledWith('slot-1', expect.any(String));
+    expect(await within(dialog).findByRole('img', { name: 'QR presensi instruktur' })).toBeVisible();
+    expect(QRCode.toCanvas).toHaveBeenCalledWith(expect.anything(), 'dd-checkin:v1:raw-token', expect.anything());
+    expect(within(dialog).getByRole('button', { name: 'Ganti QR presensi' })).toBeVisible();
+  });
+
+  it('shows the backend refusal (e.g. window not open yet) and no QR', async () => {
+    const issueInstructorCheckIn = vi
+      .fn()
+      .mockRejectedValue({ status: 409, data: { error: { code: 'CHECK_IN_TOO_EARLY' } } });
+    const { user, dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
+    await user.click(within(dialog).getByRole('button', { name: 'Tampilkan QR presensi instruktur' }));
+    await within(dialog).findByText(/30 menit sebelum kelas/);
+    expect(within(dialog).queryByRole('img', { name: 'QR presensi instruktur' })).toBeNull();
+  });
+
+  it('hides the QR action without attendance:manage', async () => {
+    const { dialog } = await open(
+      {},
+      { list: vi.fn(), issueInstructorCheckIn: vi.fn() },
+      ['class-slot:read', 'class-slot:manage'],
+    );
+    expect(within(dialog).queryByRole('button', { name: 'Tampilkan QR presensi instruktur' })).toBeNull();
+  });
+
+  it('hides the QR action once the instructor is already recorded', async () => {
+    const { dialog } = await open(
+      { instructorAttendance: { checkedInAt: new Date().toISOString(), method: 'QR_SCAN' } },
+      { list: vi.fn(), issueInstructorCheckIn: vi.fn() },
+    );
+    expect(within(dialog).queryByRole('button', { name: 'Tampilkan QR presensi instruktur' })).toBeNull();
+  });
+});
+
 describe('ClassSlotView without catalog access (read-only roles)', () => {
   const named = {
     ...slot,
@@ -463,6 +539,20 @@ describe('ClassSlotView without catalog access (read-only roles)', () => {
     const dialog = screen.getByRole('dialog', { name: 'Reformer Pilates' });
     expect(within(dialog).getAllByText('Sarah Coach')[0]).toBeVisible();
     expect(within(dialog).queryByText('Instruktur belum dimuat')).toBeNull();
+  });
+
+  it('builds the class-type and instructor filters from the visible slots', async () => {
+    render(
+      <ClassSlotView
+        client={emptyCatalog()}
+        branchOverride={branch}
+        capabilitiesOverride={readCapabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer Pilates');
+    await user.click(screen.getByRole('combobox', { name: 'Instruktur' }));
+    expect(await screen.findByRole('option', { name: /Sarah Coach/ })).toBeVisible();
   });
 });
 

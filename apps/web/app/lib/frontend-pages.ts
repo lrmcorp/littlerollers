@@ -83,13 +83,14 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/check-in-scanner',
     label: 'Scan QR check-in',
     shortLabel: 'Scan QR',
-    description: 'Scan QR pass pelanggan dan catat attendance pada jadwal aktif.',
+    description:
+      'Staf memindai QR pass pelanggan; instruktur memindai QR presensi studio untuk mencatat kehadirannya.',
     group: 'Operasional Studio',
-    capabilities: ['attendance:manage'],
+    capabilities: ['attendance:manage', 'attendance:self'],
     priority: 4,
     branchScope: 'topbar',
     accent: 'info',
-    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER'],
+    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'INSTRUCTOR', 'COACH'],
   },
   {
     href: '/support-cases',

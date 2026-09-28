@@ -73,6 +73,7 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'booking:create:assisted',
     'booking:cancel:assisted',
     'purchase:record',
+    'customer-package:manage',
     'attendance:read',
     'attendance:manage',
     'reschedule:read',
@@ -129,6 +130,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'support:manage',
     'branch:operate',
     'user:read',
+    // Baca-saja: dibutuhkan form jadwal untuk memilih instruktur cabang (dibatasi cakupan cabang).
+    'assignment:read',
     'customer:read',
     'customer:manage',
     'payment:review',
@@ -155,6 +158,9 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'support:read',
     'support:manage',
     'branch:manage',
+    // Manager membaca staf cabang (matriks hak akses) dan memilih instruktur saat menjadwalkan kelas.
+    'user:read',
+    'assignment:read',
     'customer:read',
     'customer:manage',
     'customer:write',
@@ -170,6 +176,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'booking:create:assisted',
     'booking:cancel:assisted',
     'purchase:record',
+    // Perpanjang masa berlaku, bekukan, dan buka kembali paket pelanggan.
+    'customer-package:manage',
     // Baca katalog paket: dibutuhkan untuk memilih paket pada penjualan manual di meja.
     'package:read',
     'reschedule:read',

@@ -21,6 +21,8 @@ export type LedgerBalance = {
   packageName?: string;
   branchName?: string;
   classTypeName?: string;
+  classTypeId?: string | null;
+  packageBranchId?: string | null;
   customer?: { id: string; displayName: string; phoneMasked: string | null };
 };
 export type LedgerHistory = {

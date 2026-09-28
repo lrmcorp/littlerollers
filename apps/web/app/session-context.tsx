@@ -68,7 +68,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/workspace/availability', ['availability:self:read']],
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:self:read']],
-  ['/check-in-scanner', ['attendance:manage']],
+  ['/check-in-scanner', ['attendance:manage', 'attendance:self']],
 ];
 
 interface SessionContextValue {

@@ -327,6 +327,24 @@ export type CheckInResult = {
   endAt: string;
 };
 
+/** QR presensi instruktur yang diterbitkan staf studio untuk satu kelas. */
+export type InstructorCheckInIssue = {
+  id: string;
+  resourceId: string;
+  expiresAt: string;
+  qrPayload: string;
+  className: string;
+  branch: { code: string; name: string };
+  startAt: string;
+  endAt: string;
+};
+
+export type InstructorCheckInResult = {
+  success: boolean;
+  classSlotId: string;
+  checkedInAt: string;
+};
+
 export interface BookingClient {
   discover(branchId: string): Promise<BookingDiscovery>;
   options(classSlotId: string): Promise<CustomerBookingOptions>;
@@ -377,6 +395,8 @@ export interface BookingClient {
     items: Array<{ bookingId: string; ok: boolean; result?: CheckInIssue; errorCode?: string }>;
   }>;
   consumeCheckIn?(token: string, idempotencyKey: string): Promise<CheckInResult>;
+  issueInstructorCheckIn?(classSlotId: string, idempotencyKey: string): Promise<InstructorCheckInIssue>;
+  consumeInstructorCheckIn?(token: string, idempotencyKey: string): Promise<InstructorCheckInResult>;
   /** Pembatalan atas nama pelanggan oleh staf (Aturan Bisnis #6: batas H-24, alasan wajib). */
   cancelAsStaff?(bookingId: string, reason: string, idempotencyKey: string): Promise<void>;
   cancellationOptions?(bookingId: string): Promise<{
@@ -768,6 +788,35 @@ export const browserBookingClient: BookingClient = {
     if (!response.ok) throw { response };
     return response.json() as Promise<CheckInResult>;
   },
+  async issueInstructorCheckIn(classSlotId, idempotencyKey) {
+    const response = await foregroundFetch(
+      `/api/v1/class-slots/${encodeURIComponent(classSlotId)}/instructor-check-in-tokens`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'idempotency-key': idempotencyKey },
+      },
+      'Menerbitkan QR presensi instruktur…',
+    );
+    if (!response.ok) throw { response };
+    return response.json() as Promise<InstructorCheckInIssue>;
+  },
+  async consumeInstructorCheckIn(token, idempotencyKey) {
+    const response = await foregroundFetch(
+      '/api/v1/check-ins/instructors',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ token }),
+      },
+      'Memproses presensi instruktur…',
+    );
+    if (!response.ok) throw { response };
+    // API membungkus hasil sebagai { status, body }.
+    const wrapped = (await response.json()) as { body?: InstructorCheckInResult } & InstructorCheckInResult;
+    return wrapped.body ?? wrapped;
+  },
 };
 
 const messages: Record<string, string> = {
@@ -800,6 +849,9 @@ const messages: Record<string, string> = {
   CANCELLATION_CUTOFF_PASSED:
     'Batas pembatalan H-24 sudah terlewati. Untuk kondisi darurat medis, ajukan Penyesuaian Sesi.',
   ATTENDANCE_RECORDED: 'Kehadiran sudah tercatat, booking tidak dapat dibatalkan.',
+  INVALID_TOKEN: 'QR tidak dikenali. Minta staf studio menampilkan QR presensi terbaru.',
+  TOKEN_ALREADY_USED: 'QR ini sudah dipakai atau sudah diganti. Minta staf studio menampilkan QR terbaru.',
+  TOKEN_EXPIRED: 'QR sudah kedaluwarsa. Minta staf studio menampilkan QR terbaru.',
 };
 
 export type BookingProblem = {

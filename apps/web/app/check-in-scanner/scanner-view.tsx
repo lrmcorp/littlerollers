@@ -6,6 +6,7 @@ import {
   bookingFailure,
   browserBookingClient,
   type CheckInResult,
+  type InstructorCheckInResult,
 } from '@/api-clients/booking-client';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';
@@ -13,21 +14,39 @@ import { Feedback } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 
+type ScanMode = 'customer' | 'instructor';
+
 export function CheckInScannerView() {
   const context = useSessionContext();
-  const canManage = context?.hasCapability('attendance:manage') ?? false;
+  const canScanCustomer = context?.hasCapability('attendance:manage') ?? false;
+  const canScanInstructor = context?.hasCapability('attendance:self') ?? false;
+  const [chosenMode, setChosenMode] = useState<ScanMode>('customer');
+  // Staf memindai QR pelanggan; instruktur memindai QR presensi yang ditampilkan staf studio.
+  const mode: ScanMode = canScanCustomer && (chosenMode === 'customer' || !canScanInstructor)
+    ? 'customer'
+    : 'instructor';
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | undefined>(undefined);
   const [manual, setManual] = useState('');
   const [result, setResult] = useState<CheckInResult>();
+  const [instructorResult, setInstructorResult] = useState<InstructorCheckInResult>();
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
 
   const consume = async (value: string) => {
     setError('');
     try {
+      if (mode === 'instructor') {
+        const consumeInstructor = browserBookingClient.consumeInstructorCheckIn;
+        if (!consumeInstructor) return;
+        setResult(undefined);
+        setInstructorResult(await consumeInstructor(value, crypto.randomUUID()));
+        setManual('');
+        return;
+      }
       const consumeCheckIn = browserBookingClient.consumeCheckIn;
       if (!consumeCheckIn) return;
+      setInstructorResult(undefined);
       const next = await consumeCheckIn(value, crypto.randomUUID());
       setResult(next);
       setManual('');
@@ -76,7 +95,7 @@ export function CheckInScannerView() {
     };
   }, []);
 
-  if (!canManage) {
+  if (!canScanCustomer && !canScanInstructor) {
     return <Feedback kind="error">Anda tidak memiliki akses untuk memindai QR check-in.</Feedback>;
   }
 
@@ -85,13 +104,33 @@ export function CheckInScannerView() {
       <AdminPageHeader
         title="Scan QR check-in"
         titleId="scanner-title"
-        description="Pindai QR pass pelanggan saat datang. Backend memvalidasi booking, cabang, status, dan window jadwal."
+        description={
+          mode === 'instructor'
+            ? 'Pindai QR presensi yang ditampilkan staf studio 30 menit sebelum kelas. Presensi hanya tercatat untuk instruktur pemilik kelas.'
+            : 'Pindai QR pass pelanggan saat datang. Backend memvalidasi booking, cabang, status, dan window jadwal.'
+        }
         actions={
           <span className="rounded-full bg-dd-success-soft px-3 py-1 text-xs font-bold text-dd-success">
             Kamera + fallback manual
           </span>
         }
       />
+      {canScanCustomer && canScanInstructor && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Jenis QR">
+          <Button
+            variant={mode === 'customer' ? 'primary' : 'secondary'}
+            onClick={() => setChosenMode('customer')}
+          >
+            QR pelanggan
+          </Button>
+          <Button
+            variant={mode === 'instructor' ? 'primary' : 'secondary'}
+            onClick={() => setChosenMode('instructor')}
+          >
+            QR presensi instruktur
+          </Button>
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <Panel className="p-5">
           <h2 className="text-lg font-semibold">Kamera scanner</h2>
@@ -117,7 +156,9 @@ export function CheckInScannerView() {
         <Panel className="p-5">
           <h2 className="text-lg font-semibold">Input manual</h2>
           <p className="mt-2 text-sm text-dd-muted">
-            Paste payload `dd-checkin:v1:…` atau URL pass dari WhatsApp.
+            {mode === 'instructor'
+              ? 'Paste payload `dd-checkin:v1:…` dari QR presensi yang ditampilkan staf studio.'
+              : 'Paste payload `dd-checkin:v1:…` atau URL pass dari WhatsApp.'}
           </p>
           <textarea
             className="mt-4 min-h-28 w-full rounded-dd-md border border-dd-line p-3 text-sm"
@@ -126,12 +167,27 @@ export function CheckInScannerView() {
             aria-label="Token QR manual"
           />
           <Button className="mt-3" disabled={!manual.trim()} onClick={() => void consume(manual)}>
-            Validasi check-in
+            {mode === 'instructor' ? 'Catat presensi' : 'Validasi check-in'}
           </Button>
         </Panel>
       </div>
       {error && <Feedback kind="error">{error}</Feedback>}
-      {result && (
+      {mode === 'instructor' && instructorResult && (
+        <Panel className="border-dd-success/30 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-dd-success">
+            Presensi instruktur tercatat
+          </p>
+          <p className="mt-2 text-sm">
+            Kehadiran Anda dicatat pukul{' '}
+            {new Date(instructorResult.checkedInAt).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+            . Honor kelas ini kini terhitung sebagai terverifikasi.
+          </p>
+        </Panel>
+      )}
+      {mode === 'customer' && result && (
         <Panel className="border-dd-success/30 p-5">
           <p className="text-xs font-bold uppercase tracking-wider text-dd-success">
             Check-in berhasil

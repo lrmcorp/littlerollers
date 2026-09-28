@@ -343,7 +343,7 @@ export function RegisterView() {
               ktp: values.ktp,
             });
             const searchParams = new URLSearchParams(window.location.search);
-            const returnTo = searchParams.get('returnTo') || '/classes#schedule';
+            const returnTo = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/classes#schedule';
             const completed = await session?.completeSignIn(returnTo);
             if (!completed) throw new Error('session');
           } catch (error) {
