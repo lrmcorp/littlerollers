@@ -850,25 +850,25 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
     .click();
   const dialog = page.getByRole('dialog', { name: 'Reformer' });
   const instructorSection = dialog
-    .getByRole('heading', { name: 'Tetapkan instructor' })
-    .locator('..');
+    .getByRole('heading', { name: 'Instruktur', level: 4 })
+    .locator('../..');
   const instructorInput = instructorSection.getByRole('combobox', { name: 'Instruktur' });
   await instructorInput.fill('Ayu Instructor');
   await instructorSection.getByRole('option', { name: 'Ayu Instructor' }).click();
-  await instructorSection.getByRole('button', { name: 'Tetapkan instructor' }).press('Enter');
+  await instructorSection.getByRole('button', { name: 'Tetapkan instruktur' }).press('Enter');
   await page
     .getByRole('dialog', { name: 'Tetapkan instruktur?' })
     .getByRole('button', { name: 'Tetapkan', exact: true })
     .press('Enter');
-  await expect(page.getByText('Instructor berhasil ditetapkan.', { exact: true })).toBeVisible();
-  await dialog.getByRole('button', { name: 'Publish kelas' }).press('Enter');
+  await expect(page.getByText('Instruktur berhasil ditetapkan.', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Publikasikan kelas' }).press('Enter');
   await page
     .getByRole('dialog', { name: 'Publikasikan kelas?' })
     .getByRole('button', { name: 'Publikasikan', exact: true })
     .press('Enter');
   await expect(dialog.getByText('Dipublikasikan', { exact: true })).toBeVisible();
   await dialog.getByLabel('Alasan pembatalan').selectOption('OTHER_REVIEW_REQUIRED');
-  await dialog.getByRole('button', { name: 'Konfirmasi pembatalan' }).press('Enter');
+  await dialog.getByRole('button', { name: 'Batalkan kelas ini' }).press('Enter');
   await page
     .getByRole('dialog', { name: 'Batalkan kelas?' })
     .getByRole('button', { name: 'Batalkan kelas', exact: true })

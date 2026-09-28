@@ -165,7 +165,7 @@ describe('ClassSlotView', () => {
     await user.click(within(calendar).getByRole('button', { name: /Reformer/ }));
     const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     expect(within(dialog).getAllByText('Ayu Instructor')[0]).toBeVisible();
-    await user.click(within(dialog).getByRole('button', { name: 'Publish kelas' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Publikasikan kelas' }));
     await user.click(screen.getByRole('button', { name: 'Publikasikan' }));
     expect(client.publish).toHaveBeenCalledWith('slot-1', 0);
     expect(await screen.findByText('Kelas berhasil dipublikasikan.')).toBeVisible();
@@ -346,7 +346,7 @@ describe('ClassSlotView', () => {
       within(dialog).getByLabelText('Alasan pembatalan'),
       'INSTRUCTOR_UNAVAILABLE',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Konfirmasi pembatalan' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Batalkan kelas ini' }));
     await user.click(screen.getByRole('button', { name: 'Batalkan kelas' }));
     expect(client.cancel).toHaveBeenCalledWith('slot-1', 'INSTRUCTOR_UNAVAILABLE', 0);
     expect(await screen.findByText('Kelas berhasil dibatalkan.')).toBeVisible();
@@ -432,5 +432,157 @@ describe('ClassSlotView instructor attendance verification', () => {
     expect(
       await screen.findByText('Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.'),
     ).toBeVisible();
+  });
+});
+
+describe('ClassSlotView without catalog access (read-only roles)', () => {
+  const named = {
+    ...slot,
+    instructorUserId: 'a45ec6c1-0000-4000-8000-000000000000',
+    instructor: { displayName: 'Sarah Coach' },
+    classType: { name: 'Reformer Pilates' },
+  };
+  const emptyCatalog = () =>
+    fake({
+      discover: vi
+        .fn()
+        .mockResolvedValue({ slots: [named], classTypes: [], instructors: [], studios: [] }),
+    });
+
+  it('shows the class and instructor names from the slot in the detail drawer', async () => {
+    render(
+      <ClassSlotView
+        client={emptyCatalog()}
+        branchOverride={branch}
+        capabilitiesOverride={readCapabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
+    await user.click(await within(calendar).findByRole('button', { name: /Reformer Pilates/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Reformer Pilates' });
+    expect(within(dialog).getAllByText('Sarah Coach')[0]).toBeVisible();
+    expect(within(dialog).queryByText('Instruktur belum dimuat')).toBeNull();
+  });
+});
+
+describe('ClassSlotView detail drawer layout', () => {
+  const openDetail = async (
+    detailSlot: Record<string, unknown>,
+    capabilities: readonly string[] = manageCapabilities,
+    client?: ClassSlotClient,
+  ) => {
+    const target = { ...slot, ...detailSlot };
+    render(
+      <ClassSlotView
+        client={
+          client ??
+          fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [target] }) })
+        }
+        branchOverride={branch}
+        capabilitiesOverride={capabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    return { user, dialog: screen.getByRole('dialog', { name: 'Reformer' }) };
+  };
+
+  it('summarises date, time zone, studio and room without exposing the data version', async () => {
+    const { dialog } = await openDetail({
+      status: 'PUBLISHED',
+      studio: { name: 'Area Studio Utama' },
+      room: { name: 'Ruang Reformer' },
+    });
+    expect(within(dialog).getByRole('heading', { name: 'Ringkasan kelas' })).toBeVisible();
+    expect(within(dialog).getByText('Area Studio Utama · Ruang Reformer')).toBeVisible();
+    expect(within(dialog).getByText(/WIB/)).toBeVisible();
+    expect(within(dialog).queryByText('Versi data')).toBeNull();
+    expect(dialog).toHaveTextContent(
+      new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(slot.startAt),
+    );
+  });
+
+  it('explains why a draft without an instructor cannot be published', async () => {
+    const { dialog } = await openDetail({ status: 'DRAFT', instructorUserId: null });
+    expect(within(dialog).getByRole('button', { name: 'Publikasikan kelas' })).toBeDisabled();
+    expect(
+      within(dialog).getByText('Tetapkan instruktur terlebih dahulu untuk mempublikasikan kelas.'),
+    ).toBeVisible();
+  });
+
+  it('shows a read-only notice instead of disabled action buttons', async () => {
+    const { dialog } = await openDetail({ status: 'PUBLISHED' }, readCapabilities);
+    expect(within(dialog).getByText('Anda hanya dapat melihat kelas ini.')).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Batalkan kelas ini' })).toBeNull();
+    expect(within(dialog).queryByRole('heading', { name: 'Batalkan kelas' })).toBeNull();
+  });
+
+  it('requires an explicit cancellation reason before the cancel button is enabled', async () => {
+    const { user, dialog } = await openDetail({ status: 'PUBLISHED' });
+    const cancel = within(dialog).getByRole('button', { name: 'Batalkan kelas ini' });
+    expect(cancel).toBeDisabled();
+    expect(within(dialog).getByLabelText('Alasan pembatalan')).toHaveValue('');
+    await user.selectOptions(within(dialog).getByLabelText('Alasan pembatalan'), 'SAFETY_ISSUE');
+    expect(cancel).toBeEnabled();
+    expect(within(dialog).getByText(/1 peserta aktif/)).toBeVisible();
+  });
+
+  it('shows the cancellation reason on a closed class and offers no actions', async () => {
+    const { dialog } = await openDetail({
+      status: 'CANCELLED',
+      cancellationReasonCode: 'AUTO_CANCEL_MIN_QUOTA',
+    });
+    expect(
+      within(dialog).getByText('Kuota minimum tidak terpenuhi (otomatis)'),
+    ).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Batalkan kelas ini' })).toBeNull();
+    expect(within(dialog).queryByText('Anda hanya dapat melihat kelas ini.')).toBeNull();
+  });
+
+  it('hides roster pagination when everything fits on one page', async () => {
+    const bookingClient: Pick<BookingClient, 'list'> = {
+      list: vi.fn().mockResolvedValue({
+        items: [],
+        summary: { total: 0, booked: 0, reschedulePending: 0, attended: 0, cancelled: 0, noShow: 0 },
+        nextCursor: null,
+      } as unknown as BookingPage),
+    };
+    render(
+      <ClassSlotView
+        client={fake({
+          discover: vi.fn().mockResolvedValue({
+            ...workspace,
+            slots: [{ ...slot, status: 'PUBLISHED' }],
+          }),
+        })}
+        bookingClient={bookingClient}
+        branchOverride={branch}
+        capabilitiesOverride={[...manageCapabilities, 'booking:read']}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
+    expect(await within(dialog).findByText('Belum ada peserta')).toBeVisible();
+    expect(within(dialog).queryByText(/Halaman 1/)).toBeNull();
   });
 });

@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   browserBookingClient,
   bookingFailure,
   type BookingClient,
   type CheckInIssue,
-  type CustomerBookingRecord,
 } from '@/api-clients/booking-client';
 import type {
   ClassSlot,
@@ -17,16 +16,19 @@ import type {
 import { formatBranchTime, zonedLocalDateTime } from '@/lib/class-time';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
-import { SearchInput, SearchSelect, SelectInput, DateInput, TextInput } from '../components/forms';
+import { SearchSelect, SelectInput, DateInput, TextInput } from '../components/forms';
 import { useAppFeedback } from '../components/app-feedback';
-import { DataTable, Pagination } from '../components/admin/admin-ui';
 import {
   cancellationLabels,
+  cancellationReasonLabel,
   classStatusTone,
   statusLabels,
+  statusSummaries,
+  timezoneLabel,
   type CancellationReason,
 } from './class-slot-presenters';
-import { pageOffset } from '../lib/pagination';
+import { ActionRow, CapacityMeter, DetailSection, InfoItem } from './class-slot-detail-parts';
+import { ClassRosterSection } from './class-roster-section';
 
 export function CreatePanel({
   branchId,
@@ -150,9 +152,14 @@ export function CreatePanel({
   );
 }
 
+type SlotDetails = {
+  studio?: { name?: string | null } | null;
+  room?: { name?: string | null } | null;
+  notes?: string | null;
+};
+
 export function DetailPanel({
   slot,
-  classTypeName,
   instructorName,
   classTypes,
   instructors,
@@ -171,7 +178,6 @@ export function DetailPanel({
   onComplete,
 }: {
   slot: ClassSlot;
-  classTypeName: string;
   instructorName: string;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
@@ -197,276 +203,158 @@ export function DetailPanel({
 }) {
   const feedback = useAppFeedback();
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
-  const [reason, setReason] = useState<CancellationReason>('OTHER_REVIEW_REQUIRED');
-  const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai roster');
+  const [reason, setReason] = useState<CancellationReason | ''>('');
+  const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai daftar peserta');
   const [attendanceNote, setAttendanceNote] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [issues, setIssues] = useState<CheckInIssue[]>([]);
   const [issueFailure, setIssueFailure] = useState('');
-  const [roster, setRoster] = useState<CustomerBookingRecord[]>([]);
-  const [rosterSummary, setRosterSummary] =
-    useState<Awaited<ReturnType<BookingClient['list']>>['summary']>();
-  const [rosterQuery, setRosterQuery] = useState('');
-  const [rosterStatus, setRosterStatus] = useState('');
-  const [rosterCursor, setRosterCursor] = useState<string>();
-  const [rosterCursorHistory, setRosterCursorHistory] = useState<string[]>([]);
-  const [rosterNextCursor, setRosterNextCursor] = useState<string | null>();
-  const [rosterLoading, setRosterLoading] = useState(false);
-  const [rosterFailure, setRosterFailure] = useState('');
-  const loadRoster = useCallback(async () => {
-    if (!canReadBookings) return;
-    setRosterLoading(true);
-    setRosterFailure('');
-    try {
-      const page = await bookingClient.list({
-        classSlotId: slot.id,
-        q: rosterQuery || undefined,
-        status: rosterStatus || undefined,
-        cursor: rosterCursor,
-        limit: 10,
-      });
-      setRoster(page.items);
-      setRosterSummary(page.summary);
-      setRosterNextCursor(page.nextCursor);
-    } catch (error) {
-      setRosterFailure(await bookingFailure(error));
-      setRoster([]);
-    } finally {
-      setRosterLoading(false);
-    }
-  }, [bookingClient, canReadBookings, rosterCursor, rosterQuery, rosterStatus, slot.id]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => void loadRoster(), rosterQuery ? 250 : 0);
-    return () => window.clearTimeout(timer);
-  }, [loadRoster, rosterQuery]);
-  useEffect(() => {
-    setRosterCursor(undefined);
-    setRosterCursorHistory([]);
-  }, [rosterQuery, rosterStatus, slot.id]);
-  const bookingStatusLabels: Record<string, string> = {
-    BOOKED: 'Aktif',
-    RESCHEDULE_PENDING: 'Menunggu reschedule',
-    ATTENDED: 'Hadir',
-    CANCELLED: 'Dibatalkan',
-    NO_SHOW: 'Tidak hadir',
-  };
+  const details = slot as ClassSlot & SlotDetails;
+  const isDraft = slot.status === 'DRAFT';
+  const isPublished = slot.status === 'PUBLISHED';
+  const isConfirmed = slot.status === 'CONFIRMED';
+  const isClosed = ['COMPLETED', 'CANCELLED', 'AUTO_CANCELLED'].includes(slot.status);
+  const canRunClass = isConfirmed && (canComplete || canManageAttendance || canVerifyInstructor);
+  const hasActions = canManage ? !isClosed : canRunClass;
+  const cancelReasonLabel = cancellationReasonLabel(slot.cancellationReasonCode);
+  const location = [details.studio?.name, details.room?.name].filter(Boolean).join(' · ');
   return (
-    <div className="class-detail">
-      <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
-      <dl>
+    <div className="grid gap-4">
+      <DetailSection
+        id="class-summary-title"
+        title="Ringkasan kelas"
+        description={statusSummaries[slot.status]}
+      >
         <div>
-          <dt>Tipe kelas</dt>
-          <dd>{classTypeName}</dd>
+          <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
         </div>
-        <div>
-          <dt>Waktu</dt>
-          <dd>
+        <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-4 max-[359px]:grid-cols-1 sm:grid-cols-3">
+          <InfoItem label="Waktu">
             {formatBranchTime(slot.startAt, slot.timezone)}–
-            {formatBranchTime(slot.endAt, slot.timezone)}
-          </dd>
-        </div>
-        <div>
-          <dt>Instruktur</dt>
-          <dd>{instructorName}</dd>
-        </div>
-        <div>
-          <dt>Kapasitas</dt>
-          <dd>
-            {slot.bookedCount}/{slot.capacity}; minimum {slot.minimumQuota}
-          </dd>
-        </div>
-        <div>
-          <dt>Versi data</dt>
-          <dd>{slot.version}</dd>
-        </div>
-      </dl>
-      <section className="grid gap-4" aria-labelledby="class-roster-title">
-        <div>
-          <h3 id="class-roster-title">Daftar peserta</h3>
-          <p className="text-sm text-dd-muted">
-            Pelanggan dan status booking ditampilkan sesuai cakupan akses Anda.
-          </p>
-        </div>
-        {!canReadBookings ? (
-          <Feedback kind="info">
-            Anda dapat melihat jumlah peserta, tetapi detail pelanggan memerlukan akses booking.
+            {formatBranchTime(slot.endAt, slot.timezone)} {timezoneLabel(slot.timezone)}
+          </InfoItem>
+          <InfoItem label="Instruktur">{instructorName}</InfoItem>
+          <InfoItem label="Studio & ruangan">{location || 'Belum diatur'}</InfoItem>
+          <InfoItem label="Kapasitas" className="col-span-full">
+            <CapacityMeter
+              booked={slot.bookedCount}
+              capacity={slot.capacity}
+              minimum={slot.minimumQuota}
+            />
+          </InfoItem>
+          {cancelReasonLabel && isClosed && (
+            <InfoItem label="Alasan pembatalan" className="col-span-full">
+              {cancelReasonLabel}
+            </InfoItem>
+          )}
+          {details.notes && (
+            <InfoItem label="Catatan" className="col-span-full">
+              {details.notes}
+            </InfoItem>
+          )}
+        </dl>
+        {isPublished && slot.bookedCount < slot.minimumQuota && (
+          <Feedback kind="warning">
+            Belum mencapai kuota minimum ({slot.bookedCount} dari {slot.minimumQuota} peserta).
+            Kelas dibatalkan otomatis bila kuota tidak terpenuhi pada batas waktu konfirmasi.
           </Feedback>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                ['Aktif', (rosterSummary?.booked ?? 0) + (rosterSummary?.reschedulePending ?? 0)],
-                ['Hadir', rosterSummary?.attended ?? 0],
-                ['Dibatalkan', rosterSummary?.cancelled ?? 0],
-                ['Tersedia', Math.max(0, slot.capacity - slot.bookedCount)],
-              ].map(([label, value]) => (
-                <div
-                  className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-3"
-                  key={label}
-                >
-                  <span className="block text-xs text-dd-muted">{label}</span>
-                  <strong className="mt-1 block text-lg">{value}</strong>
-                </div>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SearchInput
-                label="Cari peserta"
-                value={rosterQuery}
-                placeholder="Nama atau telepon"
-                onChange={(event) => setRosterQuery(event.target.value)}
-              />
-              <SelectInput
-                label="Status booking"
-                value={rosterStatus}
-                onChange={(event) => setRosterStatus(event.target.value)}
-              >
-                <option value="">Semua status</option>
-                {Object.entries(bookingStatusLabels).map(([value, label]) => (
-                  <option value={value} key={value}>
-                    {label}
-                  </option>
-                ))}
-              </SelectInput>
-            </div>
-            {rosterFailure && (
-              <Feedback kind="error">
-                {rosterFailure}{' '}
-                <Button size="sm" variant="secondary" onClick={() => void loadRoster()}>
-                  Coba lagi
-                </Button>
-              </Feedback>
-            )}
-            <DataTable
-              rowNumberOffset={pageOffset(rosterCursorHistory.length, 10)}
-              items={roster}
-              loading={rosterLoading}
-              rowKey={(item) => item.id}
-              emptyTitle="Belum ada peserta"
-              emptyDescription="Belum ada booking yang sesuai dengan filter roster."
-              columns={[
-                {
-                  id: 'customer',
-                  header: 'Pelanggan',
-                  cell: (item) => (
-                    <div>
-                      <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
-                      <span className="text-xs text-dd-muted">
-                        {item.customer?.phoneMasked ?? 'Kontak termasking'}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  id: 'package',
-                  header: 'Paket & sesi',
-                  cell: (item) => (
-                    <div>
-                      <span className="block">{item.package?.name ?? 'Paket pelanggan'}</span>
-                      <span className="text-xs text-dd-muted">
-                        {item.sessionBalance?.available ?? 0} sesi tersedia
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  id: 'status',
-                  header: 'Status',
-                  cell: (item) => (
-                    <StatusBadge
-                      tone={
-                        item.status === 'CANCELLED' || item.status === 'NO_SHOW'
-                          ? 'danger'
-                          : item.status === 'ATTENDED'
-                            ? 'success'
-                            : 'info'
-                      }
-                    >
-                      {bookingStatusLabels[item.status] ?? 'Status booking'}
-                    </StatusBadge>
-                  ),
-                },
-                {
-                  id: 'action',
-                  header: 'Tindakan',
-                  cell: (item) => (
-                    <ButtonLink
-                      size="sm"
-                      variant="secondary"
-                      href={`/workspace/bookings/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent('/workspace/classes')}`}
-                    >
-                      Lihat booking
-                    </ButtonLink>
-                  ),
-                },
-              ]}
-              mobileCard={(item) => (
-                <div className="grid gap-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
-                      <span className="text-xs text-dd-muted">
-                        {item.customer?.phoneMasked ?? 'Kontak termasking'}
-                      </span>
-                    </div>
-                    <StatusBadge
-                      tone={
-                        item.status === 'CANCELLED' || item.status === 'NO_SHOW'
-                          ? 'danger'
-                          : item.status === 'ATTENDED'
-                            ? 'success'
-                            : 'info'
-                      }
-                    >
-                      {bookingStatusLabels[item.status] ?? 'Status booking'}
-                    </StatusBadge>
-                  </div>
-                  <p className="m-0 text-sm">
-                    {item.package?.name ?? 'Paket pelanggan'} ·{' '}
-                    {item.sessionBalance?.available ?? 0} sesi tersedia
-                  </p>
-                  <ButtonLink
-                    size="sm"
-                    variant="secondary"
-                    href={`/workspace/bookings/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent('/workspace/classes')}`}
-                  >
-                    Lihat booking
-                  </ButtonLink>
-                </div>
-              )}
-            />
-            <Pagination
-              hasPrevious={rosterCursorHistory.length > 0}
-              hasNext={Boolean(rosterNextCursor)}
-              currentPage={rosterCursorHistory.length + 1}
-              onPrevious={() => {
-                const previous = [...rosterCursorHistory];
-                const next = previous.pop();
-                setRosterCursorHistory(previous);
-                setRosterCursor(next);
-              }}
-              onNext={() => {
-                if (!rosterNextCursor) return;
-                setRosterCursorHistory((current) => [...current, rosterCursor ?? '']);
-                setRosterCursor(rosterNextCursor);
-              }}
-            />
-          </>
         )}
-      </section>
-      {slot.instructorUserId && ['CONFIRMED', 'COMPLETED'].includes(slot.status) && (
-        <section aria-labelledby="instructor-attendance-title" className="grid gap-3">
-          <h3 id="instructor-attendance-title">Presensi instruktur</h3>
+      </DetailSection>
+
+      {!hasActions && !isClosed && (
+        <Feedback kind="info">Anda hanya dapat melihat kelas ini.</Feedback>
+      )}
+
+      {isDraft && canManage && (
+        <DetailSection
+          id="class-prepare-title"
+          title="Persiapan kelas"
+          description="Lengkapi instruktur dan jadwal, lalu publikasikan agar pelanggan dapat memesan."
+        >
+          <ActionRow
+            title="Penugasan instruktur"
+            description={
+              slot.instructorUserId ? `Saat ini: ${instructorName}` : 'Belum ada instruktur.'
+            }
+            done={Boolean(slot.instructorUserId)}
+          >
+            <SearchSelect
+              label="Instruktur"
+              value={instructorId}
+              placeholder="Pilih instruktur"
+              options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
+              onChange={setInstructorId}
+            />
+            <Button
+              className="w-full sm:w-auto"
+              disabled={busy || !instructorId || instructorId === slot.instructorUserId}
+              onClick={() => void onAssign(instructorId)}
+            >
+              Tetapkan instruktur
+            </Button>
+          </ActionRow>
+          <ActionRow
+            title="Jadwal dan tipe kelas"
+            description="Ubah waktu, tipe kelas, atau instruktur selama kelas masih Draft. Kapasitas dihitung ulang dari konfigurasi."
+          >
+            <div>
+              <Button
+                variant="secondary"
+                className="w-full sm:w-auto"
+                disabled={busy}
+                onClick={() => setEditOpen((current) => !current)}
+              >
+                {editOpen ? 'Tutup edit' : 'Edit kelas'}
+              </Button>
+            </div>
+            {editOpen && (
+              <DraftEditForm
+                slot={slot}
+                classTypes={classTypes}
+                instructors={instructors}
+                busy={busy}
+                onSubmit={async (input) => {
+                  await onUpdate(input);
+                  setEditOpen(false);
+                }}
+              />
+            )}
+          </ActionRow>
+          <ActionRow
+            title="Publikasikan"
+            description={
+              slot.instructorUserId
+                ? 'Kelas akan tampil di katalog dan dapat dipesan pelanggan.'
+                : 'Tetapkan instruktur terlebih dahulu untuk mempublikasikan kelas.'
+            }
+          >
+            <div>
+              <Button
+                className="w-full sm:w-auto"
+                disabled={busy || !slot.instructorUserId}
+                onClick={() => void onPublish()}
+              >
+                Publikasikan kelas
+              </Button>
+            </div>
+          </ActionRow>
+        </DetailSection>
+      )}
+
+      {(isConfirmed || slot.status === 'COMPLETED') && slot.instructorUserId && (
+        <DetailSection id="instructor-attendance-title" title="Presensi instruktur">
           {slot.instructorAttendance ? (
             <Feedback kind="status">
-              Tercatat {formatBranchTime(new Date(slot.instructorAttendance.checkedInAt), slot.timezone)}{' '}
+              Tercatat{' '}
+              {formatBranchTime(new Date(slot.instructorAttendance.checkedInAt), slot.timezone)}{' '}
               melalui{' '}
-              {slot.instructorAttendance.method === 'QR_SCAN' ? 'scan QR' : 'verifikasi manual admin'}.
+              {slot.instructorAttendance.method === 'QR_SCAN' ? 'scan QR' : 'verifikasi manual admin'}
+              .
             </Feedback>
           ) : (
             <>
-              <p className="text-sm text-dd-muted">
+              <p className="m-0 text-sm text-dd-muted">
                 Belum tercatat. Honor kelas ini ditandai &quot;belum terverifikasi&quot; di laporan
                 keuangan sampai presensi instruktur dicatat.
               </p>
@@ -476,12 +364,13 @@ export function DetailPanel({
                     label="Catatan (opsional)"
                     value={attendanceNote}
                     maxLength={255}
-                    placeholder="Contoh: instruktur lupa scan, hadir sesuai roster"
+                    placeholder="Contoh: instruktur lupa scan, hadir sesuai daftar peserta"
                     onChange={(event) => setAttendanceNote(event.target.value)}
                   />
                   <div>
                     <Button
                       variant="secondary"
+                      className="w-full sm:w-auto"
                       disabled={busy}
                       onClick={() => void onVerifyInstructor(attendanceNote.trim())}
                     >
@@ -492,55 +381,58 @@ export function DetailPanel({
               )}
             </>
           )}
-        </section>
+        </DetailSection>
       )}
-      {slot.status === 'CONFIRMED' && (
-        <section>
-          <h3>QR check-in roster</h3>
-          <p className="text-sm text-dd-muted">
-            Terbitkan pass untuk seluruh booking aktif. Setiap customer dikirim melalui tombol
-            WhatsApp masing-masing; browser tidak membuka popup massal.
-          </p>
-          <Button
-            disabled={busy || issuing || !canManageAttendance}
-            onClick={() => {
-              const issueBulk = bookingClient.issueBulkCheckIns;
-              if (!issueBulk) return;
-              void feedback
-                .confirm({
-                  tone: 'warning',
-                  title: 'Buat QR untuk roster?',
-                  message:
-                    'Pass diterbitkan per booking aktif. Kegagalan satu pelanggan tidak membatalkan hasil lainnya.',
-                  confirmLabel: 'Terbitkan QR',
-                })
-                .then((accepted) => {
-                  if (!accepted) return;
-                  setIssuing(true);
-                  setIssueFailure('');
-                  void issueBulk(slot.id, undefined, crypto.randomUUID())
-                    .then((response) => {
-                      setIssues(
-                        response.items.flatMap((item) =>
-                          item.ok && item.result ? [item.result] : [],
-                        ),
-                      );
-                      const failures = response.items.filter((item) => !item.ok);
-                      if (failures.length)
-                        setIssueFailure(
-                          `${failures.length} booking tidak dapat diterbitkan. Booking lain tetap berhasil.`,
+
+      {isConfirmed && canManageAttendance && (
+        <DetailSection
+          id="class-qr-title"
+          title="QR check-in peserta"
+          description="Terbitkan pass QR untuk seluruh booking aktif. Setiap pelanggan dikirim lewat tombol WhatsApp masing-masing; browser tidak membuka banyak jendela sekaligus."
+        >
+          <div>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={busy || issuing}
+              onClick={() => {
+                const issueBulk = bookingClient.issueBulkCheckIns;
+                if (!issueBulk) return;
+                void feedback
+                  .confirm({
+                    tone: 'warning',
+                    title: 'Buat QR untuk semua peserta?',
+                    message:
+                      'Pass diterbitkan per booking aktif. Kegagalan satu pelanggan tidak membatalkan hasil lainnya.',
+                    confirmLabel: 'Terbitkan QR',
+                  })
+                  .then((accepted) => {
+                    if (!accepted) return;
+                    setIssuing(true);
+                    setIssueFailure('');
+                    void issueBulk(slot.id, undefined, crypto.randomUUID())
+                      .then((response) => {
+                        setIssues(
+                          response.items.flatMap((item) =>
+                            item.ok && item.result ? [item.result] : [],
+                          ),
                         );
-                    })
-                    .catch(async (error) => setIssueFailure(await bookingFailure(error)))
-                    .finally(() => setIssuing(false));
-                });
-            }}
-          >
-            {issuing ? 'Menerbitkan…' : 'Buat QR untuk roster'}
-          </Button>
+                        const failures = response.items.filter((item) => !item.ok);
+                        if (failures.length)
+                          setIssueFailure(
+                            `${failures.length} booking tidak dapat diterbitkan. Booking lain tetap berhasil.`,
+                          );
+                      })
+                      .catch(async (error) => setIssueFailure(await bookingFailure(error)))
+                      .finally(() => setIssuing(false));
+                  });
+              }}
+            >
+              {issuing ? 'Menerbitkan…' : 'Buat QR untuk semua peserta'}
+            </Button>
+          </div>
           {issueFailure && <Feedback kind="warning">{issueFailure}</Feedback>}
           {issues.length > 0 && (
-            <ul className="mt-4 grid list-none gap-2 p-0" aria-label="QR roster siap dikirim">
+            <ul className="m-0 grid list-none gap-2 p-0" aria-label="QR peserta siap dikirim">
               {issues.map((issue) => (
                 <li
                   key={issue.bookingId}
@@ -575,113 +467,75 @@ export function DetailPanel({
               ))}
             </ul>
           )}
-        </section>
+        </DetailSection>
       )}
-      {slot.status === 'DRAFT' && (
-        <section>
-          <h3>Edit draft kelas</h3>
-          <p className="text-sm text-dd-muted">
-            Waktu, tipe kelas, dan instruktur dapat diubah selama kelas masih Draft. Kapasitas
-            dihitung ulang dari konfigurasi backend.
-          </p>
-          <Button
-            variant="secondary"
-            disabled={busy || !canManage}
-            onClick={() => setEditOpen((current) => !current)}
-          >
-            {editOpen ? 'Tutup edit' : 'Edit kelas'}
-          </Button>
-          {editOpen && (
-            <DraftEditForm
-              slot={slot}
-              classTypes={classTypes}
-              instructors={instructors}
-              busy={busy}
-              onSubmit={async (input) => {
-                await onUpdate(input);
-                setEditOpen(false);
-              }}
-            />
-          )}
-        </section>
-      )}
-      {slot.status === 'CONFIRMED' && (
-        <section>
-          <h3>Selesaikan kelas</h3>
-          <p className="text-sm text-dd-muted">
-            Backend memverifikasi ulang control hash roster. Booking tanpa attendance menjadi
-            no-show tanpa membuat check-in palsu; reservation dan ledger diposting atomik.
-          </p>
+
+      {isConfirmed && canComplete && (
+        <DetailSection
+          id="class-complete-title"
+          title="Selesaikan kelas"
+          description="Peserta tanpa presensi dicatat tidak hadir (tanpa check-in palsu), sesi yang dicadangkan dipakai satu kali, dan buku sesi diperbarui sekaligus. Sistem memeriksa ulang daftar peserta sebelum menyimpan."
+        >
           <TextInput
             label="Alasan penyelesaian"
             value={completionReason}
             onChange={(event) => setCompletionReason(event.target.value)}
           />
-          <Button
-            variant="danger"
-            disabled={busy || !canComplete || completionReason.trim().length < 3}
-            onClick={() => void onComplete(completionReason.trim())}
-          >
-            Review dan selesaikan kelas
-          </Button>
-        </section>
+          <div>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={busy || completionReason.trim().length < 3}
+              onClick={() => void onComplete(completionReason.trim())}
+            >
+              Tinjau dan selesaikan kelas
+            </Button>
+          </div>
+        </DetailSection>
       )}
-      {slot.status === 'DRAFT' && (
-        <section>
-          <h3>Tetapkan instruktur</h3>
-          <SearchSelect
-            label="Instruktur"
-            value={instructorId}
-            placeholder="Pilih instruktur"
-            options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
-            onChange={setInstructorId}
-          />
-          <Button
-            disabled={busy || !canManage || !instructorId}
-            onClick={() => void onAssign(instructorId)}
-          >
-            Tetapkan instruktur
-          </Button>
-        </section>
-      )}
-      {slot.status === 'DRAFT' && (
-        <section>
-          <h3>Publish kelas</h3>
-          <Button
-            disabled={busy || !canManage || !slot.instructorUserId}
-            onClick={() => void onPublish()}
-          >
-            Publish kelas
-          </Button>
-        </section>
-      )}
-      {['DRAFT', 'PUBLISHED'].includes(slot.status) && (
-        <section>
-          <h3>Batalkan kelas</h3>
+
+      <ClassRosterSection
+        slot={slot}
+        showAvailable={!isClosed}
+        canReadBookings={canReadBookings}
+        bookingClient={bookingClient}
+      />
+
+      {(isDraft || isPublished) && canManage && (
+        <DetailSection
+          id="class-cancel-title"
+          tone="danger"
+          title="Batalkan kelas"
+          description={
+            slot.bookedCount > 0
+              ? `Kelas ini punya ${slot.bookedCount} peserta aktif. Reservasi sesi mereka dilepas dan pembatalan dicatat dalam audit. Tindakan ini tidak dapat diurungkan.`
+              : 'Belum ada peserta aktif. Pembatalan dicatat dalam audit dan tidak dapat diurungkan.'
+          }
+        >
           <SelectInput
-            label="Alasan"
-            aria-label="Alasan pembatalan"
+            label="Alasan pembatalan"
             value={reason}
-            onChange={(event) => setReason(event.target.value as CancellationReason)}
+            onChange={(event) => setReason(event.target.value as CancellationReason | '')}
           >
+            <option value="">Pilih alasan</option>
             {Object.entries(cancellationLabels).map(([value, label]) => (
               <option value={value} key={value}>
                 {label}
               </option>
             ))}
           </SelectInput>
-          <Feedback kind="warning">
-            Cancellation melepaskan reservation aktif. Konfirmasi hanya jika konsekuensi sudah
-            ditinjau.
-          </Feedback>
-          <Button
-            variant="danger"
-            disabled={busy || !canManage}
-            onClick={() => void onCancel(reason)}
-          >
-            Konfirmasi pembatalan
-          </Button>
-        </section>
+          <div>
+            <Button
+              variant="danger"
+              className="w-full sm:w-auto"
+              disabled={busy || !reason}
+              onClick={() => {
+                if (reason) void onCancel(reason);
+              }}
+            >
+              Batalkan kelas ini
+            </Button>
+          </div>
+        </DetailSection>
       )}
     </div>
   );
@@ -728,7 +582,7 @@ function DraftEditForm({
   const [failure, setFailure] = useState('');
   return (
     <form
-      className="mt-4 grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-4"
+      className="grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface p-4"
       aria-label="Edit draft kelas"
       onSubmit={(event) => {
         event.preventDefault();
@@ -782,9 +636,11 @@ function DraftEditForm({
         placeholder="Tetapkan nanti"
         options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
       />
-      <DateInput label="Tanggal" name="date" defaultValue={start.date} required />
-      <TextInput label="Mulai" name="startTime" type="time" defaultValue={start.time} required />
-      <TextInput label="Selesai" name="endTime" type="time" defaultValue={end.time} required />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <DateInput label="Tanggal" name="date" defaultValue={start.date} required />
+        <TextInput label="Mulai" name="startTime" type="time" defaultValue={start.time} required />
+        <TextInput label="Selesai" name="endTime" type="time" defaultValue={end.time} required />
+      </div>
       <TextInput
         label="Alasan perubahan"
         name="reason"
@@ -794,9 +650,11 @@ function DraftEditForm({
         placeholder="Contoh: penyesuaian jadwal studio"
       />
       {failure && <Feedback kind="error">{failure}</Feedback>}
-      <Button type="submit" loading={busy}>
-        Simpan perubahan kelas
-      </Button>
+      <div>
+        <Button type="submit" className="w-full sm:w-auto" loading={busy}>
+          Simpan perubahan kelas
+        </Button>
+      </div>
     </form>
   );
 }

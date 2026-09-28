@@ -118,3 +118,13 @@ export function formatBranchDay(date: string, timeZone: string) {
     month: 'short',
   }).format(instant);
 }
+
+export function formatBranchLongDate(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(value);
+}

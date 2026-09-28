@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localDateKey, weekWindow, zonedLocalDateTime } from './class-time';
+import { formatBranchLongDate, localDateKey, weekWindow, zonedLocalDateTime } from './class-time';
 
 describe('branch-local class time', () => {
   it('starts the week on Monday in Asia/Jakarta', () => {
@@ -32,5 +32,13 @@ describe('branch-local class time', () => {
     expect(localDateKey(new Date(midnight.getTime() - 1), 'Asia/Jakarta')).toBe('2026-07-27');
     expect(localDateKey(midnight, 'Asia/Jakarta')).toBe('2026-07-28');
     expect(firstEnd.getTime()).toBe(adjacentStart.getTime());
+  });
+});
+
+describe('formatBranchLongDate', () => {
+  it('renders the weekday and full date in the branch timezone, not the machine timezone', () => {
+    const instant = new Date('2026-09-27T18:00:00Z');
+    expect(formatBranchLongDate(instant, 'Asia/Jakarta')).toBe('Senin, 28 Sep 2026');
+    expect(formatBranchLongDate(instant, 'America/New_York')).toBe('Minggu, 27 Sep 2026');
   });
 });

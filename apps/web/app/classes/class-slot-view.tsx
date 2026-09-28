@@ -13,6 +13,7 @@ import {
 } from '@/api-clients/class-slot-client';
 import {
   formatBranchDay,
+  formatBranchLongDate,
   formatBranchTime,
   localDateKey,
   shiftWeek,
@@ -22,7 +23,7 @@ import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { CreatePanel, DetailPanel } from './class-slot-panels';
-import { classStatusTone, statusLabels } from './class-slot-presenters';
+import { classStatusTone, statusLabels, timezoneLabel } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
@@ -440,15 +441,15 @@ export function ClassSlotView({
           panel?.kind === 'create'
             ? 'Buat draft kelas'
             : panel?.kind === 'detail'
-              ? classTypeName(panel.slot.classTypeId)
+              ? classTypeName(panel.slot.classTypeId, panel.slot)
               : 'Kelas'
         }
         description={
-          panel
-            ? `${panel.kind === 'detail' ? branchName(panel.slot.branchId) : branch?.name} · ${
-                panel.kind === 'detail' ? panel.slot.timezone : branch?.timezone
-              }`
-            : undefined
+          panel?.kind === 'detail'
+            ? `${formatBranchLongDate(panel.slot.startAt, panel.slot.timezone)} · ${branchName(panel.slot.branchId, panel.slot)}`
+            : panel
+              ? `${branch?.name} · ${timezoneLabel(branch?.timezone ?? '')}`
+              : undefined
         }
         busy={busy}
         className={panel?.kind === 'detail' ? 'max-w-4xl' : undefined}
@@ -522,8 +523,7 @@ export function ClassSlotView({
         ) : panel?.kind === 'detail' ? (
           <DetailPanel
             slot={panel.slot}
-            classTypeName={classTypeName(panel.slot.classTypeId)}
-            instructorName={instructorName(panel.slot.instructorUserId)}
+            instructorName={instructorName(panel.slot.instructorUserId, panel.slot)}
             classTypes={classTypes}
             instructors={instructors}
             canManage={canOperate}
@@ -615,7 +615,7 @@ export function ClassSlotView({
                 const accepted = await feedback.confirm({
                   tone: 'danger',
                   title: 'Selesaikan kelas?',
-                  message: `${control.attendanceCount} hadir dan ${control.noShowCount} no-show akan diposting. ${control.activeReservationCount} reservation aktif akan dikonsumsi satu kali.`,
+                  message: `${control.attendanceCount} hadir dan ${control.noShowCount} tidak hadir akan dicatat. ${control.activeReservationCount} reservasi aktif akan dipakai satu kali.`,
                   confirmLabel: 'Selesaikan kelas',
                 });
                 if (!accepted) return;

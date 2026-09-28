@@ -25,3 +25,26 @@ export function classStatusTone(
   if (status.includes('CANCELLED')) return 'danger';
   return status === 'DRAFT' ? 'warning' : 'neutral';
 }
+
+const timezoneLabels: Record<string, string> = {
+  'Asia/Jakarta': 'WIB',
+  'Asia/Makassar': 'WITA',
+  'Asia/Jayapura': 'WIT',
+};
+
+export const timezoneLabel = (timezone: string) => timezoneLabels[timezone] ?? timezone;
+
+export const statusSummaries: Record<string, string> = {
+  DRAFT: 'Belum dipublikasikan. Pelanggan belum dapat memesan kelas ini.',
+  PUBLISHED: 'Terbuka untuk dipesan pelanggan.',
+  CONFIRMED: 'Kuota minimum terpenuhi; kelas berjalan sesuai jadwal.',
+  COMPLETED: 'Kelas sudah selesai.',
+  CANCELLED: 'Kelas dibatalkan.',
+  AUTO_CANCELLED: 'Kelas dibatalkan otomatis karena kuota minimum tidak terpenuhi.',
+};
+
+export function cancellationReasonLabel(code?: string | null) {
+  if (!code) return undefined;
+  if (code === 'AUTO_CANCEL_MIN_QUOTA') return 'Kuota minimum tidak terpenuhi (otomatis)';
+  return cancellationLabels[code as CancellationReason] ?? 'Alasan lain';
+}
