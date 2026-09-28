@@ -43,7 +43,9 @@ export class PaymentAccountService {
       !input.branchId ||
       !input.bankName?.trim() ||
       !input.accountHolderName?.trim() ||
-      !input.accountNumber?.trim()
+      !input.accountNumber?.trim() ||
+      input.bankName.trim().length > 64 ||
+      input.accountHolderName.trim().length > 128
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
@@ -81,6 +83,50 @@ export class PaymentAccountService {
         });
 
         return paymentAccountView(account);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  /** Ubah nama bank, nama pemilik, dan (opsional) nomor rekening. Nomor kosong = tidak diubah. */
+  async update(principal: SessionPrincipal, id: string, input: any, correlationId: string) {
+    this.access.paymentAccount(principal, true);
+    const bankName = typeof input?.bankName === 'string' ? input.bankName.trim() : '';
+    const holder =
+      typeof input?.accountHolderName === 'string' ? input.accountHolderName.trim() : '';
+    if (!bankName || bankName.length > 64 || !holder || holder.length > 128)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const rawNumber = typeof input?.accountNumber === 'string' ? input.accountNumber.trim() : '';
+    const accountNumber = rawNumber ? normalizeAccountNumber(rawNumber) : undefined;
+
+    return this.db.$transaction(
+      async (tx) => {
+        const account = await tx.rekeningPembayaran.findUnique({ where: { id } });
+        if (!account) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (account.branchId)
+          this.access.scope(principal, account.branchId, ['payment-account:manage']);
+
+        const updated = await tx.rekeningPembayaran.update({
+          where: { id },
+          data: { bankName, accountHolder: holder, ...(accountNumber ? { accountNumber } : {}) },
+        });
+
+        this.auditService.record({
+          action: 'PAYMENT_ACCOUNT_UPDATED',
+          resourceType: 'PaymentAccount',
+          resourceId: id,
+          branchId: account.branchId,
+          actorUserId: principal.userId,
+          correlationId,
+          details: {
+            bankName,
+            holder,
+            accountNumberChanged: Boolean(accountNumber),
+            accountNumber: maskedAccountNumber(updated.accountNumber.slice(-4)),
+          },
+        });
+
+        return paymentAccountView(updated);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );

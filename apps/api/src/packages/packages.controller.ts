@@ -271,6 +271,13 @@ export class PackagesController {
   ) {
     return this.paymentAccountsService.create(r.principal, body, r.correlationId ?? 'unknown');
   }
+  @Patch('payment-accounts/:id') updatePaymentAccount(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.paymentAccountsService.update(r.principal, id, body, r.correlationId ?? 'unknown');
+  }
   @Post('payment-accounts/:id/deactivate') @HttpCode(200) deactivatePaymentAccount(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,

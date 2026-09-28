@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import {
+  PaymentAccountEditDialog,
+  type EditablePaymentAccount,
+} from '../components/admin/payment-account-edit-dialog';
 import { CreditCard, Plus, Eye, PowerOff, CheckCircle2, History, RefreshCw, X } from 'lucide-react';
 import { Badge, Panel } from '../components/admin/admin-ui';
 import { Button } from '../components/actions';
@@ -62,6 +66,7 @@ export function BranchPaymentAccountsPanel({
   const [deactivateSubmitting, setDeactivateSubmitting] = useState(false);
 
   const [showHistory, setShowHistory] = useState(false);
+  const [editing, setEditing] = useState<EditablePaymentAccount | null>(null);
 
   const loadAccounts = useCallback(async () => {
     if (!branchId) return;
@@ -323,6 +328,17 @@ export function BranchPaymentAccountsPanel({
               >
                 Detail
               </Button>
+              {canManage && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={loading || switchSubmitting}
+                  onClick={() => setEditing(activeAccount)}
+                >
+                  Ubah
+                </Button>
+              )}
               {canManage && (
                 <Button
                   type="button"
@@ -736,6 +752,14 @@ export function BranchPaymentAccountsPanel({
           />
         </div>
       </Modal>
+      <PaymentAccountEditDialog
+        account={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setMessage('Rekening berhasil diperbarui.');
+          void loadAccounts();
+        }}
+      />
     </Panel>
   );
 }

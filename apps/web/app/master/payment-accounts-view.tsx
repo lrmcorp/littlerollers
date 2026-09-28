@@ -6,6 +6,10 @@ import { Button } from '../components/actions';
 import { Modal, useAppFeedback } from '../components/app-feedback';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Textarea, TextInput } from '../components/forms';
+import {
+  PaymentAccountEditDialog,
+  type EditablePaymentAccount,
+} from '../components/admin/payment-account-edit-dialog';
 
 interface PaymentAccount {
   id: string;
@@ -44,6 +48,7 @@ export function PaymentAccountsView() {
     }
   >();
   const [reason, setReason] = useState('');
+  const [editing, setEditing] = useState<EditablePaymentAccount | null>(null);
   const load = async () => {
     if (!allowed) return;
     setLoading(true);
@@ -119,6 +124,16 @@ export function PaymentAccountsView() {
             >
               Lihat detail
             </Button>
+            {canManage && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => setEditing(item)}
+              >
+                Ubah
+              </Button>
+            )}
             {item.active ? (
               <Button
                 type="button"
@@ -147,6 +162,14 @@ export function PaymentAccountsView() {
           </span>
         </article>
       ))}
+      <PaymentAccountEditDialog
+        account={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setMessage('Rekening berhasil diperbarui.');
+          void load();
+        }}
+      />
       <Modal
         open={Boolean(confirming)}
         title={
