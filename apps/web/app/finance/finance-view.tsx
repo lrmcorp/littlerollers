@@ -34,6 +34,7 @@ import { useAppFeedback } from '../components/app-feedback';
 import { SearchSelect } from '../components/forms';
 import {
   browserFinanceClient,
+  financeFailureMessage,
   type FinanceClient,
   type FinanceData,
   type OmsetReportData,
@@ -47,6 +48,7 @@ import {
   type MonthlyProfitData,
 } from './finance-client';
 import { FinanceCommandsPanel } from './finance-commands-panel';
+import { OtherCostEditDialog } from './other-cost-edit-dialog';
 import { formatRupiah } from '../lib/formatters';
 import { pageOffset } from '../lib/pagination';
 
@@ -94,6 +96,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const [instructorProjectionData, setInstructorProjectionData] =
     useState<InstructorCostProjectionData | null>(null);
   const [otherCostData, setOtherCostData] = useState<OtherCostReportData | null>(null);
+  const [editingCost, setEditingCost] = useState<OtherCostItem | null>(null);
+  const canManageCosts = Boolean(context?.hasCapability('finance:manage'));
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
 
@@ -872,6 +876,12 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         header: 'Aksi',
                         cell: (c) =>
                           !isLocked ? (
+                            <div className="flex flex-wrap gap-1">
+                            {canManageCosts && client.updateOtherCost && (
+                              <Button variant="ghost" onClick={() => setEditingCost(c)}>
+                                Ubah
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               leadingIcon={<Trash2 className="h-4 w-4 text-rose-500" />}
@@ -890,14 +900,19 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                                         await client.deleteOtherCost(c.id);
                                         void loadReports();
                                       }
-                                    } catch {
-                                      // handled gracefully
+                                    } catch (error) {
+                                      feedback.showToast({
+                                        tone: 'danger',
+                                        title: 'Biaya belum dapat dihapus',
+                                        message: financeFailureMessage(error),
+                                      });
                                     }
                                   });
                               }}
                             >
                               Hapus
                             </Button>
+                            </div>
                           ) : (
                             <span className="text-xs text-dd-muted">Terkunci</span>
                           ),
@@ -1119,6 +1134,12 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           </Panel>
         </div>
       )}
+      <OtherCostEditDialog
+        cost={editingCost}
+        onSave={(id, input) => client.updateOtherCost?.(id, input) ?? Promise.resolve()}
+        onClose={() => setEditingCost(null)}
+        onSaved={() => void loadReports()}
+      />
     </div>
   );
 }

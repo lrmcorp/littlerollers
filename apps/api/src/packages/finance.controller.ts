@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Param,
   Post,
   Query,
@@ -102,6 +103,16 @@ export class FinanceController {
     },
   ) {
     return this.finance.createOtherCost(req.principal, body);
+  }
+
+  @Patch(['other-costs/:id', 'finance/other-costs/:id'])
+  updateOtherCost(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: { category?: string; categoryCode?: string; description?: string; amountRp?: number },
+  ) {
+    return this.finance.updateOtherCost(req.principal, id, body);
   }
 
   @Delete(['other-costs/:id', 'finance/other-costs/:id'])

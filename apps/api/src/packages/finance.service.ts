@@ -423,7 +423,8 @@ export class FinanceService {
     input: {
       branchId: string;
       period: string;
-      category: string;
+      category?: string;
+      categoryCode?: string;
       description: string;
       amountRp: number;
     },
@@ -431,12 +432,7 @@ export class FinanceService {
     this.policy.requireCapability(principal.capabilities, 'finance:manage');
     this.ensureBranchAccess(principal, input.branchId);
 
-    if (
-      typeof input.amountRp !== 'number' ||
-      Number.isNaN(input.amountRp) ||
-      !Number.isFinite(input.amountRp) ||
-      input.amountRp <= 0
-    ) {
+    if (!Number.isInteger(input.amountRp) || input.amountRp <= 0) {
       throw new ApiProblem('INVALID_AMOUNT', HttpStatus.BAD_REQUEST);
     }
 
@@ -452,7 +448,7 @@ export class FinanceService {
       data: {
         branchId: input.branchId,
         period: input.period,
-        category: input.category || 'OTHER',
+        category: (input.categoryCode ?? input.category)?.trim().toUpperCase() || 'OTHER',
         description: input.description,
         amountRp: input.amountRp,
         createdById: principal.userId,
@@ -470,6 +466,56 @@ export class FinanceService {
       total: report.items.length,
       page: { hasMore: false, nextCursor: null },
     };
+  }
+
+  /** Ubah kategori, keterangan, atau nominal biaya lain. Periode tidak dapat dipindah (hapus lalu catat ulang). */
+  async updateOtherCost(
+    principal: SessionPrincipal,
+    id: string,
+    input: { category?: string; categoryCode?: string; description?: string; amountRp?: number },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'finance:manage');
+    const existing = await this.db.otherCost.findUnique({ where: { id } });
+    if (!existing) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    this.ensureBranchAccess(principal, existing.branchId);
+
+    const data: { category?: string; description?: string; amountRp?: number } = {};
+    const rawCategory = input.categoryCode ?? input.category;
+    if (rawCategory !== undefined) {
+      const category = String(rawCategory).trim().toUpperCase();
+      if (!/^[A-Z][A-Z0-9_]{1,63}$/u.test(category))
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'category', issue: 'INVALID' },
+        ]);
+      data.category = category;
+    }
+    if (input.description !== undefined) {
+      const description = String(input.description).trim();
+      if (description.length < 1 || description.length > 2000)
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'description', issue: 'INVALID' },
+        ]);
+      data.description = description;
+    }
+    if (input.amountRp !== undefined) {
+      if (!Number.isInteger(input.amountRp) || input.amountRp <= 0)
+        throw new ApiProblem('INVALID_AMOUNT', HttpStatus.BAD_REQUEST);
+      data.amountRp = input.amountRp;
+    }
+    if (Object.keys(data).length === 0)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    // PERIOD LOCK CHECK
+    const close = await this.db.monthlyClose.findUnique({
+      where: { branchId_period: { branchId: existing.branchId, period: existing.period } },
+    });
+    if (close?.status === 'LOCKED') {
+      throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
+    }
+
+    return await this.db.otherCost.update({ where: { id }, data });
   }
 
   async deleteOtherCost(principal: SessionPrincipal, id: string) {

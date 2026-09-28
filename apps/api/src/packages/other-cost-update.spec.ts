@@ -1,0 +1,134 @@
+import { PolicyService } from '../identity/policy.service';
+import { FinanceService } from './finance.service';
+
+const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const branchA = id(1);
+const costId = id(10);
+
+const principalFor = (capabilities: string[], branchIds = [branchA]) => ({
+  sessionId: 's',
+  userId: id(100),
+  roles: [{ role: 'MANAGER', branchId: branchA }] as never,
+  capabilities,
+  branchIds,
+});
+const manager = principalFor(['finance:manage']);
+
+function setup(closeStatus?: 'LOCKED' | 'OPEN') {
+  const row = {
+    id: costId,
+    branchId: branchA,
+    period: '2026-09',
+    category: 'SEWA',
+    description: 'Sewa studio',
+    amountRp: 5_000_000,
+  };
+  const db = {
+    otherCost: {
+      findUnique: jest.fn().mockResolvedValue(row),
+      update: jest.fn().mockImplementation(async ({ data }) => ({ ...row, ...data })),
+      create: jest.fn().mockImplementation(async ({ data }) => ({ id: costId, ...data })),
+    },
+    monthlyClose: {
+      findUnique: jest.fn().mockResolvedValue(closeStatus ? { status: closeStatus } : null),
+    },
+  };
+  const service = new FinanceService(db as never, new PolicyService(), {} as never);
+  return { service, db };
+}
+
+describe('FinanceService.updateOtherCost', () => {
+  it('requires finance:manage and the cost branch', async () => {
+    const { service, db } = setup();
+    await expect(
+      service.updateOtherCost(principalFor([]), costId, { amountRp: 1 }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      service.updateOtherCost(
+        { ...principalFor(['finance:manage'], [id(9)]), roles: [{ role: 'MANAGER', branchId: id(9) }] as never },
+        costId,
+        { amountRp: 1 },
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(db.otherCost.update).not.toHaveBeenCalled();
+  });
+
+  it('updates only the fields given and normalizes the category', async () => {
+    const { service, db } = setup();
+    await service.updateOtherCost(manager, costId, {
+      categoryCode: ' listrik ',
+      description: '  Listrik September ',
+      amountRp: 750_000,
+    });
+    expect(db.otherCost.update).toHaveBeenCalledWith({
+      where: { id: costId },
+      data: { category: 'LISTRIK', description: 'Listrik September', amountRp: 750_000 },
+    });
+    await service.updateOtherCost(manager, costId, { amountRp: 900_000 });
+    expect(db.otherCost.update).toHaveBeenLastCalledWith({
+      where: { id: costId },
+      data: { amountRp: 900_000 },
+    });
+  });
+
+  it('validates category, description and amount, and refuses an empty change', async () => {
+    const { service, db } = setup();
+    await expect(
+      service.updateOtherCost(manager, costId, { category: '1 salah' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      service.updateOtherCost(manager, costId, { description: '   ' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    for (const amountRp of [0, -1, 1.5, Number.NaN])
+      await expect(
+        service.updateOtherCost(manager, costId, { amountRp }),
+      ).rejects.toMatchObject({ code: 'INVALID_AMOUNT' });
+    await expect(service.updateOtherCost(manager, costId, {})).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
+    expect(db.otherCost.update).not.toHaveBeenCalled();
+  });
+
+  it('is refused once the period is locked but allowed while open', async () => {
+    const locked = setup('LOCKED');
+    await expect(
+      locked.service.updateOtherCost(manager, costId, { amountRp: 1_000 }),
+    ).rejects.toMatchObject({ code: 'PERIOD_ALREADY_LOCKED' });
+    expect(locked.db.otherCost.update).not.toHaveBeenCalled();
+    const open = setup('OPEN');
+    await open.service.updateOtherCost(manager, costId, { amountRp: 1_000 });
+    expect(open.db.otherCost.update).toHaveBeenCalled();
+  });
+
+  it('returns not found for a missing cost', async () => {
+    const { service, db } = setup();
+    db.otherCost.findUnique.mockResolvedValue(null);
+    await expect(
+      service.updateOtherCost(manager, costId, { amountRp: 1_000 }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('FinanceService.createOtherCost', () => {
+  const base = { branchId: branchA, period: '2026-09', description: 'Sewa', amountRp: 100_000 };
+
+  it('uses the category code sent by the finance panel instead of dropping it', async () => {
+    const { service, db } = setup();
+    await service.createOtherCost(manager, { ...base, categoryCode: 'sewa_studio' });
+    expect(db.otherCost.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ category: 'SEWA_STUDIO' }),
+    });
+    await service.createOtherCost(manager, base);
+    expect(db.otherCost.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ category: 'OTHER' }),
+    });
+  });
+
+  it('rejects fractional amounts that the integer column cannot hold', async () => {
+    const { service, db } = setup();
+    await expect(
+      service.createOtherCost(manager, { ...base, amountRp: 99.5 }),
+    ).rejects.toMatchObject({ code: 'INVALID_AMOUNT' });
+    expect(db.otherCost.create).not.toHaveBeenCalled();
+  });
+});

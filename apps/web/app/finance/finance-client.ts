@@ -109,6 +109,12 @@ export interface OtherCost {
   version: number;
 }
 
+export interface OtherCostUpdate {
+  category?: string;
+  description?: string;
+  amountRp?: number;
+}
+
 export interface OtherCostCommand {
   branchId: string;
   period: string;
@@ -305,6 +311,7 @@ export interface FinanceClient {
   // Aksi Finansial
   executeMonthlyClose?(branchId: string, period: string, reason?: string): Promise<any>;
   deleteOtherCost?(id: string): Promise<{ id: string; deleted: boolean }>;
+  updateOtherCost?(id: string, input: OtherCostUpdate): Promise<unknown>;
 }
 
 async function financeFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -541,4 +548,31 @@ export const browserFinanceClient: FinanceClient = {
       method: 'DELETE',
     });
   },
+
+  async updateOtherCost(id: string, input: OtherCostUpdate) {
+    return financeFetch<unknown>(`/finance/other-costs/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  },
 };
+
+const financeMessages: Record<string, string> = {
+  PERIOD_ALREADY_LOCKED: 'Periode ini sudah ditutup, sehingga biaya tidak dapat diubah atau dihapus.',
+  INVALID_AMOUNT: 'Nominal harus berupa rupiah bulat lebih dari nol.',
+  VALIDATION_ERROR: 'Data belum valid. Periksa kategori, keterangan, dan nominal.',
+  FORBIDDEN: 'Anda tidak memiliki izin mengelola biaya lain.',
+  NOT_FOUND: 'Biaya tidak ditemukan. Muat ulang daftar.',
+};
+
+/** Pesan Indonesia untuk kegagalan permintaan Finance. */
+export function financeFailureMessage(error: unknown): string {
+  const response = (error as { response?: { status?: number; data?: { code?: string; error?: { code?: string } } } })
+    ?.response;
+  const code = response?.data?.code ?? response?.data?.error?.code;
+  if (code && financeMessages[code]) return financeMessages[code]!;
+  if (response?.status === 403) return financeMessages.FORBIDDEN!;
+  if (response?.status === 404) return financeMessages.NOT_FOUND!;
+  if (response?.status === 400 || response?.status === 422) return financeMessages.VALIDATION_ERROR!;
+  return 'Permintaan belum berhasil. Periksa koneksi lalu coba lagi.';
+}
