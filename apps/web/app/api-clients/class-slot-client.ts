@@ -442,6 +442,7 @@ export function classSlotFailure(error: unknown) {
     STALE_VERSION: 'Data kelas berubah. Muat ulang sebelum melanjutkan.',
     RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
     INVALID_STATE_TRANSITION: 'Status kelas tidak mendukung tindakan tersebut.',
+    INSTRUCTOR_REQUIRED: 'Tetapkan instruktur terlebih dahulu sebelum mempublikasikan kelas.',
     VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid.',
     CHECK_IN_TOO_EARLY: 'Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.',
   };

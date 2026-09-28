@@ -642,6 +642,66 @@ describe('ClassSlotView detail drawer layout', () => {
     expect(within(dialog).queryByText('Anda hanya dapat melihat kelas ini.')).toBeNull();
   });
 
+  describe('reassigning the instructor of a running class', () => {
+    const twoInstructors = {
+      ...workspace,
+      instructors: [
+        { id: 'instructor-1', displayName: 'Ayu Instructor' },
+        { id: 'instructor-2', displayName: 'Budi Instructor' },
+      ],
+    };
+    const openWithTwo = (
+      extra: Record<string, unknown>,
+      capabilities: readonly string[] = manageCapabilities,
+    ) => {
+      const target = { ...slot, version: 3, ...extra };
+      const client = fake({
+        discover: vi.fn().mockResolvedValue({ ...twoInstructors, slots: [target] }),
+        assign: vi.fn().mockResolvedValue({ ...target, instructorUserId: 'instructor-2', version: 4 }),
+      });
+      return { client, open: () => openDetail(extra, capabilities, client) };
+    };
+
+    it.each(['PUBLISHED', 'CONFIRMED'])(
+      'lets staff replace the instructor of a %s class using the current version',
+      async (status) => {
+        const { client, open } = openWithTwo({ status });
+        const { user, dialog } = await open();
+        expect(within(dialog).getByRole('heading', { name: 'Instruktur kelas' })).toBeVisible();
+        const replace = within(dialog).getByRole('button', { name: 'Ganti instruktur' });
+        expect(replace).toBeDisabled();
+        await user.click(within(dialog).getByRole('combobox', { name: 'Instruktur' }));
+        await user.click(await screen.findByRole('option', { name: /Budi Instructor/ }));
+        expect(replace).toBeEnabled();
+        await user.click(replace);
+        await user.click(
+          within(screen.getByRole('dialog', { name: 'Tetapkan instruktur?' })).getByRole('button', {
+            name: 'Tetapkan',
+          }),
+        );
+        expect(client.assign).toHaveBeenCalledWith('slot-1', 'instructor-2', 3);
+      },
+    );
+
+    it('offers to assign, not replace, when a published class has no instructor yet', async () => {
+      const { open } = openWithTwo({ status: 'PUBLISHED', instructorUserId: null });
+      const { dialog } = await open();
+      expect(within(dialog).getByRole('button', { name: 'Tetapkan instruktur' })).toBeDisabled();
+      expect(within(dialog).queryByRole('button', { name: 'Ganti instruktur' })).toBeNull();
+    });
+
+    it('does not offer instructor changes on a completed class', async () => {
+      const { dialog } = await openWithTwo({ status: 'COMPLETED' }).open();
+      expect(within(dialog).queryByRole('heading', { name: 'Instruktur kelas' })).toBeNull();
+    });
+
+    it('does not offer instructor changes to read-only staff', async () => {
+      const { dialog } = await openWithTwo({ status: 'PUBLISHED' }, readCapabilities).open();
+      expect(within(dialog).queryByRole('heading', { name: 'Instruktur kelas' })).toBeNull();
+      expect(within(dialog).getByText('Anda hanya dapat melihat kelas ini.')).toBeVisible();
+    });
+  });
+
   it('hides roster pagination when everything fits on one page', async () => {
     const bookingClient: Pick<BookingClient, 'list'> = {
       list: vi.fn().mockResolvedValue({

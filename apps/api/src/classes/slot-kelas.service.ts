@@ -21,6 +21,26 @@ export const CANCELLATION_REASONS = [
 export type ClassSlotCancellationReason = (typeof CANCELLATION_REASONS)[number];
 type Tx = Prisma.TransactionClient;
 
+/** Status yang masih boleh menjalani tiap tindakan staf; selalu dipasangkan dengan klaim versi. */
+const STATUS_ALLOWED: Record<
+  'assign' | 'update' | 'publish' | 'cancel' | 'complete',
+  readonly ClassSlotStatus[]
+> = {
+  assign: [ClassSlotStatus.DRAFT, ClassSlotStatus.PUBLISHED, ClassSlotStatus.CONFIRMED],
+  update: [ClassSlotStatus.DRAFT],
+  publish: [ClassSlotStatus.DRAFT],
+  cancel: [ClassSlotStatus.DRAFT, ClassSlotStatus.PUBLISHED, ClassSlotStatus.CONFIRMED],
+  complete: [ClassSlotStatus.CONFIRMED],
+};
+
+const VIEW_INCLUDE = {
+  branch: true,
+  studio: true,
+  room: true,
+  classType: true,
+  instructor: { include: { profile: true } },
+} satisfies Prisma.SlotKelasInclude;
+
 function instant(value: string) {
   if (!OFFSET.test(value)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
   const result = new Date(value);
@@ -117,7 +137,7 @@ export class ClassSlotService {
       cancellationReasonCode: slot.cancellationReason ?? null,
       cancellationReason: slot.cancellationReason ?? null,
       notes: slot.notes ?? null,
-      version: 1,
+      version: slot.version ?? 1,
       branch: slot.branch,
       studio: slot.studio,
       room: slot.room,
@@ -125,6 +145,54 @@ export class ClassSlotService {
       instructor: slot.instructor,
       instructorAttendance: slot.instructorAttendance ?? null,
     };
+  }
+
+  /** Versi wajib untuk tindakan staf; tanpa itu form usang bisa menimpa perubahan orang lain. */
+  private requireVersion(value: unknown): number {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'expectedVersion', issue: 'REQUIRED' },
+      ]);
+    return value;
+  }
+
+  /** Pemeriksaan awal dengan pesan jelas; klaim atomik di `claim` tetap penentu akhir bila ada balapan. */
+  private assertClaimable(
+    slot: { status: ClassSlotStatus; version: number },
+    expectedVersion: number,
+    allowed: readonly ClassSlotStatus[],
+  ) {
+    if (!allowed.includes(slot.status))
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    if (slot.version !== expectedVersion)
+      throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+  }
+
+  /** Menulis perubahan hanya jika versi dan status masih seperti yang dilihat staf, lalu menaikkan versi. */
+  private async claim(
+    tx: Tx,
+    id: string,
+    expectedVersion: number,
+    allowed: readonly ClassSlotStatus[],
+    data: Prisma.SlotKelasUncheckedUpdateManyInput,
+  ) {
+    const claimed = await tx.slotKelas.updateMany({
+      where: { id, version: expectedVersion, status: { in: [...allowed] } },
+      data: { ...data, version: { increment: 1 } },
+    });
+    if (claimed.count === 1) return;
+    const current = await tx.slotKelas.findUnique({ where: { id }, select: { status: true } });
+    if (!current) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    throw new ApiProblem(
+      allowed.includes(current.status) ? 'STALE_VERSION' : 'INVALID_STATE_TRANSITION',
+      HttpStatus.CONFLICT,
+    );
+  }
+
+  private async viewOf(tx: Tx, id: string) {
+    return this.view(
+      await tx.slotKelas.findUniqueOrThrow({ where: { id }, include: VIEW_INCLUDE }),
+    );
   }
 
   async list(
@@ -316,6 +384,7 @@ export class ClassSlotService {
     this.validateKey(key);
     if (!UUID.test(id) || !UUID.test(input.instructorUserId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const expectedVersion = this.requireVersion(input.expectedVersion);
 
     return this.execute(
       principal,
@@ -327,6 +396,7 @@ export class ClassSlotService {
         const slot = await tx.slotKelas.findUnique({ where: { id } });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
+        this.assertClaimable(slot, expectedVersion, STATUS_ALLOWED.assign);
 
         const instructorCollision = await tx.slotKelas.findFirst({
           where: {
@@ -341,19 +411,10 @@ export class ClassSlotService {
           throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
         }
 
-        const updated = await tx.slotKelas.update({
-          where: { id },
-          data: { instructorId: input.instructorUserId },
-          include: {
-            branch: true,
-            studio: true,
-            room: true,
-            classType: true,
-            instructor: { include: { profile: true } },
-          },
+        await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.assign, {
+          instructorId: input.instructorUserId,
         });
-
-        return this.view(updated);
+        return this.viewOf(tx, id);
       },
     );
   }
@@ -376,6 +437,9 @@ export class ClassSlotService {
     this.validateKey(key);
     if (!UUID.test(id) || !UUID.test(input.classTypeId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (input.instructorUserId != null && !UUID.test(input.instructorUserId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    const expectedVersion = this.requireVersion(input.expectedVersion);
 
     const startAt = instant(input.startAt);
     const endAt = instant(input.endAt);
@@ -391,8 +455,11 @@ export class ClassSlotService {
         const slot = await tx.slotKelas.findUnique({ where: { id } });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
+        this.assertClaimable(slot, expectedVersion, STATUS_ALLOWED.update);
 
-        const targetInstructorId = input.instructorUserId !== undefined ? input.instructorUserId : slot.instructorId;
+        // Instruktur yang tidak dikirim tetap dipertahankan; hanya `null` eksplisit yang mengosongkannya.
+        const targetInstructorId =
+          input.instructorUserId !== undefined ? input.instructorUserId : slot.instructorId;
         const updateCollisionConditions: Prisma.SlotKelasWhereInput[] = [];
         if (slot.roomId) {
           updateCollisionConditions.push({ studioId: slot.studioId, roomId: slot.roomId });
@@ -416,25 +483,14 @@ export class ClassSlotService {
           throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
         }
 
-        const updated = await tx.slotKelas.update({
-          where: { id },
-          data: {
-            classTypeId: input.classTypeId,
-            instructorId: input.instructorUserId ?? null,
-            startAt,
-            endAt,
-            notes: input.reason ?? slot.notes,
-          },
-          include: {
-            branch: true,
-            studio: true,
-            room: true,
-            classType: true,
-            instructor: { include: { profile: true } },
-          },
+        await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.update, {
+          classTypeId: input.classTypeId,
+          instructorId: targetInstructorId,
+          startAt,
+          endAt,
+          notes: input.reason ?? slot.notes,
         });
-
-        return this.view(updated);
+        return this.viewOf(tx, id);
       },
     );
   }
@@ -448,6 +504,7 @@ export class ClassSlotService {
   ) {
     this.manage(principal);
     this.validateKey(key);
+    const expectedVersion = this.requireVersion(input?.expectedVersion);
 
     return this.execute(
       principal,
@@ -459,20 +516,17 @@ export class ClassSlotService {
         const slot = await tx.slotKelas.findUnique({ where: { id } });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
+        this.assertClaimable(slot, expectedVersion, STATUS_ALLOWED.publish);
+        // Kelas tanpa instruktur tidak boleh dibuka untuk booking.
+        if (!slot.instructorId)
+          throw new ApiProblem('INSTRUCTOR_REQUIRED', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+            { field: 'instructorUserId', issue: 'INSTRUCTOR_REQUIRED' },
+          ]);
 
-        const updated = await tx.slotKelas.update({
-          where: { id },
-          data: { status: ClassSlotStatus.PUBLISHED },
-          include: {
-            branch: true,
-            studio: true,
-            room: true,
-            classType: true,
-            instructor: { include: { profile: true } },
-          },
+        await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.publish, {
+          status: ClassSlotStatus.PUBLISHED,
         });
-
-        return this.view(updated);
+        return this.viewOf(tx, id);
       },
     );
   }
@@ -486,6 +540,7 @@ export class ClassSlotService {
   ) {
     this.manage(principal);
     this.validateKey(key);
+    const expectedVersion = this.requireVersion(input?.expectedVersion);
 
     return this.execute(
       principal,
@@ -500,6 +555,14 @@ export class ClassSlotService {
         });
         if (!slot) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.scope(principal, slot.branchId, 'class-slot:manage');
+        // Kelas selesai/batal tidak boleh "dibatalkan" lagi: riwayat kehadiran dan ledger harus utuh.
+        this.assertClaimable(slot, expectedVersion, STATUS_ALLOWED.cancel);
+
+        await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.cancel, {
+          status: ClassSlotStatus.CANCELLED,
+          cancellationReason: input.reasonCode,
+          bookedCount: 0,
+        });
 
         // Refund all booked members
         for (const booking of slot.bookings) {
@@ -529,23 +592,7 @@ export class ClassSlotService {
           }
         }
 
-        const updated = await tx.slotKelas.update({
-          where: { id },
-          data: {
-            status: ClassSlotStatus.CANCELLED,
-            cancellationReason: input.reasonCode,
-            bookedCount: 0,
-          },
-          include: {
-            branch: true,
-            studio: true,
-            room: true,
-            classType: true,
-            instructor: { include: { profile: true } },
-          },
-        });
-
-        return this.view(updated);
+        return this.viewOf(tx, id);
       },
     );
   }
@@ -561,6 +608,9 @@ export class ClassSlotService {
     this.validateKey(key);
     if (!UUID.test(id))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    // Versi opsional untuk penyelesaian (klien lama), tetapi bila dikirim harus benar-benar cocok.
+    const expectedVersion =
+      input.expectedVersion === undefined ? undefined : this.requireVersion(input.expectedVersion);
 
     return this.execute(
       principal,
@@ -598,10 +648,20 @@ export class ClassSlotService {
           return { ...this.view(slot), ...tally(slot.bookings) };
         }
 
+        // Hanya kelas CONFIRMED yang dapat diselesaikan; DRAFT/PUBLISHED/CANCELLED tidak punya presensi sah.
+        if (!STATUS_ALLOWED.complete.includes(slot.status))
+          throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+        if (expectedVersion !== undefined && slot.version !== expectedVersion)
+          throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+
         // Atomic lock guard: update status ke COMPLETED terlebih dahulu untuk mengunci baris secara eksklusif di MySQL
         const lockResult = await tx.slotKelas.updateMany({
-          where: { id, status: { not: ClassSlotStatus.COMPLETED } },
-          data: { status: ClassSlotStatus.COMPLETED },
+          where: {
+            id,
+            status: ClassSlotStatus.CONFIRMED,
+            ...(expectedVersion !== undefined ? { version: expectedVersion } : {}),
+          },
+          data: { status: ClassSlotStatus.COMPLETED, version: { increment: 1 } },
         });
 
         if (lockResult.count === 0) {
@@ -618,6 +678,13 @@ export class ClassSlotService {
               bookings: true,
             },
           });
+          if (currentSlot.status !== ClassSlotStatus.COMPLETED)
+            throw new ApiProblem(
+              currentSlot.status === ClassSlotStatus.CONFIRMED
+                ? 'STALE_VERSION'
+                : 'INVALID_STATE_TRANSITION',
+              HttpStatus.CONFLICT,
+            );
           return { ...this.view(currentSlot), ...tally(currentSlot.bookings) };
         }
 
@@ -719,7 +786,7 @@ export class ClassSlotService {
 
     return {
       classSlotId: id,
-      expectedVersion: 1,
+      expectedVersion: slot.version,
       controlHash: classCompletionControlHash(bookings),
       attendanceCount: bookings.filter((b) => Boolean(b.attendance)).length,
       noShowCount: bookings.filter((b) => b.status === 'BOOKED' && !b.attendance).length,

@@ -97,11 +97,13 @@ export class AutoCancelService {
 
       // 2. Cek apakah kuota terpenuhi
       if (bookedCount >= minQuota) {
-        // Kuota aman, konfirmasi kelas jika masih status awal
+        // Kuota aman, konfirmasi kelas jika masih status awal. Klaim bersyarat status agar tidak menimpa
+        // pembatalan staf yang terjadi di antara pembacaan dan penulisan; versi naik supaya form staf yang
+        // terbuka dinyatakan usang.
         if (slot.status === ClassSlotStatus.PUBLISHED) {
-          await this.db.slotKelas.update({
-            where: { id: slot.id },
-            data: { status: ClassSlotStatus.CONFIRMED },
+          await this.db.slotKelas.updateMany({
+            where: { id: slot.id, status: ClassSlotStatus.PUBLISHED },
+            data: { status: ClassSlotStatus.CONFIRMED, version: { increment: 1 } },
           });
         }
         confirmedSlotsCount++;
@@ -113,16 +115,22 @@ export class AutoCancelService {
         `[AUTO_CANCEL] Slot ${slot.id} (${slot.classType.name} di ${slot.branch.name}) dibatalkan otomatis. Peserta: ${bookedCount} < MinQuota: ${minQuota}`,
       );
 
-      await this.db.$transaction(async (tx) => {
-        // A. Perbarui status slot kelas
-        await tx.slotKelas.update({
-          where: { id: slot.id },
+      const claimed = await this.db.$transaction(async (tx) => {
+        // A. Perbarui status slot kelas. Klaim bersyarat: bila staf sudah membatalkan/menyelesaikan kelas ini
+        // selagi evaluasi berjalan, jangan menimpa dan jangan mengirim notifikasi ganda.
+        const claim = await tx.slotKelas.updateMany({
+          where: {
+            id: slot.id,
+            status: { in: [ClassSlotStatus.PUBLISHED, ClassSlotStatus.DRAFT] },
+          },
           data: {
             status: ClassSlotStatus.CANCELLED,
             cancellationReason: 'AUTO_CANCEL_MIN_QUOTA',
             bookedCount: 0,
+            version: { increment: 1 },
           },
         });
+        if (claim.count === 0) return false;
 
         // B. Batalkan seluruh booking peserta
         for (const booking of slot.bookings) {
@@ -156,7 +164,10 @@ export class AutoCancelService {
             }
           }
         }
+        return true;
       });
+      // Kelas sudah diubah pihak lain saat evaluasi berjalan: lewati, tanpa notifikasi ganda.
+      if (!claimed) continue;
 
       // 4. Kirim Notifikasi WhatsApp Multi-Pihak
       const classDateStr = new Intl.DateTimeFormat('id-ID', {

@@ -239,6 +239,28 @@ export function DetailPanel({
   const hasActions = canManage ? !isClosed : canRunClass;
   const cancelReasonLabel = cancellationReasonLabel(slot.cancellationReasonCode);
   const location = [details.studio?.name, details.room?.name].filter(Boolean).join(' · ');
+  const assignRow = (
+    <ActionRow
+      title="Penugasan instruktur"
+      description={slot.instructorUserId ? `Saat ini: ${instructorName}` : 'Belum ada instruktur.'}
+      done={Boolean(slot.instructorUserId)}
+    >
+      <SearchSelect
+        label="Instruktur"
+        value={instructorId}
+        placeholder="Pilih instruktur"
+        options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
+        onChange={setInstructorId}
+      />
+      <Button
+        className="w-full sm:w-auto"
+        disabled={busy || !instructorId || instructorId === slot.instructorUserId}
+        onClick={() => void onAssign(instructorId)}
+      >
+        {isDraft || !slot.instructorUserId ? 'Tetapkan instruktur' : 'Ganti instruktur'}
+      </Button>
+    </ActionRow>
+  );
   return (
     <div className="grid gap-4">
       <DetailSection
@@ -292,28 +314,7 @@ export function DetailPanel({
           title="Persiapan kelas"
           description="Lengkapi instruktur dan jadwal, lalu publikasikan agar pelanggan dapat memesan."
         >
-          <ActionRow
-            title="Penugasan instruktur"
-            description={
-              slot.instructorUserId ? `Saat ini: ${instructorName}` : 'Belum ada instruktur.'
-            }
-            done={Boolean(slot.instructorUserId)}
-          >
-            <SearchSelect
-              label="Instruktur"
-              value={instructorId}
-              placeholder="Pilih instruktur"
-              options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
-              onChange={setInstructorId}
-            />
-            <Button
-              className="w-full sm:w-auto"
-              disabled={busy || !instructorId || instructorId === slot.instructorUserId}
-              onClick={() => void onAssign(instructorId)}
-            >
-              Tetapkan instruktur
-            </Button>
-          </ActionRow>
+          {assignRow}
           <ActionRow
             title="Jadwal dan tipe kelas"
             description="Ubah waktu, tipe kelas, atau instruktur selama kelas masih Draft. Kapasitas dihitung ulang dari konfigurasi."
@@ -359,6 +360,16 @@ export function DetailPanel({
               </Button>
             </div>
           </ActionRow>
+        </DetailSection>
+      )}
+
+      {(isPublished || isConfirmed) && canManage && (
+        <DetailSection
+          id="class-instructor-title"
+          title="Instruktur kelas"
+          description="Instruktur dapat diganti selama kelas belum berjalan. Peserta yang sudah memesan akan melihat instruktur yang baru."
+        >
+          {assignRow}
         </DetailSection>
       )}
 

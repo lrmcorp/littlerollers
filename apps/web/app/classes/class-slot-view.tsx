@@ -574,7 +574,10 @@ export function ClassSlotView({
               const accepted = await feedback.confirm({
                 tone: 'warning',
                 title: 'Tetapkan instruktur?',
-                message: 'Instruktur terpilih akan ditetapkan pada kelas ini.',
+                message:
+                  panel.slot.status === 'DRAFT'
+                    ? 'Instruktur terpilih akan ditetapkan pada kelas ini.'
+                    : 'Instruktur kelas akan diganti. Peserta yang sudah memesan akan melihat instruktur yang baru.',
                 confirmLabel: 'Tetapkan',
               });
               if (accepted)
