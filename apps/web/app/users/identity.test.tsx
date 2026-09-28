@@ -716,6 +716,7 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
   deactivateClassType: vi.fn().mockResolvedValue(undefined),
   reactivateClassType: vi.fn().mockResolvedValue(undefined),
   createSetting: vi.fn().mockResolvedValue(undefined),
+  deleteSetting: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 

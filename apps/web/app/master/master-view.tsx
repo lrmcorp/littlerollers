@@ -160,6 +160,21 @@ export function MasterView({
     }
   };
 
+  const deleteSetting = async (item: MasterSetting) => {
+    if (item.kind === 'QUOTA_CAPACITY') return;
+    const accepted = await feedback.confirm({
+      tone: 'danger',
+      title: 'Hapus tarif yang belum berlaku?',
+      message: `${settingValue(item)} yang berlaku mulai ${dateValue(item.effectiveFrom)} akan dihapus. Tarif yang sudah berlaku tidak dapat dihapus.`,
+      confirmLabel: 'Hapus tarif',
+    });
+    if (!accepted) return;
+    await run(async () => {
+      await client.deleteSetting(item.kind as 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', item.id);
+      await loadBranchContent(branchId, kind);
+    }, 'Tarif dihapus.');
+  };
+
   const loadBranchContent = async (selectedBranchId: string, selectedKind = kind) => {
     if (!selectedBranchId) {
       setClassTypes([]);
@@ -720,7 +735,6 @@ export function MasterView({
                     value: Number(data.get('value')),
                     capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
                     effectiveFrom: String(data.get('effectiveFrom')),
-                    effectiveUntil: String(data.get('effectiveUntil')) || undefined,
                     reason: String(data.get('reason')).trim(),
                   });
                   form.reset();
@@ -735,7 +749,8 @@ export function MasterView({
             <div className="border-b border-dd-line pb-4">
               <h2 className="text-base font-semibold text-dd-ink">Tambah konfigurasi efektif</h2>
               <p className="mt-1 text-xs text-dd-muted">
-                Versi baru berlaku pada periode yang dipilih dan tidak boleh tumpang tindih.
+                Tarif baru berlaku mulai tanggal efektif dan menggantikan tarif sebelumnya. Tarif yang
+                sudah berlaku tidak dapat dihapus; koreksi dengan menambah tarif baru.
               </p>
             </div>
 
@@ -800,7 +815,6 @@ export function MasterView({
                 />
               )}
               <DateInput label="Efektif mulai" name="effectiveFrom" required />
-              <DateInput label="Efektif sampai (opsional)" name="effectiveUntil" />
               <TextInput
                 label="Alasan perubahan"
                 wrapperClassName="sm:col-span-2 lg:col-span-3"
@@ -848,9 +862,13 @@ export function MasterView({
                     <tr>
                       <th className="pb-3 pt-2 font-semibold">Tipe kelas</th>
                       <th className="pb-3 pt-2 font-semibold">Nilai</th>
-                      <th className="pb-3 pt-2 font-semibold">Mulai</th>
-                      <th className="pb-3 pt-2 font-semibold">Sampai</th>
-                      <th className="pb-3 pt-2 font-semibold">Versi</th>
+                      <th className="pb-3 pt-2 font-semibold">Berlaku mulai</th>
+                      <th className="pb-3 pt-2 font-semibold">Status</th>
+                      {kind !== 'QUOTA_CAPACITY' && canFinance && (
+                        <th className="pb-3 pt-2 font-semibold">
+                          <span className="sr-only">Tindakan</span>
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-dd-line">
@@ -859,11 +877,37 @@ export function MasterView({
                         <td className="py-3 font-medium text-dd-ink">
                           {classTypes.find((type) => type.id === item.classTypeId)?.name ??
                             item.classTypeId}
+                          {item.instructorName && (
+                            <span className="block text-xs font-normal text-dd-muted">
+                              {item.instructorName}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3">{settingValue(item)}</td>
                         <td className="py-3 text-dd-muted">{dateValue(item.effectiveFrom)}</td>
-                        <td className="py-3 text-dd-muted">{dateValue(item.effectiveUntil)}</td>
-                        <td className="py-3 font-mono text-xs text-dd-muted">v{item.version}</td>
+                        <td className="py-3">
+                          {item.kind === 'QUOTA_CAPACITY' ? (
+                            <StatusBadge tone="success">Berlaku</StatusBadge>
+                          ) : item.deletable ? (
+                            <StatusBadge tone="info">Akan berlaku</StatusBadge>
+                          ) : (
+                            <StatusBadge tone="neutral">Sudah berlaku</StatusBadge>
+                          )}
+                        </td>
+                        {kind !== 'QUOTA_CAPACITY' && canFinance && (
+                          <td className="py-3 text-right">
+                            {item.deletable && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={loading}
+                                onClick={() => void deleteSetting(item)}
+                              >
+                                Hapus
+                              </Button>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

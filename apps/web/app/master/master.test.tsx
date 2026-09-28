@@ -94,6 +94,7 @@ function fakeMasterClient(overrides: Partial<MasterClient> = {}): MasterClient {
       version: 0,
     }),
     updateRoom: vi.fn().mockResolvedValue(undefined),
+    deleteSetting: vi.fn().mockResolvedValue(undefined),
     createSetting: vi.fn().mockResolvedValue({
       id: 'setting-1',
       kind: 'QUOTA_CAPACITY',
@@ -186,5 +187,70 @@ describe('MasterView Redesign Tests', () => {
 
     const results = await axe(view.container);
     expect(results.violations).toHaveLength(0);
+  });
+});
+
+describe('MasterView tarif list', () => {
+  const fee = (overrides: Record<string, unknown>) => ({
+    id: 'fee-1',
+    kind: 'INSTRUCTOR_FEE',
+    businessKey: 'fee-1',
+    branchId: 'branch-1',
+    classTypeId: 'class-1',
+    value: { feeRp: 180_000 },
+    effectiveFrom: new Date('2027-01-01T00:00:00Z'),
+    effectiveUntil: null,
+    version: 1,
+    instructorName: 'Ayu Instruktur',
+    deletable: true,
+    ...overrides,
+  });
+
+  it('shows the rupiah value, instructor and status, and deletes only not-yet-effective rows after confirming', async () => {
+    const client = fakeMasterClient({
+      listSettings: vi.fn().mockResolvedValue([
+        fee({}),
+        fee({
+          id: 'fee-2',
+          value: { feeRp: 150_000 },
+          effectiveFrom: new Date('2025-01-01T00:00:00Z'),
+          deletable: false,
+        }),
+      ]),
+    });
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={client} activeTab="fees" access={{ canManage: true, canFinance: true }} />
+      </AppFeedbackProvider>,
+    );
+    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
+    expect((await screen.findAllByText('Ayu Instruktur', { selector: 'span' })).length).toBe(2);
+    expect(screen.getByText('Rp 180.000')).toBeVisible();
+    expect(screen.getByText('Akan berlaku')).toBeVisible();
+    expect(screen.getByText('Sudah berlaku')).toBeVisible();
+    expect(screen.queryByLabelText(/Efektif sampai/)).toBeNull();
+    const deleteButtons = screen.getAllByRole('button', { name: 'Hapus' });
+    expect(deleteButtons).toHaveLength(1);
+    await user.click(deleteButtons[0]!);
+    expect(client.deleteSetting).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole('button', { name: 'Hapus tarif' }));
+    await waitFor(() => expect(client.deleteSetting).toHaveBeenCalledWith('INSTRUCTOR_FEE', 'fee-1'));
+    expect(await screen.findByText('Tarif dihapus.')).toBeVisible();
+  });
+
+  it('hides the delete action without finance:manage', async () => {
+    const client = fakeMasterClient({ listSettings: vi.fn().mockResolvedValue([fee({})]) });
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={client} activeTab="fees" access={{ canManage: true, canFinance: false }} />
+      </AppFeedbackProvider>,
+    );
+    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
+    await screen.findByText('Akan berlaku');
+    expect(screen.queryByRole('button', { name: 'Hapus' })).toBeNull();
   });
 });

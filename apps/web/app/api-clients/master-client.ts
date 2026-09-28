@@ -39,6 +39,10 @@ export interface MasterSetting {
   effectiveFrom: Date;
   effectiveUntil: Date | null;
   version: number;
+  /** Nama instruktur pada honor. */
+  instructorName?: string;
+  /** Tarif belum berlaku sehingga masih boleh dihapus. */
+  deletable?: boolean;
 }
 
 export interface MasterSettingInput {
@@ -49,7 +53,6 @@ export interface MasterSettingInput {
   value: number;
   capacity?: number;
   effectiveFrom: string;
-  effectiveUntil?: string;
   reason: string;
 }
 
@@ -137,6 +140,7 @@ export interface MasterClient {
   ): Promise<void>;
   listSettings(kind: MasterKind, branchId?: string): Promise<MasterSetting[]>;
   createSetting(input: MasterSettingInput): Promise<void>;
+  deleteSetting(kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', id: string): Promise<void>;
 }
 
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
@@ -306,29 +310,68 @@ export const browserMasterClient: MasterClient = {
 
   async listSettings(kind, branchId) {
     const qs = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+    // API mengirim bentuk per jenis; tampilan memakai bentuk seragam `MasterSetting`.
+    const asDate = (value: unknown) => (value ? new Date(`${String(value).slice(0, 10)}T00:00:00Z`) : new Date(0));
     if (kind === 'INSTRUCTOR_FEE') {
-      const res = await apiFetch<{ items: MasterSetting[] }>(`/instructor-fees${qs}`, {
+      const res = await apiFetch<{ items: Array<Record<string, any>> }>(`/instructor-fees${qs}`, {
         label: 'Memuat honor instruktur…',
       });
-      return res.items ?? [];
+      return (res.items ?? []).map((row) => ({
+        id: row.id,
+        kind,
+        businessKey: row.id,
+        branchId: row.branchId,
+        classTypeId: row.classTypeId,
+        value: { feeRp: row.feePerJamRp },
+        effectiveFrom: asDate(row.effectiveDate),
+        effectiveUntil: null,
+        version: 1,
+        instructorName: row.instructorName,
+        deletable: Boolean(row.deletable),
+      }));
     }
     if (kind === 'PROJECTION_RATE') {
-      const res = await apiFetch<{ items: MasterSetting[] }>(`/projection-rates${qs}`, {
+      const res = await apiFetch<{ items: Array<Record<string, any>> }>(`/projection-rates${qs}`, {
         label: 'Memuat proyeksi…',
       });
-      return res.items ?? [];
+      return (res.items ?? []).map((row) => ({
+        id: row.id,
+        kind,
+        businessKey: row.id,
+        branchId: row.branchId,
+        classTypeId: row.classTypeId,
+        value: { rateRp: row.ratePerSesiRp },
+        effectiveFrom: asDate(row.effectiveDate),
+        effectiveUntil: null,
+        version: 1,
+        deletable: Boolean(row.deletable),
+      }));
     }
-    const res = await apiFetch<{ items: MasterSetting[] }>(`/quota-capacity-settings${qs}`, {
+    const res = await apiFetch<{ items: Array<Record<string, any>> }>(`/quota-capacity-settings${qs}`, {
       label: 'Memuat kuota dan kapasitas…',
     });
-    return res.items ?? [];
+    return (res.items ?? []).map((row) => ({
+      id: row.id,
+      kind,
+      businessKey: row.id,
+      branchId: row.branchId,
+      classTypeId: row.classTypeId,
+      value: { minimumQuota: row.minimumQuota, cutoffHours: row.cutoffHours },
+      effectiveFrom: asDate(row.createdAt),
+      effectiveUntil: null,
+      version: 1,
+    }));
+  },
+
+  async deleteSetting(kind, id) {
+    await apiFetch(
+      `/${kind === 'INSTRUCTOR_FEE' ? 'instructor-fees' : 'projection-rates'}/${encodeURIComponent(id)}`,
+      { method: 'DELETE', label: 'Menghapus tarif…' },
+    );
   },
 
   async createSetting(input) {
-    const period = {
-      effectiveFrom: date(input.effectiveFrom)!.toISOString(),
-      effectiveUntil: input.effectiveUntil ? date(input.effectiveUntil)!.toISOString() : undefined,
-    };
+    const period = { effectiveFrom: date(input.effectiveFrom)!.toISOString() };
 
     if (input.kind === 'INSTRUCTOR_FEE') {
       await apiFetch('/instructor-fees', {

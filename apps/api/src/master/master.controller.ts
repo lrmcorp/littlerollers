@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -256,6 +257,9 @@ export class MasterController {
       req.correlationId ?? 'unknown',
     );
   }
+  @Delete('instructor-fees/:id') deleteFee(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settings.remove(req.principal, 'INSTRUCTOR_FEE', id, req.correlationId ?? 'unknown');
+  }
   @Get('projection-rates') listRates(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
@@ -271,6 +275,9 @@ export class MasterController {
       { ...body, kind: 'PROJECTION_RATE' },
       req.correlationId ?? 'unknown',
     );
+  }
+  @Delete('projection-rates/:id') deleteRate(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settings.remove(req.principal, 'PROJECTION_RATE', id, req.correlationId ?? 'unknown');
   }
   @Get('quota-capacity-settings') listQuota(
     @Req() req: AuthenticatedRequest,

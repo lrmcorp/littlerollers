@@ -158,3 +158,77 @@ describe('masterFailureMessage', () => {
     expect(masterFailureMessage(new Error('offline'))).toMatch(/Periksa koneksi/);
   });
 });
+
+describe('tarif settings client', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('maps the per-kind API rows to the shared setting shape', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        mockResponse({
+          items: [
+            {
+              id: 'fee-1',
+              branchId: 'branch-1',
+              classTypeId: 'class-1',
+              instructorName: 'Ayu',
+              feePerJamRp: 180000,
+              effectiveDate: '2027-01-01',
+              deletable: true,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        mockResponse({
+          items: [
+            {
+              id: 'rate-1',
+              branchId: 'branch-1',
+              classTypeId: 'class-1',
+              ratePerSesiRp: 130000,
+              effectiveDate: '2020-01-01',
+            },
+          ],
+        }),
+      );
+    const [fee] = await browserMasterClient.listSettings('INSTRUCTOR_FEE', 'branch-1');
+    expect(fee).toMatchObject({
+      id: 'fee-1',
+      kind: 'INSTRUCTOR_FEE',
+      value: { feeRp: 180000 },
+      instructorName: 'Ayu',
+      deletable: true,
+    });
+    expect(fee!.effectiveFrom.toISOString()).toBe('2027-01-01T00:00:00.000Z');
+    const [rate] = await browserMasterClient.listSettings('PROJECTION_RATE', 'branch-1');
+    expect(rate).toMatchObject({ value: { rateRp: 130000 }, deletable: false });
+  });
+
+  it('deletes by kind and never sends an end date when creating', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => mockResponse({}));
+    await browserMasterClient.deleteSetting('PROJECTION_RATE', 'rate-1');
+    expect(spy).toHaveBeenLastCalledWith(
+      '/api/v1/projection-rates/rate-1',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+    await browserMasterClient.deleteSetting('INSTRUCTOR_FEE', 'fee-1');
+    expect(spy).toHaveBeenLastCalledWith(
+      '/api/v1/instructor-fees/fee-1',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+    await browserMasterClient.createSetting({
+      kind: 'PROJECTION_RATE',
+      branchId: 'branch-1',
+      classTypeId: 'class-1',
+      value: 130000,
+      effectiveFrom: '2027-01-01',
+      reason: 'Naik',
+    });
+    const body = JSON.parse(String((spy.mock.lastCall![1] as RequestInit).body));
+    expect(body).toMatchObject({ rateRp: 130000 });
+    expect('effectiveUntil' in body).toBe(false);
+  });
+});

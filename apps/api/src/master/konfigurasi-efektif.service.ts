@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import type { SessionPrincipal } from '../identity/identity.service';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { MasterAccessService } from './master-access.service';
 import { PrismaService } from '../database/prisma.service';
 
@@ -18,6 +19,29 @@ export type SettingInput = {
   effectiveUntil?: string | null;
   reason: string;
 };
+
+const MAX_RATE_RP = 10_000_000;
+
+/** Tanggal hari ini (YYYY-MM-DD) menurut waktu bisnis; tarif efektif dicatat per tanggal. */
+const todayKey = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+const dateKey = (value: Date) => value.toISOString().slice(0, 10);
+
+function requireAmount(value: unknown, field: string) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_RATE_RP)
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+      { field, issue: 'REQUIRED_POSITIVE_INTEGER' },
+    ]);
+  return value;
+}
+
+function requireEffectiveDate(value: unknown) {
+  const date = typeof value === 'string' && value.trim() ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime()))
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+      { field: 'effectiveFrom', issue: 'INVALID_DATE' },
+    ]);
+  return date;
+}
 
 @Injectable()
 export class EffectiveSettingsService {
@@ -85,7 +109,8 @@ export class EffectiveSettingsService {
           classTypeId: r.classTypeId,
           classType: r.classType,
           feePerJamRp: r.feePerJamRp,
-          effectiveDate: r.effectiveDate.toISOString().slice(0, 10),
+          effectiveDate: dateKey(r.effectiveDate),
+          deletable: dateKey(r.effectiveDate) > todayKey(),
           createdAt: r.createdAt.toISOString(),
         })),
         page: { nextCursor: null, hasMore: false },
@@ -115,7 +140,8 @@ export class EffectiveSettingsService {
           classTypeId: r.classTypeId,
           classType: r.classType,
           ratePerSesiRp: r.ratePerSesiRp,
-          effectiveDate: r.effectiveDate.toISOString().slice(0, 10),
+          effectiveDate: dateKey(r.effectiveDate),
+          deletable: dateKey(r.effectiveDate) > todayKey(),
           createdAt: r.createdAt.toISOString(),
         })),
         page: { nextCursor: null, hasMore: false },
@@ -166,9 +192,13 @@ export class EffectiveSettingsService {
     }
 
     if (input.kind === 'INSTRUCTOR_FEE') {
-      const feePerJamRp = input.feeRp ?? 150_000;
-      const effectiveDate = new Date(input.effectiveFrom || Date.now());
-      const instructorId = input.instructorUserId ?? principal.userId;
+      const feePerJamRp = requireAmount(input.feeRp, 'feeRp');
+      const effectiveDate = requireEffectiveDate(input.effectiveFrom);
+      if (!input.instructorUserId || !ENTITY_ID_REGEX.test(input.instructorUserId))
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'instructorUserId', issue: 'REQUIRED' },
+        ]);
+      const instructorId = input.instructorUserId;
       const row = await this.db.instructorFee.create({
         data: {
           instructorId,
@@ -198,8 +228,8 @@ export class EffectiveSettingsService {
     }
 
     if (input.kind === 'PROJECTION_RATE') {
-      const ratePerSesiRp = input.rateRp ?? 125_000;
-      const effectiveDate = new Date(input.effectiveFrom || Date.now());
+      const ratePerSesiRp = requireAmount(input.rateRp, 'rateRp');
+      const effectiveDate = requireEffectiveDate(input.effectiveFrom);
       const row = await this.db.projectionRate.create({
         data: {
           branchId: input.branchId,
@@ -230,6 +260,47 @@ export class EffectiveSettingsService {
       effectiveUntil: input.effectiveUntil ?? null,
       createdAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Hapus tarif yang BELUM berlaku (tanggal efektif di masa depan). Tarif yang sudah berlaku tidak
+   * boleh hilang karena dipakai perhitungan honor/proyeksi; koreksinya dengan menambah tarif baru.
+   */
+  async remove(
+    principal: SessionPrincipal,
+    kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE',
+    id: string,
+    correlationId: string,
+  ) {
+    this.access.authorize(principal, true);
+    if (!principal.capabilities.includes('finance:manage'))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+    if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    return this.db.$transaction(async (tx) => {
+      const row =
+        kind === 'INSTRUCTOR_FEE'
+          ? await tx.instructorFee.findUnique({ where: { id } })
+          : await tx.projectionRate.findUnique({ where: { id } });
+      if (!row) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      this.access.ensureBranchScope(principal, row.branchId, true);
+      if (dateKey(row.effectiveDate) <= todayKey())
+        throw new ApiProblem('RATE_IN_EFFECT', HttpStatus.CONFLICT);
+
+      if (kind === 'INSTRUCTOR_FEE') await tx.instructorFee.delete({ where: { id } });
+      else await tx.projectionRate.delete({ where: { id } });
+
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        kind === 'INSTRUCTOR_FEE' ? 'master.instructor_fee_deleted' : 'master.projection_rate_deleted',
+        kind === 'INSTRUCTOR_FEE' ? 'InstructorFee' : 'ProjectionRate',
+        id,
+        row.branchId,
+      );
+      return { id, deleted: true };
+    });
   }
 
   async getEffectiveInstructorFee(
