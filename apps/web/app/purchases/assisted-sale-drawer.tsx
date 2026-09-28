@@ -13,7 +13,13 @@ import { customerClient } from '../customers/customer-client';
 import { Feedback } from '../ui';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
-import { AsyncSearchSelect, SelectInput, TextInput, type SearchSelectOption } from '../components/forms';
+import {
+  AsyncSearchSelect,
+  SearchSelect,
+  SelectInput,
+  TextInput,
+  type SearchSelectOption,
+} from '../components/forms';
 import { formatRupiah } from '../lib/formatters';
 
 type PackageOption = SearchSelectOption & { priceRp: number };
@@ -192,22 +198,17 @@ export function AssistedSaleDrawer({
           />
         )}
         {!branch && (
-          <SelectInput
+          <SearchSelect
             label="Cabang penjualan"
             required
             value={chosenBranchId}
-            onChange={(event) => {
-              setChosenBranchId(event.target.value);
+            placeholder="Pilih cabang"
+            options={branches.map((item) => ({ id: item.id, label: item.name }))}
+            onChange={(value) => {
+              setChosenBranchId(value);
               setPackageOption(undefined);
             }}
-          >
-            <option value="">Pilih cabang</option>
-            {branches.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </SelectInput>
+          />
         )}
         <AsyncSearchSelect
           key={saleBranchId || 'no-branch'}

@@ -131,7 +131,8 @@ describe('AssistedSaleDrawer', () => {
     const dialog = screen.getByRole('dialog', { name: 'Catat penjualan paket' });
     expect(within(dialog).getByRole('combobox', { name: /Paket/ })).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Catat penjualan' })).toBeDisabled();
-    await user.selectOptions(within(dialog).getByLabelText(/Cabang penjualan/), 'branch-2');
+    await user.click(within(dialog).getByRole('combobox', { name: /Cabang penjualan/ }));
+    await user.click(await screen.findByRole('option', { name: 'Muara Karang' }));
     await user.click(within(dialog).getByRole('combobox', { name: /Paket/ }));
     // Paket khusus cabang lain tidak muncul; paket cabang terpilih dan paket umum muncul.
     expect(await screen.findByRole('option', { name: /Paket 8 Sesi/ })).toBeVisible();
