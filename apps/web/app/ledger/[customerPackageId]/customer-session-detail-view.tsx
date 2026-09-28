@@ -7,12 +7,18 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import {
   browserLedgerClient,
   ledgerFailure,
+  manageCustomerPackage,
+  packageActionFailure,
+  type CustomerPackageAction,
   type LedgerHistory,
 } from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
 import { Badge, Pagination, Panel, StatCard } from '../../components/admin/admin-ui';
 import { EmptyState, Feedback, Skeleton } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
+import { ReasonDialog } from '../../components/admin/reason-dialog';
+import { TextInput } from '../../components/forms';
+import { useSessionContext } from '../../session-context';
 
 const ledgerLabels: Record<string, string> = {
   PURCHASE: 'Aktivasi paket',
@@ -42,6 +48,13 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const sessionContext = useSessionContext();
+  const canManagePackage = Boolean(sessionContext?.hasCapability('customer-package:manage'));
+  const [action, setAction] = useState<CustomerPackageAction | null>(null);
+  const [days, setDays] = useState('30');
+  const [acting, setActing] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +69,32 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
   }, [cursor, id]);
 
   useEffect(() => void load(), [load]);
+
+  const runAction = async (reason: string) => {
+    if (!action || !history) return;
+    setActing(true);
+    setActionError('');
+    try {
+      await manageCustomerPackage(id, action, {
+        reason,
+        days: action === 'extend' ? Number(days) : undefined,
+        expectedValidUntil: history.balance.expiryAt.toISOString(),
+      });
+      setAction(null);
+      setNotice(
+        action === 'extend'
+          ? 'Masa berlaku paket diperpanjang.'
+          : action === 'freeze'
+            ? 'Paket dibekukan.'
+            : 'Paket dibuka kembali.',
+      );
+      await load();
+    } catch (cause) {
+      setActionError(packageActionFailure(cause));
+    } finally {
+      setActing(false);
+    }
+  };
 
   const changePage = (nextCursor: string) => {
     setLoadingMore(true);
@@ -125,14 +164,48 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
               Aktif {formatDate(balance.activationDate)} · berakhir {formatDate(balance.expiryAt)}
             </p>
           </div>
-          <Badge tone={balance.status === 'ACTIVE' ? 'success' : 'neutral'}>
+          <Badge
+            tone={
+              balance.status === 'ACTIVE'
+                ? 'success'
+                : balance.status === 'FROZEN'
+                  ? 'warning'
+                  : 'neutral'
+            }
+          >
             {balance.status === 'ACTIVE'
               ? 'Aktif'
               : balance.status === 'EXPIRED'
                 ? 'Berakhir'
-                : 'Tidak aktif'}
+                : balance.status === 'FROZEN'
+                  ? 'Dibekukan'
+                  : 'Tidak aktif'}
           </Badge>
         </div>
+        {notice && (
+          <div className="mt-4">
+            <Feedback kind="status">{notice}</Feedback>
+          </div>
+        )}
+        {canManagePackage && (
+          <div className="mt-4 flex flex-wrap gap-2" aria-label="Kelola paket">
+            {balance.status !== 'FROZEN' && balance.ledgerBalance > 0 && (
+              <Button variant="secondary" onClick={() => setAction('extend')}>
+                Perpanjang masa berlaku
+              </Button>
+            )}
+            {balance.status === 'ACTIVE' && (
+              <Button variant="secondary" onClick={() => setAction('freeze')}>
+                Bekukan paket
+              </Button>
+            )}
+            {balance.status === 'FROZEN' && (
+              <Button variant="secondary" onClick={() => setAction('unfreeze')}>
+                Buka kembali paket
+              </Button>
+            )}
+          </div>
+        )}
         {balance.customer?.id && (
           <ButtonLink className="mt-4" variant="secondary" href={`/users/${balance.customer.id}`}>
             Buka detail pelanggan
@@ -235,6 +308,46 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
           />
         </div>
       </Panel>
+      <ReasonDialog
+        open={action !== null}
+        title={
+          action === 'extend'
+            ? 'Perpanjang masa berlaku paket'
+            : action === 'freeze'
+              ? 'Bekukan paket pelanggan?'
+              : 'Buka kembali paket pelanggan?'
+        }
+        description={
+          action === 'extend'
+            ? 'Masa berlaku bertambah dari tanggal berakhir saat ini (atau dari hari ini bila sudah lewat). Saldo sesi tidak berubah.'
+            : action === 'freeze'
+              ? 'Selama dibekukan pelanggan tidak dapat memesan kelas. Paket tidak dapat dibekukan bila masih ada booking mendatang.'
+              : 'Masa berlaku otomatis bertambah sepanjang paket dibekukan.'
+        }
+        label="Alasan"
+        confirmLabel={
+          action === 'extend' ? 'Perpanjang' : action === 'freeze' ? 'Bekukan' : 'Buka kembali'
+        }
+        maxLength={500}
+        busy={acting}
+        error={actionError}
+        onCancel={() => {
+          setAction(null);
+          setActionError('');
+        }}
+        onConfirm={(reason) => void runAction(reason)}
+      >
+        {action === 'extend' && (
+          <TextInput
+            label="Tambahan hari (1–180)"
+            type="number"
+            min={1}
+            max={180}
+            value={days}
+            onChange={(event) => setDays(event.target.value)}
+          />
+        )}
+      </ReasonDialog>
     </section>
   );
 }

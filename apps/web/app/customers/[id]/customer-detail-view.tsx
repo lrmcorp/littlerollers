@@ -543,6 +543,17 @@ export function CustomerDetailView({ id }: { id: string }) {
                       </StatusBadge>
                     ),
                   },
+                  {
+                    id: 'manage',
+                    header: 'Tindakan',
+                    cell: (cp) => (
+                      <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
+                        {sessionContext?.hasCapability('customer-package:manage')
+                          ? 'Kelola'
+                          : 'Riwayat sesi'}
+                      </ButtonLink>
+                    ),
+                  },
                 ]}
                 mobileCard={(cp) => (
                   <div className="space-y-1">

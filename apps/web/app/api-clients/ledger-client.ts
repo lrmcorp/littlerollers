@@ -345,3 +345,46 @@ export async function ledgerFailure(error: unknown) {
     return 'Data belum valid. Periksa pilihan paket, jumlah sesi, dan alasan.';
   return 'Layanan belum dapat dijangkau. Coba kembali dengan permintaan yang sama.';
 }
+
+export type CustomerPackageAction = 'extend' | 'freeze' | 'unfreeze';
+
+export async function manageCustomerPackage(
+  id: string,
+  action: CustomerPackageAction,
+  input: { reason: string; days?: number; expectedValidUntil?: string },
+) {
+  return apiFetch<{ balance: unknown; ledgerEntry: unknown }>(
+    `/customer-packages/${encodeURIComponent(id)}/${action}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+      label: 'Memproses paket pelanggan…',
+    },
+  );
+}
+
+const packageActionMessages: Record<string, string> = {
+  PACKAGE_CHANGED: 'Paket berubah sejak halaman dimuat. Perbarui halaman lalu ulangi.',
+  PACKAGE_FROZEN: 'Paket sedang dibekukan. Buka kembali terlebih dahulu.',
+  PACKAGE_NOT_ACTIVE: 'Hanya paket aktif yang belum berakhir yang dapat dibekukan.',
+  PACKAGE_NOT_FROZEN: 'Paket ini tidak sedang dibekukan.',
+  HAS_UPCOMING_BOOKINGS:
+    'Paket masih punya booking mendatang. Batalkan booking tersebut sebelum membekukan.',
+  NO_REMAINING_SESSIONS: 'Paket tidak punya sisa sesi, sehingga tidak perlu diperpanjang.',
+  VALIDATION_ERROR: 'Data belum valid. Periksa jumlah hari dan alasan.',
+  FORBIDDEN: 'Anda tidak memiliki izin mengelola paket pelanggan.',
+  RESOURCE_NOT_FOUND: 'Paket tidak ditemukan atau berada di luar cakupan cabang Anda.',
+};
+
+export function packageActionFailure(error: unknown): string {
+  notifySessionFailure(error);
+  const typed = error as { status?: number; data?: { code?: string; error?: { code?: string } } };
+  const code = typed?.data?.code ?? typed?.data?.error?.code;
+  if (code && packageActionMessages[code]) return packageActionMessages[code]!;
+  if (typed?.status === 403) return packageActionMessages.FORBIDDEN!;
+  if (typed?.status === 404) return packageActionMessages.RESOURCE_NOT_FOUND!;
+  if (typed?.status === 409) return packageActionMessages.PACKAGE_CHANGED!;
+  if (typed?.status === 400 || typed?.status === 422) return packageActionMessages.VALIDATION_ERROR!;
+  if (typed?.status === 401) return 'Sesi Anda telah berakhir. Silakan masuk kembali.';
+  return 'Layanan belum dapat dijangkau. Coba kembali beberapa saat lagi.';
+}
