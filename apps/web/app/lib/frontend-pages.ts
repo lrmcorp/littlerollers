@@ -444,9 +444,6 @@ export const frontendPages: FrontendPageDefinition[] = [
     queueBadgeSource: 'jobs',
     dashboardDeepLink: '/operations?status=FAILED',
     isAdvanced: true,
-    maturity: 'preview',
-    previewNote:
-      'Sebagian data di halaman ini masih contoh dan belum terhubung ke job produksi; lihat keterangan pada tiap bagian.',
   },
   {
     href: '/health',
