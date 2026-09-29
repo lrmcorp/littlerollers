@@ -269,6 +269,20 @@ describe('approving a purchase: separation of duties', () => {
     expect(tx.pembelian.update).not.toHaveBeenCalled();
   });
 
+  it('allows a SUPER_OWNER who recorded a sale to approve it directly', async () => {
+    const { service, tx } = decideSetup();
+    const superOwnerReviewer = {
+      ...reviewer(recorderId),
+      roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+    };
+    await approve(service, superOwnerReviewer as never);
+    expect(tx.pembelian.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'PAID', verifiedById: recorderId }),
+      }),
+    );
+  });
+
   it('still blocks a purchaser from approving their own order', async () => {
     const { service } = decideSetup(purchase({ recordedById: null }));
     await expect(approve(service, reviewer(customerId))).rejects.toMatchObject({

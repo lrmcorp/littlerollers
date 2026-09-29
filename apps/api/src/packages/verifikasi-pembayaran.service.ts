@@ -587,9 +587,18 @@ export class PaymentReviewService {
           });
           if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           this.access.scope(principal, purchase.branchId, ['payment:decide', 'purchase:decide']);
-          // Pembeli dan pencatat penjualan manual tidak boleh menyetujui transaksinya sendiri.
-          if (purchase.userId === principal.userId || purchase.recordedById === principal.userId)
+          // Pembeli (pelanggan) dilarang menyetujui transaksinya sendiri.
+          if (purchase.userId === principal.userId) {
             throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+          }
+          // Super Owner dan Superadmin memiliki wewenang penuh untuk menyetujui transaksi yang dicatatnya sendiri.
+          // Staf cabang biasa tanpa wewenang super tetap mengikuti aturan Maker-Checker.
+          const isSuper = principal.roles.some((r) =>
+            ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+          );
+          if (!isSuper && purchase.recordedById === principal.userId) {
+            throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+          }
           if (purchase.status !== 'PENDING' && purchase.status !== 'WAITING_VERIFICATION')
             throw new ApiProblem('PURCHASE_ALREADY_DECIDED', HttpStatus.CONFLICT);
 

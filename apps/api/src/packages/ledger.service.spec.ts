@@ -204,6 +204,27 @@ describe('LedgerService.decideAdjustment', () => {
     expect(tx.sessionLedger.create).not.toHaveBeenCalled();
   });
 
+  it('allows SUPER_OWNER to approve their own adjustment request', async () => {
+    const { service, tx, audit } = setup();
+    const superOwner = {
+      sessionId: 's',
+      userId: admin.userId,
+      roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+      capabilities: ['ledger:adjust:decide', 'ledger:read', 'ledger:adjust:read'],
+      branchIds: [branchA],
+    };
+    const result = await service.decideAdjustment(superOwner, requestId, 'approve', approve);
+    expect(tx.paketPelanggan.update).toHaveBeenCalled();
+    expect(tx.sessionLedger.create).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      adjustment: { status: 'POSTED' },
+    });
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ action: 'SESSION_ADJUSTMENT_APPROVED' }),
+    );
+  });
+
   it('validates decision and reason code combinations', async () => {
     const { service } = setup();
     await expect(

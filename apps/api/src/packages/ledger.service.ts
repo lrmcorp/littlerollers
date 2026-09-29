@@ -593,8 +593,12 @@ export class LedgerService {
         });
         if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.assertPackageAccess(principal, 'ledger:adjust:decide', row.customerPackage);
-        // Pemisahan tugas: pengaju tidak boleh memutus permintaannya sendiri.
-        if (row.requestedById === principal.userId)
+        // Pemisahan tugas: staf biasa dilarang memutus permintaannya sendiri (Maker-Checker).
+        // Super Owner dan Superadmin memiliki wewenang penuh untuk persetujuan mandiri.
+        const isSuper = principal.roles.some((r) =>
+          ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+        );
+        if (!isSuper && row.requestedById === principal.userId)
           throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
         if (row.status !== 'PENDING') throw problem('ADJUSTMENT_ALREADY_DECIDED', HttpStatus.CONFLICT);
         if (row.version !== body.expectedVersion)

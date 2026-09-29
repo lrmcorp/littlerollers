@@ -720,8 +720,9 @@ export class FinanceService {
     if (!correction) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
-    // Pemisahan tugas: pengaju koreksi tidak boleh memutus koreksinya sendiri.
-    if (correction.requestedById === principal.userId)
+    // Super Owner dan Superadmin berhak menyetujui koreksi yang diajukan sendiri maupun diajukan staf keuangan.
+    // Pemisahan tugas (Maker-Checker) hanya berlaku jika aktor bukan Super Owner/Superadmin.
+    if (!isSuperOwner && correction.requestedById === principal.userId)
       throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
     if (correction.status !== 'PENDING')
       throw problem('CORRECTION_ALREADY_DECIDED', HttpStatus.CONFLICT);

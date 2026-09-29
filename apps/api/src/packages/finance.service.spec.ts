@@ -149,16 +149,23 @@ describe('FinanceService corrections follow the generated-client contract', () =
     });
   });
 
-  it('lets only Super Owner decide, never the requester (separation of duties)', async () => {
+  it('lets only Super Owner decide, and allows Super Owner to approve their own requested correction', async () => {
     const { service, db } = setup();
     await expect(
       service.decideCorrection(finance, journalId, 'approve', { reason: 'Setuju' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     db.correctionJournal.findUnique.mockResolvedValue(journal({ requestedById: superOwner.userId }));
-    await expect(
-      service.decideCorrection(superOwner, journalId, 'approve', { reason: 'Setuju' }),
-    ).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES' });
-    expect(db.correctionJournal.updateMany).not.toHaveBeenCalled();
+    const result = await service.decideCorrection(superOwner, journalId, 'approve', { reason: 'Setuju' });
+    expect(db.correctionJournal.updateMany).toHaveBeenCalledWith({
+      where: { id: journalId, status: 'PENDING', version: 1 },
+      data: expect.objectContaining({
+        status: 'APPROVED',
+        approvedById: superOwner.userId,
+      }),
+    });
+    expect(result).toMatchObject({
+      correction: { status: 'APPROVED', decidedBy: superOwner.userId },
+    });
   });
 
   it('approves a pending correction from another user with the contract result', async () => {
