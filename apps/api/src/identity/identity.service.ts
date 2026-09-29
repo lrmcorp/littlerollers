@@ -198,6 +198,11 @@ export class IdentityService {
     requestFingerprint = 'unknown',
   ) {
     if (process.env.AUTH_PASSWORD_ENABLED !== 'true') configurationRequired();
+    if (!input?.email || typeof input.email !== 'string' || !input.password || typeof input.password !== 'string') {
+      throw new ApiProblem('VALIDATION_FAILED', HttpStatus.BAD_REQUEST, false, [
+        { field: 'email', issue: 'Email and password are required' },
+      ]);
+    }
     const email = normalizeEmail(input.email);
     const emailHash = canonicalEmailHash(email);
     await Promise.all([

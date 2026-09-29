@@ -24,7 +24,8 @@ export function isOwningCustomer(
   customerUserId: string,
 ): boolean {
   return (
-    principal.roles.some(({ role }) => role === 'CUSTOMER') && principal.userId === customerUserId
+    principal.roles.some(({ role }) => role === 'CUSTOMER' || role === 'MEMBER') &&
+    principal.userId === customerUserId
   );
 }
 
@@ -86,16 +87,12 @@ export class AttendanceService {
     booking: { classSlot: { branchId: string }; userId: string },
     staffCapability: 'attendance:read' | 'attendance:manage',
   ) {
-    if (
-      principal.roles.some(({ role }) => role === 'CUSTOMER') &&
-      principal.userId === booking.userId
-    )
-      return;
+    if (isOwningCustomer(principal, booking.userId)) return;
     this.policy.requireCapability(principal.capabilities, staffCapability);
     this.requireBranch(principal, booking.classSlot.branchId, staffCapability);
   }
 
-  /** Issue a QR check-in token for a specific booking (staff action). */
+  /** Issue a QR check-in token for a specific booking (staff or owning customer action). */
   async issue(
     principal: SessionPrincipal,
     bookingId: string,
@@ -103,7 +100,6 @@ export class AttendanceService {
     _idempotencyKey: string,
     _correlationId: string,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
     if (!UUID.test(bookingId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
@@ -123,8 +119,11 @@ export class AttendanceService {
           },
         });
         if (!booking) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        this.requireBranch(principal, booking.classSlot.branchId, 'attendance:manage');
-        if (booking.status !== 'BOOKED' || booking.classSlot.status !== 'CONFIRMED')
+        this.authorizeCustomerToken(principal, booking, 'attendance:manage');
+        if (
+          booking.status !== 'BOOKED' ||
+          !['PUBLISHED', 'CONFIRMED'].includes(booking.classSlot.status)
+        )
           throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
         if (booking.classSlot.endAt <= new Date())
           throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);

@@ -21,6 +21,7 @@ export function ActivateAccountView({
       description="Aktifkan akses undangan dengan password pribadi. Tautan hanya dapat digunakan sekali."
     >
       <form
+        method="post"
         className="grid gap-4"
         onSubmit={(event) => {
           event.preventDefault();

@@ -4,14 +4,13 @@ import Link from 'next/link';
 import {
   ArrowRight,
   CalendarDays,
-  Check,
+  CheckCircle2,
   Clock3,
   Dumbbell,
   Gauge,
   HeartPulse,
   Info,
   MapPin,
-  Sparkles,
   Timer,
   UsersRound,
 } from 'lucide-react';
@@ -179,7 +178,7 @@ export function ClassDetailView({
               {item.profile.benefits && item.profile.benefits.length > 0 && (
                 <div>
                   <h3 className="flex items-center gap-2 text-xl font-bold text-dd-ink">
-                    <Sparkles className="size-5 text-dd-forest" />
+                    <CheckCircle2 className="size-5 text-dd-forest" />
                     Manfaat Utama Latihan
                   </h3>
                   <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -188,7 +187,7 @@ export function ClassDetailView({
                         className="flex items-start gap-3 rounded-dd-md border border-dd-line bg-white p-4 shadow-xs"
                         key={benefit}
                       >
-                        <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" />
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-dd-forest" />
                         <span className="text-sm font-medium text-dd-ink">{benefit}</span>
                       </li>
                     ))}

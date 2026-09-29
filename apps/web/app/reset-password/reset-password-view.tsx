@@ -16,6 +16,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
       description="Gunakan password baru sepanjang 8–128 karakter. Seluruh sesi lama akan dicabut."
     >
       <form
+        method="post"
         className="grid min-w-0 max-w-full gap-4 overflow-x-clip"
         onSubmit={(event) => {
           event.preventDefault();

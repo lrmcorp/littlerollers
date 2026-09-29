@@ -143,6 +143,7 @@ export class ReschedulesService {
         capacity: slot.capacity,
         bookedCount: slot.bookedCount,
         available: remaining,
+        availableCapacity: remaining,
         eligible: remaining > 0,
         ineligibilityReason: remaining <= 0 ? 'SLOT_FULL' : null,
         classType: slot.classType,
@@ -151,12 +152,18 @@ export class ReschedulesService {
       };
     });
 
+    const canRequest = unavailableReason === null && targets.some((t) => t.eligible);
+    const supportAction =
+      unavailableReason === 'RESCHEDULE_CUTOFF_PASSED' ? 'CONTACT_STUDIO' : null;
+
     return {
       bookingId: booking.id,
       bookingVersion: 1,
       cutoffAt,
       canReschedule: unavailableReason === null,
-      unavailableReason,
+      canRequest,
+      supportAction,
+      unavailableReason: canRequest ? null : unavailableReason ?? (targets.length === 0 ? 'NO_ELIGIBLE_TARGET' : null),
       source: {
         id: booking.classSlot.id,
         startAt: booking.classSlot.startAt,

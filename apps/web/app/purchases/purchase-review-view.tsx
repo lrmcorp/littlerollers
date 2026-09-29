@@ -46,7 +46,7 @@ const emptySummary: ReviewSummary = {
 };
 
 const readFilters = (): Filters => {
-  if (typeof window === 'undefined') return { status: 'ALL', limit: 20 };
+  if (typeof window === 'undefined') return { status: 'PENDING', limit: 20 };
   const query = new URLSearchParams(window.location.search);
   const date = (name: string) => {
     const value = query.get(name);
@@ -54,7 +54,7 @@ const readFilters = (): Filters => {
   };
   return {
     branchId: query.get('branch') || undefined,
-    status: query.get('status') || 'ALL',
+    status: query.get('status') || 'PENDING',
     q: query.get('q') || undefined,
     from: date('from'),
     until: date('until'),
@@ -219,7 +219,7 @@ export function PurchaseReviewView({
         const current = readFilters();
         const next = { ...current, ...patch, purchaseId: undefined };
         if (next.branchId) query.set('branch', next.branchId);
-        if (next.status && next.status !== 'ALL') query.set('status', next.status);
+        if (next.status) query.set('status', next.status);
         if (next.q) query.set('q', next.q);
         if (next.from) query.set('from', dateInput(next.from));
         if (next.until) query.set('until', dateInput(next.until));
@@ -515,15 +515,18 @@ export function PurchaseReviewView({
         />
         <SelectInput
           label="Status"
-          value={filters.status ?? 'ALL'}
+          value={filters.status ?? 'PENDING'}
           onChange={(event) => changeFilters({ status: event.target.value, cursor: undefined })}
         >
+          <option value="PENDING">Menunggu pemeriksaan</option>
           <option value="ALL">Semua status</option>
-          {Object.entries(statusLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
+          {Object.entries(statusLabels)
+            .filter(([value]) => value !== 'PENDING')
+            .map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
         </SelectInput>
         <DateInput
           label="Dari"
@@ -551,7 +554,7 @@ export function PurchaseReviewView({
             setSearch('');
             changeFilters({
               branchId: undefined,
-              status: 'ALL',
+              status: 'PENDING',
               q: undefined,
               from: undefined,
               until: undefined,

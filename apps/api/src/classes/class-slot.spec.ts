@@ -55,196 +55,63 @@ describe('ClassSlotService contract boundaries', () => {
       service.list(principal, { branchId: '00000000-0000-4000-8000-000000000099' }),
     ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
   });
-  it('allows a customer to discover only published slots without an internal branch role', async () => {
-    await service.list(
-      {
-        ...principal,
-        roles: [{ role: 'CUSTOMER', branchId: null }],
-        capabilities: ['class-slot:read'],
-        branchIds: [],
-      },
-      {},
-    );
-    expect(db.slotKelas.findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ status: 'PUBLISHED' }) }),
-    );
-  });
-
-  it('lets an instructor see their own classes in every status without an explicit filter, unlike a customer', async () => {
-    await service.list(
-      {
-        ...principal,
-        roles: [{ role: 'INSTRUCTOR', branchId }],
-        capabilities: ['class-slot:read', 'class:assigned:read', 'attendance:self'],
-        branchIds: [branchId],
-      },
-      { branchId },
-    );
-    const lastCall = db.slotKelas.findMany.mock.calls.at(-1)![0];
-    expect(lastCall.where).not.toHaveProperty('status');
-  });
-});
-
-describe('ClassSlotService completion authorization', () => {
-  const slotId = '00000000-0000-4000-8000-000000000010';
-  const foreignBranch = '00000000-0000-4000-8000-000000000099';
-  const instructorId = '00000000-0000-4000-8000-000000000050';
-  const otherInstructorId = '00000000-0000-4000-8000-000000000051';
   const customer = {
     ...principal,
     roles: [{ role: 'CUSTOMER' as const, branchId: null }],
-    capabilities: ['class-slot:read'],
+    capabilities: ['class-slot:read', 'customer:self'],
     branchIds: [],
+  };
+  const owner = {
+    ...principal,
+    roles: [{ role: 'OWNER' as const, branchId }],
+    capabilities: ['class-slot:read', 'finance:read'],
+    branchIds: [branchId],
   };
   const instructor = {
     ...principal,
-    userId: instructorId,
     roles: [{ role: 'INSTRUCTOR' as const, branchId }],
-    capabilities: ['class-slot:read', 'attendance:self'],
+    capabilities: ['class-slot:read', 'class:assigned:read', 'attendance:self'],
+    branchIds: [branchId],
   };
-  const execute = jest.fn();
-  const db = {
-    slotKelas: { findUnique: jest.fn() },
-    pemesananKelas: { findMany: jest.fn().mockResolvedValue([]) },
-  };
-  const service = new ClassSlotService(
-    db as never,
-    new PolicyService(),
-    { execute } as never,
-    { value: {} } as never,
-  );
+  const lastWhere = () => db.slotKelas.findMany.mock.calls.at(-1)![0].where;
 
-  beforeEach(() => {
-    execute.mockReset();
-    db.slotKelas.findUnique.mockReset();
+  it('allows a customer to discover only published slots without an internal branch role', async () => {
+    await service.list(customer, {});
+    expect(lastWhere().AND).toEqual([{ status: 'PUBLISHED' }]);
   });
 
-  it('denies a customer without persisting any completion side effect', async () => {
-    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      action({ slotKelas: { findUnique: async () => ({ id: slotId, branchId, instructorId: null }) } }),
-    );
-    await expect(
-      service.complete(customer, slotId, {}, '1234567890123456', 'test'),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  it('never lets a status filter widen what a customer may see', async () => {
+    await service.list(customer, { status: 'DRAFT' });
+    expect(lastWhere().AND).toEqual([{ status: 'PUBLISHED' }]);
   });
 
-  it('denies completion-control without class-slot:manage or matching instructor ownership', async () => {
-    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId, instructorId: null });
-    await expect(service.completionControl(customer, slotId)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    });
+  it('shows an instructor the published schedule plus only their own classes in any other status', async () => {
+    await service.list(instructor, { branchId });
+    expect(lastWhere().AND).toEqual([
+      { OR: [{ status: 'PUBLISHED' }, { instructorId: instructor.userId }] },
+    ]);
   });
 
-  it('hides completion-control of a slot in a foreign branch', async () => {
-    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId: foreignBranch });
-    await expect(service.completionControl(principal, slotId)).rejects.toMatchObject({
-      code: 'RESOURCE_NOT_FOUND',
-    });
+  it('keeps an instructor\'s status filter inside that visibility rule', async () => {
+    await service.list(instructor, { branchId, status: 'DRAFT' });
+    const where = lastWhere();
+    expect(where.status).toBe('DRAFT');
+    expect(where.AND).toEqual([
+      { OR: [{ status: 'PUBLISHED' }, { instructorId: instructor.userId }] },
+    ]);
   });
 
-  it('allows completion-control for staff with manage inside their branch', async () => {
-    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId });
-    await expect(service.completionControl(principal, slotId)).resolves.toMatchObject({
-      classSlotId: slotId,
-    });
+  it('keeps read-only staff on published classes by default, widening only through an explicit filter', async () => {
+    await service.list(owner, { branchId });
+    expect(lastWhere()).toMatchObject({ status: 'PUBLISHED' });
+    expect(lastWhere()).not.toHaveProperty('AND');
+    await service.list(owner, { branchId, status: 'CANCELLED' });
+    expect(lastWhere()).toMatchObject({ status: 'CANCELLED' });
   });
 
-  it('rejects completion of a foreign-branch slot inside the transaction', async () => {
-    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      action({ slotKelas: { findUnique: async () => ({ id: slotId, branchId: foreignBranch }) } }),
-    );
-    await expect(
-      service.complete(principal, slotId, {}, '1234567890123456', 'test'),
-    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
-  });
-
-  it('allows the assigned instructor to read completion-control without class-slot:manage', async () => {
-    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId, instructorId });
-    await expect(service.completionControl(instructor, slotId)).resolves.toMatchObject({
-      classSlotId: slotId,
-    });
-  });
-
-  it('denies completion-control to an instructor not assigned to the slot', async () => {
-    db.slotKelas.findUnique.mockResolvedValue({ id: slotId, branchId, instructorId: otherInstructorId });
-    await expect(service.completionControl(instructor, slotId)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    });
-  });
-
-  it('allows the assigned instructor to complete their own class', async () => {
-    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      action({
-        slotKelas: {
-          // Slot already COMPLETED hits the idempotent-guard return path, which is enough to
-          // prove the authorization gate let the owning instructor through.
-          findUnique: async () => ({
-            id: slotId,
-            branchId,
-            instructorId,
-            status: 'COMPLETED',
-            bookings: [],
-          }),
-        },
-      }),
-    );
-    await expect(
-      service.complete(instructor, slotId, {}, '1234567890123456', 'test'),
-    ).resolves.toMatchObject({ body: { id: slotId, status: 'COMPLETED' } });
-  });
-
-  it('tallies attendance and no-show counts instead of leaving them undefined in the response', async () => {
-    const attendedBooking = {
-      id: 'booking-attended',
-      status: 'ATTENDED',
-      attendance: { id: 'attendance-1' },
-      customerPackageId: null,
-    };
-    const noShowBooking = {
-      id: 'booking-no-show',
-      status: 'BOOKED',
-      attendance: null,
-      customerPackageId: null,
-    };
-    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      action({
-        slotKelas: {
-          findUnique: async () => ({
-            id: slotId,
-            branchId,
-            instructorId,
-            status: 'CONFIRMED',
-            bookings: [attendedBooking, noShowBooking],
-          }),
-          updateMany: async () => ({ count: 1 }),
-          findUniqueOrThrow: async () => ({ id: slotId, branchId, instructorId, status: 'COMPLETED' }),
-        },
-        pemesananKelas: { update: async () => ({}) },
-        sessionLedger: { findFirst: async () => null, create: async () => ({}) },
-        paketPelanggan: { findUnique: async () => null, update: async () => ({}) },
-        checkInToken: { updateMany: async () => ({ count: 0 }) },
-      }),
-    );
-    await expect(
-      service.complete(instructor, slotId, {}, '1234567890123456', 'test'),
-    ).resolves.toMatchObject({ body: { attendanceCount: 1, noShowCount: 1 } });
-  });
-
-  it('denies completion of a class assigned to a different instructor', async () => {
-    execute.mockImplementation(async (_opts: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      action({
-        slotKelas: {
-          findUnique: async () => ({
-            id: slotId,
-            branchId,
-            instructorId: otherInstructorId,
-            status: 'CONFIRMED',
-          }),
-        },
-      }),
-    );
-    await expect(
-      service.complete(instructor, slotId, {}, '1234567890123456', 'test'),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  it('gives scheduling staff every status, with no visibility restriction', async () => {
+    await service.list(principal, { branchId });
+    expect(lastWhere()).not.toHaveProperty('AND');
+    expect(lastWhere()).not.toHaveProperty('status');
   });
 });

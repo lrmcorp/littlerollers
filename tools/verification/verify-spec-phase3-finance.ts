@@ -12,6 +12,10 @@ import {
   type SessionPrincipal,
 } from '../../apps/api/src/identity/identity.service';
 import { FinanceService } from '../../apps/api/src/packages/finance.service';
+import {
+  calculateSlotFee,
+  sortFeesNewestFirst,
+} from '../../apps/api/src/packages/instructor-fee-calculator';
 import { MasterAccessService } from '../../apps/api/src/master/master-access.service';
 import { EffectiveSettingsService } from '../../apps/api/src/master/konfigurasi-efektif.service';
 
@@ -166,18 +170,19 @@ async function main() {
       },
     });
 
-    const feeBefore = await effectiveSettings.getEffectiveInstructorFee(
-      instructor.id,
-      branchA.id,
-      classType.id,
-      new Date(`${testPeriod}-10T10:00:00Z`),
+    const instructorFees = sortFeesNewestFirst(
+      await db.instructorFee.findMany({ where: { instructorId: instructor.id } }),
     );
-    const feeAfter = await effectiveSettings.getEffectiveInstructorFee(
-      instructor.id,
-      branchA.id,
-      classType.id,
-      new Date(`${testPeriod}-20T10:00:00Z`),
-    );
+    const feeAt = (day: string) =>
+      calculateSlotFee(instructorFees, {
+        instructorId: instructor.id,
+        branchId: branchA.id,
+        classTypeId: classType.id,
+        startAt: new Date(`${testPeriod}-${day}T10:00:00Z`),
+        endAt: new Date(`${testPeriod}-${day}T11:00:00Z`),
+      }).feePerJamRp;
+    const feeBefore = feeAt('10');
+    const feeAfter = feeAt('20');
 
     const rateBefore = await effectiveSettings.getEffectiveProjectionRate(
       branchA.id,

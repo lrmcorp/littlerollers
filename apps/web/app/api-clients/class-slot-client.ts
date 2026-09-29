@@ -48,13 +48,12 @@ export interface InstructorAttendanceResult {
 
 export interface CompletionResult {
   classSlotId: string;
-  status: any;
+  status: 'COMPLETED' | 'CONFIRMED' | string;
   attendanceCount: number;
   noShowCount?: number;
   releasedReservationIds?: Array<string>;
-  ledgerEntryIds: Array<string>;
+  ledgerEntryIds?: Array<string>;
   idempotentReplay?: boolean;
-  [key: string]: any;
 }
 
 export interface ClassTypeOption {

@@ -146,6 +146,20 @@ describe('identity UI', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
   });
 
+  it('holds the sign-in submit until hydration so credentials can never be posted into the URL', async () => {
+    const { renderToString } = await import('react-dom/server');
+    const html = renderToString(<SignInView client={client()} />);
+    const submit = html.match(/<button[^>]*type="submit"[^>]*>/)?.[0] ?? '';
+    expect(submit).toContain('disabled');
+    expect(html).toContain('method="post"');
+    for (const view of [
+      <ResetPasswordView key="reset" client={client()} />,
+      <ActivateAccountView key="activate" client={client()} />,
+    ]) {
+      expect(renderToString(view)).toContain('method="post"');
+    }
+  });
+
   it('shows a safe correlation reference for internal authentication failures', async () => {
     render(
       <SignInView

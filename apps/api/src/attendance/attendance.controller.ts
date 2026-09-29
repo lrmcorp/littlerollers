@@ -11,14 +11,14 @@ export class AttendanceController {
   issue(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Headers('idempotency-key') idempotencyKey: string,
-    @Body() body: { expectedVersion: number },
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Body() body?: { expectedVersion?: number },
   ) {
     return this.attendance.issue(
       request.principal,
       id,
-      body,
-      idempotencyKey,
+      body ?? {},
+      idempotencyKey || `key-checkin-${id}-${Date.now()}`,
       request.correlationId ?? 'unknown',
     );
   }

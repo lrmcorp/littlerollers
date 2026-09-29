@@ -13,6 +13,7 @@ import {
 } from '@/api-clients/identity-client';
 import { Feedback } from '../ui';
 import { useSessionContext } from '../session-context';
+import { useHydrated } from '../lib/use-hydrated';
 import { BrandMark } from '../components/public/brand-mark';
 
 const messages: Record<UiFailure, string> = {
@@ -112,6 +113,8 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
   const [state, setState] = useState<AuthState>('idle');
   const [reference, setReference] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  // Sebelum hidrasi, submit native akan menaruh email dan password di URL; tahan sampai handler aktif.
+  const hydrated = useHydrated();
   const sessionContext = useSessionContext();
   const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
@@ -227,6 +230,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           </div>
 
           <form
+            method="post"
             className="mt-6 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -286,7 +290,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
             <button
               className="mt-2 flex min-h-11 w-full items-center justify-center rounded-dd-md bg-dd-forest px-5 text-sm font-bold text-white shadow-dd-soft transition hover:bg-dd-forest-dark disabled:bg-dd-sage active:scale-[0.99]"
-              disabled={state === 'loading'}
+              disabled={state === 'loading' || !hydrated}
               type="submit"
             >
               {state === 'loading' ? 'Memeriksa akses…' : 'Masuk dengan email'}

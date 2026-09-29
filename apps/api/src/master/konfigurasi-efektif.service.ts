@@ -303,24 +303,6 @@ export class EffectiveSettingsService {
     });
   }
 
-  async getEffectiveInstructorFee(
-    instructorId: string,
-    branchId: string,
-    classTypeId: string,
-    targetDate: Date,
-  ): Promise<number> {
-    const fee = await this.db.instructorFee.findFirst({
-      where: {
-        instructorId,
-        branchId,
-        classTypeId,
-        effectiveDate: { lte: targetDate },
-      },
-      orderBy: { effectiveDate: 'desc' },
-    });
-    return fee?.feePerJamRp ?? 150_000;
-  }
-
   async getEffectiveProjectionRate(
     branchId: string,
     classTypeId: string,

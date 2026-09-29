@@ -136,6 +136,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'customer:manage',
     'payment:review',
     'purchase:review',
+    'purchase:decide',
+    'customer-package:manage',
     'ledger:read',
     'ledger:adjust:read',
     'ledger:adjust:request',

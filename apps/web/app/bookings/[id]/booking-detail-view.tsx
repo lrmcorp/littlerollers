@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, MapPin, User, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Download, ExternalLink, MapPin, QrCode, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import {
   bookingFailure,
   bookingProblem,
@@ -75,6 +76,11 @@ export function BookingDetailView({
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rescheduleMessage, setRescheduleMessage] = useState('');
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [qrPassUrl, setQrPassUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState('');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const intentKey = useRef(newIntentKey());
 
   const loadRescheduleOptions = useCallback(async () => {
@@ -98,6 +104,64 @@ export function BookingDetailView({
     }
   }, [canLoadReschedule, client, id]);
 
+  const loadQr = useCallback(
+    async (currentBooking: CustomerBookingRecord) => {
+      if (currentBooking.status !== 'BOOKED' || !client.issueCheckIn) return;
+      if (
+        currentBooking.classSlot?.endAt &&
+        new Date(currentBooking.classSlot.endAt).getTime() <= Date.now()
+      ) {
+        setQrError('Kelas telah selesai. Sesi check-in telah ditutup.');
+        return;
+      }
+      setQrLoading(true);
+      setQrError('');
+      try {
+        const res = await client.issueCheckIn(
+          currentBooking.id,
+          currentBooking.version,
+          `self-qr-${currentBooking.id}`,
+        );
+        if (res?.qrPayload) {
+          setQrPayload(res.qrPayload);
+          setQrPassUrl(res.passUrl ?? null);
+        }
+      } catch (err: unknown) {
+        const status = (err as { status?: number })?.status;
+        if (status === 410) {
+          setQrError('Sesi check-in telah ditutup untuk kelas ini.');
+        } else {
+          setQrError('Pass QR belum tersedia atau sedang disiapkan oleh studio.');
+        }
+      } finally {
+        setQrLoading(false);
+      }
+    },
+    [client],
+  );
+
+  useEffect(() => {
+    if (canvasRef.current && qrPayload) {
+      void QRCode.toCanvas(canvasRef.current, qrPayload, {
+        width: 220,
+        margin: 2,
+        errorCorrectionLevel: 'M',
+        color: { dark: '#17392d', light: '#ffffff' },
+      }).catch(() => {
+        // Abaikan error render canvas jika unmounted
+      });
+    }
+  }, [qrPayload]);
+
+  const downloadQr = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `daily-dose-qr-${id.slice(-8)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setDetailError('');
@@ -105,7 +169,7 @@ export function BookingDetailView({
     try {
       const bookingResult = await client.detail(id);
       setBooking(bookingResult);
-      await loadRescheduleOptions();
+      await Promise.all([loadRescheduleOptions(), loadQr(bookingResult)]);
     } catch (cause) {
       setBooking(null);
       setOptions(null);
@@ -114,7 +178,7 @@ export function BookingDetailView({
     } finally {
       setLoading(false);
     }
-  }, [client, id, loadRescheduleOptions]);
+  }, [client, id, loadQr, loadRescheduleOptions]);
 
   useEffect(() => {
     void load();
@@ -217,12 +281,74 @@ export function BookingDetailView({
           message={`Check-in pada ${booking.attendance.checkedInAt.toLocaleString('id-ID')}.`}
         />
       )}
-      {booking.status === 'BOOKED' && (
-        <AlertBanner
-          tone="info"
-          title="Siap untuk kelas"
-          message="Datang lebih awal dan tunjukkan QR check-in yang dikirim oleh studio."
-        />
+      {booking.status === 'BOOKED' && !booking.attendance && (
+        <section
+          className="overflow-hidden rounded-dd-xl border border-dd-forest/20 bg-gradient-to-b from-dd-forest/5 to-white p-6 shadow-dd-card"
+          aria-label="Pass Check-in Studio"
+        >
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-6">
+            <div className="flex flex-col items-center">
+              <div className="rounded-dd-lg border border-dd-line bg-white p-3 shadow-sm">
+                <canvas ref={canvasRef} className="block size-[220px]" />
+              </div>
+              {qrLoading && (
+                <p className="mt-2 text-xs text-dd-muted animate-pulse">Menyiapkan QR Pass…</p>
+              )}
+              {qrPayload && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mt-3 w-full text-xs"
+                  leadingIcon={<Download className="size-3.5" />}
+                  onClick={downloadQr}
+                >
+                  Unduh QR (PNG)
+                </Button>
+              )}
+            </div>
+            <div className="mt-4 flex-1 sm:mt-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-bold text-dd-forest">
+                <QrCode className="size-3.5" />
+                Pass Check-in Studio
+              </span>
+              <h2 className="mt-2 text-lg font-semibold text-dd-ink">
+                Tunjukkan QR Ini Saat Tiba di Studio
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-dd-muted sm:text-sm">
+                Tunjukkan kode QR ini ke meja resepsionis untuk mencatat kehadiran Anda.
+                QR aktif mulai 30 menit sebelum sesi kelas dimulai.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-dd-muted">
+                <span className="rounded bg-white px-2.5 py-1 border border-dd-line font-mono font-medium">
+                  Ref: •{booking.id.slice(-8)}
+                </span>
+                {booking.classSlot && (
+                  <span className="rounded bg-white px-2.5 py-1 border border-dd-line">
+                    Studio: {booking.classSlot.studio?.name ?? booking.branch?.name ?? 'Daily Dose'}
+                  </span>
+                )}
+              </div>
+              {qrPassUrl && (
+                <div className="mt-4">
+                  <a
+                    href={qrPassUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest underline hover:text-dd-ink"
+                  >
+                    Buka tampilan QR layar penuh
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+              )}
+              {qrError && !qrPayload && (
+                <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-dd-md p-2 border border-amber-200">
+                  {qrError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
       )}
       {rescheduleUnavailable && (
         <section className="space-y-3" aria-label="Ketersediaan perubahan jadwal">

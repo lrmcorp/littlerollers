@@ -12,6 +12,34 @@ export interface BookingCommand {
   source: 'SELF' | 'ADMIN_ASSISTED';
 }
 
+export interface BookingSlotSummary {
+  id: string;
+  startAt: Date;
+  endAt: Date;
+  timezone: string;
+  status?: string;
+  classType: { id: string; name: string };
+  capacity?: number;
+  bookedCount?: number;
+  available?: number;
+  instructor?: { id?: string; displayName: string } | null;
+  studio?: { id?: string; name: string } | null;
+}
+
+export interface BookingPackageSummary {
+  id: string;
+  name: string;
+  totalSessions?: number;
+  remainingSessions?: number;
+}
+
+export interface BookingAttendanceSummary {
+  id?: string;
+  checkedInAt: Date;
+  source?: 'QR' | 'BACKFILL' | string;
+  status?: string;
+}
+
 export interface Booking {
   id: string;
   bookingNumber?: string;
@@ -29,9 +57,9 @@ export interface Booking {
   version: number;
   idempotentReplay?: boolean;
   branch?: { id: string; name: string; timezone: string } | null;
-  classSlot?: any;
-  package?: any;
-  attendance?: any;
+  classSlot?: BookingSlotSummary | null;
+  package?: BookingPackageSummary | null;
+  attendance?: BookingAttendanceSummary | null;
   customer?: { id: string; displayName: string; phoneMasked: string | null } | null;
 }
 
@@ -617,6 +645,10 @@ export const browserBookingClient: BookingClient = {
     const value = (await response.json()) as any;
     return {
       ...value,
+      canRequest: Boolean(value.canRequest ?? value.canReschedule),
+      supportAction:
+        value.supportAction ??
+        (value.unavailableReason === 'RESCHEDULE_CUTOFF_PASSED' ? 'CONTACT_STUDIO' : null),
       cutoffAt: new Date(value.cutoffAt),
       latestRequest: value.latestRequest
         ? {
@@ -628,8 +660,9 @@ export const browserBookingClient: BookingClient = {
               : null,
           }
         : null,
-      targets: value.targets.map((target: any) => ({
+      targets: (value.targets ?? []).map((target: any) => ({
         ...target,
+        availableCapacity: target.availableCapacity ?? target.available ?? 0,
         startAt: new Date(target.startAt),
         endAt: new Date(target.endAt),
       })),

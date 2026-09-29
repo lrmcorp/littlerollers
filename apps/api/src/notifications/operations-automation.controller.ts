@@ -58,17 +58,36 @@ export class OperationsAutomationController {
     @Query('phone') phone?: string,
     @Query('reminderType') reminderType?: string,
     @Query('status') status?: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const logs = await this.whatsapp.listLogs({
-      phone,
-      reminderType,
-      status,
-      limit: limit ? Number(limit) : 50,
-    });
+    const pageNum = page ? Math.max(1, Number(page)) : 1;
+    const limitNum = limit ? Math.max(1, Math.min(Number(limit), 100)) : 20;
+
+    const [logs, total] = await Promise.all([
+      this.whatsapp.listLogs({
+        phone,
+        reminderType,
+        status,
+        page: pageNum,
+        limit: limitNum,
+      }),
+      this.whatsapp.countLogs({
+        phone,
+        reminderType,
+        status,
+      }),
+    ]);
+
     return {
       success: true,
-      data: logs,
+      data: {
+        items: logs,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.max(1, Math.ceil(total / limitNum)),
+      },
     };
   }
 

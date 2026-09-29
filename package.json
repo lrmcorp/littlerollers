@@ -7,6 +7,8 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "ports:clean": "node -e \"['32120','32121'].forEach(p=>{try{const pids=require('child_process').execSync('lsof -ti:'+p).toString().trim();if(pids)pids.split(/\\s+/).forEach(pid=>{if(pid)process.kill(Number(pid),'SIGKILL')})}catch{}})\"",
+    "predev": "pnpm ports:clean",
     "bootstrap": "pnpm install && pnpm db:generate && pnpm build",
     "build": "turbo run build",
     "dev": "node --env-file=.env node_modules/turbo/bin/turbo run dev --filter=@dailydose/api --filter=@dailydose/web",
@@ -16,6 +18,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:core-flows": "pnpm --filter @dailydose/api test:unit -- src/packages/payment-review.service.spec.ts src/packages/assisted-sale.spec.ts src/bookings/bookings.spec.ts src/bookings/reschedules.spec.ts src/attendance/attendance.service.spec.ts src/classes/class-completion.spec.ts",
     "verify:phases": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/verification/verify-all-phases.ts",
     "verify:spec0": "NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/verification/verify-spec-phase0-schema.ts",
     "verify:spec1": "NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/verification/verify-spec-phase1-operations.ts",

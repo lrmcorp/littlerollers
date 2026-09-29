@@ -19,11 +19,13 @@ import {
   Badge,
   DataTable,
   FilterBar,
+  Pagination,
   Panel,
   StatCard,
 } from '../../components/admin/admin-ui';
 import { Button } from '../../components/actions';
 import { useAppFeedback } from '../../components/app-feedback';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../../lib/pagination';
 import {
   reminderClient,
   type ReminderLogItem,
@@ -38,6 +40,8 @@ export function RemindersView() {
 
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<ReminderLogItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [summary, setSummary] = useState<RemindersSummary>({
     totalRecentSent: 0,
     totalRecentFailed: 0,
@@ -55,17 +59,22 @@ export function RemindersView() {
     if (!canRead) return;
     try {
       setLoading(true);
-      const [logList, summaryData] = await Promise.all([
+      const [logData, summaryData] = await Promise.all([
         reminderClient.listLogs({
           phone: searchPhone.trim() || undefined,
           reminderType: selectedType !== 'ALL' ? selectedType : undefined,
           status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
-          limit: 100,
+          page,
+          limit: ADMIN_PAGE_SIZE,
         }),
         reminderClient.getSummary(),
       ]);
 
-      setLogs(logList || []);
+      const items = Array.isArray(logData) ? logData : logData?.items ?? [];
+      const totalCount = Array.isArray(logData) ? logData.length : logData?.total ?? 0;
+
+      setLogs(items);
+      setTotal(totalCount);
       setSummary(summaryData);
     } catch (err: any) {
       feedback.showToast({
@@ -76,7 +85,7 @@ export function RemindersView() {
     } finally {
       setLoading(false);
     }
-  }, [canRead, searchPhone, selectedType, selectedStatus, feedback]);
+  }, [canRead, searchPhone, selectedType, selectedStatus, page, feedback]);
 
   useEffect(() => {
     void loadData();
@@ -276,13 +285,19 @@ export function RemindersView() {
                 type="text"
                 placeholder="Cari nomor HP penerima..."
                 value={searchPhone}
-                onChange={(e) => setSearchPhone(e.target.value)}
+                onChange={(e) => {
+                  setSearchPhone(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full rounded-md border border-dd-line bg-white px-3 py-1.5 text-sm outline-none focus:border-dd-forest"
               />
             </div>
             <select
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              onChange={(e) => {
+                setSelectedType(e.target.value);
+                setPage(1);
+              }}
               className="rounded-md border border-dd-line bg-white px-3 py-1.5 text-sm outline-none focus:border-dd-forest"
             >
               {reminderTypeOptions.map((opt) => (
@@ -293,7 +308,10 @@ export function RemindersView() {
             </select>
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPage(1);
+              }}
               className="rounded-md border border-dd-line bg-white px-3 py-1.5 text-sm outline-none focus:border-dd-forest"
             >
               <option value="ALL">Semua Status</option>
@@ -303,7 +321,7 @@ export function RemindersView() {
           </div>
         </FilterBar>
 
-        {logs.length === 0 ? (
+        {!loading && logs.length === 0 ? (
           <div className="mt-4">
             <AdminEmptyState
               title="Belum Ada Log Pengingat"
@@ -311,9 +329,12 @@ export function RemindersView() {
             />
           </div>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
             <DataTable<ReminderLogItem>
               items={logs}
+              loading={loading}
+              showRowNumbers
+              rowNumberOffset={pageOffset(page - 1)}
               rowKey={(item) => item.id}
               columns={[
                 {
@@ -381,6 +402,19 @@ export function RemindersView() {
                 },
               ]}
             />
+            {total > 0 && (
+              <Pagination
+                currentPage={page}
+                totalPages={Math.ceil(total / ADMIN_PAGE_SIZE) || 1}
+                totalItems={total}
+                pageSize={ADMIN_PAGE_SIZE}
+                hasPrevious={page > 1 && !loading}
+                hasNext={page < (Math.ceil(total / ADMIN_PAGE_SIZE) || 1) && !loading}
+                onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+                onNext={() => setPage((p) => Math.min(Math.ceil(total / ADMIN_PAGE_SIZE) || 1, p + 1))}
+                onPageChange={(targetPage) => setPage(targetPage)}
+              />
+            )}
           </div>
         )}
       </Panel>

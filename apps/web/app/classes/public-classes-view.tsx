@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Check, Sparkles } from 'lucide-react';
+import { AlertCircle, Check, Ticket } from 'lucide-react';
 import {
   browserPublicClassCatalogClient,
   publicCatalogFailure,
@@ -161,14 +161,22 @@ export function PublicClassesView({
   }, [client, session?.preferredBranch?.id]);
 
   useEffect(() => {
-    if (!branchId && branches.length > 0 && customerPackages.length > 0) {
+    if (branches.length > 0 && customerPackages.length > 0) {
       const query = new URLSearchParams(window.location.search);
       if (query.get('branch') || query.get('studio')) return;
       const pkgBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
-      const matchingBranch = branches.find((b) => b.id === pkgBranchId);
-      if (matchingBranch) {
-        setBranchId(matchingBranch.id);
-        void load(matchingBranch.id);
+      const hasActivePkgInCurrentBranch = customerPackages.some(
+        (pkg) =>
+          !pkg.packageBranchId ||
+          pkg.packageBranchId === 'global' ||
+          pkg.packageBranchId === branchId,
+      );
+      if (!hasActivePkgInCurrentBranch && pkgBranchId) {
+        const matchingBranch = branches.find((b) => b.id === pkgBranchId);
+        if (matchingBranch && matchingBranch.id !== branchId) {
+          setBranchId(matchingBranch.id);
+          void load(matchingBranch.id);
+        }
       }
     }
   }, [branches, branchId, customerPackages]);
@@ -309,7 +317,9 @@ export function PublicClassesView({
             {isCustomer && customerPackages.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs sm:text-sm shadow-xs">
                 <div className="flex items-center gap-2.5">
-                  <Sparkles className="size-4 text-dd-forest shrink-0" />
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-dd-forest">
+                    <Ticket className="size-3.5" aria-hidden="true" />
+                  </div>
                   <div>
                     <span className="font-semibold text-dd-forest">Paket Aktif: </span>
                     <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
@@ -322,12 +332,37 @@ export function PublicClassesView({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  {branchId !== (customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+                        if (targetBranchId) {
+                          setBranchId(targetBranchId);
+                          void load(targetBranchId);
+                        }
+                      }}
+                      className="font-semibold text-dd-forest underline hover:text-dd-forest-dark cursor-pointer"
+                    >
+                      Buka jadwal di {customerPackages[0]!.branchName} →
+                    </button>
+                  )}
                   <label className="inline-flex items-center gap-2 font-medium text-dd-forest cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={onlyEligible}
-                      onChange={(e) => setOnlyEligible(e.target.checked)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setOnlyEligible(checked);
+                        if (checked) {
+                          const targetBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+                          if (targetBranchId && branchId !== targetBranchId) {
+                            setBranchId(targetBranchId);
+                            void load(targetBranchId);
+                          }
+                        }
+                      }}
                       className="size-4 accent-dd-forest rounded"
                     />
                     <span>Hanya kelas sesuai paket saya</span>

@@ -10,6 +10,14 @@ export interface ReminderLogItem {
   sentAt: string;
 }
 
+export interface ReminderLogListResult {
+  items: ReminderLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface RemindersSummary {
   totalRecentSent: number;
   totalRecentFailed: number;
@@ -54,18 +62,31 @@ export const reminderClient = {
     phone?: string;
     reminderType?: string;
     status?: string;
+    page?: number;
     limit?: number;
-  }): Promise<ReminderLogItem[]> {
+  }): Promise<ReminderLogListResult> {
     const query = new URLSearchParams();
     if (params?.phone) query.set('phone', params.phone);
     if (params?.reminderType) query.set('reminderType', params.reminderType);
     if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
     if (params?.limit) query.set('limit', String(params.limit));
 
     const qs = query.toString();
-    const res = await apiFetch<{ success: boolean; data: ReminderLogItem[] }>(
-      `/api/v1/operations/reminders/logs${qs ? `?${qs}` : ''}`,
-    );
+    const res = await apiFetch<{
+      success: boolean;
+      data: ReminderLogListResult | ReminderLogItem[];
+    }>(`/api/v1/operations/reminders/logs${qs ? `?${qs}` : ''}`);
+
+    if (Array.isArray(res.data)) {
+      return {
+        items: res.data,
+        total: res.data.length,
+        page: params?.page ?? 1,
+        limit: params?.limit ?? res.data.length,
+        totalPages: 1,
+      };
+    }
     return res.data;
   },
 

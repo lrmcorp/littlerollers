@@ -46,14 +46,14 @@ export class PaymentReviewService {
       this.access.scope(principal, query.branchId, ['payment:review', 'purchase:review']);
 
     const statusParam = query.status?.trim().toUpperCase();
-    let statusFilter: PurchaseStatus | undefined = undefined;
+    let statusFilter: PurchaseStatus | Prisma.EnumPurchaseStatusFilter | undefined = undefined;
     if (statusParam && statusParam !== 'ALL') {
       if (statusParam === 'APPROVED' || statusParam === 'VERIFIED' || statusParam === 'PAID') {
         statusFilter = PurchaseStatus.PAID;
       } else if (statusParam === 'REJECTED') {
         statusFilter = PurchaseStatus.REJECTED;
       } else if (statusParam === 'PENDING') {
-        statusFilter = PurchaseStatus.PENDING;
+        statusFilter = { in: [PurchaseStatus.PENDING, PurchaseStatus.WAITING_VERIFICATION] };
       } else if (statusParam === 'WAITING_VERIFICATION' || statusParam === 'PAYMENT_SUBMITTED') {
         statusFilter = PurchaseStatus.WAITING_VERIFICATION;
       } else if (statusParam === 'CANCELLED' || statusParam === 'EXPIRED') {

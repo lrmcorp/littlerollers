@@ -217,14 +217,10 @@ export class WhatsAppGatewayService {
     }
   }
 
-  /**
-   * Kueri log pengingat
-   */
-  async listLogs(params: {
+  private buildLogsWhere(params: {
     phone?: string;
     reminderType?: string;
     status?: string;
-    limit?: number;
   }) {
     const where: any = {};
     if (params.phone) {
@@ -236,11 +232,41 @@ export class WhatsAppGatewayService {
     if (params.status) {
       where.status = params.status;
     }
+    return where;
+  }
+
+  /**
+   * Kueri log pengingat
+   */
+  async listLogs(params: {
+    phone?: string;
+    reminderType?: string;
+    status?: string;
+    limit?: number;
+    skip?: number;
+    page?: number;
+  }) {
+    const where = this.buildLogsWhere(params);
+    const take = params.limit ?? 50;
+    const skip = params.skip ?? (params.page ? (params.page - 1) * take : undefined);
 
     return this.db.reminderLog.findMany({
       where,
-      take: params.limit ?? 50,
+      take,
+      skip,
       orderBy: { sentAt: 'desc' },
     });
+  }
+
+  /**
+   * Hitung total log pengingat sesuai filter
+   */
+  async countLogs(params: {
+    phone?: string;
+    reminderType?: string;
+    status?: string;
+  }) {
+    const where = this.buildLogsWhere(params);
+    return this.db.reminderLog.count({ where });
   }
 }

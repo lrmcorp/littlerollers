@@ -110,6 +110,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
 
       {isPasswordActive && (
         <form
+          method="post"
           className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
           aria-label="Ubah password"
           onSubmit={async (event) => {

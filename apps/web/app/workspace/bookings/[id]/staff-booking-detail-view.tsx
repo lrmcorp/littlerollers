@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, QrCode, RefreshCw, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, QrCode, RefreshCw, Send, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   bookingFailure,
@@ -254,24 +254,37 @@ export function StaffBookingDetailView({
             </div>
           </dl>
           {booking.status === 'BOOKED' && context?.hasCapability('attendance:manage') && (
-            <Button
-              className="mt-5"
-              leadingIcon={<QrCode className="size-4" aria-hidden="true" />}
-              disabled={!canManageAttendance || busy}
-              onClick={issueQr}
-            >
-              Buat/Kirim QR
-            </Button>
-          )}
-          {issue?.whatsappUrl && (
-            <a
-              className="mt-3 inline-flex min-h-10 items-center rounded-dd-md border border-dd-line px-4 text-sm font-semibold text-dd-forest no-underline"
-              href={issue.whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Buka WhatsApp
-            </a>
+            <div className="mt-5 space-y-3">
+              <Button
+                className="w-full"
+                leadingIcon={<QrCode className="size-4" aria-hidden="true" />}
+                disabled={!canManageAttendance || busy}
+                onClick={issueQr}
+              >
+                {issue || booking.checkInToken?.status === 'ACTIVE'
+                  ? 'Terbitkan Ulang QR Pass'
+                  : 'Buat Token QR Check-in'}
+              </Button>
+              {issue?.whatsappUrl && (
+                <div className="rounded-dd-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs space-y-2">
+                  <p className="font-semibold text-emerald-950">
+                    Kirim QR & Pengingat ke Pelanggan:
+                  </p>
+                  <p className="text-dd-muted italic line-clamp-2">
+                    &ldquo;{issue.message}&rdquo;
+                  </p>
+                  <a
+                    className="inline-flex w-full min-h-10 items-center justify-center gap-2 rounded-dd-md bg-[#25D366] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#1EBE5D] no-underline transition-colors"
+                    href={issue.whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Send className="size-4" aria-hidden="true" />
+                    Kirim via WhatsApp ({issue.maskedCustomerPhone ?? booking.customer?.phoneMasked ?? 'Pelanggan'})
+                  </a>
+                </div>
+              )}
+            </div>
           )}
         </Panel>
       </div>

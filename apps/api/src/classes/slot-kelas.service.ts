@@ -220,18 +220,26 @@ export class ClassSlotService {
     const cursor = decodeCursor(input.cursor);
     const limit = Math.min(Math.max(1, Number(input.limit ?? PAGE_SIZE)), 500);
 
-    // Instruktur/coach (`class:assigned:read`) tetap harus melihat kelasnya sendiri di status apa
-    // pun (CONFIRMED untuk diselesaikan, dsb) — hanya customer murni yang dibatasi ke PUBLISHED.
-    const canSeeAllStatuses =
-      principal.capabilities.includes('class-slot:manage') ||
-      principal.capabilities.includes('class:assigned:read');
+    // Staf penjadwalan melihat semua status. Instruktur/coach (`class:assigned:read`) melihat jadwal
+    // yang dipublikasikan plus kelasnya sendiri di status apa pun (mis. CONFIRMED untuk
+    // diselesaikan) — tidak pernah draft/batal milik instruktur lain. Customer hanya PUBLISHED.
+    // Untuk keduanya, pembatasan di-AND dengan filter `status` klien agar filter tidak melebarkannya.
+    // Peran lain (mis. Owner) tetap: PUBLISHED secara bawaan, status lain hanya lewat filter eksplisit.
+    const caps = principal.capabilities;
+    let visibility: Prisma.SlotKelasWhereInput | undefined;
+    let defaultStatus: Prisma.SlotKelasWhereInput = {};
+    if (!caps.includes('class-slot:manage')) {
+      if (caps.includes('class:assigned:read')) {
+        visibility = { OR: [{ status: ClassSlotStatus.PUBLISHED }, { instructorId: principal.userId }] };
+      } else if (caps.includes('customer:self')) {
+        visibility = { status: ClassSlotStatus.PUBLISHED };
+      } else {
+        defaultStatus = { status: ClassSlotStatus.PUBLISHED };
+      }
+    }
     const where: Prisma.SlotKelasWhereInput = {
       ...(input.branchId ? { branchId: input.branchId } : {}),
-      ...(input.status
-        ? { status: input.status as ClassSlotStatus }
-        : !canSeeAllStatuses
-          ? { status: ClassSlotStatus.PUBLISHED }
-          : {}),
+      ...(input.status ? { status: input.status as ClassSlotStatus } : defaultStatus),
       ...(from ? { endAt: { gt: from } } : {}),
       ...(until ? { startAt: { lt: until } } : {}),
       ...(cursor
@@ -242,6 +250,7 @@ export class ClassSlotService {
             ],
           }
         : {}),
+      ...(visibility ? { AND: [visibility] } : {}),
     };
 
     const isCalendarWindow = Boolean(from && until && !cursor);
