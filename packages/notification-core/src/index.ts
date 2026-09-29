@@ -149,12 +149,27 @@ const templateCopy: Record<EmailTemplateKey, { subject: string; intro: string; a
     },
   };
 
+/** Subjek dan paragraf pembuka bawaan sebuah template email; dasar isian editor sebelum staf mengubahnya. */
+export function defaultEmailCopy(templateKey: EmailTemplateKey): { subject: string; intro: string } {
+  const copy = templateCopy[templateKey];
+  if (!copy) throw new Error('EMAIL_TEMPLATE_UNSUPPORTED');
+  return { subject: copy.subject, intro: copy.intro };
+}
+
 export function renderEmail(
   templateKey: EmailTemplateKey,
   variables: Record<string, string>,
+  /** Subjek/paragraf pembuka yang diterbitkan staf; kolom yang tidak diisi memakai teks bawaan. Tombol
+   * aksi dan tautannya selalu dirender terstruktur dari `variables.href`, tidak bisa dihapus staf. */
+  override?: { subject?: string; intro?: string },
 ): RenderedEmail {
-  const copy = templateCopy[templateKey];
-  if (!copy) throw new Error('EMAIL_TEMPLATE_UNSUPPORTED');
+  const base = templateCopy[templateKey];
+  if (!base) throw new Error('EMAIL_TEMPLATE_UNSUPPORTED');
+  const copy = {
+    subject: override?.subject?.trim() || base.subject,
+    intro: override?.intro?.trim() || base.intro,
+    action: base.action,
+  };
   const href = variables.href?.trim();
   if (href && !href.startsWith('https://')) throw new Error('EMAIL_TEMPLATE_INVALID_HREF');
   const detail = variables.detail?.trim();

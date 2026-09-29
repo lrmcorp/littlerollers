@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import {
+  EMAIL_CHANNEL,
   WHATSAPP_CHANNEL,
   defaultText,
   renderTemplate,
@@ -31,5 +32,23 @@ export class NotificationTemplateService {
       this.logger.warn(`Template ${templateKey} tidak terbaca, memakai teks bawaan: ${String(error)}`);
     }
     return defaultText(templateKey, values);
+  }
+
+  /**
+   * Subjek + paragraf pembuka email yang diterbitkan staf, untuk dilapiskan di atas teks bawaan
+   * `renderEmail`. Objek kosong berarti "belum ada yang diterbitkan" — pengirim memakai teks bawaan.
+   */
+  async emailCopy(templateKey: string): Promise<{ subject?: string; intro?: string }> {
+    try {
+      const published = await this.db.notificationTemplate.findFirst({
+        where: { templateKey, channel: EMAIL_CHANNEL, status: 'PUBLISHED' },
+        orderBy: { version: 'desc' },
+        select: { subject: true, body: true },
+      });
+      if (published) return { subject: published.subject ?? undefined, intro: published.body };
+    } catch (error) {
+      this.logger.warn(`Template email ${templateKey} tidak terbaca, memakai teks bawaan: ${String(error)}`);
+    }
+    return {};
   }
 }

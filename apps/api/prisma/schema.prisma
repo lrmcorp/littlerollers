@@ -981,6 +981,46 @@ model NotificationTemplate {
   @@map("notification_template")
 }
 
+enum EmailDeliveryStatus {
+  PENDING
+  SENDING
+  ACCEPTED_BY_SMTP
+  FAILED_RETRYABLE
+  FAILED_TERMINAL
+  EXPIRED
+  FALLBACK_IN_APP
+}
+
+/// Antrean email transaksional. `envelope` (penerima + variabel, termasuk tautan sekali pakai) disimpan
+/// terenkripsi AES-256-GCM; kolom lain tidak memuat alamat maupun token. `occurrenceKey` unik agar
+/// peristiwa yang sama tidak dikirim dua kali.
+model EmailDelivery {
+  id                 String              @id @default(uuid()) @db.Char(36)
+  occurrenceKey      String              @unique @db.VarChar(64)
+  eventType          String              @db.VarChar(96)
+  templateKey        String              @db.VarChar(64)
+  recipientMasked    String              @db.VarChar(120)
+  envelope           String              @db.Text
+  status             EmailDeliveryStatus @default(PENDING)
+  attemptCount       Int                 @default(0)
+  maxAttempts        Int                 @default(5)
+  rateLimitWaitCount Int                 @default(0)
+  nextAttemptAt      DateTime?
+  lastErrorCode      String?             @db.VarChar(48)
+  lastAttemptAt      DateTime?
+  acceptedAt         DateTime?
+  expiresAt          DateTime?
+  correlationId      String              @db.VarChar(96)
+  userId             String?             @db.Char(36)
+  branchId           String?             @db.Char(36)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([createdAt, id])
+  @@map("email_delivery")
+}
+
 /// Promosi harga sebuah paket dalam rentang waktu. Hanya satu promosi ACTIVE yang boleh berlaku pada
 /// satu paket di waktu yang sama; `version` dipakai klaim optimistik saat ubah atau ganti status.
 model PackagePromotion {

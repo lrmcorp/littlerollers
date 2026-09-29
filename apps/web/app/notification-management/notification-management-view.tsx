@@ -2,12 +2,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '../components/actions';
-import { Textarea } from '../components/forms';
+import { Textarea, TextInput } from '../components/forms';
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { statusLabel } from '../lib/status-labels';
 
 const MAX_BODY = 1000;
+const MAX_EMAIL_SUBJECT = 200;
+const MAX_EMAIL_INTRO = 800;
 
 class TemplateApiError extends Error {
   constructor(
@@ -36,8 +38,17 @@ async function api(path: string, init?: RequestInit) {
 
 export function templateFailure(error: unknown, fallback: string) {
   const failure = error as TemplateApiError;
-  const issue = failure?.details?.[0]?.issue ?? '';
+  const detail = failure?.details?.[0] as { field?: string; issue?: string } | undefined;
+  const issue = detail?.issue ?? '';
   if (failure?.code === 'VALIDATION_ERROR') {
+    if (detail?.field === 'subject')
+      return issue === 'TOO_LONG'
+        ? `Subjek email terlalu panjang (maksimal ${MAX_EMAIL_SUBJECT} karakter).`
+        : 'Subjek email tidak boleh kosong.';
+    if (detail?.field === 'intro')
+      return issue === 'TOO_LONG'
+        ? `Paragraf pembuka terlalu panjang (maksimal ${MAX_EMAIL_INTRO} karakter).`
+        : 'Paragraf pembuka tidak boleh kosong.';
     if (issue.startsWith('UNKNOWN_VARIABLE'))
       return `Variabel {{${issue.split(':')[1] ?? ''}}} tidak dikenal untuk template ini. Pakai hanya variabel yang tercantum.`;
     if (issue === 'MALFORMED_PLACEHOLDER')
@@ -56,8 +67,11 @@ type CatalogItem = {
   templateKey: string;
   label: string;
   description: string;
-  variables: string[];
-  defaultBody: string;
+  channel?: string;
+  variables?: string[];
+  defaultBody?: string;
+  subject?: string;
+  intro?: string;
 };
 type TemplateItem = {
   id: string;
@@ -65,6 +79,7 @@ type TemplateItem = {
   version: number;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   body: string;
+  subject?: string | null;
   updatedAt: string;
 };
 
@@ -88,7 +103,7 @@ function TemplateCard({
   const [previewError, setPreviewError] = useState('');
 
   const startEditing = () => {
-    setBody(draft?.body ?? published?.body ?? entry.defaultBody);
+    setBody(draft?.body ?? published?.body ?? entry.defaultBody ?? '');
     setPreview('');
     setPreviewError('');
     setOpen(true);
@@ -174,7 +189,7 @@ function TemplateCard({
           />
           <p className="text-xs text-dd-muted">
             Variabel yang tersedia:{' '}
-            {entry.variables.map((name) => (
+            {(entry.variables ?? []).map((name) => (
               <code key={name} className="mr-1.5 rounded bg-white px-1.5 py-0.5 font-mono">
                 {`{{${name}}}`}
               </code>
@@ -198,7 +213,7 @@ function TemplateCard({
               variant="ghost"
               disabled={busy}
               onClick={() => {
-                setBody(entry.defaultBody);
+                setBody(entry.defaultBody ?? '');
                 setPreview('');
               }}
             >
@@ -217,6 +232,260 @@ function TemplateCard({
             <Button
               size="sm"
               disabled={busy || body.trim().length === 0}
+              onClick={() =>
+                void run(async () => {
+                  const id = await saveDraft();
+                  await api(`/notification-management/templates/${id}/PUBLISHED`, { method: 'POST' });
+                }, 'Template diterbitkan dan dipakai pada pengiriman berikutnya.').then(
+                  (ok) => ok && setOpen(false),
+                )
+              }
+            >
+              Simpan &amp; terbitkan
+            </Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen(false)}>
+              Tutup
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {sorted.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-semibold text-dd-forest">
+            Riwayat versi ({sorted.length})
+          </summary>
+          <ul className="mt-2 divide-y divide-dd-line">
+            {sorted.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span>
+                  Versi {item.version}{' '}
+                  <span className="text-xs text-dd-muted">
+                    · {new Date(item.updatedAt).toLocaleString('id-ID')}
+                  </span>
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <StatusBadge
+                    tone={
+                      item.status === 'PUBLISHED'
+                        ? 'success'
+                        : item.status === 'DRAFT'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                  >
+                    {statusLabel(item.status)}
+                  </StatusBadge>
+                  {item.status === 'DRAFT' && (
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () => api(`/notification-management/templates/${item.id}/PUBLISHED`, { method: 'POST' }),
+                          'Template diterbitkan dan dipakai pada pengiriman berikutnya.',
+                        )
+                      }
+                    >
+                      Terbitkan
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(
+                        () => api(`/notification-management/templates/${item.id}/duplicate`, { method: 'POST' }),
+                        'Draf baru dibuat dari versi tersebut.',
+                      )
+                    }
+                  >
+                    Salin jadi draf
+                  </Button>
+                  {item.status !== 'ARCHIVED' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () => api(`/notification-management/templates/${item.id}/ARCHIVED`, { method: 'POST' }),
+                          'Versi diarsipkan.',
+                        )
+                      }
+                    >
+                      Arsipkan
+                    </Button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </li>
+  );
+}
+
+function EmailTemplateCard({
+  entry,
+  versions,
+  busy,
+  run,
+}: {
+  entry: CatalogItem;
+  versions: TemplateItem[];
+  busy: boolean;
+  run(action: () => Promise<unknown>, success: string): Promise<boolean>;
+}) {
+  const sorted = [...versions].sort((a, b) => b.version - a.version);
+  const draft = sorted.find((item) => item.status === 'DRAFT');
+  const published = sorted.find((item) => item.status === 'PUBLISHED');
+  const [open, setOpen] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [intro, setIntro] = useState('');
+  const [preview, setPreview] = useState<{ subject: string; text: string } | null>(null);
+  const [previewError, setPreviewError] = useState('');
+
+  const startEditing = () => {
+    setSubject(draft?.subject ?? published?.subject ?? entry.subject ?? '');
+    setIntro(draft?.body ?? published?.body ?? entry.intro ?? '');
+    setPreview(null);
+    setPreviewError('');
+    setOpen(true);
+  };
+
+  const saveDraft = async () => {
+    const body = { subject, intro };
+    if (draft) {
+      const result = await api(`/notification-management/templates/${draft.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ body }),
+      });
+      return result.id as string;
+    }
+    const created = await api('/notification-management/templates', {
+      method: 'POST',
+      body: JSON.stringify({ templateKey: entry.templateKey, body }),
+    });
+    return created.id as string;
+  };
+
+  const showPreview = async () => {
+    setPreviewError('');
+    try {
+      const result = await api('/notification-management/templates/preview', {
+        method: 'POST',
+        body: JSON.stringify({ templateKey: entry.templateKey, body: { subject, intro } }),
+      });
+      setPreview({ subject: result.subject, text: result.text });
+    } catch (error) {
+      setPreview(null);
+      setPreviewError(templateFailure(error, 'Pratinjau belum dapat dibuat.'));
+    }
+  };
+
+  const complete = subject.trim().length > 0 && intro.trim().length > 0;
+
+  return (
+    <li className="rounded-dd-lg border border-dd-line bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-dd-ink">{entry.label}</h3>
+          <p className="mt-0.5 text-sm text-dd-muted">{entry.description}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge tone="neutral">Email</StatusBadge>
+          <StatusBadge tone={published ? 'success' : 'neutral'}>
+            {published ? `Memakai versi ${published.version}` : 'Memakai teks bawaan'}
+          </StatusBadge>
+        </div>
+      </div>
+      {draft && (
+        <p className="mt-2 text-xs font-semibold text-dd-warning">
+          Ada draf versi {draft.version} yang belum diterbitkan.
+        </p>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!open && (
+          <Button size="sm" variant="secondary" disabled={busy} onClick={startEditing}>
+            {draft ? 'Lanjutkan draf' : 'Ubah subjek & isi'}
+          </Button>
+        )}
+        {published && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() =>
+              void run(
+                () => api(`/notification-management/templates/${published.id}/ARCHIVED`, { method: 'POST' }),
+                'Kembali memakai teks bawaan.',
+              )
+            }
+          >
+            Kembali ke teks bawaan
+          </Button>
+        )}
+      </div>
+
+      {open && (
+        <div className="mt-4 grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-4">
+          <TextInput
+            label="Subjek email"
+            value={subject}
+            maxLength={MAX_EMAIL_SUBJECT}
+            onChange={(event) => setSubject(event.target.value)}
+            description={`${subject.length}/${MAX_EMAIL_SUBJECT} karakter.`}
+          />
+          <Textarea
+            label="Paragraf pembuka"
+            value={intro}
+            rows={4}
+            maxLength={MAX_EMAIL_INTRO}
+            onChange={(event) => setIntro(event.target.value)}
+            description={`${intro.length}/${MAX_EMAIL_INTRO} karakter. Tombol aksi dan tautannya tetap dari sistem dan tidak bisa diubah di sini.`}
+          />
+          {previewError && <Feedback kind="error">{previewError}</Feedback>}
+          {preview && (
+            <div>
+              <p className="mb-1 text-xs font-semibold text-dd-muted">Pratinjau (data contoh)</p>
+              <div className="rounded-dd-md border border-dd-line bg-white p-3 text-sm">
+                <p className="m-0 font-semibold text-dd-ink">{preview.subject}</p>
+                <p className="mt-2 whitespace-pre-wrap text-dd-ink">{preview.text}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void showPreview()}>
+              Pratinjau
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                setSubject(entry.subject ?? '');
+                setIntro(entry.intro ?? '');
+                setPreview(null);
+              }}
+            >
+              Muat teks bawaan
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || !complete}
+              onClick={() =>
+                void run(saveDraft, 'Draf template disimpan.').then((ok) => ok && setOpen(false))
+              }
+            >
+              Simpan draf
+            </Button>
+            <Button
+              size="sm"
+              disabled={busy || !complete}
               onClick={() =>
                 void run(async () => {
                   const id = await saveDraft();
@@ -367,8 +636,12 @@ export function NotificationManagementView() {
         <Link className="font-semibold underline" href="/workspace/reminders">
           Otomasi WA
         </Link>
-        . Notifikasi email dan in-app memakai teks tetap; template email belum dapat diatur karena
-        pengiriman email belum aktif.
+        . Untuk email, hanya subjek dan paragraf pembuka yang dapat diedit; tombol aksi dan tautannya
+        selalu dari sistem. Status pengiriman email ada di{' '}
+        <Link className="font-semibold underline" href="/operations">
+          Operasional
+        </Link>
+        .
       </Feedback>
       {catalog.length === 0 && (
         <EmptyState
@@ -377,15 +650,14 @@ export function NotificationManagementView() {
         />
       )}
       <ul className="grid list-none gap-4 p-0 lg:grid-cols-2">
-        {catalog.map((entry) => (
-          <TemplateCard
-            key={entry.templateKey}
-            entry={entry}
-            versions={templates.filter((item) => item.templateKey === entry.templateKey)}
-            busy={busy}
-            run={run}
-          />
-        ))}
+        {catalog.map((entry) => {
+          const versions = templates.filter((item) => item.templateKey === entry.templateKey);
+          return entry.channel === 'EMAIL' ? (
+            <EmailTemplateCard key={entry.templateKey} entry={entry} versions={versions} busy={busy} run={run} />
+          ) : (
+            <TemplateCard key={entry.templateKey} entry={entry} versions={versions} busy={busy} run={run} />
+          );
+        })}
       </ul>
       <div className="rounded-dd-lg border border-dd-line bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

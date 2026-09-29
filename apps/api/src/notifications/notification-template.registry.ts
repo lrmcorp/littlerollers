@@ -1,8 +1,12 @@
 import { HttpStatus } from '@nestjs/common';
+import { defaultEmailCopy, type EmailTemplateKey } from '@dailydose/notification-core';
 import { ApiProblem } from '../identity/security';
 
 export const WHATSAPP_CHANNEL = 'WHATSAPP';
+export const EMAIL_CHANNEL = 'EMAIL';
 export const MAX_TEMPLATE_BODY = 1000;
+export const MAX_EMAIL_SUBJECT = 200;
+export const MAX_EMAIL_INTRO = 800;
 
 export interface TemplateDefinition {
   label: string;
@@ -75,6 +79,85 @@ export const SAMPLE_VALUES: Record<string, string> = {
   sisa_sesi: '3',
   tautan_paket: 'https://dailydosepilates.com/packages',
 };
+
+/** `href`/`detail` yang dipakai pratinjau email; sama dengan yang benar-benar dikirim pemanggil nyata. */
+export const EMAIL_SAMPLE_VARIABLES: Record<string, string> = {
+  href: 'https://dailydosepilates.com/preview',
+  detail: 'Contoh keterangan tambahan yang menyertai email ini.',
+};
+
+export interface EmailTemplateDefinition {
+  label: string;
+  eventType: string;
+  description: string;
+}
+
+/**
+ * Enam email yang benar-benar terkirim sistem saat ini (lihat `identity/email-provider.ts` dan
+ * `packages/verifikasi-pembayaran.service.ts`). Subjek dan paragraf pembuka bisa diedit staf; tombol
+ * aksi dan tautannya tetap dirender terstruktur oleh `renderEmail` dan tidak bisa dihapus/diubah.
+ */
+export const EMAIL_TEMPLATE_REGISTRY: Partial<Record<EmailTemplateKey, EmailTemplateDefinition>> = {
+  AUTH_ACCOUNT_ACTIVATION_V1: {
+    label: 'Aktivasi akun',
+    eventType: 'auth.password.activation.v1',
+    description: 'Dikirim saat staf mengundang pengguna baru mengaktifkan akun dengan password.',
+  },
+  AUTH_PASSWORD_SETUP_V1: {
+    label: 'Atur password awal',
+    eventType: 'auth.password.setup.v1',
+    description: 'Dikirim saat pengguna perlu mengatur password pertama kalinya.',
+  },
+  AUTH_PASSWORD_RESET_V1: {
+    label: 'Reset password',
+    eventType: 'auth.password.reset.v1',
+    description: 'Dikirim saat pengguna meminta reset password lewat halaman masuk.',
+  },
+  ORDER_APPROVED_V1: {
+    label: 'Pembayaran disetujui',
+    eventType: 'purchase.approved.v1',
+    description: 'Dikirim ke pelanggan saat penyetuju menyetujui pembayaran paketnya.',
+  },
+  ORDER_ACTION_REQUIRED_V1: {
+    label: 'Pembayaran perlu tindakan',
+    eventType: 'purchase.action-required.v1',
+    description: 'Dikirim saat bukti pembayaran ditolak dan pelanggan diminta mengunggah ulang.',
+  },
+  ORDER_REJECTED_V1: {
+    label: 'Pembayaran ditolak',
+    eventType: 'purchase.rejected.v1',
+    description: 'Dikirim saat pembayaran ditolak tanpa jalur perbaikan (mis. duplikat).',
+  },
+};
+
+const invalidEmail = (field: string, issue: string) =>
+  new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [{ field, issue }]);
+
+/** Subjek dan paragraf pembuka email; berbeda dari body WhatsApp — teks statis tanpa `{{variabel}}`. */
+export function validateEmailTemplateCopy(
+  templateKey: string,
+  input: unknown,
+): { subject: string; intro: string } {
+  if (!EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey])
+    throw invalidEmail('templateKey', 'UNSUPPORTED_TEMPLATE');
+  if (!input || typeof input !== 'object') throw invalidEmail('subject', 'REQUIRED');
+  const { subject, intro } = input as Record<string, unknown>;
+  if (typeof subject !== 'string' || typeof intro !== 'string')
+    throw invalidEmail(typeof subject !== 'string' ? 'subject' : 'intro', 'REQUIRED');
+  const cleanSubject = subject.replace(/\s+/gu, ' ').trim();
+  const cleanIntro = intro.replace(/\r\n/gu, '\n').trim();
+  if (cleanSubject.length === 0) throw invalidEmail('subject', 'REQUIRED');
+  if (cleanIntro.length === 0) throw invalidEmail('intro', 'REQUIRED');
+  if (cleanSubject.length > MAX_EMAIL_SUBJECT) throw invalidEmail('subject', 'TOO_LONG');
+  if (cleanIntro.length > MAX_EMAIL_INTRO) throw invalidEmail('intro', 'TOO_LONG');
+  return { subject: cleanSubject, intro: cleanIntro };
+}
+
+export function defaultEmailTemplateCopy(templateKey: string) {
+  if (!EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey])
+    throw invalidEmail('templateKey', 'UNSUPPORTED_TEMPLATE');
+  return defaultEmailCopy(templateKey as EmailTemplateKey);
+}
 
 const PLACEHOLDER = /\{\{\s*([a-z_]+)\s*\}\}/gu;
 

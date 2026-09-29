@@ -4,11 +4,17 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { renderEmail, type EmailTemplateKey } from '@dailydose/notification-core';
 import {
+  EMAIL_CHANNEL,
+  EMAIL_SAMPLE_VARIABLES,
+  EMAIL_TEMPLATE_REGISTRY,
   SAMPLE_VALUES,
   TEMPLATE_REGISTRY,
   WHATSAPP_CHANNEL,
+  defaultEmailTemplateCopy,
   renderTemplate,
+  validateEmailTemplateCopy,
   validateTemplateBody,
 } from './notification-template.registry';
 
@@ -30,6 +36,14 @@ export class NotificationManagementService {
 
   private require(principal: SessionPrincipal) {
     this.policy.requireGlobalCapability(principal, 'notification:manage');
+  }
+
+  /** Kanal & definisi sebuah kunci template; melempar `UNSUPPORTED_TEMPLATE` bila tidak dikenal. */
+  private definitionFor(templateKey: string) {
+    if (TEMPLATE_REGISTRY[templateKey]) return { channel: WHATSAPP_CHANNEL as string };
+    if (EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey])
+      return { channel: EMAIL_CHANNEL as string };
+    throw invalid('templateKey', 'UNSUPPORTED_TEMPLATE');
   }
 
   private view(row: NotificationTemplate) {
@@ -74,15 +88,25 @@ export class NotificationManagementService {
     const counts = new Map(grouped.map((entry) => [entry.status, entry._count._all]));
     return {
       templates: templates.map((row) => this.view(row)),
-      catalog: Object.entries(TEMPLATE_REGISTRY).map(([templateKey, definition]) => ({
-        templateKey,
-        label: definition.label,
-        description: definition.description,
-        eventType: definition.eventType,
-        channel: WHATSAPP_CHANNEL,
-        variables: definition.variables,
-        defaultBody: definition.defaultBody,
-      })),
+      catalog: [
+        ...Object.entries(TEMPLATE_REGISTRY).map(([templateKey, definition]) => ({
+          templateKey,
+          label: definition.label,
+          description: definition.description,
+          eventType: definition.eventType,
+          channel: WHATSAPP_CHANNEL,
+          variables: definition.variables,
+          defaultBody: definition.defaultBody,
+        })),
+        ...Object.entries(EMAIL_TEMPLATE_REGISTRY).map(([templateKey, definition]) => ({
+          templateKey,
+          label: definition!.label,
+          description: definition!.description,
+          eventType: definition!.eventType,
+          channel: EMAIL_CHANNEL,
+          ...defaultEmailTemplateCopy(templateKey),
+        })),
+      ],
       deliveries: logs.map((log) => ({
         id: log.id,
         eventType: log.reminderType,
@@ -96,7 +120,7 @@ export class NotificationManagementService {
         PENDING: 0,
         FAILED: counts.get('FAILED') ?? 0,
       },
-      deferredChannels: ['EMAIL'],
+      deferredChannels: [],
     };
   }
 
@@ -104,8 +128,14 @@ export class NotificationManagementService {
   async preview(principal: SessionPrincipal, input: { templateKey?: string; body?: unknown }) {
     this.require(principal);
     const templateKey = input?.templateKey?.trim().toUpperCase() ?? '';
+    const { channel } = this.definitionFor(templateKey);
+    if (channel === EMAIL_CHANNEL) {
+      const copy = validateEmailTemplateCopy(templateKey, input?.body);
+      const rendered = renderEmail(templateKey as EmailTemplateKey, EMAIL_SAMPLE_VARIABLES, copy);
+      return { channel, subject: rendered.subject, text: rendered.text, html: rendered.html };
+    }
     const body = validateTemplateBody(templateKey, input?.body);
-    return { text: renderTemplate(body, SAMPLE_VALUES), length: body.length };
+    return { channel, text: renderTemplate(body, SAMPLE_VALUES), length: body.length };
   }
 
   async create(
@@ -115,30 +145,59 @@ export class NotificationManagementService {
   ) {
     this.require(principal);
     const templateKey = input?.templateKey?.trim().toUpperCase() ?? '';
-    const definition = TEMPLATE_REGISTRY[templateKey];
-    if (!definition) throw invalid('templateKey', 'UNSUPPORTED_TEMPLATE');
+    const { channel } = this.definitionFor(templateKey);
+    if (channel === EMAIL_CHANNEL) {
+      const copy = validateEmailTemplateCopy(templateKey, input.body);
+      return this.nextEmailDraft(principal.userId, templateKey, copy);
+    }
     const body = validateTemplateBody(templateKey, input.body);
     return this.nextDraft(principal.userId, templateKey, body);
   }
 
   private async nextDraft(createdById: string, templateKey: string, body: string) {
     const definition = TEMPLATE_REGISTRY[templateKey]!;
+    return this.createVersion(createdById, templateKey, WHATSAPP_CHANNEL, {
+      eventType: definition.eventType,
+      title: definition.label,
+      body,
+    });
+  }
+
+  private async nextEmailDraft(
+    createdById: string,
+    templateKey: string,
+    copy: { subject: string; intro: string },
+  ) {
+    const definition = EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey]!;
+    return this.createVersion(createdById, templateKey, EMAIL_CHANNEL, {
+      eventType: definition.eventType,
+      title: definition.label,
+      subject: copy.subject,
+      body: copy.intro,
+    });
+  }
+
+  /** Nomor versi berikutnya untuk `templateKey`+`channel`; diulang bila dua draf dibuat bersamaan. */
+  private async createVersion(
+    createdById: string,
+    templateKey: string,
+    channel: string,
+    fields: { eventType: string; title: string; body: string; subject?: string },
+  ) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const latest = await this.db.notificationTemplate.aggregate({
-        where: { templateKey, channel: WHATSAPP_CHANNEL },
+        where: { templateKey, channel },
         _max: { version: true },
       });
       try {
         const created = await this.db.notificationTemplate.create({
           data: {
             templateKey,
-            channel: WHATSAPP_CHANNEL,
+            channel,
             version: (latest._max.version ?? 0) + 1,
-            eventType: definition.eventType,
-            title: definition.label,
-            body,
             status: 'DRAFT',
             createdById,
+            ...fields,
           },
         });
         return this.view(created);
@@ -158,10 +217,15 @@ export class NotificationManagementService {
   ) {
     this.require(principal);
     const current = await this.load(id);
-    const body = validateTemplateBody(current.templateKey, input?.body);
+    const data =
+      current.channel === EMAIL_CHANNEL
+        ? (({ subject, intro }) => ({ subject, body: intro }))(
+            validateEmailTemplateCopy(current.templateKey, input?.body),
+          )
+        : { body: validateTemplateBody(current.templateKey, input?.body) };
     const claimed = await this.db.notificationTemplate.updateMany({
       where: { id, status: 'DRAFT' },
-      data: { body },
+      data,
     });
     if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
     return this.view(await this.load(id));
@@ -170,6 +234,11 @@ export class NotificationManagementService {
   async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
     this.require(principal);
     const current = await this.load(id);
+    if (current.channel === EMAIL_CHANNEL)
+      return this.nextEmailDraft(principal.userId, current.templateKey, {
+        subject: current.subject ?? '',
+        intro: current.body,
+      });
     return this.nextDraft(principal.userId, current.templateKey, current.body);
   }
 
@@ -186,7 +255,9 @@ export class NotificationManagementService {
 
     if (status === 'PUBLISHED') {
       // Isi divalidasi ulang: registry bisa berubah sejak draf dibuat.
-      validateTemplateBody(current.templateKey, current.body);
+      if (current.channel === EMAIL_CHANNEL)
+        validateEmailTemplateCopy(current.templateKey, { subject: current.subject, intro: current.body });
+      else validateTemplateBody(current.templateKey, current.body);
       await this.db.$transaction(async (tx) => {
         const claimed = await tx.notificationTemplate.updateMany({
           where: { id, status: 'DRAFT' },

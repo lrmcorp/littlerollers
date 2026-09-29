@@ -32,6 +32,28 @@ const catalog = [
   },
 ];
 
+const emailCatalog = {
+  templateKey: 'AUTH_PASSWORD_RESET_V1',
+  label: 'Reset password',
+  description: 'Dikirim saat pengguna meminta reset password lewat halaman masuk.',
+  eventType: 'auth.password.reset.v1',
+  channel: 'EMAIL',
+  subject: 'Reset password Daily Dose Pilates',
+  intro: 'Kami menerima permintaan reset password untuk akun Anda.',
+};
+
+const emailVersion = (overrides: Record<string, unknown>) => ({
+  id: 'e1',
+  templateKey: 'AUTH_PASSWORD_RESET_V1',
+  version: 1,
+  status: 'PUBLISHED',
+  channel: 'EMAIL',
+  subject: 'Subjek terbit',
+  body: 'Paragraf terbit.',
+  updatedAt: '2026-09-01T00:00:00Z',
+  ...overrides,
+});
+
 const version = (overrides: Record<string, unknown>) => ({
   id: 't1',
   templateKey: 'WA_REMINDER_EXPIRY_H7',
@@ -64,8 +86,21 @@ describe('NotificationManagementView', () => {
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method && init.method !== 'GET' && failure)
         return { ok: false, status: failure.status, json: async () => failure!.body };
-      if (String(url).endsWith('/templates/preview'))
+      if (String(url).endsWith('/templates/preview')) {
+        const sent = init?.body ? JSON.parse(String(init.body)) : {};
+        if (sent.templateKey === 'AUTH_PASSWORD_RESET_V1')
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              channel: 'EMAIL',
+              subject: sent.body?.subject,
+              text: `${sent.body?.intro}`,
+              html: `<p>${sent.body?.intro}</p>`,
+            }),
+          };
         return { ok: true, status: 200, json: async () => ({ text: 'Halo Maya, Paket 8 segera berakhir.' }) };
+      }
       if (init?.method === 'POST' || init?.method === 'PATCH')
         return { ok: true, status: 201, json: async () => ({ id: 'new-1' }) };
       return { ok: true, status: 200, json: async () => overview() };
@@ -156,5 +191,100 @@ describe('NotificationManagementView', () => {
     expect(await screen.findByText('Belum ada pengiriman')).toBeVisible();
     expect(container).toHaveTextContent('Diarsipkan');
     expect(container).not.toHaveTextContent('ARCHIVED');
+  });
+});
+
+describe('NotificationManagementView email templates', () => {
+  const fetchMock = vi.fn();
+  let emailTemplates: unknown[];
+  let failure: { status: number; body: unknown } | null;
+  const overview = () => ({
+    catalog: [emailCatalog],
+    templates: emailTemplates,
+    metrics: { DELIVERED: 0, PENDING: 0, FAILED: 0 },
+    deliveries: [],
+  });
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    emailTemplates = [];
+    failure = null;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method && init.method !== 'GET' && failure)
+        return { ok: false, status: failure.status, json: async () => failure!.body };
+      if (String(url).endsWith('/templates/preview')) {
+        const sent = JSON.parse(String(init!.body));
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ channel: 'EMAIL', subject: sent.body.subject, text: sent.body.intro }),
+        };
+      }
+      if (init?.method === 'POST' || init?.method === 'PATCH')
+        return { ok: true, status: 201, json: async () => ({ id: 'new-1' }) };
+      return { ok: true, status: 200, json: async () => overview() };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET');
+
+  it('labels the entry as Email and shows whether a version is published', async () => {
+    emailTemplates = [emailVersion({})];
+    render(<NotificationManagementView />);
+    expect(await screen.findByText('Reset password')).toBeVisible();
+    expect(screen.getByText('Email')).toBeVisible();
+    expect(screen.getByText('Memakai versi 1')).toBeVisible();
+  });
+
+  it('prefills the default subject and intro, previews, then saves and publishes a draft', async () => {
+    const user = userEvent.setup();
+    render(<NotificationManagementView />);
+    const card = (await screen.findByText('Reset password')).closest('li')!;
+    await user.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
+    expect(within(card).getByLabelText('Subjek email')).toHaveValue(emailCatalog.subject);
+    expect(within(card).getByLabelText('Paragraf pembuka')).toHaveValue(emailCatalog.intro);
+    await user.click(within(card).getByRole('button', { name: 'Pratinjau' }));
+    expect(await within(card).findByText(emailCatalog.subject)).toBeVisible();
+
+    await user.click(within(card).getByRole('button', { name: 'Simpan & terbitkan' }));
+    await waitFor(() => expect(writes()).toHaveLength(3));
+    expect(JSON.parse(writes()[1]![1].body)).toEqual({
+      templateKey: 'AUTH_PASSWORD_RESET_V1',
+      body: { subject: emailCatalog.subject, intro: emailCatalog.intro },
+    });
+    expect(writes()[2]![0]).toBe('/api/v1/notification-management/templates/new-1/PUBLISHED');
+  });
+
+  it('keeps saving disabled until both subject and intro are filled', async () => {
+    const user = userEvent.setup();
+    render(<NotificationManagementView />);
+    const card = (await screen.findByText('Reset password')).closest('li')!;
+    await user.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
+    await user.clear(within(card).getByLabelText('Subjek email'));
+    expect(within(card).getByRole('button', { name: 'Simpan & terbitkan' })).toBeDisabled();
+    expect(within(card).getByRole('button', { name: 'Simpan draf' })).toBeDisabled();
+  });
+
+  it('explains a subject that is too long instead of a generic failure', async () => {
+    failure = {
+      status: 422,
+      body: { error: { code: 'VALIDATION_ERROR', details: [{ field: 'subject', issue: 'TOO_LONG' }] } },
+    };
+    const user = userEvent.setup();
+    render(<NotificationManagementView />);
+    const card = (await screen.findByText('Reset password')).closest('li')!;
+    await user.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
+    await user.click(within(card).getByRole('button', { name: 'Simpan draf' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Subjek email terlalu panjang');
+  });
+
+  it('never offers a WhatsApp-style body field for an email template', async () => {
+    emailTemplates = [emailVersion({})];
+    render(<NotificationManagementView />);
+    const card = (await screen.findByText('Reset password')).closest('li')!;
+    await userEvent.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
+    expect(within(card).queryByLabelText('Isi pesan')).toBeNull();
   });
 });

@@ -32,6 +32,7 @@ import { OperationsAutomationController } from './operations-automation.controll
     NotificationWriterService,
     WhatsAppGatewayService,
     ReminderScheduleService,
+    NotificationTemplateService,
   ],
 })
 export class NotificationsModule {}
