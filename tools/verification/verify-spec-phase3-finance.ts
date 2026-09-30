@@ -18,6 +18,7 @@ import {
 } from '../../apps/api/src/packages/instructor-fee-calculator';
 import { MasterAccessService } from '../../apps/api/src/master/master-access.service';
 import { EffectiveSettingsService } from '../../apps/api/src/master/konfigurasi-efektif.service';
+import { AuditService } from '../../apps/api/src/foundation/audit.service';
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════════════════════════════╗');
@@ -27,9 +28,10 @@ async function main() {
 
   const db = new PrismaClient();
   const policy = new PolicyService();
+  const audit = new AuditService();
   const masterAccess = new MasterAccessService(policy);
   const effectiveSettings = new EffectiveSettingsService(masterAccess, db as any);
-  const financeService = new FinanceService(db as any);
+  const financeService = new FinanceService(db as any, policy, audit);
 
   try {
     // ------------------------------------------------------------------------
@@ -468,7 +470,9 @@ async function main() {
     // Verifikasi bahwa non-SuperOwner (misal Finance/Owner) tidak boleh memutuskan koreksi
     let unauthorizedDecideBlocked = false;
     try {
-      await financeService.decideCorrection(ownerPrincipal, correction.id, 'APPROVE');
+      await financeService.decideCorrection(ownerPrincipal, correction.id, 'APPROVE', {
+        reason: 'Coba approve ilegal',
+      });
     } catch (err: any) {
       if (err.status === 403 || err.message?.includes('FORBIDDEN')) {
         unauthorizedDecideBlocked = true;
@@ -484,9 +488,12 @@ async function main() {
       superOwnerPrincipal,
       correction.id,
       'APPROVE',
+      { reason: 'Disetujui untuk audit dan koreksi' },
     );
-    if (approvedCorrection.status !== CorrectionStatus.APPROVED) {
-      throw new Error('Persetujuan koreksi oleh Super Owner gagal!');
+    const resultStatus =
+      (approvedCorrection as any).correction?.status ?? (approvedCorrection as any).status;
+    if (resultStatus !== CorrectionStatus.APPROVED) {
+      throw new Error(`Persetujuan koreksi oleh Super Owner gagal! Status: ${resultStatus}`);
     }
     console.log(`   ✅ Super Owner MENYETUJUI Jurnal Koreksi -> Status APPROVED.`);
 

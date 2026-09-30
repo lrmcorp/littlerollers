@@ -35,16 +35,27 @@ export function RoleSelection({
 }) {
   return (
     <fieldset className="grid gap-3 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4">
-      <legend className="px-2 text-sm font-bold text-dd-ink">Role dan cakupan</legend>
+      <div className="flex flex-col gap-1 pb-1">
+        <legend className="text-sm font-bold text-dd-ink">Peran Staf &amp; Cabang Studio</legend>
+        <p className="text-xs text-dd-muted">
+          Pilih peran staf yang ditugaskan. Jika peran memerlukan cabang, pilih studio tempat staf bertugas.
+        </p>
+      </div>
       {catalog.map((item) => {
         const selected = value[item.role] !== undefined;
         return (
-          <div key={item.role} className="rounded-dd-md border border-dd-line bg-white p-3">
+          <div
+            key={item.role}
+            className={`rounded-dd-md border p-3 transition ${
+              selected ? 'border-dd-forest bg-dd-success-soft/20 shadow-sm' : 'border-dd-line bg-white'
+            }`}
+          >
             <label className="flex cursor-pointer items-start gap-3">
               <input
-                className="mt-1 size-4 accent-dd-forest"
+                className="mt-1 size-4 accent-dd-forest cursor-pointer"
                 type="checkbox"
                 checked={selected}
+                aria-label={roleLabel(item.role)}
                 onChange={(event) => {
                   const next = { ...value };
                   if (event.target.checked) next[item.role] = '';
@@ -52,20 +63,33 @@ export function RoleSelection({
                   onChange(next);
                 }}
               />
-              <span>
-                <strong className="block text-sm text-dd-ink">{roleLabel(item.role)}</strong>
+              <span className="flex-1">
+                <span className="flex items-center justify-between">
+                  <strong className="block text-sm text-dd-ink">{roleLabel(item.role)}</strong>
+                  <span
+                    className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      item.scope === 'BRANCH'
+                        ? 'bg-dd-forest/10 text-dd-forest'
+                        : 'bg-dd-surface-muted text-dd-muted'
+                    }`}
+                  >
+                    {item.scope === 'BRANCH' ? 'Per Cabang' : 'Semua Cabang'}
+                  </span>
+                </span>
                 <small className="mt-1 block text-xs leading-5 text-dd-muted">
-                  {item.scope === 'BRANCH' ? 'Wajib dibatasi pada satu cabang.' : 'Cakupan global.'}
+                  {item.scope === 'BRANCH'
+                    ? 'Staf ditugaskan pada satu studio/cabang spesifik.'
+                    : 'Akses berlaku secara global di seluruh cabang studio.'}
                 </small>
               </span>
             </label>
             {selected && item.scope === 'BRANCH' && (
               <SearchSelect
-                wrapperClassName="mt-3"
+                wrapperClassName="mt-3 pl-7"
                 label={`Cabang untuk ${roleLabel(item.role)}`}
                 value={value[item.role] ?? ''}
                 required
-                placeholder="Pilih cabang"
+                placeholder="Pilih cabang studio..."
                 options={branches.map((branch) => ({ id: branch.id, label: branch.name }))}
                 onChange={(branchId) => onChange({ ...value, [item.role]: branchId })}
               />

@@ -21,6 +21,8 @@ export class LedgerController {
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
     @Query('cursor') cursor?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Query('search') search?: string,
     @Query('status') status?: string,
     @Query('customerUserId') customerUserId?: string,
@@ -28,6 +30,8 @@ export class LedgerController {
     return this.ledger.listCustomerPackages(req.principal, {
       branchId,
       cursor,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
       search,
       status,
       customerUserId,
@@ -60,6 +64,8 @@ export class LedgerController {
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
     @Query('cursor') cursor?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Query('q') q?: string,
     @Query('customerUserId') customerUserId?: string,
     @Query('from') from?: string,
@@ -70,6 +76,8 @@ export class LedgerController {
       branchId,
       status,
       cursor,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
       q,
       customerUserId,
       from,
@@ -89,9 +97,31 @@ export class LedgerController {
   @Post('session-adjustments')
   requestAdjustment(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { customerPackageId?: string; quantity?: number; reasonCode?: string },
+    @Body()
+    body: {
+      customerPackageId?: string;
+      quantity?: number;
+      reasonCode?: string;
+      note?: string;
+      direct?: boolean;
+    },
   ) {
     return this.ledger.requestAdjustment(req.principal, body);
+  }
+
+  // Eksekusi langsung penyesuaian sesi (Direct Adjustment 1-Klik) untuk Manager, Super Owner, Superadmin.
+  @Post('session-adjustments/direct')
+  directAdjustment(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: {
+      customerPackageId?: string;
+      quantity?: number;
+      reasonCode?: string;
+      note?: string;
+    },
+  ) {
+    return this.ledger.directAdjustment(req.principal, body);
   }
 
   // Kontrak generated client (`decideSessionAdjustment`): POST /session-adjustments/{id}/{approve|reject}.

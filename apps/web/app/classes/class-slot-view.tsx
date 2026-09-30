@@ -80,6 +80,7 @@ export function ClassSlotView({
   const globalMode = !branch && canViewAllBranches;
   const canOperate = Boolean(branch && canManage);
   const canOperateAttendance = Boolean(branch && canManageAttendance);
+  const canCreateSlot = Boolean((branch || (globalMode && branches.length > 0)) && canManage);
   const [reference, setReference] = useState(new Date());
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
@@ -349,8 +350,8 @@ export function ClassSlotView({
           </div>
           <strong className="text-base font-bold text-dd-ink" aria-live="polite">{week?.label}</strong>
           <Button
-            disabled={!canOperate}
-            title={globalMode ? 'Pilih cabang aktif untuk membuat kelas' : undefined}
+            disabled={!canCreateSlot}
+            title={!canManage ? 'Akses membuat kelas memerlukan izin class-slot:manage' : undefined}
             onClick={() => openPanel({ kind: 'create' })}
           >
             Buat kelas
@@ -467,8 +468,10 @@ export function ClassSlotView({
         description={
           panel?.kind === 'detail'
             ? `${formatBranchLongDate(panel.slot.startAt, panel.slot.timezone)} · ${branchName(panel.slot.branchId, panel.slot)}`
-            : panel
-              ? `${branch?.name} · ${timezoneLabel(branch?.timezone ?? '')}`
+            : panel?.kind === 'create'
+              ? branch?.name
+                ? `${branch.name} · ${timezoneLabel(branch.timezone)}`
+                : 'Pilih cabang dan konfigurasi jadwal kelas baru'
               : undefined
         }
         busy={busy}
@@ -511,7 +514,6 @@ export function ClassSlotView({
                 type="submit"
                 form="class-slot-create-form"
                 loading={busy}
-                disabled={classTypes.length === 0 || studios.length === 0}
               >
                 Buat draft
               </Button>
@@ -519,20 +521,34 @@ export function ClassSlotView({
           ) : undefined
         }
       >
-        {panel?.kind === 'create' && branch ? (
+        {panel?.kind === 'create' && (branch || (globalMode && branches.length > 0)) ? (
           <CreatePanel
-            branchId={branch.id}
-            timezone={branch.timezone}
+            branchId={branch?.id ?? branches[0]?.id ?? ''}
+            branches={branches}
+            timezone={branch?.timezone ?? branches[0]?.timezone ?? displayTimezone}
             classTypes={classTypes}
             instructors={instructors}
-            studios={studios.filter((studio) => studio.branchId === branch.id)}
+            studios={studios}
             busy={busy}
             onDirty={() => setPanelDirty(true)}
+            onBranchChange={async (selectedBranchId) => {
+              if (client.getBranchStudios) {
+                try {
+                  const branchStudios = await client.getBranchStudios(selectedBranchId);
+                  setStudios((prev) => {
+                    const others = prev.filter((s) => s.branchId !== selectedBranchId);
+                    return [...others, ...branchStudios];
+                  });
+                } catch (err) {
+                  console.error('Gagal memuat studio cabang:', err);
+                }
+              }
+            }}
             onCreate={async (input) => {
               const accepted = await feedback.confirm({
                 tone: 'warning',
                 title: 'Buat draft kelas?',
-                message: 'Jadwal akan dibuat sebagai draft pada cabang aktif.',
+                message: 'Jadwal akan dibuat sebagai draft.',
                 confirmLabel: 'Buat draft',
               });
               if (!accepted) return;

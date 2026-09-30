@@ -32,8 +32,11 @@ import {
 import { ActionRow, CapacityMeter, DetailSection, InfoItem } from './class-slot-detail-parts';
 import { ClassRosterSection } from './class-roster-section';
 
+type BranchOption = { id: string; code?: string; name: string; timezone: string };
+
 export function CreatePanel({
   branchId,
+  branches,
   timezone,
   classTypes,
   instructors,
@@ -41,9 +44,11 @@ export function CreatePanel({
   busy,
   formId = 'class-slot-create-form',
   onDirty,
+  onBranchChange,
   onCreate,
 }: {
   branchId: string;
+  branches?: BranchOption[];
   timezone: string;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
@@ -51,6 +56,7 @@ export function CreatePanel({
   busy: boolean;
   formId?: string;
   onDirty?(): void;
+  onBranchChange?(branchId: string): void;
   onCreate(input: {
     branchId: string;
     classTypeId: string;
@@ -61,11 +67,30 @@ export function CreatePanel({
     endAt: Date;
   }): Promise<void>;
 }) {
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    branchId || branches?.[0]?.id || '',
+  );
   const [summary, setSummary] = useState(
     'Pilih tanggal dan waktu. Kuota dan kapasitas kelas akan disesuaikan otomatis berdasarkan tipe kelas yang dipilih.',
   );
   const [studioId, setStudioId] = useState('');
-  const rooms = studios.find((studio) => studio.id === studioId)?.rooms ?? [];
+
+  const activeBranchTimezone =
+    branches?.find((b) => b.id === selectedBranchId)?.timezone ?? timezone;
+
+  // Filter pilihan sesuai cabang yang aktif dipilih pada form
+  const branchClassTypes = classTypes.filter(
+    (item) => !item.branchId || item.branchId === selectedBranchId,
+  );
+  const branchStudios = studios.filter(
+    (studio) => !studio.branchId || studio.branchId === selectedBranchId,
+  );
+  const branchInstructors = instructors.filter(
+    (item) => !item.branchId || item.branchId === selectedBranchId,
+  );
+
+  const rooms = branchStudios.find((studio) => studio.id === studioId)?.rooms ?? [];
+
   return (
     <form
       id={formId}
@@ -80,16 +105,16 @@ export function CreatePanel({
           const startAt = zonedLocalDateTime(
             String(data.get('date')),
             String(data.get('startTime')),
-            timezone,
+            activeBranchTimezone,
           );
           const endAt = zonedLocalDateTime(
             String(data.get('date')),
             String(data.get('endTime')),
-            timezone,
+            activeBranchTimezone,
           );
           if (endAt <= startAt) throw new Error('INVALID_RANGE');
           void onCreate({
-            branchId,
+            branchId: selectedBranchId,
             classTypeId: String(data.get('classTypeId')),
             studioId: String(data.get('studioId')),
             roomId: String(data.get('roomId')) || undefined,
@@ -102,12 +127,31 @@ export function CreatePanel({
         }
       }}
     >
+      {branches && branches.length > 1 && (
+        <SearchSelect
+          label="Cabang Studio"
+          name="branchId"
+          required
+          value={selectedBranchId}
+          placeholder="Pilih cabang studio"
+          options={branches.map((item) => ({
+            id: item.id,
+            label: item.name,
+            description: item.code,
+          }))}
+          onChange={(value) => {
+            setSelectedBranchId(value);
+            setStudioId('');
+            onBranchChange?.(value);
+          }}
+        />
+      )}
       <SearchSelect
         label="Tipe kelas"
         name="classTypeId"
         required
         placeholder="Pilih tipe kelas"
-        options={classTypes.map((item) => ({
+        options={branchClassTypes.map((item) => ({
           id: item.id,
           label: item.name,
           description: item.code,
@@ -118,14 +162,19 @@ export function CreatePanel({
         name="studioId"
         required
         value={studioId}
-        placeholder="Pilih area studio"
-        options={studios.map((item) => ({
+        placeholder={branchStudios.length ? 'Pilih area studio' : 'Tidak ada studio di cabang ini'}
+        options={branchStudios.map((item) => ({
           id: item.id,
           label: item.name,
           description: item.code,
         }))}
         onChange={setStudioId}
       />
+      {branchStudios.length === 0 && (
+        <Feedback kind="warning">
+          Cabang ini belum memiliki Area Studio aktif. Silakan tambahkan Area Studio di menu Data Master &gt; Venues.
+        </Feedback>
+      )}
       <SearchSelect
         key={studioId || 'no-studio'}
         label="Ruangan"
@@ -142,13 +191,13 @@ export function CreatePanel({
         label="Instruktur"
         name="instructorUserId"
         placeholder="Tetapkan nanti"
-        options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
+        options={branchInstructors.map((item) => ({ id: item.id, label: item.displayName }))}
       />
       <DateInput label="Tanggal" name="date" required />
       <TextInput label="Mulai" name="startTime" type="time" required />
       <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
       <Feedback kind="info">
-        Timezone: {timezone}. {summary}
+        Timezone: {activeBranchTimezone}. {summary}
       </Feedback>
     </form>
   );

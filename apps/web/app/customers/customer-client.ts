@@ -86,7 +86,18 @@ export interface CustomerDetailDocument {
 export interface CustomerList {
   items: CustomerSummary[];
   summary: { total: number };
-  page: { hasMore: boolean; nextCursor: string | null };
+  total?: number;
+  totalPages?: number;
+  currentPage?: number;
+  pageSize?: number;
+  page: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    total?: number;
+    totalPages?: number;
+    current?: number;
+    pageSize?: number;
+  };
 }
 
 export interface CustomerDetail extends CustomerSummary {

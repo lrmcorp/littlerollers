@@ -29,6 +29,7 @@ export function CustomersView() {
     session?.globalCapabilities?.includes('customer:credential:initialize') ?? false;
   const [items, setItems] = useState<CustomerSummary[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [verificationStatus, setVerificationStatus] = useState('');
@@ -39,29 +40,44 @@ export function CustomersView() {
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await customerClient.list({
-        q: q || undefined,
-        status: status || undefined,
-        verificationStatus: verificationStatus || undefined,
-        cursor,
-      });
-      setItems(result.items);
-      setTotal(result.summary.total);
-      setNextCursor(result.page.nextCursor);
-      setError('');
-    } catch {
-      setError('Data pelanggan belum dapat dimuat. Data halaman sebelumnya tetap dipertahankan.');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    async function execute() {
+      setLoading(true);
+      try {
+        const result = await customerClient.list({
+          q: q || undefined,
+          status: status || undefined,
+          verificationStatus: verificationStatus || undefined,
+          page: String(page),
+          pageSize: String(ADMIN_PAGE_SIZE),
+        });
+        if (!cancelled) {
+          setItems(result.items);
+          setTotal(result.total ?? result.summary.total);
+          setNextCursor(result.page?.nextCursor ?? null);
+          setError('');
+        }
+      } catch {
+        if (!cancelled) {
+          setError('Data pelanggan belum dapat dimuat. Data halaman sebelumnya tetap dipertahankan.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
-  }, [cursor, q, status, verificationStatus]);
+    void execute();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, q, status, verificationStatus, refreshIndex]);
 
-  useEffect(() => void load(), [load]);
   const reset = () => {
+    setPage(1);
     setCursor(undefined);
     setHistory([]);
   };
@@ -70,15 +86,18 @@ export function CustomersView() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setSubmitting(true);
+    const password = String(data.get('password') || '').trim();
+    const passwordConfirmation = String(data.get('passwordConfirmation') || '').trim();
+    const email = String(data.get('email') || '').trim();
     try {
       await customerClient.create(
         {
           displayName: data.get('displayName'),
-          email: data.get('email'),
+          email: email || undefined,
           phoneE164: data.get('phoneE164'),
           preferredBranchId: data.get('preferredBranchId') || null,
-          password: data.get('password'),
-          passwordConfirmation: data.get('passwordConfirmation'),
+          password: password || undefined,
+          passwordConfirmation: passwordConfirmation || (password ? undefined : undefined),
           reason: String(data.get('reason') || '').trim() || undefined,
         },
         { idempotencyKey: crypto.randomUUID() },
@@ -86,7 +105,7 @@ export function CustomersView() {
       event.currentTarget.reset();
       setShowCreate(false);
       reset();
-      await load();
+      setRefreshIndex((prev) => prev + 1);
     } catch (failure) {
       const code = (failure as { code?: string }).code;
       setError(
@@ -94,7 +113,7 @@ export function CustomersView() {
           ? 'Email atau nomor telepon sudah digunakan.'
           : code === 'MFA_REQUIRED'
             ? 'Verifikasi MFA Super Admin diperlukan.'
-            : 'Pelanggan belum dapat dibuat. Periksa data dan password.',
+            : 'Pelanggan belum dapat dibuat. Periksa data dan nomor telepon.',
       );
     } finally {
       setSubmitting(false);
@@ -121,9 +140,12 @@ export function CustomersView() {
           onSubmit={create}
           className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-6 sm:grid-cols-2"
         >
-          <TextInput required label="Nama" name="displayName" autoComplete="off" />
-          <TextInput required type="email" label="Email" name="email" autoComplete="off" />
-          <TextInput required label="Telepon" name="phoneE164" placeholder="+62812…" />
+          <div className="sm:col-span-2 rounded-dd-md bg-dd-surface-muted/40 border border-dd-line/60 p-3 text-xs text-dd-ink">
+            <span className="font-bold text-dd-forest">⚡ Pendaftaran Cepat Member Walk-in:</span> Cukup isi Nama dan Nomor WhatsApp. Password dan akun langsung aktif otomatis.
+          </div>
+          <TextInput required label="Nama" name="displayName" autoComplete="off" placeholder="Nama lengkap member" />
+          <TextInput label="Email" name="email" type="email" autoComplete="off" placeholder="opsional@email.com" />
+          <TextInput required label="Telepon" name="phoneE164" placeholder="0812 3456 7890 atau +62..." />
           <SearchSelect
             label="Studio/Cabang pilihan"
             name="preferredBranchId"
@@ -134,28 +156,27 @@ export function CustomersView() {
             }))}
           />
           <TextInput
-            required
             type="password"
             label="Password awal"
             name="password"
             minLength={8}
             maxLength={128}
             autoComplete="new-password"
+            placeholder="Kosongkan untuk dibuatkan otomatis"
           />
           <TextInput
-            required
             type="password"
             label="Ulangi password"
             name="passwordConfirmation"
             minLength={8}
             maxLength={128}
             autoComplete="new-password"
+            placeholder="Kosongkan jika otomatis"
           />
-          <TextInput label="Catatan (opsional)" name="reason" maxLength={500} />
+          <TextInput label="Catatan (opsional)" name="reason" maxLength={500} placeholder="Catatan member baru" />
           <div className="sm:col-span-2">
-            <Feedback kind="warning">
-              Pelanggan langsung aktif, tetapi hanya dapat membuka keamanan akun sampai password awal
-              diganti. Email belum dianggap terverifikasi.
+            <Feedback kind="info">
+              Pelanggan langsung aktif. Sistem otomatis mengirimkan notifikasi aktivasi ke WhatsApp member.
             </Feedback>
           </div>
           <div className="sm:col-span-2">
@@ -206,9 +227,9 @@ export function CustomersView() {
         </SelectInput>
       </div>
       <DataTable
+        rowNumberOffset={(page - 1) * ADMIN_PAGE_SIZE}
         items={items}
         loading={loading && !items.length}
-        rowNumberOffset={pageOffset(history.length)}
         rowKey={(item) => item.id}
         emptyTitle="Tidak ada pelanggan yang cocok"
         emptyDescription="Ubah kata kunci atau filter untuk melihat pelanggan lain."
@@ -285,24 +306,17 @@ export function CustomersView() {
         )}
       />
       <Pagination
-        currentPage={history.length + 1}
+        currentPage={page}
         totalPages={Math.ceil(total / ADMIN_PAGE_SIZE) || 1}
         totalItems={total}
         pageSize={ADMIN_PAGE_SIZE}
-        hasPrevious={Boolean(history.length) && !loading}
-        hasNext={Boolean(nextCursor) && !loading}
+        hasPrevious={page > 1 && !loading}
+        hasNext={page < (Math.ceil(total / ADMIN_PAGE_SIZE) || 1) && !loading}
+        showPageNumbers
         totalLabel={`${total.toLocaleString('id-ID')} pelanggan`}
-        onPrevious={() => {
-          const next = [...history];
-          const previous = next.pop();
-          setHistory(next);
-          setCursor(previous);
-        }}
-        onNext={() => {
-          if (!nextCursor) return;
-          setHistory((value) => [...value, cursor]);
-          setCursor(nextCursor);
-        }}
+        onPageChange={(target) => setPage(target)}
+        onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(Math.ceil(total / ADMIN_PAGE_SIZE) || 1, p + 1))}
       />
     </section>
   );

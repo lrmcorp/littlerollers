@@ -7,6 +7,7 @@ import { PolicyService } from './policy.service';
 import { RateLimitService } from './rate-limit.service';
 import { ApiProblem, newId } from './security';
 import type { ApplicationRole } from './role-capabilities';
+import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
 
 /** Halaman staf yang memakai pemilih user: penugasan, master, hak akses, audit. */
 const USER_LOOKUP_CAPABILITIES = [
@@ -101,6 +102,9 @@ export class UserAdministrationService {
       }
     }
 
+    const q = filters.search?.trim();
+    const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
+
     const where: Prisma.UserWhereInput = {
       ...(preferredBranchCondition ? { preferredBranchId: preferredBranchCondition } : {}),
       ...(filters.status ? { status: filters.status as UserStatus } : {}),
@@ -110,12 +114,12 @@ export class UserAdministrationService {
         : filters.audience === 'STAFF'
           ? { role: { in: ['SUPERADMIN', 'ADMIN', 'COACH'] } }
           : {}),
-      ...(filters.search?.trim()
+      ...(q
         ? {
             OR: [
-              { displayName: { contains: filters.search.trim() } },
-              { email: { contains: filters.search.trim() } },
-              { phone: { contains: filters.search.trim() } },
+              { displayName: { contains: q } },
+              { email: { contains: q } },
+              ...phoneVariants.map((v) => ({ phone: { contains: v } })),
             ],
           }
         : {}),
@@ -157,20 +161,40 @@ export class UserAdministrationService {
     );
     const limit = Math.min(50, Math.max(1, filters.limit ?? 20));
 
+    const andClauses: Prisma.UserWhereInput[] = [];
+
+    if (filters.instructorsOnly) {
+      andClauses.push({ role: 'COACH' });
+    }
+
+    if (filters.branchId) {
+      andClauses.push({
+        OR: [
+          { preferredBranchId: filters.branchId },
+          { role: { in: ['COACH', 'SUPER_OWNER', 'SUPERADMIN', 'ADMIN', 'OWNER'] } },
+        ],
+      });
+    }
+
+    if (filters.q?.trim()) {
+      const q = filters.q.trim();
+      const phoneVariants = buildPhoneSearchVariants(q);
+      andClauses.push({
+        OR: [
+          { displayName: { contains: q } },
+          { email: { contains: q } },
+          ...phoneVariants.map((v) => ({ phone: { contains: v } })),
+        ],
+      });
+    }
+
+    if (filters.cursor) {
+      andClauses.push({ id: { gt: filters.cursor } });
+    }
+
     const where: Prisma.UserWhereInput = {
       status: 'ACTIVE',
-      ...(filters.instructorsOnly ? { role: 'COACH' } : {}),
-      ...(filters.branchId ? { preferredBranchId: filters.branchId } : {}),
-      ...(filters.q?.trim()
-        ? {
-            OR: [
-              { displayName: { contains: filters.q.trim() } },
-              { email: { contains: filters.q.trim() } },
-              { phone: { contains: filters.q.trim() } },
-            ],
-          }
-        : {}),
-      ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
+      ...(andClauses.length > 0 ? { AND: andClauses } : {}),
     };
 
     const users = await this.db.user.findMany({
@@ -208,15 +232,18 @@ export class UserAdministrationService {
     this.policy.requireCapability(principal.capabilities, 'booking:create:assisted');
     const limit = Math.min(50, Math.max(1, filters.limit ?? 20));
 
+    const q = filters.q?.trim();
+    const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
+
     const where: Prisma.UserWhereInput = {
       role: 'MEMBER',
       status: 'ACTIVE',
-      ...(filters.q?.trim()
+      ...(q
         ? {
             OR: [
-              { displayName: { contains: filters.q.trim() } },
-              { phone: { contains: filters.q.trim() } },
-              { email: { contains: filters.q.trim() } },
+              { displayName: { contains: q } },
+              { email: { contains: q } },
+              ...phoneVariants.map((v) => ({ phone: { contains: v } })),
             ],
           }
         : {}),

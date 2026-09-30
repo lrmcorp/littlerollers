@@ -16,7 +16,7 @@ import { CustomerManagementService } from '../../apps/api/src/identity/manajemen
 import { FinanceService } from '../../apps/api/src/packages/finance.service';
 import { PaymentReviewService } from '../../apps/api/src/packages/verifikasi-pembayaran.service';
 import { PackageAccessService } from '../../apps/api/src/packages/package-access.service';
-import { SessionAdjustService } from '../../apps/api/src/bookings/session-adjust.service';
+import { LedgerService } from '../../apps/api/src/packages/ledger.service';
 import { AuditService } from '../../apps/api/src/foundation/audit.service';
 import { IdempotencyService } from '../../apps/api/src/foundation/idempotency.service';
 import { MasterAccessService } from '../../apps/api/src/master/master-access.service';
@@ -38,7 +38,7 @@ async function main() {
   const customerManagement = new CustomerManagementService(db as any, policy, idempotency);
   const financeService = new FinanceService(db as any, policy);
   const paymentReviewService = new PaymentReviewService(db as any, idempotency, packageAccess);
-  const sessionAdjustService = new SessionAdjustService(db as any);
+  const ledgerService = new LedgerService(db as any, policy, audit);
   const masterAccess = new MasterAccessService(policy);
   const effectiveSettings = new EffectiveSettingsService(masterAccess, db as any);
 
@@ -113,16 +113,16 @@ async function main() {
     if (managerAccess.capabilities.includes('branch:all')) {
       throw new Error('MANAGER TIDAK BOLEH memiliki capability "branch:all"!');
     }
-    if (!managerAccess.capabilities.includes('payment:decide')) {
-      throw new Error('MANAGER harus memiliki capability "payment:decide" untuk persetujuan paket!');
+    if (!managerAccess.capabilities.includes('payment:decide') && !managerAccess.capabilities.includes('purchase:decide')) {
+      throw new Error('MANAGER harus memiliki capability "purchase:decide" atau "payment:decide" untuk persetujuan paket!');
     }
     if (!managerAccess.capabilities.includes('ledger:adjust:decide')) {
-      throw new Error('MANAGER harus memiliki capability "ledger:adjust:decide" untuk persetujuan koreksi sesi!');
+      throw new Error('MANAGER harus memiliki capability "ledger:adjust:decide" untuk koreksi sesi & direct adjustment 1-klik!');
     }
     if (!managerAccess.capabilities.includes('customer:manage')) {
       throw new Error('MANAGER harus memiliki capability "customer:manage"!');
     }
-    console.log('   ✅ MANAGER memiliki capability "payment:decide", "ledger:adjust:decide", dan "customer:manage".');
+    console.log('   ✅ MANAGER memiliki capability "purchase:decide", "ledger:adjust:decide", dan "customer:manage".');
 
     const financeAccess = policy.resolveAccess(
       finance.id,
@@ -339,9 +339,9 @@ async function main() {
     console.log(`   ✅ SessionLedger otomatis mencatat mutasi PURCHASE: +${ledgerEntry.amount} sesi.`);
 
     // ------------------------------------------------------------------------
-    // 6. Verifikasi Otoritas Manager: Approval Session Adjust Request (ledger:adjust:decide)
+    // 6. Verifikasi Otoritas Manager: Approval & Direct Session Adjust (Rule #6 & Direct 1-Klik)
     // ------------------------------------------------------------------------
-    console.log('\n▶ 6. Menguji Otoritas Manager: Approval Session Adjust Request...');
+    console.log('\n▶ 6. Menguji Otoritas Manager: Approval & Direct Session Adjust Request...');
 
     const adminPrincipal: SessionPrincipal = {
       sessionId: `sess-adm-${randomUUID().slice(0, 6)}`,
@@ -351,36 +351,59 @@ async function main() {
       branchIds: [branchA.id],
     };
 
-    const adjustRequest = await sessionAdjustService.createRequest(adminPrincipal, {
-      customerPackageId: createdCustomerPkg.id,
-      sessionCount: 1,
-      reason: 'Ganti rugi pembatalan kelas darurat oleh instruktur',
-    });
-
-    const approvedAdjust = await sessionAdjustService.decideRequest(
-      managerPrincipal,
-      adjustRequest.data.id,
+    const adjustReqRes = await ledgerService.requestAdjustment(
+      adminPrincipal,
       {
-        decision: 'APPROVED',
-        decisionReason: 'Disetujui kompensasi oleh Manager Cabang',
+        customerPackageId: createdCustomerPkg.id,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+        note: 'Ganti rugi pembatalan kelas darurat oleh instruktur',
+      },
+      `key-adj-p2-${Date.now()}`,
+    );
+
+    const approvedAdjust = await ledgerService.decideAdjustment(
+      managerPrincipal,
+      adjustReqRes.id,
+      'approve',
+      {
+        reasonCode: 'CORRECTION_VERIFIED',
+        note: 'Disetujui kompensasi oleh Manager Cabang',
+        expectedVersion: 1,
       },
     );
 
-    if (approvedAdjust.data.status !== AdjustRequestStatus.APPROVED) {
-      throw new Error(`Status adjust request bukan APPROVED! Actual: ${approvedAdjust.data.status}`);
+    if (approvedAdjust.adjustment.status !== 'POSTED') {
+      throw new Error(`Status adjust request bukan POSTED! Actual: ${approvedAdjust.adjustment.status}`);
     }
-    console.log(`   ✅ Manager berhasil menyetujui SessionAdjustRequest (ID: ${approvedAdjust.data.id}).`);
+    console.log(`   ✅ Manager berhasil menyetujui SessionAdjustRequest (ID: ${approvedAdjust.adjustment.id}, Status: ${approvedAdjust.adjustment.status}).`);
 
-    const adjustLedger = await db.sessionLedger.findFirst({
+    // Uji Direct Adjustment 1-Klik oleh Manager (Tanpa Maker-Checker)
+    const directAdjustRes = await ledgerService.directAdjustment(
+      managerPrincipal,
+      {
+        customerPackageId: createdCustomerPkg.id,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+        note: 'Direct adjustment langsung 1-klik oleh Manager Cabang',
+      },
+    );
+
+    if (directAdjustRes.adjustment.status !== 'POSTED') {
+      throw new Error(`Status direct adjust bukan POSTED! Actual: ${directAdjustRes.adjustment.status}`);
+    }
+    console.log(`   ✅ Manager berhasil melakukan direct adjustment 1-klik (Status: POSTED, Resulting Balance: ${directAdjustRes.resultingBalance}).`);
+
+    const adjustLedgers = await db.sessionLedger.findMany({
       where: {
         customerPackageId: createdCustomerPkg.id,
         type: SessionMutationType.ADJUST_MANUAL,
       },
     });
-    if (!adjustLedger || adjustLedger.amount !== 1) {
-      throw new Error('SessionLedger penyesuaian manual tidak tercatat dengan benar!');
+    if (adjustLedgers.length < 2) {
+      throw new Error('SessionLedger penyesuaian manual tidak mencatat kedua transaksi (approved + direct)!');
     }
-    console.log(`   ✅ SessionLedger mutasi ADJUST_MANUAL tercatat: +${adjustLedger.amount} sesi.`);
+    console.log(`   ✅ SessionLedger mutasi ADJUST_MANUAL tercatat: ${adjustLedgers.length} entri mutasi.`);
 
     // ------------------------------------------------------------------------
     // 7. Verifikasi Fitur Manager: Menandai Customer Berhenti (Rule #12 & #13)
@@ -505,7 +528,7 @@ async function main() {
       where: { customerPackageId: createdCustomerPkg.id },
     });
     await db.sessionAdjustRequest.deleteMany({
-      where: { id: adjustRequest.data.id },
+      where: { customerPackageId: createdCustomerPkg.id },
     });
     await db.paketPelanggan.deleteMany({
       where: { id: createdCustomerPkg.id },

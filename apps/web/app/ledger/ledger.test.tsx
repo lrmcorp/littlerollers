@@ -166,6 +166,134 @@ describe('synthetic ledger UI', () => {
     await waitFor(() => expect(requestAdjustment).toHaveBeenCalledTimes(2));
     expect(requestAdjustment.mock.calls[0]?.[1]).toBe(requestAdjustment.mock.calls[1]?.[1]);
   });
+
+  it('renders numbered pagination for balances and navigates to page 2', async () => {
+    const list = vi.fn().mockImplementation((branchId, cursor, search, status, customerUserId, page) =>
+      Promise.resolve({
+        items: [balance],
+        summary: { packageCount: 25, ledgerBalance: 10, reserved: 2, available: 8 },
+        total: 25,
+        totalPages: 2,
+        currentPage: page ?? 1,
+        pageSize: 20,
+        nextCursor: null,
+      }),
+    );
+    renderLedger(<LedgerView client={fake({ list })} />);
+    expect(await screen.findByText(/Halaman 1 dari 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Menampilkan 1–20 dari 25/)).toBeInTheDocument();
+    const page2Button = screen.getByRole('button', { name: 'Halaman 2' });
+    await userEvent.click(page2Button);
+    await waitFor(() => {
+      expect(list).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+        20,
+      );
+    });
+  });
+
+  it('renders numbered pagination for adjustments and navigates pages', async () => {
+    const listAdjustments = vi.fn().mockImplementation((branchId, status, cursor, q, customerUserId, from, until, limit, page) =>
+      Promise.resolve({
+        items: [
+          {
+            id: 'adj-1',
+            customerPackageId: 'cp-1',
+            quantity: 2,
+            reasonCode: 'PACKAGE_COMPENSATION',
+            status: 'PENDING',
+            version: 0,
+            eligibleForApproval: true,
+          },
+        ],
+        summary: { total: 35, pending: 35, posted: 0, rejected: 0 },
+        total: 35,
+        totalPages: 2,
+        currentPage: page ?? 1,
+        pageSize: 20,
+        nextCursor: null,
+      }),
+    );
+    renderLedger(<LedgerView client={fake({ listAdjustments })} initialWorkspaceTab="adjustments" />);
+    expect(await screen.findByText(/Halaman 1 dari 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Menampilkan 1–20 dari 35/)).toBeInTheDocument();
+    const page2Button = screen.getByRole('button', { name: 'Halaman 2' });
+    await userEvent.click(page2Button);
+    await waitFor(() => {
+      expect(listAdjustments).toHaveBeenCalledWith(
+        undefined,
+        'PENDING',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+        20,
+      );
+    });
+  });
+
+  it('performs direct 1-click adjustment when user has manager/owner direct authority', async () => {
+    const directAdjustment = vi.fn().mockResolvedValue({ id: 'adj-direct-1', status: 'POSTED' });
+    renderLedger(<LedgerView client={fake({ directAdjustment })} />);
+    await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
+    expect(screen.getByText('Penyesuaian sesi langsung (Manager/Owner)')).toBeInTheDocument();
+
+    const lookup = screen.getByLabelText('Cari pelanggan atau paket aktif');
+    await userEvent.type(lookup, 'Nadia');
+    await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
+    await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));
+    await userEvent.type(screen.getByLabelText('Perubahan sesi'), '2');
+    await userEvent.selectOptions(screen.getByLabelText('Alasan'), 'PACKAGE_COMPENSATION');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau dan terapkan sekarang' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Terapkan sekarang (Posting)' }));
+
+    expect(directAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerPackageId: 'cp-1',
+        quantity: 2,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+      expect.any(String),
+    );
+    expect(
+      await screen.findByText(/berhasil diterapkan langsung ke saldo member/),
+    ).toBeVisible();
+  });
+
+  it('handles direct adjustment non-happy path error gracefully', async () => {
+    const directAdjustment = vi.fn().mockRejectedValue({
+      response: {
+        status: 409,
+        data: { message: 'Jumlah sesi yang dikurangi melebihi sisa sesi aktif' },
+      },
+    });
+    renderLedger(<LedgerView client={fake({ directAdjustment })} />);
+    await userEvent.click(screen.getByRole('tab', { name: /Penyesuaian Sesi/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Buat permintaan penyesuaian' }));
+
+    const lookup = screen.getByLabelText('Cari pelanggan atau paket aktif');
+    await userEvent.type(lookup, 'Nadia');
+    await waitFor(() => expect(lookup).toHaveAttribute('aria-expanded', 'true'));
+    await userEvent.click(await screen.findByRole('option', { name: /Nadia/ }));
+    await userEvent.type(screen.getByLabelText('Perubahan sesi'), '-15');
+    await userEvent.selectOptions(screen.getByLabelText('Alasan'), 'ATTENDANCE_CORRECTION');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tinjau dan terapkan sekarang' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Terapkan sekarang (Posting)' }));
+
+    expect(directAdjustment).toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
 });
 
 describe('browser ledger transport', () => {

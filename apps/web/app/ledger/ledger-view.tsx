@@ -75,7 +75,7 @@ const eligibilityMessages: Record<string, string> = {
   ADJUSTMENT_ALREADY_DECIDED: 'Permintaan ini sudah diputuskan.',
   PACKAGE_NOT_ACTIVE: 'Paket tidak lagi aktif.',
   LEDGER_INVARIANT_VIOLATION:
-    'Proyeksi saldo akan lebih kecil dari nol atau reservation yang masih aktif.',
+    'Jumlah sesi yang dikurangi melebihi sisa sesi aktif atau sesi yang sedang dibooking oleh member.',
 };
 
 function date(value: Date | string | null | undefined, withTime = false) {
@@ -120,13 +120,17 @@ export function LedgerView({
   initialSearch = '',
   initialStatus = '',
   initialCursor = '',
+  initialBalancePage = 1,
   onBalanceFiltersChange,
   onBalancePageChange,
+  onBalancePageNumberChange,
   initialAdjustmentSearch = '',
   initialAdjustmentFrom = '',
   initialAdjustmentUntil = '',
   initialAdjustmentCursor = '',
+  initialAdjustmentPage = 1,
   onAdjustmentFiltersChange,
+  onAdjustmentPageNumberChange,
 }: {
   client?: LedgerClient;
   initialWorkspaceTab?: 'balances' | 'adjustments';
@@ -140,17 +144,22 @@ export function LedgerView({
   initialStatus?: PackageStatus;
   onBalanceFiltersChange?(search: string, status: PackageStatus): void;
   initialCursor?: string;
+  initialBalancePage?: number;
   onBalancePageChange?(cursor: string): void;
+  onBalancePageNumberChange?(page: number): void;
   initialAdjustmentSearch?: string;
   initialAdjustmentFrom?: string;
   initialAdjustmentUntil?: string;
   initialAdjustmentCursor?: string;
+  initialAdjustmentPage?: number;
   onAdjustmentFiltersChange?(filters: {
     q: string;
     from: string;
     until: string;
     cursor: string;
+    page?: number;
   }): void;
+  onAdjustmentPageNumberChange?(page: number): void;
 }) {
   const [branchId, setBranchId] = useActiveBranchState();
   const pathname = usePathname();
@@ -169,12 +178,16 @@ export function LedgerView({
     injectedAccess?.canDecide ?? Boolean(sessionContext?.hasCapability('ledger:adjust:decide'));
   const canReview =
     injectedAccess?.canReview ?? Boolean(sessionContext?.hasCapability('ledger:adjust:read'));
+  const isDirect = canDecide && Boolean(client.directAdjustment);
 
   const [items, setItems] = useState<LedgerBalance[]>([]);
   const [summary, setSummary] = useState<LedgerSummary | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>();
   const [previousCursor, setPreviousCursor] = useState<string | null>();
   const [balanceCursor, setBalanceCursor] = useState(initialCursor);
+  const [balancePage, setBalancePage] = useState(initialBalancePage);
+  const [balanceTotalPages, setBalanceTotalPages] = useState(1);
+  const [balanceTotalItems, setBalanceTotalItems] = useState(0);
   const [search, setSearch] = useState(initialSearch);
   const [appliedSearch, setAppliedSearch] = useState(initialSearch);
   const [status, setStatus] = useState<PackageStatus>(initialStatus);
@@ -190,6 +203,9 @@ export function LedgerView({
   const [adjustmentCursor, setAdjustmentCursor] = useState<string | null>();
   const [adjustmentPreviousCursor, setAdjustmentPreviousCursor] = useState<string | null>();
   const [activeAdjustmentCursor, setActiveAdjustmentCursor] = useState(initialAdjustmentCursor);
+  const [adjustmentPage, setAdjustmentPage] = useState(initialAdjustmentPage);
+  const [adjustmentTotalPages, setAdjustmentTotalPages] = useState(1);
+  const [adjustmentTotalItems, setAdjustmentTotalItems] = useState(0);
   const [adjustmentSearch, setAdjustmentSearch] = useState(initialAdjustmentSearch);
   const [appliedAdjustmentSearch, setAppliedAdjustmentSearch] = useState(initialAdjustmentSearch);
   const [adjustmentFrom, setAdjustmentFrom] = useState(initialAdjustmentFrom);
@@ -216,7 +232,9 @@ export function LedgerView({
   useEffect(() => setWorkspaceTab(initialWorkspaceTab), [initialWorkspaceTab]);
   useEffect(() => setAdjustmentMode(initialAdjustmentMode), [initialAdjustmentMode]);
   useEffect(() => setBalanceCursor(initialCursor), [initialCursor]);
+  useEffect(() => setBalancePage(initialBalancePage), [initialBalancePage]);
   useEffect(() => setActiveAdjustmentCursor(initialAdjustmentCursor), [initialAdjustmentCursor]);
+  useEffect(() => setAdjustmentPage(initialAdjustmentPage), [initialAdjustmentPage]);
   useEffect(() => {
     setSearch(initialSearch);
     setAppliedSearch(initialSearch);
@@ -241,18 +259,26 @@ export function LedgerView({
         appliedSearch || undefined,
         appliedStatus || undefined,
         customerUserId,
+        balancePage,
+        20,
       );
       if (request !== listRequest.current) return;
       setItems(result.items);
       setSummary(result.summary);
       setNextCursor(result.nextCursor ?? null);
       setPreviousCursor(result.previousCursor ?? null);
+      if (typeof result.totalPages === 'number') {
+        setBalanceTotalPages(result.totalPages);
+      }
+      if (typeof result.total === 'number') {
+        setBalanceTotalItems(result.total);
+      }
     } catch (cause) {
       if (request === listRequest.current) setError(await ledgerFailure(cause));
     } finally {
       if (request === listRequest.current) setLoading(false);
     }
-  }, [appliedSearch, appliedStatus, balanceCursor, branchId, client, customerUserId]);
+  }, [appliedSearch, appliedStatus, balanceCursor, balancePage, branchId, client, customerUserId]);
 
   const loadAdjustments = useCallback(async () => {
     if (!canReview) return;
@@ -272,12 +298,21 @@ export function LedgerView({
         appliedAdjustmentUntil
           ? new Date(`${appliedAdjustmentUntil}T00:00:00`).toISOString()
           : undefined,
+        undefined,
+        adjustmentPage,
+        20,
       );
       if (request !== adjustmentRequest.current) return;
       setAdjustments(result.items);
       setAdjustmentSummary(result.summary ?? null);
       setAdjustmentCursor(result.nextCursor ?? null);
       setAdjustmentPreviousCursor(result.previousCursor ?? null);
+      if (typeof result.totalPages === 'number') {
+        setAdjustmentTotalPages(result.totalPages);
+      }
+      if (typeof result.total === 'number') {
+        setAdjustmentTotalItems(result.total);
+      }
     } catch (cause) {
       if (request === adjustmentRequest.current) setError(await ledgerFailure(cause));
     } finally {
@@ -286,6 +321,7 @@ export function LedgerView({
   }, [
     activeAdjustmentCursor,
     adjustmentMode,
+    adjustmentPage,
     appliedAdjustmentFrom,
     appliedAdjustmentSearch,
     appliedAdjustmentUntil,
@@ -297,32 +333,39 @@ export function LedgerView({
 
   useEffect(() => {
     listRequest.current += 1;
-    adjustmentRequest.current += 1;
     setItems([]);
     setSummary(null);
     setNextCursor(null);
     setPreviousCursor(null);
-    setAdjustments([]);
-    setAdjustmentSummary(null);
-    setAdjustmentCursor(null);
-    setAdjustmentPreviousCursor(null);
     setSelectedPackage(undefined);
     if (!adjustmentsOnly) void loadBalances();
-    if (canReview) void loadAdjustments();
   }, [
     branchId,
     appliedSearch,
     appliedStatus,
     balanceCursor,
+    balancePage,
+    adjustmentsOnly,
+    loadBalances,
+  ]);
+
+  useEffect(() => {
+    adjustmentRequest.current += 1;
+    setAdjustments([]);
+    setAdjustmentSummary(null);
+    setAdjustmentCursor(null);
+    setAdjustmentPreviousCursor(null);
+    if (canReview) void loadAdjustments();
+  }, [
+    branchId,
     adjustmentMode,
     activeAdjustmentCursor,
+    adjustmentPage,
     appliedAdjustmentSearch,
     appliedAdjustmentFrom,
     appliedAdjustmentUntil,
     canReview,
-    adjustmentsOnly,
     loadAdjustments,
-    loadBalances,
   ]);
 
   const searchPackages = useCallback(
@@ -358,6 +401,7 @@ export function LedgerView({
     setAppliedSearch(normalized);
     setAppliedStatus(status);
     setBalanceCursor('');
+    setBalancePage(1);
     onBalanceFiltersChange?.(normalized, status);
   };
 
@@ -367,6 +411,7 @@ export function LedgerView({
     setAppliedSearch('');
     setAppliedStatus('');
     setBalanceCursor('');
+    setBalancePage(1);
     onBalanceFiltersChange?.('', '');
   };
   const applyAdjustmentFilters = () => {
@@ -375,11 +420,13 @@ export function LedgerView({
     setAppliedAdjustmentFrom(adjustmentFrom);
     setAppliedAdjustmentUntil(adjustmentUntil);
     setActiveAdjustmentCursor('');
+    setAdjustmentPage(1);
     onAdjustmentFiltersChange?.({
       q: normalized,
       from: adjustmentFrom,
       until: adjustmentUntil,
       cursor: '',
+      page: 1,
     });
   };
 
@@ -391,7 +438,8 @@ export function LedgerView({
     setAppliedAdjustmentFrom('');
     setAppliedAdjustmentUntil('');
     setActiveAdjustmentCursor('');
-    onAdjustmentFiltersChange?.({ q: '', from: '', until: '', cursor: '' });
+    setAdjustmentPage(1);
+    onAdjustmentFiltersChange?.({ q: '', from: '', until: '', cursor: '', page: 1 });
   };
   const requestDirty = Boolean(selectedPackage || quantity);
   const confirmDiscardRequest = () =>
@@ -412,11 +460,12 @@ export function LedgerView({
     if (!selectedPackage || !quantity || Number(quantity) === 0) return;
     const projectedAvailable =
       selectedPackage.ledgerBalance + Number(quantity) - selectedPackage.reserved;
+    const isDirect = canDecide && Boolean(client.directAdjustment);
     const accepted = await feedback.confirm({
       tone: projectedAvailable < 0 ? 'danger' : 'warning',
-      title: 'Konfirmasi permintaan penyesuaian',
+      title: isDirect ? 'Konfirmasi penyesuaian sesi langsung' : 'Konfirmasi permintaan penyesuaian',
       message: `${selectedPackage.customer?.displayName ?? 'Pelanggan'} · ${selectedPackage.packageName} · perubahan ${quantity} sesi · saldo tersedia setelah perubahan ${projectedAvailable} sesi · cakupan ${selectedPackage.branchName ?? 'cabang aktif'} · alasan ${adjustmentReasonLabels[reasonCode] ?? 'tercatat'}.`,
-      confirmLabel: 'Buat permintaan',
+      confirmLabel: isDirect ? 'Terapkan sekarang (Posting)' : 'Buat permintaan',
     });
     if (!accepted) return;
     await runMutation(async () => {
@@ -426,14 +475,22 @@ export function LedgerView({
         reasonCode,
       };
       const signature = JSON.stringify(payload);
-      await client.requestAdjustment(payload, stableRequestKey(signature));
+      if (isDirect && client.directAdjustment) {
+        await client.directAdjustment(payload, stableRequestKey(signature));
+      } else {
+        await client.requestAdjustment(payload, stableRequestKey(signature));
+      }
       requestIntent.current = undefined;
       setSelectedPackage(undefined);
       setQuantity('');
       setRequestOpen(false);
-      setAdjustmentMode('PENDING');
+      setAdjustmentMode(isDirect ? 'HISTORY' : 'PENDING');
       await refreshOperationalData();
-      setMessage('Permintaan penyesuaian dibuat dan menunggu keputusan tanpa mengubah saldo.');
+      setMessage(
+        isDirect
+          ? `Penyesuaian sesi (${Number(quantity) > 0 ? `+${quantity}` : quantity} sesi) berhasil diterapkan langsung ke saldo member.`
+          : 'Permintaan penyesuaian dibuat dan menunggu keputusan tanpa mengubah saldo.',
+      );
     });
   };
   const submitAdjustmentDecision = async () => {
@@ -696,18 +753,43 @@ export function LedgerView({
             )}
             <div className="border-t border-dd-line p-4">
               <Pagination
-                hasPrevious={balanceCursor !== ''}
-                hasNext={Boolean(nextCursor)}
-                totalLabel={`${summary?.packageCount ?? items.length} paket pelanggan`}
+                currentPage={balancePage}
+                totalPages={
+                  balanceTotalPages > 1
+                    ? balanceTotalPages
+                    : nextCursor
+                      ? balancePage + 1
+                      : balancePage
+                }
+                totalItems={balanceTotalItems || (summary?.packageCount ?? items.length)}
+                pageSize={20}
+                showPageNumbers={balanceTotalPages > 1}
+                hasPrevious={balancePage > 1 || Boolean(balanceCursor) || Boolean(previousCursor)}
+                hasNext={Boolean(nextCursor) || balancePage < balanceTotalPages}
+                totalLabel={`${balanceTotalItems || summary?.packageCount || items.length} paket pelanggan`}
+                onPageChange={(target) => {
+                  setBalancePage(target);
+                  setBalanceCursor('');
+                  onBalancePageNumberChange?.(target);
+                }}
                 onPrevious={() => {
+                  if (balancePage > 1) {
+                    const prev = balancePage - 1;
+                    setBalancePage(prev);
+                    onBalancePageNumberChange?.(prev);
+                  }
                   const previous = previousCursor ?? '';
                   setBalanceCursor(previous);
                   onBalancePageChange?.(previous);
                 }}
                 onNext={() => {
-                  if (!nextCursor) return;
-                  setBalanceCursor(nextCursor);
-                  onBalancePageChange?.(nextCursor);
+                  const next = balancePage + 1;
+                  setBalancePage(next);
+                  onBalancePageNumberChange?.(next);
+                  if (nextCursor) {
+                    setBalanceCursor(nextCursor);
+                    onBalancePageChange?.(nextCursor);
+                  }
                 }}
               />
             </div>
@@ -739,7 +821,7 @@ export function LedgerView({
             </div>
           )}
 
-          {canRequest && canDecide && (
+          {canRequest && !isDirect && canDecide && (
             <div className={adjustmentsOnly ? '' : 'mt-3'}>
               <Feedback kind="status">
                 Anda dapat mengajukan sekaligus memutus penyesuaian. Pengajuan Anda sendiri tidak
@@ -749,11 +831,20 @@ export function LedgerView({
             </div>
           )}
 
+          {canRequest && isDirect && (
+            <div className={adjustmentsOnly ? '' : 'mt-3'}>
+              <Feedback kind="status">
+                Sebagai Manager/Owner, Anda memiliki wewenang untuk langsung menyesuaikan saldo sesi
+                paket pelanggan secara instan tanpa perlu persetujuan berbelit.
+              </Feedback>
+            </div>
+          )}
+
           {!canRequest && canDecide && (
             <div className={adjustmentsOnly ? '' : 'mt-5'}>
               <Feedback kind="status">
                 Anda berperan sebagai penyetuju. Permintaan dibuat oleh Admin dan harus diputuskan
-                oleh actor berbeda agar pemisahan tugas tetap terjaga.
+                oleh staf/manajer lain agar pemisahan tugas tetap terjaga.
               </Feedback>
             </div>
           )}
@@ -819,6 +910,7 @@ export function LedgerView({
                   const next = value as AdjustmentMode;
                   setAdjustmentMode(next);
                   setActiveAdjustmentCursor('');
+                  setAdjustmentPage(1);
                   onAdjustmentModeChange?.(next);
                 }}
               />
@@ -947,10 +1039,42 @@ export function LedgerView({
 
               <div className="mt-4">
                 <Pagination
-                  hasPrevious={activeAdjustmentCursor !== ''}
-                  hasNext={Boolean(adjustmentCursor)}
-                  totalLabel={`${adjustmentSummary?.total ?? adjustments.length} penyesuaian`}
+                  currentPage={adjustmentPage}
+                  totalPages={
+                    adjustmentTotalPages > 1
+                      ? adjustmentTotalPages
+                      : adjustmentCursor
+                        ? adjustmentPage + 1
+                        : adjustmentPage
+                  }
+                  totalItems={adjustmentTotalItems || (adjustmentSummary?.total ?? adjustments.length)}
+                  pageSize={20}
+                  showPageNumbers={adjustmentTotalPages > 1}
+                  hasPrevious={
+                    adjustmentPage > 1 ||
+                    Boolean(activeAdjustmentCursor) ||
+                    Boolean(adjustmentPreviousCursor)
+                  }
+                  hasNext={Boolean(adjustmentCursor) || adjustmentPage < adjustmentTotalPages}
+                  totalLabel={`${adjustmentTotalItems || adjustmentSummary?.total || adjustments.length} penyesuaian`}
+                  onPageChange={(target) => {
+                    setAdjustmentPage(target);
+                    setActiveAdjustmentCursor('');
+                    onAdjustmentPageNumberChange?.(target);
+                    onAdjustmentFiltersChange?.({
+                      q: appliedAdjustmentSearch,
+                      from: appliedAdjustmentFrom,
+                      until: appliedAdjustmentUntil,
+                      cursor: '',
+                      page: target,
+                    });
+                  }}
                   onPrevious={() => {
+                    if (adjustmentPage > 1) {
+                      const prev = adjustmentPage - 1;
+                      setAdjustmentPage(prev);
+                      onAdjustmentPageNumberChange?.(prev);
+                    }
                     const previous = adjustmentPreviousCursor ?? '';
                     setActiveAdjustmentCursor(previous);
                     onAdjustmentFiltersChange?.({
@@ -961,14 +1085,18 @@ export function LedgerView({
                     });
                   }}
                   onNext={() => {
-                    if (!adjustmentCursor) return;
-                    setActiveAdjustmentCursor(adjustmentCursor);
-                    onAdjustmentFiltersChange?.({
-                      q: appliedAdjustmentSearch,
-                      from: appliedAdjustmentFrom,
-                      until: appliedAdjustmentUntil,
-                      cursor: adjustmentCursor,
-                    });
+                    const next = adjustmentPage + 1;
+                    setAdjustmentPage(next);
+                    onAdjustmentPageNumberChange?.(next);
+                    if (adjustmentCursor) {
+                      setActiveAdjustmentCursor(adjustmentCursor);
+                      onAdjustmentFiltersChange?.({
+                        q: appliedAdjustmentSearch,
+                        from: appliedAdjustmentFrom,
+                        until: appliedAdjustmentUntil,
+                        cursor: adjustmentCursor,
+                      });
+                    }
                   }}
                 />
               </div>
@@ -979,8 +1107,12 @@ export function LedgerView({
 
       <Drawer
         open={requestOpen}
-        title="Buat permintaan penyesuaian"
-        description="Permintaan tidak langsung mengubah saldo dan harus diputuskan actor berbeda."
+        title={isDirect ? 'Penyesuaian sesi langsung (Manager/Owner)' : 'Buat permintaan penyesuaian'}
+        description={
+          isDirect
+            ? 'Penyesuaian sesi akan langsung dimutasi ke buku besar (SessionLedger) secara instan tanpa perlu persetujuan lain.'
+            : 'Permintaan koreksi sesi akan diajukan ke manajer/staf berwenang untuk disetujui.'
+        }
         busy={mutationLoading}
         dirty={requestDirty}
         onDirtyClose={confirmDiscardRequest}
@@ -1005,7 +1137,7 @@ export function LedgerView({
               disabled={!selectedPackage || !quantity || Number(quantity) === 0}
               onClick={() => void submitAdjustmentRequest()}
             >
-              Tinjau dan buat permintaan
+              {isDirect ? 'Tinjau dan terapkan sekarang' : 'Tinjau dan buat permintaan'}
             </Button>
           </div>
         }
@@ -1031,6 +1163,7 @@ export function LedgerView({
               requestIntent.current = undefined;
             }}
             placeholder="Contoh: 2 atau -1"
+            description="Gunakan angka positif untuk menambah sesi (misal: 2), atau tanda minus untuk mengurangi sesi (misal: -1)."
           />
           <SelectInput
             label="Alasan"
@@ -1077,7 +1210,7 @@ export function LedgerView({
             ? 'Persetujuan penyesuaian'
             : 'Penolakan penyesuaian'
         }
-        description="Keputusan dicatat dalam audit dan tidak dapat dilakukan oleh requester yang sama."
+        description="Keputusan dicatat dalam riwayat audit dan harus diputuskan oleh staf/manajer yang berbeda dari pembuat permintaan."
         busy={mutationLoading}
         dirty={Boolean(decisionNote)}
         onClose={() => {

@@ -15,8 +15,9 @@ function principal(capabilities: string[], branchIds: string[]) {
   } as never;
 }
 
-function createService(rows: Array<{ id: string }> = []) {
+function createService(rows: Array<{ id: string }> = [], totalCount = 6) {
   const findMany = jest.fn().mockResolvedValue(rows);
+  const count = jest.fn().mockResolvedValue(totalCount);
   const groupBy = jest.fn().mockResolvedValue([
     { status: 'BOOKED', _count: { _all: 3 } },
     { status: 'ATTENDED', _count: { _all: 2 } },
@@ -24,11 +25,11 @@ function createService(rows: Array<{ id: string }> = []) {
   ]);
   const ubahJadwalCount = jest.fn().mockResolvedValue(4);
   const db = {
-    pemesananKelas: { findMany, groupBy },
+    pemesananKelas: { findMany, groupBy, count },
     ubahJadwal: { count: ubahJadwalCount },
   };
   const service = new BookingsService(db as never, {} as never, new PolicyService(), {} as never);
-  return { service, findMany, groupBy, ubahJadwalCount };
+  return { service, findMany, groupBy, ubahJadwalCount, count };
 }
 
 describe('staff booking list authorization and scope', () => {
@@ -95,6 +96,25 @@ describe('booking list pagination and summary', () => {
     const { service } = createService([row(1)]);
     const result = await service.list(staff, { limit: 2 });
     expect(result.page).toEqual({ hasMore: false, nextCursor: null });
+  });
+
+  it('supports numbered page pagination with total and totalPages', async () => {
+    const { service, findMany } = createService([row(1), row(2)], 15);
+    const result = await service.list(staff, { page: 2, limit: 2 });
+    const args = findMany.mock.calls[0]![0];
+    expect(args.skip).toBe(2);
+    expect(args.take).toBe(2);
+    expect(result.total).toBe(15);
+    expect(result.totalPages).toBe(8);
+    expect(result.currentPage).toBe(2);
+    expect(result.page).toEqual({
+      hasMore: true,
+      nextCursor: bookingId(2),
+      current: 2,
+      total: 15,
+      totalPages: 8,
+      pageSize: 2,
+    });
   });
 
   it('returns a status summary computed without the status filter', async () => {

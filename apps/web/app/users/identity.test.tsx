@@ -707,6 +707,42 @@ describe('assignment UI', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it('supports self-contained branch selection in global mode without active branch', async () => {
+    const fake = assignmentClient({
+      listUsers: vi.fn().mockResolvedValue([{ id: 'user-2', displayName: 'Coach Dua' }]),
+    });
+    const view = render(
+      <AssignmentsView
+        branchOptions={branches}
+        access={{ canRead: true, canManage: true }}
+        client={fake}
+      />,
+    );
+    expect(
+      screen.getByText(/Mode semua cabang menampilkan data seluruh lokasi/),
+    ).toBeInTheDocument();
+    const createBtn = screen.getByRole('button', { name: 'Buat penugasan' });
+    expect(createBtn).toBeEnabled();
+    await userEvent.click(createBtn);
+    const assignmentDialog = await screen.findByRole('dialog', { name: 'Buat penugasan' });
+    expect(assignmentDialog).toBeVisible();
+    const assignmentForm = within(assignmentDialog);
+    expect(assignmentForm.getByLabelText(/Cabang Penugasan/)).toBeVisible();
+    await userEvent.type(assignmentForm.getByLabelText('Pengguna'), 'Coa');
+    await userEvent.click(await assignmentForm.findByRole('option', { name: /Coach Dua/ }));
+    await userEvent.type(assignmentForm.getByLabelText(/Aktif mulai/), '2026-08-01');
+    await userEvent.type(assignmentForm.getByLabelText(/Alasan/), 'penugasan global');
+    await userEvent.click(assignmentForm.getByRole('button', { name: 'Buat penugasan' }));
+    expect(fake.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branchId: 'branch-1',
+        userId: 'user-2',
+        reason: 'penugasan global',
+      }),
+    );
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
 });
 
 const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({

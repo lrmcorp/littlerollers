@@ -7,6 +7,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
+import { buildPhoneSearchVariants } from '../identity/manajemen-pelanggan.service';
 import { NotificationWriterService } from '../notifications/notification-writer.service';
 import { EmailNotificationService } from '../email/email-notification.service';
 import { ConfigGatedObjectStorageProvider } from './proof-providers';
@@ -28,6 +29,8 @@ export class PaymentReviewService {
       branchId?: string;
       status?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       limit?: string | number;
       q?: string;
       from?: string;
@@ -65,9 +68,10 @@ export class PaymentReviewService {
       }
     }
 
-    const limit = query.limit === undefined ? 20 : Number(query.limit);
+    const limit = query.pageSize ? Math.min(Number(query.pageSize), 100) : (query.limit === undefined ? 20 : Number(query.limit));
     if (!Number.isInteger(limit) || limit < 1 || limit > 100)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    const pageNumber = query.page && Number(query.page) > 0 ? Number(query.page) : undefined;
     const from = this.parseDate(query.from);
     const until = this.parseDate(query.until);
     if (from && until && from >= until)
@@ -87,6 +91,7 @@ export class PaymentReviewService {
     };
 
     const search = query.q?.trim();
+    const phoneVariants = search ? buildPhoneSearchVariants(search) : [];
     const summaryWhere: Prisma.PembelianWhereInput = {
       ...scope,
       ...(search
@@ -97,7 +102,7 @@ export class PaymentReviewService {
               { userId: search },
               { user: { displayName: { contains: search } } },
               { user: { email: { contains: search } } },
-              { user: { phone: { contains: search } } },
+              ...phoneVariants.map((v) => ({ user: { phone: { contains: v } } })),
               { package: { name: { contains: search } } },
             ],
           }
@@ -117,7 +122,7 @@ export class PaymentReviewService {
       ...(statusFilter ? { status: statusFilter } : {}),
     };
 
-    if (query.cursor) {
+    if (!pageNumber && query.cursor) {
       const visibleCursor = await this.db.pembelian.findFirst({
         where: { ...itemWhere, id: query.cursor },
         select: { id: true },
@@ -125,7 +130,7 @@ export class PaymentReviewService {
       if (!visibleCursor) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
-    const [rows, grouped, totalAmountAgg, agingOver24Hours] = await Promise.all([
+    const [rows, totalFiltered, grouped, totalAmountAgg, agingOver24Hours] = await Promise.all([
       this.db.pembelian.findMany({
         where: itemWhere,
         include: {
@@ -135,10 +140,13 @@ export class PaymentReviewService {
           paymentProof: true,
           customerPackage: true,
         },
-        ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: limit + 1,
+        take: pageNumber ? limit : limit + 1,
+        ...(pageNumber ? { skip: (pageNumber - 1) * limit } : (query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {})),
       }),
+      typeof this.db.pembelian.count === 'function'
+        ? this.db.pembelian.count({ where: itemWhere })
+        : Promise.resolve(0),
       this.db.pembelian.groupBy({
         by: ['status'],
         where: summaryWhere,
@@ -157,8 +165,9 @@ export class PaymentReviewService {
       }),
     ]);
 
-    const hasMore = rows.length > limit;
-    const pageRows = rows.slice(0, limit);
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+    const hasMore = pageNumber ? pageNumber < totalPages : rows.length > limit;
+    const pageRows = pageNumber ? rows : (rows.length > limit ? rows.slice(0, limit) : rows);
     const counts = new Map(grouped.map((item) => [item.status, item._count._all]));
     const generatedAt = new Date();
     const recorders = await this.recorderNames(pageRows.map((row) => row.recordedById));
@@ -219,14 +228,28 @@ export class PaymentReviewService {
         approved: counts.get(PurchaseStatus.PAID) ?? 0,
         rejected: counts.get(PurchaseStatus.REJECTED) ?? 0,
         expired: counts.get(PurchaseStatus.CANCELLED) ?? 0,
+        total: Array.from(counts.values()).reduce((a, b) => a + b, 0),
         totalAmountRp: totalAmountAgg._sum.totalAmountRp ?? 0,
         agingOver24Hours,
       },
+      total: totalFiltered,
+      currentPage: pageNumber ?? 1,
+      totalPages,
+      pageSize: limit,
       generatedAt,
-      page: {
-        nextCursor: hasMore ? (pageRows.at(-1)?.id ?? null) : null,
-        hasMore,
-      },
+      page: query.page != null
+        ? {
+            nextCursor: hasMore ? (pageRows.at(-1)?.id ?? null) : null,
+            hasMore,
+            current: pageNumber ?? 1,
+            total: totalFiltered,
+            totalPages,
+            pageSize: limit,
+          }
+        : {
+            nextCursor: hasMore ? (pageRows.at(-1)?.id ?? null) : null,
+            hasMore,
+          },
     };
   }
 

@@ -353,7 +353,24 @@ export function RegisterView() {
           }
         }}
       >
-        {/* Section 1: Data Diri */}
+        {/* Stepper Header */}
+        <div className="flex items-center justify-between rounded-dd-md border border-dd-line/80 bg-white p-3 shadow-dd-soft">
+          <div className="flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-full bg-dd-forest text-xs font-bold text-white">
+              1
+            </span>
+            <span className="text-xs font-bold text-dd-ink">Data Diri &amp; Akun</span>
+          </div>
+          <div className="h-px w-8 bg-dd-line sm:w-16" />
+          <div className="flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-full bg-dd-forest text-xs font-bold text-white">
+              2
+            </span>
+            <span className="text-xs font-bold text-dd-ink">Verifikasi KTP &amp; Selfie</span>
+          </div>
+        </div>
+
+        {/* Section 1: Data Diri & Kontak */}
         <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
           <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
             <User className="size-3.5" /> 1. Data Diri &amp; Kontak
@@ -412,7 +429,7 @@ export function RegisterView() {
         {/* Section 2: Keamanan Akun */}
         <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
           <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <Lock className="size-3.5" /> 2. Keamanan Akun
+            <Lock className="size-3.5" /> Keamanan Akun
           </div>
           <PasswordField
             id="register-password"
@@ -436,24 +453,22 @@ export function RegisterView() {
           />
         </div>
 
-        {/* Section 3: Verifikasi Identitas (KYC) */}
-        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
-          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <UserCheck className="size-3.5" /> 3. Foto Identitas (Opsional)
+        {/* Section 3: Verifikasi Identitas (KYC Wajib Studio) */}
+        <div
+          id="register-section-identity"
+          className="space-y-4 rounded-dd-md border border-dd-forest/30 bg-dd-cream/20 p-4"
+        >
+          <div className="flex items-center justify-between border-b border-dd-line/40 pb-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-dd-forest uppercase">
+              <ShieldCheck className="size-3.5" /> 2. Dokumen Identitas Resmi
+            </div>
+            <span className="rounded bg-dd-forest/10 px-2 py-0.5 text-[10px] font-bold text-dd-forest uppercase">
+              Syarat Studio
+            </span>
           </div>
-          <UploadField
-            id="register-selfie"
-            name="selfie"
-            label="Foto selfie"
-            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
-            capture="user"
-            file={selfie}
-            inputRef={selfieInputRef}
-            error={errors.selfie}
-            disabled={loading}
-            onChange={(file) => handleUpload('selfie', file)}
-            onRemove={() => removeUpload('selfie')}
-          />
+          <div className="rounded-dd-sm bg-white p-3 text-xs leading-relaxed text-dd-muted border border-dd-line/60">
+            Sesuai standar keselamatan &amp; keanggotaan resmi studio <strong>Daily Dose Pilates</strong>, foto KTP dan foto selfie diperlukan untuk verifikasi identitas member.
+          </div>
           <UploadField
             id="register-ktp"
             name="ktp"
@@ -466,6 +481,19 @@ export function RegisterView() {
             disabled={loading}
             onChange={(file) => handleUpload('ktp', file)}
             onRemove={() => removeUpload('ktp')}
+          />
+          <UploadField
+            id="register-selfie"
+            name="selfie"
+            label="Foto selfie"
+            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+            capture="user"
+            file={selfie}
+            inputRef={selfieInputRef}
+            error={errors.selfie}
+            disabled={loading}
+            onChange={(file) => handleUpload('selfie', file)}
+            onRemove={() => removeUpload('selfie')}
           />
         </div>
 

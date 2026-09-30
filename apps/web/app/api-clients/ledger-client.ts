@@ -108,9 +108,15 @@ export interface LedgerClient {
     search?: string,
     status?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE' | 'DEPLETED' | 'FROZEN' | string,
     customerUserId?: string,
+    page?: number,
+    pageSize?: number,
   ): Promise<{
     items: LedgerBalance[];
     summary: LedgerSummary;
+    total?: number;
+    totalPages?: number;
+    currentPage?: number;
+    pageSize?: number;
     nextCursor?: string | null;
     previousCursor?: string | null;
   }>;
@@ -124,17 +130,44 @@ export interface LedgerClient {
     from?: string,
     until?: string,
     limit?: number,
+    page?: number,
+    pageSize?: number,
   ): Promise<{
     items: Adjustment[];
     summary?: AdjustmentSummary;
+    total?: number;
+    totalPages?: number;
+    currentPage?: number;
+    pageSize?: number;
     nextCursor?: string | null;
     previousCursor?: string | null;
   }>;
   getAdjustment(id: string): Promise<Adjustment>;
   requestAdjustment(
-    input: { customerPackageId: string; quantity: number; reasonCode: string },
+    input: {
+      customerPackageId: string;
+      quantity: number;
+      reasonCode: string;
+      direct?: boolean;
+      note?: string;
+    },
     key: string,
   ): Promise<Adjustment>;
+  directAdjustment?(
+    input: {
+      customerPackageId: string;
+      quantity: number;
+      reasonCode: string;
+      note?: string;
+    },
+    key: string,
+  ): Promise<
+    Adjustment & {
+      ledgerEntryId?: string | null;
+      resultingBalance?: number;
+      auditReference?: string | null;
+    }
+  >;
   decideAdjustment(
     id: string,
     decision: 'approve' | 'reject',
@@ -160,18 +193,24 @@ const mapAdjustment = (value: Adjustment): Adjustment => ({
 });
 
 export const browserLedgerClient: LedgerClient = {
-  async list(branchId, cursor, search, status, customerUserId) {
+  async list(branchId, cursor, search, status, customerUserId, page, pageSize) {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (cursor) params.set('cursor', cursor);
     if (search) params.set('search', search);
     if (status) params.set('status', status);
     if (customerUserId) params.set('customerUserId', customerUserId);
+    if (page) params.set('page', String(page));
+    if (pageSize) params.set('pageSize', String(pageSize));
 
     const response = await apiFetch<{
       items: any[];
       summary?: LedgerSummary;
-      page: { nextCursor?: string | null; previousCursor?: string | null };
+      total?: number;
+      totalPages?: number;
+      currentPage?: number;
+      pageSize?: number;
+      page: { nextCursor?: string | null; previousCursor?: string | null; total?: number; totalPages?: number; current?: number; pageSize?: number };
     }>(`/customer-packages?${params.toString()}`, {
       label: 'Memuat ledger…',
     });
@@ -188,6 +227,10 @@ export const browserLedgerClient: LedgerClient = {
         reserved: items.reduce((sum, item) => sum + item.reserved, 0),
         available: items.reduce((sum, item) => sum + item.available, 0),
       },
+      total: response.total ?? response.page?.total,
+      totalPages: response.totalPages ?? response.page?.totalPages,
+      currentPage: response.currentPage ?? response.page?.current,
+      pageSize: response.pageSize ?? response.page?.pageSize,
       nextCursor: response.page?.nextCursor ?? null,
       previousCursor: response.page?.previousCursor ?? null,
     };
@@ -229,7 +272,7 @@ export const browserLedgerClient: LedgerClient = {
     };
   },
 
-  async listAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit) {
+  async listAdjustments(branchId, status, cursor, q, customerUserId, from, until, limit, page, pageSize) {
     const params = new URLSearchParams();
     if (branchId) params.set('branchId', branchId);
     if (status) params.set('status', status);
@@ -239,11 +282,17 @@ export const browserLedgerClient: LedgerClient = {
     if (from) params.set('from', from);
     if (until) params.set('until', until);
     if (limit) params.set('limit', String(limit));
+    if (page) params.set('page', String(page));
+    if (pageSize) params.set('pageSize', String(pageSize));
 
     const result = await apiFetch<{
       items: any[];
       summary?: AdjustmentSummary;
-      page: { nextCursor?: string | null; previousCursor?: string | null };
+      total?: number;
+      totalPages?: number;
+      currentPage?: number;
+      pageSize?: number;
+      page: { nextCursor?: string | null; previousCursor?: string | null; total?: number; totalPages?: number; current?: number; pageSize?: number };
     }>(`/session-adjustments?${params.toString()}`, {
       label: 'Memuat adjustment…',
     });
@@ -251,6 +300,10 @@ export const browserLedgerClient: LedgerClient = {
     return {
       items: (result.items ?? []).map((item) => mapAdjustment(item as unknown as Adjustment)),
       summary: result.summary as AdjustmentSummary,
+      total: result.total ?? result.page?.total,
+      totalPages: result.totalPages ?? result.page?.totalPages,
+      currentPage: result.currentPage ?? result.page?.current,
+      pageSize: result.pageSize ?? result.page?.pageSize,
       nextCursor: result.page?.nextCursor ?? null,
       previousCursor: result.page?.previousCursor ?? null,
     };
@@ -273,6 +326,28 @@ export const browserLedgerClient: LedgerClient = {
       label: 'Mengajukan adjustment…',
     });
     return mapAdjustment(result);
+  },
+
+  async directAdjustment(input, key) {
+    const result = await apiFetch<{
+      adjustment: Adjustment;
+      ledgerEntry?: { id: string };
+      resultingBalance?: number;
+      auditReference?: string | null;
+    }>('/session-adjustments/direct', {
+      method: 'POST',
+      idempotent: true,
+      headers: { 'idempotency-key': key },
+      body: JSON.stringify(input),
+      label: 'Menerapkan penyesuaian langsung…',
+    });
+
+    return {
+      ...mapAdjustment(result.adjustment as unknown as Adjustment),
+      ledgerEntryId: result.ledgerEntry?.id ?? null,
+      resultingBalance: result.resultingBalance,
+      auditReference: result.auditReference ?? null,
+    };
   },
 
   async decideAdjustment(id, decision, input, key) {
@@ -325,21 +400,21 @@ export async function ledgerFailure(error: unknown) {
     PENDING_ADJUSTMENT_EXISTS:
       'Paket ini sudah memiliki penyesuaian yang menunggu keputusan. Buka antrean sebelum membuat permintaan baru.',
     SEPARATION_OF_DUTIES_VIOLATION:
-      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari requester.',
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan.',
     ADJUSTMENT_ALREADY_DECIDED:
       'Permintaan sudah diputuskan. Muat ulang antrean untuk melihat hasil terbaru.',
     STALE_VERSION: 'Data penyesuaian telah berubah. Perbarui data sebelum mengambil keputusan.',
     IDEMPOTENCY_KEY_REUSED:
       'Isi permintaan berubah setelah konfirmasi. Tinjau ulang sebelum mengirim.',
     LEDGER_INVARIANT_VIOLATION:
-      'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan.',
+      'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan (direservasi).',
     CONFIGURATION_REQUIRED: 'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
     CONFLICT: 'Data berubah. Perbarui saldo dan antrean sebelum mencoba lagi.',
   };
   if (fromMessage) return messages[fromMessage] ?? fromMessage;
   if (status === 409) return messages.CONFLICT!;
   if (status === 404) return 'Data tidak ditemukan atau berada di luar cakupan cabang Anda.';
-  if (status === 403) return 'Anda tidak memiliki permission atau cakupan cabang yang diperlukan.';
+  if (status === 403) return 'Anda tidak memiliki hak akses atau cakupan cabang yang diperlukan.';
   if (status === 401) return 'Sesi Anda telah berakhir. Silakan masuk kembali.';
   if (status === 422 || status === 400)
     return 'Data belum valid. Periksa pilihan paket, jumlah sesi, dan alasan.';

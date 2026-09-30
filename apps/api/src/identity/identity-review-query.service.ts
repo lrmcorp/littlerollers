@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
+import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
 
 export interface IdentityReviewFilters {
   q?: string;
@@ -83,11 +84,12 @@ export class IdentityReviewQueryService {
       andConditions.push({ id: filters.customerUserId });
     } else if (filters.q?.trim()) {
       const q = filters.q.trim();
+      const phoneVariants = buildPhoneSearchVariants(q);
       andConditions.push({
         OR: [
           { displayName: { contains: q } },
           { email: { contains: q } },
-          { phone: { contains: q } },
+          ...phoneVariants.map((v) => ({ phone: { contains: v } })),
         ],
       });
     }

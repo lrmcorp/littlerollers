@@ -201,14 +201,14 @@ export function FinanceCommandsPanel({
                   reason: reason.trim(),
                 });
                 if (result) setCorrectionId(result.id);
-              }, 'Koreksi menunggu approver berbeda.', 'correction')
+              }, 'Koreksi menunggu persetujuan staf lain.', 'correction')
             }
           >
             Ajukan koreksi
           </Button>
         </fieldset>
         <fieldset className="space-y-3 rounded-dd-md border border-dd-line p-4">
-          <legend className="px-1 font-semibold">Approval dan close</legend>
+          <legend className="px-1 font-semibold">Persetujuan dan penutupan buku</legend>
           <label className="grid gap-1 text-xs font-bold text-dd-muted">
             Antrean koreksi
             <select

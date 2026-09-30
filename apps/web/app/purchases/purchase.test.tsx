@@ -409,4 +409,85 @@ describe('purchase internal review workspace', () => {
     );
     expect(window.location.search).not.toContain('trail');
   });
+
+  it('renders Semua Status summary card and switches status to ALL on click', async () => {
+    const client = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [reviewPurchase],
+        summary: {
+          pending: 0,
+          actionRequired: 0,
+          approved: 14067,
+          rejected: 12,
+          expired: 5,
+          total: 14084,
+          totalAmountRp: 28_000_000_000,
+          agingOver24Hours: 0,
+        },
+        page: { nextCursor: null, hasMore: false },
+        generatedAt: new Date(),
+      }),
+    });
+    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    const user = userEvent.setup();
+    const allCard = await screen.findByRole('button', { name: /Semua status/ });
+    expect(allCard).toHaveTextContent('14.084');
+    await user.click(allCard);
+    expect(client.list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: undefined }),
+    );
+  });
+
+  it('renders helpful empty state when PENDING queue is empty with CTA to view all transactions', async () => {
+    const emptyClient = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [],
+        summary: {
+          pending: 0,
+          actionRequired: 0,
+          approved: 50,
+          rejected: 2,
+          expired: 1,
+          total: 53,
+          totalAmountRp: 100_000_000,
+          agingOver24Hours: 0,
+        },
+        page: { nextCursor: null, hasMore: false },
+        generatedAt: new Date(),
+      }),
+    });
+    render(<PurchaseReviewView client={emptyClient} branchOverride={branch} />);
+    const user = userEvent.setup();
+    expect(await screen.findByText('Antrean pembayaran kosong')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Tidak ada transaksi baru yang menunggu verifikasi saat ini. Anda dapat memeriksa riwayat seluruh transaksi yang telah diproses.',
+      ),
+    ).toBeVisible();
+    const ctaButton = screen.getByRole('button', { name: 'Lihat Riwayat Semua Transaksi' });
+    expect(ctaButton).toBeVisible();
+    await user.click(ctaButton);
+    expect(emptyClient.list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: undefined }),
+    );
+  });
+
+  it('does not flash an error banner while loading the payment review detail', () => {
+    const pendingPromise = new Promise<never>(() => {});
+    const client = reviewFake({
+      detail: vi.fn().mockReturnValue(pendingPromise),
+    });
+    render(
+      <PaymentReviewDetailView
+        id="purchase-1"
+        client={client}
+        authorityOverride={{ canReview: true, canDecide: true }}
+      />,
+    );
+    expect(screen.queryByText('Detail pembayaran belum tersedia')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Memuat detail pembayaran' }),
+    ).toBeInTheDocument();
+  });
 });
+

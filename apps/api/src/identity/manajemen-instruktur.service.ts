@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
+import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
 import {
   calculateSlotFee,
   periodRange,
@@ -73,14 +74,17 @@ export class InstructorManagementService {
         ? null
         : principal.branchIds;
 
+    const q = filters.q?.trim();
+    const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
+
     const where: Prisma.UserWhereInput = {
       ...this.scope(principal, filters.branchId),
-      ...(filters.q?.trim()
+      ...(q
         ? {
             OR: [
-              { displayName: { contains: filters.q.trim() } },
-              { email: { contains: filters.q.trim() } },
-              { phone: { contains: filters.q.trim() } },
+              { displayName: { contains: q } },
+              { email: { contains: q } },
+              ...phoneVariants.map((v) => ({ phone: { contains: v } })),
             ],
           }
         : {}),

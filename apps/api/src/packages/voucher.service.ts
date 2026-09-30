@@ -63,11 +63,15 @@ export function paginateVouchers<
   },
 >(
   rows: T[],
-  options: { status?: string; cursor?: string; limit: number; now?: Date },
+  options: { status?: string; cursor?: string; page?: number; limit: number; now?: Date },
 ): {
   items: T[];
   hasMore: boolean;
   nextCursor: string | null;
+  total: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
   summary: Record<VoucherDisplayStatus | 'total', number>;
 } {
   const now = options.now ?? new Date();
@@ -82,10 +86,36 @@ export function paginateVouchers<
 
   const wanted = options.status === 'ARCHIVED' ? 'PAUSED' : options.status;
   const filtered = wanted ? rows.filter((row) => deriveVoucherStatus(row, now) === wanted) : rows;
-  const start = options.cursor ? filtered.findIndex((row) => row.id === options.cursor) + 1 : 0;
-  const items = filtered.slice(start, start + options.limit);
-  const hasMore = start + options.limit < filtered.length;
-  return { items, hasMore, nextCursor: hasMore ? (items[items.length - 1]?.id ?? null) : null, summary };
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / options.limit) || 1;
+  const pageNumber = options.page && Number(options.page) > 0 ? Number(options.page) : undefined;
+
+  let items: T[];
+  let hasMore: boolean;
+  let nextCursor: string | null;
+
+  if (pageNumber) {
+    const start = (pageNumber - 1) * options.limit;
+    items = filtered.slice(start, start + options.limit);
+    hasMore = pageNumber < totalPages;
+    nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
+  } else {
+    const start = options.cursor ? filtered.findIndex((row) => row.id === options.cursor) + 1 : 0;
+    items = filtered.slice(start, start + options.limit);
+    hasMore = start + options.limit < filtered.length;
+    nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
+  }
+
+  return {
+    items,
+    hasMore,
+    nextCursor,
+    total,
+    totalPages,
+    page: pageNumber ?? 1,
+    pageSize: options.limit,
+    summary,
+  };
 }
 
 export function normalizeVoucherCode(code: string) {
@@ -172,6 +202,8 @@ export class VoucherService {
       status?: string;
       branchId?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       limit?: string;
       from?: string;
       until?: string;
@@ -179,7 +211,7 @@ export class VoucherService {
     } = {},
   ) {
     this.requireRead(principal);
-    const limit = query.limit ? Math.min(Number(query.limit), 100) : PAGE_SIZE;
+    const limit = query.pageSize ? Math.min(Number(query.pageSize), 100) : (query.limit ? Math.min(Number(query.limit), 100) : PAGE_SIZE);
 
     // Status tampilan diturunkan dari beberapa kolom (tidak bisa difilter di SQL), dan tabel
     // voucher kecil, jadi filter status + ringkasan + cursor dihitung di memori.
@@ -197,13 +229,27 @@ export class VoucherService {
     const page = paginateVouchers(rows, {
       status: query.status,
       cursor: query.cursor,
+      page: query.page,
       limit,
     });
 
     return {
       items: page.items.map((v) => this.view(v)),
       nextCursor: page.nextCursor,
-      page: { hasMore: page.hasMore, nextCursor: page.nextCursor },
+      total: page.total,
+      totalPages: page.totalPages,
+      currentPage: page.page,
+      pageSize: page.pageSize,
+      page: query.page != null
+        ? {
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor,
+            current: page.page,
+            total: page.total,
+            totalPages: page.totalPages,
+            pageSize: page.pageSize,
+          }
+        : { hasMore: page.hasMore, nextCursor: page.nextCursor },
       summary: page.summary,
     };
   }

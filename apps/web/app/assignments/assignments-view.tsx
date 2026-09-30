@@ -30,6 +30,7 @@ import {
   AsyncSearchSelect,
   DateInput,
   SearchInput,
+  SearchSelect,
   SelectInput,
   Textarea,
   TextInput,
@@ -202,7 +203,7 @@ export function AssignmentsView({
       <AdminPageHeader
         title="Penugasan"
         titleId="assignment-title"
-        description="Kelola periode Owner dan Instruktur. Pembacaan dapat lintas cabang; mutasi selalu mengikuti cabang aktif di topbar."
+        description="Kelola periode Owner dan Instruktur. Pembacaan dan pembuatan penugasan dapat dilakukan untuk cabang spesifik secara mandiri atau mengikuti filter topbar."
         actions={
           <>
             <Button
@@ -218,8 +219,8 @@ export function AssignmentsView({
               type="button"
               leadingIcon={<Plus className="size-4" aria-hidden="true" />}
               onClick={() => setCreateOpen(true)}
-              disabled={!canManage || !branchId}
-              title={!branchId ? 'Pilih cabang aktif di topbar untuk membuat penugasan' : undefined}
+              disabled={!canManage || (!branchId && branches.length === 0)}
+              title={!canManage ? 'Akun ini tidak memiliki izin untuk mengelola penugasan' : undefined}
             >
               Buat penugasan
             </Button>
@@ -229,8 +230,7 @@ export function AssignmentsView({
 
       {!branchId && canManage && (
         <Panel className="border-dd-brass/40 bg-dd-brass-soft/35 p-4 text-sm text-dd-warning">
-          Mode semua cabang bersifat baca saja. Pilih cabang dari topbar untuk membuat atau
-          mengakhiri penugasan.
+          Mode semua cabang menampilkan data seluruh lokasi. Untuk membuat penugasan baru, klik 'Buat penugasan' dan tentukan cabang target langsung di dalam formulir.
         </Panel>
       )}
 
@@ -356,6 +356,7 @@ export function AssignmentsView({
         open={createOpen}
         branchId={branchId}
         branchName={scopeLabel}
+        branches={branches}
         client={client}
         selectedUser={selectedUser}
         onSelectedUser={setSelectedUser}
@@ -400,6 +401,7 @@ function CreateAssignmentDrawer({
   open,
   branchId,
   branchName,
+  branches = [],
   client,
   selectedUser,
   onSelectedUser,
@@ -408,8 +410,9 @@ function CreateAssignmentDrawer({
   onFailure,
 }: {
   open: boolean;
-  branchId: string;
+  branchId?: string;
   branchName: string;
+  branches?: { id: string; code: string; name: string }[];
   client: AssignmentClient;
   selectedUser?: { id: string; label: string; description?: string };
   onSelectedUser(value?: { id: string; label: string; description?: string }): void;
@@ -420,6 +423,20 @@ function CreateAssignmentDrawer({
   const feedback = useOptionalAppFeedback();
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    branchId || branches[0]?.id || '',
+  );
+
+  useEffect(() => {
+    if (open) {
+      setSelectedBranchId(branchId || branches[0]?.id || '');
+    }
+  }, [open, branchId, branches]);
+
+  const effectiveBranchId = selectedBranchId || branchId || '';
+  const targetBranch = branches.find((b) => b.id === effectiveBranchId);
+  const targetBranchName = targetBranch?.name ?? branchName;
+
   const hasChanges = dirty || Boolean(selectedUser);
   const confirmDiscard = () =>
     feedback?.confirm({
@@ -437,12 +454,12 @@ function CreateAssignmentDrawer({
   };
   const lookup = useCallback(
     async (query: string) =>
-      (await client.listUsers(branchId, query)).map((user) => ({
+      (await client.listUsers(effectiveBranchId || undefined, query)).map((user) => ({
         id: user.id,
         label: user.displayName,
         description: user.phoneMasked ?? undefined,
       })),
-    [branchId, client],
+    [client, effectiveBranchId],
   );
   return (
     <Drawer
@@ -466,7 +483,7 @@ function CreateAssignmentDrawer({
             form="assignment-create-form"
             loading={busy}
             leadingIcon={<UserRoundCheck className="size-4" aria-hidden="true" />}
-            disabled={!selectedUser || !branchId}
+            disabled={!selectedUser || !effectiveBranchId}
           >
             Buat penugasan
           </Button>
@@ -479,13 +496,13 @@ function CreateAssignmentDrawer({
         onChange={() => setDirty(true)}
         onSubmit={async (event) => {
           event.preventDefault();
-          if (!selectedUser || !branchId) return;
+          if (!selectedUser || !effectiveBranchId) return;
           const data = new FormData(event.currentTarget);
           const assignmentType = String(data.get('assignmentType')) as AssignmentType;
           const confirmed =
             (await feedback?.confirm({
               title: 'Buat penugasan?',
-              message: `${selectedUser.label} akan memperoleh penugasan ${typeLabel[assignmentType]} pada ${branchName}.`,
+              message: `${selectedUser.label} akan memperoleh penugasan ${typeLabel[assignmentType]} pada ${targetBranchName}.`,
               confirmLabel: 'Buat penugasan',
             })) ?? true;
           if (!confirmed) return;
@@ -493,7 +510,7 @@ function CreateAssignmentDrawer({
           try {
             await client.create({
               userId: selectedUser.id,
-              branchId,
+              branchId: effectiveBranchId,
               assignmentType,
               activeFrom: String(data.get('activeFrom')),
               activeUntil: String(data.get('activeUntil')) || null,
@@ -509,9 +526,29 @@ function CreateAssignmentDrawer({
           }
         }}
       >
-        <Panel className="bg-dd-surface-muted p-4 text-sm text-dd-muted">
-          Cakupan cabang: <strong className="text-dd-ink">{branchName}</strong>
-        </Panel>
+        {branches.length > 0 ? (
+          <SearchSelect
+            label="Cabang Penugasan"
+            name="branchId"
+            required
+            clearable={false}
+            value={effectiveBranchId}
+            placeholder="Pilih cabang penugasan"
+            options={branches.map((b) => ({
+              id: b.id,
+              label: b.name,
+              description: b.code,
+            }))}
+            onChange={(val) => {
+              setSelectedBranchId(val);
+              setDirty(true);
+            }}
+          />
+        ) : (
+          <Panel className="bg-dd-surface-muted p-4 text-sm text-dd-muted">
+            Cakupan cabang: <strong className="text-dd-ink">{targetBranchName}</strong>
+          </Panel>
+        )}
         <AsyncSearchSelect
           label="Pengguna"
           value={selectedUser?.id ?? ''}

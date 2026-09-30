@@ -80,7 +80,7 @@ const roleCopy = {
   FINANCE: {
     eyebrow: 'Ikhtisar Keuangan',
     title: 'Arus transaksi dan pekerjaan keuangan',
-    description: 'Pantau pembayaran, ledger, dan antrean finansial dari satu ruang kerja.',
+    description: 'Pantau pembayaran, saldo sesi, dan antrean finansial dari satu ruang kerja.',
   },
   OPERATIONS: {
     eyebrow: 'Kontrol Operasional',

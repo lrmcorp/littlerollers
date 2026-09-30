@@ -67,8 +67,11 @@ export interface CustomerPackageBalance {
   id: string;
   packageId?: string;
   customerUserId?: string;
+  customer?: { id: string; displayName: string; phoneMasked?: string | null } | null;
   branchId?: string | null;
+  branchName?: string | null;
   classTypeId?: string | null;
+  classTypeName?: string | null;
   status: string;
   totalSessions?: number;
   remainingSessions?: number;
@@ -132,6 +135,10 @@ export type BookingPage = {
     cancelled: number;
     noShow: number;
   };
+  total?: number;
+  totalPages?: number;
+  currentPage?: number;
+  pageSize?: number;
   nextCursor?: string | null;
 };
 
@@ -143,6 +150,8 @@ export type BookingListFilters = {
   until?: string;
   branch?: string;
   cursor?: string;
+  page?: number;
+  pageSize?: number;
 };
 
 export type BookingRosterItem = CustomerBookingRecord;
@@ -380,6 +389,7 @@ export interface BookingClient {
     branchId?: string;
     status?: string;
     cursor?: string;
+    page?: number;
     timeline?: 'UPCOMING' | 'HISTORY';
     q?: string;
     from?: string;
@@ -433,9 +443,48 @@ export interface BookingClient {
     supportAction: string | null;
     cutoffAt: string;
   }>;
+  /** Mengambil seluruh paket aktif milik pelanggan tertentu secara instan (real-time tanpa batas limit cabang). */
+  getCustomerPackages?(
+    customerId: string,
+    branchId?: string,
+  ): Promise<CustomerPackageBalance[]>;
 }
 
 export const browserBookingClient: BookingClient = {
+  async getCustomerPackages(customerId, branchId) {
+    const query = new URLSearchParams();
+    query.set('customerUserId', customerId);
+    if (branchId) query.set('branchId', branchId);
+    query.set('pageSize', '50');
+    query.set('status', 'ACTIVE');
+    const response = await apiFetch<{ items: Array<any> }>(
+      `/customer-packages?${query.toString()}`,
+      { label: 'Memuat paket pelanggan…' },
+    );
+    const now = Date.now();
+    return (response.items ?? [])
+      .map((item: any) => {
+        const expiryAt = item.expiryAt ? new Date(item.expiryAt) : new Date(0);
+        return {
+          ...item,
+          customerUserId: item.customer?.id ?? item.customerUserId ?? customerId,
+          customer: item.customer,
+          packageName: item.packageName ?? item.name ?? 'Paket',
+          classTypeId: item.classTypeId ?? null,
+          classTypeName: item.classTypeName,
+          branchName: item.branchName,
+          available: item.available ?? item.remainingSessions ?? 0,
+          reserved: item.reserved ?? 0,
+          expiryAt: Number.isFinite(expiryAt.getTime()) ? expiryAt : new Date(0),
+        };
+      })
+      .filter(
+        (item) =>
+          item.status === 'ACTIVE' &&
+          item.available >= 1 &&
+          new Date(item.expiryAt).getTime() > now,
+      );
+  },
   async options(classSlotId) {
     const response = await foregroundFetch(
       `/api/v1/bookings/options/${encodeURIComponent(classSlotId)}`,
@@ -481,8 +530,8 @@ export const browserBookingClient: BookingClient = {
         `/lookups/customers?branchId=${encodeURIComponent(branchId)}&limit=50`,
         { label: 'Memuat data pelanggan…' },
       ),
-      apiFetch<{ items: Array<{ id: string; branchId?: string | null; status: string; available: number; remainingSessions?: number; expiryAt: string; packageName?: string; name?: string }> }>(
-        `/customer-packages?branchId=${encodeURIComponent(branchId)}`,
+      apiFetch<{ items: Array<any> }>(
+        `/customer-packages?branchId=${encodeURIComponent(branchId)}&pageSize=50`,
         { label: 'Memuat saldo paket…' },
       ),
       apiFetch<{ items: Array<any> }>(
@@ -503,17 +552,24 @@ export const browserBookingClient: BookingClient = {
         eligiblePackageCount: user.metadata?.eligiblePackageCount,
       })),
       packages: (packages.items ?? [])
-        .map((item) => {
+        .map((item: any) => {
           const expiryAt = item.expiryAt ? new Date(item.expiryAt) : new Date(0);
           return {
             ...item,
+            customerUserId: item.customer?.id ?? item.customerUserId,
+            customer: item.customer,
+            packageName: item.packageName ?? item.name ?? 'Paket',
+            classTypeId: item.classTypeId ?? null,
+            classTypeName: item.classTypeName,
+            branchName: item.branchName,
             available: item.available ?? item.remainingSessions ?? 0,
+            reserved: item.reserved ?? 0,
             expiryAt: Number.isFinite(expiryAt.getTime()) ? expiryAt : new Date(0),
           };
         })
         .filter(
           (item) =>
-            item.branchId === branchId &&
+            (item.branchId === branchId || item.branchId === 'global' || !item.branchId) &&
             item.status === 'ACTIVE' &&
             item.available >= 1 &&
             new Date(item.expiryAt).getTime() > now,
@@ -542,6 +598,7 @@ export const browserBookingClient: BookingClient = {
     if (input.branchId) query.set('branchId', input.branchId);
     if (input.status) query.set('status', input.status);
     if (input.cursor) query.set('cursor', input.cursor);
+    if (input.page) query.set('page', String(input.page));
     if (input.timeline) query.set('timeline', input.timeline);
     if (input.q) query.set('q', input.q);
     if (input.from) query.set('from', input.from);
@@ -566,7 +623,11 @@ export const browserBookingClient: BookingClient = {
           attendance?: { checkedInAt: string; source: 'QR' | 'BACKFILL' } | null;
         }
       >;
-      page: { nextCursor?: string | null };
+      total?: number;
+      totalPages?: number;
+      currentPage?: number;
+      pageSize?: number;
+      page?: { nextCursor?: string | null; current?: number; total?: number; totalPages?: number; pageSize?: number };
       summary?: BookingPage['summary'];
     };
     return {
@@ -585,6 +646,10 @@ export const browserBookingClient: BookingClient = {
           : undefined,
       })),
       summary: result.summary,
+      total: result.total ?? result.page?.total,
+      totalPages: result.totalPages ?? result.page?.totalPages,
+      currentPage: result.currentPage ?? result.page?.current,
+      pageSize: result.pageSize ?? result.page?.pageSize,
       nextCursor: result.page?.nextCursor ?? (result as any).nextCursor ?? null,
     };
   },

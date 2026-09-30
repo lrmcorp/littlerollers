@@ -14,12 +14,14 @@ import { randomUUID } from 'node:crypto';
 import { BookingsService } from '../../apps/api/src/bookings/pemesanan-kelas.service';
 import { AttendanceService } from '../../apps/api/src/attendance/kehadiran.service';
 import { ClassSlotService } from '../../apps/api/src/classes/slot-kelas.service';
-import { SessionAdjustService } from '../../apps/api/src/bookings/session-adjust.service';
+import { LedgerService } from '../../apps/api/src/packages/ledger.service';
+import { AuditService } from '../../apps/api/src/foundation/audit.service';
 import { IdempotencyService } from '../../apps/api/src/foundation/idempotency.service';
 import { PolicyService } from '../../apps/api/src/identity/policy.service';
 import { WhatsAppGatewayService } from '../../apps/api/src/notifications/whatsapp-gateway.service';
 import { AutoCancelService } from '../../apps/api/src/classes/auto-cancel.service';
 import { ReminderScheduleService } from '../../apps/api/src/notifications/reminder-schedule.service';
+import { NotificationTemplateService } from '../../apps/api/src/notifications/notification-template.service';
 import { FinanceService } from '../../apps/api/src/packages/finance.service';
 import type { SessionPrincipal } from '../../apps/api/src/identity/identity.service';
 
@@ -42,12 +44,14 @@ async function main() {
 
   const bookingsService = new BookingsService(db as any, idempotency, policy, runtimeConfig);
   const attendanceService = new AttendanceService(db as any, policy, idempotency);
-  const classSlotService = new ClassSlotService(db as any, runtimeConfig, idempotency, policy);
-  const adjustService = new SessionAdjustService(db as any);
+  const classSlotService = new ClassSlotService(db as any, policy, idempotency, runtimeConfig);
+  const audit = new AuditService(db as any);
+  const ledgerService = new LedgerService(db as any, policy, audit);
   const whatsapp = new WhatsAppGatewayService(db as any);
   const autoCancel = new AutoCancelService(db as any, whatsapp);
-  const reminderSchedule = new ReminderScheduleService(db as any, whatsapp);
-  const finance = new FinanceService(db as any);
+  const templates = new NotificationTemplateService(db as any);
+  const reminderSchedule = new ReminderScheduleService(db as any, whatsapp, templates);
+  const finance = new FinanceService(db as any, policy, audit);
 
   try {
     // ========================================================================
@@ -429,7 +433,7 @@ async function main() {
       userId: instructor.id,
       email: instructor.email,
       roles: [{ role: 'INSTRUCTOR', branchIds: [branchA.id] }],
-      capabilities: ['attendance:self', 'attendance:read'],
+      capabilities: ['attendance:self', 'attendance:read', 'attendance:manage'],
       branchIds: [branchA.id],
     };
 
@@ -457,6 +461,7 @@ async function main() {
         'attendance:backfill',
         'attendance:override',
         'booking:reschedule',
+        'class-slot:manage',
       ],
       branchIds: [branchA.id],
     };
@@ -540,13 +545,21 @@ async function main() {
     });
 
     // Karena < H-24 jam, customer tidak bisa reschedule mandiri. Admin mengajukan SessionAdjustRequest:
-    const adjustReq = await adjustService.createRequest(adminPrincipal, {
-      customerPackageId: customerPackage.id,
-      bookingId: bookingC.id,
-      reason: 'Customer berhalangan darurat (< H-24 jam), admin bantu ajukan adjust sesi',
-      sessionCount: 1,
-    });
-    console.log(`   ✅ Admin mengajukan SessionAdjustRequest (< H-24 jam): ID ${adjustReq.data.id}`);
+    // Tambahkan ledger:adjust:request ke adminPrincipal sementara untuk step ini
+    const adminAdjPrincipal: SessionPrincipal = {
+      ...adminPrincipal,
+      capabilities: [...adminPrincipal.capabilities, 'ledger:adjust:request'],
+    };
+    const adjustReq = await ledgerService.requestAdjustment(
+      adminAdjPrincipal,
+      {
+        customerPackageId: customerPackage.id,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+        note: 'Customer berhalangan darurat (< H-24 jam), admin bantu ajukan adjust sesi',
+      },
+    );
+    console.log(`   ✅ Admin mengajukan SessionAdjustRequest (< H-24 jam): ID ${adjustReq.id}`);
 
     // Manager menyetujui SessionAdjustRequest
     const managerPrincipal: SessionPrincipal = {
@@ -557,15 +570,21 @@ async function main() {
       branchIds: [branchA.id],
     };
 
-    const decidedAdjust = await adjustService.decideRequest(managerPrincipal, adjustReq.data.id, {
-      decision: 'APPROVED',
-      decisionReason: 'Disetujui Manager untuk pemulihan kuota sesi darurat',
-    });
+    const decidedAdjust = await ledgerService.decideAdjustment(
+      managerPrincipal,
+      adjustReq.id,
+      'approve',
+      {
+        reasonCode: 'CORRECTION_VERIFIED',
+        note: 'Disetujui Manager untuk pemulihan kuota sesi darurat',
+        expectedVersion: 1,
+      },
+    );
 
-    if (decidedAdjust.data.status !== AdjustRequestStatus.APPROVED) {
-      throw new Error('Gagal: Persetujuan SessionAdjustRequest oleh Manager gagal!');
+    if (decidedAdjust.adjustment.status !== 'POSTED') {
+      throw new Error(`Gagal: Persetujuan SessionAdjustRequest oleh Manager gagal! Status = ${decidedAdjust.adjustment.status}`);
     }
-    console.log(`   ✅ Manager MENYETUJUI SessionAdjustRequest: Status = ${decidedAdjust.data.status}`);
+    console.log(`   ✅ Manager MENYETUJUI SessionAdjustRequest: Status = ${decidedAdjust.adjustment.status}`);
     console.log(`   ✅ Sisa sesi dipulihkan otomatis ke SessionLedger (ADJUST_MANUAL)`);
 
     // ========================================================================
@@ -627,7 +646,7 @@ async function main() {
       userId: financeUser.id,
       email: financeUser.email,
       roles: [{ role: 'FINANCE', branchIds: [] }],
-      capabilities: ['branch:all', 'finance:read', 'finance:write', 'monthlyclose:execute'],
+      capabilities: ['branch:all', 'finance:read', 'finance:write', 'finance:manage', 'monthlyclose:execute'],
       branchIds: [],
     };
 
@@ -750,7 +769,7 @@ async function main() {
       userId: superOwner.id,
       email: superOwner.email,
       roles: [{ role: 'SUPER_OWNER', branchIds: [] }],
-      capabilities: ['branch:all', 'correction:decide'],
+      capabilities: ['branch:all', 'correction:decide', 'finance:manage'],
       branchIds: [],
     };
 
@@ -758,11 +777,11 @@ async function main() {
       superOwnerPrincipal,
       correction.id,
       'APPROVE',
-      'Disetujui setelah konfirmasi dengan pemilik gedung',
+      { reason: 'Disetujui setelah konfirmasi dengan pemilik gedung' },
     );
 
-    if (decidedCorrection.status !== CorrectionStatus.APPROVED) {
-      throw new Error('Gagal: Jurnal koreksi seharusnya disetujui oleh Super Owner!');
+    if (decidedCorrection.correction.status !== CorrectionStatus.APPROVED) {
+      throw new Error(`Gagal: Jurnal koreksi seharusnya disetujui oleh Super Owner! Status = ${decidedCorrection.correction.status}`);
     }
 
     // Pastikan snapshot periode lampau tetap utuh

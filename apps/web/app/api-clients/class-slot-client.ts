@@ -102,6 +102,7 @@ export interface ClassSlotClient {
     until: Date;
     status?: string;
   }): Promise<ClassWorkspace>;
+  getBranchStudios?(branchId: string): Promise<StudioOption[]>;
   create(input: {
     branchId: string;
     classTypeId: string;
@@ -223,6 +224,7 @@ export const browserClassSlotClient: ClassSlotClient = {
                       code: string;
                       name: string;
                       capacity?: number | null;
+                      capacityBed?: number | null;
                       active?: boolean;
                     }>;
                   }>;
@@ -254,26 +256,27 @@ export const browserClassSlotClient: ClassSlotClient = {
     );
 
     const instructorOptions = branchWorkspaces.flatMap(({ branch, users, assignments }) => {
-      const instructorIds = new Set(
-        (assignments.items ?? [])
-          .filter(
-            (assignment) =>
-              assignment.assignmentType === 'INSTRUCTOR' &&
-              assignment.branchId === branch.id &&
-              new Date(assignment.activeFrom).toISOString().slice(0, 10) < weekEnd &&
-              (!assignment.activeUntil ||
-                new Date(assignment.activeUntil).toISOString().slice(0, 10) > weekStart),
-          )
-          .map((assignment) => assignment.userId),
-      );
+      // 1. Instruktur langsung dari daftar penugasan resmi cabang (assignments menyertakan user.displayName)
+      const assignmentInstructors = (assignments.items ?? [])
+        .filter((a) => a.assignmentType === 'INSTRUCTOR' && a.branchId === branch.id)
+        .map((a) => ({
+          id: a.userId,
+          branchId: branch.id,
+          displayName:
+            (a as any).user?.displayName || (a as any).displayName || `Instructor ${a.userId.slice(0, 8)}`,
+        }));
 
-      return (users.items ?? [])
-        .filter((user) => user.status === 'ACTIVE' && instructorIds.has(user.id))
+      // 2. Instruktur dari direktori users (jika ada)
+      const userInstructors = (users.items ?? [])
+        .filter((user) => user.status === 'ACTIVE')
         .map((user) => ({
           id: user.id,
           branchId: branch.id,
-          displayName: user.displayName || `Instructor ${user.id.slice(0, 8)}`,
+          displayName: user.displayName || (user as any).label || `Instructor ${user.id.slice(0, 8)}`,
         }));
+
+      const combined = [...assignmentInstructors, ...userInstructors];
+      return [...new Map(combined.map((item) => [item.id, item])).values()];
     });
 
     const parsedSlots = (slots.items ?? []).map((slot) => ({
@@ -297,16 +300,62 @@ export const browserClassSlotClient: ClassSlotClient = {
             name: studio.name,
             rooms: (studio.rooms ?? [])
               .filter((room) => room.active !== false)
-              .map(({ id, studioId, code, name, capacity }) => ({
-                id,
-                studioId,
-                code,
-                name,
-                capacity,
+              .map((room) => ({
+                id: room.id,
+                studioId: room.studioId,
+                code: room.code,
+                name: room.name,
+                capacity: room.capacityBed ?? room.capacity ?? null,
               })),
           })),
       ),
     };
+  },
+
+  async getBranchStudios(branchId: string) {
+    try {
+      const res = await apiFetch<{
+        items: Array<{
+          id: string;
+          branchId: string;
+          code: string;
+          name: string;
+          active?: boolean;
+          rooms?: Array<{
+            id: string;
+            studioId: string;
+            code: string;
+            name: string;
+            capacity?: number | null;
+            capacityBed?: number | null;
+            active?: boolean;
+          }>;
+        }>;
+      }>(`/branches/${encodeURIComponent(branchId)}/studios`, {
+        label: 'Memuat area studio…',
+      });
+
+      return (res.items ?? [])
+        .filter((studio) => studio.active !== false)
+        .map((studio) => ({
+          id: studio.id,
+          branchId: studio.branchId ?? branchId,
+          code: studio.code,
+          name: studio.name,
+          rooms: (studio.rooms ?? [])
+            .filter((room) => room.active !== false)
+            .map((room) => ({
+              id: room.id,
+              studioId: room.studioId,
+              code: room.code,
+              name: room.name,
+              capacity: room.capacityBed ?? room.capacity ?? null,
+            })),
+        }));
+    } catch (err) {
+      console.error('Gagal memuat studio cabang:', err);
+      return [];
+    }
   },
 
   create(input) {

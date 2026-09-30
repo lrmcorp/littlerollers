@@ -33,7 +33,7 @@ async function main() {
 
   const bookingsService = new BookingsService(db as any, idempotency, policy, runtimeConfig);
   const attendanceService = new AttendanceService(db as any, policy, idempotency);
-  const classSlotService = new ClassSlotService(db as any, runtimeConfig, idempotency, policy);
+  const classSlotService = new ClassSlotService(db as any, policy, idempotency, runtimeConfig);
   const whatsappGateway = new WhatsAppGatewayService(db as any);
 
   try {
@@ -48,7 +48,13 @@ async function main() {
       sessionId: 'sess-admin-stress',
       userId: admin.id,
       roles: [{ role: 'ADMIN', branchId: branch.id }],
-      capabilities: ['booking:manage', 'attendance:manage', 'class:manage', 'branch:all'],
+      capabilities: [
+        'booking:manage',
+        'attendance:manage',
+        'class:manage',
+        'class-slot:manage',
+        'branch:all',
+      ],
       branchIds: [branch.id],
     };
 

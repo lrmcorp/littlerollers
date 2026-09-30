@@ -23,6 +23,7 @@ export function LedgerPageView() {
       customerUserId={params.get('customerUserId') ?? undefined}
       initialSearch={params.get('q') ?? ''}
       initialCursor={params.get('cursor') ?? ''}
+      initialBalancePage={params.get('page') ? Math.max(1, Number(params.get('page'))) : 1}
       initialStatus={
         ['ACTIVE', 'EXPIRED', 'INACTIVE'].includes(params.get('status') ?? '')
           ? (params.get('status') as 'ACTIVE' | 'EXPIRED' | 'INACTIVE')
@@ -35,12 +36,20 @@ export function LedgerPageView() {
         if (status) query.set('status', status);
         else query.delete('status');
         query.delete('cursor');
+        query.delete('page');
         router.replace(`/ledger${query.size ? `?${query.toString()}` : ''}`, { scroll: false });
       }}
       onBalancePageChange={(cursor) => {
         const query = new URLSearchParams(params.toString());
         if (cursor) query.set('cursor', cursor);
         else query.delete('cursor');
+        router.replace(`/ledger${query.size ? `?${query.toString()}` : ''}`, { scroll: false });
+      }}
+      onBalancePageNumberChange={(page) => {
+        const query = new URLSearchParams(params.toString());
+        if (page > 1) query.set('page', String(page));
+        else query.delete('page');
+        query.delete('cursor');
         router.replace(`/ledger${query.size ? `?${query.toString()}` : ''}`, { scroll: false });
       }}
       onWorkspaceTabChange={(next) => {
@@ -50,6 +59,7 @@ export function LedgerPageView() {
           query.delete('tab');
           query.delete('status');
         }
+        query.delete('page');
         router.replace(`/ledger${query.size ? `?${query.toString()}` : ''}`, { scroll: false });
       }}
     />

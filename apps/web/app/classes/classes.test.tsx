@@ -147,7 +147,7 @@ describe('ClassSlotView', () => {
       />,
     );
     expect(await screen.findByText(/Pantau jadwal seluruh cabang/)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeEnabled();
     expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });
 

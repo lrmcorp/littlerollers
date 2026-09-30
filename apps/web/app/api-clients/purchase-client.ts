@@ -233,9 +233,21 @@ export interface PaymentReviewSummary {
 
 export interface PaymentReviewPage {
   items: PaymentReviewItem[];
-  page: { nextCursor: string | null; hasMore?: boolean; previousCursor?: string | null };
+  page: {
+    nextCursor: string | null;
+    hasMore?: boolean;
+    previousCursor?: string | null;
+    total?: number;
+    totalPages?: number;
+    current?: number;
+    pageSize?: number;
+  };
   summary: PaymentReviewSummary;
   generatedAt: Date;
+  total?: number;
+  totalPages?: number;
+  currentPage?: number;
+  pageSize?: number;
 }
 
 export interface PaymentReviewDetail {
@@ -269,6 +281,8 @@ export interface PaymentReviewFilters {
   branchId?: string;
   status?: string;
   cursor?: string;
+  page?: number;
+  pageSize?: number;
   limit?: number;
   q?: string;
   from?: Date;
@@ -505,6 +519,8 @@ export const browserPurchaseReviewClient: PurchaseReviewClient = {
     if (filters.branchId) params.set('branchId', filters.branchId);
     if (filters.status) params.set('status', filters.status);
     if (filters.cursor) params.set('cursor', filters.cursor);
+    if (filters.page) params.set('page', String(filters.page));
+    if (filters.pageSize) params.set('pageSize', String(filters.pageSize));
     if (filters.limit) params.set('limit', String(filters.limit));
     if (filters.q) params.set('q', filters.q);
     if (filters.purchaseId) params.set('purchaseId', filters.purchaseId);
@@ -517,6 +533,10 @@ export const browserPurchaseReviewClient: PurchaseReviewClient = {
       ...result,
       items: (result.items ?? []).map(mapReviewItem),
       generatedAt: toDate(result.generatedAt),
+      total: result.total ?? result.page?.total,
+      totalPages: result.totalPages ?? result.page?.totalPages,
+      currentPage: result.currentPage ?? result.page?.current,
+      pageSize: result.pageSize ?? result.page?.pageSize,
     };
   },
   detail(id, usageCursor) {

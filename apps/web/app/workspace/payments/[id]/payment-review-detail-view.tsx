@@ -78,7 +78,7 @@ export function PaymentReviewDetailView({
     authorityOverride?.canDecide ??
     Boolean(sessionContext?.hasCapability('payment:decide', 'purchase:decide'));
   const [detail, setDetail] = useState<ReviewDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mutating, setMutating] = useState(false);
   const [reasonCode, setReasonCode] = useState<RejectReason>('PROOF_INVALID');
@@ -263,16 +263,22 @@ export function PaymentReviewDetailView({
         message="Role Anda tidak memiliki izin untuk memeriksa pembayaran."
       />
     );
-  if (loading && !detail) return <Skeleton label="Memuat detail pembayaran" />;
-  if (!detail)
-    return (
-      <AlertBanner
-        tone="danger"
-        title="Detail pembayaran belum tersedia"
-        message={error || 'Transaksi tidak ditemukan dalam cakupan Anda.'}
-        action={{ label: 'Coba lagi', onSelect: () => void load() }}
-      />
-    );
+  if (!detail) {
+    if (loading) {
+      return <Skeleton label="Memuat detail pembayaran" />;
+    }
+    if (error) {
+      return (
+        <AlertBanner
+          tone="danger"
+          title="Detail pembayaran belum tersedia"
+          message={error}
+          action={{ label: 'Coba lagi', onSelect: () => void load() }}
+        />
+      );
+    }
+    return <Skeleton label="Memuat detail pembayaran" />;
+  }
 
   const purchase = detail.purchase;
   const timeline = [

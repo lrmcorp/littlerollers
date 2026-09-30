@@ -273,6 +273,7 @@ export function DataTable<T>({
   loading = false,
   emptyTitle = 'Belum ada data',
   emptyDescription = 'Data akan muncul di sini setelah tersedia.',
+  emptyAction,
   onRowClick,
   rowClassName,
   mobileCardClassName,
@@ -288,6 +289,7 @@ export function DataTable<T>({
   loading?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: ReactNode;
   onRowClick?(item: T): void;
   rowClassName?(item: T, index?: number): string;
   mobileCardClassName?(item: T, index?: number): string;
@@ -297,7 +299,7 @@ export function DataTable<T>({
   rowNumberHeader?: string;
 }) {
   if (loading) return <AdminSkeleton rows={5} />;
-  if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} />;
+  if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   return (
     <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface shadow-sm">
       <div className={mobileCard ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
@@ -431,7 +433,7 @@ export function Pagination({
   let displayLabel = totalLabel;
   if (!displayLabel) {
     if (currentPage != null && totalItems != null && pageSize != null) {
-      const startItem = Math.min((currentPage - 1) * pageSize + 1, totalItems);
+      const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
       const endItem = Math.min(currentPage * pageSize, totalItems);
       displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} data`;
     } else if (currentPage != null && effectiveTotalPages != null) {
@@ -441,6 +443,12 @@ export function Pagination({
     } else {
       displayLabel = 'Navigasi halaman';
     }
+  } else if (currentPage != null && totalItems != null && pageSize != null && !displayLabel.startsWith('Menampilkan')) {
+    const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
+    const endItem = Math.min(currentPage * pageSize, totalItems);
+    const suffix = displayLabel.replace(/^\d+[\s.,]?\d*\s*/, '').trim();
+    const entity = suffix || 'data';
+    displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} ${entity}`;
   }
 
   const showPagePrefix =
@@ -455,7 +463,13 @@ export function Pagination({
     >
       <div className="text-xs sm:text-sm font-medium text-dd-muted">
         {showPagePrefix && (
-          <span>Halaman {currentPage.toLocaleString('id-ID')} · </span>
+          <span>
+            Halaman {currentPage.toLocaleString('id-ID')}
+            {effectiveTotalPages && effectiveTotalPages > 1
+              ? ` dari ${effectiveTotalPages.toLocaleString('id-ID')}`
+              : ''}{' '}
+            ·{' '}
+          </span>
         )}
         <span>{displayLabel}</span>
       </div>

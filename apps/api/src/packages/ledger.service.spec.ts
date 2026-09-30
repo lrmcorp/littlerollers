@@ -67,7 +67,11 @@ function setup() {
     sessionAdjustRequest: {
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn().mockImplementation(async ({ data }) =>
-        requestRow({ sessionCount: data.sessionCount, reasonCode: data.reasonCode }),
+        requestRow({
+          sessionCount: data.sessionCount,
+          reasonCode: data.reasonCode,
+          status: data.status ?? 'PENDING',
+        }),
       ),
       findUnique: jest.fn().mockResolvedValue(requestRow()),
       findUniqueOrThrow: jest.fn().mockResolvedValue(requestRow({ status: 'APPROVED', version: 2 })),
@@ -407,3 +411,171 @@ describe('LedgerService reads', () => {
     });
   });
 });
+
+describe('LedgerService.directAdjustment (Non-Happy Path & Direct Execution)', () => {
+  it('TEST-1.1: requires ledger:adjust:decide capability (unauthorized admin is forbidden)', async () => {
+    const { service } = setup();
+    await expect(
+      service.directAdjustment(admin, {
+        customerPackageId: packageId,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('TEST-1.2: isolates branches (manager cannot adjust foreign branch package)', async () => {
+    const { service } = setup();
+    const managerBranchB = principalFor(id(101), ['ledger:adjust:decide', 'ledger:read'], [branchB]);
+    await expect(
+      service.directAdjustment(managerBranchB, {
+        customerPackageId: packageId,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+  });
+
+  it('TEST-1.3: rejects reduction that exceeds remaining balance or active bookings', async () => {
+    const { service } = setup();
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: packageId,
+        quantity: -10, // balance is 3, cannot reduce by 10
+        reasonCode: 'ATTENDANCE_CORRECTION',
+      }),
+    ).rejects.toMatchObject({ code: 'INSUFFICIENT_SESSION_BALANCE' });
+  });
+
+  it('TEST-1.4: rejects invalid inputs (0, float, >50, invalid code, bad uuid)', async () => {
+    const { service } = setup();
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: packageId,
+        quantity: 0,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: packageId,
+        quantity: 1.5,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: packageId,
+        quantity: 51,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: packageId,
+        quantity: 1,
+        reasonCode: 'INVALID_CODE',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    await expect(
+      service.directAdjustment(manager, {
+        customerPackageId: 'not-a-uuid',
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('TEST-1.5: allows MANAGER to directly adjust sessions in 1 click', async () => {
+    const { service, tx, audit } = setup();
+    const branchManager = {
+      ...manager,
+      roles: [{ role: 'MANAGER' as const, branchId: branchA }],
+    };
+    const result = await service.directAdjustment(branchManager, {
+      customerPackageId: packageId,
+      quantity: 2,
+      reasonCode: 'PACKAGE_COMPENSATION',
+      note: 'Kompensasi AC ruang reformer bocor',
+    });
+
+    expect(tx.paketPelanggan.update).toHaveBeenCalledWith({
+      where: { id: packageId },
+      data: { remainingSessions: 5, status: 'ACTIVE' },
+    });
+    expect(tx.sessionAdjustRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'APPROVED',
+          sessionCount: 2,
+          requestedById: branchManager.userId,
+          approvedById: branchManager.userId,
+        }),
+      }),
+    );
+    expect(tx.sessionLedger.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'ADJUST_MANUAL',
+          amount: 2,
+          balanceAfter: 5,
+          createdById: branchManager.userId,
+        }),
+      }),
+    );
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ action: 'SESSION_ADJUSTMENT_DIRECT_APPLIED' }),
+    );
+    expect(result).toMatchObject({
+      resultingBalance: 5,
+      adjustment: { status: 'POSTED' },
+    });
+  });
+
+  it('TEST-1.6: allows MANAGER to approve their own request via decideAdjustment without SEPARATION_OF_DUTIES', async () => {
+    const { service, tx } = setup();
+    const branchManager = {
+      sessionId: 's',
+      userId: admin.userId, // same user as requester
+      roles: [{ role: 'MANAGER' as const, branchId: branchA }],
+      capabilities: ['ledger:adjust:decide', 'ledger:read', 'ledger:adjust:read'],
+      branchIds: [branchA],
+    };
+    const approve = { reasonCode: 'CORRECTION_VERIFIED', expectedVersion: 1 };
+    const result = await service.decideAdjustment(branchManager, requestId, 'approve', approve);
+    expect(tx.paketPelanggan.update).toHaveBeenCalled();
+    expect(tx.sessionLedger.create).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      adjustment: { status: 'POSTED' },
+    });
+  });
+
+  it('TEST-1.7: requestAdjustment with direct: true executes directAdjustment directly', async () => {
+    const { service, tx } = setup();
+    const branchManager = {
+      ...manager,
+      roles: [{ role: 'MANAGER' as const, branchId: branchA }],
+    };
+    const result = await service.requestAdjustment(branchManager, {
+      customerPackageId: packageId,
+      quantity: 1,
+      reasonCode: 'ATTENDANCE_CORRECTION',
+      direct: true,
+    });
+    expect(tx.paketPelanggan.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ remainingSessions: 4 }),
+      }),
+    );
+    expect(result).toMatchObject({
+      resultingBalance: 4,
+      adjustment: { status: 'POSTED' },
+    });
+  });
+});
+

@@ -26,7 +26,18 @@ export type VoucherRecord = {
 export type VoucherPage = {
   items: VoucherRecord[];
   summary?: Partial<Record<VoucherRecord['status'], number>>;
-  page: { hasMore: boolean; nextCursor: string | null };
+  total?: number;
+  totalPages?: number;
+  currentPage?: number;
+  pageSize?: number;
+  page: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    total?: number;
+    totalPages?: number;
+    current?: number;
+    pageSize?: number;
+  };
 };
 export type VoucherRedemptionPage = {
   voucher: { id: string; code: string };
@@ -68,12 +79,14 @@ export const browserVoucherClient = {
       status?: string;
       branchId?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       from?: string;
       until?: string;
     } = {},
   ) {
     const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+    for (const [key, value] of Object.entries(filters)) if (value != null && value !== '') query.set(key, String(value));
     return request<VoucherPage>(`/vouchers${query.size ? `?${query.toString()}` : ''}`);
   },
   detail(id: string) {

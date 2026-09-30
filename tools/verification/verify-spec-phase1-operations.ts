@@ -10,9 +10,10 @@ import { randomUUID } from 'node:crypto';
 import { BookingsService } from '../../apps/api/src/bookings/pemesanan-kelas.service';
 import { AttendanceService } from '../../apps/api/src/attendance/kehadiran.service';
 import { ClassSlotService } from '../../apps/api/src/classes/slot-kelas.service';
-import { SessionAdjustService } from '../../apps/api/src/bookings/session-adjust.service';
+import { LedgerService } from '../../apps/api/src/packages/ledger.service';
 import { IdempotencyService } from '../../apps/api/src/foundation/idempotency.service';
 import { PolicyService } from '../../apps/api/src/identity/policy.service';
+import { AuditService } from '../../apps/api/src/foundation/audit.service';
 import type { SessionPrincipal } from '../../apps/api/src/identity/identity.service';
 
 async function main() {
@@ -25,6 +26,7 @@ async function main() {
 
   const idempotency = new IdempotencyService(db as any);
   const policy = new PolicyService();
+  const audit = new AuditService();
   const runtimeConfig = {
     value: {
       booking: { enabled: true, cutoffHours: 2 },
@@ -37,11 +39,11 @@ async function main() {
   const attendanceService = new AttendanceService(db as any, policy, idempotency);
   const classSlotService = new ClassSlotService(
     db as any,
-    runtimeConfig,
-    idempotency,
     policy,
+    idempotency,
+    runtimeConfig,
   );
-  const adjustService = new SessionAdjustService(db as any);
+  const ledgerService = new LedgerService(db as any, policy, audit);
 
   try {
     // ------------------------------------------------------------------------
@@ -86,6 +88,10 @@ async function main() {
         'booking:manage',
         'attendance:read',
         'attendance:manage',
+        'class-slot:manage',
+        'ledger:adjust:request',
+        'ledger:adjust:read',
+        'ledger:read',
         'branch:all',
       ],
       branchIds: [branch.id],
@@ -95,7 +101,16 @@ async function main() {
       sessionId: 'sess-mgr-phase1',
       userId: managerUser.id,
       roles: [{ role: 'MANAGER', branchId: branch.id }],
-      capabilities: ['booking:manage', 'attendance:manage', 'branch:all'],
+      capabilities: [
+        'booking:manage',
+        'attendance:manage',
+        'class-slot:manage',
+        'ledger:adjust:decide',
+        'ledger:adjust:request',
+        'ledger:adjust:read',
+        'ledger:read',
+        'branch:all',
+      ],
       branchIds: [branch.id],
     };
 
@@ -375,25 +390,30 @@ async function main() {
     console.log('\n▶ 6. Menguji Permohonan SessionAdjustRequest & Approval Manager (Rule #6)...');
 
     // Admin mengajukan penyesuaian sesi karena kendala darurat
-    const adjustReqRes = await adjustService.createRequest(adminPrincipal, {
-      customerPackageId: customerPackage.id,
-      bookingId: bookingB.id,
-      reason: 'Customer mengalami kecelakaan ringan mendadak (< H-24 jam) dengan bukti surat dokter',
-      sessionCount: 1,
-    });
+    const adjustReqRes = await ledgerService.requestAdjustment(
+      adminPrincipal,
+      {
+        customerPackageId: customerPackage.id,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+        note: 'Customer mengalami kecelakaan ringan mendadak (< H-24 jam) dengan bukti surat dokter',
+      },
+      `key-adj-p1-${Date.now()}`,
+      'corr-adj-p1',
+    );
 
-    const adjustRequestId = adjustReqRes.data.id;
-    console.log(`   ✅ Admin berhasil mengajukan SessionAdjustRequest: ID=${adjustRequestId}, Status=${adjustReqRes.data.status}`);
+    const adjustRequestId = adjustReqRes.id;
+    console.log(`   ✅ Admin berhasil mengajukan SessionAdjustRequest: ID=${adjustRequestId}, Status=${adjustReqRes.status}`);
 
     // Manager melihat antrean request
-    const pendingList = await adjustService.listRequests(managerPrincipal, {
-      status: AdjustRequestStatus.PENDING,
+    const pendingList = await ledgerService.listAdjustments(managerPrincipal, {
+      status: 'PENDING',
     });
-    const foundPending = pendingList.items.some((i) => i.id === adjustRequestId);
+    const foundPending = pendingList.items.some((i: any) => i.id === adjustRequestId);
     if (!foundPending) {
       throw new Error(`Permohonan ${adjustRequestId} tidak ditemukan pada antrean pending Manager!`);
     }
-    console.log(`   ✅ Manager berhasil melihat permohonan dalam antrean (Total pending: ${pendingList.count}).`);
+    console.log(`   ✅ Manager berhasil melihat permohonan dalam antrean (Total pending: ${pendingList.items.length}).`);
 
     // Manager menyetujui permohonan
     const pkgBeforeAdjust = await db.paketPelanggan.findUniqueOrThrow({
@@ -401,15 +421,23 @@ async function main() {
     });
     const initialRemaining = pkgBeforeAdjust.remainingSessions;
 
-    const decisionRes = await adjustService.decideRequest(managerPrincipal, adjustRequestId, {
-      decision: 'APPROVED',
-      decisionReason: 'Bukti surat dokter valid, disetujui untuk kompensasi 1 sesi.',
-    });
+    const decisionRes = await ledgerService.decideAdjustment(
+      managerPrincipal,
+      adjustRequestId,
+      'approve',
+      {
+        reasonCode: 'CORRECTION_VERIFIED',
+        note: 'Bukti surat dokter valid, disetujui untuk kompensasi 1 sesi.',
+        expectedVersion: adjustReqRes.version,
+      },
+      `key-dec-p1-${Date.now()}`,
+      'corr-dec-p1',
+    );
 
-    if (decisionRes.data.status !== AdjustRequestStatus.APPROVED) {
-      throw new Error(`Persetujuan Manager gagal, status=${decisionRes.data.status}`);
+    if (decisionRes.adjustment.status !== 'POSTED') {
+      throw new Error(`Persetujuan Manager gagal, status=${decisionRes.adjustment.status}`);
     }
-    console.log(`   ✅ Manager menyetujui permohonan: Status=${decisionRes.data.status}`);
+    console.log(`   ✅ Manager menyetujui permohonan: Status=${decisionRes.adjustment.status}`);
 
     // Verifikasi saldo di PaketPelanggan bertambah 1
     const pkgAfterAdjust = await db.paketPelanggan.findUniqueOrThrow({
@@ -435,6 +463,26 @@ async function main() {
     }
     console.log(`   ✅ SessionLedger resmi tercatat: Type=${adjustLedger.type}, Amount=+${adjustLedger.amount}, BalanceAfter=${adjustLedger.balanceAfter}`);
     console.log(`      Catatan: "${adjustLedger.notes}"`);
+
+    // 6b. Menguji Direct Adjustment 1-Klik Manager Cabang (Tanpa Birokrasi)
+    console.log('\n▶ 6b. Menguji Direct Adjustment 1-Klik Manager Cabang (Tanpa Birokrasi)...');
+    const directRes = await ledgerService.directAdjustment(
+      managerPrincipal,
+      {
+        customerPackageId: customerPackage.id,
+        quantity: 1,
+        reasonCode: 'PACKAGE_COMPENSATION',
+        note: 'Direct 1-klik kompensasi instan oleh Manager',
+      },
+      `key-direct-p1-${Date.now()}`,
+      'corr-direct-p1',
+    );
+    const directStatus = directRes.adjustment?.status ?? (directRes as any).status;
+    const directId = directRes.adjustment?.id ?? (directRes as any).id;
+    if (directStatus !== 'POSTED') {
+      throw new Error(`Direct adjustment Manager gagal, status=${directStatus}`);
+    }
+    console.log(`   ✅ Direct Adjustment Manager SUKSES: ID=${directId}, Status=${directStatus}, Saldo Akhir=${directRes.resultingBalance}`);
 
     // ------------------------------------------------------------------------
     // Pembersihan Data Uji Coba

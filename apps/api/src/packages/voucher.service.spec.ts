@@ -101,4 +101,19 @@ describe('voucher list pagination and summary', () => {
     const result = paginateVouchers(rows, { status: 'ARCHIVED', limit: 10, now });
     expect(result.items.map((row) => row.id)).toEqual(['v3']);
   });
+
+  it('supports numbered page pagination with total and totalPages', () => {
+    const page2 = paginateVouchers(rows, { limit: 2, page: 2, now });
+    expect(page2.items.map((row) => row.id)).toEqual(['v3', 'v4']);
+    expect(page2.total).toBe(5);
+    expect(page2.totalPages).toBe(3);
+    expect(page2.page).toBe(2);
+    expect(page2.hasMore).toBe(true);
+    expect(page2.nextCursor).toBe('v4');
+
+    const page3 = paginateVouchers(rows, { limit: 2, page: 3, now });
+    expect(page3.items.map((row) => row.id)).toEqual(['v5']);
+    expect(page3.hasMore).toBe(false);
+    expect(page3.nextCursor).toBeNull();
+  });
 });

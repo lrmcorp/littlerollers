@@ -49,7 +49,7 @@ export interface AssignmentFilters {
 export interface AssignmentClient {
   list(filters?: AssignmentFilters): Promise<AssignmentManagementPage>;
   listUsers(
-    branchId: string,
+    branchId?: string,
     query?: string,
   ): Promise<{ id: string; displayName: string; phoneMasked?: string | null }[]>;
   create(input: {
@@ -124,7 +124,8 @@ export const browserAssignmentClient: AssignmentClient = {
     };
   },
   async listUsers(branchId, query) {
-    const params = new URLSearchParams({ branchId, limit: '20' });
+    const params = new URLSearchParams({ limit: '20' });
+    if (branchId) params.set('branchId', branchId);
     if (query) params.set('q', query);
     const page = await appLoading.track(
       assignmentFetch<{ items: Array<{ id: string; label: string; description?: string | null }> }>(

@@ -140,6 +140,9 @@ export function BookingView({
   const [createOpen, setCreateOpen] = useState(false);
   const [cursor, setCursor] = useState<string | undefined>(initialCursor);
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>();
   const [reschedules, setReschedules] = useState<ManagementReschedule[]>([]);
   const [rescheduleCursor, setRescheduleCursor] = useState<string | null>();
@@ -207,6 +210,7 @@ export function BookingView({
     if (signature === lastFilterSignature.current) return;
     setCursor(undefined);
     setCursorHistory([]);
+    setPage(1);
     const timer = window.setTimeout(() => {
       lastFilterSignature.current = signature;
       onFiltersChange(value);
@@ -237,12 +241,19 @@ export function BookingView({
   }, [branchId]);
 
   const customerPackages = useMemo(
-    () => packages.filter((item) => item.customerUserId === customerId),
+    () =>
+      packages.filter(
+        (item) => (item.customerUserId ?? (item as any).customer?.id) === customerId,
+      ),
     [customerId, packages],
   );
   const selectedPackage = packages.find(({ id }) => id === packageId);
   const eligibleSlots = useMemo(
-    () => slots.filter((slot) => slot.classTypeId === selectedPackage?.classTypeId),
+    () =>
+      slots.filter(
+        (slot) =>
+          !selectedPackage?.classTypeId || slot.classTypeId === selectedPackage.classTypeId,
+      ),
     [selectedPackage, slots],
   );
   const selectedSlot = slots.find(({ id }) => id === slotId);
@@ -265,7 +276,8 @@ export function BookingView({
           q: search.trim() || undefined,
           from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
           until: until ? new Date(`${until}T23:59:59.999`).toISOString() : undefined,
-          cursor,
+          page,
+          cursor: cursor || undefined,
           classSlotId: activeTab === 'attendance' ? rosterSlotId || undefined : undefined,
         }),
         canReview
@@ -282,6 +294,9 @@ export function BookingView({
       setItems(bookingPage.items);
       if (bookingPage.summary) setSummary(bookingPage.summary);
       setNextCursor(bookingPage.nextCursor);
+      if (bookingPage.totalPages) setTotalPages(bookingPage.totalPages);
+      if (typeof bookingPage.total === 'number') setTotalItems(bookingPage.total);
+      else if (bookingPage.summary?.total) setTotalItems(bookingPage.summary.total);
       setReschedules(reschedulePage.items);
       setRescheduleCursor(reschedulePage.nextCursor);
       setMessage('Data booking siap digunakan.');
@@ -307,6 +322,7 @@ export function BookingView({
     rosterStatus,
     activeTab,
     canRead,
+    page,
     cursor,
     initialRescheduleCursor,
   ]);
@@ -370,17 +386,19 @@ export function BookingView({
   };
 
   const openNextPage = () => {
-    if (!nextCursor || busy) return;
+    if ((!nextCursor && page >= totalPages) || busy) return;
     setCursorHistory((current) => [...current, cursor ?? '']);
-    setCursor(nextCursor);
-    onCursorChange?.(nextCursor);
+    setCursor(nextCursor ?? undefined);
+    setPage((current) => current + 1);
+    onCursorChange?.(nextCursor ?? undefined);
   };
 
   const openPreviousPage = () => {
-    if (cursorHistory.length === 0 || busy) return;
+    if ((cursorHistory.length === 0 && page <= 1) || busy) return;
     const previous = cursorHistory.at(-1) ?? '';
     setCursorHistory((current) => current.slice(0, -1));
     setCursor(previous || undefined);
+    setPage((current) => Math.max(1, current - 1));
     onCursorChange?.(previous || undefined);
   };
 
@@ -569,8 +587,7 @@ export function BookingView({
       />
       {!branchId && canCreate && (
         <Panel className="border-dd-brass/40 bg-dd-brass-soft/35 p-4 text-sm text-dd-warning">
-          Mode semua cabang bersifat baca saja. Pilih cabang dari topbar untuk membuat booking,
-          memutus reschedule, atau menerbitkan QR.
+          Mode semua cabang bersifat baca saja. Pilih studio cabang Anda pada pemilih cabang di bagian atas halaman (pojok kanan atas) untuk membuat booking, memproses reschedule, atau menerbitkan QR check-in.
         </Panel>
       )}
       {!canRead && (
@@ -722,9 +739,9 @@ export function BookingView({
           }}
         >
           <p className="text-sm leading-6 text-dd-muted">
-            Pilih customer, paket aktif, dan kelas dalam cabang{' '}
-            <strong>{sessionContext?.activeBranch?.name ?? 'aktif'}</strong>. Sistem memeriksa
-            saldo, kapasitas, dan cutoff kembali saat konfirmasi.
+            Pilih pelanggan, paket aktif, dan kelas dalam cabang{' '}
+            <strong>{sessionContext?.activeBranch?.name ?? 'aktif'}</strong>. Sistem otomatis
+            memastikan sisa sesi member mencukupi dan kapasitas kelas masih tersedia.
           </p>
           <SearchSelect
             label="Pelanggan"
@@ -738,11 +755,24 @@ export function BookingView({
                 customer.phoneMasked ??
                 `${customer.eligiblePackageCount ?? 0} paket dapat digunakan`,
             }))}
-            onChange={(value) => {
+            onChange={async (value) => {
               setCustomerId(value);
               setPackageId('');
               setSlotId('');
               resetIntent();
+              if (value && client.getCustomerPackages) {
+                try {
+                  const customerPkgs = await client.getCustomerPackages(value, branchId || undefined);
+                  setPackages((prev) => {
+                    const others = prev.filter(
+                      (p) => (p.customerUserId ?? (p as any).customer?.id) !== value,
+                    );
+                    return [...others, ...customerPkgs];
+                  });
+                } catch (err) {
+                  console.error('Gagal memuat paket pelanggan:', err);
+                }
+              }
             }}
           />
           <SearchSelect
@@ -752,8 +782,10 @@ export function BookingView({
             placeholder="Pilih paket aktif"
             options={customerPackages.map((item) => ({
               id: item.id,
-              label: `Paket aktif · ${item.available} sesi tersedia`,
-              description: `${item.reserved} sesi direservasi`,
+              label: `${item.packageName ?? item.name ?? 'Paket Aktif'} · ${item.available} sesi tersedia`,
+              description: item.classTypeName
+                ? `${item.classTypeName} · Berlaku s/d ${new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(item.expiryAt)}`
+                : `${item.reserved ?? 0} sesi direservasi`,
             }))}
             onChange={(value) => {
               setPackageId(value);
@@ -766,15 +798,20 @@ export function BookingView({
             value={slotId}
             disabled={busy || !packageId || eligibleSlots.length === 0}
             placeholder="Pilih jadwal kelas"
-            options={eligibleSlots.map((slot) => ({
-              id: slot.id,
-              label: new Intl.DateTimeFormat('id-ID', {
+            options={eligibleSlots.map((slot) => {
+              const timeStr = new Intl.DateTimeFormat('id-ID', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
                 timeZone: slot.timezone,
-              }).format(slot.startAt),
-              description: `${slot.bookedCount}/${slot.capacity} peserta`,
-            }))}
+              }).format(slot.startAt);
+              const instructorName = (slot as any).instructor?.displayName ?? (slot as any).instructorName;
+              const roomName = (slot as any).room?.name ?? (slot as any).roomName ?? (slot as any).studio?.name;
+              return {
+                id: slot.id,
+                label: `${(slot as any).classType?.name ?? 'Kelas'} · ${timeStr}`,
+                description: `${roomName ? `${roomName} · ` : ''}${instructorName ? `${instructorName} · ` : ''}${slot.bookedCount}/${slot.capacity} peserta`,
+              };
+            })}
             onChange={(value) => {
               setSlotId(value);
               resetIntent();
@@ -782,11 +819,11 @@ export function BookingView({
           />
           {customerId && customerPackages.length === 0 && (
             <Feedback kind="status">
-              Pelanggan tidak memiliki paket aktif dengan saldo tersedia.
+              Pelanggan ini belum memiliki paket aktif dengan saldo sesi tersedia untuk cabang ini. Silakan catat pembelian paket terlebih dahulu melalui menu Pembayaran.
             </Feedback>
           )}
           {packageId && eligibleSlots.length === 0 && (
-            <Feedback kind="status">Tidak ada kelas eligible untuk tipe paket ini.</Feedback>
+            <Feedback kind="status">Tidak ada jadwal kelas yang sesuai dengan tipe paket ini.</Feedback>
           )}
           {selectedPackage && selectedSlot && selectedCustomer && (
             <Panel
@@ -803,8 +840,7 @@ export function BookingView({
               }).format(selectedSlot.startAt)}{' '}
               ({selectedSlot.timezone}). Saldo tersedia berubah dari {selectedPackage.available}{' '}
               menjadi {selectedPackage.available - 1}; kapasitas menjadi{' '}
-              {selectedSlot.bookedCount + 1}/{selectedSlot.capacity}. Tidak ada debit ledger pada
-              tahap booking.
+              {selectedSlot.bookedCount + 1}/{selectedSlot.capacity}. Tidak ada pemotongan saldo sesi permanen pada tahap booking (sesi hanya direservasi sementara).
             </Panel>
           )}
         </form>
@@ -825,8 +861,8 @@ export function BookingView({
           </div>
           {reschedules.length === 0 ? (
             <EmptyState
-              title="Tidak ada reschedule pending"
-              description="Request pelanggan yang masih menunggu keputusan akan tampil di sini."
+              title="Tidak ada permintaan reschedule tertunda"
+              description="Permintaan member yang masih menunggu persetujuan akan tampil di sini."
             />
           ) : (
             <ul className="grid gap-3" aria-label="Antrean reschedule">
@@ -1041,7 +1077,7 @@ export function BookingView({
             {activeTab === 'attendance' ? 'Riwayat kehadiran' : 'Daftar booking'}
           </h2>
           <DataTable
-            rowNumberOffset={pageOffset(cursorHistory.length)}
+            rowNumberOffset={pageOffset(page - 1)}
             items={items}
             rowKey={(booking) => booking.id}
             loading={busy && items.length === 0}
@@ -1276,9 +1312,16 @@ export function BookingView({
             )}
           />
           <Pagination
-            hasPrevious={cursorHistory.length > 0}
-            hasNext={Boolean(nextCursor)}
-            currentPage={cursorHistory.length + 1}
+            hasPrevious={page > 1 || cursorHistory.length > 0}
+            hasNext={Boolean(nextCursor) || page < totalPages}
+            currentPage={page}
+            totalPages={totalPages > 1 ? totalPages : (nextCursor ? page + 1 : page)}
+            totalItems={totalItems}
+            pageSize={20}
+            showPageNumbers={totalPages > 1}
+            onPageChange={(target) => {
+              setPage(target);
+            }}
             onPrevious={openPreviousPage}
             onNext={openNextPage}
           />

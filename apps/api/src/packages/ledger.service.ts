@@ -5,6 +5,7 @@ import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { buildPhoneSearchVariants } from '../identity/manajemen-pelanggan.service';
 
 export const ADJUSTMENT_REASON_CODES = [
   'MIGRATION_CORRECTION',
@@ -113,6 +114,8 @@ export class LedgerService {
     filters: {
       branchId?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       search?: string;
       status?: string;
       customerUserId?: string;
@@ -144,7 +147,7 @@ export class LedgerService {
                 OR: [
                   { user: { displayName: { contains: search } } },
                   { user: { email: { contains: search } } },
-                  { user: { phone: { contains: search } } },
+                  ...buildPhoneSearchVariants(search).map((v) => ({ user: { phone: { contains: v } } })),
                   { package: { name: { contains: search } } },
                 ],
               },
@@ -157,18 +160,27 @@ export class LedgerService {
         ? { AND: [base, { status: filters.status as never }] }
         : base;
 
-    const rows = await this.db.paketPelanggan.findMany({
-      where,
-      include: {
-        ...packageInclude,
-        bookings: { where: { status: 'BOOKED' }, select: { id: true } },
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: PAGE_SIZE + 1,
-      ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
-    });
-    const hasMore = rows.length > PAGE_SIZE;
-    const pageRows = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+    const limit = filters.pageSize ? Math.min(Number(filters.pageSize), 100) : PAGE_SIZE;
+    const pageNumber = filters.page && Number(filters.page) > 0 ? Number(filters.page) : undefined;
+
+    const [rows, totalFiltered] = await Promise.all([
+      this.db.paketPelanggan.findMany({
+        where,
+        include: {
+          ...packageInclude,
+          bookings: { where: { status: 'BOOKED' }, select: { id: true } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageNumber ? limit : limit + 1,
+        ...(pageNumber ? { skip: (pageNumber - 1) * limit } : (filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {})),
+      }),
+      typeof this.db.paketPelanggan.count === 'function'
+        ? this.db.paketPelanggan.count({ where })
+        : Promise.resolve(0),
+    ]);
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+    const hasMore = pageNumber ? pageNumber < totalPages : rows.length > limit;
+    const pageRows = pageNumber ? rows : (rows.length > limit ? rows.slice(0, limit) : rows);
 
     const movements = pageRows.length
       ? await this.db.sessionLedger.groupBy({
@@ -199,12 +211,26 @@ export class LedgerService {
 
     return {
       items,
+      total: totalFiltered,
+      currentPage: pageNumber ?? 1,
+      totalPages,
+      pageSize: limit,
       summary: await this.packageSummary(base),
-      page: {
-        hasMore,
-        nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
-        previousCursor: null,
-      },
+      page: filters.page != null
+        ? {
+            hasMore,
+            nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+            previousCursor: null,
+            current: pageNumber ?? 1,
+            total: totalFiltered,
+            totalPages,
+            pageSize: limit,
+          }
+        : {
+            hasMore,
+            nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+            previousCursor: null,
+          },
     };
   }
 
@@ -371,6 +397,8 @@ export class LedgerService {
       branchId?: string;
       status?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       q?: string;
       customerUserId?: string;
       from?: string;
@@ -378,7 +406,8 @@ export class LedgerService {
       limit?: string | number;
     },
   ) {
-    const limit = Math.min(100, Math.max(1, Number(filters.limit) || PAGE_SIZE));
+    const limit = Math.min(100, Math.max(1, Number(filters.pageSize ?? filters.limit) || PAGE_SIZE));
+    const pageNumber = filters.page && Number(filters.page) > 0 ? Number(filters.page) : undefined;
     const q = filters.q?.trim();
     const from = filters.from ? new Date(filters.from) : undefined;
     const until = filters.until ? new Date(filters.until) : undefined;
@@ -413,22 +442,26 @@ export class LedgerService {
       ? { AND: [base, { status: statusFilter }] }
       : base;
 
-    const [rows, counts] = await Promise.all([
+    const [rows, totalFiltered, counts] = await Promise.all([
       this.db.sessionAdjustRequest.findMany({
         where,
         include: adjustmentInclude,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: limit + 1,
-        ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
+        take: pageNumber ? limit : limit + 1,
+        ...(pageNumber ? { skip: (pageNumber - 1) * limit } : (filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {})),
       }),
+      typeof this.db.sessionAdjustRequest.count === 'function'
+        ? this.db.sessionAdjustRequest.count({ where })
+        : Promise.resolve(0),
       this.db.sessionAdjustRequest.groupBy({
         by: ['status'],
         where: base,
         _count: { _all: true },
       }),
     ]);
-    const hasMore = rows.length > limit;
-    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+    const hasMore = pageNumber ? pageNumber < totalPages : rows.length > limit;
+    const pageRows = pageNumber ? rows : (rows.length > limit ? rows.slice(0, limit) : rows);
     const countOf = (status: AdjustRequestStatus) =>
       counts.find((c) => c.status === status)?._count._all ?? 0;
 
@@ -440,17 +473,31 @@ export class LedgerService {
       items: pageRows.map((row) =>
         this.adjustmentView(row, reservedByPackage.get(row.customerPackageId) ?? 0),
       ),
+      total: totalFiltered,
+      currentPage: pageNumber ?? 1,
+      totalPages,
+      pageSize: limit,
       summary: {
         total: counts.reduce((sum, c) => sum + c._count._all, 0),
         pending: countOf('PENDING'),
         posted: countOf('APPROVED'),
         rejected: countOf('REJECTED'),
       },
-      page: {
-        hasMore,
-        nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
-        previousCursor: null,
-      },
+      page: filters.page != null
+        ? {
+            hasMore,
+            nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+            previousCursor: null,
+            current: pageNumber ?? 1,
+            total: totalFiltered,
+            totalPages,
+            pageSize: limit,
+          }
+        : {
+            hasMore,
+            nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
+            previousCursor: null,
+          },
     };
   }
 
@@ -501,8 +548,17 @@ export class LedgerService {
 
   async requestAdjustment(
     principal: SessionPrincipal,
-    body: { customerPackageId?: string; quantity?: number; reasonCode?: string },
+    body: {
+      customerPackageId?: string;
+      quantity?: number;
+      reasonCode?: string;
+      note?: string;
+      direct?: boolean;
+    },
   ) {
+    if (body?.direct === true) {
+      return this.directAdjustment(principal, body);
+    }
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:request');
     const quantity = body?.quantity;
     if (!body?.customerPackageId || !UUID.test(body.customerPackageId))
@@ -565,6 +621,129 @@ export class LedgerService {
     return this.adjustmentView(created, reserved ?? 0);
   }
 
+  /**
+   * Eksekusi langsung penyesuaian sesi (Direct Adjustment 1-Klik) khusus bagi
+   * peran yang memiliki kapabilitas 'ledger:adjust:decide' (Manager Cabang, Super Owner, Superadmin).
+   * Langsung memutasi saldo buku besar (SessionLedger) dan menyimpan riwayat audit trail tanpa status PENDING.
+   */
+  async directAdjustment(
+    principal: SessionPrincipal,
+    body: {
+      customerPackageId?: string;
+      quantity?: number;
+      reasonCode?: string;
+      note?: string;
+    },
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
+    const quantity = body?.quantity;
+    if (!body?.customerPackageId || !UUID.test(body.customerPackageId))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'customerPackageId');
+    if (
+      typeof quantity !== 'number' ||
+      !Number.isInteger(quantity) ||
+      quantity === 0 ||
+      Math.abs(quantity) > MAX_ADJUSTMENT_SESSIONS
+    )
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'quantity');
+    const reasonCode = body.reasonCode as (typeof ADJUSTMENT_REASON_CODES)[number];
+    if (!ADJUSTMENT_REASON_CODES.includes(reasonCode))
+      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reasonCode');
+    const note = body.note?.trim() ? body.note.trim().slice(0, 500) : null;
+
+    const outcome = await this.db.$transaction(
+      async (tx) => {
+        const pkg = await tx.paketPelanggan.findUnique({
+          where: { id: body.customerPackageId },
+          include: packageInclude,
+        });
+        if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        this.assertPackageAccess(principal, 'ledger:adjust:decide', pkg);
+
+        const reserved = await tx.pemesananKelas.count({
+          where: { customerPackageId: pkg.id, status: 'BOOKED' },
+        });
+        this.assertBalanceAllows(pkg.remainingSessions, reserved, quantity);
+
+        const pending = await tx.sessionAdjustRequest.count({
+          where: { customerPackageId: pkg.id, status: 'PENDING' },
+        });
+        if (pending > 0) throw problem('ADJUSTMENT_ALREADY_PENDING', HttpStatus.CONFLICT);
+
+        const now = new Date();
+        const balanceAfter = pkg.remainingSessions + quantity;
+        const nextStatus =
+          balanceAfter <= 0 && pkg.status === 'ACTIVE'
+            ? 'DEPLETED'
+            : balanceAfter > 0 && pkg.status === 'DEPLETED' && pkg.validUntil > now
+              ? 'ACTIVE'
+              : pkg.status;
+
+        await tx.paketPelanggan.update({
+          where: { id: pkg.id },
+          data: { remainingSessions: balanceAfter, status: nextStatus },
+        });
+
+        const request = await tx.sessionAdjustRequest.create({
+          data: {
+            customerPackageId: pkg.id,
+            requestedById: principal.userId,
+            approvedById: principal.userId,
+            sessionCount: quantity,
+            reason: reasonCode,
+            reasonCode,
+            decisionCode: ADJUSTMENT_APPROVE_CODE,
+            decisionNote: note,
+            decisionReason: note ?? reasonCode,
+            decidedAt: now,
+            status: 'APPROVED',
+            version: 2,
+          },
+          include: adjustmentInclude,
+        });
+
+        const entry = await tx.sessionLedger.create({
+          data: {
+            customerPackageId: pkg.id,
+            type: SessionMutationType.ADJUST_MANUAL,
+            amount: quantity,
+            balanceAfter,
+            referenceId: request.id,
+            notes: `Penyesuaian manual langsung (${reasonCode})${note ? `: ${note}` : ''}`,
+            createdById: principal.userId,
+          },
+        });
+
+        return { request, entry, balanceAfter };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: outcome.request.customerPackage.purchase?.branchId ?? null,
+      action: 'SESSION_ADJUSTMENT_DIRECT_APPLIED',
+      objectType: 'SessionAdjustRequest',
+      objectId: outcome.request.id,
+      afterMasked: {
+        quantity,
+        reasonCode,
+        balanceAfter: outcome.balanceAfter,
+        customerPackageId: outcome.request.customerPackageId,
+      },
+    });
+
+    const reserved = (await this.reservedByPackage([outcome.request.customerPackageId])).get(
+      outcome.request.customerPackageId,
+    );
+    return {
+      adjustment: this.adjustmentView(outcome.request, reserved ?? 0),
+      ledgerEntry: this.ledgerEntryView(outcome.entry),
+      resultingBalance: outcome.balanceAfter,
+      auditReference: outcome.request.id,
+    };
+  }
+
   async decideAdjustment(
     principal: SessionPrincipal,
     id: string,
@@ -593,12 +772,12 @@ export class LedgerService {
         });
         if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.assertPackageAccess(principal, 'ledger:adjust:decide', row.customerPackage);
-        // Pemisahan tugas: staf biasa dilarang memutus permintaannya sendiri (Maker-Checker).
-        // Super Owner dan Superadmin memiliki wewenang penuh untuk persetujuan mandiri.
-        const isSuper = principal.roles.some((r) =>
-          ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+        // Pemisahan tugas: staf kasir/biasa dilarang memutus permintaannya sendiri (Maker-Checker).
+        // Super Owner, Superadmin, dan Manager cabang memiliki wewenang penuh untuk persetujuan mandiri.
+        const canSelfApprove = principal.roles.some((r) =>
+          ['SUPER_OWNER', 'SUPERADMIN', 'MANAGER'].includes(r.role as string),
         );
-        if (!isSuper && row.requestedById === principal.userId)
+        if (!canSelfApprove && row.requestedById === principal.userId)
           throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
         if (row.status !== 'PENDING') throw problem('ADJUSTMENT_ALREADY_DECIDED', HttpStatus.CONFLICT);
         if (row.version !== body.expectedVersion)

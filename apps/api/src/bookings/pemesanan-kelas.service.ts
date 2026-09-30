@@ -505,6 +505,7 @@ export class BookingsService {
       branchId?: string;
       status?: string;
       cursor?: string;
+      page?: number;
       timeline?: string;
       q?: string;
       from?: string;
@@ -518,6 +519,7 @@ export class BookingsService {
     const customerFlow = this.isCustomer(principal);
     const targetUserId = customerFlow ? principal.userId : query.customerId;
     const limit = Math.min(query.limit ?? PAGE_SIZE, 100);
+    const pageNumber = query.page && Number(query.page) > 0 ? Number(query.page) : undefined;
     if (query.cursor && !UUID.test(query.cursor))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
@@ -576,7 +578,10 @@ export class BookingsService {
         ? [{ classSlot: { startAt: 'asc' } }, { id: 'asc' }]
         : [{ bookedAt: 'desc' }, { id: 'desc' }];
 
-    const [statusGroups, reschedulePending] = await Promise.all([
+    const [totalFiltered, statusGroups, reschedulePending] = await Promise.all([
+      typeof this.db.pemesananKelas.count === 'function'
+        ? this.db.pemesananKelas.count({ where })
+        : Promise.resolve(0),
       this.db.pemesananKelas.groupBy({
         by: ['status'],
         where: baseWhere,
@@ -587,9 +592,16 @@ export class BookingsService {
     const statusCount = (status: BookingStatus) =>
       statusGroups.find((group) => group.status === status)?._count._all ?? 0;
 
+    const paginationArgs = pageNumber
+      ? { skip: (pageNumber - 1) * limit, take: limit }
+      : {
+          take: limit + 1,
+          ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+        };
+
     const items = await this.db.pemesananKelas.findMany({
       where,
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      ...paginationArgs,
       include: {
         user: true,
         classSlot: {
@@ -606,17 +618,31 @@ export class BookingsService {
         attendance: true,
         checkInTokens: { take: 1, orderBy: { createdAt: 'desc' } },
       },
-      take: limit + 1,
       orderBy,
     });
 
-    const hasNext = items.length > limit;
-    const pageItems = hasNext ? items.slice(0, limit) : items;
+    const total = totalFiltered || (pageNumber ? items.length : (items.length > limit ? limit : items.length));
+    const totalPages = Math.ceil(total / limit) || 1;
+    const hasNext = pageNumber ? pageNumber < totalPages : items.length > limit;
+    const pageItems = pageNumber ? items : (items.length > limit ? items.slice(0, limit) : items);
     const nextCursor = hasNext ? (pageItems[pageItems.length - 1]?.id ?? null) : null;
 
     return {
       items: pageItems.map((b) => this.bookingView(b)),
-      page: { hasMore: hasNext, nextCursor },
+      page: query.page != null
+        ? {
+            hasMore: hasNext,
+            nextCursor,
+            current: pageNumber ?? 1,
+            total,
+            totalPages,
+            pageSize: limit,
+          }
+        : { hasMore: hasNext, nextCursor },
+      total,
+      currentPage: pageNumber ?? 1,
+      totalPages,
+      pageSize: limit,
       nextCursor,
       summary: {
         total: statusGroups.reduce((sum, group) => sum + group._count._all, 0),

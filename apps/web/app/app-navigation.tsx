@@ -11,6 +11,7 @@ import {
   CircleDollarSign,
   CreditCard,
   ListChecks,
+  MapPin,
   ShieldCheck,
   Sliders,
   Users,
@@ -158,6 +159,26 @@ export function AppNavigation({
             </IconButton>
           }
         </div>
+        {!collapsed && !customerOnly && (
+          <div className="border-b border-white/10 px-4 py-2.5 bg-white/[0.03]">
+            <div className="flex items-center gap-2 text-xs">
+              <MapPin className="size-3.5 shrink-0 text-dd-brass" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-white/50">
+                  Studio Aktif
+                </span>
+                <span className="block truncate font-semibold text-white">
+                  {context?.activeBranch ? `Studio ${context.activeBranch.name}` : 'Semua Cabang'}
+                </span>
+              </div>
+              {(session?.branches ?? []).length > 1 && (
+                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">
+                  {(session?.branches ?? []).length} cabang
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         <div className="workspace-navigation-scroll min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-3 py-5">
           {customerOnly ? (
             <section className="space-y-1" aria-labelledby="nav-customer">
@@ -336,7 +357,7 @@ export function AppNavigation({
             </button>
             {!collapsed && (
               <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">
-                Akses berbasis permission
+                Akses berbasis hak akses
               </p>
             )}
           </div>

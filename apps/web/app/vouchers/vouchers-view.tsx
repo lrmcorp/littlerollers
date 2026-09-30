@@ -39,6 +39,9 @@ export function VouchersView() {
   const [items, setItems] = useState<VoucherRecord[]>([]);
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -78,22 +81,26 @@ export function VouchersView() {
       setCreateOpen(false);
     }
   };
-  const load = async (cursor?: string) => {
+  const load = async (pageNumber = page) => {
     if (!canRead) return;
     setBusy(true);
     setError('');
     try {
-      const page = await browserVoucherClient.list({ q, status, cursor });
-      setItems(page.items);
-      setSummary(page.summary ?? {});
-      setNextCursor(page.page.nextCursor);
+      const result = await browserVoucherClient.list({ q, status, page: pageNumber, pageSize: 20 });
+      setItems(result.items);
+      setSummary(result.summary ?? {});
+      setTotalPages(result.totalPages ?? result.page?.totalPages ?? 1);
+      setTotalItems(result.total ?? result.page?.total ?? result.items.length);
+      setNextCursor(result.page?.nextCursor ?? null);
     } catch {
       setError('Voucher belum dapat dimuat. Coba lagi.');
     } finally {
       setBusy(false);
     }
   };
-  useEffect(() => void load(cursor), [canRead, cursor, q, status]);
+  useEffect(() => {
+    void load(page);
+  }, [canRead, page, q, status]);
 
   const handleTransition = async (
     voucher: VoucherRecord,
@@ -121,7 +128,7 @@ export function VouchersView() {
         tone: 'success',
         title: `Voucher berhasil ${action === 'activate' ? 'diaktifkan' : action === 'pause' ? 'dijeda' : 'diarsipkan'}`,
       });
-      await load(cursor);
+      await load(page);
     } catch {
       feedback.showToast({
         tone: 'danger',
@@ -192,6 +199,7 @@ export function VouchersView() {
           value={q}
           onChange={(event) => {
             setQ(event.target.value);
+            setPage(1);
             setCursor(undefined);
             setCursorHistory([]);
           }}
@@ -202,6 +210,7 @@ export function VouchersView() {
           value={status}
           onChange={(event) => {
             setStatus(event.target.value);
+            setPage(1);
             setCursor(undefined);
             setCursorHistory([]);
           }}
@@ -224,7 +233,7 @@ export function VouchersView() {
         />
       ) : (
         <DataTable
-          rowNumberOffset={pageOffset(cursorHistory.length)}
+          rowNumberOffset={pageOffset(page - 1)}
           items={items}
           rowKey={(item) => item.id}
           columns={[
@@ -419,19 +428,17 @@ export function VouchersView() {
         />
       )}
       <Pagination
-        hasPrevious={cursorHistory.length > 0}
-        hasNext={Boolean(nextCursor)}
-        currentPage={cursorHistory.length + 1}
-        onPrevious={() => {
-          const previous = cursorHistory.at(-1);
-          setCursorHistory((current) => current.slice(0, -1));
-          setCursor(previous);
-        }}
-        onNext={() => {
-          if (!nextCursor) return;
-          setCursorHistory((current) => [...current, cursor]);
-          setCursor(nextCursor);
-        }}
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={20}
+        hasPrevious={page > 1 && !busy}
+        hasNext={page < totalPages && !busy}
+        showPageNumbers
+        totalLabel={`${totalItems.toLocaleString('id-ID')} voucher`}
+        onPageChange={(target) => setPage(target)}
+        onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
       />
       <Drawer
         open={createOpen}

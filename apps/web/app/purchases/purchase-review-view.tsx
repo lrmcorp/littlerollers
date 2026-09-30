@@ -46,7 +46,7 @@ const emptySummary: ReviewSummary = {
 };
 
 const readFilters = (): Filters => {
-  if (typeof window === 'undefined') return { status: 'PENDING', limit: 20 };
+  if (typeof window === 'undefined') return { status: 'PENDING', limit: 20, page: 1 };
   const query = new URLSearchParams(window.location.search);
   const date = (name: string) => {
     const value = query.get(name);
@@ -60,6 +60,7 @@ const readFilters = (): Filters => {
     until: date('until'),
     cursor: query.get('cursor') || undefined,
     purchaseId: query.get('purchaseId') || undefined,
+    page: Number(query.get('page')) > 0 ? Number(query.get('page')) : 1,
     limit: 20,
   };
 };
@@ -188,10 +189,18 @@ export function PurchaseReviewView({
     id: item.id,
     name: item.name,
   }));
+  const availableBranches = useMemo(() => {
+    if (branchOverride) {
+      return [{ id: branchOverride.id, name: branchOverride.name }];
+    }
+    return saleBranches;
+  }, [branchOverride, saleBranches]);
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [search, setSearch] = useState(() => readFilters().q ?? '');
   const [items, setItems] = useState<ReviewPurchase[]>([]);
   const [summary, setSummary] = useState<ReviewSummary>(emptySummary);
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
+  const [totalPages, setTotalPages] = useState(1);
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -206,7 +215,7 @@ export function PurchaseReviewView({
 
   const changeFilters = useCallback(
     (patch: Partial<Filters>, replace = false) => {
-      if (patch.cursor === undefined) {
+      if (patch.cursor === undefined && patch.page === undefined) {
         setCursorHistory([]);
       }
       setFilters((current) => {
@@ -218,12 +227,13 @@ export function PurchaseReviewView({
         const query = new URLSearchParams();
         const current = readFilters();
         const next = { ...current, ...patch, purchaseId: undefined };
-        if (next.branchId) query.set('branch', next.branchId);
+        if (next.branchId && next.branchId !== 'ALL') query.set('branch', next.branchId);
         if (next.status) query.set('status', next.status);
         if (next.q) query.set('q', next.q);
         if (next.from) query.set('from', dateInput(next.from));
         if (next.until) query.set('until', dateInput(next.until));
         if (next.cursor) query.set('cursor', next.cursor);
+        if (next.page && next.page > 1) query.set('page', String(next.page));
         const url = `/workspace/payments${query.size ? `?${query.toString()}` : ''}`;
         router.replace(url, { scroll: false });
       }
@@ -232,12 +242,22 @@ export function PurchaseReviewView({
   );
 
   const onNext = () => {
+    if (totalPages > 1 && (filters.page ?? 1) < totalPages) {
+      changeFilters({ page: (filters.page ?? 1) + 1, cursor: undefined }, true);
+      return;
+    }
     if (!nextCursor) return;
     setCursorHistory((current) => [...current, filters.cursor ?? '']);
-    changeFilters({ cursor: nextCursor }, true);
+    changeFilters({ cursor: nextCursor, page: (filters.page ?? 1) + 1 }, true);
   };
 
   const onPrevious = () => {
+    if (filters.page && filters.page > 1) {
+      const previous = cursorHistory.at(-1) ?? '';
+      setCursorHistory((current) => current.slice(0, -1));
+      changeFilters({ page: filters.page - 1, cursor: previous || undefined }, true);
+      return;
+    }
     const previous = cursorHistory.at(-1) ?? '';
     setCursorHistory((current) => current.slice(0, -1));
     changeFilters({ cursor: previous || undefined }, true);
@@ -266,14 +286,22 @@ export function PurchaseReviewView({
     return () => window.clearTimeout(timer);
   }, [changeFilters, filters.q, search]);
 
+  const effectiveBranchId = useMemo(() => {
+    if (filters.branchId === 'ALL') return undefined;
+    if (filters.branchId) return filters.branchId;
+    if (branchOverride?.id) return branchOverride.id;
+    if (sessionContext?.hasCapability('branch:all')) return undefined;
+    return activeBranch?.id;
+  }, [filters.branchId, branchOverride?.id, sessionContext, activeBranch?.id]);
+
   const requestFilters = useMemo<PaymentReviewFilters>(
     () => ({
       ...filters,
       purchaseId: undefined,
-      branchId: activeBranch?.id ?? filters.branchId,
+      branchId: effectiveBranchId,
       status: filters.status === 'ALL' ? undefined : filters.status,
     }),
-    [activeBranch?.id, filters],
+    [effectiveBranchId, filters],
   );
 
   const load = useCallback(async () => {
@@ -286,6 +314,8 @@ export function PurchaseReviewView({
       if (requestId !== requestRef.current) return;
       setItems(result.items);
       setSummary(result.summary);
+      setTotalCount(result.total ?? result.page?.total);
+      setTotalPages(result.totalPages ?? result.page?.totalPages ?? 1);
       setGeneratedAt(result.generatedAt);
       setNextCursor(result.page.nextCursor ?? null);
     } catch (cause) {
@@ -376,7 +406,16 @@ export function PurchaseReviewView({
       />
     );
 
+  const totalAll =
+    summary.total ??
+    (summary.pending +
+      summary.actionRequired +
+      summary.approved +
+      summary.rejected +
+      summary.expired);
+
   const summaryCards = [
+    ['ALL', 'Semua status', totalAll],
     ['PENDING', 'Menunggu', summary.pending],
     ['ACTION_REQUIRED', 'Perlu perbaikan', summary.actionRequired],
     ['APPROVED', 'Disetujui', summary.approved],
@@ -396,16 +435,11 @@ export function PurchaseReviewView({
         return summary.rejected;
       case 'EXPIRED':
         return summary.expired;
+      case 'ALL':
       default:
-        return (
-          summary.pending +
-          summary.actionRequired +
-          summary.approved +
-          summary.rejected +
-          summary.expired
-        );
+        return totalAll;
     }
-  }, [filters.status, summary]);
+  }, [filters.status, summary, totalAll]);
 
   const isOwnRecord = (item: ReviewPurchase) =>
     Boolean(item.recordedById) && item.recordedById === currentUserId;
@@ -474,21 +508,24 @@ export function PurchaseReviewView({
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {summaryCards.map(([value, label, count]) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={filters.status === value}
-            onClick={() => changeFilters({ status: value, cursor: undefined })}
-            className={`rounded-dd-lg border bg-white p-4 text-left shadow-sm transition hover:border-dd-forest ${filters.status === value ? 'border-dd-forest ring-1 ring-dd-forest/20' : 'border-dd-line'}`}
-          >
-            <span className="block text-xs font-semibold text-dd-muted">{label}</span>
-            <strong className="mt-2 block text-2xl text-dd-ink">
-              {count.toLocaleString('id-ID')}
-            </strong>
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {summaryCards.map(([value, label, count]) => {
+          const active = (filters.status ?? 'PENDING') === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => changeFilters({ status: value, cursor: undefined, page: 1 })}
+              className={`rounded-dd-lg border bg-white p-4 text-left shadow-sm transition hover:border-dd-forest ${active ? 'border-dd-forest ring-1 ring-dd-forest/20' : 'border-dd-line'}`}
+            >
+              <span className="block text-xs font-semibold text-dd-muted">{label}</span>
+              <strong className="mt-2 block text-2xl text-dd-ink">
+                {count.toLocaleString('id-ID')}
+              </strong>
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -505,6 +542,26 @@ export function PurchaseReviewView({
       </div>
 
       <FilterBar>
+        {availableBranches.length > 0 && (
+          <SelectInput
+            label="Cabang"
+            value={filters.branchId ?? (sessionContext?.hasCapability('branch:all') ? 'ALL' : (activeBranch?.id ?? 'ALL'))}
+            onChange={(event) =>
+              changeFilters({
+                branchId: event.target.value === 'ALL' ? 'ALL' : event.target.value,
+                cursor: undefined,
+                page: 1,
+              })
+            }
+          >
+            <option value="ALL">Semua Cabang</option>
+            {availableBranches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </SelectInput>
+        )}
         <SearchInput
           wrapperClassName="min-w-56 flex-1"
           label="Cari pelanggan atau transaksi"
@@ -595,13 +652,41 @@ export function PurchaseReviewView({
       <DataTable
         items={items}
         loading={loading}
-        rowNumberOffset={pageOffset(cursorHistory.length)}
+        rowNumberOffset={pageOffset((filters.page ?? 1) - 1)}
         rowKey={(item) => item.id}
-        emptyTitle={filters.q ? 'Transaksi tidak ditemukan' : 'Antrean pembayaran kosong'}
+        emptyTitle={
+          filters.q
+            ? 'Transaksi tidak ditemukan'
+            : filters.status === 'PENDING'
+              ? 'Antrean pembayaran kosong'
+              : 'Daftar transaksi kosong'
+        }
         emptyDescription={
           filters.q
             ? 'Ubah pencarian atau reset filter untuk melihat hasil lain.'
-            : 'Tidak ada transaksi yang perlu ditampilkan pada cakupan ini.'
+            : filters.status === 'PENDING'
+              ? 'Tidak ada transaksi baru yang menunggu verifikasi saat ini. Anda dapat memeriksa riwayat seluruh transaksi yang telah diproses.'
+              : 'Tidak ada transaksi yang perlu ditampilkan pada filter ini.'
+        }
+        emptyAction={
+          filters.status === 'PENDING' && !filters.q ? (
+            <Button
+              variant="secondary"
+              onClick={() => changeFilters({ status: 'ALL', cursor: undefined, page: 1 })}
+            >
+              Lihat Riwayat Semua Transaksi
+            </Button>
+          ) : filters.q ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                changeFilters({ q: undefined, cursor: undefined, page: 1 });
+              }}
+            >
+              Hapus Pencarian
+            </Button>
+          ) : undefined
         }
         onRowClick={(item) => router.push(detailHref(item.id))}
         rowClassName={(item) => rowClasses[paymentRowState(item)]}
@@ -757,13 +842,17 @@ export function PurchaseReviewView({
       />
 
       <Pagination
-        currentPage={cursorHistory.length + 1}
-        totalPages={Math.ceil(currentTotal / ADMIN_PAGE_SIZE) || 1}
+        currentPage={filters.page ?? 1}
+        totalPages={totalPages > 1 ? totalPages : (Math.ceil(currentTotal / ADMIN_PAGE_SIZE) || 1)}
         totalItems={currentTotal}
         pageSize={ADMIN_PAGE_SIZE}
-        hasPrevious={cursorHistory.length > 0}
-        hasNext={Boolean(nextCursor)}
-        totalLabel={`${items.length.toLocaleString('id-ID')} transaksi pada halaman ini`}
+        hasPrevious={(filters.page ? filters.page > 1 : cursorHistory.length > 0) && !loading}
+        hasNext={Boolean(nextCursor) || (totalPages > 1 && (filters.page ?? 1) < totalPages)}
+        showPageNumbers
+        totalLabel={`${currentTotal.toLocaleString('id-ID')} transaksi`}
+        onPageChange={(target) => {
+          changeFilters({ page: target, cursor: undefined }, true);
+        }}
         onPrevious={onPrevious}
         onNext={onNext}
       />

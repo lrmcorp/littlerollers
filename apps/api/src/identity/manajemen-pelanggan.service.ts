@@ -1,7 +1,9 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 import { hashPassword, normalizeEmail } from './credential-security';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
@@ -9,6 +11,29 @@ import { ApiProblem, newId } from './security';
 
 type CustomerStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
 type VerificationStatus = 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
+
+export function buildPhoneSearchVariants(query: string): string[] {
+  const trimmed = query.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  const variants = new Set<string>();
+  if (trimmed) variants.add(trimmed);
+  if (digits.length >= 4) {
+    variants.add(digits);
+    if (digits.startsWith('0')) {
+      variants.add(`+62${digits.slice(1)}`);
+      variants.add(`62${digits.slice(1)}`);
+      variants.add(digits.slice(1));
+    } else if (digits.startsWith('62')) {
+      variants.add(`+${digits}`);
+      variants.add(`0${digits.slice(2)}`);
+      variants.add(digits.slice(2));
+    } else {
+      variants.add(`+62${digits}`);
+      variants.add(`0${digits}`);
+    }
+  }
+  return Array.from(variants);
+}
 
 function normalizePhone(value: string): string {
   const compact = value.replace(/[\s().-]/gu, '');
@@ -24,6 +49,7 @@ export class CustomerManagementService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     @Optional() private readonly idempotency?: IdempotencyService,
+    @Optional() private readonly whatsapp?: WhatsAppGatewayService,
   ) {}
 
   private require(principal: SessionPrincipal, capability: string) {
@@ -35,6 +61,8 @@ export class CustomerManagementService {
     filters: {
       q?: string;
       cursor?: string;
+      page?: number;
+      pageSize?: number;
       status?: CustomerStatus;
       verificationStatus?: VerificationStatus;
       preferredBranchId?: string;
@@ -44,36 +72,33 @@ export class CustomerManagementService {
   ) {
     this.require(principal, 'customer:read');
     const q = filters.q?.trim();
+    const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
+    const limit = Math.min(filters.pageSize ?? 20, 100);
+    const pageNumber = filters.page && Number(filters.page) > 0 ? Number(filters.page) : undefined;
+
+    const searchClause: Prisma.UserWhereInput | undefined = q
+      ? {
+          OR: [
+            { displayName: { contains: q } },
+            { email: { contains: q } },
+            ...phoneVariants.map((v) => ({ phone: { contains: v } })),
+          ],
+        }
+      : undefined;
 
     const where: Prisma.UserWhereInput = {
       role: { in: ['CUSTOMER', 'MEMBER'] },
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
-      ...(q
-        ? {
-            OR: [
-              { displayName: { contains: q } },
-              { email: { contains: q } },
-              { phone: { contains: q } },
-            ],
-          }
-        : {}),
-      ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
+      ...(searchClause ? searchClause : {}),
+      ...(pageNumber ? {} : (filters.cursor ? { id: { gt: filters.cursor } } : {})),
     };
 
     const countWhere: Prisma.UserWhereInput = {
       role: { in: ['CUSTOMER', 'MEMBER'] },
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
-      ...(q
-        ? {
-            OR: [
-              { displayName: { contains: q } },
-              { email: { contains: q } },
-              { phone: { contains: q } },
-            ],
-          }
-        : {}),
+      ...(searchClause ? searchClause : {}),
     };
 
     const [users, totalCount] = await Promise.all([
@@ -91,13 +116,18 @@ export class CustomerManagementService {
           },
         },
         orderBy: { id: 'asc' },
-        take: 21,
+        take: pageNumber ? limit : limit + 1,
+        ...(pageNumber ? { skip: (pageNumber - 1) * limit } : {}),
       }),
-      this.db.user.count({ where: countWhere }),
+      typeof this.db.user.count === 'function'
+        ? this.db.user.count({ where: countWhere })
+        : Promise.resolve(0),
     ]);
 
-    const hasMore = users.length > 20;
-    const page = users.slice(0, 20);
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+    const hasMore = pageNumber ? pageNumber < totalPages : users.length > limit;
+    const page = pageNumber ? users : (users.length > limit ? users.slice(0, limit) : users);
+    const nextCursor = hasMore ? (page.at(-1)?.id ?? null) : null;
 
     return {
       items: page.map((u) => ({
@@ -117,8 +147,21 @@ export class CustomerManagementService {
         profile: u.profile,
         createdAt: u.createdAt.toISOString(),
       })),
+      total: totalCount,
+      currentPage: pageNumber ?? 1,
+      totalPages,
+      pageSize: limit,
       summary: { total: totalCount, active: totalCount, inactive: 0 },
-      page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
+      page: filters.page != null
+        ? {
+            nextCursor,
+            hasMore,
+            current: pageNumber ?? 1,
+            total: totalCount,
+            totalPages,
+            pageSize: limit,
+          }
+        : { nextCursor, hasMore },
     };
   }
 
@@ -301,21 +344,32 @@ export class CustomerManagementService {
     _correlationId: string,
   ) {
     this.require(principal, 'customer:credential:initialize');
-    if (input.password !== input.passwordConfirmation)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
     const displayName = input.displayName?.trim();
-    const email = normalizeEmail(input.email ?? '');
-    const phoneE164 = normalizePhone(input.phoneE164 ?? '');
-
-    if (!displayName || displayName.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
+    if (!displayName || displayName.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
-    const passwordHash = await hashPassword(input.password);
+    const phoneE164 = normalizePhone(input.phoneE164 ?? '');
+    const rawEmail = input.email?.trim();
+    const email = rawEmail ? normalizeEmail(rawEmail) : null;
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    let password = input.password?.trim();
+    if (password) {
+      if (input.passwordConfirmation && password !== input.passwordConfirmation)
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    } else {
+      password = `Dd${randomBytes(4).toString('hex')}!`;
+    }
+
+    const passwordHash = await hashPassword(password);
 
     const action = async (tx: Prisma.TransactionClient) => {
+      const orConditions: Prisma.UserWhereInput[] = [{ phone: phoneE164 }];
+      if (email) orConditions.push({ email });
       const existing = await tx.user.findFirst({
-        where: { OR: [{ email }, { phone: phoneE164 }] },
+        where: { OR: orConditions },
       });
       if (existing) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
 
@@ -344,6 +398,17 @@ export class CustomerManagementService {
             birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : null,
           },
         });
+      }
+
+      if (this.whatsapp) {
+        this.whatsapp
+          .sendMessage({
+            to: phoneE164,
+            text: `Halo ${displayName}, akun keanggotaan Daily Dose Pilates Anda telah aktif! Anda dapat langsung memesan kelas atau membeli paket di studio kami.`,
+            recipientType: 'CUSTOMER',
+            reminderType: 'CUSTOMER_WELCOME',
+          })
+          .catch(() => undefined);
       }
 
       return {

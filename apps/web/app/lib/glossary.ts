@@ -20,6 +20,8 @@ export const glossary = [
   { avoid: 'Recovery', use: 'Pemulihan' },
   { avoid: 'Legacy cashflow', use: 'Arus kas lama (v1)' },
   { avoid: 'Dead-letter', use: 'Antrean gagal' },
+  { avoid: 'Requester', use: 'Staf pemohon' },
+  { avoid: 'Approver', use: 'Staf penyetuju' },
 ] as const;
 
 /** Label tombol aksi baku. */

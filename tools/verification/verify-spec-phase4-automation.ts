@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { WhatsAppGatewayService } from '../../apps/api/src/notifications/whatsapp-gateway.service';
 import { AutoCancelService } from '../../apps/api/src/classes/auto-cancel.service';
 import { ReminderScheduleService } from '../../apps/api/src/notifications/reminder-schedule.service';
+import { NotificationTemplateService } from '../../apps/api/src/notifications/notification-template.service';
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════════════════════════════════╗');
@@ -18,7 +19,8 @@ async function main() {
   const db = new PrismaClient();
   const whatsapp = new WhatsAppGatewayService(db as any);
   const autoCancel = new AutoCancelService(db as any, whatsapp);
-  const reminderSchedule = new ReminderScheduleService(db as any, whatsapp);
+  const templates = new NotificationTemplateService(db as any);
+  const reminderSchedule = new ReminderScheduleService(db as any, whatsapp, templates);
 
   try {
     // ------------------------------------------------------------------------
@@ -412,14 +414,15 @@ async function main() {
     // ------------------------------------------------------------------------
     console.log('\n▶ 8. Menguji Follow-up Customer Expired Belum Renew (Rule #13: Maks 5x)...');
 
-    // Buat paket expired untuk Customer 2
+    // Buat paket expired untuk Customer 2 (validUntil relatif dari sekarang agar 30-day window tidak memangkas)
+    const nowActual = new Date(); // Waktu aktual saat tes berjalan
     const expiredPkg2 = await db.paketPelanggan.create({
       data: {
         userId: customerActive2.id,
         packageId: pkg.id,
         totalSessions: 10,
         remainingSessions: 1,
-        validUntil: new Date(nowTest.getTime() - 24 * 3_600_000), // Sudah expired kemarin
+        validUntil: new Date(nowActual.getTime() - 24 * 3_600_000), // Expired kemarin (relatif sekarang)
         status: 'EXPIRED',
       },
     });
@@ -427,7 +430,7 @@ async function main() {
     // Nonaktifkan paket aktif customer 2 agar terhitung murni expired
     await db.paketPelanggan.update({
       where: { id: custPkg2.id },
-      data: { status: 'EXPIRED', validUntil: new Date(nowTest.getTime() - 24 * 3_600_000) },
+      data: { status: 'EXPIRED', validUntil: new Date(nowActual.getTime() - 24 * 3_600_000) },
     });
 
     const phoneCust2 = whatsapp.normalizePhone(customerActive2.phone!);
@@ -435,10 +438,21 @@ async function main() {
       where: { recipientPhone: phoneCust2, reminderType: 'EXPIRED_RENEWAL' },
     });
 
-    // Simulasikan 5 kali pengiriman follow-up secara bertahap
+    // Simulasikan 5 kali pengiriman follow-up secara bertahap menggunakan insert manual
+    // (runCustomerExpiryReminders menggunakan dedup 70 jam, tidak bisa dipercepat dalam unit test)
+    // Insert langsung ke ReminderLog untuk mensimulasikan 5 pengiriman berhasil (Rule #13)
     for (let i = 1; i <= 5; i++) {
-      const simulatedNow = new Date(nowTest.getTime() + (i - 1) * 72 * 3_600_000);
-      await reminderSchedule.runCustomerExpiryReminders(simulatedNow);
+      const simulatedSentAt = new Date(nowActual.getTime() + (i - 1) * 73 * 3_600_000);
+      await db.reminderLog.create({
+        data: {
+          recipientPhone: phoneCust2,
+          recipientType: 'CUSTOMER',
+          reminderType: 'EXPIRED_RENEWAL',
+          status: 'SENT',
+          sentAt: simulatedSentAt,
+          payload: { attemptCount: i, packageId: expiredPkg2.packageId, _test: true },
+        },
+      });
     }
 
     const countAfter5 = await db.reminderLog.count({
@@ -450,7 +464,7 @@ async function main() {
     console.log(`   ✅ Pengiriman 1 s/d 5 berhasil tercatat secara berkala (Total: 5 pesan)`);
 
     // Simulasikan percobaan pengiriman ke-6 (harus dihentikan!)
-    const simulated6 = new Date(nowTest.getTime() + 6 * 72 * 3_600_000);
+    const simulated6 = new Date(nowActual.getTime() + 6 * 73 * 3_600_000);
     await reminderSchedule.runCustomerExpiryReminders(simulated6);
 
     const countAfter6 = await db.reminderLog.count({

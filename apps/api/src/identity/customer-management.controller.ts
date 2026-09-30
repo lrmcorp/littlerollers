@@ -23,6 +23,8 @@ export class CustomerManagementController {
     @Req() request: AuthenticatedRequest,
     @Query('q') q?: string,
     @Query('cursor') cursor?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Query('status') status?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE',
     @Query('verificationStatus') verificationStatus?: 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED',
     @Query('preferredBranchId') preferredBranchId?: string,
@@ -32,6 +34,8 @@ export class CustomerManagementController {
     return this.customers.list(request.principal, {
       q,
       cursor,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
       status,
       verificationStatus,
       preferredBranchId,
