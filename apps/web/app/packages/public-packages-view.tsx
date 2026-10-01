@@ -218,10 +218,13 @@ export function PublicPackagesView({
         if (requestedQ) setSearchQuery(requestedQ);
         if (requestedPrice) setPriceRange(requestedPrice);
         if (requestedSessions) setSessionRange(requestedSessions);
+        const storedBranch =
+          typeof window !== 'undefined' ? window.sessionStorage.getItem('dd_active_branch') : null;
         const initialBranch =
           requestedBranch && result.branches.some(({ id }) => id === requestedBranch)
             ? requestedBranch
-            : result.branches.find(({ id }) => id === session?.preferredBranch?.id)?.id;
+            : result.branches.find(({ id }) => id === session?.preferredBranch?.id)?.id ||
+              result.branches.find(({ id }) => id === storedBranch)?.id;
         if (initialBranch) {
           setBranchId(initialBranch);
           try {
@@ -250,6 +253,9 @@ export function PublicPackagesView({
   }, [client, session?.preferredBranch?.id]);
 
   const selectBranch = async (selected: string) => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('dd_active_branch', selected);
+    }
     setBranchId(selected);
     setClassTypeId('');
     setSearchQuery('');
@@ -582,7 +588,7 @@ export function PublicPackagesView({
                     <p>
                       {items.length > 0
                         ? 'Coba ubah kata kunci pencarian, longgarkan filter harga atau jumlah sesi untuk menemukan paket yang sesuai.'
-                        : 'Coba tipe kelas lain atau pilih studio berbeda.'}
+                        : 'Paket untuk studio ini belum tersedia. Silakan pilih studio Daily Dose lainnya untuk melihat pilihan paket yang tersedia.'}
                     </p>
                     {items.length > 0 && hasActiveFilters && (
                       <button
@@ -592,6 +598,23 @@ export function PublicPackagesView({
                       >
                         Reset semua filter
                       </button>
+                    )}
+                    {items.length === 0 && branches.filter((b) => b.id !== branchId).length > 0 && (
+                      <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+                        {branches
+                          .filter((b) => b.id !== branchId)
+                          .map((otherBranch) => (
+                            <button
+                              key={otherBranch.id}
+                              type="button"
+                              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-dd-line/80 bg-white px-4 text-sm font-semibold text-dd-forest shadow-sm transition hover:border-dd-forest hover:bg-dd-forest/5 cursor-pointer"
+                              onClick={() => void selectBranch(otherBranch.id)}
+                            >
+                              <MapPin className="size-4" />
+                              <span>Lihat paket {otherBranch.name}</span>
+                            </button>
+                          ))}
+                      </div>
                     )}
                   </PublicStatePanel>
                 )}

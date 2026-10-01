@@ -54,6 +54,34 @@ async function sessionFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export function hasSessionHint(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return (
+      localStorage.getItem('dd_session_hint') === '1' ||
+      sessionStorage.getItem('dd_session_hint') === '1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function setSessionHint(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('dd_session_hint', '1');
+    sessionStorage.setItem('dd_session_hint', '1');
+  } catch {}
+}
+
+export function clearSessionHint(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('dd_session_hint');
+    sessionStorage.removeItem('dd_session_hint');
+  } catch {}
+}
+
 export const browserSessionClient: SessionClient = {
   async me() {
     let value: Omit<WebSession, 'sessionExpiresAt'> & { sessionExpiresAt: Date | string };
@@ -64,16 +92,31 @@ export const browserSessionClient: SessionClient = {
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status !== 401) throw error;
-      await appLoading.track(sessionFetch<void>('/auth/refresh', { method: 'POST' }), {
-        label: 'Memperbarui sesi…',
-      });
+
+      // Jika status 401 dan tidak ada hint sesi aktif, jangan memicu panggilan /auth/refresh yang sia-sia
+      if (!hasSessionHint()) {
+        clearSessionHint();
+        throw error;
+      }
+
+      try {
+        await appLoading.track(sessionFetch<void>('/auth/refresh', { method: 'POST' }), {
+          label: 'Memperbarui sesi…',
+        });
+      } catch (refreshError) {
+        clearSessionHint();
+        throw refreshError;
+      }
+
       value = (await appLoading.track(sessionFetch<any>('/me'), {
         label: 'Memuat sesi…',
       })) as unknown as typeof value;
     }
+    setSessionHint();
     return { ...value, sessionExpiresAt: new Date(value.sessionExpiresAt) };
   },
   async logout() {
+    clearSessionHint();
     await appLoading.track(sessionFetch<void>('/auth/logout', { method: 'POST' }), {
       label: 'Keluar dari akun…',
     });
@@ -89,6 +132,8 @@ export function sessionFailure(
 
 export function notifySessionFailure(error: unknown): void {
   const status = (error as { response?: { status?: number } })?.response?.status;
-  if (status === 401 && typeof window !== 'undefined')
+  if (status === 401 && typeof window !== 'undefined') {
+    clearSessionHint();
     window.dispatchEvent(new CustomEvent('dd-session-revoked'));
+  }
 }

@@ -1,10 +1,12 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   browserSessionClient,
+  clearSessionHint,
   sessionFailure,
+  setSessionHint,
   type SessionClient,
   type SessionStatus,
   type WebSession,
@@ -99,8 +101,6 @@ export function safeReturnTo(value: string | null): string {
     ];
     if (forbidden.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`)))
       return '/workspace';
-    if (url.pathname === '/account/verification')
-      return '/workspace';
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return '/workspace';
@@ -168,6 +168,8 @@ export function SessionProvider({
   client?: SessionClient;
 }) {
   const [status, setStatus] = useState<SessionStatus>('loading');
+  const statusRef = useRef<SessionStatus>(status);
+  statusRef.current = status;
   const [session, setSession] = useState<WebSession | null>(null);
   const [activeBranchId, setBranch] = useState('');
   const pathname = usePathname();
@@ -221,6 +223,9 @@ export function SessionProvider({
       setStatus('unauthenticated');
       return;
     }
+    if (statusRef.current === 'unauthenticated' && isPublicExperiencePath(pathname)) {
+      return;
+    }
     void refresh();
   }, [pathname, refresh]);
 
@@ -238,6 +243,7 @@ export function SessionProvider({
 
   useEffect(() => {
     const revoked = () => {
+      clearSessionHint();
       setSession(null);
       setBranch('');
       sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
@@ -259,6 +265,7 @@ export function SessionProvider({
   }, [pathname, router, status]);
 
   const logout = useCallback(async () => {
+    clearSessionHint();
     try {
       await client.logout();
     } catch {
@@ -279,6 +286,7 @@ export function SessionProvider({
 
   const completeSignIn = useCallback(
     async (returnTo: string) => {
+      setSessionHint();
       const current = await refresh();
       if (!current) return false;
       router.replace(resolveSessionDestination(current, returnTo));

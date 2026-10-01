@@ -387,6 +387,7 @@ describe('capability-aware session shell', () => {
     expect(safeReturnTo('/classes?studio=Green%20Garden#schedule')).toBe(
       '/classes?studio=Green%20Garden#schedule',
     );
+    expect(safeReturnTo('/account/verification')).toBe('/account/verification');
     expect(safeReturnTo('/sign-in?returnTo=/sign-in')).toBe('/workspace');
     expect(safeReturnTo('//evil.example/path')).toBe('/workspace');
     expect(safeReturnTo('https://evil.example/path')).toBe('/workspace');
@@ -427,6 +428,7 @@ describe('capability-aware session shell', () => {
       ),
     ).toBe('/identity-verifications');
     expect(forbiddenSessionDestination(adminSession, '/account/verification')).toBe('/workspace');
+    expect(resolveSessionDestination(customerSession, '/account/verification')).toBe('/account/verification');
     expect(
       resolveSessionDestination(
         {

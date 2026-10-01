@@ -110,7 +110,7 @@ async function selectBooking(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('option', { name: /Customer Synthetic/ }));
   const customerPackage = screen.getByRole('combobox', { name: /Paket pelanggan/ });
   await user.click(customerPackage);
-  await user.click(await screen.findByRole('option', { name: /Paket aktif/ }));
+  await user.click(await screen.findByRole('option', { name: /Paket aktif/i }));
   const classSlot = screen.getByRole('combobox', { name: /Kelas/ });
   await user.click(classSlot);
   await user.click(await screen.findByRole('option', { name: /2 Jan 2027/ }));
@@ -280,7 +280,7 @@ describe('BookingView', () => {
     const view = render(<BookingView client={bookingClient} activeBranchId={branchId} />);
     const user = userEvent.setup();
     await selectBooking(user);
-    expect(screen.getByRole('combobox', { name: /Kelas/ })).toHaveValue('2 Jan 2027, 09.00');
+    expect(screen.getByRole('combobox', { name: /Kelas/ })).toHaveValue('Kelas · 2 Jan 2027, 09.00');
     view.rerender(
       <BookingView client={bookingClient} activeBranchId="00000000-0000-4000-8000-000000000299" />,
     );

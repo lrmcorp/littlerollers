@@ -60,7 +60,7 @@ export function PublicHeader() {
           >
             {publicNavigation.map((item) => (
               <Link
-                className={`relative whitespace-nowrap py-2 text-sm font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:bg-dd-forest after:transition-transform ${
+                className={`relative inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap py-2 text-sm font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:bg-dd-forest after:transition-transform ${
                   isCurrent(pathname, hash, item.href)
                     ? 'text-dd-forest after:scale-x-100'
                     : 'text-dd-ink after:scale-x-0 hover:text-dd-forest hover:after:scale-x-100'
@@ -109,38 +109,38 @@ export function PublicHeader() {
                     <>
                       <Link
                         href="/account"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Dashboard Saya
                       </Link>
                       <Link
                         href="/bookings"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Booking Saya
                       </Link>
                       <Link
                         href="/account/packages"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Paket Saya
                       </Link>
                       <Link
                         href="/orders"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Riwayat Pesanan
                       </Link>
                       <Link
                         href="/account/profile"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Profil Saya
                       </Link>
                       <button
                         type="button"
                         onClick={() => studioPreference?.openStudioPreference()}
-                        className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
                       >
                         Ganti studio
                       </button>
@@ -149,13 +149,13 @@ export function PublicHeader() {
                     <>
                       <Link
                         href="/workspace"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Buka Workspace
                       </Link>
                       <Link
                         href="/account/profile"
-                        className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         Profil Saya
                       </Link>
@@ -165,7 +165,7 @@ export function PublicHeader() {
                     <button
                       type="button"
                       onClick={() => void sessionContext?.logout()}
-                      className="w-full min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
+                      className="flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                     >
                       Keluar
                     </button>

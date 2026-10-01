@@ -296,14 +296,14 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
       )}
 
       {/* TABS UTAMA: 5 LAPORAN vs REKONSILIASI */}
-      <div className="flex gap-4 border-b border-dd-line pb-2">
+      <div className="flex gap-6 border-b border-dd-line">
         <button
           type="button"
           onClick={() => setMainTab('FINANCIAL_REPORTS')}
-          className={`flex items-center gap-2 pb-2 text-base font-semibold transition-colors ${
+          className={`-mb-px flex items-center gap-2 pb-3 text-sm sm:text-base font-semibold transition-colors ${
             mainTab === 'FINANCIAL_REPORTS'
-              ? 'border-b-2 border-dd-primary text-dd-primary'
-              : 'text-dd-muted hover:text-dd-text'
+              ? 'border-b-2 border-dd-forest text-dd-forest'
+              : 'border-b-2 border-transparent text-dd-muted hover:text-dd-ink'
           }`}
         >
           <PieChart className="h-5 w-5" />
@@ -313,10 +313,10 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         <button
           type="button"
           onClick={() => setMainTab('RECONCILIATION')}
-          className={`flex items-center gap-2 pb-2 text-base font-semibold transition-colors ${
+          className={`-mb-px flex items-center gap-2 pb-3 text-sm sm:text-base font-semibold transition-colors ${
             mainTab === 'RECONCILIATION'
-              ? 'border-b-2 border-dd-primary text-dd-primary'
-              : 'text-dd-muted hover:text-dd-text'
+              ? 'border-b-2 border-dd-forest text-dd-forest'
+              : 'border-b-2 border-transparent text-dd-muted hover:text-dd-ink'
           }`}
         >
           <Scale className="h-5 w-5" />
@@ -348,7 +348,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   type="month"
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text focus:border-dd-primary focus:outline-none"
+                  className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                 />
               </label>
             </div>
@@ -380,8 +380,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               onClick={() => setReportTab('PROFIT_CLOSE')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'PROFIT_CLOSE'
-                  ? 'bg-dd-primary text-white shadow-sm'
-                  : 'text-dd-muted hover:bg-dd-surface-alt'
+                  ? 'bg-dd-forest text-white shadow-dd-soft'
+                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <PieChart className="h-4 w-4" />
@@ -393,8 +393,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               onClick={() => setReportTab('OMSET')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'OMSET'
-                  ? 'bg-dd-primary text-white shadow-sm'
-                  : 'text-dd-muted hover:bg-dd-surface-alt'
+                  ? 'bg-dd-forest text-white shadow-dd-soft'
+                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <TrendingUp className="h-4 w-4" />
@@ -406,8 +406,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               onClick={() => setReportTab('INSTRUCTOR_REALTIME')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'INSTRUCTOR_REALTIME'
-                  ? 'bg-dd-primary text-white shadow-sm'
-                  : 'text-dd-muted hover:bg-dd-surface-alt'
+                  ? 'bg-dd-forest text-white shadow-dd-soft'
+                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <Users className="h-4 w-4" />
@@ -419,8 +419,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               onClick={() => setReportTab('INSTRUCTOR_PROJECTION')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'INSTRUCTOR_PROJECTION'
-                  ? 'bg-dd-primary text-white shadow-sm'
-                  : 'text-dd-muted hover:bg-dd-surface-alt'
+                  ? 'bg-dd-forest text-white shadow-dd-soft'
+                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <FileSpreadsheet className="h-4 w-4" />
@@ -432,8 +432,8 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               onClick={() => setReportTab('OTHER_COST')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'OTHER_COST'
-                  ? 'bg-dd-primary text-white shadow-sm'
-                  : 'text-dd-muted hover:bg-dd-surface-alt'
+                  ? 'bg-dd-forest text-white shadow-dd-soft'
+                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <DollarSign className="h-4 w-4" />
@@ -494,13 +494,13 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="font-medium text-dd-text">Laba Bersih Projeksi:</span>
-                      <span className="font-bold text-dd-primary">
+                      <span className="font-medium text-dd-ink">Laba Bersih Projeksi:</span>
+                      <span className="font-bold text-dd-forest">
                         {formatRupiah(profitData.netProfitProjectionRp)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="font-medium text-dd-text">Laba Bersih Realtime:</span>
+                      <span className="font-medium text-dd-ink">Laba Bersih Realtime:</span>
                       <span className="font-bold text-emerald-600">
                         {formatRupiah(profitData.netProfitRealtimeRp)}
                       </span>
@@ -726,7 +726,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         header: 'Total Honorarium',
                         cell: (r) => (
                           <div>
-                            <span className="font-bold text-dd-primary">
+                            <span className="font-bold text-dd-forest">
                               {formatRupiah(r.totalFeeRp)}
                             </span>
                             <span className="block text-xs font-semibold text-dd-muted">
@@ -943,7 +943,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 <label className="grid gap-1 text-xs font-bold text-dd-muted">
                   Dari tanggal
                   <input
-                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text"
+                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                     type="date"
                     value={from}
                     onChange={(event) => setFrom(event.target.value)}
@@ -952,7 +952,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 <label className="grid gap-1 text-xs font-bold text-dd-muted">
                   Sampai tanggal
                   <input
-                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-text"
+                    className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                     type="date"
                     value={until}
                     onChange={(event) => setUntil(event.target.value)}
@@ -1033,7 +1033,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   cell: (item: any) => (
                     <Link
                       href={item.href || '#'}
-                      className="text-xs font-semibold text-dd-primary hover:underline"
+                      className="text-xs font-semibold text-dd-forest hover:underline"
                     >
                       Buka Pembayaran
                     </Link>

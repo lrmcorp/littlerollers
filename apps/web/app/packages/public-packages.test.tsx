@@ -81,6 +81,7 @@ const superOwner: WebSession = {
 
 describe('public package catalog', () => {
   beforeEach(() => {
+    window.sessionStorage.clear();
     window.history.replaceState({}, '', '/packages');
   });
 
@@ -271,5 +272,50 @@ describe('public package catalog', () => {
 
     // 6. a11y check
     expect((await axe(container)).violations).toHaveLength(0);
+  });
+
+  it('renders helpful empty state with studio switchers when studio has no active packages', async () => {
+    const branch2 = {
+      id: 'branch-2',
+      code: 'DD-BDG',
+      name: 'Daily Dose Bandung',
+      timezone: 'Asia/Jakarta',
+    };
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch, branch2], items: [] })
+        .mockResolvedValueOnce({ branches: [branch, branch2], items: [] })
+        .mockResolvedValueOnce({ branches: [branch, branch2], items: packages }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    expect(await screen.findByText('Belum ada paket aktif')).toBeVisible();
+    expect(
+      screen.getByText(/Paket untuk studio ini belum tersedia\. Silakan pilih studio Daily Dose lainnya/),
+    ).toBeVisible();
+
+    const switchBtn = screen.getByRole('button', { name: /Lihat paket Daily Dose Bandung/ });
+    expect(switchBtn).toBeVisible();
+
+    await userEvent.click(switchBtn);
+    expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    expect(window.sessionStorage.getItem('dd_active_branch')).toBe('branch-2');
+  });
+
+  it('restores preferred studio from sessionStorage fallback on initial load', async () => {
+    window.sessionStorage.setItem('dd_active_branch', 'branch-1');
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: packages }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    expect(client.list).toHaveBeenCalledWith('branch-1');
   });
 });
