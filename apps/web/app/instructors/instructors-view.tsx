@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Building2, Plus, UserCheck } from 'lucide-react';
+import { Building2, Eye, EyeOff, Plus, RefreshCw, UserCheck } from 'lucide-react';
 import { DataTable, type DataTableColumn, Pagination, Badge } from '../components/admin/admin-ui';
 import { SearchInput, TextInput } from '../components/forms';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
@@ -38,12 +38,26 @@ export function InstructorsView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     displayName: '',
     email: '',
     phoneE164: '',
     branchIds: [] as string[],
   });
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = 'Dose';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += '!';
+    setPassword(res);
+    setShowPassword(true);
+    setCreateDirty(true);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,14 +106,19 @@ export function InstructorsView() {
 
     setBusy(true);
     try {
-      await instructorClient.create(form);
+      await instructorClient.create({
+        ...form,
+        password: password.trim() || undefined,
+      });
       feedback.showToast({
         tone: 'success',
         title: 'Instruktur berhasil didaftarkan',
-        message: `Akun instruktur ${form.displayName} siap digunakan.`,
+        message: `Akun instruktur ${form.displayName} siap digunakan untuk login dan mengajar.`,
       });
       setCreateDirty(false);
       setCreateOpen(false);
+      setPassword('');
+      setShowPassword(false);
       setForm({ displayName: '', email: '', phoneE164: '', branchIds: [] });
       reset();
       await load();
@@ -291,6 +310,8 @@ export function InstructorsView() {
         onClose={() => {
           setCreateDirty(false);
           setCreateOpen(false);
+          setPassword('');
+          setShowPassword(false);
         }}
         footer={
           <div className="flex justify-end gap-2">
@@ -300,6 +321,8 @@ export function InstructorsView() {
               onClick={() => {
                 setCreateDirty(false);
                 setCreateOpen(false);
+                setPassword('');
+                setShowPassword(false);
               }}
               disabled={busy}
             >
@@ -343,6 +366,49 @@ export function InstructorsView() {
             value={form.phoneE164}
             onChange={(e) => setForm((prev) => ({ ...prev, phoneE164: e.target.value }))}
           />
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between">
+              <label
+                className="text-xs font-bold uppercase tracking-wider text-dd-muted"
+                htmlFor="instructor-password-input"
+              >
+                Kata Sandi Awal Login
+              </label>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest hover:underline cursor-pointer"
+              >
+                <RefreshCw className="size-3" /> Buat Sandi Acak
+              </button>
+            </div>
+            <div className="relative flex items-center">
+              <input
+                id="instructor-password-input"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setCreateDirty(true);
+                }}
+                placeholder="Masukkan kata sandi (min. 8 karakter) atau klik Buat Sandi Acak"
+                minLength={8}
+                className="w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 pr-10 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 text-dd-muted hover:text-dd-ink cursor-pointer"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-dd-muted">
+              Sandi ini digunakan oleh instruktur untuk login di halaman masuk (/sign-in) dan mengakses jadwal mengajar serta scanner kehadiran.
+            </p>
+          </div>
           <div className="grid gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-dd-muted">
               Penugasan Studio / Cabang Awal

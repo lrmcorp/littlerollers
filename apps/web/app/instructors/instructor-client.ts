@@ -104,11 +104,13 @@ export const instructorClient = {
     email: string;
     displayName: string;
     phoneE164?: string;
+    password?: string;
     branchIds?: string[];
   }) {
     const createdUser = await post<{ id: string; status: string }>('/users', {
       email: input.email.trim().toLowerCase(),
       displayName: input.displayName.trim(),
+      password: input.password?.trim() || undefined,
       roles: ['COACH'],
       branchIds: input.branchIds ?? [],
       roleAssignments: (input.branchIds ?? []).map((branchId) => ({

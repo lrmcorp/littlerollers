@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
 import { DataTable, Pagination } from '../components/admin/admin-ui';
+import { Drawer } from '../components/app-feedback';
 import { Feedback, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
@@ -128,64 +129,78 @@ export function CustomersView() {
         description="Cari pelanggan dan lihat profil terpadu tanpa mengubah saldo atau transaksi di luar alur resmi."
         actions={
           canCreate ? (
-            <Button onClick={() => setShowCreate((value) => !value)}>
-              {showCreate ? 'Tutup form' : 'Buat pelanggan aktif'}
+            <Button onClick={() => setShowCreate(true)}>
+              Buat pelanggan aktif
             </Button>
           ) : undefined
         }
       />
-      {error && <Feedback kind="error">{error}</Feedback>}
-      {showCreate && (
+      {error && <Feedback kind="error" onDismiss={() => setError('')}>{error}</Feedback>}
+
+      <Drawer
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Pendaftaran Pelanggan Baru"
+        description="Pendaftaran cepat member walk-in atau member baru studio."
+        className="max-w-xl"
+      >
         <form
           onSubmit={create}
-          className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-6 sm:grid-cols-2"
+          className="space-y-4 py-2"
         >
-          <div className="sm:col-span-2 rounded-dd-md bg-dd-surface-muted/40 border border-dd-line/60 p-3 text-xs text-dd-ink">
+          <div className="rounded-dd-md bg-dd-surface-muted/40 border border-dd-line/60 p-3 text-xs text-dd-ink">
             <span className="font-bold text-dd-forest">⚡ Pendaftaran Cepat Member Walk-in:</span> Cukup isi Nama dan Nomor WhatsApp. Password dan akun langsung aktif otomatis.
           </div>
-          <TextInput required label="Nama" name="displayName" autoComplete="off" placeholder="Nama lengkap member" />
-          <TextInput label="Email" name="email" type="email" autoComplete="off" placeholder="opsional@email.com" />
-          <TextInput required label="Telepon" name="phoneE164" placeholder="0812 3456 7890 atau +62..." />
-          <SearchSelect
-            label="Studio/Cabang pilihan"
-            name="preferredBranchId"
-            placeholder="Belum ditentukan"
-            options={(session?.branches ?? []).map((branch) => ({
-              id: branch.id,
-              label: branch.name,
-            }))}
-          />
-          <TextInput
-            type="password"
-            label="Password awal"
-            name="password"
-            minLength={8}
-            maxLength={128}
-            autoComplete="new-password"
-            placeholder="Kosongkan untuk dibuatkan otomatis"
-          />
-          <TextInput
-            type="password"
-            label="Ulangi password"
-            name="passwordConfirmation"
-            minLength={8}
-            maxLength={128}
-            autoComplete="new-password"
-            placeholder="Kosongkan jika otomatis"
-          />
-          <TextInput label="Catatan (opsional)" name="reason" maxLength={500} placeholder="Catatan member baru" />
-          <div className="sm:col-span-2">
-            <Feedback kind="info">
-              Pelanggan langsung aktif. Sistem otomatis mengirimkan notifikasi aktivasi ke WhatsApp member.
-            </Feedback>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput required label="Nama" name="displayName" autoComplete="off" placeholder="Nama lengkap member" />
+            <TextInput label="Email" name="email" type="email" autoComplete="off" placeholder="opsional@email.com" />
           </div>
-          <div className="sm:col-span-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput required label="Telepon" name="phoneE164" placeholder="0812 3456 7890 atau +62..." />
+            <SearchSelect
+              label="Studio/Cabang pilihan"
+              name="preferredBranchId"
+              placeholder="Belum ditentukan"
+              options={(session?.branches ?? []).map((branch) => ({
+                id: branch.id,
+                label: branch.name,
+              }))}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              type="password"
+              label="Password awal"
+              name="password"
+              minLength={8}
+              maxLength={128}
+              autoComplete="new-password"
+              placeholder="Kosongkan untuk dibuatkan otomatis"
+            />
+            <TextInput
+              type="password"
+              label="Ulangi password"
+              name="passwordConfirmation"
+              minLength={8}
+              maxLength={128}
+              autoComplete="new-password"
+              placeholder="Kosongkan jika otomatis"
+            />
+          </div>
+          <TextInput label="Catatan (opsional)" name="reason" maxLength={500} placeholder="Catatan member baru" />
+          <Feedback kind="info">
+            Pelanggan langsung aktif. Sistem otomatis mengirimkan notifikasi aktivasi ke WhatsApp member.
+          </Feedback>
+          <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+            <Button type="button" variant="secondary" disabled={submitting} onClick={() => setShowCreate(false)}>
+              Batal
+            </Button>
             <Button type="submit" loading={submitting}>
               Simpan pelanggan
             </Button>
           </div>
         </form>
-      )}
+      </Drawer>
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-4 sm:grid-cols-3">
         <SearchInput
           label="Cari pelanggan"

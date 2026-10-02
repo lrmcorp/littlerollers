@@ -6,6 +6,7 @@ import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { RateLimitService } from './rate-limit.service';
 import { ApiProblem, newId } from './security';
+import { hashPassword } from './credential-security';
 import type { ApplicationRole } from './role-capabilities';
 import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
 
@@ -29,6 +30,17 @@ function normalizePhone(value: string): string {
   if (!/^\+[1-9]\d{7,14}$/u.test(normalized))
     throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
   return normalized;
+}
+
+function toDbRole(roleName?: string): Role {
+  if (!roleName) return 'ADMIN';
+  if (roleName === 'COACH' || roleName === 'INSTRUCTOR') return 'COACH';
+  if (roleName === 'SUPERADMIN' || roleName === 'SUPER_OWNER') return 'SUPER_OWNER';
+  if (roleName === 'MANAGER') return 'MANAGER';
+  if (roleName === 'FINANCE') return 'FINANCE';
+  if (roleName === 'OWNER') return 'OWNER';
+  if (roleName === 'CUSTOMER' || roleName === 'MEMBER') return 'MEMBER';
+  return 'ADMIN';
 }
 
 @Injectable()
@@ -110,9 +122,22 @@ export class UserAdministrationService {
       ...(filters.status ? { status: filters.status as UserStatus } : {}),
       ...(filters.role ? { role: filters.role as Role } : {}),
       ...(filters.audience === 'CUSTOMER'
-        ? { role: 'MEMBER' }
+        ? { role: { in: ['CUSTOMER', 'MEMBER'] } }
         : filters.audience === 'STAFF'
-          ? { role: { in: ['SUPERADMIN', 'ADMIN', 'COACH'] } }
+          ? {
+              role: {
+                in: [
+                  'SUPER_OWNER',
+                  'OWNER',
+                  'MANAGER',
+                  'FINANCE',
+                  'ADMIN',
+                  'INSTRUCTOR',
+                  'SUPERADMIN',
+                  'COACH',
+                ],
+              },
+            }
           : {}),
       ...(q
         ? {
@@ -360,6 +385,9 @@ export class UserAdministrationService {
     input: {
       email: string;
       displayName?: string;
+      phone?: string;
+      phoneE164?: string;
+      password?: string;
       roles?: ApplicationRole[];
       branchIds?: string[];
       roleAssignments?: { role: ApplicationRole; branchId?: string | null }[];
@@ -375,14 +403,38 @@ export class UserAdministrationService {
     if (existing) throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
 
     const roleName = input.roles?.[0] || input.roleAssignments?.[0]?.role || 'ADMIN';
-    const role: Role = roleName === 'COACH' ? 'COACH' : roleName === 'SUPERADMIN' ? 'SUPERADMIN' : 'ADMIN';
+    const role: Role = toDbRole(roleName);
     const branchId = input.branchIds?.[0] || input.roleAssignments?.[0]?.branchId || null;
+
+    let phone = input.phoneE164 || input.phone;
+    if (phone) {
+      try {
+        phone = normalizePhone(phone);
+      } catch {
+        phone = phone.trim();
+      }
+      const existingPhone = await this.db.user.findFirst({
+        where: { phone },
+      });
+      if (existingPhone) {
+        throw new ApiProblem('PHONE_ALREADY_EXISTS', HttpStatus.CONFLICT, false, [
+          { field: 'phone', issue: 'Nomor telepon/WhatsApp sudah terdaftar pada pengguna lain.' },
+        ]);
+      }
+    }
+
+    let passwordHash: string | null = null;
+    if (input.password && input.password.trim()) {
+      passwordHash = await hashPassword(input.password.trim());
+    }
 
     const user = await this.db.user.create({
       data: {
         id: newId(),
         email,
+        phone: phone || null,
         displayName: input.displayName?.trim() || email.split('@')[0] || 'User',
+        passwordHash,
         role,
         preferredBranchId: branchId,
         status: 'ACTIVE',
@@ -391,6 +443,36 @@ export class UserAdministrationService {
     });
 
     return { id: user.id, status: 'CREATED', user: this.userView(user) };
+  }
+
+  async resetPasswordDirect(
+    principal: SessionPrincipal,
+    targetId: string,
+    newPassword: string,
+    _correlationId: string,
+  ) {
+    this.policy.requireCapability(principal.capabilities, 'user:admin');
+    if (!newPassword || newPassword.trim().length < 8) {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const user = await this.db.user.findUnique({ where: { id: targetId } });
+    if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const passwordHash = await hashPassword(newPassword.trim());
+
+    await this.db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: targetId },
+        data: { passwordHash },
+      });
+      await tx.userSession.updateMany({
+        where: { userId: targetId, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: 'ADMIN_PASSWORD_RESET' },
+      });
+    });
+
+    return { id: targetId, status: 'PASSWORD_RESET_SUCCESS' };
   }
 
   async updateUserRoles(
@@ -406,7 +488,7 @@ export class UserAdministrationService {
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     const roleName = input.roles[0]?.role || 'ADMIN';
-    const role: Role = roleName === 'COACH' ? 'COACH' : roleName === 'SUPERADMIN' ? 'SUPERADMIN' : 'ADMIN';
+    const role: Role = toDbRole(roleName);
     const branchId = input.roles[0]?.branchId || null;
 
     const updated = await this.db.user.update({
@@ -424,7 +506,7 @@ export class UserAdministrationService {
   async deactivate(
     principal: SessionPrincipal,
     targetId: string,
-    _reason: string,
+    _reason?: string,
     _expectedVersion?: number,
     _correlationId?: string,
   ) {
@@ -443,7 +525,7 @@ export class UserAdministrationService {
   async reactivate(
     principal: SessionPrincipal,
     targetId: string,
-    _reason: string,
+    _reason?: string,
     _expectedVersion?: number,
     _correlationId?: string,
   ) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Eye, EyeOff, RefreshCw } from 'lucide-react';
 import type { ApplicationRole, RoleCatalogItem, UserSummary } from '@/api-clients/identity-client';
 import { Button } from '../../components/actions';
 import { DestructiveDialog, Modal, useOptionalAppFeedback } from '../../components/app-feedback';
@@ -55,14 +56,14 @@ export function ProfileDialog({
   user: UserSummary;
   submitting: boolean;
   onClose(): void;
-  onSubmit(input: { displayName: string; phoneE164: string | null; reason: string }): Promise<void>;
+  onSubmit(input: { displayName: string; phoneE164: string | null }): Promise<void>;
 }) {
   const guard = useDialogFormGuard(open, onClose, 'perubahan profil');
   return (
     <Modal
       open={open}
-      title="Edit profil staf"
-      description="Perubahan profil dicatat dalam audit dan menggunakan versi data terbaru."
+      title="Edit Profil Staf"
+      description="Perbarui informasi identitas staf studio."
       busy={submitting}
       dirty={guard.dirty}
       onDirtyClose={guard.confirmDiscard}
@@ -78,7 +79,7 @@ export function ProfileDialog({
             Batal
           </Button>
           <Button type="submit" form="staff-profile-form" loading={submitting}>
-            Simpan profil
+            Simpan Profil
           </Button>
         </div>
       }
@@ -93,13 +94,12 @@ export function ProfileDialog({
           void onSubmit({
             displayName: String(data.get('displayName')),
             phoneE164: String(data.get('phoneE164')).trim() || null,
-            reason: String(data.get('reason')),
           });
         }}
       >
-        <FormSection title="Informasi profil">
+        <FormSection title="Informasi Profil">
           <TextInput
-            label="Nama tampilan"
+            label="Nama Tampilan"
             name="displayName"
             defaultValue={user.displayName}
             minLength={2}
@@ -107,13 +107,12 @@ export function ProfileDialog({
             required
           />
           <TextInput
-            label="Nomor WhatsApp"
+            label="Nomor WhatsApp / HP"
             name="phoneE164"
             type="tel"
             defaultValue={user.phoneE164 ?? ''}
           />
         </FormSection>
-        <Textarea label="Alasan perubahan" name="reason" minLength={3} maxLength={500} required />
       </form>
     </Modal>
   );
@@ -134,10 +133,7 @@ export function RoleDialog({
   branches: { id: string; code: string; name: string }[];
   submitting: boolean;
   onClose(): void;
-  onSubmit(
-    roles: { role: ApplicationRole; branchId?: string | null }[],
-    reason: string,
-  ): Promise<void>;
+  onSubmit(roles: { role: ApplicationRole; branchId?: string | null }[]): Promise<void>;
 }) {
   const guard = useDialogFormGuard(open, onClose, 'perubahan role');
   const [selection, setSelection] = useState<RoleSelectionValue>(() =>
@@ -156,8 +152,8 @@ export function RoleDialog({
   return (
     <Modal
       open={open}
-      title="Kelola role dan cakupan"
-      description="Role dari Penugasan tidak diubah dari dialog ini."
+      title="Kelola Role dan Cabang Penugasan"
+      description="Tentukan peran sistem staf ini dan cabang operasional tempatnya bertugas."
       busy={submitting}
       dirty={guard.dirty}
       onDirtyClose={guard.confirmDiscard}
@@ -173,7 +169,7 @@ export function RoleDialog({
             Batal
           </Button>
           <Button type="submit" form="staff-role-form" loading={submitting} disabled={invalid}>
-            Simpan role dan cabut sesi
+            Simpan Perubahan Role
           </Button>
         </div>
       }
@@ -184,7 +180,7 @@ export function RoleDialog({
         onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit(roles, String(new FormData(event.currentTarget).get('reason')));
+          void onSubmit(roles);
         }}
       >
         <RoleSelection
@@ -196,9 +192,8 @@ export function RoleDialog({
             guard.setDirty(true);
           }}
         />
-        <Textarea label="Alasan perubahan" name="reason" minLength={3} maxLength={500} required />
-        <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning">
-          Hak akses berubah segera dan seluruh sesi pengguna akan dicabut.
+        <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-3.5 text-xs font-semibold text-dd-warning">
+          Perubahan role berlaku segera dan seluruh sesi aktif pengguna akan diperbarui saat login berikutnya.
         </div>
       </form>
     </Modal>
@@ -214,30 +209,77 @@ export function PasswordDialog({
   open: boolean;
   submitting: boolean;
   onClose(): void;
-  onSubmit(email: string, reason: string): Promise<void>;
+  onSubmit(newPassword: string): Promise<void>;
 }) {
-  const guard = useDialogFormGuard(open, onClose, 'setup password');
+  const guard = useDialogFormGuard(open, onClose, 'reset kata sandi');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  const generateRandom = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = 'Dose';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += '!';
+    setNewPassword(res);
+    setConfirmPassword(res);
+    setShowPassword(true);
+    guard.setDirty(true);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (newPassword.length < 8) {
+      setError('Kata sandi minimal 8 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+    setError('');
+    void onSubmit(newPassword);
+  };
+
   return (
     <Modal
       open={open}
-      title="Kirim setup password"
-      description="Tautan aman dikirim ke email terverifikasi dan tidak ditampilkan kembali."
+      title="Ubah Kata Sandi Staf Langsung"
+      description="Tetapkan kata sandi baru untuk staf. Pengguna langsung dapat login menggunakan kata sandi ini."
       busy={submitting}
       dirty={guard.dirty}
       onDirtyClose={guard.confirmDiscard}
-      onClose={guard.closeImmediately}
+      onClose={() => {
+        setNewPassword('');
+        setConfirmPassword('');
+        setError('');
+        guard.closeImmediately();
+      }}
       footer={
         <div className="flex justify-end gap-3">
           <Button
             type="button"
             variant="secondary"
             disabled={submitting}
-            onClick={() => void guard.cancel()}
+            onClick={() => {
+              setNewPassword('');
+              setConfirmPassword('');
+              setError('');
+              void guard.cancel();
+            }}
           >
             Batal
           </Button>
-          <Button type="submit" form="staff-password-form" loading={submitting}>
-            Kirim tautan setup
+          <Button
+            type="submit"
+            form="staff-password-form"
+            loading={submitting}
+            disabled={!newPassword || newPassword.length < 8 || newPassword !== confirmPassword}
+          >
+            Simpan Kata Sandi Baru
           </Button>
         </div>
       }
@@ -246,14 +288,68 @@ export function PasswordDialog({
         id="staff-password-form"
         className="grid gap-4"
         onChange={() => guard.setDirty(true)}
-        onSubmit={(event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          void onSubmit(String(data.get('email')), String(data.get('reason')));
-        }}
+        onSubmit={handleSubmit}
       >
-        <TextInput label="Email terverifikasi" name="email" type="email" required />
-        <TextInput label="Alasan" name="reason" minLength={3} maxLength={500} required />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={generateRandom}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest hover:underline"
+          >
+            <RefreshCw className="h-3 w-3" /> Buat Sandi Acak
+          </button>
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="text-xs font-bold text-dd-ink" htmlFor="new-password">
+            Kata Sandi Baru (Min. 8 Karakter)
+          </label>
+          <div className="relative flex items-center">
+            <input
+              id="new-password"
+              type={showPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                guard.setDirty(true);
+              }}
+              placeholder="Masukkan kata sandi baru"
+              minLength={8}
+              className="mt-1 min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 text-dd-muted hover:text-dd-ink"
+              tabIndex={-1}
+              aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="text-xs font-bold text-dd-ink" htmlFor="confirm-password">
+            Konfirmasi Kata Sandi Baru
+          </label>
+          <input
+            id="confirm-password"
+            type={showPassword ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              guard.setDirty(true);
+            }}
+            placeholder="Ketik ulang kata sandi baru"
+            minLength={8}
+            className="mt-1 min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+            required
+          />
+        </div>
+
+        {error && <p className="text-xs font-bold text-red-600">{error}</p>}
       </form>
     </Modal>
   );
@@ -270,18 +366,18 @@ export function StatusDialog({
   user: UserSummary;
   submitting: boolean;
   onClose(): void;
-  onSubmit(reason: string): Promise<void>;
+  onSubmit(): Promise<void>;
 }) {
   const deactivate = user.status === 'ACTIVE';
   const guard = useDialogFormGuard(open, onClose, 'perubahan status pengguna');
   return (
     <DestructiveDialog
       open={open}
-      title={deactivate ? 'Nonaktifkan pengguna' : 'Aktifkan kembali pengguna'}
+      title={deactivate ? 'Nonaktifkan Pengguna' : 'Aktifkan Kembali Pengguna'}
       impact={
         deactivate
-          ? 'Login dihentikan dan seluruh sesi aktif pengguna dicabut.'
-          : 'Pengguna dapat login kembali menggunakan role efektif yang masih tersedia.'
+          ? 'Login akun akan dihentikan dan seluruh sesi aktif pengguna dicabut.'
+          : 'Pengguna dapat login kembali menggunakan role yang telah ditetapkan.'
       }
       scope={roleSummary(user.roles).join(', ') || 'Tanpa role'}
       busy={submitting}
@@ -304,28 +400,23 @@ export function StatusDialog({
             variant={deactivate ? 'danger' : 'primary'}
             loading={submitting}
           >
-            {deactivate ? 'Konfirmasi nonaktifkan' : 'Konfirmasi aktifkan'}
+            {deactivate ? 'Konfirmasi Nonaktifkan' : 'Konfirmasi Aktifkan'}
           </Button>
         </div>
       }
     >
       <form
         id="staff-status-form"
-        className="grid gap-4"
+        className="grid gap-2"
         onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit(String(new FormData(event.currentTarget).get('reason')));
+          void onSubmit();
         }}
       >
-        <Textarea
-          label={`Alasan ${deactivate ? 'deaktivasi' : 'reaktivasi'}`}
-          name="reason"
-          minLength={3}
-          maxLength={500}
-          required
-        />
-        <p className="text-xs text-dd-muted">Expected version: v{user.version}</p>
+        <p className="text-sm text-dd-muted">
+          Apakah Anda yakin ingin {deactivate ? 'menonaktifkan' : 'mengaktifkan kembali'} akun <strong>{user.displayName}</strong>?
+        </p>
       </form>
     </DestructiveDialog>
   );

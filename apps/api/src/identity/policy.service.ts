@@ -89,7 +89,7 @@ export class PolicyService {
   }
 
   roleCatalog() {
-    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS']);
+    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'INSTRUCTOR']);
     const branchScoped = new Set<ApplicationRole>(['INSTRUCTOR', 'ADMIN', 'MANAGER', 'OWNER']);
     return (Object.keys(ROLE_CAPABILITIES) as ApplicationRole[]).map((role) => ({
       role,

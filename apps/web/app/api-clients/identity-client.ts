@@ -157,8 +157,8 @@ export interface IdentityClient {
     input: {
       displayName: string;
       phoneE164: string | null;
-      expectedVersion: number;
-      reason: string;
+      expectedVersion?: number;
+      reason?: string;
     },
   ): Promise<UserSummary>;
   roleCatalog(): Promise<RoleCatalogItem[]>;
@@ -177,16 +177,18 @@ export interface IdentityClient {
     email: string,
     displayName: string,
     roles: { role: ApplicationRole; branchId?: string | null }[],
+    options?: { phone?: string; password?: string },
   ): Promise<'CREATED' | 'EXISTS'>;
-  requestPasswordSetup(id: string, email: string, reason: string): Promise<void>;
+  resetPasswordDirect(id: string, newPassword: string): Promise<void>;
+  requestPasswordSetup(id: string, email: string, reason?: string): Promise<void>;
   updateRoles(
     id: string,
     roles: { role: ApplicationRole; branchId?: string | null }[],
-    expectedVersion: number,
-    reason: string,
+    expectedVersion?: number,
+    reason?: string,
   ): Promise<UserSummary>;
-  deactivate(id: string, expectedVersion: number, reason?: string): Promise<void>;
-  reactivate(id: string, expectedVersion: number, reason: string): Promise<void>;
+  deactivate(id: string, expectedVersion?: number, reason?: string): Promise<void>;
+  reactivate(id: string, expectedVersion?: number, reason?: string): Promise<void>;
 }
 
 
@@ -403,7 +405,11 @@ export const browserIdentityClient: IdentityClient = {
     return mapUser(
       await request(`/users/${encodeURIComponent(id)}/profile`, {
         method: 'PATCH',
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          ...input,
+          reason: input.reason ?? 'Pembaruan profil via Web Admin',
+          expectedVersion: input.expectedVersion ?? 1,
+        }),
       }),
     );
   },
@@ -436,20 +442,32 @@ export const browserIdentityClient: IdentityClient = {
     };
     return result;
   },
-  async invite(email, displayName, roles) {
+  async invite(email, displayName, roles, options = {}) {
     const result = await request('/users', {
       method: 'POST',
-      body: JSON.stringify({ email, displayName, roleAssignments: roles }),
+      body: JSON.stringify({
+        email,
+        displayName,
+        roleAssignments: roles,
+        phone: options.phone,
+        password: options.password,
+      }),
     });
     return (result as { status: string }).status === 'EXISTS' ? 'EXISTS' : 'CREATED';
   },
-  async requestPasswordSetup(id, email, reason) {
+  async resetPasswordDirect(id, newPassword) {
+    await request(`/users/${encodeURIComponent(id)}/direct-password-reset`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+  },
+  async requestPasswordSetup(id, email, reason = 'Setup kata sandi') {
     await request(`/users/${encodeURIComponent(id)}/password-setup-requests`, {
       method: 'POST',
       body: JSON.stringify({ email, reason }),
     });
   },
-  async updateRoles(id, roles, expectedVersion, reason) {
+  async updateRoles(id, roles, expectedVersion = 1, reason = 'Pembaruan role via Web Admin') {
     try {
       const user = await request(`/users/${encodeURIComponent(id)}/roles`, {
         method: 'POST',
@@ -476,13 +494,13 @@ export const browserIdentityClient: IdentityClient = {
       throw error;
     }
   },
-  async deactivate(id, expectedVersion, reason = 'ADMIN_REQUEST') {
+  async deactivate(id, expectedVersion = 1, reason = 'Deaktivasi via Web Admin') {
     await request(`/users/${encodeURIComponent(id)}/deactivate`, {
       method: 'POST',
       body: JSON.stringify({ reason, expectedVersion }),
     });
   },
-  async reactivate(id, expectedVersion, reason) {
+  async reactivate(id, expectedVersion = 1, reason = 'Reaktivasi via Web Admin') {
     await request(`/users/${encodeURIComponent(id)}/reactivate`, {
       method: 'POST',
       body: JSON.stringify({ reason, expectedVersion }),

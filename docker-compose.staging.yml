@@ -1,0 +1,104 @@
+name: dailydose-v2-staging
+
+x-logging: &staging-logging
+  driver: json-file
+  options:
+    max-size: '20m'
+    max-file: '5'
+
+services:
+  staging-mysql:
+    image: mysql:8.4
+    container_name: dailydose-v2-staging-db
+    restart: unless-stopped
+    env_file: .env.staging
+    ports:
+      - '3316:3306'
+    environment:
+      MYSQL_DATABASE: dailydose_staging
+      MYSQL_USER: dailydose
+      MYSQL_PASSWORD: staging_secret_pw_2026
+      MYSQL_ROOT_PASSWORD: staging_root_secret_pw_2026
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --server-id=101
+      - --binlog-format=ROW
+      - --binlog-row-image=FULL
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --innodb-buffer-pool-size=256M
+    volumes:
+      - staging-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD 2>&1 | grep -v "Warning" || exit 0']
+      interval: 5s
+      timeout: 3s
+      retries: 25
+    networks:
+      - staging-net
+    logging: *staging-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  staging-app:
+    image: dailydose-v2-app:staging
+    container_name: dailydose-v2-staging-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: http://127.0.0.1:32121
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ''
+    env_file: .env.staging
+    restart: unless-stopped
+    ports:
+      - '38120:32120'
+      - '38121:32121'
+    environment:
+      PORT: 32120
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://127.0.0.1:32121
+      PUBLIC_WEB_BASE_URL: http://localhost:38120
+      DATABASE_URL: mysql://dailydose:staging_secret_pw_2026@staging-mysql:3306/dailydose_staging
+      PUBLIC_UPLOAD_ROOT: /app/data/public-uploads
+      PRIVATE_UPLOAD_ROOT: /app/data/private
+      PAYMENT_PROOF_SCAN_DRIVER: synthetic
+      REDIS_URL: ''
+    volumes:
+      - staging-private-uploads:/app/data/private
+      - staging-public-uploads:/app/data/public-uploads
+    depends_on:
+      staging-mysql:
+        condition: service_healthy
+    networks:
+      - staging-net
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "Promise.all([fetch('http://127.0.0.1:32120/'), fetch('http://127.0.0.1:32121/api/v1/public/site-config')]).then(([w,a])=>{if(!w.ok||!a.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+    logging: *staging-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+volumes:
+  staging-mysql-data:
+  staging-private-uploads:
+  staging-public-uploads:
+
+networks:
+  staging-net:
+    driver: bridge

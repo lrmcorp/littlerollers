@@ -62,14 +62,14 @@ export class CustomerManagementController {
   create(
     @Req() request: AuthenticatedRequest,
     @Body() body: Parameters<CustomerManagementService['create']>[1],
-    @Headers('idempotency-key') idempotencyKey: string,
-    @Headers('x-customer-step-up') stepUpToken: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-customer-step-up') stepUpToken?: string,
   ) {
     return this.customers.create(
       request.principal,
       body,
-      idempotencyKey,
-      stepUpToken,
+      idempotencyKey ?? '',
+      stepUpToken ?? '',
       request.correlationId ?? 'unknown',
     );
   }
@@ -79,34 +79,53 @@ export class CustomerManagementController {
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: Parameters<CustomerManagementService['updateProfile']>[2],
-    @Headers('idempotency-key') idempotencyKey: string,
-    @Headers('x-customer-step-up') stepUpToken: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-customer-step-up') stepUpToken?: string,
   ) {
     return this.customers.updateProfile(
       request.principal,
       id,
       body,
-      idempotencyKey,
-      stepUpToken,
+      idempotencyKey ?? '',
+      stepUpToken ?? '',
       request.correlationId ?? 'unknown',
     );
+  }
+
+  @Post(':id/documents')
+  uploadDocument(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      kind?: 'KTP_FRONT' | 'SELFIE';
+      base64?: string;
+      fileName?: string;
+      mimeType?: string;
+    },
+  ) {
+    return this.customers.uploadDocument(request.principal, id, body.kind ?? 'KTP_FRONT', {
+      base64: body.base64,
+      fileName: body.fileName,
+      mimeType: body.mimeType,
+    });
   }
 
   @Post(':id/deactivate')
   deactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { expectedVersion: number; reason: string },
-    @Headers('idempotency-key') idempotencyKey: string,
-    @Headers('x-customer-step-up') stepUpToken: string,
+    @Body() body: { expectedVersion: number; reason?: string },
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-customer-step-up') stepUpToken?: string,
   ) {
     return this.customers.setStatus(
       request.principal,
       id,
       false,
       body,
-      idempotencyKey,
-      stepUpToken,
+      idempotencyKey ?? '',
+      stepUpToken ?? '',
       request.correlationId ?? 'unknown',
     );
   }
@@ -115,17 +134,17 @@ export class CustomerManagementController {
   reactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { expectedVersion: number; reason: string },
-    @Headers('idempotency-key') idempotencyKey: string,
-    @Headers('x-customer-step-up') stepUpToken: string,
+    @Body() body: { expectedVersion: number; reason?: string },
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-customer-step-up') stepUpToken?: string,
   ) {
     return this.customers.setStatus(
       request.principal,
       id,
       true,
       body,
-      idempotencyKey,
-      stepUpToken,
+      idempotencyKey ?? '',
+      stepUpToken ?? '',
       request.correlationId ?? 'unknown',
     );
   }

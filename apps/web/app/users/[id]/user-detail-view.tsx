@@ -177,9 +177,7 @@ export function UserDetailView({
 
   const directRoles = user.directRoles;
   const assignmentRoles = user.assignmentRoles;
-  // Treat legacy/test clients without the new audience field as staff until all
-  // consumers have moved to the generated contract.
-  const canAdminStaff = canAdmin && user.audience !== 'CUSTOMER';
+  const canManageUser = canAdmin;
   return (
     <section className="space-y-6" aria-labelledby="user-detail-title">
       <Link
@@ -219,22 +217,22 @@ export function UserDetailView({
           >
             Segarkan
           </Button>
-          {canAdminStaff && (
+          {canManageUser && (
             <Button onClick={() => setAction('profile')}>
               <UserRoundCog className="size-4" /> Edit profil
             </Button>
           )}
-          {canAdminStaff && (
+          {canManageUser && (
             <Button variant="secondary" onClick={() => setAction('roles')}>
               <ShieldCheck className="size-4" /> Kelola role
             </Button>
           )}
-          {canAdminStaff && user.status === 'ACTIVE' && (
+          {canManageUser && user.status === 'ACTIVE' && (
             <Button variant="secondary" onClick={() => setAction('password')}>
-              <KeyRound className="size-4" /> Setup password
+              <KeyRound className="size-4" /> Reset kata sandi
             </Button>
           )}
-          {canAdminStaff && user.status !== 'PENDING_ACTIVATION' && (
+          {canManageUser && user.status !== 'PENDING_ACTIVATION' && (
             <Button
               variant={user.status === 'ACTIVE' ? 'danger' : 'secondary'}
               onClick={() => setAction('status')}
@@ -491,51 +489,51 @@ export function UserDetailView({
       </div>
 
       <ProfileDialog
-        open={action === 'profile' && canAdminStaff}
+        open={action === 'profile' && canManageUser}
         user={user}
         submitting={submitting}
         onClose={closeAction}
         onSubmit={(input) =>
           runMutation(async () => {
             await client.updateProfile(user.id, { ...input, expectedVersion: user.version });
-          }, 'Profil staf berhasil diperbarui.')
+          }, 'Profil pengguna berhasil diperbarui.')
         }
       />
       <RoleDialog
-        open={action === 'roles' && canAdminStaff}
+        open={action === 'roles' && canManageUser}
         user={user}
         catalog={catalog.filter((item) => item.assignable)}
         branches={branches}
         submitting={submitting}
         onClose={closeAction}
-        onSubmit={(roles, reason) =>
+        onSubmit={(roles) =>
           runMutation(async () => {
-            await client.updateRoles(user.id, roles, user.version, reason);
+            await client.updateRoles(user.id, roles, user.version);
           }, 'Role dan cakupan berhasil diperbarui. Seluruh sesi pengguna telah dicabut.')
         }
       />
       <PasswordDialog
-        open={action === 'password' && canAdminStaff}
+        open={action === 'password' && canManageUser}
         submitting={submitting}
         onClose={closeAction}
-        onSubmit={(email, reason) =>
+        onSubmit={(newPassword) =>
           runMutation(
-            () => client.requestPasswordSetup(user.id, email, reason),
-            'Tautan setup password berhasil dikirim.',
+            () => client.resetPasswordDirect(user.id, newPassword),
+            'Kata sandi pengguna berhasil diperbarui.',
           )
         }
       />
       <StatusDialog
-        open={action === 'status' && canAdminStaff}
+        open={action === 'status' && canManageUser}
         user={user}
         submitting={submitting}
         onClose={closeAction}
-        onSubmit={(reason) =>
+        onSubmit={() =>
           runMutation(
             () =>
               user.status === 'ACTIVE'
-                ? client.deactivate(user.id, user.version, reason)
-                : client.reactivate(user.id, user.version, reason),
+                ? client.deactivate(user.id, user.version)
+                : client.reactivate(user.id, user.version),
             user.status === 'ACTIVE'
               ? 'Pengguna dinonaktifkan dan seluruh sesi dicabut.'
               : 'Pengguna berhasil diaktifkan kembali.',

@@ -649,6 +649,9 @@ export class IdentityController {
     body: {
       email: string;
       displayName?: string;
+      phone?: string;
+      phoneE164?: string;
+      password?: string;
       roles?: ApplicationRole[];
       branchIds?: string[];
       roleAssignments?: {
@@ -661,17 +664,33 @@ export class IdentityController {
   }
 
   @UseGuards(AuthGuard)
+  @Post('users/:id/direct-password-reset')
+  @HttpCode(HttpStatus.OK)
+  resetPasswordDirect(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { newPassword: string },
+  ) {
+    return this.users.resetPasswordDirect(
+      request.principal,
+      id,
+      body.newPassword,
+      request.correlationId ?? 'unknown',
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Post('users/:id/password-setup-requests')
   @HttpCode(202)
   requestPasswordSetup(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { email: string; reason: string },
+    @Body() body: { email: string; reason?: string },
   ) {
     return this.identities.requestPasswordSetup(
       request.principal,
       id,
-      body,
+      { email: body.email, reason: body.reason ?? 'Setup kata sandi' },
       request.correlationId ?? 'unknown',
     );
   }
@@ -685,8 +704,8 @@ export class IdentityController {
     @Body()
     body: {
       roles: { role: ApplicationRole; branchId?: string | null }[];
-      expectedVersion: number;
-      reason: string;
+      expectedVersion?: number;
+      reason?: string;
     },
   ) {
     return this.users.updateUserRoles(
@@ -703,13 +722,13 @@ export class IdentityController {
   deactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { reason: string; expectedVersion: number },
+    @Body() body?: { reason?: string; expectedVersion?: number },
   ) {
     return this.users.deactivate(
       request.principal,
       id,
-      body.reason,
-      body.expectedVersion,
+      body?.reason,
+      body?.expectedVersion,
       request.correlationId ?? 'unknown',
     );
   }
@@ -719,13 +738,13 @@ export class IdentityController {
   reactivate(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { reason: string; expectedVersion: number },
+    @Body() body?: { reason?: string; expectedVersion?: number },
   ) {
     return this.users.reactivate(
       request.principal,
       id,
-      body.reason,
-      body.expectedVersion,
+      body?.reason,
+      body?.expectedVersion,
       request.correlationId ?? 'unknown',
     );
   }

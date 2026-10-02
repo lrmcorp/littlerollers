@@ -647,6 +647,7 @@ describe('identity security foundation', () => {
   });
 
   it('rate limits only on hashed subject counters', async () => {
+    delete process.env.RATE_LIMIT_DISABLED;
     const upsert = jest.fn().mockResolvedValue({ attempts: 6 });
     const limiter = new RateLimitService({ rateLimitCounter: { upsert } } as never);
     await expect(limiter.consume('OTP_REQUEST', digest('+62800000000'))).rejects.toMatchObject({

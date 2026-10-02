@@ -100,10 +100,10 @@ const icons = {
 };
 
 const toneClasses = {
-  success: 'border-emerald-200 bg-dd-success-soft text-dd-success',
-  info: 'border-sky-200 bg-dd-info-soft text-dd-info',
-  warning: 'border-amber-200 bg-dd-warning-soft text-dd-warning',
-  danger: 'border-red-200 bg-dd-danger-soft text-dd-danger',
+  success: 'border-dd-success/30 bg-dd-success-soft text-dd-success',
+  info: 'border-dd-info/30 bg-dd-info-soft text-dd-info',
+  warning: 'border-dd-warning/40 bg-dd-warning-soft text-dd-warning',
+  danger: 'border-dd-danger/30 bg-dd-danger-soft text-dd-danger',
 };
 
 const newFeedbackId = () =>
@@ -235,33 +235,57 @@ export function AlertBanner({
   message,
   correlationReference,
   action,
-}: Omit<AppAlert, 'id'>) {
+  onDismiss,
+}: Omit<AppAlert, 'id'> & { onDismiss?: () => void }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true);
+  }, [title, message]);
+
+  if (!visible) return null;
+
   const Icon = icons[tone];
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
       aria-live={tone === 'danger' ? 'assertive' : 'polite'}
-      className={`flex gap-3 rounded-dd-lg border p-4 ${toneClasses[tone]}`}
+      className={`flex items-start justify-between gap-3 rounded-dd-md border p-4 ${toneClasses[tone]}`}
     >
-      <Icon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <strong className="block text-sm">{title}</strong>
-        {message && <p className="mt-1 text-sm leading-6 opacity-90">{message}</p>}
-        {correlationReference && (
-          <p className="mt-2 text-xs opacity-70">Kode bantuan: {correlationReference}</p>
-        )}
-        {action && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="mt-3"
-            onClick={action.onSelect}
-          >
-            {action.label}
-          </Button>
-        )}
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        <Icon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <strong className="block text-sm font-semibold">{title}</strong>
+          {message && <p className="mt-1 text-sm leading-6 opacity-90">{message}</p>}
+          {correlationReference && (
+            <p className="mt-2 text-xs opacity-70">Kode bantuan: {correlationReference}</p>
+          )}
+          {action && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={action.onSelect}
+            >
+              {action.label}
+            </Button>
+          )}
+        </div>
       </div>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={() => {
+            setVisible(false);
+            onDismiss();
+          }}
+          className="ml-2 -mr-1 -mt-1 p-1 rounded-dd-sm text-current opacity-60 hover:opacity-100 hover:bg-black/5 transition cursor-pointer"
+          aria-label="Tutup pemberitahuan"
+        >
+          <X className="size-4" />
+        </button>
+      )}
     </div>
   );
 }

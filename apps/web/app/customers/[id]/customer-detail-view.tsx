@@ -17,10 +17,16 @@ import {
   AlertCircle,
   Clock,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  KeyRound,
+  RefreshCw,
+  Upload,
+  Edit3,
 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ActionGroup, Button, ButtonLink } from '../../components/actions';
-import { PreviewModal } from '../../components/app-feedback';
+import { Drawer, Modal, PreviewModal } from '../../components/app-feedback';
 import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, Skeleton, StatusBadge } from '../../ui';
@@ -37,18 +43,27 @@ function CustomerDocumentCard({
   kind,
   doc,
   onZoom,
+  onUpload,
+  uploading,
+  canWrite,
 }: {
   title: string;
   kind: 'KTP_FRONT' | 'SELFIE';
   doc?: CustomerDetailDocument;
   onZoom: (title: string, blobUrl: string) => void;
+  onUpload?: (kind: 'KTP_FRONT' | 'SELFIE', base64: string, fileName: string) => Promise<void>;
+  uploading?: boolean;
+  canWrite?: boolean;
 }) {
   const [blobUrl, setBlobUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!doc?.id) return;
+    if (!doc?.id) {
+      setBlobUrl('');
+      return;
+    }
     let active = true;
     let createdUrl = '';
     setLoading(true);
@@ -87,10 +102,10 @@ function CustomerDocumentCard({
         )}
       </div>
       <div className="relative flex aspect-[16/10] w-full items-center justify-center bg-dd-surface-muted/40 p-2">
-        {loading ? (
+        {loading || uploading ? (
           <div className="flex flex-col items-center gap-2 text-xs text-dd-muted animate-pulse">
             <Loader2 className="size-6 animate-spin text-dd-forest" />
-            <span>Memuat pratinjau aman…</span>
+            <span>{uploading ? 'Mengunggah dokumen…' : 'Memuat pratinjau aman…'}</span>
           </div>
         ) : blobUrl ? (
           <div className="group relative h-full w-full overflow-hidden rounded-dd-md">
@@ -116,15 +131,41 @@ function CustomerDocumentCard({
       </div>
       <div className="flex items-center justify-between p-3 text-xs text-dd-muted border-t border-dd-line/60 bg-white">
         <span>Format: {kind === 'KTP_FRONT' ? 'KTP Depan' : 'Foto Selfie'}</span>
-        {blobUrl && (
-          <button
-            type="button"
-            onClick={() => onZoom(title, blobUrl)}
-            className="font-semibold text-dd-forest hover:underline inline-flex items-center gap-1 cursor-pointer"
-          >
-            <ZoomIn className="size-3.5" /> Lihat Detail
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {blobUrl && (
+            <button
+              type="button"
+              onClick={() => onZoom(title, blobUrl)}
+              className="font-semibold text-dd-forest hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              <ZoomIn className="size-3.5" /> Lihat Detail
+            </button>
+          )}
+          {canWrite && (
+            <label className="font-semibold text-dd-forest hover:underline inline-flex items-center gap-1 cursor-pointer">
+              <Upload className="size-3.5" />
+              <span>{doc ? 'Ganti Foto' : 'Unggah Foto'}</span>
+              <input
+                id={kind === 'KTP_FRONT' ? 'upload-ktp-front' : 'upload-selfie'}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !onUpload) return;
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const base64 = reader.result as string;
+                    await onUpload(kind, base64, file.name);
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -145,6 +186,71 @@ export function CustomerDetailView({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ title: string; src: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'packages' | 'bookings'>('packages');
+
+  // Reset Password State
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+
+  // Document Upload State
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+
+  // Edit Profile Drawer & Status Modal State
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = 'Dose';
+    for (let i = 0; i < 8; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += '!';
+    setNewPassword(res);
+    setShowPassword(true);
+  };
+
+  const handleResetPassword = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newPassword.trim() || newPassword.length < 8) {
+      setError('Kata sandi minimal 8 karakter.');
+      return;
+    }
+    setPasswordBusy(true);
+    setError('');
+    setSuccess('');
+    try {
+      await customerClient.resetPassword(id, newPassword.trim());
+      setSuccess(`Kata sandi akun ${customer?.displayName ?? 'pelanggan'} berhasil diperbarui.`);
+      setPasswordModalOpen(false);
+      setNewPassword('');
+      setShowPassword(false);
+    } catch {
+      setError('Gagal mereset kata sandi pelanggan. Pastikan akun aktif.');
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const handleUploadDocument = async (
+    kind: 'KTP_FRONT' | 'SELFIE',
+    base64: string,
+    fileName: string,
+  ) => {
+    setUploadingDoc(kind);
+    setError('');
+    setSuccess('');
+    try {
+      await customerClient.uploadDocument(id, kind, { base64, fileName });
+      setSuccess(`Dokumen ${kind === 'KTP_FRONT' ? 'KTP' : 'Foto Selfie'} berhasil diunggah.`);
+      await load();
+    } catch {
+      setError(`Gagal mengunggah dokumen ${kind === 'KTP_FRONT' ? 'KTP' : 'Foto Selfie'}.`);
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -170,19 +276,28 @@ export function CustomerDetailView({ id }: { id: string }) {
         id,
         {
           displayName: data.get('displayName'),
-          email: data.get('email'),
+          email: data.get('email') || null,
           phoneE164: data.get('phoneE164'),
           preferredBranchId: data.get('preferredBranchId') || null,
           expectedVersion: customer.version,
-          reason: data.get('reason'),
+          profile: {
+            nik: String(data.get('nik') || '').trim() || null,
+            genderCode: String(data.get('genderCode') || '').trim() || null,
+            birthDate: String(data.get('birthDate') || '').trim() || null,
+            address: String(data.get('address') || '').trim() || null,
+            emergencyContactName: String(data.get('emergencyContactName') || '').trim() || null,
+            emergencyContactPhone: String(data.get('emergencyContactPhone') || '').trim() || null,
+          },
+          reason: String(data.get('reason') || '').trim() || 'Pembaruan profil pelanggan',
         },
-        { stepUpToken: String(data.get('stepUpToken') || ''), idempotencyKey: crypto.randomUUID() },
+        { idempotencyKey: crypto.randomUUID() },
       );
-      setSuccess('Profil pelanggan berhasil diperbarui dan tercatat pada audit.');
+      setSuccess('Profil pelanggan berhasil diperbarui.');
+      setEditDrawerOpen(false);
       await load();
     } catch {
       setError(
-        'Perubahan belum dapat disimpan. Periksa MFA, kode verifikasi tindakan, dan versi data.',
+        'Perubahan profil belum dapat disimpan. Periksa kelengkapan data.',
       );
     } finally {
       setBusy(false);
@@ -201,19 +316,21 @@ export function CustomerDetailView({ id }: { id: string }) {
       await customerClient.setStatus(
         id,
         action,
-        { expectedVersion: customer.version, reason: String(data.get('reason') || '') },
-        { stepUpToken: String(data.get('stepUpToken') || ''), idempotencyKey: crypto.randomUUID() },
+        {
+          expectedVersion: customer.version,
+          reason: String(data.get('reason') || '').trim() || 'Perubahan status pelanggan',
+        },
+        { idempotencyKey: crypto.randomUUID() },
       );
       setSuccess(
         action === 'deactivate'
           ? 'Akun pelanggan dinonaktifkan.'
           : 'Akun pelanggan diaktifkan kembali.',
       );
+      setStatusModalOpen(false);
       await load();
     } catch {
-      setError(
-        'Status akun belum dapat diubah. Periksa MFA, kode verifikasi tindakan, dan versi data.',
-      );
+      setError('Status akun pelanggan belum dapat diubah.');
     } finally {
       setBusy(false);
     }
@@ -290,586 +407,753 @@ export function CustomerDetailView({ id }: { id: string }) {
 
       {/* Profile Header Banner */}
       <AdminPageHeader
-          title={customer.displayName}
-          description={`${customer.email ?? 'Email belum tersedia'} · ${customer.phoneE164 ?? 'Telepon belum tersedia'}`}
-          actions={
-            canSell && customer.status === 'ACTIVE' ? (
+        title={customer.displayName}
+        description={`${customer.email ?? 'Email belum tersedia'} · ${customer.phoneE164 ?? 'Telepon belum tersedia'}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {canWrite && (
+              <Button
+                variant="secondary"
+                onClick={() => setEditDrawerOpen(true)}
+                leadingIcon={<Edit3 className="size-4" />}
+              >
+                Edit profil
+              </Button>
+            )}
+            {canWrite && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setNewPassword('');
+                  setShowPassword(false);
+                  setPasswordModalOpen(true);
+                }}
+                leadingIcon={<KeyRound className="size-4" />}
+              >
+                Reset kata sandi
+              </Button>
+            )}
+            {canSell && customer.status === 'ACTIVE' && (
               <Button disabled={saleBranches.length === 0} onClick={() => setSaleOpen(true)}>
                 Jual paket
               </Button>
-            ) : undefined
-          }
-          badges={
-            <>
-              <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
-                {customerStatusLabels[customer.status] ?? customer.status}
+            )}
+          </div>
+        }
+        badges={
+          <>
+            <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
+              {customerStatusLabels[customer.status] ?? customer.status}
+            </StatusBadge>
+            <StatusBadge
+              tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}
+            >
+              {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
+            </StatusBadge>
+            {customer.stoppedAt && (
+              <StatusBadge tone="danger">
+                Berhenti (pengingat nonaktif)
               </StatusBadge>
-              <StatusBadge
-                tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}
-              >
-                {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
-              </StatusBadge>
-              {customer.stoppedAt && (
-                <StatusBadge tone="danger">
-                  Berhenti (pengingat nonaktif)
-                </StatusBadge>
-              )}
-              {customer.preferredBranch && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-dd-muted">
-                  <MapPin className="size-3.5 text-dd-forest" aria-hidden="true" />
-                  Cabang pilihan:{' '}
-                  <strong className="text-dd-ink">{customer.preferredBranch.name}</strong> (
-                  {customer.preferredBranch.code})
-                </span>
-              )}
-            </>
-          }
-        />
+            )}
+            {customer.preferredBranch && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-dd-muted">
+                <MapPin className="size-3.5 text-dd-forest" aria-hidden="true" />
+                Cabang pilihan:{' '}
+                <strong className="text-dd-ink">{customer.preferredBranch.name}</strong> (
+                {customer.preferredBranch.code})
+              </span>
+            )}
+          </>
+        }
+      />
 
-      {error && <Feedback kind="error">{error}</Feedback>}
-      {success && <Feedback kind="status">{success}</Feedback>}
+      {error && <Feedback kind="error" onDismiss={() => setError('')}>{error}</Feedback>}
+      {success && <Feedback kind="status" onDismiss={() => setSuccess('')}>{success}</Feedback>}
       {customer.passwordCredential?.mustChangePassword && (
         <Feedback kind="warning">
           Pelanggan wajib mengganti password awal sebelum mengakses transaksi bisnis.
         </Feedback>
       )}
-
-      {/* Top Metric Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <div key={c.label} className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">{c.label}</span>
-                <Icon className="size-4 text-dd-forest/70" />
-              </div>
-              <strong className="mt-2 block text-2xl font-bold text-dd-ink">{c.value}</strong>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Section: Dokumen Identitas (KTP & Selfie) */}
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line/80 pb-3">
-          <div>
-            <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
-              <ShieldCheck className="size-5 text-dd-forest" />
-              Dokumen Verifikasi Identitas (KYC)
-            </h2>
-            <p className="mt-0.5 text-xs text-dd-muted">
-              Dokumen KTP dan foto selfie terenkripsi yang diunggah pelanggan saat registrasi atau pembaruan profil.
-            </p>
-          </div>
-          <StatusBadge tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}>
-            Status KYC: {customer.verificationStatus === 'APPROVED' ? 'Lengkap & Terverifikasi' : 'Perlu Kelengkapan'}
-          </StatusBadge>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2">
-          <CustomerDocumentCard
-            title="Foto KTP Depan"
-            kind="KTP_FRONT"
-            doc={ktpDoc}
-            onZoom={(title, src) => setZoomImage({ title, src })}
-          />
-          <CustomerDocumentCard
-            title="Foto Selfie Pelanggan"
-            kind="SELFIE"
-            doc={selfieDoc}
-            onZoom={(title, src) => setZoomImage({ title, src })}
-          />
-        </div>
-      </div>
-
-      {/* Section: Data Demografi & Kontak Darurat */}
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs space-y-4">
-        <div className="border-b border-dd-line/80 pb-3">
-          <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
-            <User className="size-5 text-dd-forest" />
-            Data Demografi &amp; Informasi Kontak
-          </h2>
-          <p className="mt-0.5 text-xs text-dd-muted">
-            Rincian informasi pribadi, alamat domisili, dan kontak darurat untuk keselamatan member di studio.
-          </p>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-          <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-4">
-            <span className="text-xs font-medium text-dd-muted uppercase">NIK (Nomor KTP)</span>
-            <p className="mt-1 font-semibold text-dd-ink">{customer.profile?.nik || '—'}</p>
-          </div>
-          <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-4">
-            <span className="text-xs font-medium text-dd-muted uppercase">Jenis Kelamin</span>
-            <p className="mt-1 font-semibold text-dd-ink">
-              {customer.profile?.gender === 'FEMALE' || customer.profile?.genderCode === 'F'
-                ? 'Perempuan'
-                : customer.profile?.gender === 'MALE' || customer.profile?.genderCode === 'M'
-                  ? 'Laki-laki'
-                  : '—'}
-            </p>
-          </div>
-          <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-4">
-            <span className="text-xs font-medium text-dd-muted uppercase">Tanggal Lahir</span>
-            <p className="mt-1 font-semibold text-dd-ink">
-              {customer.profile?.birthDate
-                ? new Date(customer.profile.birthDate).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : '—'}
-            </p>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-2 rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-4">
-            <span className="text-xs font-medium text-dd-muted uppercase flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-dd-forest" /> Alamat Domisili
-            </span>
-            <p className="mt-1 font-semibold text-dd-ink">{customer.profile?.address || '—'}</p>
-          </div>
-          <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-4">
-            <span className="text-xs font-medium text-dd-muted uppercase flex items-center gap-1.5">
-              <Phone className="size-3.5 text-dd-forest" /> Kontak Darurat
-            </span>
-            <p className="mt-1 font-semibold text-dd-ink">
-              {customer.profile?.emergencyContactName || '—'}
-            </p>
-            {customer.profile?.emergencyContactPhone && (
-              <p className="text-xs text-dd-forest font-medium mt-0.5">
-                {customer.profile.emergencyContactPhone}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Section: Data Tables (Order, Paket Aktif, Booking Kelas) */}
-      <div className="rounded-dd-lg border border-dd-line bg-white shadow-xs overflow-hidden">
-        {/* Table Tabs Header */}
-        <div className="flex border-b border-dd-line bg-dd-surface-muted/30 px-6 pt-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('packages')}
-            className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 ${
-              activeTab === 'packages'
-                ? 'border-dd-forest text-dd-forest'
-                : 'border-transparent text-dd-muted hover:text-dd-ink'
-            }`}
-          >
-            <Package className="size-4" />
-            Paket Aktif &amp; Sesi ({customer.customerPackages.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('orders')}
-            className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 ${
-              activeTab === 'orders'
-                ? 'border-dd-forest text-dd-forest'
-                : 'border-transparent text-dd-muted hover:text-dd-ink'
-            }`}
-          >
-            <CreditCard className="size-4" />
-            Riwayat Order ({customer.purchases.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bookings')}
-            className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 ${
-              activeTab === 'bookings'
-                ? 'border-dd-forest text-dd-forest'
-                : 'border-transparent text-dd-muted hover:text-dd-ink'
-            }`}
-          >
-            <Calendar className="size-4" />
-            Riwayat Booking Kelas ({customer.customerBookings.length})
-          </button>
-        </div>
-
-        {/* Tab 1: Paket Aktif & Sisa Sesi */}
-        {activeTab === 'packages' && (
-          <div className="p-6">
-            {customer.customerPackages.length === 0 ? (
-              <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Pelanggan belum memiliki paket aktif saat ini.
-              </div>
-            ) : (
-              <DataTable
-                showRowNumbers={false}
-                items={customer.customerPackages}
-                rowKey={(cp) => cp.id}
-                columns={[
-                  {
-                    id: 'name',
-                    header: 'Nama Paket',
-                    cell: (cp) => (
-                      <span className="font-semibold text-dd-ink">
-                        {cp.package?.name ?? 'Paket Pilates'}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: 'total',
-                    header: 'Total Sesi',
-                    cell: (cp) => cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—',
-                  },
-                  {
-                    id: 'remaining',
-                    header: 'Sisa Sesi',
-                    cell: (cp) => (
-                      <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                        {cp.remainingSessions} Sesi
-                      </span>
-                    ),
-                  },
-                  { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
-                  {
-                    id: 'expiry',
-                    header: 'Masa Berlaku',
-                    cell: (cp) =>
-                      cp.expiryAt
-                        ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
-                        : 'Permanen',
-                  },
-                  {
-                    id: 'status',
-                    header: 'Status',
-                    cell: (cp) => (
-                      <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
-                        {statusLabel(cp.status)}
-                      </StatusBadge>
-                    ),
-                  },
-                  {
-                    id: 'manage',
-                    header: 'Tindakan',
-                    cell: (cp) => (
-                      <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
-                        {sessionContext?.hasCapability('customer-package:manage')
-                          ? 'Kelola'
-                          : 'Riwayat sesi'}
-                      </ButtonLink>
-                    ),
-                  },
-                ]}
-                mobileCard={(cp) => (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong className="text-dd-ink">{cp.package?.name ?? 'Paket Pilates'}</strong>
-                      <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
-                        {statusLabel(cp.status)}
-                      </StatusBadge>
-                    </div>
-                    <p className="text-sm text-dd-muted">
-                      Sisa {cp.remainingSessions} dari{' '}
-                      {cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—'} sesi ·{' '}
-                      {cp.expiryAt
-                        ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
-                        : 'Permanen'}
-                    </p>
-                  </div>
-                )}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Tab 2: Riwayat Order & Pembelian */}
-        {activeTab === 'orders' && (
-          <div className="p-6">
-            {customer.purchases.length === 0 ? (
-              <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Pelanggan belum memiliki riwayat pembelian paket.
-              </div>
-            ) : (
-              <DataTable
-                showRowNumbers={false}
-                items={customer.purchases}
-                rowKey={(p) => p.id}
-                columns={[
-                  {
-                    id: 'invoice',
-                    header: 'Invoice / Tanggal',
-                    cell: (p) => (
-                      <>
-                        <strong className="block text-dd-ink">
-                          {p.invoiceNumber ?? p.id.slice(0, 8)}
-                        </strong>
-                        <span className="text-xs text-dd-muted">
-                          {new Date(p.submittedAt).toLocaleDateString('id-ID')}
-                        </span>
-                      </>
-                    ),
-                  },
-                  {
-                    id: 'package',
-                    header: 'Paket',
-                    cell: (p) => (
-                      <span className="font-semibold text-dd-ink">
-                        {p.packageNameSnapshot ?? 'Paket Pilates'}
-                      </span>
-                    ),
-                  },
-                  { id: 'branch', header: 'Cabang', cell: (p) => p.branchName || '—' },
-                  {
-                    id: 'amount',
-                    header: 'Nominal',
-                    cell: (p) => (
-                      <span className="font-semibold text-dd-forest">
-                        Rp {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
-                      </span>
-                    ),
-                  },
-                  { id: 'method', header: 'Metode', cell: (p) => p.paymentMethod ?? 'Transfer' },
-                  {
-                    id: 'status',
-                    header: 'Status',
-                    cell: (p) => (
-                      <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
-                        {statusLabel(p.status)}
-                      </StatusBadge>
-                    ),
-                  },
-                  {
-                    id: 'proof',
-                    header: 'Bukti Bayar',
-                    cell: (p) =>
-                      p.paymentProofUrl ? (
-                        <ButtonLink
-                          variant="secondary"
-                          size="sm"
-                          href={`/workspace/payments/${p.id}`}
-                        >
-                          Lihat bukti
-                        </ButtonLink>
-                      ) : (
-                        <span className="text-dd-muted">—</span>
-                      ),
-                  },
-                ]}
-                mobileCard={(p) => (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong className="text-dd-ink">{p.invoiceNumber ?? p.id.slice(0, 8)}</strong>
-                      <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
-                        {statusLabel(p.status)}
-                      </StatusBadge>
-                    </div>
-                    <p className="text-sm text-dd-muted">
-                      {p.packageNameSnapshot ?? 'Paket Pilates'} · Rp{' '}
-                      {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                )}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Tab 3: Riwayat Booking Kelas */}
-        {activeTab === 'bookings' && (
-          <div className="p-6">
-            {customer.customerBookings.length === 0 ? (
-              <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                Pelanggan belum memiliki riwayat pemesanan kelas.
-              </div>
-            ) : (
-              <DataTable
-                showRowNumbers={false}
-                items={customer.customerBookings}
-                rowKey={(b) => b.id}
-                columns={[
-                  {
-                    id: 'number',
-                    header: 'No. Booking',
-                    cell: (b) => (
-                      <span className="font-semibold text-dd-ink">
-                        {b.bookingNumber ?? b.id.slice(0, 8)}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: 'class',
-                    header: 'Tipe Kelas',
-                    cell: (b) => b.classTypeName ?? 'Kelas Pilates',
-                  },
-                  { id: 'instructor', header: 'Instruktur', cell: (b) => b.instructorName ?? '—' },
-                  {
-                    id: 'time',
-                    header: 'Waktu Kelas',
-                    cell: (b) =>
-                      b.startAt
-                        ? `${new Date(b.startAt).toLocaleDateString('id-ID')} (${new Date(b.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`
-                        : '—',
-                  },
-                  {
-                    id: 'status',
-                    header: 'Status Booking',
-                    cell: (b) => (
-                      <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
-                        {statusLabel(b.status)}
-                      </StatusBadge>
-                    ),
-                  },
-                  {
-                    id: 'attendance',
-                    header: 'Kehadiran',
-                    cell: (b) => (
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          b.attendanceStatus === 'HADIR'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : b.attendanceStatus === 'BATAL'
-                              ? 'bg-rose-50 text-rose-700'
-                              : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
-                      </span>
-                    ),
-                  },
-                ]}
-                mobileCard={(b) => (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong className="text-dd-ink">{b.classTypeName ?? 'Kelas Pilates'}</strong>
-                      <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
-                        {statusLabel(b.status)}
-                      </StatusBadge>
-                    </div>
-                    <p className="text-sm text-dd-muted">
-                      {b.bookingNumber ?? b.id.slice(0, 8)} ·{' '}
-                      {b.startAt ? new Date(b.startAt).toLocaleDateString('id-ID') : '—'} ·{' '}
-                      {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
-                    </p>
-                  </div>
-                )}
-              />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Forms Section: Profil, Status, & Keaktifan */}
       {!canWrite && (
         <Feedback kind="info">
           Akun Anda hanya dapat melihat data pelanggan. Mengubah profil, status akun, dan status
           berhenti memerlukan izin pengelolaan pelanggan.
         </Feedback>
       )}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <form
-          onSubmit={updateProfile}
-          className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs"
-        >
-          <h2 className="font-semibold text-dd-ink">Edit Profil dan Kontak</h2>
-          <TextInput
-            required
-            label="Nama"
-            name="displayName"
-            defaultValue={customer.displayName}
-          />
-          <TextInput
-            required
-            type="email"
-            label="Email"
-            name="email"
-            defaultValue={customer.email ?? ''}
-          />
-          <TextInput
-            required
-            label="Telepon"
-            name="phoneE164"
-            defaultValue={customer.phoneE164 ?? ''}
-          />
-          <SearchSelect
-            label="Studio/Cabang pilihan"
-            name="preferredBranchId"
-            defaultValue={customer.preferredBranch?.id ?? ''}
-            placeholder="Belum ditentukan"
-            options={(session?.branches ?? []).map((branch) => ({
-              id: branch.id,
-              label: branch.name,
-            }))}
-          />
-          <TextInput required minLength={3} label="Alasan perubahan" name="reason" />
-          <TextInput
-            required
-            type="password"
-            autoComplete="off"
-            label="Kode verifikasi tindakan"
-            name="stepUpToken"
-          />
-          <Button type="submit" loading={busy} disabled={!canWrite}>
-            Simpan profil
-          </Button>
-        </form>
 
-        <div className="space-y-5">
-          <form
-            onSubmit={changeStatus}
-            className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6 shadow-xs"
-          >
-            <h2 className="font-semibold text-dd-ink">Status Akun Pelanggan</h2>
-            <p className="text-sm text-dd-muted">
-              Menonaktifkan akun mencabut seluruh sesi aktif. Tindakan ini tidak mengubah saldo atau
-              transaksi.
-            </p>
-            <TextInput
-              required
-              minLength={3}
-              label="Alasan Perubahan Status"
-              name="reason"
-              placeholder="Alasan perubahan status"
-            />
-            <TextInput
-              required
-              type="password"
-              autoComplete="off"
-              label="Kode Verifikasi Tindakan"
-              name="stepUpToken"
-              placeholder="Kode verifikasi tindakan"
-            />
-            <ActionGroup>
-              <Button
-                type="submit"
-                variant={customer.status === 'ACTIVE' ? 'danger' : 'primary'}
-                loading={busy}
-                disabled={!canWrite}
-              >
-                {customer.status === 'ACTIVE' ? 'Nonaktifkan pelanggan' : 'Aktifkan pelanggan'}
-              </Button>
-            </ActionGroup>
-          </form>
+      {/* 2-Column Studio Split Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: Profil, Dokumen KYC, Keamanan & Pengingat */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Card 1: Profil & Data Demografi */}
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-dd-line/80 pb-3">
+              <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
+                <User className="size-5 text-dd-forest" />
+                Profil &amp; Demografi
+              </h2>
+              {canWrite && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditDrawerOpen(true)}
+                  leadingIcon={<Edit3 className="size-3.5" />}
+                >
+                  Edit profil
+                </Button>
+              )}
+            </div>
 
-          <div className="rounded-dd-lg border border-dd-line bg-white p-6 space-y-3 shadow-xs">
-            <h2 className="font-semibold text-dd-ink">Status Reminder &amp; Keaktifan (Rule #12 &amp; #13)</h2>
-            <p className="text-sm text-dd-muted">
-              Tandai berhenti jika pelanggan telah berhenti pilates agar sistem tidak lagi mengirimkan pesan pengingat kedaluwarsa berkala melalui WhatsApp.
-            </p>
-            {customer.stoppedAt ? (
-              <div className="rounded-dd-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                Pelanggan ditandai <strong>BERHENTI</strong> sejak {new Date(customer.stoppedAt).toLocaleDateString('id-ID')}. Pesan reminder otomatis dinonaktifkan.
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">NIK (Nomor KTP)</span>
+                  <p className="mt-1 font-semibold text-dd-ink truncate" title={customer.profile?.nik || '—'}>
+                    {customer.profile?.nik || '—'}
+                  </p>
+                </div>
+                <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Jenis Kelamin</span>
+                  <p className="mt-1 font-semibold text-dd-ink">
+                    {customer.profile?.gender === 'FEMALE' || customer.profile?.genderCode === 'F'
+                      ? 'Perempuan'
+                      : customer.profile?.gender === 'MALE' || customer.profile?.genderCode === 'M'
+                        ? 'Laki-laki'
+                        : '—'}
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-dd-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                Pelanggan aktif dalam antrean reminder berkala normal.
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Tanggal Lahir</span>
+                  <p className="mt-1 font-semibold text-dd-ink">
+                    {customer.profile?.birthDate
+                      ? new Date(customer.profile.birthDate).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '—'}
+                  </p>
+                </div>
+                <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Cabang Pilihan</span>
+                  <p className="mt-1 font-semibold text-dd-ink truncate" title={customer.preferredBranch?.name || '—'}>
+                    {customer.preferredBranch?.name || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin className="size-3.5 text-dd-forest" /> Alamat Domisili
+                </span>
+                <p className="mt-1 font-semibold text-dd-ink break-words">{customer.profile?.address || '—'}</p>
+              </div>
+
+              <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
+                <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="size-3.5 text-dd-forest" /> Kontak Darurat
+                </span>
+                <p className="mt-1 font-semibold text-dd-ink">
+                  {customer.profile?.emergencyContactName || '—'}
+                </p>
+                {customer.profile?.emergencyContactPhone && (
+                  <p className="text-xs text-dd-forest font-medium mt-0.5">
+                    {customer.profile.emergencyContactPhone}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Dokumen Verifikasi (KYC) */}
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dd-line/80 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
+                  <ShieldCheck className="size-5 text-dd-forest" />
+                  Dokumen Identitas (KYC)
+                </h2>
+                <p className="mt-0.5 text-xs text-dd-muted">
+                  KTP &amp; selfie terenkripsi. Staf dapat unggah berkas langsung.
+                </p>
+              </div>
+              <StatusBadge tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}>
+                {customer.verificationStatus === 'APPROVED' ? 'Terverifikasi' : 'Perlu Dokumen'}
+              </StatusBadge>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <CustomerDocumentCard
+                title="Foto KTP Depan"
+                kind="KTP_FRONT"
+                doc={ktpDoc}
+                onZoom={(title, src) => setZoomImage({ title, src })}
+                onUpload={handleUploadDocument}
+                uploading={uploadingDoc === 'KTP_FRONT'}
+                canWrite={canWrite}
+              />
+              <CustomerDocumentCard
+                title="Foto Selfie Pelanggan"
+                kind="SELFIE"
+                doc={selfieDoc}
+                onZoom={(title, src) => setZoomImage({ title, src })}
+                onUpload={handleUploadDocument}
+                uploading={uploadingDoc === 'SELFIE'}
+                canWrite={canWrite}
+              />
+            </div>
+          </div>
+
+          {/* Card 3: Keamanan & Status Akun */}
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+            <div className="border-b border-dd-line/80 pb-3">
+              <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
+                <KeyRound className="size-5 text-dd-forest" />
+                Keamanan &amp; Status Akun
+              </h2>
+            </div>
+
+            {/* Status Akun */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20">
+              <div>
+                <div className="flex items-center gap-2">
+                  <strong className="text-sm font-semibold text-dd-ink">Status Akun</strong>
+                  <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
+                    {customerStatusLabels[customer.status] ?? customer.status}
+                  </StatusBadge>
+                </div>
+                <p className="text-xs text-dd-muted mt-0.5">
+                  {customer.status === 'ACTIVE'
+                    ? 'Akun aktif dapat masuk portal dan pesan kelas.'
+                    : 'Akun dinonaktifkan dari sesi aktif.'}
+                </p>
+              </div>
+              {canWrite && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setStatusModalOpen(true)}
+                >
+                  Ubah status
+                </Button>
+              )}
+            </div>
+
+            {/* Reminder WhatsApp (Rule #12 & #13) */}
+            <div className="space-y-2 p-3 rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20">
+              <div className="flex items-center justify-between gap-2">
+                <strong className="text-sm font-semibold text-dd-ink">Pengingat WhatsApp (Rule #12 &amp; #13)</strong>
+                {customer.stoppedAt ? (
+                  <StatusBadge tone="danger">Berhenti</StatusBadge>
+                ) : (
+                  <StatusBadge tone="success">Aktif</StatusBadge>
+                )}
+              </div>
+              <p className="text-xs text-dd-muted">
+                {customer.stoppedAt
+                  ? `Pelanggan ditandai berhenti sejak ${new Date(customer.stoppedAt).toLocaleDateString('id-ID')}. Pesan reminder otomatis WhatsApp dinonaktifkan.`
+                  : 'Pelanggan aktif dalam antrean reminder berkala normal.'}
+              </p>
+              {canWrite && (
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant={customer.stoppedAt ? 'primary' : 'danger'}
+                    size="sm"
+                    loading={busy}
+                    disabled={!canWrite}
+                    onClick={toggleStopped}
+                  >
+                    {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Pelanggan Berhenti'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Metrik Saldo & Tabbed Activity Tables */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Top Metric Cards */}
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
+            {cards.map((c) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.label} className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-dd-muted">{c.label}</span>
+                    <Icon className="size-4 text-dd-forest/70" />
+                  </div>
+                  <strong className="mt-1 block text-2xl font-bold text-dd-ink">{c.value}</strong>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Tabbed Tables (Paket Aktif, Riwayat Order, Riwayat Booking Kelas) */}
+          <div className="rounded-dd-lg border border-dd-line bg-white shadow-xs overflow-hidden">
+            {/* Table Tabs Header */}
+            <div className="flex border-b border-dd-line bg-dd-surface-muted/30 px-6 pt-3 gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab('packages')}
+                className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'packages'
+                    ? 'border-dd-forest text-dd-forest'
+                    : 'border-transparent text-dd-muted hover:text-dd-ink'
+                }`}
+              >
+                <Package className="size-4" />
+                Paket Aktif &amp; Sesi ({customer.customerPackages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('orders')}
+                className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'orders'
+                    ? 'border-dd-forest text-dd-forest'
+                    : 'border-transparent text-dd-muted hover:text-dd-ink'
+                }`}
+              >
+                <CreditCard className="size-4" />
+                Riwayat Order ({customer.purchases.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('bookings')}
+                className={`pb-3 px-4 font-semibold text-sm border-b-2 transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'bookings'
+                    ? 'border-dd-forest text-dd-forest'
+                    : 'border-transparent text-dd-muted hover:text-dd-ink'
+                }`}
+              >
+                <Calendar className="size-4" />
+                Riwayat Booking Kelas ({customer.customerBookings.length})
+              </button>
+            </div>
+
+            {/* Tab 1: Paket Aktif & Sisa Sesi */}
+            {activeTab === 'packages' && (
+              <div className="p-6">
+                {customer.customerPackages.length === 0 ? (
+                  <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
+                    Pelanggan belum memiliki paket aktif saat ini.
+                  </div>
+                ) : (
+                  <DataTable
+                    showRowNumbers={false}
+                    items={customer.customerPackages}
+                    rowKey={(cp) => cp.id}
+                    columns={[
+                      {
+                        id: 'name',
+                        header: 'Nama Paket',
+                        cell: (cp) => (
+                          <span className="font-semibold text-dd-ink">
+                            {cp.package?.name ?? 'Paket Pilates'}
+                          </span>
+                        ),
+                      },
+                      {
+                        id: 'total',
+                        header: 'Total Sesi',
+                        cell: (cp) => cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—',
+                      },
+                      {
+                        id: 'remaining',
+                        header: 'Sisa Sesi',
+                        cell: (cp) => (
+                          <span className="inline-flex rounded-full bg-dd-success-soft px-2.5 py-0.5 text-xs font-bold text-dd-forest">
+                            {cp.remainingSessions} Sesi
+                          </span>
+                        ),
+                      },
+                      { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
+                      {
+                        id: 'expiry',
+                        header: 'Masa Berlaku',
+                        cell: (cp) =>
+                          cp.expiryAt
+                            ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                            : 'Permanen',
+                      },
+                      {
+                        id: 'status',
+                        header: 'Status',
+                        cell: (cp) => (
+                          <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
+                            {statusLabel(cp.status)}
+                          </StatusBadge>
+                        ),
+                      },
+                      {
+                        id: 'manage',
+                        header: 'Tindakan',
+                        cell: (cp) => (
+                          <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
+                            {sessionContext?.hasCapability('customer-package:manage')
+                              ? 'Kelola'
+                              : 'Riwayat sesi'}
+                          </ButtonLink>
+                        ),
+                      },
+                    ]}
+                    mobileCard={(cp) => (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="text-dd-ink">{cp.package?.name ?? 'Paket Pilates'}</strong>
+                          <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
+                            {statusLabel(cp.status)}
+                          </StatusBadge>
+                        </div>
+                        <p className="text-sm text-dd-muted">
+                          Sisa {cp.remainingSessions} dari{' '}
+                          {cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—'} sesi ·{' '}
+                          {cp.expiryAt
+                            ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                            : 'Permanen'}
+                        </p>
+                      </div>
+                    )}
+                  />
+                )}
               </div>
             )}
-            <ActionGroup>
-              <Button
-                type="button"
-                variant={customer.stoppedAt ? 'primary' : 'danger'}
-                loading={busy}
-                disabled={!canWrite}
-                onClick={toggleStopped}
-              >
-                {customer.stoppedAt ? 'Aktifkan Kembali ke Reminder' : 'Tandai Pelanggan Berhenti'}
-              </Button>
-            </ActionGroup>
+
+            {/* Tab 2: Riwayat Order & Pembelian */}
+            {activeTab === 'orders' && (
+              <div className="p-6">
+                {customer.purchases.length === 0 ? (
+                  <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
+                    Pelanggan belum memiliki riwayat pembelian paket.
+                  </div>
+                ) : (
+                  <DataTable
+                    showRowNumbers={false}
+                    items={customer.purchases}
+                    rowKey={(p) => p.id}
+                    columns={[
+                      {
+                        id: 'invoice',
+                        header: 'Invoice / Tanggal',
+                        cell: (p) => (
+                          <>
+                            <strong className="block text-dd-ink">
+                              {p.invoiceNumber ?? p.id.slice(0, 8)}
+                            </strong>
+                            <span className="text-xs text-dd-muted">
+                              {new Date(p.submittedAt).toLocaleDateString('id-ID')}
+                            </span>
+                          </>
+                        ),
+                      },
+                      {
+                        id: 'package',
+                        header: 'Paket',
+                        cell: (p) => (
+                          <span className="font-semibold text-dd-ink">
+                            {p.packageNameSnapshot ?? 'Paket Pilates'}
+                          </span>
+                        ),
+                      },
+                      { id: 'branch', header: 'Cabang', cell: (p) => p.branchName || '—' },
+                      {
+                        id: 'amount',
+                        header: 'Nominal',
+                        cell: (p) => (
+                          <span className="font-semibold text-dd-forest">
+                            Rp {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
+                          </span>
+                        ),
+                      },
+                      { id: 'method', header: 'Metode', cell: (p) => p.paymentMethod ?? 'Transfer' },
+                      {
+                        id: 'status',
+                        header: 'Status',
+                        cell: (p) => (
+                          <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
+                            {statusLabel(p.status)}
+                          </StatusBadge>
+                        ),
+                      },
+                      {
+                        id: 'proof',
+                        header: 'Bukti Bayar',
+                        cell: (p) =>
+                          p.paymentProofUrl ? (
+                            <ButtonLink
+                              variant="secondary"
+                              size="sm"
+                              href={`/workspace/payments/${p.id}`}
+                            >
+                              Lihat bukti
+                            </ButtonLink>
+                          ) : (
+                            <span className="text-dd-muted">—</span>
+                          ),
+                      },
+                    ]}
+                    mobileCard={(p) => (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="text-dd-ink">{p.invoiceNumber ?? p.id.slice(0, 8)}</strong>
+                          <StatusBadge tone={p.status === 'PAID' ? 'success' : 'warning'}>
+                            {statusLabel(p.status)}
+                          </StatusBadge>
+                        </div>
+                        <p className="text-sm text-dd-muted">
+                          {p.packageNameSnapshot ?? 'Paket Pilates'} · Rp{' '}
+                          {(p.payableAmountRpSnapshot ?? 0).toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                    )}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Tab 3: Riwayat Booking Kelas */}
+            {activeTab === 'bookings' && (
+              <div className="p-6">
+                {customer.customerBookings.length === 0 ? (
+                  <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
+                    Pelanggan belum memiliki riwayat pemesanan kelas.
+                  </div>
+                ) : (
+                  <DataTable
+                    showRowNumbers={false}
+                    items={customer.customerBookings}
+                    rowKey={(b) => b.id}
+                    columns={[
+                      {
+                        id: 'number',
+                        header: 'No. Booking',
+                        cell: (b) => (
+                          <span className="font-semibold text-dd-ink">
+                            {b.bookingNumber ?? b.id.slice(0, 8)}
+                          </span>
+                        ),
+                      },
+                      {
+                        id: 'class',
+                        header: 'Tipe Kelas',
+                        cell: (b) => b.classTypeName ?? 'Kelas Pilates',
+                      },
+                      { id: 'instructor', header: 'Instruktur', cell: (b) => b.instructorName ?? '—' },
+                      {
+                        id: 'time',
+                        header: 'Waktu Kelas',
+                        cell: (b) =>
+                          b.startAt
+                            ? `${new Date(b.startAt).toLocaleDateString('id-ID')} (${new Date(b.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`
+                            : '—',
+                      },
+                      {
+                        id: 'status',
+                        header: 'Status Booking',
+                        cell: (b) => (
+                          <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
+                            {statusLabel(b.status)}
+                          </StatusBadge>
+                        ),
+                      },
+                      {
+                        id: 'attendance',
+                        header: 'Kehadiran',
+                        cell: (b) => (
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              b.attendanceStatus === 'HADIR'
+                                ? 'bg-dd-success-soft text-dd-forest'
+                                : b.attendanceStatus === 'BATAL'
+                                  ? 'bg-dd-danger-soft text-dd-danger'
+                                  : 'bg-dd-warning-soft text-dd-warning'
+                            }`}
+                          >
+                            {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
+                          </span>
+                        ),
+                      },
+                    ]}
+                    mobileCard={(b) => (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="text-dd-ink">{b.classTypeName ?? 'Kelas Pilates'}</strong>
+                          <StatusBadge tone={b.status === 'BOOKED' ? 'success' : 'neutral'}>
+                            {statusLabel(b.status)}
+                          </StatusBadge>
+                        </div>
+                        <p className="text-sm text-dd-muted">
+                          {b.bookingNumber ?? b.id.slice(0, 8)} ·{' '}
+                          {b.startAt ? new Date(b.startAt).toLocaleDateString('id-ID') : '—'} ·{' '}
+                          {statusLabel(b.attendanceStatus ?? 'MENUNGGU')}
+                        </p>
+                      </div>
+                    )}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Drawer */}
+      <Drawer
+        open={editDrawerOpen}
+        onClose={() => setEditDrawerOpen(false)}
+        title="Edit Profil & Data Demografi"
+        description="Perbarui identitas pribadi, alamat, cabang utama, dan kontak darurat pelanggan."
+        className="max-w-xl"
+      >
+        <form onSubmit={updateProfile} className="space-y-4 py-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              required
+              label="Nama Lengkap"
+              name="displayName"
+              defaultValue={customer.displayName}
+            />
+            <TextInput
+              type="email"
+              label="Email (Opsional)"
+              name="email"
+              defaultValue={customer.email ?? ''}
+              placeholder="nama@email.com"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              required
+              label="Nomor WhatsApp / HP"
+              name="phoneE164"
+              defaultValue={customer.phoneE164 ?? ''}
+            />
+            <SearchSelect
+              label="Studio/Cabang Pilihan"
+              name="preferredBranchId"
+              defaultValue={customer.preferredBranch?.id ?? ''}
+              placeholder="Belum ditentukan"
+              options={(session?.branches ?? []).map((branch) => ({
+                id: branch.id,
+                label: branch.name,
+              }))}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              label="NIK (Nomor KTP)"
+              name="nik"
+              defaultValue={customer.profile?.nik ?? ''}
+              placeholder="16 digit nomor induk kependudukan"
+              maxLength={32}
+            />
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold text-dd-ink" htmlFor="gender-select">
+                Jenis Kelamin
+              </label>
+              <select
+                id="gender-select"
+                name="genderCode"
+                defaultValue={customer.profile?.gender ?? customer.profile?.genderCode ?? ''}
+                className="w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              >
+                <option value="">Pilih Jenis Kelamin</option>
+                <option value="FEMALE">Perempuan</option>
+                <option value="MALE">Laki-laki</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              type="date"
+              label="Tanggal Lahir"
+              name="birthDate"
+              defaultValue={
+                customer.profile?.birthDate
+                  ? new Date(customer.profile.birthDate).toISOString().split('T')[0]
+                  : ''
+              }
+            />
+            <TextInput
+              label="Alamat Domisili"
+              name="address"
+              defaultValue={customer.profile?.address ?? ''}
+              placeholder="Alamat lengkap tempat tinggal"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              label="Nama Kontak Darurat"
+              name="emergencyContactName"
+              defaultValue={customer.profile?.emergencyContactName ?? ''}
+              placeholder="Nama keluarga / rekan"
+            />
+            <TextInput
+              label="Nomor Kontak Darurat"
+              name="emergencyContactPhone"
+              defaultValue={customer.profile?.emergencyContactPhone ?? ''}
+              placeholder="08123456789"
+            />
+          </div>
+          <TextInput
+            label="Catatan perubahan (opsional)"
+            name="reason"
+            placeholder="Contoh: Pembaruan data demografi dan kontak"
+          />
+          <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setEditDrawerOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" loading={busy} disabled={!canWrite}>
+              Simpan Perubahan Profil
+            </Button>
+          </div>
+        </form>
+      </Drawer>
+
+      {/* Change Status Modal */}
+      <Modal
+        open={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        title="Ubah Status Akun Pelanggan"
+        description="Menonaktifkan akun mencabut seluruh sesi aktif. Tindakan ini tidak mengubah saldo atau riwayat transaksi."
+      >
+        <form onSubmit={changeStatus} className="space-y-4 py-2">
+          <TextInput
+            label="Alasan perubahan status (opsional)"
+            name="reason"
+            placeholder="Contoh: Permintaan member"
+          />
+          <div className="flex justify-end gap-2 pt-2 border-t border-dd-line">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setStatusModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              variant={customer.status === 'ACTIVE' ? 'danger' : 'primary'}
+              loading={busy}
+              disabled={!canWrite}
+            >
+              {customer.status === 'ACTIVE' ? 'Nonaktifkan Pelanggan' : 'Aktifkan Pelanggan'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
       {canSell && saleBranches.length > 0 && (
         <AssistedSaleDrawer
           open={saleOpen}
@@ -880,6 +1164,68 @@ export function CustomerDetailView({ id }: { id: string }) {
           onRecorded={() => void load()}
         />
       )}
+
+      {/* Reset Password Modal */}
+      <Modal
+        open={passwordModalOpen}
+        title="Reset Kata Sandi Pelanggan"
+        description={`Setel kata sandi baru untuk akun ${customer.displayName}. Pelanggan dapat langsung login ke portal member menggunakan kata sandi ini.`}
+        onClose={() => setPasswordModalOpen(false)}
+      >
+        <form onSubmit={handleResetPassword} className="space-y-4 py-2">
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-dd-ink" htmlFor="new-customer-password">
+                Kata Sandi Baru (Min. 8 karakter)
+              </label>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest hover:underline cursor-pointer"
+              >
+                <RefreshCw className="size-3" /> Buat Sandi Acak
+              </button>
+            </div>
+            <div className="relative flex items-center">
+              <input
+                id="new-customer-password"
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Masukkan kata sandi baru atau klik Buat Sandi Acak"
+                minLength={8}
+                required
+                className="w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 pr-10 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 text-dd-muted hover:text-dd-ink cursor-pointer"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-dd-muted">
+              Setelah disimpan, kata sandi lama tidak lagi berlaku dan member dapat langsung login dengan sandi baru.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={passwordBusy}
+              onClick={() => setPasswordModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" loading={passwordBusy} disabled={!newPassword || newPassword.length < 8}>
+              Simpan Kata Sandi
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </section>
   );
 }

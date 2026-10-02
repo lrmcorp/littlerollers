@@ -482,11 +482,14 @@ export function UsersView({
           setSubmitting(true);
           setFailure(undefined);
           try {
-            const result = await client.invite(input.email, input.displayName, input.roles);
+            const result = await client.invite(input.email, input.displayName, input.roles, {
+              phone: input.phone,
+              password: input.password,
+            });
             setMessage(
               result === 'EXISTS'
-                ? 'Akun sudah tersedia dan tautan aktivasi dikirim ulang.'
-                : 'Pengguna internal dibuat dan tautan aktivasi berhasil dikirim.',
+                ? 'Akun email ini sudah terdaftar sebelumnya.'
+                : 'Pengguna staf berhasil dibuat dan akun langsung aktif.',
             );
             setInviteOpen(false);
             await load();
@@ -555,7 +558,7 @@ function UserActions({ user, canAdmin }: { user: UserSummary; canAdmin: boolean 
         >
           Lihat detail
         </Link>
-        {canAdmin && user.audience === 'STAFF' && (
+        {canAdmin && (
           <>
             <Link
               className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"

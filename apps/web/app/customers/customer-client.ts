@@ -162,16 +162,19 @@ export const customerClient = {
   updateProfile(
     id: string,
     input: Record<string, unknown>,
-    options: { stepUpToken: string; idempotencyKey: string },
+    options?: { stepUpToken?: string; idempotencyKey?: string },
   ) {
+    const headers: Record<string, string> = {
+      'idempotency-key': options?.idempotencyKey ?? crypto.randomUUID(),
+    };
+    if (options?.stepUpToken) {
+      headers['x-customer-step-up'] = options.stepUpToken;
+    }
     return request<{ id: string; version: number }>(
       `/customers/${encodeURIComponent(id)}/profile`,
       {
         method: 'PATCH',
-        headers: {
-          'x-customer-step-up': options.stepUpToken,
-          'idempotency-key': options.idempotencyKey,
-        },
+        headers,
         body: JSON.stringify(input),
       },
     );
@@ -179,17 +182,20 @@ export const customerClient = {
   setStatus(
     id: string,
     action: 'deactivate' | 'reactivate',
-    input: { expectedVersion: number; reason: string },
-    options: { stepUpToken: string; idempotencyKey: string },
+    input: { expectedVersion: number; reason?: string },
+    options?: { stepUpToken?: string; idempotencyKey?: string },
   ) {
+    const headers: Record<string, string> = {
+      'idempotency-key': options?.idempotencyKey ?? crypto.randomUUID(),
+    };
+    if (options?.stepUpToken) {
+      headers['x-customer-step-up'] = options.stepUpToken;
+    }
     return request<{ id: string; status: CustomerStatus; version: number }>(
       `/customers/${encodeURIComponent(id)}/${action}`,
       {
         method: 'POST',
-        headers: {
-          'x-customer-step-up': options.stepUpToken,
-          'idempotency-key': options.idempotencyKey,
-        },
+        headers,
         body: JSON.stringify(input),
       },
     );
@@ -208,6 +214,28 @@ export const customerClient = {
       `/customers/${encodeURIComponent(id)}/unmark-stopped`,
       {
         method: 'POST',
+      },
+    );
+  },
+  resetPassword(id: string, newPassword: string) {
+    return request<{ id: string; status: string }>(
+      `/users/${encodeURIComponent(id)}/direct-password-reset`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ newPassword }),
+      },
+    );
+  },
+  uploadDocument(
+    id: string,
+    kind: 'KTP_FRONT' | 'SELFIE',
+    file: { base64: string; fileName?: string; mimeType?: string },
+  ) {
+    return request<{ id: string; kind: string; status: string; url?: string }>(
+      `/customers/${encodeURIComponent(id)}/documents`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ kind, ...file }),
       },
     );
   },

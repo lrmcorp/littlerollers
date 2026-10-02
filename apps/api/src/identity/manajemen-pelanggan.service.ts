@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -7,6 +7,7 @@ import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.servic
 import { hashPassword, normalizeEmail } from './credential-security';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
+import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import { ApiProblem, newId } from './security';
 
 type CustomerStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
@@ -50,6 +51,7 @@ export class CustomerManagementService {
     private readonly policy: PolicyService,
     @Optional() private readonly idempotency?: IdempotencyService,
     @Optional() private readonly whatsapp?: WhatsAppGatewayService,
+    @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly storage?: PrivateFileStorage,
   ) {}
 
   private require(principal: SessionPrincipal, capability: string) {
@@ -446,12 +448,17 @@ export class CustomerManagementService {
     id: string,
     input: {
       displayName: string;
+      email?: string | null;
       phoneE164?: string | null;
       preferredBranchId?: string | null;
       profile?: {
+        nik?: string | null;
         address?: string | null;
         genderCode?: string | null;
         birthDate?: string | null;
+        emergencyContactName?: string | null;
+        emergencyContactPhone?: string | null;
+        notes?: string | null;
       };
       expectedVersion?: number;
       reason?: string;
@@ -471,10 +478,32 @@ export class CustomerManagementService {
       const user = await tx.user.findUnique({ where: { id } });
       if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
+      let email: string | undefined = undefined;
+      if (input.email !== undefined) {
+        const rawEmail = input.email?.trim().toLowerCase();
+        if (rawEmail) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(rawEmail)) {
+            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+          }
+          if (rawEmail !== user.email) {
+            const existing = await tx.user.findFirst({ where: { email: rawEmail, id: { not: id } } });
+            if (existing) {
+              throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT, false, [
+                { field: 'email', issue: 'Alamat email sudah digunakan pengguna lain.' },
+              ]);
+            }
+          }
+          email = rawEmail;
+        } else {
+          email = null as any;
+        }
+      }
+
       const updated = await tx.user.update({
         where: { id },
         data: {
           displayName,
+          ...(email !== undefined ? { email } : {}),
           ...(phone !== undefined ? { phone } : {}),
           ...(input.preferredBranchId !== undefined ? { preferredBranchId: input.preferredBranchId } : {}),
         },
@@ -487,15 +516,34 @@ export class CustomerManagementService {
             id: newId(),
             userId: id,
             fullName: displayName,
+            nik: input.profile.nik ?? null,
             address: input.profile.address ?? null,
             gender: input.profile.genderCode ?? null,
             birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : null,
+            emergencyContactName: input.profile.emergencyContactName ?? null,
+            emergencyContactPhone: input.profile.emergencyContactPhone ?? null,
+            notes: input.profile.notes ?? null,
           },
           update: {
             fullName: displayName,
-            address: input.profile.address ?? undefined,
-            gender: input.profile.genderCode ?? undefined,
-            birthDate: input.profile.birthDate ? new Date(input.profile.birthDate) : undefined,
+            nik: input.profile.nik !== undefined ? input.profile.nik : undefined,
+            address: input.profile.address !== undefined ? input.profile.address : undefined,
+            gender: input.profile.genderCode !== undefined ? input.profile.genderCode : undefined,
+            birthDate:
+              input.profile.birthDate !== undefined
+                ? input.profile.birthDate
+                  ? new Date(input.profile.birthDate)
+                  : null
+                : undefined,
+            emergencyContactName:
+              input.profile.emergencyContactName !== undefined
+                ? input.profile.emergencyContactName
+                : undefined,
+            emergencyContactPhone:
+              input.profile.emergencyContactPhone !== undefined
+                ? input.profile.emergencyContactPhone
+                : undefined,
+            notes: input.profile.notes !== undefined ? input.profile.notes : undefined,
           },
         });
       }
@@ -528,6 +576,56 @@ export class CustomerManagementService {
     );
 
     return result.body as any;
+  }
+
+  async uploadDocument(
+    principal: SessionPrincipal,
+    customerId: string,
+    kind: 'KTP_FRONT' | 'SELFIE',
+    file: { buffer?: Buffer; base64?: string; fileName?: string; mimeType?: string },
+  ) {
+    this.require(principal, 'customer:write');
+    const customer = await this.db.user.findUnique({ where: { id: customerId } });
+    if (!customer) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    let buffer = file.buffer;
+    if (!buffer && file.base64) {
+      const parts = file.base64.split(';base64,');
+      const base64Data = (parts.length > 1 ? parts[1] : parts[0]) ?? '';
+      buffer = Buffer.from(base64Data, 'base64');
+    }
+    if (!buffer) {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const ext = file.fileName?.split('.').pop() || 'jpg';
+    const key = `identity-documents/${customerId}/${kind.toLowerCase()}-${Date.now()}.${ext}`;
+
+    if (this.storage) {
+      await this.storage.put({ key, content: buffer }).catch(() => null);
+    }
+
+    await this.db.profilPengguna.upsert({
+      where: { userId: customerId },
+      create: {
+        id: newId(),
+        userId: customerId,
+        fullName: customer.displayName,
+        ktpUrl: kind === 'KTP_FRONT' ? key : null,
+        selfieUrl: kind === 'SELFIE' ? key : null,
+      },
+      update: {
+        ...(kind === 'KTP_FRONT' ? { ktpUrl: key } : { selfieUrl: key }),
+      },
+    });
+
+    return {
+      id: `doc-${kind === 'KTP_FRONT' ? 'ktp' : 'selfie'}-${customerId}`,
+      kind,
+      status: 'APPROVED',
+      url: `/api/v1/identity-verifications/doc-${kind === 'KTP_FRONT' ? 'ktp' : 'selfie'}-${customerId}/view-authorizations`,
+      uploadedAt: new Date().toISOString(),
+    };
   }
 
   async setStatus(

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
+import { Eye, EyeOff, RefreshCw } from 'lucide-react';
 import {
   type ApplicationRole,
   type RoleCatalogItem,
@@ -130,52 +131,76 @@ export function InviteUserDrawer({
   onSubmit(input: {
     email: string;
     displayName: string;
+    phone?: string;
+    password?: string;
     roles: { role: ApplicationRole; branchId?: string | null }[];
   }): Promise<void>;
 }) {
   const feedback = useOptionalAppFeedback();
   const [selection, setSelection] = useState<RoleSelectionValue>({});
   const [dirty, setDirty] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const selectedRoles = useMemo(() => rolesFromSelection(roles, selection), [roles, selection]);
   const invalid =
     selectedRoles.length === 0 ||
     selectedRoles.some(
       (item) => roles.find(({ role }) => role === item.role)?.scope === 'BRANCH' && !item.branchId,
     );
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = 'Dose';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += '!';
+    setPassword(res);
+    setShowPassword(true);
+    setDirty(true);
+  };
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     void onSubmit({
       email: String(data.get('email')),
       displayName: String(data.get('displayName')),
+      phone: String(data.get('phone') || '').trim() || undefined,
+      password: password.trim() || undefined,
       roles: selectedRoles,
     });
   };
-  const hasChanges = dirty || Object.keys(selection).length > 0;
+
+  const hasChanges = dirty || Object.keys(selection).length > 0 || password.length > 0;
   const confirmDiscard = () =>
     feedback?.confirm({
       tone: 'warning',
       title: 'Batalkan pembuatan pengguna?',
-      message: 'Profil dan role yang belum disimpan akan hilang.',
+      message: 'Data pengguna dan role yang belum disimpan akan hilang.',
       confirmLabel: 'Buang input',
     }) ?? Promise.resolve(true);
+
   const cancel = async () => {
     if (!hasChanges || (await confirmDiscard())) {
       setDirty(false);
       setSelection({});
+      setPassword('');
       onClose();
     }
   };
+
   return (
     <Drawer
       open={open}
-      title="Buat pengguna internal"
+      title="Tambah Pengguna Baru"
       busy={submitting}
       dirty={hasChanges}
       onDirtyClose={confirmDiscard}
       onClose={() => {
         setDirty(false);
         setSelection({});
+        setPassword('');
         onClose();
       }}
       footer={
@@ -194,7 +219,7 @@ export function InviteUserDrawer({
             loading={submitting}
             disabled={invalid}
           >
-            Buat pengguna dan kirim aktivasi
+            Simpan Pengguna &amp; Aktifkan
           </Button>
         </div>
       }
@@ -207,16 +232,72 @@ export function InviteUserDrawer({
         onSubmit={submit}
       >
         <p className="text-sm leading-6 text-dd-muted">
-          Akun dibuat sebagai menunggu aktivasi. Pengguna menentukan password melalui tautan aman.
+          Buat akun staf baru untuk operasional studio. Pengguna langsung aktif dan dapat segera login dengan email serta kata sandi yang ditentukan.
         </p>
         <TextInput
-          label="Nama tampilan"
+          label="Nama Lengkap"
           name="displayName"
+          placeholder="contoh: Sarah Kartika"
           minLength={2}
           maxLength={160}
           required
         />
-        <TextInput label="Email kerja" name="email" type="email" autoComplete="off" required />
+        <TextInput
+          label="Alamat Email"
+          name="email"
+          type="email"
+          placeholder="contoh: sarah@dailydose.test"
+          autoComplete="off"
+          required
+        />
+        <TextInput
+          label="Nomor WhatsApp / HP (Opsional)"
+          name="phone"
+          type="tel"
+          placeholder="contoh: 081234567890"
+        />
+
+        <div className="grid gap-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-dd-ink" htmlFor="user-password-input">
+              Kata Sandi Awal (Minimal 8 karakter)
+            </label>
+            <button
+              type="button"
+              onClick={generateRandomPassword}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest hover:underline"
+            >
+              <RefreshCw className="h-3 w-3" /> Buat Sandi Acak
+            </button>
+          </div>
+          <div className="relative flex items-center">
+            <input
+              id="user-password-input"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setDirty(true);
+              }}
+              placeholder="Masukkan password atau klik Buat Sandi Acak"
+              minLength={8}
+              className={inputClass}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 text-dd-muted hover:text-dd-ink"
+              tabIndex={-1}
+              aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-dd-muted">
+            Jika dikosongkan, pengguna dapat login via Google OAuth atau sandi diset nanti oleh admin.
+          </p>
+        </div>
+
         <RoleSelection
           catalog={roles}
           branches={branches}

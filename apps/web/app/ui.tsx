@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
-import { Inbox } from 'lucide-react';
+'use client';
+
+import { type ReactNode, useEffect, useState } from 'react';
+import { Inbox, X } from 'lucide-react';
 
 export function PageHeader({
   eyebrow,
@@ -42,10 +44,10 @@ export function StatusBadge({
 }) {
   const classes = {
     neutral: 'bg-dd-surface-muted text-dd-muted ring-dd-line',
-    info: 'bg-dd-info-soft text-dd-info ring-sky-200',
-    success: 'bg-dd-success-soft text-dd-success ring-emerald-200',
-    warning: 'bg-dd-warning-soft text-dd-warning ring-amber-200',
-    danger: 'bg-dd-danger-soft text-dd-danger ring-red-200',
+    info: 'bg-dd-info-soft text-dd-info ring-dd-info/30',
+    success: 'bg-dd-success-soft text-dd-success ring-dd-success/30',
+    warning: 'bg-dd-warning-soft text-dd-warning ring-dd-warning/40',
+    danger: 'bg-dd-danger-soft text-dd-danger ring-dd-danger/30',
   };
   return (
     <span
@@ -60,25 +62,65 @@ export function StatusBadge({
 export function Feedback({
   kind,
   children,
+  onDismiss,
+  autoDismiss,
+  durationMs = 5000,
 }: {
   kind: 'status' | 'error' | 'warning' | 'info';
   children: ReactNode;
+  onDismiss?: () => void;
+  autoDismiss?: boolean;
+  durationMs?: number;
 }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true);
+  }, [children]);
+
+  useEffect(() => {
+    const shouldAutoDismiss = autoDismiss ?? (kind === 'status');
+    if (!shouldAutoDismiss) return;
+
+    const timer = setTimeout(() => {
+      setVisible(false);
+      onDismiss?.();
+    }, durationMs);
+
+    return () => clearTimeout(timer);
+  }, [autoDismiss, children, durationMs, kind, onDismiss]);
+
+  if (!visible) return null;
+
   const role = kind === 'error' ? 'alert' : 'status';
   const classes = {
-    status: 'border-emerald-200 bg-dd-success-soft text-dd-success',
-    error: 'border-red-200 bg-dd-danger-soft text-dd-danger',
-    warning: 'border-amber-200 bg-dd-warning-soft text-dd-warning',
-    info: 'border-sky-200 bg-dd-info-soft text-dd-info',
+    status: 'border-dd-success/30 bg-dd-success-soft text-dd-success',
+    error: 'border-dd-danger/30 bg-dd-danger-soft text-dd-danger',
+    warning: 'border-dd-warning/40 bg-dd-warning-soft text-dd-warning',
+    info: 'border-dd-info/30 bg-dd-info-soft text-dd-info',
   };
+
   return (
     <div
-      className={`flex gap-3 rounded-dd-md border p-4 text-sm leading-6 ${classes[kind]}`}
+      className={`flex items-start justify-between gap-3 rounded-dd-md border p-3.5 text-sm leading-6 transition-all duration-200 ${classes[kind]}`}
       role={role}
       aria-live={kind === 'error' ? 'assertive' : 'polite'}
     >
-      <span className="mt-2 size-2 shrink-0 rounded-full bg-current" aria-hidden="true" />
-      <div>{children}</div>
+      <div className="flex items-start gap-3 min-w-0">
+        <span className="mt-2 size-2 shrink-0 rounded-full bg-current" aria-hidden="true" />
+        <div className="min-w-0 break-words font-medium">{children}</div>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setVisible(false);
+          onDismiss?.();
+        }}
+        className="ml-2 -mr-1 -mt-1 p-1 rounded-dd-sm text-current opacity-60 hover:opacity-100 hover:bg-black/5 transition cursor-pointer"
+        aria-label="Tutup pemberitahuan"
+      >
+        <X className="size-4" />
+      </button>
     </div>
   );
 }
@@ -107,9 +149,9 @@ export function Skeleton({ label = 'Memuat konten' }: { label?: string }) {
       role="status"
       aria-label={label}
     >
-      <span className="h-5 w-4/5 animate-pulse rounded bg-stone-100" />
-      <span className="h-5 animate-pulse rounded bg-stone-100" />
-      <span className="h-5 w-2/5 animate-pulse rounded bg-stone-100" />
+      <span className="h-5 w-4/5 animate-pulse rounded bg-dd-surface-muted" />
+      <span className="h-5 animate-pulse rounded bg-dd-surface-muted" />
+      <span className="h-5 w-2/5 animate-pulse rounded bg-dd-surface-muted" />
     </div>
   );
 }

@@ -60,6 +60,7 @@ const client = (overrides: Partial<IdentityClient> = {}): IdentityClient => ({
   }),
   invite: vi.fn().mockResolvedValue('CREATED'),
   requestPasswordSetup: vi.fn().mockResolvedValue(undefined),
+  resetPasswordDirect: vi.fn().mockResolvedValue(undefined),
   updateRoles: vi.fn(),
   deactivate: vi.fn().mockResolvedValue(undefined),
   reactivate: vi.fn().mockResolvedValue(undefined),
@@ -218,14 +219,17 @@ describe('identity UI', () => {
     );
     expect((await screen.findAllByText('Staff Finance'))[0]).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Buat pengguna internal' }));
-    await userEvent.type(screen.getByLabelText('Nama tampilan'), 'Staff Baru');
-    await userEvent.type(screen.getByLabelText('Email kerja'), 'staff@example.test');
+    await userEvent.type(screen.getByLabelText('Nama Lengkap'), 'Staff Baru');
+    await userEvent.type(screen.getByLabelText('Alamat Email'), 'staff@example.test');
     await userEvent.click(screen.getByRole('checkbox', { name: /Finance/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Buat pengguna dan kirim aktivasi/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Simpan Pengguna & Aktifkan' }));
     expect(await screen.findByRole('status')).toHaveTextContent('berhasil');
-    expect(fake.invite).toHaveBeenCalledWith('staff@example.test', 'Staff Baru', [
-      { role: 'FINANCE', branchId: null },
-    ]);
+    expect(fake.invite).toHaveBeenCalledWith(
+      'staff@example.test',
+      'Staff Baru',
+      [{ role: 'FINANCE', branchId: null }],
+      { password: undefined, phone: undefined },
+    );
     expect(screen.getAllByRole('link', { name: 'Staff Finance' })[0]).toHaveAttribute(
       'href',
       '/users/user-1',
@@ -409,10 +413,9 @@ describe('identity UI', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Staff Finance' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Nonaktifkan' }));
-    await userEvent.type(screen.getByLabelText('Alasan deaktivasi'), 'akses selesai');
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi nonaktifkan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi Nonaktifkan' }));
     expect(await screen.findByRole('status')).toHaveTextContent('dinonaktifkan');
-    expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1, 'akses selesai');
+    expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1);
   });
 
   it('defaults user mutations to deny and exposes searchable dynamic role management', async () => {
