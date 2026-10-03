@@ -40,7 +40,7 @@ RUN pnpm build \
     && install -d apps/web/.next/standalone/apps/web/public \
     && cp -a apps/web/.next/static/. apps/web/.next/standalone/apps/web/.next/static/ \
     && cp -a apps/web/public/. apps/web/.next/standalone/apps/web/public/ \
-    && rm -rf .turbo apps/web/.next/cache \
+    && rm -rf .turbo apps/web/.next/cache /root/.local/share/pnpm/store /pnpm/store \
     && chmod +x docker-entrypoint.sh
 
 FROM node:24-bookworm-slim AS runner
@@ -57,7 +57,7 @@ RUN apt-get update \
 COPY --from=builder --chown=dailydose:dailydose /app /app
 
 RUN mkdir -p /app/.local-data/public-uploads /app/data/private /app/data/public-uploads \
-    && chown -R dailydose:dailydose /app
+    && chown -R dailydose:dailydose /app/.local-data /app/data
 
 USER dailydose
 

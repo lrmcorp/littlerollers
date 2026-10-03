@@ -24,5 +24,9 @@ apps/api/.local-data
 artifacts
 Archive.zip
 *.log
+backups
+*.sql
+*.sql.gz
+*.pdf
 .DS_Store
 **/.DS_Store
